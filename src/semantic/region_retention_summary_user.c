@@ -24,9 +24,9 @@ region_retention_param_is_direct_identifier(const ASTNode *expr,
 {
     return expr != NULL
         && expr->type == AST_IDENTIFIER
-        && expr->data.identifier.name != NULL
+        && ast_identifier_name(expr) != NULL
         && parameter_name != NULL
-        && strcmp(expr->data.identifier.name, parameter_name) == 0;
+        && strcmp(ast_identifier_name(expr), parameter_name) == 0;
 }
 
 static bool
@@ -38,51 +38,51 @@ region_retention_body_is_safe(const ASTNode *node,
 
     switch (node->type) {
     case AST_PROGRAM:
-        for (size_t i = 0; i < node->data.program.count; i++) {
+        for (size_t i = 0; i < ast_program_statement_count(node); i++) {
             if (!region_retention_body_is_safe(
-                    node->data.program.statements[i], parameter_name))
+                    ast_program_statement(node, i), parameter_name))
                 return false;
         }
         return true;
     case AST_BLOCK:
-        for (size_t i = 0; i < node->data.block.count; i++) {
+        for (size_t i = 0; i < ast_block_statement_count(node); i++) {
             if (!region_retention_body_is_safe(
-                    node->data.block.statements[i], parameter_name))
+                    ast_block_statement(node, i), parameter_name))
                 return false;
         }
         return true;
     case AST_IF_STMT:
-        return region_retention_body_is_safe(node->data.if_stmt.condition,
+        return region_retention_body_is_safe(ast_if_condition(node),
                                              parameter_name)
-            && region_retention_body_is_safe(node->data.if_stmt.then_branch,
+            && region_retention_body_is_safe(ast_if_then_branch(node),
                                              parameter_name)
-            && region_retention_body_is_safe(node->data.if_stmt.else_branch,
+            && region_retention_body_is_safe(ast_if_else_branch(node),
                                              parameter_name);
     case AST_WHILE_LOOP:
-        return region_retention_body_is_safe(node->data.while_loop.condition,
+        return region_retention_body_is_safe(ast_while_condition(node),
                                              parameter_name)
-            && region_retention_body_is_safe(node->data.while_loop.body,
+            && region_retention_body_is_safe(ast_while_body(node),
                                              parameter_name);
     case AST_FOR_LOOP:
-        return region_retention_body_is_safe(node->data.for_loop.range_start,
+        return region_retention_body_is_safe(ast_for_range_start(node),
                                              parameter_name)
-            && region_retention_body_is_safe(node->data.for_loop.range_end,
+            && region_retention_body_is_safe(ast_for_range_end(node),
                                              parameter_name)
-            && region_retention_body_is_safe(node->data.for_loop.iterable,
+            && region_retention_body_is_safe(ast_for_iterable(node),
                                              parameter_name)
-            && region_retention_body_is_safe(node->data.for_loop.body,
+            && region_retention_body_is_safe(ast_for_body(node),
                                              parameter_name);
     case AST_WITH_STMT:
-        return region_retention_body_is_safe(node->data.with_stmt.slot_type,
+        return region_retention_body_is_safe(ast_with_slot_type(node),
                                              parameter_name)
-            && region_retention_body_is_safe(node->data.with_stmt.body,
+            && region_retention_body_is_safe(ast_with_body(node),
                                              parameter_name);
     case AST_CALL:
-        if (!region_retention_body_is_safe(node->data.call.callee,
+        if (!region_retention_body_is_safe(ast_call_callee(node),
                                            parameter_name))
             return false;
-        for (size_t i = 0; i < node->data.call.arg_count; i++) {
-            const ASTNode *argument = node->data.call.arguments[i];
+        for (size_t i = 0; i < ast_call_arg_count(node); i++) {
+            const ASTNode *argument = ast_call_argument(node, i);
             bool uses_parameter = ast_contains_identifier_ref(
                 argument,
                 region_retention_identifier_matches,

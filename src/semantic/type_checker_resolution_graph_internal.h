@@ -46,6 +46,7 @@ void semantic_stage_intent_decl(ASTNode *decl, SemanticContext *ctx);
 void semantic_stage_relation_decl(ASTNode *decl, SemanticContext *ctx);
 void semantic_stage_effect_decl(ASTNode *decl, SemanticContext *ctx);
 void semantic_stage_zone_decl(ASTNode *decl, SemanticContext *ctx);
+uint32_t semantic_program_syntax_id(SemanticContext *ctx);
 ASTNode *semantic_find_top_level_decl_by_label(ASTNode *program,
                                                const char *label,
                                                TypeResolutionNodeKind kind);

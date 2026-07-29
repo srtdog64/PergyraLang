@@ -141,6 +141,8 @@ for rel in \
     "src/codegen/llvm_decl_routines.c" \
     "src/codegen/llvm_backend.h" \
     "src/codegen/llvm_register.c" \
+    "src/codegen/llvm_registration_names.c" \
+    "src/codegen/llvm_registration_names.h" \
     "src/codegen/transpiler.h" \
     "src/codegen/transpiler_inventory_view.c" \
     "src/codegen/transpiler_inventory_view.h" \
@@ -170,10 +172,14 @@ for rel in \
     "src/compiler/mir_decl_header_access.c" \
     "src/compiler/mir_decl_header_generic_metadata.c" \
     "src/compiler/mir_decl_header_shape_validate.c" \
+    "src/compiler/mir_decl_header_method_validate.c" \
+    "src/compiler/mir_decl_header_method_validate.h" \
     "src/compiler/mir_decl_header_validate.c" \
     "src/compiler/mir_decl_header_world_directive.c" \
     "src/compiler/mir_decl_header_world_directive_access.c" \
     "src/compiler/mir_decl_header_world_directive_validate.c" \
+    "src/compiler/mir_decl_header_methods.c" \
+    "src/compiler/mir_decl_header_methods.h" \
     "src/compiler/mir_decl_headers.c" \
     "src/compiler/mir_decl_headers.h" \
     "src/compiler/mir_lifecycle.c" \
@@ -490,7 +496,6 @@ done
 require_term "src/codegen/llvm_registry.c" \
     "llvm_class_field_type_at_index(LLVMClassTypeEntry *entry, int struct_index)"
 for rel in \
-    "src/codegen/llvm_expr_constructor_calls.c" \
     "src/codegen/llvm_expr_projection_path_helpers.c" \
     "src/codegen/llvm_mir_emit.c" \
     "src/codegen/llvm_intent_zone.c" \
@@ -498,6 +503,19 @@ for rel in \
     require_term "$rel" "llvm_class_field_count("
     require_term "$rel" "llvm_class_field_name_at("
     require_term "$rel" "llvm_class_field_struct_index_at("
+    if grep -Fq -- "->fields[" "$ROOT_DIR/$rel"; then
+        fail "$rel must consume LLVM class-field registry accessors instead of raw fields[]"
+    fi
+done
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_class_field_name_at("
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_class_field_struct_index_at("
+require_term "src/codegen/llvm_expr_enum_constructor.c" \
+    "llvm_class_field_count("
+for rel in \
+    "src/codegen/llvm_expr_constructor_calls.c" \
+    "src/codegen/llvm_expr_enum_constructor.c"; do
     if grep -Fq -- "->fields[" "$ROOT_DIR/$rel"; then
         fail "$rel must consume LLVM class-field registry accessors instead of raw fields[]"
     fi
@@ -597,6 +615,22 @@ require_term "src/compiler/mir_intent.c" \
     "\"priority\""
 require_term "src/compiler/mir_intent.c" \
     "\"success\""
+
+for term in \
+    "mir_append_intent_step_facts" \
+    "\"IntentWho\"" \
+    "\"IntentAuthorizedBy\"" \
+    "\"IntentCauses\"" \
+    "\"IntentInvalidationTarget\"" \
+    "\"compensate\""; do
+    require_term "src/compiler/mir_intent_step_emit.c" "$term"
+done
+require_term "src/compiler/mir_intent.c" \
+    "mir_append_intent_step_facts("
+if grep -Fq "mir_append_intent_step_facts(MIRRoutine *routine" \
+        "$ROOT_DIR/src/compiler/mir_intent.c"; then
+    fail "MIR intent orchestration must not re-own step fact emission"
+fi
 require_term "src/codegen/llvm_intent.c" \
     "llvm_find_mir_intent_eval_expr("
 require_term "src/codegen/llvm_intent.c" \
@@ -1583,12 +1617,22 @@ require_term "src/codegen/transpiler_class_constructor_emit.c" \
     "MIR-only C path missing class constructor field type-name metadata"
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
     "transpiler_emit_ctor_arg_from_field_abi"
+require_term "src/codegen/transpiler_constructor_arg_emit.c" \
+    "transpiler_emit_ctor_arg_from_field_abi(TranspilerCtx *ctx"
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
     "transpiler_hosted_domain_slot_view_type_name"
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
     "transpiler_hosted_shared_field_view_type_name"
-require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+require_term "src/codegen/transpiler_constructor_arg_emit.c" \
     "MIR-only C path missing constructor field type-name metadata"
+if grep -Fq "transpiler_emit_ctor_arg_from_field_abi(TranspilerCtx *ctx" \
+        "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"; then
+    fail "domain constructor orchestration must not re-own constructor argument ABI lowering"
+fi
+if grep -Fq "MIR-only C path missing constructor field type-name metadata" \
+        "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"; then
+    fail "domain constructor orchestration must not re-own constructor argument ABI diagnostics"
+fi
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "llvm_emit_field_slot_claims_from_header"
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
@@ -1653,8 +1697,16 @@ require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "transpiler_hosted_zone_layer_slot_view_missing_mir_metadata("
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "transpiler_hosted_zone_layer_slot_view_name(&layer_view, i)"
+require_term "src/codegen/transpiler_zone_action_cause_emit.c" \
+    "transpiler_hosted_zone_layer_slot_view_is_relation(layer_view, i)"
+require_term "src/codegen/transpiler_zone_action_cause_emit.c" \
+    "PGY_PROP_CAUSE_ACTION"
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
-    "transpiler_hosted_zone_layer_slot_view_is_relation(&layer_view, i)"
+    "transpiler_emit_zone_action_causes(ctx, &layer_view, &state_view)"
+reject_term "src/codegen/transpiler_zone_decl_emit.c" \
+    "PGY_PROP_CAUSE_ACTION"
+reject_term "src/codegen/transpiler_zone_decl_emit.c" \
+    "self->__layer_cause_%s"
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "transpiler_hosted_zone_layer_slot_view_is_pool(&layer_view, i)"
 if grep -Eq 'transpiler_hosted_zone_layer_slot_view_source_ast\(|ast_zone_layer_slot_' \
@@ -3784,6 +3836,20 @@ require_each_following_term "src/codegen/transpiler_mir_func_emit.c" \
     "transpiler_register_mir_source_local_bindings(ctx, mir_routine)" \
     4
 for term in \
+    "transpiler_mir_routine_param_count(mir_routine)" \
+    "transpiler_mir_routine_param_type_name(mir_routine, i)" \
+    "register_typed_var(ctx, p->name, type_name)" \
+    "register_slot_var(ctx, p->name, inner_buf, secure_slot,"; do
+    require_term "src/codegen/transpiler_mir_func_param_bindings.c" "$term"
+done
+require_term "src/codegen/transpiler_mir_func_emit.c" \
+    "transpiler_register_mir_func_param_bindings("
+for term in \
+    "register_typed_var(ctx, p->name, type_name)" \
+    "register_slot_var(ctx, p->name, inner_buf, secure_slot,"; do
+    reject_term "src/codegen/transpiler_mir_func_emit.c" "$term"
+done
+for term in \
     "MIR-only C path missing class-field slot registration metadata" \
     "transpiler_hosted_field_view_missing_mir_metadata(&fields_view)" \
     "transpiler_hosted_field_view_metadata(&fields_view, i)" \
@@ -4249,9 +4315,9 @@ require_term "src/codegen/llvm_mir_emit.c" \
     "ctx->current_mir_routine = saved_mir_routine"
 require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
     "const MIRRoutine *routine = ctx->current_mir_routine"
-require_term "src/compiler/mir_program_validate.c" \
+require_term "src/compiler/mir_program_fact_validate.c" \
     "without source-local type inventory"
-require_term "src/compiler/mir_program_validate.c" \
+require_term "src/compiler/mir_program_fact_validate.c" \
     "source-local type fact[%zu] is incomplete"
 require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR validator rejects missing source-local type inventory"
@@ -4384,13 +4450,17 @@ if grep -Eq 'ast_intent_(involves|value)_alias\(' "$ROOT_DIR/src/codegen/transpi
 fi
 for rel in \
     "src/codegen/llvm_decl_routines.c" \
-    "src/codegen/llvm_intent.c" \
+    "src/codegen/llvm_intent_routine_emit.c" \
     "src/codegen/llvm_intent_forward.c"; do
     require_term "$rel" "llvm_routine_inventory_get(inventory, i)"
     if grep -Eq '(inventory|routine_inventory)->routines\[[^]]+\]' "$ROOT_DIR/$rel"; then
         fail "$rel must consume LLVM MIR routine inventory through llvm_routine_inventory_get"
     fi
 done
+if grep -Fq "llvm_routine_inventory_get(inventory, i)" \
+    "$ROOT_DIR/src/codegen/llvm_intent.c"; then
+    fail "LLVM intent routine inventory iteration must remain owned by llvm_intent_routine_emit.c"
+fi
 for term in \
     "llvm_mir_routine_kind(routine)" \
     "llvm_mir_routine_name(routine)" \
@@ -4435,6 +4505,7 @@ for rel in \
     "src/codegen/transpiler_mir_emission_contract.c" \
     "src/codegen/transpiler_mir_emission_mapping_contract.c" \
     "src/codegen/transpiler_mir_func_emit.c" \
+    "src/codegen/transpiler_mir_func_param_bindings.c" \
     "src/codegen/transpiler_mir_inventory_intent_collect.c" \
     "src/codegen/transpiler_mir_local_type_lookup.c" \
     "src/codegen/transpiler_mir_resource_op_emit.c"; do
@@ -4602,15 +4673,21 @@ require_term "src/compiler/mir_public_surface.c" \
     "mir_routine_inventory_from_program(mir, &inventory)"
 require_term "src/compiler/mir_public_surface.c" \
     "mir_mutable_routine_inventory_from_program(mir, &inventory)"
-require_term "src/compiler/mir_decl_headers.c" \
+require_term "src/compiler/mir_decl_header_methods.c" \
     "mir_routine_inventory_from_program(mir, &inventory)"
-require_term "src/compiler/mir_decl_header_validate.c" \
+if grep -Fq "mir_routine_inventory_from_program(mir, &inventory)" \
+        "$ROOT_DIR/src/compiler/mir_decl_headers.c"; then
+    fail "MIR declaration header materialization must not re-own method routine linking"
+fi
+require_term "src/compiler/mir_decl_header_method_validate.c" \
     "mir_routine_inventory_from_program(mir, &inventory)"
-require_term "src/compiler/mir_program_validate.c" \
+require_term "src/compiler/mir_program_fact_validate.c" \
     "mir_routine_inventory_from_program(mir, &inventory)"
 for rel in \
     "src/compiler/mir_decl_headers.c" \
     "src/compiler/mir_decl_header_validate.c" \
+    "src/compiler/mir_decl_header_method_validate.c" \
+    "src/compiler/mir_program_fact_validate.c" \
     "src/compiler/mir_program_validate.c"; do
     if grep -Eq '\bmir->routine_count\b|\bmir->routines\b' \
         "$ROOT_DIR/$rel"; then
@@ -4637,6 +4714,7 @@ if grep -Fq "ASTNode    **methods;" "$ROOT_DIR/src/compiler/mir.h"; then
 fi
 if grep -Fq "header->methods" \
     "$ROOT_DIR/src/compiler/mir_decl_header_validate.c" \
+    "$ROOT_DIR/src/compiler/mir_decl_header_method_validate.c" \
     "$ROOT_DIR/src/compiler/mir_decl_headers.c"; then
     fail "MIR declaration-header validation must consume method metadata, not AST method arrays"
 fi
@@ -4738,8 +4816,11 @@ for term in \
 done
 require_term "src/codegen/llvm_backend_generic.h" \
     "llvm_lookup_generic_template_entry("
-require_term "src/codegen/llvm_internal.h" \
+require_term "src/codegen/llvm_generic_registry_types_internal.h" \
     "const MIRRoutine *routine"
+if grep -Fq "const MIRRoutine *routine" "$ROOT_DIR/src/codegen/llvm_internal.h"; then
+    fail "LLVMGenCtx must not re-own the generic-template routine fact"
+fi
 if grep -Fq "ctx->generic_templates" \
     "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
     fail "LLVM pipeline must not mutate the generic-template registry directly"
@@ -4926,12 +5007,13 @@ fi
 for term in \
     "llvm_emit_intent_routines_from_inventory(" \
     "llvm_active_inventory(ctx, AST_INTENT_DECL" \
-    "llvm_find_mir_intent_routine(ctx, node)" \
     "llvm_emit_intent_decl(intent_decl, ctx)" \
     "MIR-only LLVM path has invalid intent routine inventory row"; do
-    require_term "src/codegen/llvm_intent.c" "$term"
+    require_term "src/codegen/llvm_intent_routine_emit.c" "$term"
 done
 require_term "src/codegen/llvm_intent.c" \
+    "llvm_find_mir_intent_routine(ctx, node)"
+require_term "src/codegen/llvm_intent_routine_emit.c" \
     "MIR-only LLVM path missing intent declaration inventory row for routine"
 if grep -Fq "llvm_require_mir_intent_source_decl(" \
     "$ROOT_DIR/src/codegen/llvm_intent.c" \
@@ -6127,14 +6209,22 @@ for rel in \
     require_term "$rel" "mir_decl_enum_variant_param_count("
     require_term "$rel" "if (enum_header == NULL)"
 done
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
+require_term "src/codegen/llvm_expr_enum_constructor.c" \
     "llvm_find_decl_header_in_context_of_type("
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
+require_term "src/codegen/llvm_expr_enum_constructor.c" \
     "mir_decl_header_enum_variant("
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
+require_term "src/codegen/llvm_expr_enum_constructor.c" \
     "mir_decl_enum_variant_param_count("
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
+require_term "src/codegen/llvm_expr_enum_constructor.c" \
     "if (enum_header == NULL)"
+for term in \
+    "mir_decl_header_enum_variant(" \
+    "mir_decl_enum_variant_param_count(" \
+    "if (enum_header == NULL)"; do
+    if grep -Fq "$term" "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
+        fail "LLVM constructor dispatcher must not re-own enum metadata lookup"
+    fi
+done
 require_term "src/codegen/llvm_register.c" \
     "mir_decl_enum_variant_param_type_name("
 if grep -Fq "ast_enum_name(stmt)" "$ROOT_DIR/src/codegen/llvm_expr_common.c"; then
@@ -6330,7 +6420,7 @@ require_term "Makefile" \
     '$(COMPILER_DIR)/mir_decl_method_projection.c'
 require_term "Makefile" \
     '$(BUILD_DIR)/compiler/mir_decl_method_projection.o'
-require_term "src/compiler/mir_decl_headers.c" \
+require_term "src/compiler/mir_decl_header_methods.c" \
     "mir_decl_method_projection_metadata_capture"
 require_term "src/compiler/mir_decl_method_projection.h" \
     "mir_decl_method_projection_metadata_clear"
@@ -6338,10 +6428,13 @@ require_term "src/compiler/mir_decl_method_projection.c" \
     "mir_decl_method_projection_append_write"
 require_term "src/compiler/mir_decl_method_projection.c" \
     "mir_decl_method_projection_append_call"
-if grep -Fq "mir_decl_method_projection_append_write" \
-        "$ROOT_DIR/src/compiler/mir_decl_headers.c"; then
-    fail "MIR declaration headers must not own method projection fact capture"
-fi
+for term in \
+    "mir_decl_method_projection_metadata_capture" \
+    "mir_decl_method_projection_append_write"; do
+    if grep -Fq "$term" "$ROOT_DIR/src/compiler/mir_decl_headers.c"; then
+        fail "MIR declaration headers must not own method projection fact capture"
+    fi
+done
 for term in \
     "mir_decl_method_projection_write_count" \
     "mir_decl_method_projection_write_root_name" \
@@ -7148,17 +7241,20 @@ if grep -Fq "llvm_decl_current_nominal_name" \
     fail "LLVM implicit self lowering must use the shared current host-name helper"
 fi
 if grep -Fq "routine->ast == method->source_ast" \
-    "$ROOT_DIR/src/compiler/mir_decl_headers.c"; then
+    "$ROOT_DIR/src/compiler/mir_decl_header_methods.c"; then
     fail "MIRDeclMethod routine linking must not use AST identity matching"
 fi
 for term in \
     "mir_decl_next_capacity" \
+    "case AST_ROLE_DECL"; do
+    require_term "src/compiler/mir_decl_headers.c" "$term"
+done
+for term in \
     "mir_decl_method_matches_routine" \
     "mir_decl_header_set_role_impl_methods" \
     "ast_role_impl_method_total_count" \
-    "SIZE_MAX / sizeof(MIRDeclMethod)" \
-    "case AST_ROLE_DECL"; do
-    require_term "src/compiler/mir_decl_headers.c" "$term"
+    "SIZE_MAX / sizeof(MIRDeclMethod)"; do
+    require_term "src/compiler/mir_decl_header_methods.c" "$term"
 done
 for term in \
     "hir->role_count" \
@@ -7625,14 +7721,21 @@ require_term "src/codegen/transpiler_statement_dispatch.c" \
     "transpiler_resolve_active_ssa_name(ctx, pvar)"
 require_term "src/codegen/transpiler_statement_dispatch.c" \
     "transpiler_make_c_ssa_name(ctx, pvar_ssa)"
-require_term "src/compiler/mir_decl_headers.c" \
+require_term "src/compiler/mir_decl_header_methods.c" \
     "ast_impl_ability_method(impl, j)"
 require_term "src/parser/ast_domain_api.h" \
     "ast_role_impl_method_total_count"
 require_term "src/parser/ast_role_type_accessors.c" \
     "ast_role_impl_method_total_count"
-require_term "src/compiler/mir_decl_headers.c" \
+require_term "src/compiler/mir_decl_header_methods.c" \
     "ast_role_impl_method_total_count"
+for term in \
+    "ast_impl_ability_method(impl, j)" \
+    "ast_role_impl_method_total_count"; do
+    if grep -Fq "$term" "$ROOT_DIR/src/compiler/mir_decl_headers.c"; then
+        fail "MIR declaration headers must not re-own role impl method inventory"
+    fi
+done
 if grep -R "data\.include_stmt" "$ROOT_DIR/src/codegen" >/dev/null; then
     fail "C/LLVM codegen include payload consumers must use AST include accessors"
 fi
@@ -7823,7 +7926,9 @@ for term in \
         && ! grep -Fq "$term" "$ROOT_DIR/src/compiler/mir_lower_public_api.h" \
         && ! grep -Fq "$term" "$ROOT_DIR/src/compiler/mir_public_surface.c" \
         && ! grep -Fq "$term" "$ROOT_DIR/src/compiler/mir_decl_headers.h" \
-        && ! grep -Fq "$term" "$ROOT_DIR/src/compiler/mir_decl_headers.c"; then
+        && ! grep -Fq "$term" "$ROOT_DIR/src/compiler/mir_decl_headers.c" \
+        && ! grep -Fq "$term" "$ROOT_DIR/src/compiler/mir_decl_header_methods.h" \
+        && ! grep -Fq "$term" "$ROOT_DIR/src/compiler/mir_decl_header_methods.c"; then
         fail "MIR declaration method metadata missing term: $term"
     fi
 done
@@ -7831,7 +7936,7 @@ for term in \
     "mir_decl_method_metadata_capture_type_names" \
     "mir_capture_type_name(param->type, NULL)" \
     "mir_capture_type_name(meta->return_type, NULL)"; do
-    require_term "src/compiler/mir_decl_headers.c" "$term"
+    require_term "src/compiler/mir_decl_header_methods.c" "$term"
 done
 for rel in \
     "src/compiler/mir_decl_headers.h" \
@@ -7845,7 +7950,7 @@ for term in \
     "free(meta->param_type_names[i])" \
     "free(meta->param_type_names)" \
     "free(meta->return_type_name)"; do
-    require_term "src/compiler/mir_decl_headers.c" "$term"
+    require_term "src/compiler/mir_decl_header_methods.c" "$term"
 done
 for rel in \
     "src/codegen/transpiler_decl_lookup.h" \
@@ -7883,11 +7988,21 @@ for term in \
     "declaration method count" \
     "duplicates declaration header" \
     "method metadata count" \
-    "type-name storage" \
-    "routine index" \
-    "routine link metadata drift"; do
+    "return mir_validate_decl_method_metadata("; do
     require_term "src/compiler/mir_decl_header_validate.c" "$term"
 done
+for term in \
+    "mir_validate_decl_method_metadata" \
+    "type-name storage" \
+    "routine index" \
+    "routine link metadata drift" \
+    "invalid callable caps/effects presence or mask"; do
+    require_term "src/compiler/mir_decl_header_method_validate.c" "$term"
+done
+if grep -Fq "mir_validate_decl_method_metadata(const MIRProgram *mir" \
+        "$ROOT_DIR/src/compiler/mir_decl_header_validate.c"; then
+    fail "declaration-header row validation must not re-own method metadata validation"
+fi
 for term in \
     "mir_validate_decl_header_shape_metadata" \
     "declaration name metadata" \

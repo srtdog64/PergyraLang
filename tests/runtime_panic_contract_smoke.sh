@@ -52,6 +52,7 @@ run_literal_contract_smoke() {
         "src/runtime/pgy_runtime_process_exit.h"
         "src/runtime/pgy_runtime_result_option_inline.h"
         "src/runtime/async/fiber.c"
+        "src/runtime/async/scheduler.c"
         "src/codegen/transpiler_expr_core_emit.c"
         "src/codegen/transpiler_func_class_flow_emit.c"
         "src/codegen/transpiler_mir_terminator_emit.c"
@@ -127,7 +128,9 @@ run_literal_contract_smoke() {
     forbid_literal "src/runtime/pgy_parallel.h" "cancellation disabled because cancel node allocation failed"
     forbid_literal "src/runtime/pgy_parallel_blocking.h" "cancellation disabled because cancel node allocation failed"
     require_literal "src/runtime/async/fiber.c" "pgy_runtime_panic_contract.h"
-    require_literal "src/runtime/async/fiber.c" "fiber returned after completion"
+    require_literal "src/runtime/async/fiber.c" "start routine is null"
+    require_literal "src/runtime/async/scheduler.c" "scheduler dequeued a fiber with no routine"
+    require_literal "src/runtime/async/scheduler.c" "fiber yielded but the context layer is not landed"
     forbid_literal "src/runtime/async/fiber.c" "assert("
     require_literal "src/runtime/pgy_runtime_process_exit.h" "pgy_runtime_process_exit"
     require_literal "src/runtime/pgy_runtime_process_exit.h" "exit((int)code)"
@@ -186,6 +189,7 @@ parallel_run_h = root / "src" / "runtime" / "pgy_parallel_run.h"
 parallel_task_ops_h = root / "src" / "runtime" / "pgy_parallel_task_ops.h"
 parallel_coroutine_h = root / "src" / "runtime" / "pgy_parallel_coroutine.h"
 fiber_c = root / "src" / "runtime" / "async" / "fiber.c"
+scheduler_c = root / "src" / "runtime" / "async" / "scheduler.c"
 llvm_api_c = root / "src" / "codegen" / "llvm_api.c"
 llvm_mir_block_emit_c = root / "src" / "codegen" / "llvm_mir_block_emit.c"
 transpiler_func_class_flow_emit_c = root / "src" / "codegen" / "transpiler_func_class_flow_emit.c"
@@ -299,17 +303,19 @@ if "detach task handle is null" not in parallel_coroutine_text:
     raise SystemExit("parallel coroutine runtime must panic on null detach handle")
 
 fiber_text = fiber_c.read_text(encoding="utf-8")
+scheduler_text = scheduler_c.read_text(encoding="utf-8")
 if "pgy_runtime_panic_contract.h" not in fiber_text:
     raise SystemExit("fiber runtime does not include panic contract")
 if "assert(" in fiber_text:
     raise SystemExit("fiber runtime still uses raw assert instead of panic contract")
+if "start routine is null" not in fiber_text:
+    raise SystemExit("fiber creation must reject a null start routine")
 for token in [
-    "fiber entry received null fiber",
-    "fiber entry received null start routine",
-    "fiber returned after completion",
+    "scheduler dequeued a fiber with no routine",
+    "fiber yielded but the context layer is not landed",
 ]:
-    if token not in fiber_text:
-        raise SystemExit(f"fiber runtime missing panic reason: {token}")
+    if token not in scheduler_text:
+        raise SystemExit(f"scheduler runtime missing fail-closed panic reason: {token}")
 
 process_exit_text = process_exit_h.read_text(encoding="utf-8")
 if "pgy_runtime_process_exit" not in process_exit_text:

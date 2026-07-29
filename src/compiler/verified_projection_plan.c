@@ -8,7 +8,6 @@
 #include "air_evidence_certificate.h"
 #include "machine_layer_manifest.h"
 #include "target_capability_contract.h"
-#include "../parser/ast_api.h"
 
 static uint64_t
 verified_projection_plan_mix_byte(uint64_t hash, uint8_t byte)
@@ -331,7 +330,7 @@ pgy_verified_spawn_lane_plan_from_air(const PgyAirVerification *air,
 
         if (!spawn_lane_boundary_is_spawn_site(boundary))
             continue;
-        uint32_t source_stable_id = ast_node_stable_id(boundary->ast);
+        uint32_t source_stable_id = boundary->source_stable_id;
         if (source_stable_id == 0) {
             pgy_verified_spawn_lane_plan_dispose(plan_out);
             if (error_out != NULL)

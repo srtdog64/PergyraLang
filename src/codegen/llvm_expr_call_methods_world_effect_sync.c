@@ -49,6 +49,9 @@ llvm_emit_world_embedded_action_authority_check(
     host_decl = llvm_current_host_decl(ctx);
     if (host_decl == NULL || host_decl->type != AST_WORLD_DECL)
         return;
+    method_within_zone = llvm_mir_decl_method_within_zone(method_meta);
+    if (method_within_zone == NULL)
+        return;
     if (llvm_mir_decl_method_authorized_by_count(method_meta) == 0)
         return;
     if (llvm_mir_decl_method_authorized_by_count(method_meta) != 1) {
@@ -64,12 +67,6 @@ llvm_emit_world_embedded_action_authority_check(
         return;
     }
 
-    method_within_zone = llvm_mir_decl_method_within_zone(method_meta);
-    if (method_within_zone == NULL) {
-        llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing within-zone metadata for self-authorized action");
-        return;
-    }
     if (!llvm_world_embedded_projection_source_from_assignment(ctx, receiver,
             &zone_slot_name, &zone_decl, &source_slot_name, NULL)
         || zone_slot_name == NULL || zone_decl == NULL

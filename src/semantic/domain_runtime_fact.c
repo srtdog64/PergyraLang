@@ -1,4 +1,5 @@
 #include "type_checker_internal.h"
+#include "domain_projection_path_fact_internal.h"
 #include "diag_codes.h"
 #include "parser/ast_api.h"
 #include "../common/string_compat.h"
@@ -16,18 +17,6 @@ domain_participant_role_fact_clear(PgyDomainParticipantRoleFact *fact)
     free(fact->field_name);
     free(fact->field_type_name);
     memset(fact, 0, sizeof(*fact));
-}
-
-void
-pgy_domain_projection_path_segments_destroy(
-    PgyDomainProjectionPathSegmentFact *segments,
-    size_t segment_count)
-{
-    for (size_t i = 0; segments != NULL && i < segment_count; i++) {
-        free(segments[i].field_name);
-        free(segments[i].field_type_name);
-    }
-    free(segments);
 }
 
 static void
@@ -238,7 +227,7 @@ domain_record_participant_roles(SemanticContext *ctx,
     if (ctx == NULL || owner_decl == NULL || roles == NULL || role_count == 0)
         return false;
 
-    program_syntax_id = ast_node_stable_id(ctx->program_root);
+    program_syntax_id = semantic_program_syntax_id(ctx);
     owner_syntax_id = ast_node_stable_id(owner_decl);
     bindable_slots = calloc(role_count, sizeof(*bindable_slots));
     pending = calloc(role_count, sizeof(*pending));
@@ -403,7 +392,7 @@ semantic_domain_participant_role_slot(SemanticContext *ctx,
 
     if (ctx == NULL || owner_decl == NULL)
         return NULL;
-    program_syntax_id = ast_node_stable_id(ctx->program_root);
+    program_syntax_id = semantic_program_syntax_id(ctx);
     owner_syntax_id = ast_node_stable_id(owner_decl);
     for (size_t i = 0; i < ctx->domain_participant_role_fact_count; i++) {
         const PgyDomainParticipantRoleFact *fact =
@@ -469,18 +458,6 @@ semantic_domain_participant_role_slot(SemanticContext *ctx,
     return NULL;
 }
 
-static PgyDomainProjectionOperation
-domain_projection_operation(ASTNode *directive)
-{
-    if (directive != NULL && directive->type == AST_ZONE_REFRESH) {
-        if (ast_zone_refresh_derives_target_kind(directive))
-            return PGY_DOMAIN_PROJECTION_BIND;
-        if (ast_zone_refresh_requires_dto(directive))
-            return PGY_DOMAIN_PROJECTION_PUBLISH;
-    }
-    return PGY_DOMAIN_PROJECTION_REFRESH;
-}
-
 bool
 semantic_record_domain_projection_member_assignment(
     SemanticContext *ctx,
@@ -506,7 +483,7 @@ semantic_record_domain_projection_member_assignment(
     const char *target_type_name = type_name_or_unknown(target_field_type);
     const char *source_leaf_type_name = type_name_or_unknown(source_leaf_type);
     uint32_t program_syntax_id = ctx != NULL
-        ? ast_node_stable_id(ctx->program_root)
+        ? semantic_program_syntax_id(ctx)
         : 0;
     uint32_t owner_syntax_id = ast_node_stable_id(owner_decl);
     uint32_t directive_syntax_id = ast_node_stable_id(directive);

@@ -218,8 +218,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_cfg_contract_validate_cleanup.c" "invalidation successor"
     require_literal "src/compiler/mir_cleanup.c" "#include \"mir_base_helpers.h\""
     require_literal "src/compiler/mir_cleanup.c" "mir_cleanup_next_capacity"
-    require_literal "src/compiler/mir_intent.c" "#include \"mir_base_helpers.h\""
-    require_literal "src/compiler/mir_intent.c" "return append_instruction(block, inst)"
+    require_literal "src/compiler/mir_intent_step_emit.c" "#include \"mir_base_helpers.h\""
+    require_literal "src/compiler/mir_intent_step_emit.c" "return append_instruction(block, inst)"
     require_literal "src/compiler/mir_liveness_dce.c" "mir_liveness_next_capacity"
     require_literal "src/compiler/mir_liveness_summary.c" "mir_value_summary_next_capacity"
     require_literal "src/compiler/hir_cfg.c" "hir_cfg_next_capacity"
@@ -1649,7 +1649,7 @@ required_mir_owner_terms = {
         "mir_seed_non_cfg_block_source_inventory",
         "mir_copy_ast_nodes(&block->source_statement_inventory.items",
     ],
-    "src/compiler/mir_program_validate.c": [
+    "src/compiler/mir_program_fact_validate.c": [
         "mir_validate_non_cfg_fallback_state",
         "mir_validate_non_cfg_fallback_inventory",
         "mir_count_non_cfg_body_fallback_inventory",
@@ -1696,7 +1696,7 @@ mir_owner_text = {
     "src/compiler/mir_non_cfg_stmt_population.h": mir_non_cfg_stmt_population,
     "src/compiler/mir_non_cfg_stmt_population.c": mir_non_cfg_stmt_population,
     "src/compiler/mir_source_inventory_build.c": (root / "src" / "compiler" / "mir_source_inventory_build.c").read_text(encoding="utf-8"),
-    "src/compiler/mir_program_validate.c": (root / "src" / "compiler" / "mir_program_validate.c").read_text(encoding="utf-8"),
+    "src/compiler/mir_program_fact_validate.c": (root / "src" / "compiler" / "mir_program_fact_validate.c").read_text(encoding="utf-8"),
     "src/compiler/mir_cfg_contract_control.h": mir_cfg_contract_control,
 }
 for owner, terms in required_mir_owner_terms.items():

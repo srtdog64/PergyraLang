@@ -228,6 +228,8 @@ GenericParam* ast_generic_param_at(const GenericParams* params, size_t index);
 const char* ast_generic_param_name(const GenericParam* param);
 ASTNode* ast_generic_param_constraint(const GenericParam* param);
 ASTNode* ast_generic_param_default_type(const GenericParam* param);
+size_t ast_where_constraint_count(const WhereClause* where);
+TypeConstraint* ast_where_constraint_at(const WhereClause* where, size_t index);
 size_t ast_type_tuple_element_count(const ASTNode* node);
 ASTNode* ast_type_tuple_element(const ASTNode* node, size_t index);
 bool ast_replace_type_name_copy(ASTNode* node, const char* type_name);

@@ -6,6 +6,104 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+## Current resume checkpoint - integrated SoT and self-host closure audit
+
+- Exact checkout base is `afefd1a80c25a91ee3557bd798b9c68d4e8f65a9` on
+  `main`, equal to `origin/main` when this checkpoint was recorded. Immediately
+  before the integrated gate run, the shared tree contained 90 tracked changes,
+  49 untracked paths, and 0 staged paths. This is a shared dirty tree; do not
+  treat the counts as an invitation to stage or discard unrelated work.
+- Four pre-existing protected paths remain outside this checkpoint's ownership:
+  `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`,
+  `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`,
+  `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`, and
+  untracked `docs/self_hosted/18_c_oracle_bootstrap_contract.md`. They were not
+  modified, staged, or deleted by this work.
+- Objective card:
+  - objective: keep program-wide MIR fact validation behind one named owner
+    while preserving `mir_validate` order and fail-closed behavior, then record
+    the actual production self-host reachability rather than syntax counts;
+  - priority: semantic identity and one SoT, exact validator order, old-owner
+    removal, negative owner gate, then file-size and build-inventory closure;
+  - fact owner: `mir_program_fact_validate.c` owns program/routine inventory,
+    receiver-carriage, fallback, resource-flow, parameter-flow, and loop-flow
+    validators; `mir_validate` is the last orchestration consumer;
+  - forbidden fallback: duplicated validators in `mir_program_validate.c`, a
+    skipped/overwritten failure return, AST/source topology rereads, or treating
+    reachable declarations as substituting execution;
+  - falsifier: a freshly rebuilt current `test_mir` must reject all five damaged
+    topology identities with a `domain topology row` diagnostic, and the
+    component contract must complete against the same current tree.
+- Active executable rung and dogfood grades:
+  - production entrypoint remains `driver_bootstrap_main.pgy#Main`;
+  - only `--mir-json-backend=c|llvm` reaches
+    `Main -> EmitDirectMirThroughPgyCompilerWorld ->`
+    `PgyCompilerWorld.EmitDirectMir -> PgyCompilerWorld.direct_mir ->`
+    `DriverRung2DirectMirZone.execution ->`
+    `DriverRung2Execution.EmitDirectMir`;
+  - that direct-MIR world/zone/subject/action path is `REACHABLE`; native plan
+    execution is also `REACHABLE`; the admitted v2 input-language typed
+    MIR-to-self-C transition is the bounded `SUBSTITUTING` slice;
+  - source-to-C, source-to-MIR, and general MIR-to-C still use their direct
+    `CompileSourceTo*` / `CompileMirJsonToC*` orchestration paths. The canonical
+    compiler-purpose root `intent` is therefore still `SURFACE`, not executable
+    dogfood. Its next rung must run one real compiler purpose through production
+    and delete the named direct bypass; importing or statically gating an intent
+    is not a substitute.
+- Current structural evidence:
+  - the program-validation owner split leaves the top-level call order unchanged,
+    keeps `mir_domain_topology_validate` ahead of the moved validators, and
+    preserves an immediate `false` return for every failed owner call;
+  - strict `gcc -pipe` compilation of both translation units and `ld -r` partial
+    link passed; `mir_program_fact_validate_owner_smoke.sh` passed;
+  - the current owner-cap audit reports 0 violations, and both the explicit Make
+    source inventory and `test_inc_size` passed.
+- Exact integrated gate observation: 11 gates passed:
+  `build_source_inventory` (explicit Make inventory), `test_inc_size`,
+  `mir_program_fact_validate_owner`, `mir_json_expression_graph_owner`,
+  `mir_lowering_api`, `abi_ownership_shape`, `memory_string_safety`,
+  `dir_domain_identity`, `domain_runtime_topology`,
+  `self_host_program_graph_unification`, and `self_host_hard_contract`.
+  Existing observed suites remain AIR 144 passed / 0 failed and semantic 2,823
+  passed / 0 failed; these were not rerun as part of the 11-gate observation.
+- Memory-pressure cause and operating rule:
+  - the 20+ GiB observation was aggregate system pressure, not one compiler
+    process: six reparented/orphan native workers overlapped after the same
+    whole-graph gate was restarted before its prior process tree ended;
+  - the earlier roughly 3 GiB defect repeatedly validated/materialized a
+    whole-program graph for consumer/local rows where the owner needed one
+    bounded validation. Normal observed self-host pressure is roughly
+    1.1-1.5 GiB;
+  - run only one bounded whole-graph gate at a time, capture wrapper and
+    descendant PIDs/command lines, and wait for the complete process tree to
+    terminate before another run. Do not infer a single-process peak from
+    aggregate Task Manager memory.
+- OPEN and environmental evidence:
+  - `mir_declaration_inventory` static full audit passed: 3,051 resolved pairs,
+    2,976 unique owner paths, and 0 missing/rejected paths; `bash -n` and diff
+    checks also passed. Its executable gate was run once and ended rc124 at the
+    120-second bound with no orphan worker remaining; no executable PASS is
+    claimed;
+  - `mir_function_param_flow_summary` reached the pre-existing
+    `bin/test_mir` result 155 passed / 1 failed. That PE predates current
+    `src/test_mir.c`, both split sources, and their build objects, so it is stale
+    baseline evidence, not a current split regression or current gate result;
+  - `mir_param_carriage` could not execute its `pgy` artifact: Git Bash saw an
+    ELF binary and returned rc126, while the default WSL route had no `bash` and
+    returned rc127;
+  - `self_hosted_component_contract` timed out at 120 seconds with no output.
+    A prior PASS exists, but no current PASS is claimed;
+  - the broad Make runtime target attempted unrelated recompilation and was
+    stopped at 120 seconds. Plain GCC also attempted protected `C:\Windows`
+    temporary storage; focused `gcc -pipe` translation-unit checks are the
+    observed evidence instead.
+- Resume with one fresh current-tree `test_mir` rebuild, then run the five
+  topology-identity mutations (zero identity, foreign-valid identity, wrong
+  field kind, stray unused participant identity, and unknown zone owner) and
+  require the owned diagnostic. After that, run
+  `self_hosted_component_contract_smoke.sh` once under a bounded process-tree
+  observation. Do not restart either graph while a prior worker tree exists.
+
 ## Current resume checkpoint - self-host consistency closure
 
 - Consistency landing: `1044e3eef0ed3f11c6025a43b9d130d6eca47ddb` on

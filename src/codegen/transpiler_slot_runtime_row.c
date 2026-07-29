@@ -249,6 +249,11 @@ transpiler_slot_runtime_expected_call_shape(bool secure, const char *operation)
         return secure ? "container_ptr_token_ptr_to_pinned_view"
                       : "container_ptr_to_pinned_view";
     }
+    if (strcmp(operation, "PinReadInit") == 0 ||
+        strcmp(operation, "PinWriteInit") == 0) {
+        return secure ? "pinned_view_ptr_container_ptr_token_ptr_to_void"
+                      : "pinned_view_ptr_container_ptr_to_void";
+    }
     if (strcmp(operation, "Unpin") == 0 ||
         strcmp(operation, "UnpinCleanup") == 0) {
         return "pinned_view_ptr_to_void";

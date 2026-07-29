@@ -88,7 +88,7 @@ grep -Fq 'CallableContractVocabularyFindIndex(' \
 grep -Fq 'pgy_callable_contract_vocabulary_find(' \
     "$ROOT_DIR/src/parser/parser_decl_clause.c"
 grep -Fq 'pgy_callable_contract_vocabulary_known_mask(' \
-    "$ROOT_DIR/src/compiler/mir_decl_header_validate.c"
+    "$ROOT_DIR/src/compiler/mir_decl_header_method_validate.c"
 
 for forbidden in \
     'kEffectWordSpecs' \
@@ -97,7 +97,7 @@ for forbidden in \
     'static const MIRJsonMaskName caps[]' \
     'MirDeclarationMethodContractKnownCap' \
     'MirDeclarationMethodContractKnownEffect'; do
-    if rg -Fq "$forbidden" \
+    if grep -RFq -- "$forbidden" \
         "$ROOT_DIR/src/parser" \
         "$ROOT_DIR/src/semantic" \
         "$ROOT_DIR/src/compiler" \

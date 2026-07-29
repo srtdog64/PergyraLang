@@ -50,7 +50,7 @@ if ! "${CC_CMD[@]}" -Wall -Wextra -Werror -Wno-unused-function -std=c11 \
     "$ROOT_DIR/src/runtime/pgy_lane_scheduler.c" \
     "$ROOT_DIR/src/compiler/execution_lane.c" \
     "$RT_OBJ" \
-    -lpthread \
+    -lpthread -lm \
     -o "$OUT" >"$COMPILE_OUT" 2>"$COMPILE_ERR"; then
     PATH="$ORIGINAL_PATH"
     cat "$COMPILE_OUT" >&2 || true

@@ -77,6 +77,7 @@ declaration_only_headers=(
     "src/codegen/transpiler_intent_emit_metadata_helpers.h"
     "src/codegen/transpiler_intent_failure_emit.h"
     "src/codegen/transpiler_intent_prologue_emit.h"
+    "src/codegen/transpiler_intent_step_completion_emit.h"
     "src/codegen/transpiler_intent_zone_binding_emit.h"
     "src/codegen/transpiler_match_bindings.h"
     "src/codegen/transpiler_zone_decl_emit.h"

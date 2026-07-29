@@ -17,6 +17,7 @@
 #include "transpiler_intent_failure_emit.h"
 #include "transpiler_intent_participant.h"
 #include "transpiler_intent_prologue_emit.h"
+#include "transpiler_intent_step_completion_emit.h"
 #include "transpiler_intent_typed_execution.h"
 #include "transpiler_intent_zone_binding_emit.h"
 #include "transpiler_intent_zone_slot.h"
@@ -618,51 +619,11 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         PGY_RESTORE_INTENT_STEP_CONTEXT(saved_host_decl,
                                         saved_overlay_receiver);
 
-        if (has_compensate_steps) {
-            write_indent(ctx);
-            codebuf_write(ctx->out, "__intent_step_completed[%zu] = true;\n", i);
-        }
-
-        if (guard_expr != NULL) {
-            char *guard = emit_expression(guard_expr, ctx);
-            emit_intent_step_condition_failure(ctx->out, ctx, guard,
-                "guard", step_name, intent_name,
-                emit_cleanup_from_mir,
-                mir_routine != NULL ? mir_routine->cleanup_block : 0);
-            free(guard);
-        }
-
-        if (expect_expr != NULL) {
-            char *expect = emit_expression(expect_expr, ctx);
-            emit_intent_step_condition_failure(ctx->out, ctx, expect,
-                "expect", step_name, intent_name,
-                emit_cleanup_from_mir,
-                mir_routine != NULL ? mir_routine->cleanup_block : 0);
-            free(expect);
-        }
-
-        if (post_expr != NULL) {
-            char *post = emit_expression(post_expr, ctx);
-            emit_intent_step_condition_failure(ctx->out, ctx, post,
-                "post", step_name, intent_name,
-                emit_cleanup_from_mir,
-                mir_routine != NULL ? mir_routine->cleanup_block : 0);
-            free(post);
-        }
-
-        if (invariant_post_expr != NULL) {
-            char *invariant = emit_expression(invariant_post_expr, ctx);
-            emit_intent_step_condition_failure(ctx->out, ctx, invariant,
-                "invariant-post", step_name, intent_name,
-                emit_cleanup_from_mir,
-                mir_routine != NULL ? mir_routine->cleanup_block : 0);
-            free(invariant);
-        }
-        if (ctx->uses_intent_observability) {
-            write_indent(ctx);
-            codebuf_write(ctx->out, "pgy_intent_trace_step_ok_export(__intent_handle, \"%s\");\n",
-                step_name != NULL ? step_name : "<step>");
-        }
+        transpiler_emit_intent_step_completion(
+            ctx, i, has_compensate_steps,
+            guard_expr, expect_expr, post_expr, invariant_post_expr,
+            step_name, intent_name, emit_cleanup_from_mir,
+            mir_routine != NULL ? mir_routine->cleanup_block : 0);
         free(on_exprs);
         if (mir_only_intent)
             free((void *)who_aliases);

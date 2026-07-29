@@ -276,7 +276,7 @@ if ! grep -Fq "Destroy is quiescent-only" \
     echo "[memory-concurrency] concurrent queue destroy contract must stay explicit" >&2
     exit 1
 fi
-if ! grep -Fq "bool ConcurrentQueuePushBatch" \
+if ! grep -Fq "bool pgy_mn_queue_push_batch" \
     "$ROOT_DIR/src/runtime/async/concurrent_queue.h"; then
     echo "[memory-concurrency] concurrent queue batch push must report failure" >&2
     exit 1
@@ -286,7 +286,7 @@ if ! grep -Fq "PushBatch is all-or-nothing" \
     echo "[memory-concurrency] concurrent queue batch push contract must stay all-or-nothing" >&2
     exit 1
 fi
-if grep -Fq "void ConcurrentQueuePushBatch" \
+if grep -Fq "void pgy_mn_queue_push_batch" \
     "$ROOT_DIR/src/runtime/async/concurrent_queue.h"; then
     echo "[memory-concurrency] concurrent queue batch push must not regress to void" >&2
     exit 1
@@ -301,7 +301,7 @@ if ! grep -Fq "pthread_mutex_init(&state->mutex, NULL) != 0" \
     echo "[memory-concurrency] concurrent queue must fail closed when mutex initialization fails" >&2
     exit 1
 fi
-if grep -Fq "ConcurrentQueuePush(queue, items[i])" \
+if grep -Fq "pgy_mn_queue_push(queue, items[i])" \
     "$ROOT_DIR/src/runtime/async/concurrent_queue.c"; then
     echo "[memory-concurrency] concurrent queue batch push must not partially enqueue via single-item push loop" >&2
     exit 1
@@ -317,9 +317,9 @@ for required_queue_sentinel_contract in \
     fi
 done
 for forbidden_queue_push in \
-    "ConcurrentQueuePush(worker->localRunQueue, fiber);" \
-    "ConcurrentQueuePush(scheduler->globalRunQueue, fiber);" \
-    "ConcurrentQueuePush(thief->localRunQueue, stolen);"; do
+    "pgy_mn_queue_push(worker->localRunQueue, fiber);" \
+    "pgy_mn_queue_push(scheduler->globalRunQueue, fiber);" \
+    "pgy_mn_queue_push(thief->localRunQueue, stolen);"; do
     if grep -R -Fq "$forbidden_queue_push" \
         "$ROOT_DIR/src/runtime/async"; then
         echo "[memory-concurrency] async scheduler must not ignore queue push failure: $forbidden_queue_push" >&2
@@ -327,7 +327,7 @@ for forbidden_queue_push in \
     fi
 done
 for required_scheduler_guard in \
-    "scheduler failed to requeue ready fiber" \
+    "fiber yielded but the context layer is not landed" \
     "scheduler failed to unblock fiber" \
     "scheduler failed to enqueue stolen fiber"; do
     if ! grep -R -Fq "$required_scheduler_guard" \
@@ -367,12 +367,12 @@ if grep -Fq "atomic_fetch_add(&scheduler->totalFibers, -1)" \
     exit 1
 fi
 for required_scheduler_surface_impl in \
-    "void SchedulerRegisterIoEvent" \
-    "void SchedulerUnregisterIoEvent" \
-    "void SchedulerScheduleTimer" \
+    "void pgy_mn_scheduler_register_io_event" \
+    "void pgy_mn_scheduler_unregister_io_event" \
+    "void pgy_mn_scheduler_schedule_timer" \
     "scheduler timer support is not implemented" \
-    "void SchedulerSetDeterministicMode" \
-    "void SchedulerGetStats" \
+    "void pgy_mn_scheduler_set_deterministic_mode" \
+    "void pgy_mn_scheduler_get_stats" \
     "stats->totalFibersCreated = (UINT64_MAX - completed < active)"; do
     if ! grep -Fq "$required_scheduler_surface_impl" \
         "$ROOT_DIR/src/runtime/async/scheduler.c"; then

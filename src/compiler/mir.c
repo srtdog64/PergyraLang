@@ -12,6 +12,7 @@
 #include "../parser/ast_api.h"
 #include "mir_hir_block_projection.h"
 #include "mir_lower_population.h"
+#include "mir_resource_runtime_population.h"
 #include "mir_parallel_capture_facts.h"
 #include "mir_region_escape_facts.h"
 #include "mir_generic_method_specialization.h"
@@ -45,29 +46,6 @@
 #include "mir_decl_headers.h"
 #include "mir_cfg_contract_validate.h"
 #include "mir_abi_layout.h"
-
-void
-mir_lower_request_init(MIRLowerRequest *request,
-                        const HIRProgram *hir,
-                        const RIRProgram *rir,
-                        const SemanticResult *semantic)
-{
-    if (request == NULL)
-        return;
-    request->protocol_id = PGY_MIR_LOWER_PROTOCOL_ID;
-    request->protocol_version = PGY_MIR_LOWER_PROTOCOL_VERSION;
-    request->hir = hir;
-    request->dir = NULL;
-    request->rir = rir;
-    request->semantic = semantic;
-}
-
-void
-mir_lower_request_bind_dir(MIRLowerRequest *request, const DIRProgram *dir)
-{
-    if (request != NULL)
-        request->dir = dir;
-}
 
 static bool
 mir_capture_receiver_carriage(const MIRProgram *mir,

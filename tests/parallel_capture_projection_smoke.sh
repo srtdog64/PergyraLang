@@ -8,6 +8,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LABEL="parallel-capture-projection"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 fail() {
@@ -84,6 +85,12 @@ if [[ -x "$PGY" ]] && pgy_binary_is_runnable_here "$PGY"; then
         out="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/main_${backend}.exe")"
         if ! (cd "$ROOT_DIR" && "$PGY" "$src" --backend="$backend" -o "$out") \
                 >"$WORK_DIR/${backend}.log" 2>&1; then
+            if [[ "$backend" == "llvm" ]] \
+                    && pgy_selfhost_log_reports_no_llvm \
+                        "$WORK_DIR/${backend}.log"; then
+                echo "[$LABEL] LLVM snapshot fixture skipped; compiler built without LLVM backend support"
+                continue
+            fi
             echo "[$LABEL] $backend fixture failed" >&2
             cat "$WORK_DIR/${backend}.log" >&2
             exit 1

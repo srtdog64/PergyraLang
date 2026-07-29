@@ -1,7 +1,7 @@
 #include "mir_stmt_population_internal.h"
 
 #include "mir_abi_layout.h"
-#include "mir_lower_population.h"
+#include "mir_resource_runtime_population.h"
 #include "mir_source_local_type_shape.h"
 
 #include <stdlib.h>

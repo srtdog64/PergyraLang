@@ -11521,8 +11521,8 @@ require_text "src/compiler/mir_types.h" "PgyLoopFlowStateFact *loop_flow_states"
 require_text "src/compiler/mir_types.h" "MIRResourceFlowSymbol *resource_flow_symbols"
 require_text "src/compiler/mir_hir_fact_transfer.c" "mir_copy_resource_flow_symbols"
 require_text "src/compiler/mir_hir_fact_transfer.c" "mir_copy_loop_flow_facts"
-require_text "src/compiler/mir_program_validate.c" "mir_validate_resource_flow_symbols"
-require_text "src/compiler/mir_program_validate.c" "mir_validate_loop_flow_facts"
+require_text "src/compiler/mir_program_fact_validate.c" "mir_validate_resource_flow_symbols"
+require_text "src/compiler/mir_program_fact_validate.c" "mir_validate_loop_flow_facts"
 require_text "src/compiler/rir.h" "RIRResourceFlowSymbol *resource_flow_symbols"
 require_text "src/compiler/rir_resource_flow_symbols.c" "rir_copy_resource_flow_symbols"
 require_text "src/compiler/rir_validation.c" "rir_validate_resource_flow_symbols"
@@ -11965,6 +11965,12 @@ require_text "tests/self_hosted/parity/codegen_parity.sh" 'pgy_reject_wsl_window
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-bootstrap" "$PGY"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"'
 require_max_lines "tests/self_hosted/parity/codegen_bootstrap.sh" 600
+require_file "tests/self_hosted/parity/codegen_bootstrap_compile_leg.sh"
+require_max_lines "tests/self_hosted/parity/codegen_bootstrap_compile_leg.sh" 120
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" \
+    "source \"\$ROOT_DIR/tests/self_hosted/parity/codegen_bootstrap_compile_leg.sh\""
+require_text "tests/self_hosted/parity/codegen_bootstrap_compile_leg.sh" \
+    "compile_c_artifact_with_bounded_log()"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "pgy_selfhost_compile_backend_output_comparator"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" '"codegen-bootstrap-paths"'
@@ -13012,7 +13018,7 @@ require_text "Makefile" "clean-local-artifacts: clean clean-scratch clean-local-
 require_text "tests/self_hosted/parity/README.md" "make build-resource-report"
 require_text "tests/self_hosted/parity/README.md" "make clean-local-artifacts"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "compile_c_artifact_with_bounded_log"
-require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "PGY_SELFHOST_CC_LOG_LIMIT_BYTES"
+require_text "tests/self_hosted/parity/codegen_bootstrap_compile_leg.sh" "PGY_SELFHOST_CC_LOG_LIMIT_BYTES"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" 'removes the ignored `.tmp` scratch zone'
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "single evidence log into a multi-hundred-megabyte artifact"
 reject_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "It remains active until all parity artifacts are written and compared from this owner."

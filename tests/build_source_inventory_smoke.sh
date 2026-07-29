@@ -54,10 +54,13 @@ pgy_git_scan_E()
 
     (
         cd "$ROOT_DIR"
-        git grep -nE "$pattern" -- "$@" || true
-        git ls-files --others --exclude-standard -- "$@" \
-            | grep -E "$ext_pattern" \
-            | xargs -r grep -InE "$pattern" || true
+        {
+            git ls-files -- "$@"
+            git ls-files --others --exclude-standard -- "$@"
+        } | grep -E "$ext_pattern" \
+            | while IFS= read -r source_file; do
+                grep -HnE "$pattern" "$source_file" || true
+            done
     ) | pgy_normalize_scan_paths
 }
 
@@ -980,6 +983,17 @@ if grep -Eq "^(transpiler_emit_zone_frontier_change_checks|transpiler_emit_zone_
     missing=1
 fi
 
+grep -Fq "transpiler_emit_zone_action_causes" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_action_cause_emit.c" || {
+    echo "[build-source-inventory] zone action-cause reactivation must stay in its named emitter owner" >&2
+    missing=1
+}
+if grep -Fq "PGY_PROP_CAUSE_ACTION" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c"; then
+    echo "[build-source-inventory] zone declaration orchestration must not reopen action-cause reactivation" >&2
+    missing=1
+fi
+
 grep -Fq "slot_analyzer_find_function_decl" \
     "$ROOT_DIR/src/semantic/slot_analyzer_lookup.c" || {
     echo "[build-source-inventory] slot analyzer function lookup must stay in slot_analyzer_lookup.c" >&2
@@ -1139,6 +1153,12 @@ fi
 if ! grep -Fq '$(CODEGEN_DIR)/transpiler_intent_prologue_emit.c' \
     "$ROOT_DIR/Makefile"; then
     echo "[build-source-inventory] intent prologue emitter is not linked by the C backend source inventory" >&2
+    missing=1
+fi
+
+if ! grep -Fq '$(CODEGEN_DIR)/transpiler_intent_step_completion_emit.c' \
+    "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] intent step completion emitter is not linked by the C backend source inventory" >&2
     missing=1
 fi
 
@@ -1370,6 +1390,17 @@ grep -Fq "transpiler_emit_intent_signature_and_entry" \
     echo "[build-source-inventory] intent prologue lowering must stay in its compiled owner" >&2
     missing=1
 }
+
+grep -Fq "transpiler_emit_intent_step_completion" \
+    "$ROOT_DIR/src/codegen/transpiler_intent_step_completion_emit.c" || {
+    echo "[build-source-inventory] intent step completion must stay in its named emitter owner" >&2
+    missing=1
+}
+if grep -Eq "^transpiler_emit_intent_step_completion\\(" \
+    "$ROOT_DIR/src/codegen/transpiler_intent_emit.c"; then
+    echo "[build-source-inventory] intent declaration orchestration must not reopen step completion emission" >&2
+    missing=1
+fi
 
 grep -Fq "transpiler_mir_render_match_case_condition" \
     "$ROOT_DIR/src/codegen/transpiler_mir_match_condition_emit.c" || {

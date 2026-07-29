@@ -53,6 +53,8 @@ for rel in \
     "src/codegen/transpiler_block_emit.h" \
     "src/compiler/mir_types.h" \
     "src/compiler/mir_lower_population.c" \
+    "src/compiler/mir_resource_runtime_population.c" \
+    "src/compiler/mir_resource_runtime_population.h" \
     "src/codegen/llvm_runtime.c" \
     "src/codegen/llvm_runtime_row.c" \
     "src/compiler/mir_abi_resource_runtime_constructed.c" \
@@ -512,8 +514,12 @@ require_term "src/tests/security/test_security_slot_pin_lease.cases.h" "Write-pi
 require_term "src/runtime/pgy_runtime_plain_slot_inline.h" "PgyPinnedSlotView_##SuffixName"
 require_term "src/runtime/pgy_runtime_plain_slot_inline.h" "pgy_pin_read_##SuffixName"
 require_term "src/runtime/pgy_runtime_plain_slot_inline.h" "pgy_pin_write_##SuffixName"
+require_term "src/runtime/pgy_runtime_plain_slot_inline.h" "pgy_pin_read_init_##SuffixName"
+require_term "src/runtime/pgy_runtime_plain_slot_inline.h" "pgy_pin_write_init_##SuffixName"
 require_term "src/runtime/pgy_runtime_plain_slot_inline.h" "pgy_unpin_cleanup_##SuffixName"
 require_term "src/runtime/pgy_runtime_slot_macros.h" "PgyPinnedSecureSlotView_##SuffixName"
+require_term "src/runtime/pgy_runtime_slot_macros.h" "pgy_secure_pin_read_init_##SuffixName"
+require_term "src/runtime/pgy_runtime_slot_macros.h" "pgy_secure_pin_write_init_##SuffixName"
 require_term "src/runtime/pgy_runtime_slot_macros.h" "pgy_secure_unpin_cleanup_##SuffixName"
 require_term "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" "pgy_unpin_##SuffixName"
 require_term "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" "pgy_pin_read_init_##SuffixName"
@@ -525,8 +531,9 @@ require_term "src/runtime/pgy_runtime_lib_secure_slot_exports.h" "pgy_secure_pin
 require_term "src/codegen/transpiler_mir_pin_emit.c" "transpiler_slot_runtime_row_for_operation("
 require_term "src/codegen/transpiler_mir_pin_emit.c" "row->call_shape"
 require_term "src/codegen/transpiler_mir_pin_emit.c" "transpiler_slot_runtime_expected_call_shape"
-require_term "src/codegen/transpiler_mir_pin_emit.c" '"PinRead"'
-require_term "src/codegen/transpiler_mir_pin_emit.c" '"PinWrite"'
+require_term "src/codegen/transpiler_mir_pin_emit.c" '"PinReadInit"'
+require_term "src/codegen/transpiler_mir_pin_emit.c" '"PinWriteInit"'
+reject_term "src/codegen/transpiler_mir_pin_emit.c" 'pin_op = block->pin_view_is_write ? "PinWrite" : "PinRead"'
 require_term "src/codegen/transpiler_mir_pin_emit.c" '"Unpin"'
 reject_term "src/codegen/transpiler_mir_pin_emit.c" "transpiler_mir_pin_expected_call_shape"
 reject_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_pin_%s_%s"
@@ -538,6 +545,14 @@ require_term "src/compiler/mir_types.h" "resource_owner_requires_metadata"
 require_term "src/compiler/mir_lower_population.c" "MIRResourceBorrowLoweringFact"
 require_term "src/compiler/mir_lower_population.c" "mir_resource_record_borrow_fact"
 require_term "src/compiler/mir_lower_population.c" "inst.resource_owner_requires_metadata = resource_owner_slot_anchor != NULL"
+require_term "src/compiler/mir_resource_runtime_population.c" "mir_materialize_resource_runtime_row"
+require_term "src/compiler/mir_resource_runtime_population.c" "out->runtime_call_abi_id = mir_abi_resource_runtime_row_id(out)"
+require_term "src/compiler/mir_resource_runtime_population.c" "mir_link_resource_runtime_facts"
+require_term "src/compiler/mir_resource_runtime_population.h" "bool mir_materialize_resource_runtime_fact("
+require_term "src/compiler/mir_lower_population.c" "mir_materialize_resource_runtime_fact(routine, &inst)"
+reject_term "src/compiler/mir_lower_population.c" "mir_resource_runtime_operation_has_row"
+reject_term "src/compiler/mir_lower_population.c" "out->runtime_call_abi_id = mir_abi_resource_runtime_row_id(out)"
+reject_term "src/compiler/mir_lower_population.h" "mir_materialize_resource_runtime_row"
 require_term "src/compiler/mir_fact_surface_validate.c" "inst->resource_owner_requires_metadata"
 require_term "src/compiler/mir_fact_surface_validate_resource.c" "return inst->arg1 != NULL && strcmp(inst->arg1, view_name) == 0"
 require_term "src/compiler/mir_fact_surface_validate.c" "view-backed resource op is missing owner slot ABI metadata"

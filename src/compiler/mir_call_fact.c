@@ -1,5 +1,5 @@
 #include "mir_call_fact.h"
-#include "mir_lower_population.h"
+#include "mir_resource_runtime_population.h"
 
 #include <stdlib.h>
 #include <string.h>

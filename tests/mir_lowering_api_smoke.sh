@@ -16,9 +16,9 @@ require "PGY_MIR_LOWER_PROTOCOL_ID" "src/compiler/mir.h"
 require "PGY_MIR_LOWER_PROTOCOL_VERSION" "src/compiler/mir.h"
 require "MIRLowerRequest" "src/compiler/mir.h"
 require "mir_lower_request_init" "src/compiler/mir.h"
-require "mir_lower_request_init" "src/compiler/mir.c"
+require "mir_lower_request_init" "src/compiler/mir_lower_request.c"
 require "mir_lower_request_bind_dir" "src/compiler/mir.h"
-require "mir_lower_request_bind_dir" "src/compiler/mir.c"
+require "mir_lower_request_bind_dir" "src/compiler/mir_lower_request.c"
 require "dir->source_program_syntax_id" "src/compiler/mir.c"
 require "hir->source_program_syntax_id" "src/compiler/mir.c"
 require "strcmp(request->protocol_id, PGY_MIR_LOWER_PROTOCOL_ID)" \
@@ -30,7 +30,7 @@ require "mir_lower_request_init(&mir_request" "src/compiler/driver_app.c"
 require "mir_lower_request_bind_dir(&mir_request, dir)" "src/compiler/driver_app.c"
 require "mir = mir_lower(&mir_request" "src/compiler/driver_app.c"
 
-if rg -n --glob '*.c' --glob '*.h' --glob '*.cases.h' \
+if grep -RInE --include='*.c' --include='*.h' --include='*.cases.h' \
     'mir_lower\((hir|\*hir_out|\*\*hir_out),' \
     "$ROOT_DIR/src" >/dev/null; then
     echo "[mir-lowering-api] unversioned positional MIR lowering call remains" >&2

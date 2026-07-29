@@ -49,9 +49,13 @@ semantic_match_binding_type_fact_record(SemanticContext *ctx,
     PgyMatchBindingTypeFact *fact;
 
     if (ctx == NULL || match_case_node == NULL || binding_type == NULL
-        || binding_count == 0 || binding_index >= binding_count
-        || ctx->current_function_decl == NULL)
+        || binding_count == 0 || binding_index >= binding_count)
         return false;
+    /* Match binding rows are routine-local MIR input.  A standalone semantic
+     * unit check has no HIR routine consumer, so it must not manufacture an
+     * unresolvable row. */
+    if (ctx->current_function_decl == NULL)
+        return true;
     function_id = ast_node_stable_id(ctx->current_function_decl);
     match_case_id = ast_node_stable_id(match_case_node);
     type_name = type_name_or_unknown(binding_type);

@@ -542,6 +542,20 @@ ast_generic_param_default_type(const GenericParam* param)
 }
 
 size_t
+ast_where_constraint_count(const WhereClause* where)
+{
+    return where != NULL ? where->count : 0;
+}
+
+TypeConstraint*
+ast_where_constraint_at(const WhereClause* where, size_t index)
+{
+    if (where == NULL || where->constraints == NULL || index >= where->count)
+        return NULL;
+    return where->constraints[index];
+}
+
+size_t
 ast_type_tuple_element_count(const ASTNode* node)
 {
     if (node == NULL || node->type != AST_TYPE

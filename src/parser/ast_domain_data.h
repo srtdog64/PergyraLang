@@ -437,6 +437,13 @@ typedef struct {
 } ASTZoneStateData;
 
 typedef struct {
+    char* subject;
+    LifecycleTransitionDecl* transitions;
+    size_t transition_count;
+    size_t transition_capacity;
+} ASTLifecycleDeclData;
+
+typedef struct {
     char* name;
     ASTNode** params;
     size_t param_count;

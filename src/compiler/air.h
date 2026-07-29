@@ -165,6 +165,7 @@ typedef struct
     size_t          intent_index;
     size_t          step_index;
     ASTNode        *ast;
+    uint32_t        source_stable_id;
     AIRSyncClass    sync_class;
     bool            authority_required;
     bool            source_from_intent_default;

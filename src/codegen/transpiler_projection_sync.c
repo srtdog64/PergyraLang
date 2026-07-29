@@ -45,6 +45,10 @@ emit_world_embedded_action_authority_check(
     host_decl = transpiler_current_host_decl_local(ctx);
     if (host_decl == NULL || host_decl->type != AST_WORLD_DECL)
         return true;
+    method_within_zone =
+        transpiler_mir_decl_method_within_zone(method_meta);
+    if (method_within_zone == NULL)
+        return true;
     if (transpiler_mir_decl_method_authorized_by_count(method_meta) == 0)
         return true;
     if (transpiler_mir_decl_method_authorized_by_count(method_meta) != 1) {
@@ -61,13 +65,6 @@ emit_world_embedded_action_authority_check(
         return false;
     }
 
-    method_within_zone =
-        transpiler_mir_decl_method_within_zone(method_meta);
-    if (method_within_zone == NULL) {
-        transpiler_set_mir_inventory_missing(ctx,
-            "MIR-only C path missing within-zone metadata for self-authorized action");
-        return false;
-    }
     if (!transpiler_resolve_world_zone_subject_receiver(ctx, receiver,
             &zone_slot_name, &zone_type_name,
             &source_slot_name, &source_type_name)

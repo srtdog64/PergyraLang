@@ -159,6 +159,7 @@ pgy_air_evidence_certificate_fingerprint(const AIRProgram *air)
         mix_text(&hash, boundary->source_name);
         mix_u64(&hash, boundary->intent_index);
         mix_u64(&hash, boundary->step_index);
+        mix_u64(&hash, boundary->source_stable_id);
         mix_u64(&hash, boundary->sync_class);
         mix_bool(&hash, boundary->authority_required);
         mix_bool(&hash, boundary->source_from_intent_default);

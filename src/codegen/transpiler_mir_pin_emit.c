@@ -259,7 +259,7 @@ transpiler_emit_mir_pin_enter_local(CodeBuf *buf,
             "MIR pin block token address expression is too long");
         return false;
     }
-    pin_op = block->pin_view_is_write ? "PinWrite" : "PinRead";
+    pin_op = block->pin_view_is_write ? "PinWriteInit" : "PinReadInit";
     if (slot->is_secure || !mir_block_has_pin_guard_amortization_region(block)) {
         runtime_row = transpiler_mir_pin_runtime_row(
             ctx,
@@ -273,22 +273,24 @@ transpiler_emit_mir_pin_enter_local(CodeBuf *buf,
     if (slot->is_secure) {
         transpiler_write_indent_to(buf, ctx->indent);
         codebuf_write(buf,
-            "PgyPinnedSecureSlotView_%s %s = "
-            "%s(%s, %s);\n",
-            slot->inner_type, pin_name,
-            runtime_fn,
-            slot_expr,
-            token_expr);
+            "PgyPinnedSecureSlotView_%s %s;\n",
+            slot->inner_type, pin_name);
+        transpiler_write_indent_to(buf, ctx->indent);
+        codebuf_write(buf,
+            "%s(&%s, %s, %s);\n",
+            runtime_fn, pin_name, slot_expr, token_expr);
     } else if (mir_block_has_pin_guard_amortization_region(block)) {
         return transpiler_emit_mir_plain_pin_preflight_local(
             buf, ctx, block, slot, pin_name, slot_expr, reason, reason_cap);
     } else {
         transpiler_write_indent_to(buf, ctx->indent);
         codebuf_write(buf,
-            "PgyPinnedSlotView_%s %s = %s(%s);\n",
-            slot->inner_type, pin_name,
-            runtime_fn,
-            slot_expr);
+            "PgyPinnedSlotView_%s %s;\n",
+            slot->inner_type, pin_name);
+        transpiler_write_indent_to(buf, ctx->indent);
+        codebuf_write(buf,
+            "%s(&%s, %s);\n",
+            runtime_fn, pin_name, slot_expr);
     }
 
     return true;

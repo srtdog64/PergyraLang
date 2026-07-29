@@ -17,6 +17,7 @@
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_cfg_control_emit.h"
 #include "transpiler_mir_emit_state.h"
+#include "transpiler_mir_func_param_bindings.h"
 #include "transpiler_mir_local_binding.h"
 #include "transpiler_mir_local_type_lookup.h"
 #include "transpiler_mir_func_ssa_locals_emit.h"
@@ -456,75 +457,11 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             }
         }
     }
-    for (size_t i = 0; i < func_param_count; i++) {
-        FuncParam *p = transpiler_mir_routine_param(mir_routine, i);
-        bool pass_indirect =
-            transpiler_mir_routine_param_passes_indirect(mir_routine, i);
-        const char *type_name =
-            transpiler_mir_routine_param_type_name(mir_routine, i);
-        char *owned_type_name = NULL;
-        if (p == NULL || p->name == NULL)
-            continue;
-        if (is_method && strcmp(p->name, "self") == 0 && p->type == NULL)
-            continue;
-        if (!mir_active && type_name == NULL && p->type != NULL) {
-            owned_type_name = render_type_name_in_ctx(ctx, p->type);
-            type_name = owned_type_name;
-        }
-        if (p->type == NULL
-            && strcmp(p->name, "self") == 0
-            && mir_routine != NULL
-            && transpiler_mir_routine_owner_name(mir_routine) != NULL) {
-            free(owned_type_name);
-            owned_type_name = pergyra_strdup(
-                transpiler_mir_routine_owner_name(mir_routine));
-            type_name = owned_type_name;
-        }
-        if (type_name == NULL)
-            continue;
-        if (type_name != NULL) {
-            bool boundary_slot =
-                transpiler_mir_routine_param_is_boundary_resource(
-                    mir_routine, i);
-            register_typed_var(ctx, p->name, type_name);
-            if (p->name != NULL && strcmp(p->name, "self") != 0
-                && (is_pointer_self_host_type_name(ctx, type_name)
-                    || pass_indirect)) {
-                TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
-                if (entry != NULL)
-                    entry->is_indirect_ref = true;
-            }
-            if (transpiler_mir_routine_param_is_slot_family(
-                    mir_routine, i)) {
-                char inner_buf[128];
-                bool secure_slot = transpiler_mir_routine_param_is_secure_slot(
-                    mir_routine, i);
-                if (!slot_inner_type_name_copy(type_name, inner_buf,
-                        sizeof(inner_buf))) {
-                    transpiler_set_backend_error_with_hints(
-                        ctx,
-                        PGY_CODE_C_TYPE_UNSUPPORTED,
-                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                        "cannot register slot parameter metadata for MIR-emitted function '%s' parameter '%s'",
-                        name != NULL ? name : "<function>",
-                        p->name != NULL ? p->name : "<param>");
-                    free(owned_type_name);
-                    transpiler_restore_mir_emit_state_from_snapshot_local(ctx,
-                        &saved_emit_state);
-                    return;
-                }
-                register_slot_var(ctx, p->name, inner_buf, secure_slot,
-                    boundary_slot);
-            } else if (transpiler_mir_routine_param_is_device_slot(
-                           mir_routine, i)
-                       && boundary_slot) {
-                TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
-                if (entry != NULL)
-                    entry->is_indirect_ref = true;
-            }
-            free(owned_type_name);
-        }
+    if (!transpiler_register_mir_func_param_bindings(
+            ctx, mir_routine, name, is_method, mir_active)) {
+        transpiler_restore_mir_emit_state_from_snapshot_local(ctx,
+            &saved_emit_state);
+        return;
     }
     if (is_method && resolved_host_decl != NULL)
         transpiler_mir_register_class_field_slots(ctx, resolved_host_decl);

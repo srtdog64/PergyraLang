@@ -8,6 +8,7 @@ root = pathlib.Path(sys.argv[1])
 native_schema = root / "src/compiler/mir_intent_execution.h"
 native_writer = root / "src/compiler/mir_json_dump_intent_execution.c"
 native_digest = root / "src/compiler/mir_intent_execution.c"
+native_graph = root / "src/compiler/mir_intent_execution_graph.c"
 native_validator = root / "src/compiler/mir_intent_execution_validate.c"
 self_root = root / "src/self_hosted"
 self_schema = self_root / "mir/intent_execution_schema_owner.pgy"
@@ -31,13 +32,35 @@ require_terms(native_writer, [
     "result_payload_decl_syntax_id",
     "mir_intent_execution_program_digest(mir)",
 ])
-require_terms(native_digest, [
+native_execution_text = require_terms(native_digest, [
     "intent_execution_hash_string",
     "intent_execution_hash_int",
     "intent_execution_digest_rows",
     "mir_intent_execution_program_digest",
     "payload_decl_syntax_id",
+    "intent_execution_append_block(",
+    "intent_execution_materialize_step(",
+    "intent_execution_set_branch(",
+    "intent_execution_set_goto(",
 ])
+require_terms(native_graph, [
+    "intent_execution_materialize_step",
+    "intent_execution_capture_compensations",
+    "intent_execution_set_branch",
+    "IntentOutcomeBranch",
+    "IntentStepCompleted",
+    "IntentSuccessPayload",
+    "IntentFailurePayload",
+    "mir_expression_graph_identity",
+])
+for forbidden in (
+    "intent_execution_materialize_step(MIRRoutine *routine",
+    "intent_execution_capture_compensations(MIRRoutine *routine",
+):
+    assert forbidden not in native_execution_text, (
+        "top-level intent execution orchestration re-owned graph materialization",
+        forbidden,
+    )
 validator_text = require_terms(native_validator, [
     "intent_execution_tobject_by_identity", "branch->payload_decl_syntax_id",
     "row->result_payload_decl_syntax_id",

@@ -36,6 +36,30 @@ require_text "src/compiler/dir_validate.c" \
     "DIR domain graph is missing its anchored source identity"
 require_text "src/compiler/dir_validate.c" \
     "DIR slot-contract node '%s' is missing source or owner syntax identity"
+require_text "src/compiler/dir_validate_internal.h" \
+    "bool dir_validate_domain_topology("
+require_text "src/compiler/dir_validate_internal.h" \
+    "bool dir_validate_domain_runtime_facts("
+require_text "src/compiler/dir_validate_internal.h" \
+    "bool dir_validate_intents("
+require_text "src/compiler/dir_validate_domain_topology.c" \
+    "DIR domain topology row[%llu] has incomplete stable identity"
+require_text "src/compiler/dir_validate_domain_runtime.c" \
+    "DIR domain participant-role fact[%llu] has incomplete exact identity"
+require_text "src/compiler/dir_validate_intent.c" \
+    "DIR typed intent[%llu] terminal coverage drifted"
+require_text "src/compiler/dir_validate.c" \
+    "dir_validate_domain_topology(dir, error_message)"
+require_text "src/compiler/dir_validate.c" \
+    "dir_validate_domain_runtime_facts(dir, error_message)"
+require_text "src/compiler/dir_validate.c" \
+    "dir_validate_intents(dir, error_message)"
+reject_text "src/compiler/dir_validate.c" \
+    "dir_domain_topology_slot_matches("
+reject_text "src/compiler/dir_validate.c" \
+    "dir_domain_runtime_find_node_by_source("
+reject_text "src/compiler/dir_validate.c" \
+    "dir_intent_branch_matches_ast("
 require_text "src/compiler/rir_validation_dir.c" \
     "rir_find_domain_scope_for_source_id"
 require_text "src/compiler/rir_validation_dir.c" \

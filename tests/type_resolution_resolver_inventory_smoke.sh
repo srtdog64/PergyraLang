@@ -491,7 +491,7 @@ grep -q 'intent_find_effect_decl_by_name' \
 }
 
 grep -q 'intent_resolve_step_where_zone_decl' \
-  src/semantic/type_checker_intent_decl.c || {
+  src/semantic/type_checker_intent_step_sequence.c || {
   echo "[type-resolution-resolver-inventory] intent step where validation no longer consumes the zone owner seam" >&2
   exit 1
 }

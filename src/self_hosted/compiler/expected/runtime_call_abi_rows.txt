@@ -85,7 +85,7 @@ count=245
 82|host-io|dir-walk|pgy_dirwalk|function|generated_runtime_helper|string_to_array_string
 83|host-io|dir-walk-rec|pgy_dirwalk_rec|function|generated_internal_helper|string_array_string_to_void
 84|host-io|string-compare|pgy_str_cmp|function|generated_internal_helper|string_string_to_int
-85|host-io|args|pgy_args|function|generated_runtime_helper|returns_array_string
+85|host-io|args|pgy_selfhost_args|function|generated_runtime_helper|returns_array_string
 86|host-io|exit|exit|function|target_library|int_to_noreturn
 87|native-resource|Slot<Int>.Claim|pgy_claim_Int|function|mir_abi_resource_row|returns_container
 88|native-resource|Slot<Int>.Read|pgy_read_Int|function|mir_abi_resource_row|container_ptr_to_value

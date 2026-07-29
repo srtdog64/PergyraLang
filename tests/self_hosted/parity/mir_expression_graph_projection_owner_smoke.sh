@@ -93,7 +93,7 @@ for retired_read in \
     'rows.call_target_names' \
     'expr0_graphs.call_target_kinds' \
     'expr0_graphs.call_target_names'; do
-    if rg -F --glob '*.pgy' -- "$retired_read" \
+    if grep -RF --include='*.pgy' -- "$retired_read" \
         "$ROOT_DIR/src/self_hosted/mir" \
         "$ROOT_DIR/src/self_hosted/tools/initializer_projection_probe" \
         >/dev/null; then

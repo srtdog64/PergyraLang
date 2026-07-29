@@ -11,6 +11,8 @@
 #include "llvm_internal.h"
 
 LLVMTypeRef pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name);
+LLVMTypeRef llvm_tuple_type_from_rendered_name(LLVMGenCtx *ctx,
+                                               const char *type_name);
 LLVMTypeRef llvm_resolve_generic_formal_default(LLVMGenCtx *ctx,
                                                 const char *type_name);
 /* MIR owns callable (EventHandler) shape after signature lowering.  LLVM

@@ -132,7 +132,7 @@ while IFS= read -r rel; do
         structural_owners+=("$rel")
     fi
 done < <(
-    rg -l -F -g '*.pgy' -- "node_kinds: Array<Int>;" src/self_hosted |
+    grep -RlF --include='*.pgy' -- "node_kinds: Array<Int>;" src/self_hosted |
         tr '\\' '/'
 )
 

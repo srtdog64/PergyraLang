@@ -61,6 +61,8 @@ forbid_function_text() {
 
 source "$ROOT_DIR/tests/self_hosted/compiler_world_manifest.sh"
 
+bash "$ROOT_DIR/tests/mir_json_expression_graph_owner_smoke.sh"
+
 require_file "docs/self_hosted/10_hard_self_host_contract.md"
 require_file "docs/self_hosted/11_compiler_world_architecture.md"
 require_file "docs/self_hosted/12_intent_zone_self_host_architecture.md"
@@ -124,7 +126,16 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "let emission: CompilerEmissionArtifact = CompilerEmissionArtifact("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "return CompileMirJsonTextToCVerified(json, machine_declaration);"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    "func EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved("
+require_text "src/self_hosted/compiler/driver_rung2_intent_consumer_owner.pgy" \
+    "EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved("
+require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved" \
+    "DriverRung2IntentTreeEmissionOrDie(admitted, observe_pressure)"
+forbid_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "EmitMirProgramTreeProjectionFromRoutineIndexObserved("
+forbid_text "src/self_hosted/compiler/driver_rung2_intent_consumer_owner.pgy" \
     "EmitMirProgramTreeProjectionFromRoutineIndexObserved("
 require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved" \
@@ -145,6 +156,8 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner.sh"
     '"expr0_graph_removed"'
 require_file "src/compiler/mir_json_expression_graph.c"
 require_file "src/compiler/mir_json_expression_graph.h"
+require_file "src/compiler/mir_json_expression_graph_materialize.c"
+require_file "src/compiler/mir_json_expression_graph_materialize.h"
 require_text "src/compiler/mir_json_dump.c" \
     "mir_json_emit_instruction_expression_graph(out, inst, 0);"
 require_text "src/compiler/mir_json_dump.c" \
@@ -153,19 +166,19 @@ require_text "src/compiler/mir_json_expression_graph.c" \
     "mir_json_instruction_expression(const MIRInstruction *inst, int lane)"
 require_text "src/compiler/mir_json_expression_graph.c" \
     "mir_json_expression_graph_build(&graph, expr)"
-require_text "src/compiler/mir_json_expression_graph.c" \
+require_text "src/compiler/mir_json_expression_graph_materialize.c" \
     "case AST_ARRAY_LITERAL:"
-require_text "src/compiler/mir_json_expression_graph.c" \
+require_text "src/compiler/mir_json_expression_graph_materialize.c" \
     'if (type == TOKEN_QUESTION)'
-require_text "src/compiler/mir_json_expression_graph.c" \
+require_text "src/compiler/mir_json_expression_graph_materialize.c" \
     'if (ast_call_uses_braced_initializer_syntax(expr))'
-require_text "src/compiler/mir_json_expression_graph.c" \
+require_text "src/compiler/mir_json_expression_graph_materialize.c" \
     'graph, "generic_type_actual", actual_text'
-require_text "src/compiler/mir_json_expression_graph.c" \
+require_text "src/compiler/mir_json_expression_graph_materialize.c" \
     'graph, "generic_callee", callee_text'
-require_text "src/compiler/mir_json_expression_graph.c" \
+require_text "src/compiler/mir_json_expression_graph_materialize.c" \
     'graph, "type_name", target_text'
-require_text "src/compiler/mir_json_expression_graph.c" \
+require_text "src/compiler/mir_json_expression_graph_materialize.c" \
     'kind = "cast";'
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'if kind == "float_literal" {'
@@ -202,8 +215,16 @@ require_text "tests/self_host_live_replacement_smoke.sh" \
 require_text "tests/self_host_live_replacement_smoke.sh" \
     '--canonicalize-oracle-mir-json "$live_arg"'
 forbid_text "src/compiler/mir_json_expression_graph.c" \
+    "mir_json_expression_graph_build_call("
+forbid_text "src/compiler/mir_json_expression_graph.c" \
+    "case AST_ARRAY_LITERAL:"
+forbid_text "src/compiler/mir_json_expression_graph.c" \
     "parser_parse"
 forbid_text "src/compiler/mir_json_expression_graph.c" \
+    "ParseExpr"
+forbid_text "src/compiler/mir_json_expression_graph_materialize.c" \
+    "parser_parse"
+forbid_text "src/compiler/mir_json_expression_graph_materialize.c" \
     "ParseExpr"
 forbid_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "CheckProgram("

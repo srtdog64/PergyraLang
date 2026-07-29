@@ -5,6 +5,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+bash "$ROOT_DIR/tests/mir_program_fact_validate_owner_smoke.sh"
 MIR_TEST="${MIR_TEST_BIN:-$ROOT_DIR/bin/test_mir}"
 
 if [[ ! -x "$MIR_TEST" ]]; then
@@ -16,7 +17,7 @@ OUTPUT="$($MIR_TEST)"
 grep -Fq -- "MIR carries HIR function parameter flow summaries by stable identity" <<<"$OUTPUT"
 grep -Fq -- "MIRFunctionParamFlowSummary" "$ROOT_DIR/src/compiler/mir_types.h"
 grep -Fq -- "mir_validate_function_param_flow_summaries" \
-    "$ROOT_DIR/src/compiler/mir_program_validate.c"
+    "$ROOT_DIR/src/compiler/mir_program_fact_validate.c"
 grep -Fq -- "has_function_param_flow_facts" "$ROOT_DIR/src/compiler/mir_program.h"
 
 echo "[mir-function-param-flow] HIR summary rows reach MIR with stable identity and fail-closed validation"

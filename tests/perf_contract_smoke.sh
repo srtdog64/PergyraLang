@@ -1995,10 +1995,10 @@ grep -A1 -E '^[[:space:]]*void[[:space:]]*$' \
     "$ROOT_DIR/src/compiler/mir_public_surface.c" \
     | grep -Fq "mir_count_non_cfg_body_fallback_inventory"
 ! grep -Fq "mir_compute_non_cfg_fallback_inventory" "$ROOT_DIR/src/compiler/mir_public_surface.c"
-grep -Fq "mir_validate_non_cfg_fallback_state" "$ROOT_DIR/src/compiler/mir_program_validate.c"
-grep -Fq "used non-CFG body fallback" "$ROOT_DIR/src/compiler/mir_program_validate.c"
+grep -Fq "mir_validate_non_cfg_fallback_state" "$ROOT_DIR/src/compiler/mir_program_fact_validate.c"
+grep -Fq "used non-CFG body fallback" "$ROOT_DIR/src/compiler/mir_program_fact_validate.c"
 grep -Fq "MIR validator rejects CFG-backed non-CFG body fallback state" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_c.cases.h"
-grep -Fq "fallback flag without fallback count" "$ROOT_DIR/src/compiler/mir_program_validate.c"
+grep -Fq "fallback flag without fallback count" "$ROOT_DIR/src/compiler/mir_program_fact_validate.c"
 grep -Fq "MIR validator rejects non-CFG fallback flag without count" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_c.cases.h"
 grep -Fq "cleanup block %zu is not reachable" "$ROOT_DIR/src/compiler/mir_cfg_contract_cleanup_roots.c"
 grep -Fq "MIR validator rejects unreachable cleanup root" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_e.cases.h"
@@ -2795,8 +2795,8 @@ grep -Fq "inst.requires_source_branch_emit" \
 grep -Fq "mir_instruction_record_surface_usage(MIRInstruction *inst)" "$ROOT_DIR/src/compiler/mir_public_surface.c"
 grep -Fq "mir_instruction_record_surface_usage(&inst);" "$ROOT_DIR/src/compiler/mir_base_helpers.c"
 grep -Fq "return append_instruction(block, inst)" "$ROOT_DIR/src/compiler/mir_cleanup.c"
-grep -Fq "return append_instruction(block, inst)" "$ROOT_DIR/src/compiler/mir_intent.c"
-grep -Fq "inst.expr0 = ast" "$ROOT_DIR/src/compiler/mir_intent.c"
+grep -Fq "return append_instruction(block, inst)" "$ROOT_DIR/src/compiler/mir_intent_step_emit.c"
+grep -Fq "inst.expr0 = ast" "$ROOT_DIR/src/compiler/mir_intent_step_emit.c"
 grep -Fq "expression payload fact" "$ROOT_DIR/src/compiler/mir_intent_fact.c"
 grep -Fq "rejected_expr_payload" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_b_1.cases.h"
 grep -Fq "return inst->expr0" "$ROOT_DIR/src/codegen/llvm_intent_flow.c"
@@ -5668,7 +5668,7 @@ if grep -Fq "(*count + 1) * sizeof(size_t)" "$ROOT_DIR/src/compiler/mir_cleanup.
     echo "[perf-contract] MIR cleanup predecessor append regressed to count+1 realloc" >&2
     exit 1
 fi
-if grep -Fq "block->instruction_count + 1" "$ROOT_DIR/src/compiler/mir_intent.c"; then
+if grep -Fq "block->instruction_count + 1" "$ROOT_DIR/src/compiler/mir_intent_step_emit.c"; then
     echo "[perf-contract] MIR intent instruction append regressed to count+1 realloc" >&2
     exit 1
 fi

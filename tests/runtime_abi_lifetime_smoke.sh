@@ -194,6 +194,7 @@ concat_runtime_text "$llvm_text" \
     "src/runtime/pgy_runtime_lib_array_map_exports.h" \
     "src/runtime/pgy_runtime_lib_array_set_exports.h" \
     "src/runtime/pgy_runtime_lib_io_string_exports.h" \
+    "src/runtime/pgy_runtime_lib_string_split_exports.h" \
     "src/runtime/pgy_runtime_lib_std_exports.h" \
     "src/runtime/pgy_runtime_lib_channel_quantum_exports.h" \
     "src/runtime/pgy_runtime_lib_quantum_exports.h" \
@@ -208,6 +209,7 @@ concat_runtime_text "$llvm_string_text" \
     "src/runtime/pgy_runtime_lib_array_map_exports.h" \
     "src/runtime/pgy_runtime_lib_array_set_exports.h" \
     "src/runtime/pgy_runtime_lib_io_string_exports.h" \
+    "src/runtime/pgy_runtime_lib_string_split_exports.h" \
     "src/runtime/pgy_runtime_lib_std_exports.h" \
     "src/runtime/pgy_runtime_lib_channel_quantum_exports.h"
 
@@ -379,7 +381,7 @@ for term in \
 done
 if grep -Fq "pgy_array_push_String(&result, s)" \
     "$ROOT_DIR/src/runtime/pgy_runtime_string_builtin_inline.h" \
-    "$ROOT_DIR/src/runtime/pgy_runtime_lib_io_string_exports.h"; then
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_string_split_exports.h"; then
     fail "StringSplit must not push borrowed input strings into result-owned arrays"
 fi
 for term in \
@@ -393,7 +395,7 @@ for term in \
     "PgyArray_String result = pgy_array_new_String(8)" \
     "pgy_array_push_String(&result, pgy_runtime_lib_strdup(s))" \
     "pgy_array_push_String(&result, pgy_runtime_lib_strdup(p))"; do
-    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_io_string_exports.h" ||
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_string_split_exports.h" ||
         fail "LLVM StringSplit must keep result-owned string tokens; missing $term"
 done
 grep -Fq '{ "Split", "stdlib string", "StringSplit", 2 }' \
@@ -761,7 +763,7 @@ for term in \
     "scheduler_array_fits" \
     "worker count is nonzero but worker array is null" \
     "worker array size overflow" \
-    "scheduler->workers = (WorkerThread*)calloc(scheduler->numWorkers, sizeof(WorkerThread))"; do
+    "scheduler->workers = (PgyMnWorker*)calloc(scheduler->numWorkers, sizeof(PgyMnWorker))"; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/async/scheduler.c" ||
         fail "async scheduler worker arrays must guard allocation sizes: $term"
 done
@@ -775,7 +777,7 @@ for term in \
     grep -Fq "$term" "$ROOT_DIR/src/runtime/async/scheduler_fiber_ops.c" ||
         fail "async scheduler fiber ops must guard queues/workers: $term"
 done
-grep -Fq "scheduler failed to requeue ready fiber" \
+grep -Fq "fiber yielded but the context layer is not landed" \
     "$ROOT_DIR/src/runtime/async/scheduler.c" ||
     fail "async scheduler worker loop must fail closed on ready-fiber requeue failure"
 grep -Fq "pgy_parallel_array_fits" \

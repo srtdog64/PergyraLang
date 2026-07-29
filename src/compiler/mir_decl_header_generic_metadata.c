@@ -59,8 +59,8 @@ mir_capture_where_constraint(WhereClause *where,
     if (where == NULL || param_name == NULL)
         return true;
 
-    for (size_t i = 0; i < where->count; i++) {
-        TypeConstraint *constraint = where->constraints[i];
+    for (size_t i = 0; i < ast_where_constraint_count(where); i++) {
+        TypeConstraint *constraint = ast_where_constraint_at(where, i);
         char *rendered;
 
         if (constraint == NULL || constraint->type_param == NULL

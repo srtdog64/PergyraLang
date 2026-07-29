@@ -10,6 +10,16 @@ stage_lookup_program(SemanticContext *ctx)
     return ctx != NULL ? ctx->program_root : NULL;
 }
 
+uint32_t
+semantic_program_syntax_id(SemanticContext *ctx)
+{
+    ASTNode *program = stage_lookup_program(ctx);
+
+    if (program == NULL || program->type != AST_PROGRAM)
+        return 0;
+    return ast_node_stable_id(program);
+}
+
 static const char *
 stage_decl_label(ASTNode *stmt)
 {

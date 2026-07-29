@@ -2558,3 +2558,36 @@ is the executable witness. The MIR JSON parity harness must compile temporary C
 with `src/runtime` on its include path; otherwise the correct narrow header is
 misreported as a generated-code failure. Removing either header must make the
 C11 negative compile fail.
+
+
+## 여러 top-level test target이 compiler 전체를 다시 빌드하는 경우
+
+`make test-parser test-semantic`처럼 서로 다른 top-level target을 한 호출에
+묶어 실행했는데 compiler source 전체가 두 번 컴파일되는 현상은 메모리 결함과
+별개의 build-graph 중복이다. 2026-07-29 격리 WSL 실행에서 parser target 뒤의
+configuration stamp 갱신이 기존 object를 정리했고, semantic target이 같은 source
+tree를 다시 컴파일하는 것을 관찰했다. `-j2`에서는 peak memory가 폭증하지 않았지만
+CPU, I/O, wall time을 중복 지불하므로 full graph 검증 비용을 왜곡한다.
+같은 조사에서 동일 whole-graph gate를 이전 process tree의 종료 확인 없이 다시
+시작해, reparented/orphan native worker 6개가 동시에 겹친 것도 관측했다. 이
+합산 system pressure는 단일 compiler peak가 아니다.
+
+진단과 운영 원칙은 다음과 같다.
+
+- 같은 `CC`, `LLVM_ENABLED`, `BUILD_DIR`, `BIN_DIR` 조합은 하나의 configured build
+  graph로 만들고 그 산출물을 여러 test binary가 재사용한다. 한 configured
+  graph에서는 bounded whole-graph gate도 동시에 하나만 실행한다.
+- 서로 다른 configuration은 동일 object directory를 공유하지 않는다. stamp 변경이
+  다른 target의 정상 산출물을 지우는 구조를 병렬 실행하지 않는다.
+- gate 재실행 전 wrapper와 descendant의 PID 및 전체 command line을 기록하고,
+  timeout/종료 뒤 같은 PID가 남지 않았는지 확인한다. process name만으로는 이전
+  orphan과 새 worker를 구분할 수 없다.
+- memory verdict는 compiler process tree의 peak memory로 판정하고, 재빌드 횟수와
+  누적 allocation/CPU는 별도 build-work 지표로 기록한다.
+- 20+ GiB 회귀를 의심할 때 cap을 올리기 전에 whole-graph readiness 호출 횟수와
+  configuration-stamp invalidation 횟수를 함께 확인한다.
+
+이 관찰은 기존 repeated whole-graph readiness 결함의 원인을 바꾸지 않는다. 현재
+정상 self-host build의 약 1.1--1.5 GiB 관측과 달리, 20+ GiB 증상은 이미 소유된
+graph proof를 consumer/local row마다 다시 수행한 결함이었다. build target 재구성은
+그와 별도로 중복 전체 컴파일을 없애야 하는 DX/throughput 작업이다.

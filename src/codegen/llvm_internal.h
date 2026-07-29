@@ -256,27 +256,7 @@ typedef struct
     bool          action_self_only;
 } LLVMFuncEntry;
 
-/* Generic template entry (for lazy monomorphization) */
-typedef struct
-{
-    const char       *name;
-    ASTNode          *ast;
-    const MIRRoutine *routine;
-} LLVMGenericTemplate;
-
-/* Monomorphized instance tracking */
-typedef struct
-{
-    char *name;   /* heap-allocated, freed in ctx_destroy */
-} LLVMMonoInstance;
-
-/* Type substitution entry (T -> concrete LLVM type). */
-typedef struct
-{
-    const char  *param_name;  /* "T" */
-    LLVMTypeRef  llvm_type;   /* i32 */
-    const char  *type_name;   /* "Int" */
-} LLVMTypeSubst;
+#include "llvm_generic_registry_types_internal.h"
 
 typedef struct
 {

@@ -38,19 +38,19 @@ require_term "src/codegen/transpiler_zone_decl_emit.c" \
 require_term "src/codegen/llvm_domain_zone_sync.c" \
     "pgy_codegen_zone_frontier_graph_pass_limit_from_mir"
 
-if rg -n \
+if grep -RInE \
     'propagation_graph_build_from_zone\(|pgy_codegen_zone_frontier_graph_pass_limit\(' \
     "$ROOT_DIR/src" >/dev/null; then
     fail "legacy backend AST zone graph entrypoint remains"
 fi
 
-if rg -n 'ast_zone_(refreshes|maintained_effects|links)' \
+if grep -nE 'ast_zone_(refreshes|maintained_effects|links)' \
     "$ROOT_DIR/src/compiler/propagation_graph_build.c" \
     "$ROOT_DIR/src/codegen/domain_frontier_graph.c" >/dev/null; then
     fail "zone frontier graph reconstructs DIR-owned topology from AST"
 fi
 
-if rg -n 'ast_(zone|relation|effect|node|domain)_[a-z_]+\(|owner_node_id|DIRProgram|DIRDomainTopology' \
+if grep -nE 'ast_(zone|relation|effect|node|domain)_[a-z_]+\(|owner_node_id|DIRProgram|DIRDomainTopology' \
     "$ROOT_DIR/src/compiler/mir_json_dump_domain_topology.c" >/dev/null; then
     fail "MIR JSON topology emitter reopened AST/DIR recovery or leaked a DIR-local id"
 fi

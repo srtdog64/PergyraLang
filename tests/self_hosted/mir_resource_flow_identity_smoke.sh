@@ -98,6 +98,6 @@ grep -Fq -- 'MIRResourceFlowSymbol *resource_flow_symbols' \
 grep -Fq -- 'mir_copy_resource_flow_symbols' \
     "$ROOT_DIR/src/compiler/mir_hir_fact_transfer.c"
 grep -Fq -- 'mir_validate_resource_flow_symbols' \
-    "$ROOT_DIR/src/compiler/mir_program_validate.c"
+    "$ROOT_DIR/src/compiler/mir_program_fact_validate.c"
 
 echo "[self-host-mir-resource-flow] MIR-owned ResourceFlowUniverse rows reach self-host identity and malformed counts fail closed"

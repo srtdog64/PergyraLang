@@ -130,11 +130,17 @@ require_literal "src/codegen/llvm_stmt_type_render.c" \
 require_literal "src/codegen/llvm_stmt_type_render.c" \
     "cur_len > ((size_t)-1) - 2"
 require_literal "src/codegen/llvm_domain_projection_value_helpers.c" \
-    "nested_len > ((size_t)-1) - field_len - 2"
+    "const PgyDomainProjectionPathSegmentFact *segment"
 require_literal "src/codegen/llvm_domain_projection_value_helpers.c" \
+    "fact->source_path_segments"
+require_literal "src/codegen/llvm_domain_projection_value_helpers.c" \
+    "fact->source_path_segment_count == 0"
+reject_literal "src/codegen/llvm_domain_projection_value_helpers.c" \
     "llvm_domain_projection_join_path"
-require_literal "src/codegen/llvm_domain_projection_value_helpers.c" \
-    "written < 0 || (size_t)written >= path_len"
+reject_literal "src/codegen/llvm_domain_projection_value_helpers.c" \
+    "strlen("
+reject_literal "src/codegen/llvm_domain_projection_value_helpers.c" \
+    "snprintf("
 require_literal "src/codegen/llvm_expr_projection_path_helpers.c" \
     "nested_len > ((size_t)-1) - field_len - 2"
 require_literal "src/codegen/llvm_expr_projection_path_helpers.c" \
@@ -192,7 +198,13 @@ require_literal "src/codegen/transpiler_mir_pin_emit.c" \
 require_literal "src/codegen/transpiler_mir_pin_emit.c" \
     "transpiler_slot_runtime_row_for_operation"
 require_literal "src/codegen/transpiler_mir_pin_emit.c" \
+    "\"PinReadInit\""
+require_literal "src/codegen/transpiler_mir_pin_emit.c" \
+    "\"PinWriteInit\""
+reject_literal "src/codegen/transpiler_mir_pin_emit.c" \
     "\"PinRead\""
+reject_literal "src/codegen/transpiler_mir_pin_emit.c" \
+    "\"PinWrite\""
 require_literal "src/codegen/transpiler_mir_pin_emit.c" \
     "\"Unpin\""
 require_literal "src/codegen/transpiler_mir_pin_emit.c" \
@@ -475,10 +487,18 @@ require_literal "src/semantic/type_checker_ownership_diag.c" \
     "truncating that token name would break the slot/token capability invariant"
 require_literal "src/codegen/llvm_stmt_type_infer_helpers.c" \
     "llvm_stmt_format_host_method_name"
-require_literal "src/codegen/llvm_register.c" \
+require_literal "src/codegen/llvm_registration_names.c" \
     "llvm_register_join_name"
-require_literal "src/codegen/llvm_register.c" \
+require_literal "src/codegen/llvm_registration_names.c" \
     "llvm_register_payload_field_name"
+require_literal "src/codegen/llvm_registration_names.h" \
+    "bool llvm_register_join_name("
+require_literal "src/codegen/llvm_registration_names.h" \
+    "bool llvm_register_payload_field_name("
+reject_literal "src/codegen/llvm_register.c" \
+    'snprintf(out, out_size, "%s%s%s"'
+reject_literal "src/codegen/llvm_register.c" \
+    "LLVM enum payload field name is too long"
 require_literal "src/codegen/llvm_stmt_zone_action.c" \
     "llvm_zone_action_field_name"
 require_literal "src/codegen/llvm_stmt_zone_action.c" \

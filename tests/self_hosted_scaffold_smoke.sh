@@ -87,9 +87,20 @@ for tool_path in "$TOOLS_DIR"/*/; do
         fail "tool '$tool_name' intent.md missing section: ## Oracle"
     fi
 
-    parity_script="$PARITY_DIR/${tool_name}_parity.sh"
+    declared_parity="$(
+        sed -n 's/^\*\*Parity owner:\*\* `\([^`]*\)`$/\1/p' "$tool_path/intent.md"
+    )"
+    if [[ -n "$declared_parity" ]]; then
+        case "$declared_parity" in
+            tests/self_hosted/parity/*_parity.sh) ;;
+            *) fail "tool '$tool_name' declares invalid parity owner: $declared_parity" ;;
+        esac
+        parity_script="$ROOT_DIR/$declared_parity"
+    else
+        parity_script="$PARITY_DIR/${tool_name}_parity.sh"
+    fi
     [[ -f "$parity_script" ]] \
-        || fail "tool '$tool_name' missing parity script: ${tool_name}_parity.sh"
+        || fail "tool '$tool_name' missing parity script: ${parity_script#"$ROOT_DIR/"}"
     grep -Fq 'set -euo pipefail' "$parity_script" \
         || fail "parity script '$parity_script' missing 'set -euo pipefail'"
 done

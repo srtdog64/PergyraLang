@@ -494,6 +494,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_world_state.c \
                    $(SEMANTIC_DIR)/type_checker_domain_slots.c \
                    $(SEMANTIC_DIR)/type_checker_intent_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_intent_step_sequence.c \
                    $(SEMANTIC_DIR)/type_checker_intent_typed_outcome.c \
                    $(SEMANTIC_DIR)/type_checker_intent_action_contract.c \
                    $(SEMANTIC_DIR)/type_checker_intent_ability.c \
@@ -587,6 +588,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_domain_projection.c \
                    $(SEMANTIC_DIR)/type_checker_domain_projection_fields.c \
                    $(SEMANTIC_DIR)/domain_runtime_fact.c \
+                   $(SEMANTIC_DIR)/domain_projection_path_fact.c \
                    $(SEMANTIC_DIR)/type_checker_overlay_common.c \
                    $(SEMANTIC_DIR)/type_checker_projection_path.c \
                    $(SEMANTIC_DIR)/type_checker_world_embedding.c \
@@ -645,6 +647,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_call_result_option_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_class_constructor_emit.c \
                    $(CODEGEN_DIR)/transpiler_constructor_channel_guard.c \
+                   $(CODEGEN_DIR)/transpiler_constructor_arg_emit.c \
                    $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/codegen_channel_runtime_abi.c \
                    $(CODEGEN_DIR)/codegen_hashmap_key_policy.c \
@@ -754,6 +757,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_intent_failure_emit.c \
                    $(CODEGEN_DIR)/transpiler_intent_emit_metadata_helpers.c \
                    $(CODEGEN_DIR)/transpiler_intent_prologue_emit.c \
+                   $(CODEGEN_DIR)/transpiler_intent_step_completion_emit.c \
                    $(CODEGEN_DIR)/transpiler_intent_context.c \
                    $(CODEGEN_DIR)/transpiler_host_self_policy.c \
                    $(CODEGEN_DIR)/transpiler_intent_participant.c \
@@ -786,6 +790,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_emission_contract.c \
                    $(CODEGEN_DIR)/transpiler_mir_emit_state.c \
                    $(CODEGEN_DIR)/transpiler_mir_func_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_func_param_bindings.c \
                    $(CODEGEN_DIR)/transpiler_mir_func_ssa_locals_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_binding.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_type_lookup.c \
@@ -842,6 +847,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_type_name_utils.c \
                    $(CODEGEN_DIR)/transpiler_type_render.c \
                    $(CODEGEN_DIR)/transpiler_type_require.c \
+                   $(CODEGEN_DIR)/transpiler_zone_action_cause_emit.c \
                    $(CODEGEN_DIR)/transpiler_zone_decl_dispatch.c \
                    $(CODEGEN_DIR)/transpiler_zone_decl_emit.c \
                    $(CODEGEN_DIR)/transpiler_zone_frontier_emit.c \
@@ -864,6 +870,9 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/dir_collect_intent.c \
                    $(COMPILER_DIR)/dir_collect_domain.c \
                    $(COMPILER_DIR)/dir_validate.c \
+                   $(COMPILER_DIR)/dir_validate_domain_topology.c \
+                   $(COMPILER_DIR)/dir_validate_domain_runtime.c \
+                   $(COMPILER_DIR)/dir_validate_intent.c \
                    $(COMPILER_DIR)/io_boundary_builtin.c \
                    $(COMPILER_DIR)/air_names.c \
                    $(COMPILER_DIR)/air_drift.c \
@@ -924,7 +933,9 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/hir_callgraph.c \
                    $(COMPILER_DIR)/hir_semantic_fact_projection.c \
                    $(COMPILER_DIR)/hir_region_escape_facts.c \
+                   $(COMPILER_DIR)/hir_region_escape_validate.c \
                    $(COMPILER_DIR)/mir.c \
+                   $(COMPILER_DIR)/mir_lower_request.c \
                    $(COMPILER_DIR)/mir_region_escape_facts.c \
                    $(COMPILER_DIR)/mir_hir_block_projection.c \
                    $(COMPILER_DIR)/mir_hir_fact_transfer.c \
@@ -954,6 +965,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_json_dump_decl.c \
                    $(COMPILER_DIR)/mir_json_dump_domain_topology.c \
                    $(COMPILER_DIR)/mir_json_dump_domain_runtime.c \
+                   $(COMPILER_DIR)/mir_json_expression_graph_materialize.c \
                    $(COMPILER_DIR)/mir_json_expression_graph.c \
                    $(COMPILER_DIR)/mir_json_generic_method_specialization.c \
                    $(COMPILER_DIR)/mir_json_dump_flow.c \
@@ -962,6 +974,8 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_program_inventory.c \
                    $(COMPILER_DIR)/mir_public_surface.c \
                    $(COMPILER_DIR)/mir_lower_population.c \
+                   $(COMPILER_DIR)/mir_resource_runtime_population.c \
+                   $(COMPILER_DIR)/mir_program_fact_validate.c \
                    $(COMPILER_DIR)/mir_program_validate.c \
                    $(COMPILER_DIR)/mir_call_fact.c \
                    $(COMPILER_DIR)/mir_validation.c \
@@ -1010,10 +1024,12 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_decl_header_variants.c \
                    $(COMPILER_DIR)/mir_decl_header_role_validate.c \
                    $(COMPILER_DIR)/mir_decl_header_shape_validate.c \
+                   $(COMPILER_DIR)/mir_decl_header_method_validate.c \
                    $(COMPILER_DIR)/mir_decl_header_validate.c \
                    $(COMPILER_DIR)/mir_decl_header_access.c \
                    $(COMPILER_DIR)/mir_decl_header_zone_access.c \
                    $(COMPILER_DIR)/mir_decl_method_projection.c \
+                   $(COMPILER_DIR)/mir_decl_header_methods.c \
                    $(COMPILER_DIR)/mir_decl_headers.c \
                    $(COMPILER_DIR)/mir_stmt_population.c \
                    $(COMPILER_DIR)/mir_stmt_population_resource_ops.c \
@@ -1027,7 +1043,9 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_liveness_summary.c \
                    $(COMPILER_DIR)/mir_dce.c \
                    $(COMPILER_DIR)/mir_cleanup.c \
+                   $(COMPILER_DIR)/mir_intent_step_emit.c \
                    $(COMPILER_DIR)/mir_intent.c \
+                   $(COMPILER_DIR)/mir_intent_execution_graph.c \
                    $(COMPILER_DIR)/mir_intent_execution.c \
                    $(COMPILER_DIR)/mir_intent_execution_validate.c \
                    $(COMPILER_DIR)/mir_intent_fact.c \
@@ -1079,16 +1097,19 @@ ifneq ($(LLVM_ENABLED),0)
                    $(CODEGEN_DIR)/llvm_backend_forward_declare.c \
                    $(CODEGEN_DIR)/llvm_backend_type_render.c \
                    $(CODEGEN_DIR)/llvm_backend_type_map.c \
+                   $(CODEGEN_DIR)/llvm_backend_type_map_tuple.c \
                    $(CODEGEN_DIR)/llvm_backend_type_map_generics.c \
                         $(CODEGEN_DIR)/llvm_backend_type_registry.c \
                         $(CODEGEN_DIR)/llvm_boundary_slot_param.c \
                         $(CODEGEN_DIR)/llvm_debug_flags.c \
                         $(CODEGEN_DIR)/llvm_type.c \
                    $(CODEGEN_DIR)/llvm_api.c \
+                   $(CODEGEN_DIR)/llvm_target_machine.c \
                    $(CODEGEN_DIR)/llvm_backend_generic.c \
                    $(CODEGEN_DIR)/llvm_pipeline.c \
                    $(CODEGEN_DIR)/llvm_main_wrapper.c \
                          $(CODEGEN_DIR)/llvm_intent.c \
+                         $(CODEGEN_DIR)/llvm_intent_routine_emit.c \
                          $(CODEGEN_DIR)/llvm_intent_typed_execution.c \
                          $(CODEGEN_DIR)/llvm_intent_emit_support.c \
                          $(CODEGEN_DIR)/llvm_intent_setup.c \
@@ -1103,6 +1124,7 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_registry_resource_types.c \
                          $(CODEGEN_DIR)/llvm_error.c \
                           $(CODEGEN_DIR)/llvm_register.c \
+                          $(CODEGEN_DIR)/llvm_registration_names.c \
                           $(CODEGEN_DIR)/llvm_runtime.c \
                           $(CODEGEN_DIR)/llvm_runtime_row.c \
                           $(CODEGEN_DIR)/llvm_runtime_attrs.c \
@@ -1118,6 +1140,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_mir_contract.c \
                         $(CODEGEN_DIR)/llvm_mir_signature.c \
                         $(CODEGEN_DIR)/llvm_mir_emit.c \
+                        $(CODEGEN_DIR)/llvm_mir_region_scope.c \
                         $(CODEGEN_DIR)/llvm_mir_await_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_bind_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_block_emit.c \
@@ -1197,6 +1220,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_channel.c \
                         $(CODEGEN_DIR)/llvm_expr_collection_base_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_constructor_calls.c \
+                        $(CODEGEN_DIR)/llvm_expr_enum_constructor.c \
                         $(CODEGEN_DIR)/llvm_expr_constructor_channel_guard.c \
                         $(CODEGEN_DIR)/llvm_expr_event_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_helpers.c \
@@ -1440,7 +1464,10 @@ DIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/dir.o \
                    $(BUILD_DIR)/compiler/dir_collect.o \
                    $(BUILD_DIR)/compiler/dir_collect_intent.o \
                    $(BUILD_DIR)/compiler/dir_collect_domain.o \
-                   $(BUILD_DIR)/compiler/dir_validate.o
+                   $(BUILD_DIR)/compiler/dir_validate.o \
+                   $(BUILD_DIR)/compiler/dir_validate_domain_topology.o \
+                   $(BUILD_DIR)/compiler/dir_validate_domain_runtime.o \
+                   $(BUILD_DIR)/compiler/dir_validate_intent.o
 HIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/hir_analysis.o \
                    $(BUILD_DIR)/compiler/hir_cfg.o \
                    $(BUILD_DIR)/compiler/hir_cfg_phi.o \
@@ -1565,12 +1592,14 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_json_dump_decl.o \
                    $(BUILD_DIR)/compiler/mir_json_dump_domain_topology.o \
                    $(BUILD_DIR)/compiler/mir_json_dump_domain_runtime.o \
+                   $(BUILD_DIR)/compiler/mir_json_expression_graph_materialize.o \
                    $(BUILD_DIR)/compiler/mir_json_expression_graph.o \
                    $(BUILD_DIR)/compiler/mir_json_generic_method_specialization.o \
                    $(BUILD_DIR)/compiler/mir_base_helpers.o \
                    $(BUILD_DIR)/compiler/mir_program_inventory.o \
                    $(BUILD_DIR)/compiler/mir_public_surface.o \
                    $(BUILD_DIR)/compiler/mir_lower_population.o \
+                   $(BUILD_DIR)/compiler/mir_program_fact_validate.o \
                    $(BUILD_DIR)/compiler/mir_program_validate.o \
                    $(BUILD_DIR)/compiler/mir_call_fact.o \
                    $(BUILD_DIR)/compiler/mir_validation.o \
@@ -2289,7 +2318,9 @@ test-asan: asan-uaf-witness-test-smoke
 	    UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 \
 	    "$$battery" > .tmp/asan-$$(basename $$battery).log 2>&1 \
 	        || { echo "  FAULT in $$battery -- see .tmp/asan-$$(basename $$battery).log" >&2; \
-	             grep -E 'ERROR:|runtime error:' .tmp/asan-$$(basename $$battery).log | head -3 >&2; \
+	             grep -n -m 3 -C 20 -E 'ERROR: AddressSanitizer|SUMMARY: AddressSanitizer|runtime error:|FAIL|=== Results:' \
+	                 .tmp/asan-$$(basename $$battery).log >&2 \
+	                 || tail -80 .tmp/asan-$$(basename $$battery).log >&2; \
 	             exit 1; }; \
 	done
 	@echo "=== Sanitizer gate: clean ==="
@@ -2854,7 +2885,7 @@ self-host-preparation-platform-parity-test-smoke: $(PGY)
 
 self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-hard-driver-rung2-parity-test-smoke $(SELFHOST_ONE_MIR_DUAL_BACKEND_GATE) $(SELFHOST_ONE_MIR_CFG_AIR_PLAN_GATE)
 
-self-host-preparation-exhaustive-parity-test-smoke: $(PGY) $(PGY_LSP)
+self-host-preparation-exhaustive-parity-test-smoke: $(PGY) $(PGY_LSP) self-host-driver-execution-action-optional-within-parity-test-smoke
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_json_validator_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh
@@ -2999,6 +3030,10 @@ self-host-parser-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_PARSER_BACKENDS="$${PGY_SELFHOST_PARSER_BACKENDS:-$(SELFHOST_PARSER_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" \
 	"$(BASH)" tests/self_hosted/parity/parser_parity.sh
+
+self-host-driver-execution-action-optional-within-parity-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+	"$(BASH)" tests/self_hosted/parity/driver_execution_action_optional_within_parity.sh
 
 self-host-codegen-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-$(SELFHOST_CODEGEN_BACKENDS)}" \

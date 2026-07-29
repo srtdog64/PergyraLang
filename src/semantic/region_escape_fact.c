@@ -25,11 +25,11 @@ region_escape_is_string_concat(const ASTNode *expr)
     const ASTNode *right;
 
     if (expr == NULL || expr->type != AST_BINARY
-        || expr->data.binary.op.type != TOKEN_PLUS) {
+        || ast_binary_operator(expr).type != TOKEN_PLUS) {
         return false;
     }
-    left = expr->data.binary.left;
-    right = expr->data.binary.right;
+    left = ast_binary_left(expr);
+    right = ast_binary_right(expr);
     if ((left != NULL && left->type == AST_STRING)
         || (right != NULL && right->type == AST_STRING)) {
         return true;
@@ -113,7 +113,7 @@ region_escape_append_concat_spine(RegionEscapeCollector *collector,
                                   function_syntax_id)) {
             return;
         }
-        expr = expr->data.binary.left;
+        expr = ast_binary_left(expr);
     }
 }
 
@@ -128,35 +128,35 @@ region_escape_walk(RegionEscapeCollector *collector,
 
     switch (node->type) {
     case AST_PROGRAM:
-        for (size_t i = 0; i < node->data.program.count; i++)
-            region_escape_walk(collector, node->data.program.statements[i],
+        for (size_t i = 0; i < ast_program_statement_count(node); i++)
+            region_escape_walk(collector, ast_program_statement(node, i),
                                scope_id, function_syntax_id);
         break;
     case AST_FUNC_DECL: {
         uint32_t function_scope = ++collector->next_scope;
         uint32_t function_id = ast_node_stable_id(node);
-        region_escape_walk(collector, node->data.func_decl.body,
+        region_escape_walk(collector, ast_func_body(node),
                            function_scope, function_id);
         break;
     }
     case AST_BLOCK:
-        for (size_t i = 0; i < node->data.block.count; i++)
-            region_escape_walk(collector, node->data.block.statements[i],
+        for (size_t i = 0; i < ast_block_statement_count(node); i++)
+            region_escape_walk(collector, ast_block_statement(node, i),
                                scope_id, function_syntax_id);
         break;
     case AST_CALL:
-        for (size_t i = 0; i < node->data.call.arg_count; i++) {
+        for (size_t i = 0; i < ast_call_arg_count(node); i++) {
             if (region_escape_argument_is_borrowed(
                     node, i, collector->retention_lookup,
                     collector->retention_userdata)) {
-                const ASTNode *arg = node->data.call.arguments[i];
+                const ASTNode *arg = ast_call_argument(node, i);
                 if (region_escape_is_string_concat(arg))
                     region_escape_append_concat_spine(
                         collector, arg, scope_id, function_syntax_id);
             }
         }
-        for (size_t i = 0; i < node->data.call.arg_count; i++)
-            region_escape_walk(collector, node->data.call.arguments[i],
+        for (size_t i = 0; i < ast_call_arg_count(node); i++)
+            region_escape_walk(collector, ast_call_argument(node, i),
                                scope_id, function_syntax_id);
         break;
     default:

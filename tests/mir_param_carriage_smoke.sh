@@ -80,7 +80,7 @@ PY
 grep -Fq "MIRParamAbiFact   *param_abi_facts" \
     "$ROOT_DIR/src/compiler/mir_types.h"
 grep -Fq "records parameters without carriage facts" \
-    "$ROOT_DIR/src/compiler/mir_program_validate.c"
+    "$ROOT_DIR/src/compiler/mir_program_fact_validate.c"
 grep -Fq "mir_routine_param_carriage" \
     "$ROOT_DIR/src/codegen/transpiler_inventory_view.c"
 grep -Fq "llvm_mir_routine_param_carriage" \

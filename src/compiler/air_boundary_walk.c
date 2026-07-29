@@ -63,6 +63,7 @@ air_append_current_boundary(AIRBoundaryWalkCtx *ctx,
     boundary->ast = (node->line > 0 || ctx->step == NULL || ctx->step->ast == NULL)
         ? node
         : ctx->step->ast;
+    boundary->source_stable_id = ast_node_stable_id(boundary->ast);
     boundary->sync_class = air_boundary_sync_from_kind(kind);
     /* The `spawn blocking` marker is boundary-local declared evidence: read it
        from the spawn node itself at discovery so the classifier sees it. */

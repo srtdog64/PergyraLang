@@ -531,7 +531,7 @@ if grep -q 'resolve_projection_source_field_type_rec(.*ctx->program_root' \
     fail "projection builtins must not pass raw program-root into projection resolver"
 fi
 
-grep -q 'semantic_resolve_projection_source_field_path(' \
+grep -q 'semantic_resolve_projection_source_field_path_with_segments(' \
     src/semantic/type_checker_domain_projection_fields.c \
     || fail "domain projection field validation must consume context-bearing projection path seam"
 
@@ -1434,6 +1434,7 @@ for path in \
     src/compiler/dir_collect_intent.c \
     src/compiler/mir.c \
     src/compiler/mir_intent.c \
+    src/compiler/mir_intent_step_emit.c \
     src/compiler/mir_ssa_rename.c \
     src/compiler/mir_type_helpers.c \
     src/compiler/module_normalizer_refs.c \
@@ -2209,6 +2210,7 @@ if grep -R "data\.type\.\(name\|generic_args\)" \
     src/compiler/dir_collect_intent.c \
     src/compiler/hir_analysis.c \
     src/compiler/mir_intent.c \
+    src/compiler/mir_intent_step_emit.c \
     src/compiler/mir_type_helpers.c \
     src/compiler/rir_builder.c \
     src/compiler/rir_builder_intent.c \
