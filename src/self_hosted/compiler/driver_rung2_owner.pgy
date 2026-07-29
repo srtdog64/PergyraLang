@@ -51,6 +51,14 @@ func VerifyArtifactAnalysisForDriverRung2Observed(
         Log(semantic_analysis.verdict.diagnostic_message);
         Exit(1);
     }
+    if !AstTreeArtifactReady(artifact) {
+        Die("driver rung-2 AST artifact is missing or invalid");
+    }
+    if !SemanticAstArtifactAdmissionReady(
+        artifact, semantic_analysis, true
+    ) {
+        Die("driver rung-2 semantic admission receipt is missing or stale");
+    }
     DriverRung2PressureStage(observe_pressure, "body-types:start");
     let body_types: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysisObserved(

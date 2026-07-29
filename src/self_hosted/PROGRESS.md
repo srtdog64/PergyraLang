@@ -5195,6 +5195,29 @@ beyond the lexer:
   fixed point. Full-source Pergyra MIR production and released/default
   promotion remain open.
 
+- **Semantic artifact admission / emission reconstruction closure** --
+  `AstTreeArtifact` v4 now carries a producer-time identity over tree text,
+  node count, and parser-owned expression topology. The semantic verdict seals
+  that identity and entrypoint policy. Direct codegen, source-to-C, and the
+  admitted MIR consumer enter `GenerateCUnitFromReadySemanticFacts`; the Ready
+  core performs no AST readiness scan, digest recomputation, semantic
+  `*FactsMatchArtifact`, `*FactsFromArtifact`, or repeated assignment/statement
+  row verification. The old unused checked C-facts wrapper is deleted, while
+  the raw external semantic-analysis entrypoint retains one fail-closed deep
+  match. Same-count foreign text and same-tree foreign expression-graph
+  negatives reject. Focused source compilation, the executable driver-pipeline
+  contract, component contract, and the exact ready/admitted/verified caller
+  ratchet pass. A fresh native-seed codegen emitted the 2,864,634-byte AST in
+  1,098,757ms at 968.4MB peak private and compiled that 2,785,703-byte C into
+  gen2 in 4,710ms at 229.7MB peak private. The 5,106,665-byte AST did not cross
+  the 3GiB memory boundary (1,551.4MB peak private) but timed out at 2,400,686ms,
+  so its output is not green. The compiled gen2 then consumed the same 2.9MB
+  AST in 1,059,367ms at 1,357.3MB peak private; its C output passed the
+  repository's normalized emitted-C fixpoint comparator against the seed
+  output. This is an executable self-host codegen-path delta, not a new native
+  C replacement; the 5.1MB CPU bottleneck and installed-driver promotion
+  remain open.
+
 The next critical work is released/default build/install/run promotion while
 the Pergyra producer and gen2/gen3 fixed point stay green. Post-fixed-point SoT
 ratchets, the live-owner Coq adequacy bridge, and native object/runtime

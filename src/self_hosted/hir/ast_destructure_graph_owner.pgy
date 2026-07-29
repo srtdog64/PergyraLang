@@ -134,7 +134,9 @@ func AstTreeArtifactBindDestructurePayloads(
             );
             return AstTreeArtifact(
                 artifact.tree_text, artifact.arena, artifact.count,
-                invalid_rows
+                invalid_rows, AstTreeArtifactIdentityDigest(
+                    artifact.tree_text, artifact.count, invalid_rows
+                )
             );
         }
         ArrayPush(
@@ -164,7 +166,9 @@ func AstTreeArtifactBindDestructurePayloads(
         );
         return AstTreeArtifact(
             artifact.tree_text, artifact.arena, artifact.count,
-            invalid_rows2
+            invalid_rows2, AstTreeArtifactIdentityDigest(
+                artifact.tree_text, artifact.count, invalid_rows2
+            )
         );
     }
     let bound_arena: AstArena = AstArena(
@@ -176,6 +180,6 @@ func AstTreeArtifactBindDestructurePayloads(
     );
     return AstTreeArtifact(
         artifact.tree_text, bound_arena, artifact.count,
-        artifact.expression_graphs
+        artifact.expression_graphs, artifact.identity_digest
     );
 }

@@ -2762,6 +2762,95 @@ Falsifier는 같은 committed AST에 대해 analysis construction count 1, emiss
 boundary reconstruction count 0을 stage counter로 증명하고, 2.9MB와 5.1MB input의
 wall time/peak를 같은 pressure owner 아래 기록하는 것이다.
 
+### semantic analysis를 만든 뒤 emission에서 전체 fact family를 다시 검증하는 경우
+
+2026-07-30 위 3,072MB scaling RED의 실제 active path를 다시 추적했다.
+`driver_rung2`의 MIR consumer만 본 것이 아니라 Pergyra-built codegen seed 자체의
+경로가 핵심이었다.
+
+```text
+gen2.exe <large-ast>
+  -> GenerateCUnitFromAstArtifact
+  -> SemanticAstArtifactAnalyzeCompactBridge
+  -> GenerateCUnitFromSemanticArtifact
+  -> GenerateCUnitFromSemanticFacts
+  -> SemanticAstArtifactAnalysisMatches
+  -> eleven *FactsMatchArtifact / *FromArtifact families
+```
+
+즉 analysis constructor가 이미 만든 사실을 emission admission 명목으로 다시
+구성했다. 단순히 검사를 삭제하면 같은 node count의 다른 artifact와 analysis를
+교차 결합할 수 있으므로 해결책이 아니다. `node_count`만 receipt로 쓰는 것도 같은
+이유로 불충분하다.
+
+현재 owner 계약은 다음과 같다.
+
+- `AstTreeArtifact` schema v4가 tree text, node count, parser expression-graph
+  roots/arena를 producer에서 한 번 해시한 `identity_digest`를 소유한다.
+- parser가 expression graph를 붙일 때 identity를 한 번 갱신하고, 그 graph에서
+  결정적으로 파생되는 owner-kind/destructure arena binding은 같은 epoch를 보존한다.
+- `SemanticAstArtifactVerdict`가 artifact identity와 entrypoint policy를 함께
+  봉인한다.
+- `SemanticAstArtifactAdmissionReady`는 봉인된 identity/count/policy만 O(1)로
+  비교한다. 여기서 tree hash, arena readiness, graph readiness 또는 semantic fact
+  reconstruction을 호출하면 안 된다.
+- 이 digest는 외부 입력을 인증하는 보안 seal이 아니다. Admitted fast path는
+  semantic owner가 같은 호출 epoch에서 만든 artifact/analysis와, admission 뒤
+  변경하지 않는 fact-family array만 받는다. 임의 pair 또는 mutable pair를 받는
+  public compatibility entry는 계속 deep match를 거친다. Exact caller allowlist가
+  Ready/admitted/verified 경로에 새 우회 호출이 생기는 것을 막는다.
+- direct codegen seed, source-to-C, admitted MIR-to-C는
+  `GenerateCUnitFromReadySemanticFacts`로 간다. Raw semantic-analysis compatibility
+  entrypoint만 한 번의 deep match를 유지한다. 사용되지 않던 checked C-facts
+  wrapper는 삭제했다.
+- body/assignment/statement rows는 Ready core 진입 전에
+  `CodegenSemanticBodyTypeFactsFromBundleOrDie`가 한 번 검증한다. Emission core가
+  그 행들을 다시 전체 순회하지 않는다.
+
+Negative gate는 같은 node count의 다른 text뿐 아니라 같은 text/count에 다른
+expression graph를 붙인 artifact도 거부한다. Static gate는 direct codegen entry의
+analysis constructor가 정확히 한 번이고 admitted/verified/source pipeline이 Ready
+core로만 가는지 확인하고 fast-path caller set을 exact allowlist로 고정한다.
+Ready core와 fixed-size admission body에는
+`SemanticAstArtifactAnalysisMatches`, `AstTreeArtifactReady`, hashing,
+`*FactsMatchArtifact`, `*FactsFromArtifact`, `*RowsFromArtifact`가 모두 금지된다.
+
+Focused `driver_rung2_main.pgy --emit-c`, executable
+`CompilerDriverPipelineReady` probe, component contract와 semantic lifetime/Ready
+ratchet은 통과했다. 이것은 구조 및 작은 실행 증거이지 3GiB scaling closure 자체는
+아니다. 반드시 이 변경을 포함한 fresh Pergyra-built codegen을 만든 뒤 동일한
+2.9MB/5.1MB AST, 3,072MB cap, pressure owner로 다시 측정한다. 예전 gen2 binary를
+재사용한 결과는 수정 효과의 증거가 아니다. 메모리 상한이나 timeout만 올리거나,
+output byte equality만 보고 반복 검증이 사라졌다고 주장하지 않는다.
+
+2026-07-30 fresh native-seed build와 고정 입력 pressure 관찰은 다음과 같다.
+모든 수치는 `scripts/measure_build_pressure.ps1`, `LimitMB=3072`,
+`StopOnLimit`, root process tree 기준이다.
+
+| 관찰 | 결과 | elapsed | peak working set | peak private |
+| --- | --- | ---: | ---: | ---: |
+| current `codegen/main.pgy` C build | PASS | 47,749ms | 1,138.2MB | 1,190.8MB |
+| 2,864,634-byte codegen AST emit | PASS | 1,098,757ms | 890.5MB | 968.4MB |
+| 5,106,665-byte driver AST emit | TIMEOUT 124 | 2,400,686ms | 1,436.1MB | 1,551.4MB |
+| 2.9MB emitted C -> gen2 compile | PASS | 4,710ms | 244.5MB | 229.7MB |
+| gen2 consumes the same 2.9MB AST | PASS | 1,059,367ms | 1,177.7MB | 1,357.3MB |
+
+2.9MB 입력 SHA-256은
+`33096A1F0223E955A8CBF6B412188E1E6795B6559A6B82645ACD33B9C80F6AC3`,
+5.1MB 입력은
+`97EEFA34159BE8AFEA8D15F44BF5F74FB57D5DD1D8C03ABF565AF4A14B8D5190`,
+측정 codegen binary는
+`B09D3C84B49B695D30355386B3332C044F5AD3A74EDCF062411DF3B79029E978`다.
+컴파일된 gen2는
+`FA5A380AE771714E6AC25169FA9FE76CF6C008350344D19215778FA0A9220FE4`다.
+Seed와 gen2의 raw C 출력은 EOF 빈 줄 하나만 달랐고, 저장소의
+`pgy_selfhost_compare_expected_text_artifact_file_with_owner` emitted-C
+normalization/comparator는 PASS했다.
+5.1MB는 3GiB를 넘지 않았으므로 memory RED는 재현되지 않았지만, timeout 전에
+output을 완성하지 못했으므로 end-to-end PASS가 아니다. 제한을 올려 성공으로
+재분류하지 않는다. 처음 두 absolute-path 시도는 `PGY_IO_ALLOW_ABSOLUTE`가 없는
+self-host I/O 정책에 의해 즉시 거부됐으며 pressure 증거에서 제외했다.
+
 ### linked runtime ABI consumer가 실제 owner보다 먼저 검색되는 경우
 
 Resource lowering은 실제 `MIR_INST_RESOURCE_OP` owner의 primary runtime-call ABI

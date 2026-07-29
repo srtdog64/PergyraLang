@@ -90,8 +90,11 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
         Die("codegen AST text bridge failed typed AST arena contract");
     }
     let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
+    let expression_graphs: AstExpressionGraphRows =
+        AstExpressionGraphRowsEmpty();
     let artifact: AstTreeArtifact = AstTreeArtifact(
-        tree_text, arena, count, AstExpressionGraphRowsEmpty()
+        tree_text, arena, count, expression_graphs,
+        AstTreeArtifactIdentityDigest(tree_text, count, expression_graphs)
     );
     let semantic_analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeCompactBridge(
@@ -195,7 +198,11 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
     }
     return true;
 }
-func GenerateCUnitFromSemanticFacts(
+// Ready core for an analysis admitted by the semantic owner.  The semantic
+// fact-family arrays are immutable in this call graph.  Keep this core free of
+// whole-artifact reconstruction: the fixed-size artifact identity is checked
+// here, while checked compatibility entrypoints remain above.
+func GenerateCUnitFromReadySemanticFacts(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
     own body_types: CodegenSemanticBodyTypeFacts,
@@ -205,36 +212,20 @@ func GenerateCUnitFromSemanticFacts(
     require_entrypoint: Bool,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String {
+    if !SemanticAstArtifactAdmissionReady(
+        artifact, semantic_analysis, require_entrypoint
+    ) {
+        Die("codegen semantic admission receipt is missing or stale");
+    }
     RejectUnsupportedCodegenBuiltins(artifact.tree_text);
     let count: Int = artifact.count;
     let arena: AstArena = artifact.arena;
-    if !CodegenAstTreeArtifactReady(artifact) {
-        Die("codegen AST text bridge failed typed AST arena contract");
-    }
-    if !semantic_analysis.verdict.ok {
-        Die(semantic_analysis.verdict.diagnostic_message);
-    }
-    if !SemanticAstArtifactAnalysisMatches(
-        artifact, semantic_analysis, require_entrypoint
-    ) {
-        Die("codegen semantic evidence does not match AST artifact");
-    }
-    if !CodegenSemanticStatementTypeFactsReady(
-        artifact, semantic_analysis.statements, body_types.statement_types
-    ) {
-        Die("codegen statement type evidence does not match AST artifact");
-    }
-    if !CodegenSemanticAssignmentTypeFactsReady(
-        artifact, semantic_analysis.assignments, body_types.assignment_types
-    ) {
-        Die("codegen assignment type evidence does not match AST artifact");
-    }
     let signatures: SemanticAstFunctionSignatureFacts =
         semantic_analysis.signatures;
-    if !CodegenCallableReceiverFactsReady(receiver_facts, signatures) {
+    if !CodegenCallableReceiverFactsAdmittedReady(receiver_facts, signatures) {
         Die("codegen callable receiver facts are missing or stale");
     }
-    if !CodegenDomainRuntimeFactsReady(domain_runtime) {
+    if !CodegenDomainRuntimeFactsAdmittedReady(domain_runtime) {
         Die("codegen domain runtime facts are missing or stale");
     }
     let local_bindings: SemanticAstLocalBindingFacts =
@@ -275,7 +266,7 @@ func GenerateCUnitFromSemanticFacts(
             specializations.diagnostic_message
         ));
     }
-    if !SemanticAstIntentSignatureFactsReady(
+    if !SemanticAstIntentSignatureFactsAdmittedReady(
         artifact, semantic_analysis.intent_signatures
     ) {
         Die("semantic intent signature facts are missing or stale");

@@ -74,7 +74,9 @@ func ParseRootProgramArtifact(source_path: String) -> AstTreeArtifact {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(build.tree_text);
     let typed: AstTreeArtifact = AstTreeArtifact(
         artifact.tree_text, artifact.arena, artifact.count,
-        build.expression_graphs
+        build.expression_graphs, AstTreeArtifactIdentityDigest(
+            artifact.tree_text, artifact.count, build.expression_graphs
+        )
     );
     let owner_bound: AstTreeArtifact =
         AstTreeArtifactBindExpressionOwnerKinds(typed);

@@ -24,14 +24,20 @@ func CodegenDomainRuntimeFactsEmpty(
     );
 }
 
+func CodegenDomainRuntimeFactsAdmittedReady(
+    ref facts: CodegenDomainRuntimeFacts
+) -> Bool {
+    return facts.admitted &&
+        ArrayLength(facts.owner_names) ==
+            ArrayLength(facts.method_prologues) &&
+        ArrayLength(facts.owner_names) ==
+            ArrayLength(facts.sync_blocks);
+}
+
 func CodegenDomainRuntimeFactsReady(
     ref facts: CodegenDomainRuntimeFacts
 ) -> Bool {
-    if !facts.admitted ||
-        ArrayLength(facts.owner_names) !=
-            ArrayLength(facts.method_prologues) ||
-        ArrayLength(facts.owner_names) !=
-            ArrayLength(facts.sync_blocks) {
+    if !CodegenDomainRuntimeFactsAdmittedReady(facts) {
         return false;
     }
     let row: Int = 0;
@@ -56,7 +62,7 @@ func CodegenDomainRuntimeFactsReady(
 func CodegenDomainRuntimeSyncBlock(
     ref facts: CodegenDomainRuntimeFacts
 ) -> String {
-    if !CodegenDomainRuntimeFactsReady(facts) {
+    if !CodegenDomainRuntimeFactsAdmittedReady(facts) {
         Die("domain runtime sync block facts are missing or stale");
     }
     let block: String = "";

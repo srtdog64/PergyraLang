@@ -12,6 +12,7 @@ MATCH_BINDINGS="$ROOT_DIR/src/self_hosted/semantic/ast_match_binding_environment
 ITERATION_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy"
 ASSIGNMENT_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
 CALL_TARGETS="$ROOT_DIR/src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy"
+BODY_ENV="$ROOT_DIR/src/self_hosted/semantic/ast_body_expression_environment_owner.pgy"
 PLACE_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_expression_place_fact_owner.pgy"
 GENERIC_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy"
 INITIALIZER_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy"
@@ -20,6 +21,10 @@ STATEMENT_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_statement_type_fact_owne
 BUILTINS="$ROOT_DIR/src/self_hosted/semantic/builtin_signature_owner.pgy"
 MIR_FACTS="$ROOT_DIR/src/self_hosted/mir/artifact_lower_owner.pgy"
 DRIVER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy"
+PIPELINE="$ROOT_DIR/src/self_hosted/compiler/driver_pipeline_owner.pgy"
+VERDICT="$ROOT_DIR/src/self_hosted/semantic/ast_artifact_verdict_owner.pgy"
+ENTRY="$ROOT_DIR/src/self_hosted/codegen/emission/program_entry_owner.pgy"
+ADMITTED_ENTRY="$ROOT_DIR/src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy"
 TYPECHECK="$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_array.c"
 TRANS_POLICY="$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin_policy.c"
 TRANS_EMIT="$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.c"
@@ -34,9 +39,10 @@ CODEGEN_PROGRAM_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/program_emit
 CODEGEN_RUNTIME_HEADER="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy"
 
 for path in "$OWNER" "$OWNER_FIELDS" "$MATCH_BINDINGS" "$ITERATION_FACTS" \
-    "$ASSIGNMENT_FACTS" "$CALL_TARGETS" "$PLACE_FACTS" "$GENERIC_FACTS" \
+    "$ASSIGNMENT_FACTS" "$CALL_TARGETS" "$BODY_ENV" "$PLACE_FACTS" "$GENERIC_FACTS" \
     "$INITIALIZER_FACTS" "$INITIALIZER_CURSOR" "$STATEMENT_FACTS" \
-    "$MIR_FACTS" "$DRIVER" \
+    "$MIR_FACTS" "$DRIVER" "$PIPELINE" "$VERDICT" "$ENTRY" \
+    "$ADMITTED_ENTRY" \
     "$BUILTINS" "$TYPECHECK" "$TRANS_POLICY" \
     "$TRANS_EMIT" "$LLVM_EMIT" "$LLVM_RUNTIME" "$INLINE_RUNTIME" \
     "$EXPORT_RUNTIME" "$CODEGEN_RUNTIME_CALLS" "$CODEGEN_COLLECTION_RUNTIME" \
@@ -52,6 +58,27 @@ function_body() {
     local path="$1"
     local function_name="$2"
     sed -n "/func ${function_name}(/,/^}/p" "$path"
+}
+
+assert_exact_call_files() {
+    local call_term="$1"
+    shift
+    local actual
+    local expected
+    # No-match is collected as an empty set and rejected by the exact
+    # comparison below; it is not a successful fallback.
+    actual="$({ grep -R -l -F --include='*.pgy' "$call_term" \
+        "$ROOT_DIR/src/self_hosted" || true; } | \
+        sed "s#^$ROOT_DIR/##" | LC_ALL=C sort)"
+    expected="$(printf '%s\n' "$@" | LC_ALL=C sort)"
+    if [[ "$actual" != "$expected" ]]; then
+        echo "[self-host-parity:semantic-environment-lifetime] unexpected caller set for $call_term" >&2
+        echo "expected:" >&2
+        printf '%s\n' "$expected" >&2
+        echo "actual:" >&2
+        printf '%s\n' "$actual" >&2
+        exit 1
+    fi
 }
 
 assignment_type_body="$(function_body \
@@ -182,12 +209,24 @@ grep -Fq 'SemanticAstExpressionFunctionTableFactsRelease(function_tables);' \
 }
 
 call_target_body="$(function_body "$CALL_TARGETS" 'SemanticAstAnalysisResolveCallTargetsFromBody')"
-grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' <<<"$call_target_body" || {
-    echo "[self-host-parity:semantic-environment-lifetime] call-target resolver lost ready-artifact match environment" >&2
+grep -Fq 'SemanticAstBodyExpressionEnvironmentSeed(' <<<"$call_target_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] call-target resolver bypasses the body-environment owner" >&2
     exit 1
 }
 if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' <<<"$call_target_body"; then
     echo "[self-host-parity:semantic-environment-lifetime] call-target resolver repeats checked match environment" >&2
+    exit 1
+fi
+body_environment_body="$(function_body "$BODY_ENV" \
+    'SemanticAstBodyExpressionEnvironmentSeed')"
+grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' \
+    <<<"$body_environment_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] body-environment owner lost ready-artifact match bindings" >&2
+    exit 1
+}
+if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' \
+    <<<"$body_environment_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] body-environment owner repeats checked match bindings" >&2
     exit 1
 fi
 
@@ -259,6 +298,157 @@ grep -Fq 'SelfMirProgramFactsFromReadyArtifact(' <<<"$driver_mir_body" || {
 }
 if grep -Fq 'SelfMirProgramFactsFromArtifact(' <<<"$driver_mir_body"; then
     echo "[self-host-parity:semantic-environment-lifetime] verified driver repeats checked MIR proof" >&2
+    exit 1
+fi
+
+admission_body="$(function_body "$VERDICT" \
+    'SemanticAstArtifactAdmissionReady')"
+for forbidden in \
+    'AstTreeArtifactReady(' \
+    'TypedAstArenaParallelRowsReady(' \
+    'AstExpressionGraphRowsReady(' \
+    'StringLength(' \
+    'CharCode(' \
+    'FactsMatchArtifact(' \
+    'FactsFromArtifact(' \
+    'RowsFromArtifact('; do
+    if grep -Fq "$forbidden" <<<"$admission_body"; then
+        echo "[self-host-parity:semantic-environment-lifetime] semantic admission repeats an unbounded artifact proof: $forbidden" >&2
+        exit 1
+    fi
+done
+
+c_ready_body="$(function_body "$CODEGEN_PROGRAM_EMITTER" \
+    'GenerateCUnitFromReadySemanticFacts')"
+if grep -Fq 'func GenerateCUnitFromSemanticFacts(' \
+    "$CODEGEN_PROGRAM_EMITTER"; then
+    echo "[self-host-parity:semantic-environment-lifetime] retired checked C-facts fallback returned" >&2
+    exit 1
+fi
+for forbidden in \
+    'CodegenAstTreeArtifactReady(' \
+    'SemanticAstArtifactAnalysisMatches(' \
+    'CodegenSemanticStatementTypeFactsReady(' \
+    'CodegenSemanticAssignmentTypeFactsReady(' \
+    'SemanticAstIntentSignatureFactsReady(' \
+    'CodegenCallableReceiverFactsReady(' \
+    'CodegenDomainRuntimeFactsReady(' \
+    'FactsMatchArtifact(' \
+    'FactsFromArtifact(' \
+    'RowsFromArtifact(' \
+    'AstTreeArtifactIdentityDigest('; do
+    if grep -Fq "$forbidden" <<<"$c_ready_body"; then
+        echo "[self-host-parity:semantic-environment-lifetime] C ready core repeats admitted semantic work: $forbidden" >&2
+        exit 1
+    fi
+done
+ready_receipt_count="$(grep -Fc 'SemanticAstArtifactAdmissionReady(' \
+    <<<"$c_ready_body" || true)"
+if [[ "$ready_receipt_count" -ne 1 ]]; then
+    echo "[self-host-parity:semantic-environment-lifetime] C ready core must consume exactly one semantic admission receipt" >&2
+    exit 1
+fi
+for admitted_check in \
+    'SemanticAstIntentSignatureFactsAdmittedReady(' \
+    'CodegenCallableReceiverFactsAdmittedReady(' \
+    'CodegenDomainRuntimeFactsAdmittedReady('; do
+    grep -Fq "$admitted_check" <<<"$c_ready_body" || {
+        echo "[self-host-parity:semantic-environment-lifetime] C ready core lost admitted row-shape check: $admitted_check" >&2
+        exit 1
+    }
+done
+ready_admission_line="$(grep -nF 'SemanticAstArtifactAdmissionReady(' \
+    <<<"$c_ready_body" | head -n 1 | cut -d: -f1)"
+ready_first_work_line="$(grep -nF 'RejectUnsupportedCodegenBuiltins(' \
+    <<<"$c_ready_body" | head -n 1 | cut -d: -f1)"
+if [[ -z "$ready_admission_line" || -z "$ready_first_work_line" ||
+    "$ready_admission_line" -ge "$ready_first_work_line" ]]; then
+    echo "[self-host-parity:semantic-environment-lifetime] C ready core performs work before semantic admission" >&2
+    exit 1
+fi
+
+ast_entry_body="$(function_body "$ENTRY" 'GenerateCUnitFromAstArtifact')"
+compact_analysis_count="$(grep -Fc \
+    'SemanticAstArtifactAnalyzeCompactBridge(' <<<"$ast_entry_body" || true)"
+if [[ "$compact_analysis_count" -ne 1 ]] ||
+    ! grep -Fq 'GenerateCUnitFromAdmittedSemanticArtifact(' \
+        <<<"$ast_entry_body" ||
+    grep -Fq 'GenerateCUnitFromSemanticArtifact(' <<<"$ast_entry_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] direct codegen seed lost its one-analysis admitted path" >&2
+    exit 1
+fi
+
+admitted_entry_body="$(function_body "$ADMITTED_ENTRY" \
+    'GenerateCUnitFromAdmittedSemanticArtifact')"
+grep -Fq 'GenerateCUnitFromReadySemanticFacts(' <<<"$admitted_entry_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] admitted semantic artifact bypasses the C ready core" >&2
+    exit 1
+}
+if grep -Fq 'SemanticAstArtifactAnalysisMatches(' <<<"$admitted_entry_body" ||
+    grep -Fq 'GenerateCUnitFromSemanticFacts(' <<<"$admitted_entry_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] admitted semantic artifact reopened checked reconstruction" >&2
+    exit 1
+fi
+admitted_receipt_line="$(grep -nF 'SemanticAstArtifactAdmissionReady(' \
+    <<<"$admitted_entry_body" | head -n 1 | cut -d: -f1)"
+admitted_first_work_line="$(grep -nF 'SemanticAstBodyTypeBundleFromAnalysis(' \
+    <<<"$admitted_entry_body" | head -n 1 | cut -d: -f1)"
+if [[ -z "$admitted_receipt_line" || -z "$admitted_first_work_line" ||
+    "$admitted_receipt_line" -ge "$admitted_first_work_line" ]]; then
+    echo "[self-host-parity:semantic-environment-lifetime] admitted adapter performs work before semantic admission" >&2
+    exit 1
+fi
+
+# The fast path relies on one immutable-after-admission call graph.  Any new
+# direct caller must choose the checked public entry or update this owner gate
+# with explicit evidence that it receives the same admitted epoch.
+assert_exact_call_files 'GenerateCUnitFromReadySemanticFacts(' \
+    'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
+    'src/self_hosted/codegen/emission/program_emit.pgy' \
+    'src/self_hosted/codegen/emission/program_entry_owner.pgy' \
+    'src/self_hosted/compiler/driver_pipeline_owner.pgy'
+assert_exact_call_files 'GenerateCUnitFromAdmittedSemanticArtifact(' \
+    'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
+    'src/self_hosted/codegen/emission/program_entry_owner.pgy'
+assert_exact_call_files 'GenerateCFromVerifiedSemanticArtifact(' \
+    'src/self_hosted/codegen/emission/program_entry_owner.pgy' \
+    'src/self_hosted/compiler/driver_rung2_owner.pgy'
+assert_exact_call_files 'SemanticAstArtifactAdmissionReady(' \
+    'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
+    'src/self_hosted/codegen/emission/program_emit.pgy' \
+    'src/self_hosted/compiler/driver_rung2_owner.pgy' \
+    'src/self_hosted/semantic/ast_artifact_verdict_owner.pgy'
+
+verified_entry_body="$(function_body "$ENTRY" \
+    'GenerateCFromVerifiedSemanticArtifact')"
+grep -Fq 'GenerateCUnitFromReadySemanticFacts(' <<<"$verified_entry_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] verified C entrypoint bypasses the ready core" >&2
+    exit 1
+}
+if grep -Fq 'GenerateCUnitFromSemanticFacts(' <<<"$verified_entry_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] verified C entrypoint reopened checked reconstruction" >&2
+    exit 1
+fi
+
+pipeline_body="$(function_body "$PIPELINE" 'CompileAstArtifactToC')"
+pipeline_analysis_count="$(grep -Fc \
+    'SemanticAstArtifactAnalyzeCompactBridge(' <<<"$pipeline_body" || true)"
+if [[ "$pipeline_analysis_count" -ne 1 ]] ||
+    ! grep -Fq 'GenerateCUnitFromReadySemanticFacts(' <<<"$pipeline_body" ||
+    grep -Fq 'GenerateCUnitFromSemanticFacts(' <<<"$pipeline_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] source-to-C pipeline lost its one-analysis ready path" >&2
+    exit 1
+fi
+
+driver_consumer_body="$(function_body "$DRIVER" \
+    'CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved')"
+driver_analysis_count="$(grep -Fc \
+    'SemanticAstArtifactAnalyzeWithExpressionGraph(' \
+    <<<"$driver_consumer_body" || true)"
+if [[ "$driver_analysis_count" -ne 1 ]] ||
+    ! grep -Fq 'GenerateCFromVerifiedSemanticArtifact(' \
+        <<<"$driver_consumer_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] integrated driver lost its one-analysis verified C path" >&2
     exit 1
 fi
 

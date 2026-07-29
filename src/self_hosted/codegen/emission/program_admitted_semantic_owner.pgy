@@ -1,0 +1,44 @@
+// Last semantic-to-codegen admission adapter.  It materializes body views once
+// and hands the sealed artifact/analysis pair to the reconstruction-free core.
+// The analysis and its fact-family arrays are immutable after this boundary;
+// callers with an untrusted or mutable pair must use the deep checked entry.
+
+import "program_emit.pgy";
+import "../text/text_owner.pgy";
+import "../input/domain_runtime_codegen_view_owner.pgy";
+import "../../compiler/machine_layer_declaration_consumer.pgy";
+import "../input/intent_execution_codegen_view_owner.pgy";
+
+func GenerateCUnitFromAdmittedSemanticArtifact(
+    artifact: AstTreeArtifact,
+    semantic_analysis: SemanticAstArtifactAnalysis,
+    require_entrypoint: Bool,
+    machine_declaration: SelfHostMachineLayerDeclaration
+) -> String {
+    if !SemanticAstArtifactAdmissionReady(
+        artifact, semantic_analysis, require_entrypoint
+    ) {
+        Die("codegen semantic admission receipt is missing or stale");
+    }
+    let receiver_facts: CodegenCallableReceiverFacts =
+        CodegenCallableReceiverFactsFromAnalysis(semantic_analysis);
+    let bundle: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, semantic_analysis);
+    let generic_specializations: CodegenGenericSpecializationFacts =
+        CodegenGenericSpecializationFactsFromSemantic(
+            semantic_analysis.signatures, bundle.generic_specializations
+        );
+    let body_types: CodegenSemanticBodyTypeFacts =
+        CodegenSemanticBodyTypeFactsFromBundleOrDie(
+            artifact, semantic_analysis, bundle, generic_specializations
+        );
+    let domain_runtime: CodegenDomainRuntimeFacts =
+        CodegenDomainRuntimeFactsEmpty(true);
+    let intent_execution: CodegenIntentExecutionView =
+        CodegenIntentExecutionViewEmpty(true);
+    return GenerateCUnitFromReadySemanticFacts(
+        artifact, semantic_analysis, body_types, receiver_facts,
+        domain_runtime, intent_execution, require_entrypoint,
+        machine_declaration
+    );
+}

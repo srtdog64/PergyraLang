@@ -24,6 +24,7 @@ struct SemanticAstArtifactVerdict {
     diagnostic_code: String;
     diagnostic_message: String;
     node_count: Int;
+    artifact_identity_digest: Int;
     main_count: Int;
     requires_entrypoint: Bool;
 }
@@ -45,18 +46,22 @@ struct SemanticAstArtifactAnalysis {
     function_tables: SemanticAstExpressionFunctionTableFacts;
 }
 
-func SemanticAstArtifactVerdictOk(node_count: Int, main_count: Int,
+func SemanticAstArtifactVerdictOk(node_count: Int, artifact_identity_digest: Int,
+                                  main_count: Int,
                                   requires_entrypoint: Bool) -> SemanticAstArtifactVerdict {
     return SemanticAstArtifactVerdict(
-        true, "", "", node_count, main_count, requires_entrypoint
+        true, "", "", node_count, artifact_identity_digest,
+        main_count, requires_entrypoint
     );
 }
 
 func SemanticAstArtifactVerdictError(code: String, message: String,
-                                     node_count: Int, main_count: Int,
+                                     node_count: Int, artifact_identity_digest: Int,
+                                     main_count: Int,
                                      requires_entrypoint: Bool) -> SemanticAstArtifactVerdict {
     return SemanticAstArtifactVerdict(
-        false, code, message, node_count, main_count, requires_entrypoint
+        false, code, message, node_count, artifact_identity_digest,
+        main_count, requires_entrypoint
     );
 }
 
@@ -74,6 +79,7 @@ func SemanticAstArtifactEntrypointVerdict(
                 "owner", "SemanticAstFunctionSignatureFacts"
             ),
             artifact.count,
+            artifact.identity_digest,
             0,
             requires_entrypoint
         );
@@ -96,6 +102,7 @@ func SemanticAstArtifactEntrypointVerdict(
                 "actual", ToString(main_count)
             ),
             artifact.count,
+            artifact.identity_digest,
             main_count,
             requires_entrypoint
         );
@@ -109,12 +116,14 @@ func SemanticAstArtifactEntrypointVerdict(
                 "actual", ToString(main_count)
             ),
             artifact.count,
+            artifact.identity_digest,
             main_count,
             requires_entrypoint
         );
     }
     return SemanticAstArtifactVerdictOk(
-        artifact.count, main_count, requires_entrypoint
+        artifact.count, artifact.identity_digest, main_count,
+        requires_entrypoint
     );
 }
 
@@ -125,7 +134,23 @@ func SemanticAstArtifactVerdictMatches(
 ) -> Bool {
     return verdict.ok &&
         verdict.node_count == artifact.count &&
+        verdict.artifact_identity_digest == artifact.identity_digest &&
         verdict.requires_entrypoint == requires_entrypoint;
+}
+
+// Fixed-size admission check used after the semantic owner has already built
+// and admitted the fact bundle.  This compares the producer-time artifact
+// identity carried by the verdict; it deliberately does not reconstruct any
+// semantic fact family from the AST.
+func SemanticAstArtifactAdmissionReady(
+    artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis,
+    requires_entrypoint: Bool
+) -> Bool {
+    return artifact.identity_digest > 0 && analysis.verdict.ok &&
+        SemanticAstArtifactVerdictMatches(
+            artifact, analysis.verdict, requires_entrypoint
+        );
 }
 
 func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
@@ -185,6 +210,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             signature_diagnostic_code,
             signature_diagnostic_message,
             artifact.count,
+            artifact.identity_digest,
             0,
             requires_entrypoint
         );
@@ -208,6 +234,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
                 constructors.diagnostic_code,
                 constructors.diagnostic_message,
                 artifact.count,
+                artifact.identity_digest,
                 0,
                 requires_entrypoint
             );
@@ -231,6 +258,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
                 "ast_artifact_invalid",
                 SemanticError1("ast_artifact_invalid", "owner", "SemanticAstEnumFacts"),
                 artifact.count,
+                artifact.identity_digest,
                 0,
                 requires_entrypoint
             );
@@ -250,6 +278,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
                 "ast_artifact_invalid",
                 SemanticError1("ast_artifact_invalid", "owner", "SemanticAstRoleFacts"),
                 artifact.count,
+                artifact.identity_digest,
                 0,
                 requires_entrypoint
             );
@@ -274,6 +303,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
                     "broken_bound", ability_generic_bounds.broken_bound_name
                 ),
                 artifact.count,
+                artifact.identity_digest,
                 0,
                 requires_entrypoint
             );
@@ -297,7 +327,8 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
                     "node", ToString(expression_surfaces.failure_node_id),
                     "lane", expression_surfaces.failure_lane
                 ),
-                artifact.count, 0, requires_entrypoint
+                artifact.count, artifact.identity_digest,
+                0, requires_entrypoint
             );
         return SemanticAstArtifactAnalysis(
             rejected_expression_surface, signatures, intent_signatures,
@@ -316,7 +347,8 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
                 SemanticError1(
                     "ast_artifact_invalid", "owner", "SemanticAstTypeSurfaceFacts"
                 ),
-                artifact.count, 0, requires_entrypoint
+                artifact.count, artifact.identity_digest,
+                0, requires_entrypoint
             );
         return SemanticAstArtifactAnalysis(
             rejected_type_surface, signatures, intent_signatures,
@@ -335,7 +367,8 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
                 SemanticError1(
                     "ast_artifact_invalid", "owner", "SemanticAstKindSurfaceFacts"
                 ),
-                artifact.count, 0, requires_entrypoint
+                artifact.count, artifact.identity_digest,
+                0, requires_entrypoint
             );
         return SemanticAstArtifactAnalysis(
             rejected_kind_surface, signatures, intent_signatures,
@@ -354,6 +387,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             local_bindings.diagnostic_code,
             local_bindings.diagnostic_message,
             artifact.count,
+            artifact.identity_digest,
             0,
             requires_entrypoint
         );
@@ -377,6 +411,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             assignments.diagnostic_code,
             assignments.diagnostic_message,
             artifact.count,
+            artifact.identity_digest,
             0,
             requires_entrypoint
         );
@@ -396,6 +431,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             statements.diagnostic_code,
             statements.diagnostic_message,
             artifact.count,
+            artifact.identity_digest,
             0,
             requires_entrypoint
         );
@@ -463,8 +499,8 @@ func SemanticAstArtifactAnalysisMatches(
     analysis: SemanticAstArtifactAnalysis,
     requires_entrypoint: Bool
 ) -> Bool {
-    return SemanticAstArtifactVerdictMatches(
-        artifact, analysis.verdict, requires_entrypoint
+    return SemanticAstArtifactAdmissionReady(
+        artifact, analysis, requires_entrypoint
     ) && SemanticAstFunctionSignatureFactsMatchArtifact(
         artifact, analysis.signatures
     ) && SemanticAstNominalConstructorFactsMatchArtifact(
@@ -504,6 +540,33 @@ func SemanticAstArtifactVerdictContractReady() -> Bool {
         SemanticAstEnumCount(valid_analysis.enums) != 1 ||
         valid_analysis.enums.enum_names[0] != "Direction" ||
         ArrayLength(valid_analysis.enums.variant_names) != 2 {
+        return false;
+    }
+    let stale_same_count: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Enum: Direction { South, West }\n  Function: Other\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: y : Int = 2\n"
+    );
+    if stale_same_count.count != valid.count ||
+        stale_same_count.identity_digest == valid.identity_digest ||
+        SemanticAstArtifactAdmissionReady(
+            stale_same_count, valid_analysis, true
+        ) {
+        return false;
+    }
+    let mutated_graph: AstExpressionGraphRows = AstExpressionGraphRows(
+        true, [TypedAstKindLetStmtTag()], [AstExpressionLaneValue()], [0],
+        AstExpressionArena([AstExpressionNodeLeaf()], ["1"], [0], [0])
+    );
+    let stale_same_tree: AstTreeArtifact = AstTreeArtifact(
+        valid.tree_text, valid.arena, valid.count, mutated_graph,
+        AstTreeArtifactIdentityDigest(
+            valid.tree_text, valid.count, mutated_graph
+        )
+    );
+    if !AstTreeArtifactReady(stale_same_tree) ||
+        stale_same_tree.identity_digest == valid.identity_digest ||
+        SemanticAstArtifactAdmissionReady(
+            stale_same_tree, valid_analysis, true
+        ) {
         return false;
     }
     let missing: AstTreeArtifact = AstTreeArtifactFromText("Program:\n");

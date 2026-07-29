@@ -1212,6 +1212,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/program_statement_shape_owner.pgy` --
   recursive statement/block shape admission before program-level C assembly;
   semantic kind rows remain authoritative for each accepted statement.
+- `src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy` --
+  one admitted semantic-to-codegen adapter that materializes body views once
+  and enters the reconstruction-free program emission core.
 - `src/self_hosted/codegen/emission/generic_function_emit_owner.pgy` --
   generic-template suppression and concrete specialization emission.
 - `src/self_hosted/codegen/emission/literal_rewrite.pgy` -- source literal lowering.

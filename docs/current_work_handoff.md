@@ -6,7 +6,83 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Current checkpoint - installed source-to-MIR one-graph closure
+## Current checkpoint - admitted semantic artifact emission
+
+- Exact working base is `ab9f9fce20b83fae473d52d48b6b0b5582e1f8b6` on
+  `main`, equal to `origin/main` when this checkpoint began. The tree is dirty
+  for the active semantic-admission integration; verify final HEAD and clean
+  state after the authorized commit/push.
+- Active executable seam: a Pergyra-built codegen created one
+  `SemanticAstArtifactAnalysis`, then C emission called
+  `SemanticAstArtifactAnalysisMatches` and reconstructed signatures,
+  constructors, locals, assignments, statements, enums, roles, expression
+  surfaces/graph, type surfaces and kind surfaces from the whole AST again.
+  On the 5.1MB bootstrap AST this was the last observed 3,072MB scaling RED.
+- `AstTreeArtifact` payload schema v4 now carries one producer-time
+  `identity_digest`. It binds tree text, node count and parser-owned expression
+  graph roots/arena. Parser graph injection recomputes it once; deterministic
+  owner-kind and destructure arena projections preserve that epoch. Semantic
+  verdicts seal the same identity. Emission never recalculates the digest.
+- `SemanticAstArtifactAdmissionReady` is the fixed-size comparison boundary:
+  verdict status, node count, artifact identity and entrypoint policy only. It
+  cannot call AST/graph readiness, hashing, `*FactsMatchArtifact`,
+  `*FactsFromArtifact` or `*RowsFromArtifact`.
+- The digest is an epoch witness, not an untrusted-input security seal. Fast
+  callers are exact-allowlisted and receive owner-produced fact arrays that are
+  immutable after admission. Arbitrary or mutable artifact/analysis pairs must
+  use the public deep-checked compatibility entry.
+- Production entrypoints now use one admitted/Ready graph:
+
+  ```text
+  codegen seed
+    -> GenerateCUnitFromAstArtifact
+    -> SemanticAstArtifactAnalyzeCompactBridge             # exactly one
+    -> GenerateCUnitFromAdmittedSemanticArtifact
+    -> GenerateCUnitFromReadySemanticFacts                 # reconstruction zero
+
+  source-to-C / admitted MIR-to-C
+    -> one semantic analysis + body-type admission
+    -> GenerateCUnitFromReadySemanticFacts
+  ```
+
+  The unused `GenerateCUnitFromSemanticFacts` checked fallback was deleted.
+  The externally callable raw semantic-artifact entrypoint retains exactly one
+  deep match before entering the admitted path.
+- Fail-closed evidence now includes same-node-count/different-text and
+  same-tree/different-expression-graph artifacts. Both receive different
+  producer identities and are rejected by admission. The lifetime gate fixes
+  direct codegen, source-to-C and integrated driver call edges and forbids
+  unbounded proof work inside the Ready core.
+- Observed focused evidence in this dirty tree:
+  - `driver_rung2_main.pgy --emit-c`: `0 error(s), 0 warning(s)`;
+  - executable `CompilerDriverPipelineReady` probe:
+    `semantic-admission-contract:ok`, exit 0;
+  - self-host component contract: PASS;
+  - semantic environment/admitted emission ratchet: PASS after correcting its
+    stale call-target assertion to follow the existing body-environment owner;
+  - shell syntax and `git diff --check`: PASS;
+  - fresh native-seed codegen build: exit 0, 47,749ms, peak
+    1,138.2MB working / 1,190.8MB private;
+  - 2,864,634-byte AST emission: exit 0, 1,098,757ms, peak 890.5MB working /
+    968.4MB private, 2,785,703-byte C output;
+  - 5,106,665-byte AST emission: timeout 124 at 2,400,686ms, peak 1,436.1MB
+    working / 1,551.4MB private, no 3,072MB limit breach. This closes the
+    observed memory RED but is not an end-to-end emission PASS;
+  - compiling the successful 2.9MB C output into gen2: exit 0, 4,710ms,
+    peak 244.5MB working / 229.7MB private;
+  - gen2 consuming the same 2.9MB AST: exit 0, 1,059,367ms, peak 1,177.7MB
+    working / 1,357.3MB private. Raw output differed only by one trailing blank
+    line; the repository emitted-C normalization/comparator passed.
+- Evidence grade remains `REACHABLE`, not `SUBSTITUTING`. This removes a real
+  Pergyra-built codegen hot-path reconstruction and fixes its provenance
+  boundary, but does not yet prove a fresh installed self driver or replace a
+  new native C semantic owner.
+- Next falsifier: isolate the 5.1MB CPU bottleneck without reopening semantic
+  reconstruction, then run the installed-driver/launcher parity boundary. The
+  5.1MB native-seed run stayed below the memory cap but timed out; it is not a
+  green output and must not be relabelled by silently raising the memory cap.
+
+## Previous checkpoint - installed source-to-MIR one-graph closure
 
 - Exact working base is `8da168bc5c3e09f4f31788c133bfc5f053bf8a91` on
   `main`, equal to `origin/main` when this checkpoint began. The tree is dirty

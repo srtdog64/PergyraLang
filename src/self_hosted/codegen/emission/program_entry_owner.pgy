@@ -1,39 +1,11 @@
 // Public semantic and source entrypoints for the program emission core.
 import "program_emit.pgy";
+import "program_admitted_semantic_owner.pgy";
 import "../text/text_owner.pgy";
 import "../input/domain_runtime_codegen_view_owner.pgy";
 import "../../compiler/machine_layer_declaration_consumer.pgy";
 import "../../compiler/target_projection_fact_owner.pgy";
 import "../input/intent_execution_codegen_view_owner.pgy";
-func GenerateCUnitFromSemanticArtifact(
-    artifact: AstTreeArtifact,
-    semantic_analysis: SemanticAstArtifactAnalysis,
-    require_entrypoint: Bool,
-    machine_declaration: SelfHostMachineLayerDeclaration
-) -> String {
-    let receiver_facts: CodegenCallableReceiverFacts =
-        CodegenCallableReceiverFactsFromAnalysis(semantic_analysis);
-    let bundle: SemanticAstBodyTypeBundle =
-        SemanticAstBodyTypeBundleFromAnalysis(artifact, semantic_analysis);
-    let generic_specializations: CodegenGenericSpecializationFacts =
-        CodegenGenericSpecializationFactsFromSemantic(
-            semantic_analysis.signatures, bundle.generic_specializations
-        );
-    let body_types: CodegenSemanticBodyTypeFacts =
-        CodegenSemanticBodyTypeFactsFromBundleOrDie(
-            artifact, semantic_analysis, bundle, generic_specializations
-        );
-    let domain_runtime: CodegenDomainRuntimeFacts =
-        CodegenDomainRuntimeFactsEmpty(true);
-    let intent_execution: CodegenIntentExecutionView =
-        CodegenIntentExecutionViewEmpty(true);
-    return GenerateCUnitFromSemanticFacts(
-        artifact, semantic_analysis, body_types, receiver_facts,
-        domain_runtime, intent_execution,
-        require_entrypoint,
-        machine_declaration
-    );
-}
 func GenerateCFromVerifiedSemanticArtifact(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
@@ -49,10 +21,27 @@ func GenerateCFromVerifiedSemanticArtifact(
     ) {
         Die("self-host C emission target projection fact is missing or invalid");
     }
-    return GenerateCUnitFromSemanticFacts(
+    return GenerateCUnitFromReadySemanticFacts(
         artifact, semantic_analysis, body_types, receiver_facts,
         domain_runtime, intent_execution,
         true, machine_declaration
+    );
+}
+func GenerateCUnitFromSemanticArtifact(
+    artifact: AstTreeArtifact,
+    semantic_analysis: SemanticAstArtifactAnalysis,
+    require_entrypoint: Bool,
+    machine_declaration: SelfHostMachineLayerDeclaration
+) -> String {
+    if !CodegenAstTreeArtifactReady(artifact) ||
+        !SemanticAstArtifactAnalysisMatches(
+            artifact, semantic_analysis, require_entrypoint
+        ) {
+        Die("codegen semantic evidence does not match AST artifact");
+    }
+    return GenerateCUnitFromAdmittedSemanticArtifact(
+        artifact, semantic_analysis, require_entrypoint,
+        machine_declaration
     );
 }
 func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
@@ -68,7 +57,7 @@ func GenerateCUnitFromAstArtifact(
         SemanticAstArtifactAnalyzeCompactBridge(
             artifact, require_entrypoint
         );
-    return GenerateCUnitFromSemanticArtifact(
+    return GenerateCUnitFromAdmittedSemanticArtifact(
         artifact, semantic_analysis, require_entrypoint,
         SelfHostMachineLayerDeclarationEmpty()
     );
@@ -79,7 +68,7 @@ func GenerateCUnitFromTypedAstArtifact(
 ) -> String {
     let semantic_analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, require_entrypoint);
-    return GenerateCUnitFromSemanticArtifact(
+    return GenerateCUnitFromAdmittedSemanticArtifact(
         artifact, semantic_analysis, require_entrypoint,
         SelfHostMachineLayerDeclarationEmpty()
     );

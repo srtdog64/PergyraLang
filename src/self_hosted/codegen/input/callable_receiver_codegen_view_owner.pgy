@@ -115,16 +115,24 @@ func CodegenCallableReceiverFactCount(
     return ArrayLength(facts.source_syntax_ids);
 }
 
+func CodegenCallableReceiverFactsAdmittedReady(
+    facts: CodegenCallableReceiverFacts,
+    signatures: SemanticAstFunctionSignatureFacts
+) -> Bool {
+    let count: Int = SemanticAstFunctionSignatureCount(signatures);
+    return facts.ok && CodegenCallableReceiverFactCount(facts) == count &&
+        ArrayLength(facts.owners) == count &&
+        ArrayLength(facts.names) == count &&
+        ArrayLength(facts.carriages) == count &&
+        ArrayLength(facts.role_erased) == count;
+}
+
 func CodegenCallableReceiverFactsReady(
     facts: CodegenCallableReceiverFacts,
     signatures: SemanticAstFunctionSignatureFacts
 ) -> Bool {
     let count: Int = SemanticAstFunctionSignatureCount(signatures);
-    if !facts.ok || CodegenCallableReceiverFactCount(facts) != count ||
-        ArrayLength(facts.owners) != count ||
-        ArrayLength(facts.names) != count ||
-        ArrayLength(facts.carriages) != count ||
-        ArrayLength(facts.role_erased) != count {
+    if !CodegenCallableReceiverFactsAdmittedReady(facts, signatures) {
         return false;
     }
     let i: Int = 0;
