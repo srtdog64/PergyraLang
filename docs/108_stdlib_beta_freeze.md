@@ -80,6 +80,12 @@ These modules are beta-stable when imported through `use <module>;`:
 - `device_adapter`: `DeviceRegister`, `DeviceSample`, `DeviceCommand`,
   `Register`, `SampleDevice`, `WriteDevice`, `SampleEventTopic`,
   `RenderDeviceSample`, `RenderDeviceCommand`.
+- `host_task_slot`: `HostTaskTicket`, `HostTaskSlot`,
+  `HostTaskSlotTransition`, and the `HostTasks.Open`, `HostTasks.Ticket`,
+  `HostTasks.IsCurrent`, `HostTasks.Replace`, `HostTasks.PublishWait`,
+  `HostTasks.PublishFinal`, `HostTasks.Cleanup`, `HostTasks.Phase` authority
+  operations. A same-key replacement advances the generation; stale tickets
+  cannot publish a wait/final outcome or authorize cleanup.
 
 The stable module smoke covers these modules together because several domain-kit
 modules intentionally depend on common modules such as `money` and

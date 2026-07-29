@@ -6,6 +6,53 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+## Current checkpoint - Insere/Zeno three-track reachable slices
+
+- Exact working base is `6e1891f54aa7770880ae1b89276adc90895b61b7` on
+  `main`. This checkpoint integrates 17 explicitly named paths; no broad
+  `git add -A` or glob staging is permitted.
+- Objective and owners:
+  - `HostTaskSlot` owns stable host-task key, generation, lifecycle phase, and
+    guarded wait/final/cleanup transitions. The host adapter is the last
+    consumer; key-only commit/delete is forbidden.
+  - `SnapshotTicket` immutably binds slot id/generation, existing MIR ABI
+    layout identity, and explicit endianness. Runtime `SlotHandle` generation
+    and `MirAbiLayoutIdFromCapture` remain the semantic owners.
+  - `BinaryProjectionPreflight` is the sole receipt-admission owner. It consumes
+    the existing layout identity and must not recalculate offsets or default
+    endianness.
+- Current grade for all three tracks is `REACHABLE`, not `SUBSTITUTING`.
+  `HostTaskSlot` is a completed active official-library slice; SnapshotTicket
+  and BinaryProjection are completed internal library/tooling slices. None
+  deletes or replaces a C-owned production compiler path, so this work earns
+  no hard self-host progress credit.
+- Exact focused evidence observed:
+  - `PGY_HOST_TASK_SLOT_BACKENDS=c bash tests/host_task_slot_smoke.sh`: C
+    compile/run PASS;
+  - `PGY_HOST_TASK_SLOT_BACKENDS=llvm bash tests/host_task_slot_smoke.sh`: LLVM
+    compile/run PASS;
+  - `PGY_BIN=bin/pgy.exe bash
+    tests/self_hosted/parity/binary_projection_preflight_probe_parity.sh`: C
+    compile/run PASS, LLVM compile/run PASS, and output parity PASS;
+  - `bash tests/self_hosted_scaffold_smoke.sh`: `35 tool(s) gated`;
+  - `bash tests/stdlib_inventory_smoke.sh`: inventory/contracts PASS.
+- Verification scope is intentionally bounded. The full stdlib surface matrix,
+  full self-host parity matrix, CI/platform matrix, and production compiler
+  bootstrap suites were not run for this checkpoint.
+- Next falsifiers:
+  1. a real host adapter must retain the existing task/future handle beside a
+     `HostTaskTicket`, re-read the current slot before publish/cleanup, and
+     delete every key-only direct commit/delete path;
+  2. a public `Slot<T>` generation view may be designed only when a real
+     workload proves the need; the current internal ticket protocol must not
+     infer or refresh generation;
+  3. normalized manifest tooling must derive from the existing MIR ABI tuple,
+     reject same-name offset/endian changes, and then a real binary boundary
+     must reject receipt-less direct open/truncate/read.
+- At checkpoint close, the 17 intended paths are explicitly staged, with no
+  unexpected temporary path, compiler output, or binary artifact included.
+  Commit remains intentionally pending.
+
 ## Current checkpoint - unified CI recovery and next Pergyra-native rung
 
 - Exact clean base is `0b848787245b1272334c5fd9ef503b988d0ff6b2` on

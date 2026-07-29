@@ -17,6 +17,7 @@ This facade routes standard-library architecture and promotion work.
 | Package resolution | [`../109_package_module_resolver_contract.md`](../109_package_module_resolver_contract.md) |
 | Layered domain kits | [`../67_layered_stdlib_and_domain_kits.md`](../67_layered_stdlib_and_domain_kits.md) |
 | Base design | [`../29_stdlib_design.md`](../29_stdlib_design.md) |
+| Host task generation authority | [`host_task_slot.md`](host_task_slot.md) |
 
 A sketch becomes an active library capability only through the promotion gates
 owned by the linked documents.

@@ -1,0 +1,155 @@
+export class HostTaskTicket
+{
+    let key: String;
+    let generation: Int;
+}
+
+export class HostTaskSlot
+{
+    let key: String;
+    let generation: Int;
+    let phase: Int;
+    let waitOutcome: String;
+    let finalOutcome: String;
+}
+
+export class HostTaskSlotTransition
+{
+    let slot: HostTaskSlot;
+    let ticket: HostTaskTicket;
+    let applied: Bool;
+    let reason: String;
+}
+
+namespace HostTasks {
+    func RunningPhase() -> Int { return 1; }
+    func WaitingPhase() -> Int { return 2; }
+    func FinalPhase() -> Int { return 3; }
+    func VacantPhase() -> Int { return 4; }
+
+    func Transition(slot: HostTaskSlot, applied: Bool, reason: String) -> HostTaskSlotTransition
+    {
+        return HostTaskSlotTransition(
+            slot,
+            HostTaskTicket(slot.key, slot.generation),
+            applied,
+            reason
+        );
+    }
+
+    func RejectTicket(slot: HostTaskSlot, ticket: HostTaskTicket) -> String
+    {
+        if ticket.key != slot.key {
+            return "wrong_key";
+        }
+        if ticket.generation != slot.generation {
+            return "stale_generation";
+        }
+        if slot.phase == VacantPhase() {
+            return "inactive_slot";
+        }
+        return "";
+    }
+
+    export func Open(key: String) -> HostTaskSlotTransition
+    {
+        if key == "" {
+            return Transition(HostTaskSlot("", 0, VacantPhase(), "", ""), false, "invalid_key");
+        }
+        return Transition(HostTaskSlot(key, 1, RunningPhase(), "", ""), true, "applied");
+    }
+
+    export func Ticket(slot: HostTaskSlot) -> HostTaskTicket
+    {
+        return HostTaskTicket(slot.key, slot.generation);
+    }
+
+    export func IsCurrent(slot: HostTaskSlot, ticket: HostTaskTicket) -> Bool
+    {
+        return ticket.key == slot.key
+            && ticket.generation == slot.generation
+            && slot.phase != VacantPhase();
+    }
+
+    export func Replace(slot: HostTaskSlot, key: String) -> HostTaskSlotTransition
+    {
+        if key == "" || key != slot.key {
+            return Transition(slot, false, "invalid_key");
+        }
+        if slot.phase == VacantPhase() {
+            return Transition(slot, false, "inactive_slot");
+        }
+        return Transition(
+            HostTaskSlot(key, slot.generation + 1, RunningPhase(), "", ""),
+            true,
+            "applied"
+        );
+    }
+
+    export func PublishWait(
+        slot: HostTaskSlot,
+        ticket: HostTaskTicket,
+        outcome: String
+    ) -> HostTaskSlotTransition
+    {
+        let rejected: String = RejectTicket(slot, ticket);
+        if rejected != "" {
+            return Transition(slot, false, rejected);
+        }
+        if slot.phase != RunningPhase() && slot.phase != WaitingPhase() {
+            return Transition(slot, false, "invalid_phase");
+        }
+        return Transition(
+            HostTaskSlot(slot.key, slot.generation, WaitingPhase(), outcome, ""),
+            true,
+            "applied"
+        );
+    }
+
+    export func PublishFinal(
+        slot: HostTaskSlot,
+        ticket: HostTaskTicket,
+        outcome: String
+    ) -> HostTaskSlotTransition
+    {
+        let rejected: String = RejectTicket(slot, ticket);
+        if rejected != "" {
+            return Transition(slot, false, rejected);
+        }
+        if slot.phase != RunningPhase() && slot.phase != WaitingPhase() {
+            return Transition(slot, false, "invalid_phase");
+        }
+        return Transition(
+            HostTaskSlot(slot.key, slot.generation, FinalPhase(), slot.waitOutcome, outcome),
+            true,
+            "applied"
+        );
+    }
+
+    export func Cleanup(
+        slot: HostTaskSlot,
+        ticket: HostTaskTicket
+    ) -> HostTaskSlotTransition
+    {
+        let rejected: String = RejectTicket(slot, ticket);
+        if rejected != "" {
+            return Transition(slot, false, rejected);
+        }
+        if slot.phase != FinalPhase() {
+            return Transition(slot, false, "invalid_phase");
+        }
+        return Transition(
+            HostTaskSlot(slot.key, slot.generation, VacantPhase(), slot.waitOutcome, slot.finalOutcome),
+            true,
+            "applied"
+        );
+    }
+
+    export func Phase(slot: HostTaskSlot) -> String
+    {
+        if slot.phase == RunningPhase() { return "running"; }
+        if slot.phase == WaitingPhase() { return "waiting"; }
+        if slot.phase == FinalPhase() { return "final"; }
+        return "vacant";
+    }
+}

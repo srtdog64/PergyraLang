@@ -1,0 +1,88 @@
+import "../../lib/binary_projection_preflight_owner.pgy";
+
+func ProjectionProbeLayout(field_offset: String) -> MirAbiLayoutRowCapture {
+    let field_names: Array<String> = ["value"];
+    let field_offsets: Array<String> = [field_offset];
+    let field_sizes: Array<String> = ["4"];
+    let field_aligns: Array<String> = ["4"];
+    return MirAbiLayoutRowCapture(
+        true,
+        "ProjectionProbe",
+        "4",
+        "4",
+        field_names,
+        field_offsets,
+        field_sizes,
+        field_aligns,
+        "",
+        "",
+        "0",
+        "",
+        "0",
+        "0",
+        ""
+    );
+}
+
+func ProjectionProbeFail(message: String) -> Void {
+    Log(message);
+    Exit(1);
+}
+
+func Main() -> Void {
+    let canonical: MirAbiLayoutRowCapture = ProjectionProbeLayout("0");
+    let canonical_id: Int = MirAbiLayoutIdFromCapture(canonical);
+    let ticket_opt: Option<SnapshotTicket> = IssueSnapshotTicket(
+        7, 11, canonical_id, "little"
+    );
+    if !IsSome(ticket_opt) {
+        ProjectionProbeFail("snapshot ticket issue failed");
+        return;
+    }
+    let ticket: SnapshotTicket = UnwrapOption(ticket_opt);
+
+    let admitted: Option<BinaryProjectionReceipt> = BinaryProjectionPreflight(
+        ticket, 7, 11, canonical, "little"
+    );
+    if !IsSome(admitted) {
+        ProjectionProbeFail("canonical projection was not admitted");
+        return;
+    }
+    let admitted_receipt: BinaryProjectionReceipt = UnwrapOption(admitted);
+    if !BinaryProjectionReceiptIsCurrent(admitted_receipt, 7, 11) {
+        ProjectionProbeFail("canonical projection was not admitted");
+        return;
+    }
+
+    let stale: Option<BinaryProjectionReceipt> = BinaryProjectionPreflight(
+        ticket, 7, 12, canonical, "little"
+    );
+    if IsSome(stale) {
+        ProjectionProbeFail("generation N ticket survived generation N+1 reuse");
+        return;
+    }
+
+    let moved_offset: MirAbiLayoutRowCapture = ProjectionProbeLayout("4");
+    let moved: Option<BinaryProjectionReceipt> = BinaryProjectionPreflight(
+        ticket, 7, 11, moved_offset, "little"
+    );
+    if IsSome(moved) {
+        ProjectionProbeFail("same-name layout with a changed offset was admitted");
+        return;
+    }
+
+    let wrong_endian: Option<BinaryProjectionReceipt> = BinaryProjectionPreflight(
+        ticket, 7, 11, canonical, "big"
+    );
+    if IsSome(wrong_endian) {
+        ProjectionProbeFail("endianness mismatch was admitted");
+        return;
+    }
+
+    if IsSome(IssueSnapshotTicket(7, 11, canonical_id, "")) {
+        ProjectionProbeFail("missing endianness was defaulted");
+        return;
+    }
+
+    Log("binary projection preflight: PASS");
+}

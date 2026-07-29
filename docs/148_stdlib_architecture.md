@@ -92,6 +92,7 @@ Status: `wiring-doc, inventory-gated`. docs/138이 **무엇을**(scope ledger)
 | strview.pgy | core | active | tests/string_window_builtins_smoke.sh |
 | datetime.pgy | domain | sketch | - |
 | device_adapter.pgy | domain | sketch | - |
+| host_task_slot.pgy | core | active | tests/host_task_slot_smoke.sh |
 | http.pgy | domain | sketch | - |
 | ledger.pgy | domain | sketch | - |
 | money.pgy | domain | sketch | - |

@@ -1,0 +1,44 @@
+// Generation-bound immutable snapshot admission ticket.
+//
+// Slot allocation and generation advancement remain owned by the runtime
+// SlotHandle/SlotManager implementation.  This value only carries the exact
+// handle generation and ABI projection identity observed at a snapshot
+// boundary; it never allocates, releases, or refreshes a slot.
+
+struct SnapshotTicket {
+    let slot_id: Int;
+    let generation: Int;
+    let abi_layout_id: Int;
+    let endianness: String;
+}
+
+func SnapshotTicketEndiannessReady(endianness: String) -> Bool {
+    return endianness == "little" || endianness == "big";
+}
+
+func IssueSnapshotTicket(
+    slot_id: Int,
+    generation: Int,
+    abi_layout_id: Int,
+    endianness: String
+) -> Option<SnapshotTicket> {
+    if slot_id < 0 || generation <= 0 || abi_layout_id <= 0 ||
+        !SnapshotTicketEndiannessReady(endianness) {
+        return None;
+    }
+    return Some(SnapshotTicket(
+        slot_id, generation, abi_layout_id, endianness
+    ));
+}
+
+func SnapshotTicketIsCurrent(
+    ref ticket: SnapshotTicket,
+    current_slot_id: Int,
+    current_generation: Int
+) -> Bool {
+    return current_slot_id >= 0 && current_generation > 0 &&
+        ticket.slot_id == current_slot_id &&
+        ticket.generation == current_generation &&
+        ticket.abi_layout_id > 0 &&
+        SnapshotTicketEndiannessReady(ticket.endianness);
+}

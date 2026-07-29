@@ -19,6 +19,7 @@ semantic_is_known_stdlib_use_module(const char *module_name)
     static const char *const modules[] = {
         "datetime",
         "device_adapter",
+        "host_task_slot",
         "http",
         "ledger",
         "money",
@@ -109,7 +110,7 @@ validate_stdlib_use_decl(ASTNode *stmt, SemanticContext *ctx)
         semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL,
             PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL,
             stmt,
-            "Unknown stdlib use '%s'; expected one of datetime, device_adapter, http, ledger, money, obligation, page, spray, storage, timer, versioning",
+            "Unknown stdlib use '%s'; expected one of datetime, device_adapter, host_task_slot, http, ledger, money, obligation, page, spray, storage, timer, versioning",
             module_name);
         return;
     }

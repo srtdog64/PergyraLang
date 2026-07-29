@@ -170,6 +170,7 @@ not own status, decisions, or completion claims.
 | [`language_module_cases.json`](language_module_cases.json) | Module-layer case manifest |
 | [`108_stdlib_beta_freeze.md`](108_stdlib_beta_freeze.md) | Stdlib beta freeze list |
 | [`148_stdlib_architecture.md`](148_stdlib_architecture.md) | Stdlib architecture wiring: layers, contracts, inventory, and active/sketch policy |
+| [`201_insere_zeno_lineage_and_library_adoption.md`](201_insere_zeno_lineage_and_library_adoption.md) | Canonical Insere/Zeno provenance, Pergyra owner translation, three reachable library/tooling slices, and production-adoption falsifiers |
 | [`109_package_module_resolver_contract.md`](109_package_module_resolver_contract.md) | Seashell package/module resolver contract: `pgy.toml` remains a fail-closed TOML subset while `pgy.seashell.v1` owns local package/build declaration |
 | [`195_world_universe_composition.md`](195_world_universe_composition.md) | Proposed WorldGraph/UniverseManifest composition boundary and post-beta DLL/shared-library loading contract |
 | [`29_stdlib_design.md`](29_stdlib_design.md) | Stdlib design |

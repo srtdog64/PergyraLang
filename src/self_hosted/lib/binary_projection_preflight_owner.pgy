@@ -1,0 +1,67 @@
+// Binary projection admission over existing Slot and MIR ABI facts.
+//
+// The MIR ABI-layout owner remains the sole calculator for size, alignment,
+// field offsets, field sizes, and field alignment.  Endianness is an explicit
+// boundary fact: this owner has no implicit host or little-endian fallback.
+
+import "snapshot_ticket.pgy";
+import "../mir_lower/abi_layout_fact_owner.pgy";
+
+struct BinaryProjectionReceipt {
+    let slot_id: Int;
+    let generation: Int;
+    let abi_layout_id: Int;
+    let endianness: String;
+}
+
+func BinaryProjectionReceiptReady(
+    ref receipt: BinaryProjectionReceipt
+) -> Bool {
+    return receipt.slot_id >= 0 && receipt.generation > 0 &&
+        receipt.abi_layout_id > 0 &&
+        SnapshotTicketEndiannessReady(receipt.endianness);
+}
+
+func BinaryProjectionReceiptIsCurrent(
+    ref receipt: BinaryProjectionReceipt,
+    current_slot_id: Int,
+    current_generation: Int
+) -> Bool {
+    if !BinaryProjectionReceiptReady(receipt) {
+        return false;
+    }
+    return receipt.slot_id == current_slot_id &&
+        receipt.generation == current_generation;
+}
+
+// This is the only admission entrypoint.  Projection consumers receive a
+// receipt, never a raw layout capture.  A changed offset changes the existing
+// MIR layout id, and a changed endian fact is compared explicitly.
+func BinaryProjectionPreflight(
+    ref ticket: SnapshotTicket,
+    current_slot_id: Int,
+    current_generation: Int,
+    ref layout: MirAbiLayoutRowCapture,
+    observed_endianness: String
+) -> Option<BinaryProjectionReceipt> {
+    if !SnapshotTicketIsCurrent(
+        ticket, current_slot_id, current_generation
+    ) || !layout.valid ||
+        !SnapshotTicketEndiannessReady(observed_endianness) ||
+        ticket.endianness != observed_endianness {
+        return None;
+    }
+
+    let admitted_layout_id: Int = MirAbiLayoutIdFromCapture(layout);
+    if admitted_layout_id <= 0 ||
+        ticket.abi_layout_id != admitted_layout_id {
+        return None;
+    }
+
+    return Some(BinaryProjectionReceipt(
+        ticket.slot_id,
+        ticket.generation,
+        admitted_layout_id,
+        observed_endianness
+    ));
+}

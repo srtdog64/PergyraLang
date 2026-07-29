@@ -229,7 +229,7 @@ These have NO C/Rust reference to translate; they are where Pergyra's stdlib is
 | zone/world helpers | spawning, message-passing, isolation utilities over `world`/`zone` | P1 |
 | intent helpers | building/composing intent step graphs, compensation utilities | P2 |
 | capability/effect utilities | manifest building, `with caps` helpers, sandbox grant sets | P1 |
-| slot/lifecycle helpers | typed resource lifecycles (Vessel state machines) as reusable patterns | P1 |
+| slot/lifecycle helpers | `host_task_slot`: keyed generation authority for host task publication/cleanup; typed resource lifecycles (Vessel state machines) as reusable patterns | active/P1 |
 | ability/witness library | common abilities (Ord, Eq, Hash, Show) as the dispatch substrate collections use | P0 |
 
 ### Use-case (dungeon crawler / sandbox) specifics
