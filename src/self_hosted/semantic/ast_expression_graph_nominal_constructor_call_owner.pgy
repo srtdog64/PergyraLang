@@ -104,9 +104,11 @@ func SemanticExpressionGraphNominalConstructorCallFactFromGraph(
         if !IsSome(expected) || !IsSome(actual) {
             return SemanticExpressionGraphNominalConstructorCallError(
                 "ast_artifact_invalid",
-                SemanticError1(
-                    "ast_artifact_invalid", "owner",
-                    "nominal_constructor_argument_type"
+                SemanticError3(
+                    "ast_artifact_invalid",
+                    "owner", "nominal_constructor_argument_type",
+                    "constructor", target.name,
+                    "argument_index", ToString(i)
                 ), maximum, actual_count
             );
         }

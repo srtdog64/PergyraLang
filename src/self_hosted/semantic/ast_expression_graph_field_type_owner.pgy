@@ -2,6 +2,7 @@
 
 import "ast_expression_graph_scalar_type_owner.pgy";
 import "ast_expression_graph_type_owner.pgy";
+import "ast_expression_graph_array_literal_owner.pgy";
 import "wrapper_type_owner.pgy";
 
 func SemanticExpressionGraphFieldValueTypeName(
@@ -20,6 +21,12 @@ func SemanticExpressionGraphFieldValueTypeName(
     if scalar != "" && scalar != "Unknown" {
         return Some(scalar);
     }
+    let array_literal: Option<String> =
+        SemanticExpressionGraphArrayLiteralTypeName(
+            graph, node_id, constructors, names, types,
+            function_names, function_returns
+        );
+    if IsSome(array_literal) { return array_literal; }
     return SemanticExpressionGraphIntrinsicTypeName(
         graph, node_id, function_names, function_returns
     );
@@ -58,5 +65,6 @@ func SemanticExpressionGraphFieldValueAssignableTo(
 }
 
 func SemanticExpressionGraphFieldTypeContractReady() -> Bool {
-    return SemanticWrapperTypePolicyContractReady();
+    return SemanticWrapperTypePolicyContractReady() &&
+        SemanticExpressionGraphArrayLiteralContractReady();
 }

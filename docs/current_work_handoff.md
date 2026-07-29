@@ -6,11 +6,66 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+## Current resume checkpoint - self-host consistency closure pending landing
+
+- Baseline: `fbc728f8ac34eed393e97e639376dc767bbdcdd6` on `main`, matching
+  `origin/main` before this session. Replace this pending marker with the exact
+  landing revision after commit/push.
+- Objective card:
+  - objective: close the shared CI inventory/fixture drift and the first real
+    self-host codegen bootstrap type-owner failure without adding a source-text,
+    constructor-name, backend, or compatibility fallback;
+  - priority: existing semantic owner, exact failure identity, focused negative
+    gate, generated-owner refresh, then broad CI throughput;
+  - fact owner: expression-graph array-literal typing owns the contextual
+    `Array<T>` fact; the nominal constructor checker is its last consumer;
+  - forbidden fallback: constructor-name exceptions, source/AST text reparsing,
+    relaxed assignability, stale generated inventory, or fixture-only parity;
+  - falsifier: `AstExpressionGraphRows(true,
+    [TypedAstKindBareCallStmtTag()], ...)` must infer `Array<Int>`; a malformed
+    element must still fail at nominal argument typing.
+- Closed consistency seams:
+  - the backend comparison inventory now includes the four valid positive cases
+    `list_literal_context`, `region_user_callee`,
+    `region_user_callee_bad`, and `zone_layer_projection_state_alias`;
+  - the language keyword implementation inventory was regenerated from its owner;
+  - AIR validator fingerprint drift was reproduced twice as deterministic
+    (`17936981139362554101` -> `11564967125245077598`), the owner fixture was
+    refreshed, and live-drift parity passed;
+  - expression-graph field typing now consumes the existing array-literal owner,
+    and nominal-constructor diagnostics expose constructor and argument index;
+  - dogfood grade, intent semantics, mir.execution_graph consumers/fallbacks, and
+    the sole typed-intent machine admission boundary were reconciled across the
+    project rules, design docs, registry, and OWNERS map.
+- Exact observed gates:
+  - backend inventory/syntax and the four focused C/LLVM cases: PASS;
+  - `region_backend_wiring_smoke.sh`, keyword registry, VS Code graph, AIR JSON
+    parity, intent protocol static owner, SoT authority edge, documentation
+    quality, and aggregate field policy C/graph parity: PASS;
+  - corrected gen0 emitted a 55,720-line gen1 C artifact and GCC compiled it; the
+    formal seed script independently regenerated and compiled 2.7 MiB
+    `gen1.c`/2.0 MiB `gen1.exe`, passing the former node-32501 boundary.
+- Exact OPEN evidence:
+  - the formal seed run was stopped during gen2 emission after 20 minutes, so it
+    is not recorded as seed PASS; complete gen2/fixpoint remains the next broad
+    bootstrap gate;
+  - `self_hosted_component_contract_smoke.sh` currently stops on the pre-existing
+    `codegen_bootstrap.sh` size cap (617 lines versus 600), not on this owner
+    change;
+  - the production compiler root still needs one canonical real-purpose Pergyra
+    `intent` to replace a named direct orchestration bypass.
+- Preserved concurrent/user work remains the three driver parity scripts and
+  untracked `docs/self_hosted/18_c_oracle_bootstrap_contract.md` listed below; do
+  not stage or overwrite them.
+
 ## Current resume checkpoint - admitted typed intent self execution
 
-- Landing revision: `bf55972ba6492074a4d829bbc1fa704b90e85c78` on `main`, pushed to
-  `origin/main`. The remaining dirty state is exactly the three protected
-  parity scripts and untracked bootstrap contract listed below.
+- Implementation landing: `bf55972ba6492074a4d829bbc1fa704b90e85c78` on
+  `main`, pushed to `origin/main`.
+- Consistency baseline verified before this session:
+  `fbc728f8ac34eed393e97e639376dc767bbdcdd6` on `main` at `origin/main`.
+  The remaining pre-session dirty state is exactly the three protected parity
+  scripts and untracked bootstrap contract listed below.
 - Canonical meaning:
   - `intent` is defined by `docs/01_intent_first_design.md` and
     `docs/173_intent_axis_strengthening.md`: it closes one real-world purpose

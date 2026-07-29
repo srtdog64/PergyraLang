@@ -1,5 +1,7 @@
 # Intent-First 설계 철학
 
+Status: canonical design and authoring guidance
+
 > **프로그램의 핵심은 자료구조를 잘 만드는 것이 아니라<br>현실의 의도를 정확한 실행 단위로 닫는 것이다.**
 
 ---
@@ -8,7 +10,9 @@
 
 **Pergyra는 intent를 최상위 설계 축으로 잡아, 현실의 복잡한 행위를 목적 단위로 닫고 나머지 구조를 유도하는 언어다.**
 
-이 정의에서 핵심어는 **"유도한다"** 다. intent가 정해지면 world, zone, subject, ability, effect, object/tobject 경계가 **자동으로 따라온다**.
+이 정의에서 핵심어는 **"유도한다"** 다. intent가 정해지면 설계자는
+world, zone, subject, ability, effect, object/tobject 경계를 그 목적에서 역산한다.
+이는 현재 컴파일러가 선언을 자동 생성한다는 뜻이 아니다.
 
 ---
 
@@ -258,7 +262,8 @@ intent ProcessData(data: Data)
 
 ```
 질문: 어디서 시작해서 어디서 끝나는가?
-검사: step이 3-7개면 적정. 10개 이상이면 쪼갤 것.
+검사: step 수는 경계 재검토 신호일 뿐 semantic 판정이나 gate가 아니다.
+      여러 현실 목적이나 fact 귀속이 섞였을 때 목적별로 분리한다.
 ```
 
 ```pergyra
@@ -291,7 +296,8 @@ intent Checkout(buyer: Member, cart: Cart)
 
 ```
 질문: 각 step이 실패하면 무엇을 보상해야 하는가?
-검사: compensate가 없는 step이 있으면 위험 신호.
+검사: `rollback: full`인 effectful step은 `compensate` 또는 명시적
+      `irreversible`을 가져야 한다. 순수·무상태 step에는 의례적으로 강제하지 않는다.
 ```
 
 ```pergyra
@@ -512,8 +518,8 @@ Intent를 선언한 후 다음을 점검하라:
 | 질문 | 검사 방법 | 위험 신호 |
 |------|-----------|-----------|
 | **목적이 명확한가?** | "성공하면 무엇이 달라지는가?" 한 문장 답 | "데이터를 처리한다"류의 모호한 답 |
-| **경계가 적당한가?** | step이 3-7개 | 1-2개(너무 작음) 또는 10개 이상(너무 큼) |
-| **실패 지점이 보이는가?** | 모든 step에 compensate 정의 | compensate가 없는 step 존재 |
+| **경계가 적당한가?** | 한 현실 목적과 fact 귀속이 한 binder로 닫히는지 확인 | step 수만으로 intent 여부나 분할을 결정 |
+| **실패 지점이 보이는가?** | full rollback의 effectful step마다 compensate 또는 irreversible 확인 | 되돌릴 수 없는 효과를 암묵적으로 숨김 |
 | **권한이 명확한가?** | 모든 step에 authorized by 또는 requires | 권한 주체 불명확 |
 | **Subject가 유도되는가?** | intent에서 등장하는 who/involves로 subject 목록 작성 | intent와 무관한 subject 존재 |
 | **Zone이 유도되는가?** | where로 참조하는 zone이 실제로 존재 | zone이 namespace 정도로 전락 |
@@ -524,7 +530,9 @@ Intent를 선언한 후 다음을 점검하라:
 
 ## Intent의 역산 패턴 (Backward Derivation)
 
-Intent를 선언하면 **컴파일러가 TODO를 만든다**.
+Intent를 선언하면 설계자는 필요한 축을 역산한다. 아래의 자동 TODO 진단은
+목표 개발자 경험을 설명한다. 실제 구현으로 주장하려면 해당 진단의 executable
+gate와 owner registry 근거가 있어야 한다.
 
 ```pergyra
 intent Purchase(buyer: Member, seller: Merchant)
@@ -545,7 +553,8 @@ intent Purchase(buyer: Member, seller: Merchant)
 }
 ```
 
-이 선언 하나만으로 체크리스트가 생성된다:
+이 선언에서 다음 설계 체크리스트를 역산할 수 있다. 컴파일러가 같은 진단을
+자동으로 생성하는 것은 구현 목표다.
 
 ```
 error: subject 'Member' not found       → subjects/member.pgy 생성
@@ -565,7 +574,7 @@ error: effect 'PaymentEffect' not found → effect PaymentEffect 생성
 
 Intent-First:
   intent 하나를 쓰면
-  필요한 world, zone, subject, ability, effect가 자동으로 드러난다.
+  필요한 world, zone, subject, ability, effect를 한 목적에서 추적할 수 있다.
 ```
 
 ---
@@ -593,11 +602,10 @@ Intent-First:
 
 ### 판단 기준
 
-```
-질문: "이 함수가 실패하면 무엇을 보상해야 하는가?"
-답이 있으면 → Intent
-답이 없으면 → Function
-```
+한 현실 목적의 participant, coordination, authority, effect, boundary,
+compensation, trace 의무를 하나의 source-level binder에 귀속해야 하면
+`intent`가 적합하다. 순수 계산이나 값 변환 책임이면 `func`가 적합하다.
+보상 유무, action 수, step 수는 어느 쪽도 단독 판정 기준이 아니다.
 
 ---
 
@@ -1039,16 +1047,16 @@ intent SubmitOrder(buyer: Member, cart: Cart)
 ### 2단계: 경계 검토
 
 ```
-□ step이 3-7개인가? (1-2개: 너무 작음, 10개+: 너무 큼)
+□ 한 현실 목적과 fact 귀속이 이 binder 안에서 닫히는가?
 □ 각 step이 단일 책임을 가지는가?
-□ step body가 10줄 이하인가?
+□ step 수나 줄 수가 아니라 authority/effect/success/failure 경계가 응집돼 있는가?
 ```
 
 ### 3단계: 실패 검토
 
 ```
-□ 모든 step에 compensate가 정의되었는가?
-□ compensate가 원래 상태로 복구하는가?
+□ full rollback의 effectful step마다 compensate 또는 irreversible이 명시됐는가?
+□ compensate가 유효한 이전 상태로 복구하는가?
 □ failure 조건이 모든 실패 케이스를 커버하는가?
 ```
 

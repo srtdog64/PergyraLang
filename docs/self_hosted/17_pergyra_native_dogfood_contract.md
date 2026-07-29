@@ -76,6 +76,7 @@ import surface census이며 모든 선언이 실행된다는 뜻이 아니다.
 | `class`, `object`, `vessel` | `SURFACE` | active direct-MIR call chain의 소비 없음 |
 | `tobject` | `REACHABLE`, not `SUBSTITUTING` | production action의 receipt와 failure가 typed variant로 Main까지 전달되고 양쪽 payload가 후속 판정/진단에 소비된다 |
 | 입력 기능의 `binding slot` admission/runtime slice | `SUBSTITUTING` | production self source -> admitted MIR -> general C가 exact binding constructor와 projection assignment를 실행하고 native C/LLVM parity 및 valid-ID wrong-kind negatives를 통과한다 |
+| 입력 기능의 typed intent transition MIR -> self C | `SUBSTITUTING` | admitted v2 Pergyra plan consumer가 old typed direct/rollback consumer를 대체한다. compiler-root intent 증거는 아니다. |
 | `subject`, `action`, `zone`, `world` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR slice 각 1개 |
 | `intent` | `SURFACE` | 14개 import, production call 0 |
 | `effect`, `relation` | compiler 조직은 `SURFACE`; 입력 기능의 좁은 runtime slice는 `SUBSTITUTING` | bootstrap closure 안의 compiler declaration/call은 0이다. 별개로 self source -> MIR -> general C가 exact role/member facts를 소비해 `zone_layer_projection_runtime`을 실행한다 |
@@ -664,11 +665,9 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
   completion and predecessor carriage, while malformed plans must still reject
   before any partial C artifact.
 
-Direct-MIR action 경계는 계속 `REACHABLE`이며 `SUBSTITUTING`이 아니다. 아래 typed
-transition evidence는 bounded runtime feature를 넓힌 것이고, source-mode
-orchestration을 subject/action으로 이주하는 작업은 별도 executable rung으로 유지한다.
+Direct-MIR action 경계 자체는 계속 `REACHABLE`이며 `SUBSTITUTING`이 아니다. 반면 아래 입력 언어의 admitted v2 typed transition MIR-to-self-C consumer는 old typed direct/rollback path를 실제로 대체한 bounded `SUBSTITUTING` slice다. source-mode orchestration을 subject/action으로 이주하는 작업은 별도 executable rung으로 유지한다.
 
-## REACHABLE outcome binding, legacy compensation, and typed transition evidence
+## Bounded typed transition substitution and historical reachable slices
 
 단일 step의 `on outcome: subject.Action(...)` binding은 구현·실행됐다. Native와
 self semantic/DIR은 exact action return type과 stable action identity를 한 번
@@ -683,8 +682,7 @@ self semantic/DIR은 exact action return type과 stable action identity를 한 �
 `tobject` payload를 갖는다. Self C, native C, native LLVM이 모두
 `accepted=true`, `calls=1`, `rejected=false`, `calls=2`를 출력했고 direct/admitted
 self C는 byte-equal이었다. Missing carrier, result/type/action identity drift,
-duplicate binding과 eval-result drift는 partial C 전에 실패했다. 이 bounded feature는
-`REACHABLE`이다. Production bootstrap entrypoint가 intent를 호출하지 않으므로 compiler
+duplicate binding과 eval-result drift는 partial C 전에 실패했다. 이 historical single-binding feature 자체는 supporting `REACHABLE` evidence다. 현재 admitted v2 plan consumer는 bounded `SUBSTITUTING`이다. Production bootstrap entrypoint가 intent를 호출하지 않으므로 compiler
 `intent` 등급은 여전히 `SURFACE`이며 hard substitution 진척으로 세지 않는다.
 
 `intent_guard_post_compensation_execution_owner.sh`는 성공, 첫 step guard 실패,
@@ -730,20 +728,9 @@ plan과 executable owner gate에 존재한다. 두 action fixture는 predecessor
   변조하고 partial C artifact 전에 admission 거부를 요구한다. v2 protocol corpus와
   admission gate는 variant/payload, predecessor, completion, compensation stable
   identity를 포함한 더 넓은 cross-wire를 fail closed한다.
-- Grade: draft/owner/document/fixture 수는 진척이 아니다. 현재 single-step typed
-  binding은 general self C와 native C/LLVM에서 `REACHABLE`이지만 C-owned compiler
-  path를 대체하지 않았다. Production root가 intent를 호출하되 direct bypass가
-  남아 있으면 compiler `intent`는 `REACHABLE`; bypass 삭제와 실제
-  failure/compensation 관측까지 끝나야 compiler `intent`가 `SUBSTITUTING`이다.
-  그 전 compiler intent 등급은 계속 `SURFACE`다.
+- Grade: draft/owner/document/fixture 수는 진척이 아니다. admitted v2 typed transition plan consumer는 old typed direct/rollback consumer를 제거했으므로 bounded `SUBSTITUTING`이다. single-step binding과 legacy predicate/compensation slice는 supporting `REACHABLE` evidence다. Production root의 canonical real-purpose intent 호출은 여전히 0이므로 compiler organization의 `intent` 등급은 `SURFACE`다.
 
-SoT seam은 `selfhost.intent_declaration_rows`에 typed transition authority를 섞지
-않는다. 해당 row는 source declaration/signature와 현재 legacy phase carrier bridge로
-유지하고, typed outcome case, success-only completion, carried predecessor와
-failure-driven compensation은 별도 `mir.intent_step_transition` 실행 fact family로
-분리한다. v2 plan과 admission/consumer gate의 존재만으로 정식 registry row나
-`CLOSED`를 추론하지 않는다. 그 판정은 실제 authority path, Coq fact/owner,
-producer와 모든 last consumer, missing-fact gate를 함께 확인한 owner가 갱신한다.
+SoT seam은 `selfhost.intent_declaration_rows`에 typed transition authority를 섞지 않는다. 해당 row는 source declaration/signature와 legacy phase carriage를 유지한다. typed outcome case, success-only completion, carried predecessor와 failure-driven compensation은 `mir.execution_graph` 아래의 named execution subfacts인 `mir.intent_step_transition`과 `mir.intent_terminal_transition`이다. 이 이름들은 독립 top-level registry authority가 아니며, 별도 owner identity와 모든 consumer migration 및 negative gate가 생기기 전에는 새 registry row나 `CLOSED`를 추론하지 않는다.
 
 ## 세션 메모리와 handoff 규칙
 

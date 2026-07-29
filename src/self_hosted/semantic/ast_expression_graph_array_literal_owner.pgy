@@ -181,10 +181,28 @@ func SemanticExpressionGraphArrayLiteralContractReady() -> Bool {
                 nested_fact.arena
             ), [0], 1
         );
+    let call_source: String = "[TypedAstKindBareCallStmtTag()]";
+    let call_cursor: Array<Int> = [0];
+    let call_fact: ParserExpressionFact = ParseExprFact(
+        call_source, 0, call_cursor
+    );
+    if !call_fact.ok || call_cursor[0] != StringLength(call_source) {
+        return false;
+    }
+    let call_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindLetStmtTag()],
+                [AstExpressionLaneValue()], [call_fact.root],
+                call_fact.arena
+            ), [0], 1
+        );
     let artifact: AstTreeArtifact = AstTreeArtifactFromText("Program:\n");
     let constructors: SemanticAstNominalConstructorFacts =
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let empty: Array<String> = [];
+    let call_names: Array<String> = ["TypedAstKindBareCallStmtTag"];
+    let call_returns: Array<String> = ["Int"];
     let inferred: Option<String> =
         SemanticExpressionGraphArrayLiteralTypeName(
             graph, fact.root, constructors,
@@ -195,7 +213,14 @@ func SemanticExpressionGraphArrayLiteralContractReady() -> Bool {
             nested_graph, nested_fact.root, constructors,
             empty, empty, empty, empty
         );
+    let call_inferred: Option<String> =
+        SemanticExpressionGraphArrayLiteralTypeName(
+            call_graph, call_fact.root, constructors,
+            empty, empty, call_names, call_returns
+        );
     return IsSome(inferred) && UnwrapOption(inferred) == "Array<Int>" &&
+        IsSome(call_inferred) &&
+        UnwrapOption(call_inferred) == "Array<Int>" &&
         IsSome(nested_inferred) &&
         UnwrapOption(nested_inferred) == "Array<Array<Int>>" &&
         SemanticExpressionGraphArrayLiteralMatchesDeclaredType(

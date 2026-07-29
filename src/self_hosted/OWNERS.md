@@ -875,8 +875,10 @@ inventory must not become a second fact-family owner registry.
   blocked-reachability, structural-merge, and dominator-edge queries used by
   the routine fact index.
 - `src/self_hosted/mir_lower/machine_layer_fact_owner.pgy` -- checked
-  machine-contact projection validation for MIR JSON rows; its admitted
-  carrier preserves the already-built document index for final consumers.
+  machine-contact projection validation for MIR JSON rows; it is the sole full
+  readiness and semantic cross-seal boundary for the intent execution plan.
+  Its admitted carrier preserves the already-built document index; downstream
+  consumers must not revalidate plan/digest/graph facts.
 - `src/self_hosted/mir_lower/parallel_capture_fact_owner.pgy` -- sealed parallel
   capture boundary/kind/writer fact validation for MIR JSON input.
 - `src/self_hosted/mir_lower/program_declaration_index_owner.pgy` -- one

@@ -10,12 +10,15 @@ Date: 2026-07-29
   completion evidence.
 - Priority: semantic identity and one SoT; exact payload definitions; explicit
   predecessor topology; fail-closed admission; then backend projection size.
-- Fact owners: `mir.intent_step_transition` for each action step and
-  `mir.intent_terminal_transition` for each typed intent exit.
+- Named execution subfacts: `mir.intent_step_transition` for each action
+  step and `mir.intent_terminal_transition` for each typed intent exit. Both
+  are identities under `mir.execution_graph`, not independent top-level
+  registry authorities.
 - Stable handles: `IntentStepTransitionId` and
   `IntentTerminalTransitionId`, both seeded from stable syntax identity.
-- Last legitimate consumers: the intent control-flow planner and the C/LLVM
-  projections derived from that one admitted plan.
+- Last legitimate consumers: the intent control-flow planner, native C/LLVM
+  projections, and the admitted self-C plan emitter derived from that one
+  admitted plan.
 - Forbidden fallback: result-to-Bool collapse, success/failure classification
   by variant spelling, payload type reinference, predecessor recovery from
   source/array order, completion after an arbitrary call, rollback of every
@@ -174,8 +177,9 @@ emitter or rescan the AST.  The native execution gate
 `failure A`, `failure B`, failure-B compensation of completed A only, and
 reverse traversal of multiple predecessor compensations on both backends.
 
-The self top-level machine admission now reads the native projection exactly
-once, cross-seals the typed routine result and all routine/action/enum/tobject/
+The self top-level machine admission in
+`src/self_hosted/mir_lower/machine_layer_fact_owner.pgy` now reads the native
+projection exactly once, cross-seals the typed routine result and all routine/action/enum/tobject/
 instruction identities, and returns one admitted carrier.  Plan-owned `on`,
 compensation, and terminal expression graphs require the persisted sealed shape
 `{root,digest,nodes}`.  Codegen and compiler consumers cannot call plan

@@ -125,6 +125,9 @@ cosmetic reshuffling.
   deleted, the existing fact owner, the last orchestration consumer, and one
   execution/parity/negative gate. Do not leave `Main -> old function` as a
   fallback beside the Pergyra-native path.
-- `PgyCompilerWorld` is the target root, not the current executable root, until
-  `driver_bootstrap_main.pgy` reaches it through the observed import/call graph.
-  Correct docs and gates that confuse declared topology with reachability.
+- `PgyCompilerWorld` is the executable composition root only for the
+  `--mir-json-backend` direct-MIR slice already reached from
+  `driver_bootstrap_main.pgy`. It remains the target root for source/MIR-to-C
+  modes and for a canonical compiler-purpose intent until the production root
+  reaches a real-purpose intent and deletes its direct bypass. Do not promote
+  slice reachability into whole-root dogfood.

@@ -2253,6 +2253,39 @@ but native/self-host AST parity is still false. The committed
 subject; the integrated `public zone DriverRung2DirectMirZone` is the production
 falsifier.
 
+### `ast_artifact_invalid` at a nominal constructor argument
+
+The 2026-07-29 codegen seed failed closed at AST node `32501` with owner
+`nominal_constructor_argument_type`. The failing expression was the second
+argument of `AstExpressionGraphRows(...)`, an array literal containing a typed
+kind call. The graph field-value type path tried scalar and intrinsic typing but
+did not consume the existing array-literal type owner, so the constructor saw no
+`Array<Int>` fact.
+
+Do not add a constructor-name exception, recover the type from source text, or
+relax nominal assignability. `SemanticExpressionGraphFieldValueTypeName` now
+delegates array literals to `SemanticExpressionGraphArrayLiteralTypeName` before
+the intrinsic path, and the array-literal owner has a focused typed-call fixture.
+The diagnostic retains the owner and now includes constructor name and argument
+index so another missing fact identifies its exact boundary.
+
+Observed evidence:
+
+- `aggregate_field_policy_probe_parity.sh`: PASS for the C oracle and graph-owned
+  aggregate policy;
+- the corrected gen0 consumed the full current `main_ast.txt`, emitted a
+  55,720-line gen1 C artifact, and GCC compiled it;
+- the formal seed script independently regenerated and compiled a 2.7 MiB
+  `gen1.c`/2.0 MiB `gen1.exe`, passing the old node-32501 boundary. The run was
+  stopped during gen2 emission after the 20-minute local edit-loop budget, so
+  this observation is not a complete seed PASS.
+
+If `air_graph_json_validator_parity.sh` differs only in
+`mir_evidence_binding_fingerprint`, run the current producer twice before
+changing the fixture. On 2026-07-29 both runs produced the same new fingerprint;
+the owner-generated fixture was refreshed and live-drift parity passed. A stable
+owner result is fixture drift, while changing results are a determinism defect.
+
 ## Integrated self-host semantic fails at match binding after parser parity passes
 
 If the diagnostic points to `match_binding_environment` or
