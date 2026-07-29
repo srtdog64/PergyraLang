@@ -6,6 +6,109 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+## Current checkpoint - unified CI recovery and next Pergyra-native rung
+
+- Exact clean base is `0b848787245b1272334c5fd9ef503b988d0ff6b2` on
+  `main`, equal to `origin/main` when this checkpoint was written. The
+  pre-stage audit recorded 15 tracked modifications, 2 untracked paths, and
+  0 staged paths. All 17 paths are now explicitly staged, with no unstaged or
+  untracked paths. They are user-approved integration candidates; the three
+  driver parity owners and
+  `docs/self_hosted/18_c_oracle_bootstrap_contract.md` are no longer protected
+  exclusions. This authorization does not replace diff and gate review before
+  one intentional commit.
+- The actual production `Main` call graph reaches `PgyCompilerWorld` only for
+  `--mir-json-backend=c|llvm`:
+
+  ```text
+  driver_bootstrap_main.Main
+    -> EmitDirectMirThroughPgyCompilerWorld
+    -> PgyCompilerWorld.EmitDirectMir
+    -> PgyCompilerWorld.direct_mir
+    -> DriverRung2DirectMirZone.execution
+    -> DriverRung2Execution.EmitDirectMir
+  ```
+
+  That world/zone/subject/action path is `REACHABLE`, not `SUBSTITUTING`: it
+  replaces a Pergyra `Main` orchestration bypass but does not itself replace a
+  C-owned compiler semantic path. The compiler-root canonical real-purpose
+  `intent` remains `SURFACE` because production calls none of its imported
+  intent declarations.
+- Exactly two bounded input-feature slices currently count as true
+  `SUBSTITUTING` dogfood:
+  1. source -> admitted MIR -> general C binding-slot admission/runtime, which
+     consumes exact binding constructors and projection assignments;
+  2. admitted v2 typed intent-transition MIR -> self C, which replaced the old
+     typed direct/rollback consumer.
+
+  Neither slice makes the whole compiler root, direct-MIR world, or released
+  compiler self-hosted.
+- Remaining C-owned and incomplete boundaries are explicit:
+  - the released/default `pgy` and frozen recovery/oracle seed remain C-owned;
+  - production source-to-C, source-to-MIR, and general MIR-to-C modes still
+    enter the direct `CompileSourceTo*` / `CompileMirJsonToC*` orchestration;
+  - C and LLVM are parallel projections of admitted facts, not an old/new
+    fallback chain. Their current parity evidence is bounded to named slices;
+    general source -> LLVM through the Pergyra-native compiler root and full
+    self-host backend closure remain incomplete;
+  - full Stage 2/Stage 3 fixed-point convergence, frozen-seed provenance, and
+    the remaining role/domain runtime plan are open.
+- The next executable rung is source -> MIR orchestration through the existing
+  `PgyCompilerWorld` composition boundary and one compiler-run
+  zone/subject/action. Typed lexer/parser/semantic/DIR/MIR `func` owners retain
+  pure computation; the action owns admission, one verified MIR artifact
+  commit, and the typed outcome. The same rung must delete the production
+  `Main` bypasses `CompileSourceToMirJsonFileVerified` and
+  `CompileSourceToMirJsonFilePressureObserved`, with no compatibility or
+  failure fallback beside the action. The first falsifier is
+  `examples/function_clause_order_minimal.pgy`.
+- Current CI recovery facts:
+  - the explicit MIR object inventory now includes
+    `mir_resource_runtime_population`, `mir_decl_header_methods`,
+    `mir_intent_step_emit`, and `mir_intent_execution_graph`; the region-escape
+    unit build also names the parser constructor/accessor objects it consumes;
+  - method metadata preserves the semantic return-type name when there is no
+    direct AST return-type node, and the declaration inventory pins that owner;
+  - the LLVM MIR region scope now records its owning function, rejects
+    cross-function/ambient scope state, and has a focused static owner gate;
+  - CFG, MIR inventory, semantic function-table, and the three user parity
+    assertion edits are integrated with the current split owners and exact
+    diagnostics; the user-authored C oracle/bootstrap contract is in the same
+    unified review scope;
+  - generated production-header inventory is 716 headers; the formal header
+    parity and the changed method translation-unit/ABI shape checks passed;
+  - the self-host backend AIR checker generated the clean artifact at 793
+    backend C/H files, 12 forbidden terms, 0 hits, and no findings. Its focused
+    C/LLVM parity, negative leg, `bash -n`, and `git diff --check` passed.
+- OPEN evidence is not runtime green:
+  - `semantic_function_table_owner_smoke.sh` was corrected after one failed
+    static run and has not been rerun in this checkpoint;
+  - `cfg_body_dataflow_smoke.sh` was corrected after its stale split-file path
+    failed and has not been rerun;
+  - the three driver parity-owner edits are integrated but their executable
+    parity legs have not been rerun in this checkpoint;
+  - `mir_declaration_inventory_smoke.sh` reached its bounded timeout; no
+    executable PASS is claimed;
+  - the region Make target was unavailable in the observed shell and a direct
+    GCC link probe ended at `collect2` rc5; the new region owner gate is static
+    evidence, not a runtime fixture result;
+  - the build-source inventory attempt encountered a missing child `make`.
+    These are exact open/environmental results, not reasons to weaken owners or
+    call the affected runtime gates green.
+- The proposed test-header consolidation remains blocked at the exact include
+  sentinel `src/test_mir.c:883`, which still includes
+  `tests/mir/test_mir_lowering_part_c_3.cases.h`. The 187-line `part_c_3` may be
+  moved behind the 146-line `part_c_2` owner as a 333-line unit only in one
+  coordinated change that preserves case identity, removes that include,
+  deletes `part_c_3`, and reruns the focused MIR inventory/unit gate. No delete
+  or include removal has occurred in this checkpoint.
+- Dirty-path audit before staging: 5 build/compiler source
+  paths, 2 generated clean artifacts, 7 test/gate paths, and 3 documentation
+  paths. There were no temporary paths, build products, or binary artifacts in
+  the dirty inventory. All 17 paths were added with explicit path arguments;
+  the staged tree now has 17 paths and the unstaged/untracked tree has 0.
+  Commit remains intentionally pending.
+
 ## Post-a54 CI closure follow-up checkpoint
 
 - Base and pushed checkpoint: `a54ae6e78321d39494f50d3145795dac63b12714`

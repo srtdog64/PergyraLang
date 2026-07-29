@@ -87,7 +87,7 @@ grep -Fq 'SemanticAstAnalysisResolveCallTargetsFromBody(' "$BODY_OWNER" ||
     fail "body owner does not route shared fact to call-target resolver"
 grep -Fq 'iteration_types, function_tables' "$BODY_OWNER" ||
     fail "call-target resolver does not receive shared callable-table fact"
-grep -Fq 'analysis.assignments, function_tables' "$BODY_OWNER" ||
+grep -Fq 'analysis.assignments, analysis.enums, function_tables' "$BODY_OWNER" ||
     fail "assignment resolver does not receive shared callable-table fact"
 grep -Fq 'analysis.statements, function_tables' "$BODY_OWNER" ||
     fail "statement resolver does not receive shared callable-table fact"
@@ -96,7 +96,7 @@ grep -Fq 'analysis.expression_surfaces, function_tables' "$BODY_OWNER" ||
 if grep -Fq 'SemanticAstExpressionFunctionTableFactsRelease' "$BODY_OWNER"; then
     fail "body owner releases callable-table data before graph/MIR consumers finish"
 fi
-grep -Fq 'let terminal_analysis: SemanticAstArtifactAnalysis = verified.analysis;' "$DRIVER_OWNER" ||
+grep -Fq 'let terminal_analysis: SemanticAstArtifactAnalysis = projection.analysis;' "$DRIVER_OWNER" ||
     fail "driver does not bind the terminal semantic analysis"
 grep -Fq 'let function_tables: SemanticAstExpressionFunctionTableFacts =' "$DRIVER_OWNER" ||
     fail "driver does not bind the terminal callable-table fact"
@@ -104,7 +104,11 @@ grep -Fq 'SemanticAstExpressionFunctionTableFactsRelease(function_tables);' "$DR
     fail "driver does not release the callable-table fact"
 grep -Fq 'terminal_analysis.function_tables = function_tables;' "$DRIVER_OWNER" ||
     fail "driver does not publish the released callable-table fact"
-release_line="$(grep -n 'SemanticAstExpressionFunctionTableFactsRelease(function_tables);' "$DRIVER_OWNER" | tail -n 1 | cut -d: -f1)"
+grep -Fq 'projection.analysis = terminal_analysis;' "$DRIVER_OWNER" ||
+    fail "projection release does not publish the terminal semantic analysis"
+grep -Fq 'DriverRung2MirProjectionRelease(projection);' "$DRIVER_OWNER" ||
+    fail "driver does not release the terminal MIR projection"
+release_line="$(grep -n 'DriverRung2MirProjectionRelease(projection);' "$DRIVER_OWNER" | tail -n 1 | cut -d: -f1)"
 json_done_line="$(grep -n 'json:done' "$DRIVER_OWNER" | tail -n 1 | cut -d: -f1)"
 if [[ -z "$release_line" || -z "$json_done_line" || "$release_line" -le "$json_done_line" ]]; then
     fail "callable-table release is not after the final MIR JSON consumer"

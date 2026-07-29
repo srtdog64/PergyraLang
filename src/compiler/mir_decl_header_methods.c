@@ -77,6 +77,11 @@ mir_decl_method_metadata_init(MIRDeclMethod *meta,
     meta->params = ast_func_params(method, &meta->param_count);
     meta->return_type = ast_func_return_type(method);
     mir_decl_method_metadata_capture_type_names(meta);
+    if (meta->return_type_name == NULL
+        && ast_func_semantic_return_type_name(method) != NULL) {
+        meta->return_type_name = mir_capture_type_name(
+            NULL, ast_func_semantic_return_type_name(method));
+    }
     meta->is_async = method->is_async_decl;
     meta->is_action_like = ast_func_is_action(method);
     {

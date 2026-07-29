@@ -3854,8 +3854,7 @@ if ! awk '
         next
     }
     state == 1 {
-        if ($0 ~ /^[[:space:]]*$/ || index($0, "/*") > 0
-            || $0 ~ /^[[:space:]]*[*]/) next
+        if ($0 ~ /^[[:space:]]*$/ || index($0, "/*") > 0 || $0 ~ /^[[:space:]]*[*]/) next
         if ($0 ~ /ctx->region_scope_id = 0;/) {
             state = 2
             next
@@ -7990,6 +7989,7 @@ done
 for term in \
     "mir_decl_method_metadata_capture_type_names" \
     "mir_capture_type_name(param->type, NULL)" \
+    "ast_func_semantic_return_type_name(method)" \
     "mir_capture_type_name(meta->return_type, NULL)"; do
     require_term "src/compiler/mir_decl_header_methods.c" "$term"
 done

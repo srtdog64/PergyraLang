@@ -189,7 +189,7 @@ pgy_selfhost_verify_driver_rung2_match() {
             echo "[self-host-parity:driver-rung2] $backend missing Option binding type was accepted" >&2
             exit 1
         fi
-        grep -Eq "(MIR instruction expression graph is missing or invalid|MIR expression graph facts are missing or inconsistent)" \
+        grep -Fq "routine MIR fact index is incomplete: Main [match_binding_type_count]" \
             "$missing_match_binding_type.err" "$missing_match_binding_type.out" || {
             echo "[self-host-parity:driver-rung2] $backend missing Option binding type diagnostic drifted" >&2
             cat "$missing_match_binding_type.out" "$missing_match_binding_type.err" >&2
@@ -205,7 +205,7 @@ pgy_selfhost_verify_driver_rung2_match() {
             echo "[self-host-parity:driver-rung2] $backend missing Option match binding was accepted" >&2
             exit 1
         fi
-        grep -Eq "(Some match case is missing subject or binding MIR fact|MIR expression graph facts are missing or inconsistent)" \
+        grep -Fq "MIR instruction expression graph is missing or invalid" \
             "$missing_match_binding.err" "$missing_match_binding.out" || {
             echo "[self-host-parity:driver-rung2] $backend missing Option binding diagnostic drifted" >&2
             cat "$missing_match_binding.out" "$missing_match_binding.err" >&2

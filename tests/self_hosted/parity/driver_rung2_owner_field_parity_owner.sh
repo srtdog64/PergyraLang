@@ -16,7 +16,7 @@ pgy_selfhost_verify_driver_rung2_owner_field() {
         field_name="val"
         field_row='"name":"val","type":"Int"'
         missing_row='"name":"missing_val","type":"Int"'
-        grep -Fq '"name":"Inc","kind":"method","owner":"Builder"' \
+        grep -Eq '"name":"Inc","kind":"method","source_syntax_id":[1-9][0-9]*,"receiver_carriage":"value","owner":"Builder"' \
             "$self_mir_json" && grep -Fq \
             '"fields":[{"name":"val","type":"Int"},{"name":"limit","type":"Int"}]' \
             "$self_mir_json" && grep -Fq 'self.val' "$emitted_c" && \
@@ -28,7 +28,7 @@ pgy_selfhost_verify_driver_rung2_owner_field() {
         field_name="tier"
         field_row='"name":"tier","type":"Tier"'
         missing_row='"name":"missing_tier","type":"Tier"'
-        grep -Fq '"name":"Score","kind":"method","owner":"Player"' \
+        grep -Eq '"name":"Score","kind":"method","source_syntax_id":[1-9][0-9]*,"receiver_carriage":"value","owner":"Player"' \
             "$self_mir_json" && grep -Fq 'self.tier' "$emitted_c" || {
             echo "[self-host-parity:driver-rung2] $backend match owner field facts drifted" >&2
             exit 1
@@ -37,7 +37,7 @@ pgy_selfhost_verify_driver_rung2_owner_field() {
         field_name="balance"
         field_row='"name":"balance","type":"Int"'
         missing_row='"name":"missing_balance","type":"Int"'
-        grep -Fq '"name":"Deposit","kind":"method","owner":"Account"' \
+        grep -Eq '"name":"Deposit","kind":"method","source_syntax_id":[1-9][0-9]*,"receiver_carriage":"value","owner":"Account"' \
             "$self_mir_json" && grep -Fq '"result":"balance.1"' \
             "$self_mir_json" && grep -Fq '"uses":["balance.0"]' \
             "$self_mir_json" && grep -Fq '"kind":"leaf","text":"amount"' \

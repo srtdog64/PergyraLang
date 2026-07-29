@@ -1600,6 +1600,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_program_inventory.o \
                    $(BUILD_DIR)/compiler/mir_public_surface.o \
                    $(BUILD_DIR)/compiler/mir_lower_population.o \
+                   $(BUILD_DIR)/compiler/mir_resource_runtime_population.o \
                    $(BUILD_DIR)/compiler/mir_program_fact_validate.o \
                    $(BUILD_DIR)/compiler/mir_program_validate.o \
                    $(BUILD_DIR)/compiler/mir_call_fact.o \
@@ -1649,6 +1650,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_access.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_zone_access.o \
                    $(BUILD_DIR)/compiler/mir_decl_method_projection.o \
+                   $(BUILD_DIR)/compiler/mir_decl_header_methods.o \
                    $(BUILD_DIR)/compiler/mir_decl_headers.o \
                    $(BUILD_DIR)/compiler/mir_stmt_population.o \
                    $(BUILD_DIR)/compiler/mir_stmt_population_resource_ops.o \
@@ -1662,7 +1664,9 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_liveness_summary.o \
                    $(BUILD_DIR)/compiler/mir_dce.o \
                    $(BUILD_DIR)/compiler/mir_cleanup.o \
+                   $(BUILD_DIR)/compiler/mir_intent_step_emit.o \
                    $(BUILD_DIR)/compiler/mir_intent.o \
+                   $(BUILD_DIR)/compiler/mir_intent_execution_graph.o \
                    $(BUILD_DIR)/compiler/mir_intent_execution.o \
                    $(BUILD_DIR)/compiler/mir_intent_execution_validate.o \
                    $(BUILD_DIR)/compiler/mir_intent_fact.o \
@@ -2144,7 +2148,8 @@ perf-summary:
 perf-contract-test-smoke:
 	"$(BASH)" tests/perf_contract_smoke.sh
 
-backend-fail-closed-test-smoke: mir-only-signature-test-smoke mir-lowering-api-test-smoke parallel-capture-projection-test-smoke
+backend-fail-closed-test-smoke: mir-only-signature-test-smoke mir-lowering-api-test-smoke parallel-capture-projection-test-smoke \
+	llvm-mir-region-scope-owner-test-smoke
 	"$(BASH)" tests/backend_fail_closed_smoke.sh
 
 parallel-capture-projection-test-smoke: $(PGY)
@@ -2480,6 +2485,11 @@ ast-dispatch-test-smoke:
 mir-declaration-inventory-test-smoke:
 	"$(BASH)" tests/mir_declaration_inventory_smoke.sh
 
+llvm-mir-region-scope-owner-test-smoke:
+	"$(BASH)" tests/llvm_mir_region_scope_owner_smoke.sh
+
+.PHONY: llvm-mir-region-scope-owner-test-smoke
+
 module-taxonomy-test-smoke:
 	"$(BASH)" tests/module_taxonomy_smoke.sh
 
@@ -2597,8 +2607,8 @@ region-plan-unit-test-smoke: $(REGION_PLAN_UNIT_BIN)
 # missing-fact case fail-closed.
 REGION_ESCAPE_UNIT_BIN := $(BUILD_DIR)/region_escape_unit$(EXEEXT)
 
-$(REGION_ESCAPE_UNIT_BIN): tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/parser/ast_identity.c src/parser/ast_expr_control_accessors.c
-	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/parser/ast_identity.c src/parser/ast_expr_control_accessors.c
+$(REGION_ESCAPE_UNIT_BIN): tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/parser/ast_identity.c src/parser/ast_constructors.c src/parser/ast_func_accessors.c src/parser/ast_block_match_event_accessors.c src/parser/ast_expr_control_accessors.c
+	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/parser/ast_identity.c src/parser/ast_constructors.c src/parser/ast_func_accessors.c src/parser/ast_block_match_event_accessors.c src/parser/ast_expr_control_accessors.c
 
 region-escape-unit-test-smoke: $(REGION_ESCAPE_UNIT_BIN)
 	$(REGION_ESCAPE_UNIT_BIN)

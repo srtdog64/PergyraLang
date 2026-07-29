@@ -435,6 +435,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         llvm_lexical_registry_snapshot(ctx);
     ASTNode *saved_host_decl = NULL;
     LLVMValueRef saved_region_alloca = NULL;
+    LLVMValueRef saved_region_owner_function = NULL;
     uint32_t saved_region_scope_id = 0;
     bool saved_region_scope_active = false;
     bool scope_pushed = false;
@@ -491,6 +492,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     ctx->current_func_decl = func_decl;
     ctx->current_mir_routine = routine;
     saved_region_alloca = ctx->region_alloca;
+    saved_region_owner_function = ctx->region_owner_function;
     saved_region_scope_id = ctx->region_scope_id;
     saved_region_scope_active = ctx->region_scope_active;
     if (is_method)
@@ -614,6 +616,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
 restore_state:
     llvm_mir_region_scope_end(ctx);
     ctx->region_alloca = saved_region_alloca;
+    ctx->region_owner_function = saved_region_owner_function;
     ctx->region_scope_id = saved_region_scope_id;
     ctx->region_scope_active = saved_region_scope_active;
     if (defer_scope_pushed)

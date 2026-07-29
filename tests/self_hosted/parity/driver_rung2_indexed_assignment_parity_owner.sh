@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Owns indexed-assignment target graph and no-text-recovery checks.
+# Semantic local inventory owns SSA identities; assignment consumes graph uses.
 pgy_selfhost_verify_driver_rung2_indexed_assignment() {
     local backend="$1"
     local base="$2"

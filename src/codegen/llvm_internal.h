@@ -351,6 +351,7 @@ typedef struct LLVMGenCtx
     LLVMTypeRef     type_text_builder;
     LLVMTypeRef     type_region;
     LLVMValueRef    region_alloca;
+    LLVMValueRef    region_owner_function;
     uint32_t        region_scope_id;
     bool            region_scope_active;
     int             parallel_counter;
