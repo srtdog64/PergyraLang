@@ -46,7 +46,7 @@ require_function_text() {
     local rel="$1"
     local function_name="$2"
     local term="$3"
-    function_body "$rel" "$function_name" | grep -Fq -- "$term" ||
+    function_body "$rel" "$function_name" | grep -F -- "$term" >/dev/null ||
         fail "$rel function $function_name missing term: $term"
 }
 
@@ -54,7 +54,7 @@ forbid_function_text() {
     local rel="$1"
     local function_name="$2"
     local term="$3"
-    if function_body "$rel" "$function_name" | grep -Fq -- "$term"; then
+    if function_body "$rel" "$function_name" | grep -F -- "$term" >/dev/null; then
         fail "$rel function $function_name contains forbidden term: $term"
     fi
 }

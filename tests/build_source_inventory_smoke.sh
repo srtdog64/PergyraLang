@@ -158,9 +158,12 @@ if ! grep -Fq 'LLVM_ENABLED=0 BUILD_DIR="$CI_MACOS_BUILD_DIR" BIN_DIR="$CI_MACOS
     echo "[build-source-inventory] macOS self-host platform smoke must use the isolated C-only CI build/bin dirs" >&2
     missing=1
 fi
-if ! grep -Fq 'PGY_DOMAIN_RUNTIME_TOPOLOGY_BACKENDS="$${PGY_DOMAIN_RUNTIME_TOPOLOGY_BACKENDS:-$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)}"' \
-    "$ROOT_DIR/Makefile"; then
-    echo "[build-source-inventory] domain topology backends must derive from LLVM_ENABLED" >&2
+domain_topology_backend_owner_count="$(
+    grep -Fc 'PGY_DOMAIN_RUNTIME_TOPOLOGY_BACKENDS="$${PGY_DOMAIN_RUNTIME_TOPOLOGY_BACKENDS:-$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)}"' \
+        "$ROOT_DIR/Makefile" || true
+)"
+if (( domain_topology_backend_owner_count != 2 )); then
+    echo "[build-source-inventory] exactly the dedicated and test-mir topology paths must derive backends from LLVM_ENABLED" >&2
     missing=1
 fi
 

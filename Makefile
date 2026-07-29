@@ -2231,7 +2231,9 @@ test-rir: $(RIR_TEST)
 test-mir: $(MIR_TEST) $(PGY)
 	@echo "=== MIR Test ==="
 	$(call pgy_run_native,$(MIR_TEST))
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/domain_runtime_topology_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" \
+	PGY_DOMAIN_RUNTIME_TOPOLOGY_BACKENDS="$${PGY_DOMAIN_RUNTIME_TOPOLOGY_BACKENDS:-$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)}" \
+	"$(BASH)" tests/domain_runtime_topology_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/destructure_type_fact_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/match_binding_type_fact_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/mir_speculation_fact_smoke.sh

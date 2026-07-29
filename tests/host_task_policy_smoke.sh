@@ -251,8 +251,17 @@ for backend in ${PGY_HOST_TASK_POLICY_BACKENDS:-c llvm}; do
         -e '/^0 error(s), 0 warning(s)$/d' \
         -e '/^pgy: compiled/d' \
         | awk 'seen || length($0) > 0 { print; seen = 1 }' > "$actual"
-    if ! cmp -s "$EXPECTED" "$actual"; then
-        diff -u "$EXPECTED" "$actual" >&2 || true
+    expected_text=""
+    actual_text=""
+    # NUL is absent from these text artifacts. read -d '' keeps trailing
+    # newlines that command substitution would strip; EOF is the expected stop.
+    IFS= read -r -d '' expected_text < "$EXPECTED" || true
+    IFS= read -r -d '' actual_text < "$actual" || true
+    if [[ "$expected_text" != "$actual_text" ]]; then
+        echo "--- expected" >&2
+        sed -n '1,220p' "$EXPECTED" >&2
+        echo "+++ actual" >&2
+        sed -n '1,220p' "$actual" >&2
         fail "backend=$backend output mismatch"
     fi
     echo "[host-task-policy] backend=$backend typed admission parity locked"
