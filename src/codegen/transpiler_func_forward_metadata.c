@@ -10,6 +10,7 @@
 #include "transpiler_func_forward_metadata.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_context.h"
+#include "transpiler_generic_binding_query.h"
 #include "transpiler_host_self_policy.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_type_render.h"
@@ -18,13 +19,28 @@
 void
 emit_hosted_method_forward_decl_from_metadata(const char *host_name,
                                               const MIRDeclMethod *method_meta,
+                                              const GenericBindingEntry *bindings,
+                                              size_t binding_count,
                                               ASTNode *method,
                                               bool pointer_self,
                                               CodeBuf *buf,
                                               TranspilerCtx *ctx)
 {
+    TranspilerGenericBindingSnapshot snapshot;
+
+    if (ctx == NULL)
+        return;
+    snapshot = transpiler_generic_binding_snapshot(ctx);
+    if (!transpiler_generic_binding_push_entries(
+            ctx, bindings, binding_count)) {
+        transpiler_set_backend_error(ctx,
+            "C backend: hosted method forward binding scope is invalid");
+        transpiler_generic_binding_restore(ctx, snapshot);
+        return;
+    }
     emit_hosted_method_forward_decl_from_metadata_named(
         host_name, NULL, method_meta, method, pointer_self, buf, ctx);
+    transpiler_generic_binding_restore(ctx, snapshot);
 }
 
 void

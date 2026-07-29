@@ -300,6 +300,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
         return NULL;
     }
+    transpiler_generic_binding_restore(ctx, spec_snapshot.generic_binding);
 
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
@@ -323,8 +324,13 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         if (method_meta == NULL) {
             continue;
         }
-        emit_hosted_method_forward_decl_from_metadata(spec_name, method_meta,
+        emit_hosted_method_forward_decl_from_metadata(
+            spec_name, method_meta, entry->bindings, entry->binding_count,
             NULL, use_self_cell, ctx->helpers, ctx);
+        if (ctx->backend_error != NULL) {
+            transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
+            return NULL;
+        }
     }
 
     for (size_t i = 0; i < method_view.count; i++) {
@@ -369,6 +375,9 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         }
 
         if (mir_method != NULL) {
+            TranspilerGenericBindingSnapshot method_binding_snapshot;
+            const char *saved_active_base;
+            const char *saved_active_spec;
             char emitted_name[256];
             if (!transpiler_generic_class_method_name(
                     emitted_name, sizeof(emitted_name), spec_name,
@@ -384,12 +393,29 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                 transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
                 return NULL;
             }
+            method_binding_snapshot =
+                transpiler_generic_binding_snapshot(ctx);
+            if (!transpiler_generic_binding_push_entries(
+                    ctx, entry->bindings, entry->binding_count)) {
+                transpiler_set_backend_error(ctx,
+                    "C backend: generic class method binding scope is invalid");
+                transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
+                return NULL;
+            }
+            saved_active_base = ctx->active_generic_class_base_name;
+            saved_active_spec = ctx->active_generic_class_spec_name;
             ctx->active_generic_class_base_name = base_class_name;
             ctx->active_generic_class_spec_name = spec_name;
             emit_func_decl_from_mir_named(NULL, mir_method, emitted_name,
                 ctx->helpers, ctx);
-            ctx->active_generic_class_base_name = NULL;
-            ctx->active_generic_class_spec_name = NULL;
+            ctx->active_generic_class_base_name = saved_active_base;
+            ctx->active_generic_class_spec_name = saved_active_spec;
+            transpiler_generic_binding_restore(
+                ctx, method_binding_snapshot);
+            if (ctx->backend_error != NULL) {
+                transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
+                return NULL;
+            }
             continue;
         }
 

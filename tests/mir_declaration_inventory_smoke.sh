@@ -3844,6 +3844,61 @@ for term in \
 done
 require_term "src/codegen/transpiler_mir_func_emit.c" \
     "transpiler_register_mir_func_param_bindings("
+
+# Function emit state is caller-owned. Nested/on-demand function emission must
+# start without the caller's ambient region and restore the snapshot on every
+# source-level exit, including fail-closed paths.
+if ! awk '
+    index($0, "transpiler_capture_mir_emit_state_local(ctx, &saved_emit_state);") {
+        state = 1
+        next
+    }
+    state == 1 {
+        if ($0 ~ /^[[:space:]]*$/ || index($0, "/*") > 0
+            || $0 ~ /^[[:space:]]*[*]/) next
+        if ($0 ~ /ctx->region_scope_id = 0;/) {
+            state = 2
+            next
+        }
+        bad = 1
+        next
+    }
+    state == 2 {
+        if ($0 ~ /^[[:space:]]*$/ || $0 ~ /^[[:space:]]*[*]/) next
+        if ($0 ~ /ctx->region_scope_active = false;/) {
+            state = 3
+            next
+        }
+        bad = 1
+        next
+    }
+    END { exit !(state == 3 && !bad) }
+' "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c"; then
+    fail "C MIR function entry must clear caller region id/active immediately after saving state"
+fi
+if ! awk '
+    index($0, "transpiler_capture_mir_emit_state_local(ctx, &saved_emit_state);") {
+        active = 1
+        seen_capture = 1
+        next
+    }
+    active && /transpiler_restore_mir_emit_state_from_snapshot_local/ {
+        last_restore = NR
+    }
+    active && /^[[:space:]]*return;[[:space:]]*$/ {
+        if (last_restore == 0 || NR - last_restore > 3) {
+            printf "unrestored return at line %d\n", NR > "/dev/stderr"
+            bad = 1
+        }
+    }
+    END { exit !(seen_capture && !bad) }
+' "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c"; then
+    fail "C MIR function emission reintroduced an ambient-state leak on an early return"
+fi
+require_each_following_term "src/codegen/transpiler_mir_func_emit.c" \
+    "transpiler_region_scope_end(ctx);" \
+    "transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);" \
+    2
 for term in \
     "register_typed_var(ctx, p->name, type_name)" \
     "register_slot_var(ctx, p->name, inner_buf, secure_slot,"; do

@@ -829,6 +829,16 @@ if ! grep -Fq '$(BUILD_DIR)/compiler/hir_callgraph.o' "$ROOT_DIR/Makefile"; then
     missing=1
 fi
 
+if ! awk '
+    /^HIR_CORE_OBJECTS[[:space:]]*=/ { in_hir = 1 }
+    /^RIR_CORE_OBJECTS[[:space:]]*=/ { in_hir = 0 }
+    in_hir && index($0, "$(BUILD_DIR)/compiler/hir_region_escape_validate.o") { found = 1 }
+    END { exit found ? 0 : 1 }
+' "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] HIR region escape validator is not linked by HIR_CORE_OBJECTS" >&2
+    missing=1
+fi
+
 if ! grep -Fq '$(COMPILER_DIR)/mir_cfg_contract_validate_cleanup.c' "$ROOT_DIR/Makefile"; then
     echo "[build-source-inventory] MIR cleanup validator source is not linked by the compiler source inventory" >&2
     missing=1

@@ -378,7 +378,7 @@ emit_class_decl_impl(ASTNode *node,
                 continue;
             }
         }
-        emit_hosted_method_forward_decl_from_metadata(name, method_meta, NULL,
+        emit_hosted_method_forward_decl_from_metadata(name, method_meta, NULL, 0, NULL,
             use_self_cell, ctx->out, ctx);
     }
 
@@ -409,6 +409,9 @@ transpiler_emit_class_method_bodies_from_inventory(TranspilerCtx *ctx)
                 != AST_CLASS_DECL) {
             continue;
         }
+        if (mir_decl_header_generic_param_count(header) > 0)
+            continue;
+
         name = mir_decl_header_name(header);
         if (name == NULL || name[0] == '\0') {
             transpiler_set_mir_inventory_missing(ctx,

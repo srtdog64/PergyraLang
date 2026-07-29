@@ -6,6 +6,52 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+## Post-a54 CI closure follow-up checkpoint
+
+- Base and pushed checkpoint: `a54ae6e78321d39494f50d3145795dac63b12714`
+  on `main`, pushed to `origin/main`. The local CI-closure fixes described in
+  this section are dirty follow-up work and are not included in that revision.
+- GitHub Actions run `30438997058` was still incomplete at the captured
+  snapshot: 15 jobs succeeded, 12 failed, 1 was cancelled, and 1 was still
+  running. That remote run tests `a54ae6e78321d39494f50d3145795dac63b12714`;
+  it does not contain the local fixes below.
+- Six locally identified root causes and closures:
+  - the HIR region-escape validator was present in the source inventory but its
+    object was missing from `HIR_CORE_OBJECTS`;
+  - `APPLY_EFFECT` must consume the dedicated effect-pool identity instead of
+    reconstructing or borrowing another domain identity;
+  - function entry must reset the active region state and restore the prior
+    state on exit so one function cannot inherit another function's region;
+  - callable `Option<Self>` / `Result<..., Self>` readiness is valid while
+    recursive aggregate layout remains a cycle and must still fail closed;
+  - generic specialization must consume the generic-binding SoT, and an
+    unbound generic base must not bypass specialization binding;
+  - the backend fail-closed gate must assert typed `PinReadInit` /
+    `PinWriteInit` rows rather than the obsolete raw `PinRead` / `PinWrite`
+    spelling.
+- Observed local evidence is limited to strict translation-unit compilation and
+  focused static-owner/gate checks, all of which passed. The seven fresh
+  executable fixtures were not run to completion because GCC attempted to use
+  protected Windows temporary storage and the bounded aggregate run reached
+  120 seconds. No executable fixture PASS is claimed.
+- The backend fail-closed literal audit resolved 543 direct or simple-loop
+  positive/negative pairs with 0 missing positives and 0 present forbidden
+  literals. Its compound and derived lookup assertions were also checked, and
+  `bash -n` plus `git diff --check` passed. This is static evidence only; the
+  full executable `backend_fail_closed_smoke.sh` is not recorded as PASS.
+- Next falsifier: rebuild the same revision and run exactly
+  `zone_effect_pool_runtime`, `forward_ability_order`,
+  `class_bump_option_match`, `generic_class_method`,
+  `result_chained_method_class`, `result_class_chain_score`, and
+  `option_class_self_method`, then run self-host parity, ASan, and the platform
+  matrix against that same revision.
+- Four protected paths remain outside this follow-up's scope and must not be
+  staged or overwritten:
+  `tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh`,
+  `tests/self_hosted/parity/driver_rung2_match_parity_owner.sh`,
+  `tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh`, and
+  `docs/self_hosted/18_c_oracle_bootstrap_contract.md`.
+
 ## Current resume checkpoint - integrated SoT and self-host closure audit
 
 - Exact checkout base is `afefd1a80c25a91ee3557bd798b9c68d4e8f65a9` on

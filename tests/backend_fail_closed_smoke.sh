@@ -559,10 +559,18 @@ grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
 grep -Fq "transpiler_slot_runtime_expected_call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
-grep -Fq '"PinRead"' \
+grep -Fq 'pin_op = block->pin_view_is_write ? "PinWriteInit" : "PinReadInit";' \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
-grep -Fq '"PinWrite"' \
-    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+if grep -Fq '"PinRead"' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"; then
+    echo "[backend-fail-closed] C MIR pin enter must consume the typed PinReadInit row" >&2
+    exit 1
+fi
+if grep -Fq '"PinWrite"' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"; then
+    echo "[backend-fail-closed] C MIR pin enter must consume the typed PinWriteInit row" >&2
+    exit 1
+fi
 grep -Fq '"Unpin"' \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
 if grep -F "mir_abi_resource_runtime_fn_by_kind(" \
@@ -1015,6 +1023,38 @@ grep -Fq "MIR-only C path missing hosted method forward return type-name metadat
     "$ROOT_DIR/src/codegen/transpiler_func_forward_metadata.c"
 grep -Fq "MIR-only C path missing hosted method forward parameter type-name metadata" \
     "$ROOT_DIR/src/codegen/transpiler_func_forward_metadata.c"
+grep -Fq "transpiler_generic_binding_push_entries(" \
+    "$ROOT_DIR/src/codegen/transpiler_generic_binding_query.c"
+grep -Fq "ctx, bindings, binding_count" \
+    "$ROOT_DIR/src/codegen/transpiler_func_forward_metadata.c"
+grep -Fq "spec_name, method_meta, entry->bindings, entry->binding_count," \
+    "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c"
+grep -Fq "ctx, entry->bindings, entry->binding_count" \
+    "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c"
+grep -Fq "transpiler_generic_binding_restore(ctx, spec_snapshot.generic_binding);" \
+    "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c"
+generic_class_method_loops="$(
+    grep -cF 'for (size_t i = 0; i < method_view.count; i++)' \
+        "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c"
+)"
+if [[ "$generic_class_method_loops" -lt 2 ]]; then
+    echo "[backend-fail-closed] every generic class specialization must emit all method forwards and bodies" >&2
+    exit 1
+fi
+if ! awk '
+    /transpiler_emit_class_method_bodies_from_inventory\(/ { active = 1 }
+    active { print }
+    active && /^}/ { exit }
+' "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c" \
+    | grep -Fq "if (mir_decl_header_generic_param_count(header) > 0)"; then
+    echo "[backend-fail-closed] generic class base methods must not bypass specialization binding ownership" >&2
+    exit 1
+fi
+if grep -Fq "spec_name, method_meta, NULL" \
+    "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c"; then
+    echo "[backend-fail-closed] generic class forward declaration dropped its specialization bindings" >&2
+    exit 1
+fi
 for rel in \
     src/codegen/transpiler_class_decl_emit.c \
     src/codegen/transpiler_enum_decl_emit.c \
@@ -1279,7 +1319,12 @@ grep -Fq "MIR-only C path missing class constructor field type-name metadata" \
 grep -Fq "transpiler_emit_ctor_arg_from_field_abi" \
     "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"
 grep -Fq "MIR-only C path missing constructor field type-name metadata" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"
+    "$ROOT_DIR/src/codegen/transpiler_constructor_arg_emit.c"
+if grep -Fq "MIR-only C path missing constructor field type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"; then
+    echo "[backend-fail-closed] domain constructor must delegate missing field ABI diagnostics to its argument owner" >&2
+    exit 1
+fi
 if grep -Fq "transpiler_emit_ctor_arg_with_expected_type(ctx" \
         "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"; then
     echo "[backend-fail-closed] active MIR domain constructors reintroduced AST expected-type lowering" >&2
@@ -1321,8 +1366,17 @@ grep -Fq "MIR-only LLVM path missing active routine for runtime-call ABI row" \
     "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq "MIR-only C path missing active routine for runtime-call ABI row" \
     "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
-grep -Fq "MIR-only LLVM path missing domain projection field type-name metadata" \
+grep -Fq "mir_domain_runtime_projection_member_valid" \
+    "$ROOT_DIR/src/compiler/mir_domain_runtime.c"
+grep -Fq "MIR domain projection member has incomplete identity or path segment" \
+    "$ROOT_DIR/src/compiler/mir_domain_runtime.c"
+grep -Fq "llvm_domain_runtime_require_exact_field(ctx," \
     "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
+if grep -Fq "MIR-only LLVM path missing domain projection field type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"; then
+    echo "[backend-fail-closed] domain projection value emission must consume validated runtime field facts" >&2
+    exit 1
+fi
 grep -Fq "MIR-only LLVM path missing projection field type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_expr_projection_path_helpers.c"
 grep -Fq "MIR-only LLVM path missing projection field metadata" \
@@ -1513,7 +1567,12 @@ grep -Fq "MIR-only C path missing role operator parameter type-name metadata" \
 grep -Fq "role_override_method_count" \
     "$ROOT_DIR/src/compiler/mir_decl.h"
 grep -Fq "ast_override_func_decl(impl)" \
-    "$ROOT_DIR/src/compiler/mir_decl_headers.c"
+    "$ROOT_DIR/src/compiler/mir_decl_header_methods.c"
+if grep -Fq "ast_override_func_decl(impl)" \
+    "$ROOT_DIR/src/compiler/mir_decl_headers.c"; then
+    echo "[backend-fail-closed] role override method capture must stay with the declaration method owner" >&2
+    exit 1
+fi
 grep -Fq "hir_append_hidden_method_routine" \
     "$ROOT_DIR/src/compiler/hir_routines.c"
 if grep -Fq "MIR-only C path missing role override method metadata" \

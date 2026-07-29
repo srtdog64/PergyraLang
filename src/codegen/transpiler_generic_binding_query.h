@@ -15,6 +15,10 @@ TranspilerGenericBindingSnapshot transpiler_generic_binding_snapshot(
 void transpiler_generic_binding_restore(
     TranspilerCtx *ctx,
     TranspilerGenericBindingSnapshot snapshot);
+bool transpiler_generic_binding_push_entries(
+    TranspilerCtx *ctx,
+    const GenericBindingEntry *bindings,
+    size_t binding_count);
 bool transpiler_infer_generic_call_bindings(TranspilerCtx *ctx,
                                             ASTNode *decl,
                                             ASTNode *call,

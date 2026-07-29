@@ -162,6 +162,12 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         return;
     }
     transpiler_capture_mir_emit_state_local(ctx, &saved_emit_state);
+    /* Region scope is function-local evidence. On-demand helper emission may
+     * occur while its caller owns an active scope, but the nested function must
+     * establish its own scope or emit no region cleanup at all. The snapshot is
+     * restored on every existing exit path; inheriting caller state is forbidden. */
+    ctx->region_scope_id = 0;
+    ctx->region_scope_active = false;
     ctx->out = buf;
     ctx->active_mir_routine = mir_routine;
     transpiler_bind_function_emit_host_local(ctx,

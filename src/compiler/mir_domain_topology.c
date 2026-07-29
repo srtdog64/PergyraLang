@@ -250,6 +250,29 @@ mir_domain_topology_field_identity_matches(const MIRDeclHeader *owner,
 }
 
 static bool
+mir_domain_topology_apply_effect_layer_identity_matches(
+    const MIRDeclHeader *owner,
+    const char *name,
+    uint32_t source_id)
+{
+    if (owner == NULL || name == NULL || source_id == 0)
+        return false;
+    for (size_t i = 0; i < mir_decl_header_field_count(owner); i++) {
+        const MIRDeclField *field = mir_decl_header_field(owner, i);
+        const char *field_name = mir_decl_field_name(field);
+        if (field_name != NULL
+            && strcmp(field_name, name) == 0
+            && mir_decl_field_source_syntax_id(field) == source_id
+            && mir_decl_field_kind_or(field, MIR_DECL_FIELD_UNKNOWN)
+                == MIR_DECL_FIELD_ZONE_LAYER_SLOT
+            && !mir_decl_field_is_relation_layer(field)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
 mir_domain_topology_optional_field_identity_matches(
     const MIRDeclHeader *owner,
     const char *name,
@@ -313,13 +336,22 @@ mir_domain_topology_validate(const MIRProgram *mir, char **error_message)
                 && row->right_slot_source_syntax_id == 0;
         } else if (row->kind == MIR_DOMAIN_TOPOLOGY_APPLY_EFFECT
                    || row->kind == MIR_DOMAIN_TOPOLOGY_MAINTAIN_EFFECT) {
-            shape_ok = shape_ok
-                && owner_header->ast_type == AST_ZONE_DECL
-                && mir_domain_topology_field_identity_matches(
+            /* Pool admission belongs to the one-shot apply consumer. Keep the
+             * generic layer matcher fail-closed so maintain/link cannot regain
+             * pool authority through a shared field-kind fallback. */
+            bool layer_identity_ok = row->kind == MIR_DOMAIN_TOPOLOGY_APPLY_EFFECT
+                ? mir_domain_topology_apply_effect_layer_identity_matches(
+                    owner_header,
+                    row->layer_slot_name,
+                    row->layer_slot_source_syntax_id)
+                : mir_domain_topology_field_identity_matches(
                     owner_header,
                     row->layer_slot_name,
                     row->layer_slot_source_syntax_id,
-                    MIR_TOPOLOGY_FIELD_EFFECT)
+                    MIR_TOPOLOGY_FIELD_EFFECT);
+            shape_ok = shape_ok
+                && owner_header->ast_type == AST_ZONE_DECL
+                && layer_identity_ok
                 && mir_domain_topology_field_identity_matches(
                     owner_header,
                     row->target_slot_name,

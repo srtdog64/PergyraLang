@@ -6936,6 +6936,14 @@ require_text "src/codegen/transpiler_type_decl_schedule.c" \
     "transpiler_type_name_is_result(type_name)"
 require_text "src/codegen/transpiler_type_decl_schedule.c" \
     "transpiler_type_name_is_option(type_name)"
+require_text "src/codegen/transpiler_type_decl_schedule.c" \
+    "layout_dependency_readiness("
+require_text "src/codegen/transpiler_type_decl_schedule.c" \
+    "callable_signature_readiness("
+require_text "src/codegen/transpiler_type_decl_schedule.c" \
+    "candidate == available_header"
+reject_text "src/codegen/transpiler_type_decl_schedule.c" \
+    "strcmp(host_name, return_type)"
 require_text "src/codegen/transpiler_type_mapping.c" \
     'transpiler_type_name_join(out, out_size, "PgyOption_", suffix)'
 reject_text "src/codegen/transpiler_type_mapping.c" \

@@ -10,6 +10,8 @@
 
 void emit_hosted_method_forward_decl_from_metadata(const char *host_name,
                                                    const MIRDeclMethod *method_meta,
+                                                   const GenericBindingEntry *bindings,
+                                                   size_t binding_count,
                                                    ASTNode *method,
                                                    bool pointer_self,
                                                    CodeBuf *buf,

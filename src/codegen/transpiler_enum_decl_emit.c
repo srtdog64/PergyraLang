@@ -207,7 +207,7 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
             continue;
         }
         emit_hosted_method_forward_decl_from_metadata(ename, method_meta,
-            NULL, false, ctx->out, ctx);
+            NULL, 0, NULL, false, ctx->out, ctx);
     }
 
     for (size_t i = 0; i < method_view.count; i++) {

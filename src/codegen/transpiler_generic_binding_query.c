@@ -266,6 +266,25 @@ transpiler_generic_binding_restore(
     ctx->generic_binding_count = snapshot.binding_count;
 }
 
+bool
+transpiler_generic_binding_push_entries(
+    TranspilerCtx *ctx,
+    const GenericBindingEntry *bindings,
+    size_t binding_count)
+{
+    if (ctx == NULL || (binding_count > 0 && bindings == NULL)
+        || binding_count > MAX_GENERIC_BINDINGS
+        || ctx->generic_binding_count
+            > (int)(MAX_GENERIC_BINDINGS - binding_count)) {
+        return false;
+    }
+
+    for (size_t i = 0; i < binding_count; i++) {
+        ctx->generic_bindings[ctx->generic_binding_count++] = bindings[i];
+    }
+    return true;
+}
+
 char *
 transpiler_render_type_name_with_bindings(TranspilerCtx *ctx,
                                           ASTNode *type_node,

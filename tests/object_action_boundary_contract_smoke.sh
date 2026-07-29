@@ -108,6 +108,44 @@ require_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner
     'kind == NominalFieldKindBindingSlot()'
 require_text "src/compiler/mir_domain_topology.c" \
     'MIR_TOPOLOGY_FIELD_SUBJECT | MIR_TOPOLOGY_FIELD_BINDING'
+topology_owner="src/compiler/mir_domain_topology.c"
+generic_layer_matcher="$(awk \
+    '/mir_domain_topology_field_kind_matches\(/,/^}/' \
+    "$topology_owner")"
+apply_layer_matcher="$(awk \
+    '/mir_domain_topology_apply_effect_layer_identity_matches\(/,/^}/' \
+    "$topology_owner")"
+apply_layer_consumer="$(awk \
+    '/} else if \(row->kind == MIR_DOMAIN_TOPOLOGY_APPLY_EFFECT/,/} else if \(row->kind == MIR_DOMAIN_TOPOLOGY_LINK_RELATION/' \
+    "$topology_owner")"
+if ! grep -qF 'return !mir_decl_field_is_pool_layer(field)' \
+    <<<"$generic_layer_matcher"; then
+    echo "[FAIL] generic MIR topology layer matching must reject pool layers"
+    fail=1
+fi
+if ! grep -qF '== MIR_DECL_FIELD_ZONE_LAYER_SLOT' \
+    <<<"$apply_layer_matcher" \
+    || ! grep -qF '!mir_decl_field_is_relation_layer(field)' \
+        <<<"$apply_layer_matcher" \
+    || grep -qF 'mir_decl_field_is_pool_layer(field)' \
+        <<<"$apply_layer_matcher"; then
+    echo "[FAIL] APPLY_EFFECT layer identity must admit exact effect slots, including pools"
+    fail=1
+fi
+if ! grep -qF 'row->kind == MIR_DOMAIN_TOPOLOGY_APPLY_EFFECT' \
+    <<<"$apply_layer_consumer" \
+    || ! grep -qF 'mir_domain_topology_apply_effect_layer_identity_matches(' \
+        <<<"$apply_layer_consumer" \
+    || ! grep -qF 'MIR_TOPOLOGY_FIELD_EFFECT' \
+        <<<"$apply_layer_consumer"; then
+    echo "[FAIL] APPLY_EFFECT must be the sole pool-admitting topology consumer"
+    fail=1
+fi
+if [ "$(grep -cF 'mir_domain_topology_apply_effect_layer_identity_matches(' \
+        "$topology_owner")" -ne 2 ]; then
+    echo "[FAIL] APPLY_EFFECT pool matcher escaped its definition plus sole consumer"
+    fail=1
+fi
 require_text "src/compiler/mir_decl_field_kind_vocabulary.def" \
     'BINDING_SLOT, 5, "binding_slot", "BindingSlot"'
 require_text "src/self_hosted/mir/domain_runtime_assignment_fact_owner.pgy" \

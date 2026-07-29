@@ -29,9 +29,10 @@ is_value_type_header(const MIRDeclHeader *header)
 }
 
 static TypeDeclReadiness
-dependency_readiness(const MIRDeclHeaderInventory *inventory,
-                     const bool *emitted,
-                     const char *type_name)
+dependency_readiness_impl(const MIRDeclHeaderInventory *inventory,
+                          const bool *emitted,
+                          const MIRDeclHeader *available_header,
+                          const char *type_name)
 {
     char first_arg[512];
     char second_arg[512];
@@ -44,7 +45,8 @@ dependency_readiness(const MIRDeclHeaderInventory *inventory,
             type_name, 0, first_arg, sizeof(first_arg));
         if (strcmp(first_arg, "Unknown") == 0)
             return TYPE_DECL_INVALID;
-        return dependency_readiness(inventory, emitted, first_arg);
+        return dependency_readiness_impl(
+            inventory, emitted, available_header, first_arg);
     }
     if (transpiler_type_name_is_result(type_name)) {
         copy_constructed_arg_name_at(
@@ -57,10 +59,12 @@ dependency_readiness(const MIRDeclHeaderInventory *inventory,
          * Only explicit Result<T, E> materializations are declaration nodes. */
         if (strcmp(second_arg, "Unknown") == 0)
             return TYPE_DECL_READY;
-        readiness = dependency_readiness(inventory, emitted, first_arg);
+        readiness = dependency_readiness_impl(
+            inventory, emitted, available_header, first_arg);
         if (readiness != TYPE_DECL_READY)
             return readiness;
-        return dependency_readiness(inventory, emitted, second_arg);
+        return dependency_readiness_impl(
+            inventory, emitted, available_header, second_arg);
     }
     for (size_t i = 0; i < inventory->count; i++) {
         const MIRDeclHeader *candidate =
@@ -72,10 +76,29 @@ dependency_readiness(const MIRDeclHeaderInventory *inventory,
         candidate_name = mir_decl_header_name(candidate);
         if (candidate_name != NULL
             && strcmp(candidate_name, type_name) == 0) {
+            if (candidate == available_header)
+                return TYPE_DECL_READY;
             return emitted[i] ? TYPE_DECL_READY : TYPE_DECL_WAITING;
         }
     }
     return TYPE_DECL_READY;
+}
+
+static TypeDeclReadiness
+layout_dependency_readiness(const MIRDeclHeaderInventory *inventory,
+                            const bool *emitted,
+                            const char *type_name)
+{
+    return dependency_readiness_impl(inventory, emitted, NULL, type_name);
+}
+
+static TypeDeclReadiness
+callable_signature_readiness(const MIRDeclHeaderInventory *inventory,
+                             const bool *emitted,
+                             const MIRDeclHeader *host,
+                             const char *type_name)
+{
+    return dependency_readiness_impl(inventory, emitted, host, type_name);
 }
 
 static bool
@@ -118,7 +141,7 @@ enum_readiness(const MIRDeclHeaderInventory *inventory,
         size_t param_count = mir_decl_enum_variant_param_count(variant);
 
         for (size_t p = 0; p < param_count; p++) {
-            TypeDeclReadiness readiness = dependency_readiness(
+            TypeDeclReadiness readiness = layout_dependency_readiness(
                 inventory, emitted,
                 mir_decl_enum_variant_param_type_name(variant, p));
             if (readiness != TYPE_DECL_READY)
@@ -140,16 +163,13 @@ method_readiness(const MIRDeclHeaderInventory *inventory,
                  const MIRDeclHeader *host,
                  const MIRDeclMethod *method)
 {
-    const char *host_name = mir_decl_header_name(host);
     const char *return_type = mir_decl_method_return_type_name(method);
     TypeDeclReadiness readiness = TYPE_DECL_READY;
 
-    if (host_name == NULL || return_type == NULL
-        || strcmp(host_name, return_type) != 0) {
-        readiness = dependency_readiness(inventory, emitted, return_type);
-        if (readiness != TYPE_DECL_READY)
-            return readiness;
-    }
+    readiness = callable_signature_readiness(
+        inventory, emitted, host, return_type);
+    if (readiness != TYPE_DECL_READY)
+        return readiness;
     for (size_t i = 0; i < mir_decl_method_param_count(method); i++) {
         FuncParam *param = mir_decl_method_param(method, i);
         const char *type_name =
@@ -159,13 +179,10 @@ method_readiness(const MIRDeclHeaderInventory *inventory,
             && strcmp(param->name, "self") == 0) {
             continue;
         }
-        if (host_name != NULL && type_name != NULL
-            && strcmp(host_name, type_name) == 0) {
-            continue;
-        }
         if (dependency_uses_pointer_carriage(inventory, type_name))
             continue;
-        readiness = dependency_readiness(inventory, emitted, type_name);
+        readiness = callable_signature_readiness(
+            inventory, emitted, host, type_name);
         if (readiness != TYPE_DECL_READY)
             return readiness;
     }
@@ -181,7 +198,7 @@ class_readiness(const MIRDeclHeaderInventory *inventory,
 
     for (size_t i = 0; i < field_count; i++) {
         const MIRDeclField *field = mir_decl_header_field(header, i);
-        TypeDeclReadiness readiness = dependency_readiness(
+        TypeDeclReadiness readiness = layout_dependency_readiness(
             inventory, emitted, mir_decl_field_type_name(field));
         if (readiness != TYPE_DECL_READY)
             return readiness;

@@ -250,7 +250,7 @@ emit_relation_decl_impl(ASTNode *node,
             continue;
         }
         emit_hosted_method_forward_decl_from_metadata(name, method_meta,
-            NULL, true, ctx->out, ctx);
+            NULL, 0, NULL, true, ctx->out, ctx);
     }
 
     transpiler_emit_hosted_methods_from_mir_or_error(name, "(anonymous-relation)",
@@ -463,7 +463,7 @@ emit_effect_decl_impl(ASTNode *node,
             continue;
         }
         emit_hosted_method_forward_decl_from_metadata(name, method_meta,
-            NULL, true, ctx->out, ctx);
+            NULL, 0, NULL, true, ctx->out, ctx);
     }
 
     transpiler_emit_hosted_methods_from_mir_or_error(name, "(anonymous-effect)",
