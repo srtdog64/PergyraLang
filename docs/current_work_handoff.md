@@ -8,10 +8,16 @@ owner, and the named executable gate.
 
 ## Current checkpoint - admitted semantic artifact emission
 
+- Material checkpoint after this session is `e4112fbb` on `main`, with a clean
+  worktree before this handoff-only refresh and three commits ahead of
+  `origin/main`: `28e371df` (Insere/Zeno audits), `2c2b3028` (semantic
+  admission), and `e4112fbb` (CI portability). Push is authorized but was still
+  pending when this paragraph was written; verify remote equality on resume.
 - Exact working base is `ab9f9fce20b83fae473d52d48b6b0b5582e1f8b6` on
-  `main`, equal to `origin/main` when this checkpoint began. The tree is dirty
-  for the active semantic-admission integration; verify final HEAD and clean
-  state after the authorized commit/push.
+  `main`, equal to `origin/main` when this checkpoint began. Earlier dirty-tree
+  language below describes the integration interval; the material commits
+  above supersede it. Verify final HEAD and clean state after the authorized
+  push.
 - Active executable seam: a Pergyra-built codegen created one
   `SemanticAstArtifactAnalysis`, then C emission called
   `SemanticAstArtifactAnalysisMatches` and reconstructed signatures,
@@ -53,7 +59,7 @@ owner, and the named executable gate.
   producer identities and are rejected by admission. The lifetime gate fixes
   direct codegen, source-to-C and integrated driver call edges and forbids
   unbounded proof work inside the Ready core.
-- Observed focused evidence in this dirty tree:
+- Observed focused evidence for the material checkpoint:
   - `driver_rung2_main.pgy --emit-c`: `0 error(s), 0 warning(s)`;
   - executable `CompilerDriverPipelineReady` probe:
     `semantic-admission-contract:ok`, exit 0;
@@ -81,6 +87,28 @@ owner, and the named executable gate.
   reconstruction, then run the installed-driver/launcher parity boundary. The
   5.1MB native-seed run stayed below the memory cap but timed out; it is not a
   green output and must not be relabelled by silently raising the memory cap.
+
+## Current checkpoint - independent CI portability repairs
+
+- `expr_semantic_call_argument_owner.pgy` now directly imports the owner that
+  defines `RewriteSemanticExpectedValue`; the final integrated driver source
+  compile completed with 0 errors and 0 warnings.
+- Raw `test-mir` and the dedicated topology target both derive
+  `PGY_DOMAIN_RUNTIME_TOPOLOGY_BACKENDS` from `LLVM_ENABLED`. The inventory
+  gate requires exactly those two owner expressions. C-only topology passed.
+- HostTask slot/policy comparison no longer assumes Windows has `cmp`/`diff`.
+  Bash `read -d ''` preserves trailing newlines before exact text comparison;
+  both C focused gates passed.
+- The macOS hard-contract false failure no longer uses early-exit `grep -q`
+  behind a producer under `pipefail`. Hard contract and build inventory passed.
+- One process-management error remains part of the handoff record: while
+  narrowing its own 661-file selfcheck, the CI worker incorrectly terminated a
+  separate `C:\msys64\usr\bin\bash.exe` process running
+  `tests/self_hosted/parity/selfcheck_sources.sh` (PIDs 30812 and 54352,
+  parent 49280) around 06:39 KST. No source changed. The parent had
+  already exited and cwd/environment were not recoverable, so the exact run was
+  not guessed or restarted. Do not count that interrupted external selfcheck
+  as a PASS; rerun it from its owning task if that owner still needs the result.
 
 ## Previous checkpoint - installed source-to-MIR one-graph closure
 
