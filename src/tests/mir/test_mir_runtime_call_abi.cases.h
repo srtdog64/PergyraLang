@@ -180,6 +180,99 @@ test_mir_runtime_call_abi_facts(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR ABI lookup returns the resource owner after a linked release consumer");
+    {
+        const char *src =
+            "func Flow() -> Void {\n"
+            "    with slot<Int> as ledger {\n"
+            "        Write(ledger, 1);\n"
+            "        Log(\"tail\");\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *flow = NULL;
+        MIRInstruction *release_owner = NULL;
+        MIRInstruction *linked_consumer = NULL;
+        const MIRInstruction *selected = NULL;
+        const MIRInstruction *selected_after_forgery = NULL;
+        bool consumer_precedes_owner = false;
+        bool forged_aux_rejected = false;
+        char *mir_error = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+
+        if (ok)
+            flow = find_mir_routine_mut(mir, "Flow", MIR_SCOPE_FUNCTION);
+        if (flow != NULL) {
+            for (size_t bi = 0; bi < flow->block_count; bi++) {
+                MIRBasicBlock *block = &flow->blocks[bi];
+                size_t consumer_index = 0;
+                size_t owner_index = 0;
+                bool saw_consumer = false;
+                bool saw_owner = false;
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    const MIRResourceRuntimeRow *row =
+                        inst->resource_runtime_fact_present
+                            ? &inst->resource_runtime_fact
+                            : NULL;
+                    if (row == NULL || row->resource_op_name == NULL
+                        || strcmp(row->resource_op_name, "Release") != 0) {
+                        continue;
+                    }
+                    if (inst->kind == MIR_INST_RESOURCE_OP) {
+                        release_owner = inst;
+                        owner_index = ii;
+                        saw_owner = true;
+                    } else {
+                        linked_consumer = inst;
+                        consumer_index = ii;
+                        saw_consumer = true;
+                    }
+                }
+                if (saw_consumer && saw_owner && consumer_index < owner_index) {
+                    consumer_precedes_owner = true;
+                }
+            }
+            selected = mir_abi_resource_runtime_instruction_for_abi(
+                flow, MIR_RESOURCE_ABI_SLOT, "Int", "Release");
+        }
+        if (linked_consumer != NULL && release_owner != NULL
+            && linked_consumer->resource_runtime_aux_fact_count == 0) {
+            linked_consumer->resource_runtime_aux_facts[0] =
+                linked_consumer->resource_runtime_fact;
+            linked_consumer->resource_runtime_aux_fact_count = 1;
+            selected_after_forgery =
+                mir_abi_resource_runtime_instruction_for_abi(
+                    flow, MIR_RESOURCE_ABI_SLOT, "Int", "Release");
+            forged_aux_rejected = selected_after_forgery == release_owner
+                && !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error,
+                    "auxiliary runtime-call ABI rows without owner provenance")
+                    != NULL;
+            linked_consumer->resource_runtime_aux_fact_count = 0;
+            free(mir_error);
+            mir_error = NULL;
+        }
+        EXPECT(ok
+               && flow != NULL
+               && linked_consumer != NULL
+               && release_owner != NULL
+               && consumer_precedes_owner
+               && selected == release_owner
+               && selected->type_layout != NULL
+               && selected->abi_layout_id ==
+                    mir_abi_layout_id(selected->type_layout)
+               && forged_aux_rejected
+               && mir_validate(mir, NULL));
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR keeps multiple resource runtime rows distinct within one statement");
     {
         const char *src =

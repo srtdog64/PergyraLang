@@ -7,7 +7,9 @@ layout. Pergyra's language surface is intent-first and world/zone-oriented, so
 the target hard self-host shape is rooted in `PgyCompilerWorld`.
 
 The bounded direct-MIR and source-to-MIR slices are now part of the production
-call graph. Their two reachable paths are:
+call graph. The installed self-driver and the full bootstrap artifact root
+share the same source-to-MIR world/action owner; source folders remain fact
+boundaries, not competing program graphs. The reachable paths are:
 
 ```text
 driver_bootstrap_main.Main -> EmitDirectMirThroughPgyCompilerWorld
@@ -16,11 +18,19 @@ driver_bootstrap_main.Main -> EmitDirectMirThroughPgyCompilerWorld
     -> DriverRung2DirectMirZone.execution
     -> DriverRung2Execution.EmitDirectMir
 
-driver_bootstrap_main.Main -> EmitSourceMirThroughPgyCompilerWorld
-    -> PgyCompilerWorld.EmitSourceMir
+driver_bootstrap_main.Main -> PublishSourceMirArtifactThroughPgyCompilerWorld
+    -> PgyCompilerWorld.PublishSourceMirArtifact
     -> PgyCompilerWorld.source_mir
     -> DriverSourceMirZone.execution
-    -> DriverSourceMirExecution.EmitSourceMir
+    -> DriverSourceMirExecution.PublishSourceMirArtifact
+
+bin/pgy --self-driver -> native sibling launcher -> bin/pgy-self-driver
+    -> driver_rung2_main.Main -> RunDriverRung2FromArgs
+    -> ProduceSourceMirThroughPgyCompilerWorld
+    -> PgyCompilerWorld.ProduceSourceMir
+    -> PgyCompilerWorld.source_mir
+    -> DriverSourceMirZone.execution
+    -> DriverSourceMirExecution.ProduceSourceMir
 ```
 
 `bin/pgy.exe src/self_hosted/compiler/world.pgy --emit-c` is also green with
@@ -53,8 +63,12 @@ of actions is not the takeover criterion.
   action reached through that zone.
 - `DriverSourceMirZone` owns the source-to-MIR execution subject's authority
   and lifetime boundary. Its action admits the pressure mode, consumes exactly
-  one existing typed source-to-MIR producer, commits once through the shared
-  artifact transaction, and returns a typed receipt or rejection.
+  one existing typed source-to-MIR producer. The same subject exposes an
+  `io_read` payload action and an `io_read, io_write` artifact action, so the
+  installed stdout CLI does not inherit write authority. The artifact action
+  rejects an empty output path before compilation and commits once through the
+  shared artifact transaction. Empty-path stdout sentinels and temp-file round
+  trips are forbidden.
 - `compiler_world_direct_mir_owner.pgy` is the sole composition owner. It
   materializes both active zones in positional order and delegates through
   `PgyCompilerWorld`; it may not declare another world.
@@ -222,8 +236,10 @@ For compiler self-hosting that means:
   target projection and emitted-artifact facts and owns the final output
   transition; the zone does not copy those facts or select a backend itself.
 - `DriverSourceMirZone` owns the production source-to-MIR execution subject's
-  authority and lifetime. Its action owns pressure admission and the final
-  artifact transition while existing typed owners retain source/MIR semantics.
+  authority and lifetime. Its shared admission owns pressure/identity checks;
+  a read-only payload action and write-authorized artifact action own their
+  distinct publication transitions while existing typed owners retain
+  source/MIR semantics.
 - `CompatibilityEvolutionZone` owns source, ABI/binary, behavior, diagnostic,
   AIR evidence, MIR JSON, runtime trace, capability profile, stdlib module, and
   obsolete-migration metadata facts.
@@ -245,8 +261,9 @@ For current codegen this is the concrete split:
   the same action through this member of `PgyCompilerWorld`.
 - `DriverSourceMirZone`: `subject slot execution:
   DriverSourceMirExecution` with `authority execution`; verified and
-  pressure-observed requests enter one action, and only the full driver source
-  may use the pressure-observed request.
+  pressure-observed requests enter one admission owner through two
+  capability-separated actions, and only the full driver source may use the
+  pressure-observed request.
 - `EmissionZone`: `object slot c_output: EmittedC`, driven by
   `subject slot emitter: ProgramEmitter`.
 - `TypeEnvZone`: `object slot bindings: TypeEnvironment`, consumed as

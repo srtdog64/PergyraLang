@@ -30,6 +30,10 @@ require '$invariantCulture = [Globalization.CultureInfo]::InvariantCulture'
 require '$workingSet.ToString("F1", $invariantCulture)'
 require '$private.ToString("F1", $invariantCulture)'
 require '$topPrivate.ToString("F1", $invariantCulture)'
+require 'catch [System.IO.IOException]'
+require '$sampleAttempt -le 20'
+require 'Start-Sleep -Milliseconds 25'
+require 'build-pressure sample append did not complete'
 if grep -Fq '{5:N1},{6:N1}' "$PROBE"; then
     echo "[build-pressure-contract] locale-aware numeric formatting can corrupt sample CSV columns" >&2
     exit 1

@@ -33,7 +33,7 @@ func Main() -> Void with caps env, io_read, io_write {
             source_request = SourceMirPressureObserved;
         }
         let source_outcome: DriverSourceMirExecutionOutcome =
-            EmitSourceMirThroughPgyCompilerWorld(
+            PublishSourceMirArtifactThroughPgyCompilerWorld(
                 args[1], args[2], machine_declaration, source_request
             );
         if !DriverSourceMirExecutionOutcomeReadyFor(

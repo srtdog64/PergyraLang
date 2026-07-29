@@ -30,6 +30,24 @@ mir_abi_resource_runtime_row_for_instruction(
     return NULL;
 }
 
+bool
+mir_abi_resource_runtime_instruction_owns_rows(
+    const MIRInstruction *instruction)
+{
+    if (instruction == NULL
+        || !instruction->resource_runtime_fact_present
+        || instruction->resource_runtime_fact.resource_op_name == NULL) {
+        return false;
+    }
+    if (instruction->kind == MIR_INST_RESOURCE_OP)
+        return true;
+    return (instruction->kind == MIR_INST_DEF
+            || instruction->kind == MIR_INST_DESTRUCTURE)
+        && strcmp(instruction->resource_runtime_fact.resource_op_name,
+                  "Claim") == 0
+        && instruction->resource_runtime_aux_fact_count > 0;
+}
+
 const MIRInstruction *
 mir_abi_resource_runtime_instruction_for_source(const MIRRoutine *routine,
                                                 uint32_t source_stable_id)
@@ -92,6 +110,8 @@ mir_abi_resource_runtime_instruction_for_abi(
         const MIRBasicBlock *block = &routine->blocks[bi];
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
+            if (!mir_abi_resource_runtime_instruction_owns_rows(inst))
+                continue;
             const MIRResourceRuntimeRow *row =
                 mir_abi_resource_runtime_row_for_instruction(
                     inst, resource_op_name);

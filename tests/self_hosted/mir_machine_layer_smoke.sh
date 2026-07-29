@@ -22,24 +22,34 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-grep -Fq -- 'CompilerRuntimeCallAbiMachineLayerManifestId' "$MACHINE_OWNER"
-grep -Fq -- 'MirMachineLayerAdmitJsonInputObserved' "$INPUT"
-grep -Fq -- 'MirMachineLayerObjectReady' "$OWNER"
-grep -Fq -- 'machine_contact_kind' "$OWNER"
-grep -Fq -- 'physical_grant' "$OWNER"
-grep -Fq -- 'physical_base' "$OWNER"
-grep -Fq -- 'physical_size' "$OWNER"
-grep -Fq -- 'physical_mode' "$OWNER"
-grep -Fq -- 'SelfHostMachineLayerDeclarationFromPath' "$DECLARATION_CONSUMER"
-grep -Fq -- 'CompilerMachineLayerRuntimeBindingBlock' "$MACHINE_BINDING_OWNER"
-grep -Fq -- 'CompilerMachineLayerRuntimeBindingStatement' "$MACHINE_BINDING_OWNER"
+require_owner_term() {
+    local owner="$1"
+    local term="$2"
+    grep -Fq -- "$term" "$owner" || {
+        echo "[self-host-mir-machine-layer] missing owner term '$term' in ${owner#"$ROOT_DIR/"}" >&2
+        exit 1
+    }
+}
+
+require_owner_term "$MACHINE_OWNER" 'CompilerRuntimeCallAbiMachineLayerManifestId'
+require_owner_term "$INPUT" 'MirJsonReadMachineAdmittedInputObserved'
+require_owner_term "$OWNER" 'MirMachineLayerAdmitDocumentWithTopologyObserved'
+require_owner_term "$OWNER" 'MirMachineLayerObjectReady'
+require_owner_term "$OWNER" 'machine_contact_kind'
+require_owner_term "$OWNER" 'physical_grant'
+require_owner_term "$OWNER" 'physical_base'
+require_owner_term "$OWNER" 'physical_size'
+require_owner_term "$OWNER" 'physical_mode'
+require_owner_term "$DECLARATION_CONSUMER" 'SelfHostMachineLayerDeclarationFromPath'
+require_owner_term "$MACHINE_BINDING_OWNER" 'CompilerMachineLayerRuntimeBindingBlock'
+require_owner_term "$MACHINE_BINDING_OWNER" 'CompilerMachineLayerRuntimeBindingStatement'
 RIR_VALIDATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/machine_layer_rir_validator/main.pgy"
-grep -Fq -- 'machine_contact' "$RIR_VALIDATOR_SOURCE"
-grep -Fq -- 'CompilerRuntimeCallAbiMachineLayerContactNameAt' "$RIR_VALIDATOR_SOURCE"
+require_owner_term "$RIR_VALIDATOR_SOURCE" 'machine_contact'
+require_owner_term "$RIR_VALIDATOR_SOURCE" 'CompilerRuntimeCallAbiMachineLayerContactNameAt'
 JSON_PROJECTION_OWNER="$ROOT_DIR/src/self_hosted/mir/json_projection_owner.pgy"
 PROJECTION_PROBE_SOURCE="$ROOT_DIR/src/self_hosted/tools/machine_layer_mir_projection_probe/main.pgy"
-grep -Fq -- 'machine_contact_kind' "$JSON_PROJECTION_OWNER"
-grep -Fq -- 'physical_base' "$JSON_PROJECTION_OWNER"
+require_owner_term "$JSON_PROJECTION_OWNER" 'machine_contact_kind'
+require_owner_term "$JSON_PROJECTION_OWNER" 'physical_base'
 if grep -Eq -- 'AST_|ReadFile\(' "$OWNER"; then
     echo "[self-host-mir-machine-layer] machine fact owner reached a source fallback" >&2
     exit 1

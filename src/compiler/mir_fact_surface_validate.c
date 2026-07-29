@@ -156,6 +156,17 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
             }
             return false;
         }
+        if (inst->resource_runtime_aux_fact_count > 0
+            && !mir_abi_resource_runtime_instruction_owns_rows(inst)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] carries auxiliary runtime-call ABI rows without owner provenance",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
         for (size_t ai = 0; ai < inst->resource_runtime_aux_fact_count; ai++) {
             const MIRResourceRuntimeRow *aux =
                 &inst->resource_runtime_aux_facts[ai];

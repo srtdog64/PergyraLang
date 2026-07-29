@@ -81,10 +81,13 @@ These modules are beta-stable when imported through `use <module>;`:
   `Register`, `SampleDevice`, `WriteDevice`, `SampleEventTopic`,
   `RenderDeviceSample`, `RenderDeviceCommand`.
 - `host_task_slot`: `HostTaskTicket`, `HostTaskSlot`,
-  `HostTaskSlotTransition`, and the `HostTasks.Open`, `HostTasks.Ticket`,
-  `HostTasks.IsCurrent`, `HostTasks.Replace`, `HostTasks.PublishWait`,
-  `HostTasks.PublishFinal`, `HostTasks.Cleanup`, `HostTasks.Phase` authority
-  operations. A same-key replacement advances the generation; stale tickets
+  `HostTaskSlotTransition`, `HostTaskApplyPolicy`, `HostTaskPolicyDecision`,
+  the typed `HostTasks.SpawnPolicy`, `HostTasks.RestartPolicy`,
+  `HostTasks.SkipPolicy`, `HostTasks.ApplyPolicy` admission surface, and the
+  `HostTasks.Open`, `HostTasks.Ticket`, `HostTasks.IsCurrent`,
+  `HostTasks.Replace`, `HostTasks.PublishWait`, `HostTasks.PublishFinal`,
+  `HostTasks.Cleanup`, `HostTasks.Phase` authority operations. Active skip and
+  duplicate spawn preserve generation; restart advances it. Stale tickets
   cannot publish a wait/final outcome or authorize cleanup.
 
 The stable module smoke covers these modules together because several domain-kit

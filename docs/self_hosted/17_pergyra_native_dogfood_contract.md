@@ -24,9 +24,17 @@ Pergyra의 self-host는 두 조건을 모두 만족해야 한다.
 
 ## 현재 관측된 상태
 
-2026-07-29 현재 실제 부트스트랩 진입점은
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`이다. 이 파일은
-`driver_rung2_owner.pgy`와 `compiler_world_direct_mir_owner.pgy`를 import한다.
+2026-07-30 현재 사용자에게 설치되는 self-host 진입점과 full bootstrap
+artifact 진입점은 서로 다른 `Main`이지만, source-to-MIR 실행 owner는 하나다.
+
+- `bin/pgy --self-driver`는 `src/compiler/self_host_driver.c`의 sibling launcher를
+  거쳐 `bin/pgy-self-driver`를 실행한다. 그 binary의 source root는
+  `driver_rung2_main.pgy -> driver_rung2_cli_owner.pgy`이다.
+- full bootstrap artifact root는 `driver_bootstrap_main.pgy`이다.
+- 두 root 모두 `compiler_world_direct_mir_owner.pgy`의 같은 world materializer와
+  같은 `DriverSourceMirExecution` subject를 호출한다. Publication action만 실제
+  capability 경계에 따라 payload와 artifact로 나뉜다.
+
 source-to-C 및 기존 MIR-to-C 호환 mode는 아직 다음 일반 함수들로 분기한다.
 
 - `CompileSourceToCVerified`;
@@ -45,13 +53,24 @@ driver_bootstrap_main.Main
   -> existing target/projection/emission owners
 
 driver_bootstrap_main.Main
-  -> EmitSourceMirThroughPgyCompilerWorld
-  -> PgyCompilerWorld.EmitSourceMir
+  -> PublishSourceMirArtifactThroughPgyCompilerWorld
+  -> PgyCompilerWorld.PublishSourceMirArtifact
   -> PgyCompilerWorld.source_mir
   -> DriverSourceMirZone.execution
-  -> DriverSourceMirExecution.EmitSourceMir
+  -> DriverSourceMirExecution.PublishSourceMirArtifact
   -> CompileSourceToMirJsonVerified | CompileSourceToMirJsonPressureObserved
   -> SelfMirArtifactCommitPayload
+
+bin/pgy --self-driver
+  -> native sibling launcher -> bin/pgy-self-driver
+  -> driver_rung2_main.Main
+  -> RunDriverRung2FromArgs
+  -> ProduceSourceMirThroughPgyCompilerWorld
+  -> PgyCompilerWorld.ProduceSourceMir
+  -> PgyCompilerWorld.source_mir
+  -> DriverSourceMirZone.execution
+  -> DriverSourceMirExecution.ProduceSourceMir
+  -> DriverSourceMirProduced(payload receipt)
 ```
 
 action이 request를 typed target projection으로 admit하고, 기존
@@ -60,12 +79,17 @@ artifact identity를 확인한 뒤 shared compiler-artifact transaction을 commi
 `Main`의 target-fact 생성, direct backend 호출, direct-mode raw writer 우회는
 삭제됐다.
 
-source-to-MIR action은 subject/topology identity와 pressure request를 admit하고,
-기존 typed source-to-MIR producer 중 정확히 하나를 호출한 뒤 shared artifact
-transaction을 한 번 commit한다. Full driver source는 pressure-observed 요청만
-허용하고 일반 fixture는 그 요청을 거부한다. `Main`은 typed outcome과 diagnostic만
-소비하며, 옛 `CompileSourceToMirJsonFileVerified` 및 pressure file-helper 정의와
-직접 호출은 삭제됐다.
+source-to-MIR subject는 subject/topology identity와 pressure request를 하나의
+payload admission owner에서 검사하고 기존 typed producer 중 정확히 하나를
+호출한다. Publication은 capability 경계에 따라 같은 subject의 두 action으로
+나뉜다. Installed CLI의 `ProduceSourceMir`는 `io_read`만 요구하고 typed payload
+receipt를 반환한다. Bootstrap의 `PublishSourceMirArtifact`는 `io_read, io_write`를
+요구하며 빈 output path를 비싼 compile 전에 거부한 뒤 shared artifact
+transaction을 정확히 한 번 commit한다. 빈 path를 stdout sentinel로 쓰거나 임시
+파일로 왕복하는 fallback은 없다. Full driver source는 pressure-observed 요청만
+허용하고 일반 fixture는 그 요청을 거부한다. 두 `Main`은 각 action의 typed
+outcome과 diagnostic만 소비하며, 옛 file-helper와 installed CLI의 직접
+`CompileSourceToMirJsonVerified` 호출은 삭제됐다.
 
 `DriverRung2Executed`는 `tobject SelfMirArtifactReceipt`의 exact target/path,
 `atomic_visibility=true`, `crash_durable=false`가 확인된 경우에만 반환된다.
@@ -73,10 +97,12 @@ Wrong identity/target은 typed rejection이고 commit 실패는 원래
 `SelfMirArtifactFailure` payload variant다. Malformed MIR의 하위 `Die`는 fatal
 boundary이며 이 실패를 transaction rejection과 하나로 과장하지 않는다.
 
-`src/self_hosted/compiler/world.pgy`는 이제 composition owner를 통해 bootstrap
-import/call graph에 들어오며 `PgyCompilerWorld`는 두 slice의 실제 composition
-boundary다. `direct_mir`, `source_mir` 두 field는 positional order로 실제
-materialize되고 나머지 zone과 root intent는 import-reachable surface다.
+`src/self_hosted/compiler/world.pgy`는 composition owner를 통해 full bootstrap과
+설치 CLI 양쪽 import/call graph에 들어오며 `PgyCompilerWorld`는 두 slice의 실제
+composition boundary다. 물리적 stage 폴더는 각 fact owner의 경계라 유지하지만,
+서로 다른 source root가 별도 source-to-MIR 결정을 소유하지는 않는다.
+`direct_mir`, `source_mir` 두 field는 positional order로 실제 materialize되고
+나머지 zone과 root intent는 import-reachable surface다.
 
 재귀 import closure에는 world 1개와 concrete zone 20개가 있다. 정확한 전체
 declaration census는 gate가 다시 생성하는 관측값이며, import surface의 선언 수를
@@ -104,8 +130,10 @@ production declaration과 composition은 다음처럼 나뉜다.
 
 - `compiler/driver_rung2_execution_owner.pgy`: 실제 direct-MIR subject/action과
   zone;
+- `compiler/driver_source_mir_protocol_owner.pgy`: source-to-MIR request,
+  identity/schema, typed receipt/rejection, outcome validation과 diagnostic;
 - `compiler/driver_source_mir_execution_owner.pgy`: 실제 source-to-MIR
-  subject/action/zone, pressure admission, typed receipt/rejection;
+  subject/action/zone, pressure admission, payload production과 artifact commit;
 - `compiler/world.pgy`: world 1개와 concrete zone 20개를 선언하고, world
   member로는 실제 실행되는 `direct_mir`, `source_mir` 둘만 binding;
 - `compiler/stage_intents.pgy`: intent 4개;
@@ -454,16 +482,19 @@ runtime singleton이나 C-owned compiler path의 대체 구현이 아니다.
 
 ## 완료된 source-to-MIR zone/world 결속 objective card
 
-- Objective: production `--emit-mir-json-verified`를 하나의
-  `DriverSourceMirExecution.EmitSourceMir` action으로 통과시키고 옛 file-helper
-  orchestration을 삭제한다.
+- Objective: production `--emit-mir-json-verified`의 payload admission을 하나의
+  `DriverSourceMirExecution` owner로 통과시키고, publication capability별 action을
+  통해 옛 file-helper orchestration을 삭제한다.
 - Priority: 기존 typed source/MIR fact identity; pressure admission; 한 payload
   producer와 한 atomic commit; typed outcome consumption; no fallback.
 - Fact owner: lexer/parser/semantic/MIR 계산은 기존 typed `func` owner가 계속
-  소유한다. 새 subject/action은 admission, stage transition, commit, outcome만
-  소유한다.
-- Last legitimate consumer: `PgyCompilerWorld.EmitSourceMir`이
-  `source_mir.execution.EmitSourceMir`에 한 번 위임하는 call site.
+  소유한다. Protocol owner가 request/receipt/rejection identity를, 새 subject가
+  identity/pressure/payload admission을 한 번 소유한다. `ProduceSourceMir`와
+  `PublishSourceMirArtifact`는 각각 read-only receipt와 write-authorized
+  commit/outcome을 소유한다.
+- Last legitimate consumers: installed CLI의
+  `PgyCompilerWorld.ProduceSourceMir`과 bootstrap artifact root의
+  `PgyCompilerWorld.PublishSourceMirArtifact` call site.
 - Forbidden fallback: `Main`의 직접 source-to-MIR compile/commit, 삭제된
   `CompileSourceToMirJsonFile*`, action 실패 뒤 기존 함수 재호출, 두 번째 world.
 - Falsifying case: `function_clause_order_minimal`이 production action을 통과하지

@@ -1347,6 +1347,18 @@ require_file "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy" 120
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy"
+require_text "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy" \
+    "let on_texts: Array<String> = [];"
+reject_text "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy" \
+    "ArrayPush(projection."
+reject_text "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy" \
+    "ArraySet(projection."
+member_array_inout="$({
+    find "$SELF_HOST_DIR" -type f -name '*.pgy' \
+        -exec grep -HnE 'Array(Push|Set)\([[:space:]]*[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_]' {} +
+} 2>/dev/null || true)"
+[[ -z "$member_array_inout" ]] ||
+    fail "self-host source reintroduced unsupported direct member-array inout: $member_array_inout"
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy"
 require_file \
@@ -4486,8 +4498,14 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SelfMirProgramJson(projection.facts)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CompileSourceToMirJsonVerified("
 require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 'args[0] == "--emit-mir-json-verified"'
+require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" \
+    'ProduceSourceMirThroughPgyCompilerWorld('
+require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" \
+    'DriverSourceMirExecutionOutcomePayloadReadyFor('
+reject_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" \
+    'CompileSourceToMirJsonVerified('
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
-    'EmitSourceMirThroughPgyCompilerWorld('
+    'PublishSourceMirArtifactThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     'DriverSourceMirExecutionOutcomeReadyFor('
 reject_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
@@ -12068,7 +12086,7 @@ require_file "tests/self_hosted/parity/driver_source_mir_execution_action_gate.s
 require_max_lines \
     "tests/self_hosted/parity/driver_source_mir_execution_action_gate.sh" 180
 require_text "tests/self_hosted/parity/driver_source_mir_execution_action_gate.sh" \
-    '# Owns the production source-to-MIR action boundary and its no-bypass ratchet.'
+    '# Ratchets source_mir_main_direct_commit and source_mir_file_helper_fallback.'
 bash "$ROOT_DIR/tests/self_hosted/parity/driver_source_mir_execution_action_gate.sh" ||
     fail "source-to-MIR execution action gate failed"
 require_text "Makefile" \
@@ -12229,6 +12247,13 @@ require_max_lines \
 require_file "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" 260
+require_file "src/self_hosted/compiler/driver_source_mir_protocol_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/driver_source_mir_protocol_owner.pgy" 260
+require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" \
+    'import "driver_source_mir_protocol_owner.pgy";'
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/compiler/driver_source_mir_protocol_owner.pgy'
 require_file "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" 80
@@ -12241,7 +12266,7 @@ require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" \
     'public zone DriverSourceMirZone'
 require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" \
-    'SelfMirArtifactCommitPayload(output_path, payload)'
+    'SelfMirArtifactCommitPayload('
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'import "world.pgy";'
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
@@ -12251,13 +12276,15 @@ require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'let compiler_world: PgyCompilerWorld = PgyCompilerWorld('
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
-    'func EmitSourceMirThroughPgyCompilerWorld('
+    'func ProduceSourceMirThroughPgyCompilerWorld('
+require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
+    'func PublishSourceMirArtifactThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     'import "compiler_world_direct_mir_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     'EmitDirectMirThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
-    'EmitSourceMirThroughPgyCompilerWorld('
+    'PublishSourceMirArtifactThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     'args[0] == "--mir-json-backend=c"'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \

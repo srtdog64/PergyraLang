@@ -1,6 +1,6 @@
 // DRV-2 command-line mode routing owner.
 
-import "driver_rung2_owner.pgy";
+import "compiler_world_direct_mir_owner.pgy";
 import "driver_rung2_mir_manifest_owner.pgy";
 
 func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {
@@ -19,7 +19,24 @@ func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {
         if ArrayLength(args) == 3 {
             declaration = SelfHostMachineLayerDeclarationFromPath(args[2]);
         }
-        Log(CompileSourceToMirJsonVerified(args[1], declaration));
+        let source_outcome: DriverSourceMirExecutionOutcome = ProduceSourceMirThroughPgyCompilerWorld(
+            args[1], declaration, SourceMirVerified
+        );
+        if !DriverSourceMirExecutionOutcomePayloadReadyFor(source_outcome, args[1], SourceMirVerified) {
+            Log(DriverSourceMirExecutionOutcomePayloadDiagnostic(
+                source_outcome, args[1], SourceMirVerified
+            ));
+            Exit(1);
+        }
+        match source_outcome {
+            case DriverSourceMirProduced(receipt): Log(receipt.payload);
+            case DriverSourceMirExecuted(receipt):
+                Die("source MIR payload execution published an artifact");
+            case DriverSourceMirRejected(rejection):
+                Die("source MIR payload execution returned an unchecked rejection");
+            case DriverSourceMirArtifactRejected(failure):
+                Die("source MIR payload execution reached the artifact transaction");
+        }
         return;
     }
     if (ArrayLength(args) == 2 || ArrayLength(args) == 3) &&

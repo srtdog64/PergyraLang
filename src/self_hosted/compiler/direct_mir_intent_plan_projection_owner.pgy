@@ -73,16 +73,17 @@ func DirectMirIntentSemanticRootForExactInstruction(
 
 func DirectMirIntentExecutionViewFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
+    plan: MirIntentExecutionPlan,
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
     ref occurrences: MirExpressionSemanticOccurrenceIndex,
     canonical_routine_source_syntax_ids: Array<String>
 ) -> CodegenIntentExecutionView {
-    // The bounded carrier is copied once into the codegen view.  Its complete
-    // readiness/digest was already established by machine admission.
-    let plan: MirIntentExecutionPlan = Clone(
-        admitted.intent_execution_plan
-    );
-    if !plan.present { return CodegenIntentExecutionViewEmpty(true); }
+    // The caller projects the admitted plan through this typed value parameter.
+    // Its complete readiness/digest was already established by machine
+    // admission; projection must not reconstruct or revalidate it.
+    if !plan.present {
+        return CodegenIntentExecutionViewEmpty(true);
+    }
     if !plan.valid || !occurrences.valid || !expression_surfaces.ok ||
         ArrayLength(canonical_routine_source_syntax_ids) !=
             MirProgramRoutineIndexCount(admitted.routines) {

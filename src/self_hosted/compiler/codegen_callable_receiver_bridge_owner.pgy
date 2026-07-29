@@ -56,7 +56,8 @@ func CodegenAdmittedCViewFromFactsOrDie(
         CodegenDomainRuntimeFactsFromAdmittedOrDie(admitted);
     let intent_execution: CodegenIntentExecutionView =
         DirectMirIntentExecutionViewFromAdmitted(
-            admitted, analysis.expression_surfaces,
+            admitted, admitted.intent_execution_plan,
+            analysis.expression_surfaces,
             intent_expression_occurrences,
             canonical_routine_source_syntax_ids
         );

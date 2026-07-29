@@ -35,7 +35,19 @@ func EmitDirectMirThroughPgyCompilerWorld(
     );
 }
 
-func EmitSourceMirThroughPgyCompilerWorld(
+func ProduceSourceMirThroughPgyCompilerWorld(
+    source_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    request: DriverSourceMirRequest
+) -> DriverSourceMirExecutionOutcome with caps io_read {
+    let compiler_world: PgyCompilerWorld =
+        PgyCompilerWorldMaterializeExecutableZones();
+    return compiler_world.ProduceSourceMir(
+        source_path, machine_declaration, request
+    );
+}
+
+func PublishSourceMirArtifactThroughPgyCompilerWorld(
     source_path: String,
     output_path: String,
     machine_declaration: SelfHostMachineLayerDeclaration,
@@ -43,7 +55,7 @@ func EmitSourceMirThroughPgyCompilerWorld(
 ) -> DriverSourceMirExecutionOutcome with caps io_read, io_write {
     let compiler_world: PgyCompilerWorld =
         PgyCompilerWorldMaterializeExecutableZones();
-    return compiler_world.EmitSourceMir(
+    return compiler_world.PublishSourceMirArtifact(
         source_path, output_path, machine_declaration, request
     );
 }

@@ -932,7 +932,10 @@ inventory must not become a second fact-family owner registry.
   carriers, including exact companion-row cardinality and tree text rows.
 - `src/self_hosted/mir_lower/intent_phase_projection_owner.pgy` -- one admitted
   phase plan with exact step attachment, singleton cardinality, on-only result
-  shape, graph presence, and source-ordered compensate ranges.
+  shape, graph presence, and source-ordered compensate ranges. It stages
+  member arrays as distinct locals and materializes the projection once on
+  success, so a rejected carrier never publishes partial phase state and the
+  Pergyra-built subset does not depend on direct member-array inout.
 - `src/self_hosted/mir_lower/intent_phase_tree_owner.pgy` -- compact
   On/Compensate/Guard/Post/Expect rows and matching graph occurrence order from
   the admitted phase plan; it owns no MIR or source rediscovery path.
@@ -1604,12 +1607,17 @@ inventory must not become a second fact-family owner registry.
   to-target admission, exact emitted-artifact acceptance, output write, and
   execution stage/result facts plus the one-subject direct-MIR authority zone,
   while reusing the existing typed MIR and backend owners unchanged.
+- `src/self_hosted/compiler/driver_source_mir_protocol_owner.pgy` -- source-to-
+  MIR request, identity/schema, detached payload/artifact receipt, rejection,
+  outcome validation, and diagnostic protocol. It owns no compilation,
+  artifact write, or semantic fact.
 - `src/self_hosted/compiler/driver_source_mir_execution_owner.pgy` -- reachable
-  source-to-MIR subject/action/zone boundary. It owns verified versus pressure-
-  observed request admission, subject/topology identity rejection, exactly one
-  existing source-to-MIR payload-owner call, one atomic artifact commit, and a
-  typed receipt/rejection/failure outcome. It owns no lexer, parser, semantic,
-  DIR, or MIR fact.
+  source-to-MIR subject/action/zone boundary. It consumes the protocol owner,
+  admits verified versus pressure-observed execution and subject/topology
+  identity, then calls exactly one existing source-to-MIR payload owner. Its
+  `io_read` payload action and `io_read, io_write` artifact action share that
+  admission; only the latter owns one atomic commit. It owns no lexer, parser,
+  semantic, DIR, or MIR fact.
 - `src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy` -- active-slice
   composition owner for the single `PgyCompilerWorld`. It constructs the
   ordered direct-MIR and source-to-MIR zones once through

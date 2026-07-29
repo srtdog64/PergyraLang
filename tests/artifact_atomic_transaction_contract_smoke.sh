@@ -5,7 +5,8 @@
 # second_whole_graph_validation, crash_durability_without_sync,
 # failure_tag_only, outcome_bool_collapse_before_last_consumer,
 # receipt_as_authority_or_projection_source, unknown_failure_status,
-# known_wrong_target_projection.
+# known_wrong_target_projection, source_mir_main_direct_commit,
+# source_mir_file_helper_fallback.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -18,9 +19,10 @@ DRIVER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy"
 ACTION="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
 MAIN="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
 CLI="$ROOT_DIR/src/self_hosted/compiler/driver_cli_owner.pgy"
+SOURCE_ACTION_GATE="$ROOT_DIR/tests/self_hosted/parity/driver_source_mir_execution_action_gate.sh"
 
 for path in "$CORE" "$WRITER" "$INSTRUCTION_WRITER" "$TX_OWNER" "$JSON_EMIT" \
-    "$DRIVER" "$ACTION" "$MAIN" "$CLI"; do
+    "$DRIVER" "$ACTION" "$MAIN" "$CLI" "$SOURCE_ACTION_GATE"; do
     [[ -f "$path" ]] || { echo "missing artifact transaction owner: $path" >&2; exit 1; }
 done
 
@@ -94,5 +96,7 @@ grep -Fq 'SelfMirArtifactCommitStatusKnown(failure.status)' "$TX_OWNER" || {
     echo "artifact failure admitted an unknown status identity" >&2
     exit 1
 }
+
+bash "$SOURCE_ACTION_GATE" >/dev/null
 
 echo "[artifact-atomic-contract] one runtime owner; typed receipt; no raw final writer; single production validation"

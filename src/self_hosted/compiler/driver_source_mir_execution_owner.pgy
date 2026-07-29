@@ -1,154 +1,123 @@
 // Production-reachable source-to-MIR orchestration boundary.
 // Typed source/MIR owners retain semantic authority; this subject owns
-// pressure admission, one payload compilation, artifact commit, and outcome.
+// pressure admission, one payload compilation, and the artifact commit.
 
+import "driver_source_mir_protocol_owner.pgy";
 import "driver_rung2_owner.pgy";
 import "../mir/artifact_transaction_owner.pgy";
 
-enum DriverSourceMirRequest {
-    SourceMirVerified,
-    SourceMirPressureObserved,
-}
-
-tobject DriverSourceMirExecutionReceipt {
-    schema: String;
-    request_mode: String;
-    source_path: String;
-    final_path: String;
-    atomic_visibility: Bool;
-    crash_durable: Bool;
-}
-
-tobject DriverSourceMirExecutionRejection {
-    schema: String;
-    request_mode: String;
-    source_path: String;
-    diagnostic: String;
-}
-
-enum DriverSourceMirExecutionOutcome {
-    DriverSourceMirExecuted(DriverSourceMirExecutionReceipt),
-    DriverSourceMirRejected(DriverSourceMirExecutionRejection),
-    DriverSourceMirArtifactRejected(SelfMirArtifactFailure),
-}
-
-func DriverSourceMirExecutionOwnerIdentity() -> String {
-    return "driver-source-mir-execution";
-}
-
-func DriverSourceMirExecutionTopologyIdentity() -> String {
-    return "driver-source-mir-zone.v1";
-}
-
-func DriverSourceMirExecutionOutcomeSchema() -> String {
-    return "pgy.driver-source-mir-execution-outcome.v1";
-}
-
-func DriverSourceMirRequestMode(
-    request: DriverSourceMirRequest
-) -> String {
-    match request {
-        case SourceMirVerified: return "verified";
-        case SourceMirPressureObserved: return "pressure-observed";
-    }
-}
-
-func DriverSourceMirRequestObservesPressure(
-    request: DriverSourceMirRequest
-) -> Bool {
-    match request {
-        case SourceMirVerified: return false;
-        case SourceMirPressureObserved: return true;
-    }
-}
-
-func DriverSourceMirPathEndsWith(path: String, suffix: String) -> Bool {
-    let path_length: Int = StringLength(path);
-    let suffix_length: Int = StringLength(suffix);
-    return path_length >= suffix_length &&
-        SubEqualsWithLen(
-            path, path_length, path_length - suffix_length,
-            suffix_length, suffix
-        );
-}
-
-func DriverSourceMirIsFullDriverSource(source_path: String) -> Bool {
-    return source_path ==
-        "src/self_hosted/compiler/driver_bootstrap_main.pgy" ||
-        DriverSourceMirPathEndsWith(
-            source_path,
-            "/src/self_hosted/compiler/driver_bootstrap_main.pgy"
-        );
-}
-
-func DriverSourceMirRejectedOutcome(
-    request: DriverSourceMirRequest,
+func DriverSourceMirProducePayloadAdmitted(
+    subject_identity: String,
+    topology_identity: String,
     source_path: String,
-    diagnostic: String
-) -> DriverSourceMirExecutionOutcome {
-    return DriverSourceMirRejected(DriverSourceMirExecutionRejection(
-        DriverSourceMirExecutionOutcomeSchema(),
-        DriverSourceMirRequestMode(request),
-        source_path,
-        diagnostic
-    ));
-}
-
-func DriverSourceMirExecutionOutcomeReadyFor(
-    outcome: DriverSourceMirExecutionOutcome,
-    expected_source_path: String,
-    expected_output_path: String,
-    expected_request: DriverSourceMirRequest
-) -> Bool {
-    match outcome {
-        case DriverSourceMirExecuted(receipt):
-            return receipt.schema ==
-                    DriverSourceMirExecutionOutcomeSchema() &&
-                receipt.request_mode ==
-                    DriverSourceMirRequestMode(expected_request) &&
-                receipt.source_path == expected_source_path &&
-                receipt.final_path == expected_output_path &&
-                receipt.atomic_visibility && !receipt.crash_durable;
-        case DriverSourceMirRejected(rejection): return false;
-        case DriverSourceMirArtifactRejected(failure): return false;
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    request: DriverSourceMirRequest
+) -> DriverSourceMirPayloadAdmission with caps io_read {
+    if subject_identity != DriverSourceMirExecutionOwnerIdentity() {
+        return DriverSourceMirPayloadDenied(
+            DriverSourceMirExecutionRejection(
+                DriverSourceMirExecutionOutcomeSchema(),
+                DriverSourceMirRequestMode(request),
+                source_path,
+                "source MIR execution subject identity is invalid"
+            )
+        );
     }
-}
+    if topology_identity != DriverSourceMirExecutionTopologyIdentity() {
+        return DriverSourceMirPayloadDenied(
+            DriverSourceMirExecutionRejection(
+                DriverSourceMirExecutionOutcomeSchema(),
+                DriverSourceMirRequestMode(request),
+                source_path,
+                "source MIR execution topology identity is invalid"
+            )
+        );
+    }
 
-func DriverSourceMirExecutionOutcomeDiagnostic(
-    outcome: DriverSourceMirExecutionOutcome,
-    expected_source_path: String,
-    expected_output_path: String,
-    expected_request: DriverSourceMirRequest
-) -> String {
-    match outcome {
-        case DriverSourceMirExecuted(receipt):
-            if DriverSourceMirExecutionOutcomeReadyFor(
-                outcome, expected_source_path, expected_output_path,
-                expected_request
-            ) { return ""; }
-            return "source MIR execution receipt is invalid";
-        case DriverSourceMirRejected(rejection):
-            if rejection.schema !=
-                    DriverSourceMirExecutionOutcomeSchema() ||
-                rejection.request_mode !=
-                    DriverSourceMirRequestMode(expected_request) ||
-                rejection.source_path != expected_source_path ||
-                rejection.diagnostic == "" {
-                return "source MIR execution rejection payload is invalid";
-            }
-            return rejection.diagnostic;
-        case DriverSourceMirArtifactRejected(failure):
-            return SelfMirArtifactFailureDiagnostic(
-                failure, expected_output_path
+    let full_driver: Bool = DriverSourceMirIsFullDriverSource(source_path);
+    let pressure_observed: Bool =
+        DriverSourceMirRequestObservesPressure(request);
+    if full_driver && !pressure_observed {
+        return DriverSourceMirPayloadDenied(
+            DriverSourceMirExecutionRejection(
+                DriverSourceMirExecutionOutcomeSchema(),
+                DriverSourceMirRequestMode(request),
+                source_path,
+                "full driver MIR production requires pressure observation"
+            )
+        );
+    }
+    if !full_driver && pressure_observed {
+        return DriverSourceMirPayloadDenied(
+            DriverSourceMirExecutionRejection(
+                DriverSourceMirExecutionOutcomeSchema(),
+                DriverSourceMirRequestMode(request),
+                source_path,
+                "pressure-observed source MIR is only valid for the full driver"
+            )
+        );
+    }
+
+    let payload: String = "";
+    match request {
+        case SourceMirVerified:
+            payload = CompileSourceToMirJsonVerified(
+                source_path, machine_declaration
+            );
+        case SourceMirPressureObserved:
+            payload = CompileSourceToMirJsonPressureObserved(
+                source_path, machine_declaration
             );
     }
+    if payload == "" {
+        return DriverSourceMirPayloadDenied(
+            DriverSourceMirExecutionRejection(
+                DriverSourceMirExecutionOutcomeSchema(),
+                DriverSourceMirRequestMode(request),
+                source_path,
+                "source MIR execution produced an empty payload"
+            )
+        );
+    }
+    return DriverSourceMirPayloadAdmitted(
+        DriverSourceMirPayloadReceipt(
+            DriverSourceMirExecutionOutcomeSchema(),
+            DriverSourceMirRequestMode(request),
+            source_path,
+            payload
+        )
+    );
 }
 
 subject DriverSourceMirExecution {
     let identity: String;
     let topology_identity: String;
 
-    action EmitSourceMir(
+    action ProduceSourceMir(
+        self,
+        source_path: String,
+        machine_declaration: SelfHostMachineLayerDeclaration,
+        request: DriverSourceMirRequest
+    ) -> DriverSourceMirExecutionOutcome
+        within DriverSourceMirZone
+        authorized by self
+        with caps io_read {
+        let admission: DriverSourceMirPayloadAdmission =
+            DriverSourceMirProducePayloadAdmitted(
+                self.identity, self.topology_identity, source_path,
+                machine_declaration, request
+            );
+        match admission {
+            case DriverSourceMirPayloadAdmitted(receipt):
+                return DriverSourceMirProduced(
+                    receipt
+                );
+            case DriverSourceMirPayloadDenied(rejection):
+                return DriverSourceMirRejected(rejection);
+        }
+    }
+
+    action PublishSourceMirArtifact(
         self,
         source_path: String,
         output_path: String,
@@ -158,77 +127,46 @@ subject DriverSourceMirExecution {
         within DriverSourceMirZone
         authorized by self
         with caps io_read, io_write {
-        if self.identity != DriverSourceMirExecutionOwnerIdentity() {
+        if output_path == "" {
             return DriverSourceMirRejectedOutcome(
                 request, source_path,
-                "source MIR execution subject identity is invalid"
+                "source MIR artifact destination path is empty"
             );
         }
-        if self.topology_identity !=
-            DriverSourceMirExecutionTopologyIdentity() {
-            return DriverSourceMirRejectedOutcome(
-                request, source_path,
-                "source MIR execution topology identity is invalid"
+        let admission: DriverSourceMirPayloadAdmission =
+            DriverSourceMirProducePayloadAdmitted(
+                self.identity, self.topology_identity, source_path,
+                machine_declaration, request
             );
-        }
-
-        let full_driver: Bool =
-            DriverSourceMirIsFullDriverSource(source_path);
-        let pressure_observed: Bool =
-            DriverSourceMirRequestObservesPressure(request);
-        if full_driver && !pressure_observed {
-            return DriverSourceMirRejectedOutcome(
-                request, source_path,
-                "full driver MIR production requires pressure observation"
-            );
-        }
-        if !full_driver && pressure_observed {
-            return DriverSourceMirRejectedOutcome(
-                request, source_path,
-                "pressure-observed source MIR is only valid for the full driver"
-            );
-        }
-
-        let payload: String = "";
-        match request {
-            case SourceMirVerified:
-                payload = CompileSourceToMirJsonVerified(
-                    source_path, machine_declaration
-                );
-            case SourceMirPressureObserved:
-                payload = CompileSourceToMirJsonPressureObserved(
-                    source_path, machine_declaration
-                );
-        }
-        if payload == "" {
-            return DriverSourceMirRejectedOutcome(
-                request, source_path,
-                "source MIR execution produced an empty payload"
-            );
-        }
-
-        let committed: SelfMirArtifactCommitOutcome =
-            SelfMirArtifactCommitPayload(output_path, payload);
-        match committed {
-            case SelfMirArtifactCommitted(receipt):
-                if !SelfMirArtifactReceiptReadyFor(receipt, output_path) {
-                    return DriverSourceMirRejectedOutcome(
-                        request, source_path,
-                        "source MIR artifact receipt is invalid"
+        match admission {
+            case DriverSourceMirPayloadDenied(rejection):
+                return DriverSourceMirRejected(rejection);
+            case DriverSourceMirPayloadAdmitted(payload_receipt):
+                let committed: SelfMirArtifactCommitOutcome =
+                    SelfMirArtifactCommitPayload(
+                        output_path, payload_receipt.payload
                     );
+                match committed {
+                    case SelfMirArtifactCommitted(receipt):
+                        if !SelfMirArtifactReceiptReadyFor(receipt, output_path) {
+                            return DriverSourceMirRejectedOutcome(
+                                request, source_path,
+                                "source MIR artifact receipt is invalid"
+                            );
+                        }
+                        return DriverSourceMirExecuted(
+                            DriverSourceMirExecutionReceipt(
+                                DriverSourceMirExecutionOutcomeSchema(),
+                                DriverSourceMirRequestMode(request),
+                                source_path,
+                                receipt.final_path,
+                                receipt.atomic_visibility,
+                                receipt.crash_durable
+                            )
+                        );
+                    case SelfMirArtifactRejected(failure):
+                        return DriverSourceMirArtifactRejected(failure);
                 }
-                return DriverSourceMirExecuted(
-                    DriverSourceMirExecutionReceipt(
-                        DriverSourceMirExecutionOutcomeSchema(),
-                        DriverSourceMirRequestMode(request),
-                        source_path,
-                        receipt.final_path,
-                        receipt.atomic_visibility,
-                        receipt.crash_durable
-                    )
-                );
-            case SelfMirArtifactRejected(failure):
-                return DriverSourceMirArtifactRejected(failure);
         }
     }
 }

@@ -1,12 +1,69 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-07-29
+마지막 업데이트: 2026-07-30
+
+## 2026-07-30 installed source-to-MIR one-graph checkpoint
+
+- 실제 사용자 경로를 다시 추적해 `bin/pgy --self-driver`가
+  `driver_bootstrap_main.pgy`가 아니라 설치된 `pgy-self-driver`의
+  `driver_rung2_main.pgy -> driver_rung2_cli_owner.pgy`를 실행한다는 숨은 두 번째
+  source-to-MIR orchestration을 발견했다. 설치 CLI의 직접
+  `CompileSourceToMirJsonVerified` 호출을 삭제했다.
+- 설치 CLI와 full bootstrap artifact root는 이제 모두
+  `PgyCompilerWorld.source_mir -> DriverSourceMirExecution` 한 owner를 지난다.
+  Installed stdout은 `io_read` 전용 `ProduceSourceMir`, bootstrap artifact는
+  `io_read, io_write`의 `PublishSourceMirArtifact`를 호출한다. 둘은 같은 payload
+  admission owner를 소비하므로 compile/identity/pressure 결정은 복제되지 않는다.
+  빈 경로 sentinel, 임시 파일 왕복, caller의 direct compile/commit은 금지된다.
+- 물리적 stage 폴더는 서로 다른 lexer/parser/semantic/MIR fact lifetime을
+  보존하므로 합쳐서 한 파일로 만들지 않는다. “프로그램 그래프 하나”의 의미는
+  설치 root와 bootstrap root가 같은 world/action owner를 소비하고 독립 결정을
+  갖지 않는다는 뜻이다.
+- Static installed-link/action no-bypass gate, compiler-world contract와 두 entrypoint
+  AST parse는 PASS했다. Full staged-array build는 5,101,206ms 뒤 explicit
+  `initializer_type_unresolved`로 설치 전 실패했지만 peak private 1,469.2MB,
+  working set 1,301.8MB로 3GiB/20GiB memory regression은 재현하지 않았다.
+  불필요한 `Clone(admitted.intent_execution_plan)`은 제거했다. 중간의 typed local은
+  old gen2 inference 오류를 없앴지만 current compiler의 borrowed-member escape
+  규칙에 어긋났으므로, 최종 source는 admitted member를 typed value parameter로
+  projection한다. `own` 권한 확대, detached local, Clone과 consumer 재검증을
+  ratchet이 거부한다. Existing seed를 쓴 intermediate install-only rerun에서는
+  이전 initializer 오류가 재현되지 않았지만
+  4,605,377ms 뒤 peak private 3,072.0MB, working set 2,820.5MB에서 고정 pressure
+  owner가 중단했다. `driver.c`는 0바이트이고 설치 바이너리는 갱신되지 않았으므로
+  install/launcher parity는 PASS가 아니다. 다음 executable falsifier는 admitted
+  semantic-analysis receipt를 emission이 소비해 whole-artifact fact 재구성 횟수를
+  0으로 만드는 것이며, 제한 상향은 해법으로 인정하지 않는다. 최종 typed-value
+  source의 focused driver rebuild는 성공했고, broader machine-layer gate는 별도
+  기존 producer/consumer fact mismatch에서 RED다.
+
+## 2026-07-30 Insere/Zeno library lineage checkpoint
+
+- 사용자 소유 `F:/insere`와 `F:/zeno`의 채택 계약을
+  `docs/201_insere_zeno_lineage_and_library_adoption.md`에 revision까지 고정했다.
+  외부 source는 provenance/falsifier이고 Pergyra semantic SoT는 아니다. Zeno의
+  기존 dirty package/`llms.txt` 작업은 수정하지 않았다.
+- Insere의 latest-only start admission은 기존 `HostTaskSlot` 위의 typed
+  `spawn`/`restart`/`skip` policy로 구현했다. Active skip/spawn은 generation을
+  보존하고 restart만 증가시키며, vacant 세 정책은 같은 next generation을
+  시작한다. Generation 0/negative/상한과 unknown phase는 fail closed하고,
+  `Phase`가 malformed fact를 `vacant`로 위장하지 않는다.
+- Zeno-derived `SnapshotTicket`/`BinaryProjectionPreflight`는 existing MIR layout
+  identity와 explicit endian을 소비하는 internal tooling `REACHABLE` slice다.
+  Snapshot ticket 값은 아직 caller-provided이므로 live `SlotHandle` authenticity나
+  production consumer 증거로 세지 않는다.
+- 다음 후보는 start admission과 분리된 bounded post-failure supervision,
+  `MirAbiLayoutRowCapture` 단일 owner에서 파생하는 normalized manifest diff,
+  기존 diagnostic/loss-contract owner에 붙는 resolution/loss evidence다. 새
+  scheduler, Zeno hash, backend별 layout table, 새 error taxonomy는 금지된다.
+- 이 작업들은 공식 library/tooling 채택이며 C-owned compiler path를 삭제하지
+  않았으므로 hard self-host `SUBSTITUTING` 진척으로 세지 않는다.
 
 ## 2026-07-29 source-to-MIR compiler-world action checkpoint
 
-- Production `--emit-mir-json-verified`는 이제 `Main ->
-  EmitSourceMirThroughPgyCompilerWorld -> PgyCompilerWorld.source_mir ->
-  DriverSourceMirExecution.EmitSourceMir` 한 경로를 지난다. World는 기존
+- Production artifact `--emit-mir-json-verified`는 이제 `Main ->
+  PublishSourceMirArtifactThroughPgyCompilerWorld -> PgyCompilerWorld.source_mir ->
+  DriverSourceMirExecution.PublishSourceMirArtifact` 한 경로를 지난다. World는 기존
   `direct_mir` 다음에 `source_mir`를 두며 한 composition owner가 두 zone을
   정확한 positional arity로 한 번 materialize한다.
 - 새 action은 subject/topology identity와 pressure mode를 admit하고, 기존 typed

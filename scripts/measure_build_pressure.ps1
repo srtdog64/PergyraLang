@@ -417,7 +417,27 @@ while (-not $process.HasExited) {
         $workingSet.ToString("F1", $invariantCulture), `
         $private.ToString("F1", $invariantCulture), $topName, `
         $topPrivate.ToString("F1", $invariantCulture)
-    Add-Content -Encoding ASCII -Path $samplePath -Value $line
+    # A live observer may open the CSV without write sharing (for example,
+    # Import-Csv on Windows). Treat that short lock as instrumentation
+    # contention, not as a reason to abandon the measured build. The retry is
+    # deliberately bounded so a persistent ownership problem still fails.
+    $sampleWritten = $false
+    for ($sampleAttempt = 1; $sampleAttempt -le 20; $sampleAttempt++) {
+        try {
+            Add-Content -Encoding ASCII -Path $samplePath -Value $line
+            $sampleWritten = $true
+            break
+        }
+        catch [System.IO.IOException] {
+            if ($sampleAttempt -eq 20) {
+                throw
+            }
+            Start-Sleep -Milliseconds 25
+        }
+    }
+    if (-not $sampleWritten) {
+        throw "build-pressure sample append did not complete"
+    }
 
     if ($workingSet -gt $peakWorkingSet) {
         $peakWorkingSet = $workingSet

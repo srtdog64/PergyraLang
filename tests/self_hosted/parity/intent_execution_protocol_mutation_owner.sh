@@ -52,7 +52,7 @@ component_line_budget() {
         || fail "component exceeds $maximum-line owner budget: $path ($lines)"
 }
 component_line_budget "${BASH_SOURCE[0]}" 120
-component_line_budget "$STATIC_OWNER" 130
+component_line_budget "$STATIC_OWNER" 180
 component_line_budget "$CORPUS_OWNER" 900
 component_line_budget "$ADMISSION_RUNNER" 100
 

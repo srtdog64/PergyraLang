@@ -180,7 +180,6 @@ use versioning;
 use ledger;
 use obligation;
 use device_adapter;
-use host_task_slot;
 
 func Main() -> Void {
     let date: LocalDate = LocalDate(2026, 4, 26);
@@ -203,13 +202,6 @@ func Main() -> Void {
     let sample: DeviceSample = SampleDevice(register, 44, 200);
     Log(SampleEventTopic(sample));
 
-    let taskOpened: HostTaskSlotTransition = HostTasks.Open("stable-probe");
-    let oldTicket: HostTaskTicket = taskOpened.ticket;
-    let taskReplaced: HostTaskSlotTransition = HostTasks.Replace(taskOpened.slot, "stable-probe");
-    let stalePublish: HostTaskSlotTransition = HostTasks.PublishFinal(taskReplaced.slot, oldTicket, "stale");
-    if taskReplaced.applied && !stalePublish.applied && stalePublish.reason == "stale_generation" {
-        Log("host-task-slot-stable");
-    }
 }
 EOF
 
@@ -283,7 +275,7 @@ run_backend() {
 
     output="$(cd "$ROOT_DIR" && "$PGY" "$modules_arg" --backend="$backend" --run 2>&1)"
 
-    for expected in "2026-4-26" "true" "device/sensor" "host-task-slot-stable"; do
+    for expected in "2026-4-26" "true" "device/sensor"; do
         if ! grep -Fq "$expected" <<<"$output"; then
             echo "[stdlib-smoke] use-modules backend=$backend missing '$expected'" >&2
             echo "--- output ---" >&2

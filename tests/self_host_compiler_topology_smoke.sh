@@ -120,36 +120,43 @@ for owner_term in \
     "$EXECUTION|subject slot execution: DriverRung2Execution" \
     "$EXECUTION|authority execution" \
     "$SOURCE_EXECUTION|public zone DriverSourceMirZone" \
-    "$SOURCE_EXECUTION|within DriverSourceMirZone" \
-    "$SOURCE_EXECUTION|authorized by self" \
     "$SOURCE_EXECUTION|subject slot execution: DriverSourceMirExecution" \
     "$SOURCE_EXECUTION|authority execution" \
     "$WORLD|zone direct_mir: DriverRung2DirectMirZone" \
     "$WORLD|zone source_mir: DriverSourceMirZone" \
     "$WORLD|return self.direct_mir.execution.EmitDirectMir(" \
-    "$WORLD|return self.source_mir.execution.EmitSourceMir(" \
+    "$WORLD|return self.source_mir.execution.ProduceSourceMir(" \
+    "$WORLD|return self.source_mir.execution.PublishSourceMirArtifact(" \
     "$COMPOSITION|import \"world.pgy\";" \
     "$COMPOSITION|func PgyCompilerWorldMaterializeExecutableZones()" \
     "$COMPOSITION|func EmitDirectMirThroughPgyCompilerWorld(" \
-    "$COMPOSITION|func EmitSourceMirThroughPgyCompilerWorld(" \
+    "$COMPOSITION|func ProduceSourceMirThroughPgyCompilerWorld(" \
+    "$COMPOSITION|func PublishSourceMirArtifactThroughPgyCompilerWorld(" \
     "$COMPOSITION|DriverRung2DirectMirZone(" \
     "$COMPOSITION|DriverSourceMirZone(" \
     "$COMPOSITION|return compiler_world.EmitDirectMir(" \
-    "$COMPOSITION|return compiler_world.EmitSourceMir(" \
+    "$COMPOSITION|return compiler_world.ProduceSourceMir(" \
+    "$COMPOSITION|return compiler_world.PublishSourceMirArtifact(" \
     "$MAIN|import \"compiler_world_direct_mir_owner.pgy\";" \
     "$MAIN|EmitDirectMirThroughPgyCompilerWorld(" \
-    "$MAIN|EmitSourceMirThroughPgyCompilerWorld("; do
+    "$MAIN|PublishSourceMirArtifactThroughPgyCompilerWorld("; do
     owner="${owner_term%%|*}"
     term="${owner_term#*|}"
     [[ "$(grep -F -c -- "$term" "$owner")" -eq 1 ]] ||
         fail "direct-MIR topology fact must occur exactly once: $term"
 done
 
+[[ "$(grep -F -c -- 'within DriverSourceMirZone' "$SOURCE_EXECUTION")" -eq 2 ]] ||
+    fail "source-MIR subject must expose exactly two zone-bound publication actions"
+[[ "$(grep -F -c -- 'authorized by self' "$SOURCE_EXECUTION")" -eq 2 ]] ||
+    fail "both source-MIR publication actions must retain subject authority"
+
 if grep -Fq -- 'import "driver_rung2_execution_owner.pgy";' "$MAIN" ||
     grep -Fq -- 'import "driver_source_mir_execution_owner.pgy";' "$MAIN" ||
     grep -Fq -- 'import "world.pgy";' "$MAIN" ||
     grep -Fq -- '.EmitDirectMir(' "$MAIN" ||
-    grep -Fq -- '.EmitSourceMir(' "$MAIN"; then
+    grep -Fq -- '.ProduceSourceMir(' "$MAIN" ||
+    grep -Fq -- '.PublishSourceMirArtifact(' "$MAIN"; then
     fail "production Main bypassed the single compiler-world composition path"
 fi
 
@@ -213,7 +220,7 @@ awk '
     /^\| `BackendResources\.DirectMIR` \| `DriverRung2DirectMirZone` \|$/ { direct_mir++ }
     /^\| `BackendResources\.SourceMIR` \| `DriverSourceMirZone` \|$/ { source_mir++ }
     /driver_bootstrap_main\.Main -> EmitDirectMirThroughPgyCompilerWorld/ { reachable_path++ }
-    /driver_bootstrap_main\.Main -> EmitSourceMirThroughPgyCompilerWorld/ { reachable_source_path++ }
+    /driver_bootstrap_main\.Main -> PublishSourceMirArtifactThroughPgyCompilerWorld/ { reachable_source_path++ }
     /exactly 20 concrete resource zones and two executable world members/ { exact_topology++ }
     /target facade projection, not a claim that four new aggregate zones/ {
         projection++

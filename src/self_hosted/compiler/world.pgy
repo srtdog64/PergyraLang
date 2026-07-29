@@ -282,14 +282,25 @@ world PgyCompilerWorld {
         );
     }
 
-    func EmitSourceMir(
+    func ProduceSourceMir(
+        self,
+        source_path: String,
+        machine_declaration: SelfHostMachineLayerDeclaration,
+        request: DriverSourceMirRequest
+    ) -> DriverSourceMirExecutionOutcome with caps io_read {
+        return self.source_mir.execution.ProduceSourceMir(
+            source_path, machine_declaration, request
+        );
+    }
+
+    func PublishSourceMirArtifact(
         self,
         source_path: String,
         output_path: String,
         machine_declaration: SelfHostMachineLayerDeclaration,
         request: DriverSourceMirRequest
     ) -> DriverSourceMirExecutionOutcome with caps io_read, io_write {
-        return self.source_mir.execution.EmitSourceMir(
+        return self.source_mir.execution.PublishSourceMirArtifact(
             source_path, output_path, machine_declaration, request
         );
     }

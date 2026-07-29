@@ -2164,7 +2164,9 @@ mir-lowering-api-test-smoke:
 	"$(BASH)" tests/mir_lowering_api_smoke.sh
 
 domain-runtime-topology-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/domain_runtime_topology_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" \
+	PGY_DOMAIN_RUNTIME_TOPOLOGY_BACKENDS="$${PGY_DOMAIN_RUNTIME_TOPOLOGY_BACKENDS:-$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)}" \
+	"$(BASH)" tests/domain_runtime_topology_smoke.sh
 
 .PHONY: mir-only-signature-test-smoke mir-lowering-api-test-smoke domain-runtime-topology-test-smoke parallel-capture-projection-test-smoke
 
@@ -2411,6 +2413,20 @@ stdlib-test-smoke:
 	$(MAKE) $(PGY)
 	PGY_STDLIB_BACKENDS="$${PGY_STDLIB_BACKENDS:-$(STDLIB_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/stdlib_surface_smoke.sh
+	PGY_HOST_TASK_SLOT_BACKENDS="$${PGY_HOST_TASK_SLOT_BACKENDS:-$(STDLIB_BACKENDS)}" \
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/host_task_slot_smoke.sh
+	PGY_HOST_TASK_POLICY_BACKENDS="$${PGY_HOST_TASK_POLICY_BACKENDS:-$(STDLIB_BACKENDS)}" \
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/host_task_policy_smoke.sh
+
+host-task-slot-test-smoke: $(PGY)
+	PGY_HOST_TASK_SLOT_BACKENDS="$${PGY_HOST_TASK_SLOT_BACKENDS:-$(STDLIB_BACKENDS)}" \
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/host_task_slot_smoke.sh
+
+host-task-policy-test-smoke: $(PGY)
+	PGY_HOST_TASK_POLICY_BACKENDS="$${PGY_HOST_TASK_POLICY_BACKENDS:-$(STDLIB_BACKENDS)}" \
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/host_task_policy_smoke.sh
+
+.PHONY: host-task-slot-test-smoke host-task-policy-test-smoke
 
 stage4-determinism-test-smoke:
 	$(MAKE) $(PGY)

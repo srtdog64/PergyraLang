@@ -128,7 +128,7 @@ EOF
 cat > "$WORK_DIR/ability_zone_same_module/main.pgy" <<'EOF'
 import "mod.pgy";
 func Main() -> Void {
-    let zone = AnalysisZone(7);
+    let zone = AnalysisZone();
     Log(ToString(zone.n));
 }
 EOF

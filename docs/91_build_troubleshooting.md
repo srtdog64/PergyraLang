@@ -1,6 +1,6 @@
 # Build Troubleshooting
 
-마지막 업데이트: 2026-05-24
+마지막 업데이트: 2026-07-30
 
 빌드/회귀 도중 자주 마주치는 문제와 대응. **항상 `mingw32-make rebuild`를 먼저 시도**하면 절반은 풀린다.
 
@@ -2649,6 +2649,145 @@ Timeout 뒤 `pgy`/`gcc`/`clang` descendant가 남지 않았음을 확인했다. 
 - 다음 측정은 동일 source와 cache 상태를 기록하고 pressure owner 아래에서 phase,
   peak working/private bytes, artifact publish 시점을 함께 관측한다. Timeout 상향만으로
   correctness gate를 green 처리하지 않는다.
+
+### 설치 self-driver가 문서의 bootstrap root와 다른 그래프를 실행하는 경우
+
+2026-07-30 실제 launcher를 끝까지 추적하자 `bin/pgy --self-driver`는
+`driver_bootstrap_main.pgy`를 실행하지 않았다. Native
+`src/compiler/self_host_driver.c`가 sibling `bin/pgy-self-driver`를 실행하고, 그
+binary는 `driver_rung2_main.pgy -> driver_rung2_cli_owner.pgy`에서 빌드된다. 설치
+CLI에는 source-to-MIR direct compile이 남아 있어 문서상 world/action graph와 실제
+사용자 graph가 갈라져 있었다.
+
+해결 원칙은 물리적 stage 폴더를 합치는 것이 아니다. Lexer/parser/semantic/MIR
+폴더는 fact lifetime owner로 유지하고, 설치 CLI와 bootstrap artifact root가 같은
+`PgyCompilerWorld.source_mir -> DriverSourceMirExecution`을 소비하게 한다. Payload
+admission은 하나지만 publication action은 capability 경계에서 나눈다.
+
+- stdout `ProduceSourceMir`: `io_read`, typed payload receipt;
+- artifact `PublishSourceMirArtifact`: `io_read, io_write`, path를 먼저 검증하고
+  atomic commit 한 번;
+- 금지: empty-path stdout sentinel, temp-file round trip, caller-side direct compile,
+  helper로 이동한 우회 call site.
+
+첫 실제 `make -j2 self-host-compiler` pressure run은 1,800초 상한에서 exit 124로
+끝났고 final install은 완료되지 않았다. 그 전까지 관측한 peak는 working set
+1,144.1MB, private 1,198.0MB, top `cc1.exe` 724.2MB였다. 따라서 build PASS는
+아니지만 3GB/20GB memory regression도 아니다. 세대별 worker가 종료되면서
+메모리가 내려갔고 누적 whole-graph validation 패턴은 관측되지 않았다.
+
+Windows/MSYS에서는 timeout owner의 Windows parent tree가 끝난 뒤에도 Cygwin
+reparenting된 `bash -> gen1.exe`가 남을 수 있다. 이 경우 다른 Codex 작업이나
+이름만 같은 프로세스를 종료하지 않는다. Probe 시작시각 이후의 exact executable
+path, command line, parent chain이 해당 run과 일치하는지 확인하고 그 chain만
+bottom-up으로 정리한다. 이 orphan을 둔 채 다음 build를 시작하면 두 bootstrap이
+겹쳐 메모리 결함처럼 보일 수 있다. 최종 판정은 더 긴 상한에서 fresh installed
+artifact와 launcher runtime을 함께 관측한 뒤 기록한다.
+
+후속 capability-split run은 worker를 중단하지 않고 82.7분까지 진행됐다. 원래
+pressure writer는 약 49분에 live `Import-Csv` reader의 Windows file lock과
+충돌해 종료됐지만, exact build chain은 계속 추적했다. 중단 전 CSV와 attach
+monitor를 합친 peak는 working set 1,300.8MB, private 1,465.9MB였고 top owner는
+`gen2.exe`였다. 즉 3GiB/20GiB 폭주는 재현되지 않았다. 다만 instrumentation
+종료 때문에 이 run에는 완전한 v2 summary나 build rc가 없다. Live sample을
+읽을 수 있다는 이유로 build PASS를 추정하지 않는다.
+
+이 충돌 뒤 `measure_build_pressure.ps1`의 sample append는 `IOException`만 25ms씩
+최대 20회 재시도한다. 재시도 한계를 넘으면 여전히 명시적으로 실패한다.
+`build_pressure_contract_smoke.sh`가 bounded retry와 terminal diagnostic을
+ratchet한다. Pressure CSV를 관찰할 때는 가능하면 tail/read를 짧게 유지하되,
+짧은 reader lock이 측정 owner 전체를 죽이는 현상은 다시 허용하지 않는다.
+
+해당 build는 프로세스 종료까지 갔지만 설치에는 실패했다. 생성된 `driver.c`는
+389-byte `CODEGEN ERROR`였고 Pergyra-built semantic owner가
+`ArrayPush(projection.on_texts, ...)`를 `projection.on_texts`라는 미정의 local로
+분류했다. 기존 installed binary와 build stamp의 timestamp는 바뀌지 않았다.
+해법은 member-array inout을 특별 취급하는 fallback이 아니다.
+`MirIntentPhaseProjectionFromCarriers`가 distinct local arrays에 phase fact를
+transactionally 조립하고 성공할 때 한 번 projection을 materialize한다. Error
+outcome은 partial arrays를 publish하지 않으며 component gate는
+전체 self-host source에서 `ArrayPush/ArraySet(local.member, ...)` 재도입을
+거부한다. 작은 Pergyra-built
+`gen2 --check` fixture는 이 staging shape를 통과했다. Fresh full install과
+launcher parity는 별도 실행 증거가 나올 때까지 OPEN이다.
+
+그 다음 staged-array full run은 5,101,206ms 뒤 exit 2로 끝났고 설치 artifact는
+갱신되지 않았다. 측정 자체는 완전했다: peak working set 1,301.8MB, peak private
+1,469.2MB, top `gen2.exe` private 1,455.7MB, `limit_exceeded=false`였다. 따라서 이
+실패 역시 3GiB/20GiB memory regression이 아니라 self-host semantic coverage
+결함이다. 생성된 483-byte `driver.c`는
+`Clone(admitted.intent_execution_plan)` initializer의 type을 resolve하지 못했다.
+
+`MirIntentExecutionPlan`은 admission이 이미 readiness/digest를 검증한 순수 struct
+value carrier이고 projection에서는 read-only다. Native 일반-value `Clone`도 deep
+copy가 아니라 value pass-through이므로 이 경계에 새 copy owner나 재검증을
+추가하면 안 된다. Intermediate typed local은 old gen2 inference 오류를 제거했지만
+current compiler는 `ref admitted`에서 나온 member를 새 local과 반환 struct field로
+escape시키는 것을 정확히 거부했다. 최종 shape는 projection 함수의 typed value
+parameter `plan: MirIntentExecutionPlan`이다. Caller가
+`admitted.intent_execution_plan`을 이 value boundary로 투영하고 반환 view가 그
+값을 소유한다. Machine receipt 전체를 `own`으로 넓히지 않으며 detached local이나
+polymorphic `Clone`도 없다. Static gate는 이 call edge와 value parameter를 고정하고
+Clone, local detachment, plan 재구성/재검증을 함께 거부한다. Nested nominal member
+`Clone` inference 자체는 별도 언어 capability gap이며 현재 rung의 fallback으로
+고치지 않는다.
+
+2026-07-30 install-only intermediate direct-binding rerun은 이미 빌드된 gen2/parser
+seed를 사용했고 former initializer diagnostic을 지나 계속 실행됐다. 그러나
+4,605,377ms 뒤 unchanged 3,072MB pressure limit에서 wrapper가 전체 측정 tree를
+중단했다. 완전한 요약은 peak working set 2,820.5MB, peak private 3,072.0MB,
+top `gen2.exe` private 3,052.8MB, `limit_exceeded=true`, output capture complete다.
+`driver.c`는 0바이트였고 `pgy-self-driver.exe` timestamp도 갱신되지 않았다.
+따라서 Clone inference blocker는 제거됐지만 fresh install은 실패했고 launcher
+parity도 실행할 수 없다. Final typed-value source는 current native compiler로
+focused `driver_rung2.exe`를 생성하는 데 성공했다. 이어진 broader machine-layer
+gate는 fresh projection probe JSON을 self-host MIR consumer가
+`MIR machine-layer facts are missing or invalid`로 거부해 RED였다. 이는 source
+compile success와 full install success를 구분하는 증거다. 이 결과를 “self-host라
+무거운 정상 빌드”로 분류하거나 limit/timeout을 올려 닫지 않는다.
+
+시간 측면에서는 timeout 상향으로 숨기면 안 되는 scaling RED도 확인됐다.
+현재 5.1MB driver AST의 단일 `gen2` leg만 약 45분을 소비했고, 30분 codegen CI와
+seed 이후 더 많은 작업이 남는 60분 full CI는 구조상 green이 될 수 없다.
+`GenerateCUnitFromSemanticArtifact`가
+`SemanticAstArtifactAnalyzeCompactBridge`로 analysis를 만든 뒤에도
+`GenerateCUnitFromSemanticFacts`가 `SemanticAstArtifactAnalysisMatches`를 다시
+호출한다. 이 match는 constructor/local/assignment/statement/enum/role/
+expression/type/kind `*FactsMatchArtifact`를 통해 fact families와 전체 expression
+surface graph를 `*FromArtifact`로 재구성한다. 다음 최적화 rung의 owner는 admitted
+semantic analysis receipt/identity다. Last consumer인 codegen emission은 그
+receipt를 소비하고 fixed-size identity/shape만 확인해야 한다. Forbidden fallback은
+emission 성공 경로의 whole-artifact fact 재구성, timeout만 늘리기, 또는 검사 생략이다.
+Falsifier는 같은 committed AST에 대해 analysis construction count 1, emission
+boundary reconstruction count 0을 stage counter로 증명하고, 2.9MB와 5.1MB input의
+wall time/peak를 같은 pressure owner 아래 기록하는 것이다.
+
+### linked runtime ABI consumer가 실제 owner보다 먼저 검색되는 경우
+
+Resource lowering은 실제 `MIR_INST_RESOURCE_OP` owner의 primary runtime-call ABI
+row를 unambiguous DEF/STMT consumer에도 링크한다. 따라서 “row가 있다” 또는
+inventory에서 먼저 발견됐다는 사실만으로 owner를 선택하면 linked Release
+consumer가 실제 Release instruction보다 먼저 반환될 수 있다. 반대로
+`MIR_INST_RESOURCE_OP`만 owner로 허용하면 slot-sugar
+`MIR_INST_DEF`/`MIR_INST_DESTRUCTURE`가 직접 소유하는 Claim + Read/Write auxiliary
+rows를 잃는다.
+
+현재 단일 predicate `mir_abi_resource_runtime_instruction_owns_rows`가 owner
+provenance를 고정한다. Resource operation은 primary row를 직접 소유하고,
+non-resource instruction은 DEF/DESTRUCTURE이면서 primary operation이 Claim이고
+auxiliary owner set이 있을 때만 owner다. Link된 consumer는 primary row만
+복사받으므로 owner가 아니다. Validator도 같은 predicate를 사용해 linked
+consumer에 forged auxiliary row를 붙이는 입력을 fail closed한다.
+
+Falsifier는 두 방향을 함께 유지해야 한다.
+
+- linked Release consumer가 inventory에서 먼저 와도 실제 resource owner 선택;
+- slot-sugar DEF의 concrete Write row는 계속 검색 가능;
+- linked consumer에 valid-looking auxiliary row를 붙여도 lookup owner가 되지
+  못하고 MIR validation이 owner-provenance diagnostic으로 실패.
+
+이를 `test_mir_runtime_call_abi.cases.h`가 소유한다. Backend에서 layout 검사를
+완화하거나 global ABI table로 fallback하는 것은 해결책이 아니다.
 
 ### 분리한 C owner는 컴파일되지만 축약 테스트 링크에서만 undefined reference가 나는 경우
 

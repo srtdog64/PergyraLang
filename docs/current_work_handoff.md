@@ -1,12 +1,160 @@
 # Current Work Handoff
 
-Updated: 2026-07-29 (Asia/Seoul)
+Updated: 2026-07-30 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Current checkpoint - source-to-MIR world/action reachability
+## Current checkpoint - installed source-to-MIR one-graph closure
+
+- Exact working base is `8da168bc5c3e09f4f31788c133bfc5f053bf8a91` on
+  `main`, equal to `origin/main` when this checkpoint began. The tree is dirty
+  for the active integration; verify final HEAD and clean state after the
+  authorized commit/push rather than treating this snapshot as Git authority.
+- Active seam: the installed `bin/pgy --self-driver --emit-mir-json-verified`
+  path and the full bootstrap artifact path must share one source-to-MIR
+  execution owner. Physical stage folders remain fact-lifetime owners; they do
+  not own competing program roots.
+- The actual installed graph was traced through the native sibling launcher:
+
+  ```text
+  bin/pgy --self-driver
+    -> src/compiler/self_host_driver.c -> bin/pgy-self-driver
+    -> driver_rung2_main.Main -> RunDriverRung2FromArgs
+    -> ProduceSourceMirThroughPgyCompilerWorld
+    -> PgyCompilerWorld.source_mir
+    -> DriverSourceMirExecution.ProduceSourceMir
+  ```
+
+  The previous installed CLI called `CompileSourceToMirJsonVerified` directly;
+  that bypass is deleted. The full bootstrap artifact graph is:
+
+  ```text
+  driver_bootstrap_main.Main
+    -> PublishSourceMirArtifactThroughPgyCompilerWorld
+    -> PgyCompilerWorld.source_mir
+    -> DriverSourceMirExecution.PublishSourceMirArtifact
+    -> SelfMirArtifactCommitPayload
+  ```
+
+- `DriverSourceMirExecution` is the single subject/zone owner. One shared
+  admission function owns subject/topology identity, pressure mode and exactly
+  one typed source-to-MIR producer call. Publication is split only at the real
+  authority boundary: `ProduceSourceMir` requires `io_read`; the installed CLI
+  therefore does not inherit `io_write`. `PublishSourceMirArtifact` requires
+  `io_read, io_write`, rejects an empty path before compilation and commits once.
+  Empty-path stdout sentinels, temp-file round trips and caller-side compile or
+  commit fallbacks are forbidden.
+- The negative gate now follows the installed C launcher, build owner, rung-2
+  `Main`, CLI, sole world materializer, world method and both subject actions.
+  It uses portable `find+grep` rather than assuming `rg` exists in macOS/Linux
+  CI, and it allow-lists every self-hosted `CompileSourceToMirJson*` definition
+  and call site so moving a bypass into a helper cannot evade the ratchet.
+- Observed focused evidence:
+  - both `driver_rung2_main.pgy --ast` and `driver_bootstrap_main.pgy --ast`:
+    PASS after capability separation;
+  - source action/no-bypass gate: PASS;
+  - recursive compiler topology: PASS;
+  - compiler-world contract: PASS;
+  - first full `make -j2 self-host-compiler` pressure run reached its 1,800s
+    time ceiling before final install: exit 124, peak working set 1,144.1MB,
+    peak private 1,198.0MB, top process `cc1.exe` 724.2MB. This is not a build
+    PASS or memory failure; it is bounded evidence that the 20GB defect did not
+    recur. A detached MSYS `bash -> gen1.exe` chain from this exact run was
+    identified by PID/start time/command and stopped before re-entry.
+  - the complete staged-array full run exited 2 after 5,101,206ms without
+    installing: peak working set 1,301.8MB, peak private 1,469.2MB, top
+    `gen2.exe` private 1,455.7MB, and `limit_exceeded=false`. Its 483-byte
+    `driver.c` was an explicit `initializer_type_unresolved` diagnostic for
+    `Clone(admitted.intent_execution_plan)`, not a memory failure.
+  - `MirIntentExecutionPlan` is an admission-validated read-only struct carrier.
+    A local typed binding removed the old gen2 inference error but violated the
+    current compiler's borrowed-member escape rule. The final projection passes
+    `admitted.intent_execution_plan` through an explicit typed value parameter;
+    it neither broadens the machine receipt to `own` nor uses polymorphic
+    `Clone`. The static protocol ratchet rejects a detached local, Clone, plan
+    revalidation and expression-graph reconstruction at that boundary. The
+    protocol wrapper has an explicit 180-line budget; the owner is 159 lines.
+  - the 3,072MB-capped install-only rerun used the already-built gen2/parser
+    seeds and consumed the intermediate direct-binding source, so the former
+    initializer diagnostic did not recur. It was stopped by the unchanged
+    pressure owner
+    after 4,605,377ms: peak working set 2,820.5MB, peak private 3,072.0MB, top
+    `gen2.exe` private 3,052.8MB, `limit_exceeded=true`. `driver.c` remained
+    zero bytes and the installed driver timestamp did not change. This is a
+    scaling RED, not an install or launcher-parity PASS. The final typed-value
+    source compiled into a fresh focused `driver_rung2.exe`; the broader
+    machine-layer gate then stopped at its existing producer/consumer mismatch,
+    `MIR machine-layer facts are missing or invalid`.
+- Current native/integration evidence after the final typed-value change:
+  - `make -j2 test-mir`: `158 passed, 0 failed`; domain topology, destructure
+    type, match binding and speculation-fact follow-up gates also PASS;
+  - `make -j2 stdlib-test-smoke`: general stdlib C/LLVM plus HostTask lifecycle
+    and typed policy C/LLVM PASS;
+  - `make -j2 module-test-smoke` and explicit C/LLVM domain runtime topology:
+    PASS;
+  - source action, topology, compiler world, component, Pergyra likeness,
+    artifact transaction, build pressure/inventory, inc sentinel, stdlib
+    inventory, object/action, ABI shape, SoT/protocol registries, full UTF-8
+    documentation, shell syntax and diff checks: PASS;
+  - intent protocol native canonical/multi-routine + 41 mutation corpus: PASS;
+    executable self admission remains explicitly BLOCKED because no current
+    admission binary was supplied;
+  - broader LLVM D&D campaign: C leg compiled/ran, LLVM leg is RED at
+    `LLVM hosted method call argument allocation failed`. This is not counted
+    as a green backend verdict or silently attributed to the current owner
+    changes.
+- CI run `30464053512` exposed two independent contract defects now fixed in
+  the dirty tree: C-only macOS incorrectly forced the LLVM topology leg, and
+  the machine-layer gate checked a moved admission term in the old owner.
+  Linux parity and macOS also lacked `rg`; the portable action gate closes that
+  failure. Build inventory, shell syntax, backend-selection negatives and the
+  exact action gate pass locally. Full platform closure awaits the next push.
+- Evidence grade remains `REACHABLE`, not `SUBSTITUTING`: this closes a real
+  installed Pergyra orchestration bypass but does not replace a new C-owned
+  semantic compiler path. The root compiler `intent` remains `SURFACE`.
+- Next falsifier: the admitted semantic-analysis receipt/identity must cross the
+  emission boundary without reconstructing the whole artifact fact surface.
+  On the same composed AST, analysis construction count must be one and
+  emission reconstruction count zero under the unchanged 3,072MB cap. Only
+  after a fresh driver is installed may
+  `examples/function_clause_order_minimal.pgy` direct/launcher byte parity be
+  claimed.
+
+## Current checkpoint - Insere/Zeno adoption continuation
+
+- `docs/201_insere_zeno_lineage_and_library_adoption.md` remains the canonical
+  provenance/adoption contract for the user-authored `F:/insere` and `F:/zeno`.
+  Those TypeScript repositories provide falsifiers and design lineage; Pergyra
+  owners and executable gates remain semantic authority.
+- The first Insere continuation slice is implemented on the existing
+  `stdlib/host_task_slot.pgy`, not as a second scheduler. Typed
+  `HostTaskApplyPolicy` and one `HostTasks.ApplyPolicy` owner distinguish
+  `spawn`, `restart` and `skip`: active skip and duplicate spawn preserve the
+  current generation, only restart advances it, vacant start issues the next
+  generation, and malformed phase/generation fails closed. Existing `Replace`
+  delegates its generation transition to restart policy.
+- `tests/host_task_policy_smoke.sh` executes active/vacant/malformed and stale-
+  ticket cases through stable `use host_task_slot;` on C and LLVM. The aggregate
+  `make stdlib-test-smoke` keeps the unrelated all-module surface fixture
+  separate, then runs both the legacy slot and policy gates. This avoids making
+  a mixed-module namespace-lowering limitation part of HostTask semantics.
+  Focused C/LLVM policy and legacy slot gates, stdlib inventory, object/action
+  contract, documentation quality, shell syntax and diff check were observed
+  green by the implementation slice.
+- This Insere policy is pure immutable admission, so it remains enum/class/func
+  rather than ceremonial subject/action/intent or detached `tobject` receipt.
+  Without a real host adapter consuming the decision it is `REACHABLE`, not
+  `SUBSTITUTING`.
+- The completed Zeno-derived baseline remains `SnapshotTicket` plus
+  `BinaryProjectionPreflight`: runtime slot generation, existing MIR ABI layout
+  identity and explicit endianness are admitted without recalculating offsets
+  or defaulting host endian. Its current grade is also `REACHABLE`; normalized
+  manifest inspect/diff and a real receipt-consuming binary boundary remain
+  the next production falsifiers.
+
+## Previous checkpoint - source-to-MIR world/action reachability
 
 - Exact working base is `ab51d69bff88bd433405461aefdea76031155ccd` on
   `main`. The tree is intentionally dirty for this checkpoint; verify the final

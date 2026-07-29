@@ -141,13 +141,27 @@ for forbidden_root in (self_root / "codegen", self_root / "compiler"):
         )
 
 projection_owner = self_root / "compiler/direct_mir_intent_plan_projection_owner.pgy"
-if projection_owner.exists():
-    projection_text = projection_owner.read_text(encoding="utf-8")
-    for forbidden in (
-        "SemanticAstExpressionGraphForNode(",
-        "DirectMirIntentGraphSubtreeEquals(",
-    ):
-        assert forbidden not in projection_text, (
-            "projection reopened recursive expression-graph validation",
-            projection_owner, forbidden,
-        )
+projection_text = projection_owner.read_text(encoding="utf-8")
+assert "plan: MirIntentExecutionPlan" in projection_text, (
+    "projection must receive the admitted plan through a typed value boundary"
+)
+assert "let plan:" not in projection_text, (
+    "projection must not detach a borrowed admitted member into a new binding"
+)
+bridge_owner = self_root / "compiler/codegen_callable_receiver_bridge_owner.pgy"
+require_terms(bridge_owner, [
+    "DirectMirIntentExecutionViewFromAdmitted(",
+    "admitted, admitted.intent_execution_plan,",
+])
+assert "Clone(" not in projection_text, (
+    "projection reintroduced polymorphic Clone at the admitted plan boundary",
+    projection_owner,
+)
+for forbidden in (
+    "SemanticAstExpressionGraphForNode(",
+    "DirectMirIntentGraphSubtreeEquals(",
+):
+    assert forbidden not in projection_text, (
+        "projection reopened recursive expression-graph validation",
+        projection_owner, forbidden,
+    )

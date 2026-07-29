@@ -190,7 +190,7 @@ require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSource
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "args[0], machine_declaration"
 forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToCVerified(args[0])"
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'args[0] == "--emit-mir-json-verified"'
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "EmitSourceMirThroughPgyCompilerWorld("
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "PublishSourceMirArtifactThroughPgyCompilerWorld("
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "DriverSourceMirExecutionOutcomeReadyFor("
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "DriverSourceMirExecutionOutcomeDiagnostic("
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "SourceMirPressureObserved"
@@ -199,8 +199,9 @@ forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceT
 forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToMirJsonPressureObserved("
 forbid_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CompileSourceToMirJsonFileVerified("
 forbid_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CompileSourceToMirJsonFilePressureObserved("
-require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" "action EmitSourceMir("
-require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" "SelfMirArtifactCommitPayload(output_path, payload)"
+require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" "action ProduceSourceMir("
+require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" "action PublishSourceMirArtifact("
+require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" "SelfMirArtifactCommitPayload("
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'args[0] == "--mir-json"'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileMirJsonToCVerified("
 forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileMirJsonToCVerified(args[1])"
@@ -339,7 +340,8 @@ for term in \
     "zone direct_mir: DriverRung2DirectMirZone" \
     "zone source_mir: DriverSourceMirZone" \
     "func EmitDirectMir(" \
-    "func EmitSourceMir(" \
+    "func ProduceSourceMir(" \
+    "func PublishSourceMirArtifact(" \
     "intent CompilePergyraProgram" \
     "step Frontend" \
     "step MiddleEnd" \

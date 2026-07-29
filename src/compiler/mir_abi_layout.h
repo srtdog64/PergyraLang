@@ -53,6 +53,10 @@ uint32_t mir_abi_resource_runtime_row_id(
     const MIRResourceRuntimeRow *row);
 bool mir_abi_resource_runtime_row_matches_owner(
     const MIRResourceRuntimeRow *row);
+/* True only when the instruction materializes this row family. Linked
+ * consumers borrow a primary row but never own auxiliary operation rows. */
+bool mir_abi_resource_runtime_instruction_owns_rows(
+    const MIRInstruction *instruction);
 /* Constructed nominal Slot<T>/SecureSlot<T>/DeviceSlot<T> rows do not have a
  * static pgy_abi_spec.h layout row yet. Their runtime-call row is the MIR
  * owner for this compatibility edge; backends may accept the absent static

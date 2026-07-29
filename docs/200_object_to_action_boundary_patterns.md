@@ -1,6 +1,6 @@
 # 200. Object-to-Action 경계와 Domain Composition 작성 패턴
 
-Updated: 2026-07-29 (Asia/Seoul)
+Updated: 2026-07-30 (Asia/Seoul)
 
 이 문서는 `struct`에서 `action`까지의 값·identity 선택과, 그 action이
 `effect`/`relation`/`zone`/`intent`/`world`로 합성되는 기준을 한곳에 모은
@@ -31,6 +31,28 @@ gate다. 이 문서가 현재 source와 다르면 source를 근거로 문서를 
   action 실패 뒤 artifact/state가 성공으로 관측되는 경우.
 
 ## 1. 먼저 네 축을 분리한다
+
+### 하나의 action이 여러 publication boundary를 가질 때
+
+2026-07-30 source-to-MIR 통합은 같은 semantic execution을 stdout용 payload와
+bootstrap용 artifact라는 이유로 두 owner에 복제하지 않았다. 하나의
+`DriverSourceMirExecution` subject와 payload admission owner가 source payload를
+정확히 한 번 만들고, publication capability에 따라 다음 action을 노출한다.
+
+- `ProduceSourceMir`는 `io_read`만 요구하고 immutable `tobject` payload receipt를
+  반환한다.
+- `PublishSourceMirArtifact`는 `io_read, io_write`를 요구하며 빈 path를 compile 전에
+  거부하고 shared atomic artifact owner를 정확히 한 번 호출한다.
+
+여기서 `tobject`는 해법이지만 action의 대체물은 아니다. receipt는 detached
+publication fact만 운반하고 subject identity, authority, pressure admission,
+compile 실행과 publication 선택은 action이 소유한다. 하나의 enum action에 두
+effect를 합치면 path-insensitive capability 분석상 stdout caller도 `io_write`를
+요구하므로, owner는 하나로 유지하되 action은 실제 authority 경계에서 나눈다.
+stdout을 빈 경로로
+인코딩하거나 임시 파일로 materialize한 뒤 다시 읽는 방식은 destination 의미와
+실패를 숨기므로 금지한다. 물리적 폴더는 lexer/parser/MIR 같은 fact lifetime을
+나누어도 되지만 설치 CLI와 bootstrap root가 별도 실행 결정을 소유해서는 안 된다.
 
 다음 네 질문은 서로 다른 질문이다.
 
@@ -367,9 +389,10 @@ commit은 `tobject SelfMirArtifactReceipt`가 있을 때만 typed success varian
 failure variant로 Main까지 전달되고 exact stage/status/recovery payload가 진단과
 실패 판정을 바꾼다.
 receipt는 atomic visibility만 주장하고 crash durability는 명시적으로 `false`다.
-`DriverSourceMirExecution.EmitSourceMir`는 subject/topology identity, full-driver
-pressure mode, 정확히 한 source-to-MIR payload producer, 한 atomic commit을
-소유한다. Main은 이 action의 typed receipt/rejection/failure outcome을 소비한다.
+`DriverSourceMirExecution`은 subject/topology identity, full-driver pressure mode와
+정확히 한 source-to-MIR payload producer를 소유한다. Read-only payload action과
+write-authorized artifact action은 각각 typed receipt/rejection/failure outcome을
+caller에 반환하고 artifact action만 한 atomic commit을 소유한다.
 `world.pgy`의 기존 action 16개는 import closure에는 들어왔지만
 계속 `Compiler*Ready()`를 반환하는 readiness facade이며 현재 production
 chain에서 호출되지 않는다. 따라서 선언 수나 Pergyra다운 이름은 구조
@@ -416,16 +439,15 @@ IMPORTED -> MATERIALIZED -> INVOKED -> OUTCOME_CONSUMED -> SUBSTITUTING
 현재 domain object는 `IMPORTED`에서 멈춘다. Artifact receipt와 failure는
 production direct-MIR 및 source-to-MIR action에서 caller까지 typed variant로
 전달되고 `OUTCOME_CONSUMED`에 도달한다.
-`DriverRung2Execution.EmitDirectMir`와
-`DriverSourceMirExecution.EmitSourceMir` 두 쌍이 `INVOKED`와 result consumption에
-도달한다. 나머지 readiness/intent 선언과
+`DriverRung2Execution.EmitDirectMir`와 `DriverSourceMirExecution`의 두 publication
+action이 `INVOKED`와 result consumption에 도달한다. 나머지 readiness/intent 선언과
 문법·lowering fixture는 canonical authoring 예가 아니라 surface 회귀 자료다.
 
 ### 실행 call-site 감사가 보여 준 경계
 
 현재 production 호출 그래프에서 실제로 호출되는 Pergyra-native hosted action은
-`DriverRung2Execution.EmitDirectMir`와
-`DriverSourceMirExecution.EmitSourceMir`다. domain `object`는 schema/slot
+`DriverRung2Execution.EmitDirectMir`, `DriverSourceMirExecution.ProduceSourceMir`,
+`DriverSourceMirExecution.PublishSourceMirArtifact`다. domain `object`는 schema/slot
 surface이며 construction, `ToObject`, `refresh` production call이 없다.
 `tobject SelfMirArtifactReceipt`와 `SelfMirArtifactFailure`는 transaction 결과의
 모든 payload field가 bootstrap caller의 성공 판정 또는 실패 진단을 바꾼다.
@@ -884,9 +906,9 @@ artifact commit을 실제로 소유한다. Terminal protocol은
 읽히지 않는 intermediate stage local은 삭제됐다. Wrong identity/target은 typed
 rejection으로, transaction failure는 원래 failure payload로 구별하지만 하위
 direct-MIR owner의 malformed-input 실패는 여전히 `Die` fatal boundary다.
-`DriverSourceMirExecution.EmitSourceMir`는 별도 typed outcome으로 pressure,
-subject identity, topology identity rejection을 구분하고 기존 source-to-MIR
-payload owner를 정확히 한 번 소비한 뒤 같은 transaction owner를 commit한다.
+`DriverSourceMirExecution`은 별도 typed outcome으로 pressure, subject identity,
+topology identity rejection을 구분하고 기존 source-to-MIR payload owner를 정확히
+한 번 소비한다. Write-authorized action만 같은 transaction owner를 commit한다.
 Main의 직접 payload compile/file-helper/commit 우회는 없다.
 backend artifact 생성 자체는 기존 typed owner에 남고, action-contract wire도
 끝까지 운반된다. Contract vocabulary SoT는 shared registry로 닫혔지만 실행 대체는
@@ -1189,11 +1211,11 @@ driver_bootstrap_main.Main
   -> existing target/projection/emission owners
 
 driver_bootstrap_main.Main
-  -> EmitSourceMirThroughPgyCompilerWorld
-  -> PgyCompilerWorld.EmitSourceMir
+  -> PublishSourceMirArtifactThroughPgyCompilerWorld
+  -> PgyCompilerWorld.PublishSourceMirArtifact
   -> PgyCompilerWorld.source_mir
   -> DriverSourceMirZone.execution
-  -> DriverSourceMirExecution.EmitSourceMir
+  -> DriverSourceMirExecution.PublishSourceMirArtifact
   -> existing typed source/MIR owners + artifact transaction
 ```
 

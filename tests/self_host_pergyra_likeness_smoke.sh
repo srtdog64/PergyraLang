@@ -308,8 +308,9 @@ COMPILER_INTENT_SURFACE_MIN=14
 # contracts while the reachable direct-MIR action added its real zone. Count
 # both spellings; the one-row drop is removal of duplicate authority prose,
 # not loss of a resource boundary.
-# The reachable source-to-MIR action adds one real zone-bound transition.
-COMPILER_ZONE_BOUND_STEPS_MIN=28
+# The source-to-MIR subject now has two real zone-bound publication actions:
+# read-only payload production and write-authorized artifact publication.
+COMPILER_ZONE_BOUND_STEPS_MIN=29
 COMPILER_STAGE_BINDINGS_EXACT=5
 COMPILER_WORLD_FACT_CONSUMERS_MIN=19
 STAGE_PAYLOAD_CONSUMERS_EXACT=7

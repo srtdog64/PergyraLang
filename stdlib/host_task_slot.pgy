@@ -1,3 +1,10 @@
+export enum HostTaskApplyPolicy
+{
+    HostTaskSpawn,
+    HostTaskRestart,
+    HostTaskSkip
+}
+
 export class HostTaskTicket
 {
     let key: String;
@@ -21,11 +28,44 @@ export class HostTaskSlotTransition
     let reason: String;
 }
 
+export class HostTaskPolicyDecision
+{
+    let transition: HostTaskSlotTransition;
+    let policy: HostTaskApplyPolicy;
+    let status: String;
+}
+
 namespace HostTasks {
     func RunningPhase() -> Int { return 1; }
     func WaitingPhase() -> Int { return 2; }
     func FinalPhase() -> Int { return 3; }
     func VacantPhase() -> Int { return 4; }
+    func MaxGeneration() -> Int { return 2147483647; }
+
+    func PolicyKnown(policy: HostTaskApplyPolicy) -> Bool
+    {
+        return policy == HostTaskSpawn
+            || policy == HostTaskRestart
+            || policy == HostTaskSkip;
+    }
+
+    func ActivePhase(phase: Int) -> Bool
+    {
+        return phase == RunningPhase()
+            || phase == WaitingPhase()
+            || phase == FinalPhase();
+    }
+
+    func GenerationValid(generation: Int) -> Bool
+    {
+        return generation > 0;
+    }
+
+    func GenerationCanAdvance(generation: Int) -> Bool
+    {
+        return GenerationValid(generation)
+            && generation < MaxGeneration();
+    }
 
     func Transition(slot: HostTaskSlot, applied: Bool, reason: String) -> HostTaskSlotTransition
     {
@@ -37,6 +77,15 @@ namespace HostTasks {
         );
     }
 
+    func PolicyDecision(
+        transition: HostTaskSlotTransition,
+        policy: HostTaskApplyPolicy,
+        status: String
+    ) -> HostTaskPolicyDecision
+    {
+        return HostTaskPolicyDecision(transition, policy, status);
+    }
+
     func RejectTicket(slot: HostTaskSlot, ticket: HostTaskTicket) -> String
     {
         if ticket.key != slot.key {
@@ -45,8 +94,17 @@ namespace HostTasks {
         if ticket.generation != slot.generation {
             return "stale_generation";
         }
+        if slot.key == "" {
+            return "invalid_key";
+        }
+        if !GenerationValid(slot.generation) {
+            return "invalid_generation";
+        }
         if slot.phase == VacantPhase() {
             return "inactive_slot";
+        }
+        if !ActivePhase(slot.phase) {
+            return "invalid_phase";
         }
         return "";
     }
@@ -64,11 +122,106 @@ namespace HostTasks {
         return HostTaskTicket(slot.key, slot.generation);
     }
 
+    export func SpawnPolicy() -> HostTaskApplyPolicy { return HostTaskSpawn; }
+    export func RestartPolicy() -> HostTaskApplyPolicy { return HostTaskRestart; }
+    export func SkipPolicy() -> HostTaskApplyPolicy { return HostTaskSkip; }
+
+    export func ApplyPolicy(
+        slot: HostTaskSlot,
+        policy: HostTaskApplyPolicy
+    ) -> HostTaskPolicyDecision
+    {
+        if !PolicyKnown(policy) {
+            return PolicyDecision(
+                Transition(slot, false, "invalid_policy"),
+                policy,
+                "rejected"
+            );
+        }
+        if slot.key == "" {
+            return PolicyDecision(
+                Transition(slot, false, "invalid_key"),
+                policy,
+                "rejected"
+            );
+        }
+        if !GenerationValid(slot.generation) {
+            return PolicyDecision(
+                Transition(slot, false, "invalid_generation"),
+                policy,
+                "rejected"
+            );
+        }
+        if slot.phase == VacantPhase() {
+            if !GenerationCanAdvance(slot.generation) {
+                return PolicyDecision(
+                    Transition(slot, false, "generation_exhausted"),
+                    policy,
+                    "rejected"
+                );
+            }
+            let started: HostTaskSlot = HostTaskSlot(
+                slot.key,
+                slot.generation + 1,
+                RunningPhase(),
+                "",
+                ""
+            );
+            return PolicyDecision(
+                Transition(started, true, "applied"),
+                policy,
+                "started"
+            );
+        }
+        if !ActivePhase(slot.phase) {
+            return PolicyDecision(
+                Transition(slot, false, "invalid_phase"),
+                policy,
+                "rejected"
+            );
+        }
+        if policy == HostTaskSkip {
+            return PolicyDecision(
+                Transition(slot, false, "skipped"),
+                policy,
+                "skipped"
+            );
+        }
+        if policy == HostTaskSpawn {
+            return PolicyDecision(
+                Transition(slot, false, "task_already_exists"),
+                policy,
+                "rejected"
+            );
+        }
+        if !GenerationCanAdvance(slot.generation) {
+            return PolicyDecision(
+                Transition(slot, false, "generation_exhausted"),
+                policy,
+                "rejected"
+            );
+        }
+        let restarted: HostTaskSlot = HostTaskSlot(
+            slot.key,
+            slot.generation + 1,
+            RunningPhase(),
+            "",
+            ""
+        );
+        return PolicyDecision(
+            Transition(restarted, true, "applied"),
+            policy,
+            "restarted"
+        );
+    }
+
     export func IsCurrent(slot: HostTaskSlot, ticket: HostTaskTicket) -> Bool
     {
         return ticket.key == slot.key
             && ticket.generation == slot.generation
-            && slot.phase != VacantPhase();
+            && slot.key != ""
+            && GenerationValid(slot.generation)
+            && ActivePhase(slot.phase);
     }
 
     export func Replace(slot: HostTaskSlot, key: String) -> HostTaskSlotTransition
@@ -79,11 +232,8 @@ namespace HostTasks {
         if slot.phase == VacantPhase() {
             return Transition(slot, false, "inactive_slot");
         }
-        return Transition(
-            HostTaskSlot(key, slot.generation + 1, RunningPhase(), "", ""),
-            true,
-            "applied"
-        );
+        let decision: HostTaskPolicyDecision = ApplyPolicy(slot, RestartPolicy());
+        return decision.transition;
     }
 
     export func PublishWait(
@@ -150,6 +300,7 @@ namespace HostTasks {
         if slot.phase == RunningPhase() { return "running"; }
         if slot.phase == WaitingPhase() { return "waiting"; }
         if slot.phase == FinalPhase() { return "final"; }
-        return "vacant";
+        if slot.phase == VacantPhase() { return "vacant"; }
+        return "invalid";
     }
 }

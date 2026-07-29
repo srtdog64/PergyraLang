@@ -128,11 +128,16 @@ source-to-MIR-to-C verified composition and
 `compiler/driver_bootstrap_main.pgy` is only the fixed-point file boundary.
 Its direct-MIR and source-to-MIR modes both enter the single
 `PgyCompilerWorld`: the former reaches `DriverRung2Execution.EmitDirectMir`,
-and the latter reaches `DriverSourceMirExecution.EmitSourceMir`. The source
-action owns pressure/identity admission and one atomic commit while existing
-typed owners keep the source/MIR calculation. Both outcomes are consumed by
-the production caller, so these slices are `REACHABLE`; neither replaces a new
-C-owned semantic compiler path, so they are not `SUBSTITUTING`.
+while source-to-MIR reaches one `DriverSourceMirExecution` subject. The
+installed stdout path invokes the `io_read` `ProduceSourceMir` action and the
+bootstrap artifact path invokes `PublishSourceMirArtifact` with
+`io_read, io_write`. Both share one pressure/identity/payload admission owner;
+only the artifact action performs the atomic commit. Request/receipt/rejection
+vocabulary and validation are separately owned by
+`compiler/driver_source_mir_protocol_owner.pgy`, rather than being copied by
+the two callers. Both outcomes are consumed by the production caller, so these
+slices are `REACHABLE`; neither replaces a new C-owned semantic compiler path,
+so they are not `SUBSTITUTING`.
 `self-host-driver-bootstrap-test-smoke` compares the Pergyra-built integrated
 seed with the native-built same parser/semantic/MIR/codegen driver on a real
 source. Both builds must also produce byte-identical verified MIR for the

@@ -60,6 +60,26 @@ PGY="$(pgy_select_optional_exe_binary "$PGY")"
 pgy_require_runnable_binary_here "domain-runtime-topology" "$PGY" \
     || fail "PGY_BIN is not runnable"
 
+BACKENDS="${PGY_DOMAIN_RUNTIME_TOPOLOGY_BACKENDS:-c llvm}"
+ran_c=0
+ran_llvm=0
+for backend in $BACKENDS; do
+    case "$backend" in
+        c)
+            ((ran_c == 0)) || fail "duplicate C topology backend"
+            ran_c=1
+            ;;
+        llvm)
+            ((ran_llvm == 0)) || fail "duplicate LLVM topology backend"
+            ran_llvm=1
+            ;;
+        *)
+            fail "unknown topology backend: $backend"
+            ;;
+    esac
+done
+((ran_c == 1)) || fail "C topology projection is required"
+
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf -- "$tmp_dir"' EXIT
 
@@ -193,13 +213,17 @@ run_projection() {
     output_arg="$(pgy_path_for_compiler "$PGY" "$output")"
 
     if [[ "$backend" == "c" ]]; then
-        PGY_DUMP_PROPAGATION=1 "$PGY" "$source_arg" \
-            --emit-c -o "$output_arg" >"$log" 2>&1 \
-            || fail "C topology projection failed"
+        if ! PGY_DUMP_PROPAGATION=1 "$PGY" "$source_arg" \
+            --emit-c -o "$output_arg" >"$log" 2>&1; then
+            cat "$log" >&2
+            fail "C topology projection failed"
+        fi
     else
-        PGY_DUMP_PROPAGATION=1 "$PGY" "$source_arg" \
-            --emit-llvm -o "$output_arg" >"$log" 2>&1 \
-            || fail "LLVM topology projection failed"
+        if ! PGY_DUMP_PROPAGATION=1 "$PGY" "$source_arg" \
+            --emit-llvm -o "$output_arg" >"$log" 2>&1; then
+            cat "$log" >&2
+            fail "LLVM topology projection failed"
+        fi
     fi
 
     grep -Fq \
@@ -214,12 +238,18 @@ run_projection() {
 }
 
 run_projection c
-run_projection llvm
-cmp -s "$tmp_dir/c.trace" "$tmp_dir/llvm.trace" \
-    || fail "C and LLVM consume different domain topology"
+if ((ran_llvm == 1)); then
+    run_projection llvm
+    cmp -s "$tmp_dir/c.trace" "$tmp_dir/llvm.trace" \
+        || fail "C and LLVM consume different domain topology"
+fi
 
 grep -Fq 'size_t _pgy_zone_frontier_pass_limit = 3;' \
     "$tmp_dir/topology.c" \
     || fail "C output did not preserve the count floor above the graph depth"
 
-echo "[domain-runtime-topology] DIR -> MIR -> C/LLVM zone frontier topology and declaration field identity are exact; AST bypasses are absent"
+if ((ran_llvm == 1)); then
+    echo "[domain-runtime-topology] DIR -> MIR -> C/LLVM zone frontier topology and declaration field identity are exact; AST bypasses are absent"
+else
+    echo "[domain-runtime-topology] DIR -> MIR -> C zone frontier topology and declaration field identity are exact; LLVM is owned by an LLVM-enabled gate"
+fi

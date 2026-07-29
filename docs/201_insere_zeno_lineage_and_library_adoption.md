@@ -1,6 +1,6 @@
 # 201. Insere·Zeno lineage와 Pergyra library 채택 계약
 
-Updated: 2026-07-29 (Asia/Seoul)
+Updated: 2026-07-30 (Asia/Seoul)
 
 Status: canonical lineage/adoption plan. 구현 상태는 source와 executable gate가
 우선하며, 이 문서는 외부 프로젝트를 새 semantic authority로 만들지 않는다.
@@ -10,11 +10,21 @@ Status: canonical lineage/adoption plan. 구현 상태는 source와 executable g
 그렇다고 TypeScript 구현이나 package 구조를 그대로 이식하지는 않는다.
 Pergyra의 기존 Slot, MIR ABI/layout, ownership 경계에 맞춰 의미를 번역한다.
 
-현재 `HostTaskSlot`은 C/LLVM으로 실행되는 official-library slice로 구현되어
-`REACHABLE`이고, `SnapshotTicket`과 `BinaryProjectionPreflight`도 Pergyra로
-컴파일되는 internal library/tooling slice에서 `REACHABLE`이다. 이 완료 표시는
-각 bounded slice의 구현과 focused gate 완료를 뜻한다. 어느 경로도 C-owned
-compiler production path를 삭제하지 않았으므로 `SUBSTITUTING`이 아니다.
+현재 `HostTaskSlot`과 그 typed `spawn`/`restart`/`skip` admission policy는
+C/LLVM으로 실행되는 official-library slice로 구현되어 `REACHABLE`이고,
+`SnapshotTicket`과 `BinaryProjectionPreflight`도 Pergyra로 컴파일되는 internal
+library/tooling slice에서 `REACHABLE`이다. 이 완료 표시는 각 bounded slice의
+구현과 focused gate 완료를 뜻한다. 어느 경로도 C-owned compiler production
+path를 삭제하지 않았으므로 `SUBSTITUTING`이 아니다.
+
+검토 기준 snapshot은 Insere `997287030f3cbc64c6f5f8f15053a67cdae4e9a9`
+(`main == origin/main`, clean)과 Zeno
+`2865f670f711460488db05d29f3bcc0d42d92bfa` (`main`, `origin/main`보다 1 commit
+앞섬)이다. Zeno에는 package metadata/example package와 `llms.txt`에 기존 dirty
+work가 있으므로 Pergyra 작업이 수정·정리·커밋하지 않는다. 아래에서 인용한
+architecture/schema/compiler/runtime source는 그 dirty path에 포함되지 않았다.
+이 revision은 provenance 재현용이며 Pergyra 의미 SoT를 외부 저장소에 넘기지
+않는다.
 
 ## 0. 공통 채택 원칙
 
@@ -106,9 +116,11 @@ C/LLVM parity는 닫혔다. 다만 generic `Future<T>` 밖의 source-level task 
 새로 만들지 않았고 실제 host adapter도 아직 소비하지 않으므로 grade는
 official-library `REACHABLE`에서 멈춘다.
 
-`SnapshotTicket`과 `BinaryProjectionPreflight`는 compiler MIR owner를 import한다.
-현재 형태는 user stdlib가 아니라 internal self-host library/tooling이다. stdlib이
-`src/self_hosted`를 역방향 import하게 만들지 않는다.
+`SnapshotTicket`은 compiler owner를 import하지 않고 caller-provided slot,
+generation, layout id, endian을 immutable value로 결속한다.
+`BinaryProjectionPreflight`만 `abi_layout_fact_owner.pgy`를 import해 기존 layout
+identity를 검증한다. 현재 형태는 user stdlib가 아니라 internal self-host
+library/tooling이다. stdlib이 `src/self_hosted`를 역방향 import하게 만들지 않는다.
 
 ## 3. Objective card A — HostTaskSlot
 
@@ -154,7 +166,10 @@ claim/release/recycle하지 않는다.
 현재 self-host Pergyra surface에는 `Slot<T>`의 runtime handle identity를 읽는
 public typed view가 없다. 따라서 이 slice는 명시적 current slot/generation
 fact를 받는 internal protocol이며 public `Slot<T>` API가 아니다. reflection이나
-generated-C field access로 이 seam을 우회하지 않는다.
+generated-C field access로 이 seam을 우회하지 않는다. 현재 probe에서는 ticket과
+current slot/generation을 같은 caller가 제공하므로 live `SlotHandle` 진위나
+last-consumer 연동을 증명하지 않는다. 이것은 receipt lineage fixture이지 runtime
+handle authenticity 증거가 아니다.
 
 ## 5. Objective card C — BinaryProjection
 
@@ -174,14 +189,46 @@ identity를 비교하므로 offset/size/alignment/representation tuple이 바뀌
 type spelling이어도 거부된다. endian은 현재 layout hash에 없으므로 explicit
 boundary fact로 별도 비교한다.
 
+## 5.1 Objective card D — HostTask admission policy
+
+- Objective: Insere의 `spawn`/`restart`/`skip` 시작 정책을 기존
+  `HostTaskSlot`의 key, generation, phase 사실 위에서 한 번 결정하고, host가
+  분기 가능한 typed decision으로 돌려준다.
+- Priority: current generation 보존, active/vacant 구분, normal skip과 duplicate
+  spawn의 구분, explicit policy, 두 번째 scheduler를 만들지 않는 것.
+- Fact owner: `HostTaskSlot`이 current generation과 phase를 계속 소유하고,
+  `HostTaskApplyPolicy`와 `HostTasks.ApplyPolicy`가 해당 current slot에 대한 단일
+  admission transition을 소유한다. policy decision은 runtime task handle이나
+  worker 실행을 소유하지 않는다.
+- Last consumer: future host adapter가 existing task/future handle을 시작·교체할지
+  결정하는 publication 직전 경계다.
+- Forbidden fallback: string policy, key-only presence 판정, duplicate `spawn`을
+  restart로 처리, active `skip`에서 generation 증가, rejected decision 뒤 host
+  task 시작, Bool-only 결과, Promise/Generator/AbortController나 별도 scheduler
+  도입이다.
+- Verification: active generation N에서 `skip`은 slot/ticket을 보존하고 normal
+  no-op으로, `spawn`은 `task_already_exists`로 거부되며, `restart`만 N+1을
+  발급해야 한다. cleanup 뒤 vacant slot에서는 세 정책 모두 같은 N+1 start를
+  결정해야 한다. generation 0/negative, unknown phase, 증가 상한은 변화 없이
+  거부되고 unknown phase는 `vacant`로 보이면 안 된다. 상한의 active `skip`은
+  증가하지 않으므로 계속 허용된다. focused C/LLVM gate가 동일한
+  decision/status, phase, generation/ticket 결과를 실행한다.
+
+이 slice에는 `subject`, `action`, `intent`를 추가하지 않는다. library가 실제 host
+task identity나 실행 authority를 소유하지 않고 immutable admission decision만
+계산하기 때문이다. decision/report를 `tobject`로 만드는 것도 아직 이르다. 실제
+host boundary publication과 receipt lifecycle이 없으므로 현재 결과는 local policy
+value이며, future adapter가 detached handoff를 요구할 때 별도의 materialization
+owner를 증명해야 한다.
+
 ## 6. 단계별 구현 계획
 
 ### Phase 0 — 현재 구현된 bounded slice
 
 | Track | 상태 | Evidence | Grade |
 | --- | --- | --- | --- |
-| HostTaskSlot | official-library slice 구현·배치·focused parity 완료 | `stdlib/host_task_slot.pgy`, `tests/host_task_slot_smoke.sh`, `docs/stdlib/host_task_slot.md`, stdlib inventory/stable-use wiring | `REACHABLE` official library |
-| SnapshotTicket | immutable owner와 generation rejection 구현 | `src/self_hosted/lib/snapshot_ticket.pgy` | `REACHABLE` tooling/library |
+| HostTaskSlot | generation guard와 typed admission policy 구현·배치·focused parity 완료 | `stdlib/host_task_slot.pgy`, `tests/host_task_slot_smoke.sh`, `tests/host_task_policy_smoke.sh`, `docs/stdlib/host_task_slot.md`, stdlib inventory/stable-use wiring | `REACHABLE` official library |
+| SnapshotTicket | caller-provided identity의 immutable 결속과 generation rejection 구현; live handle authenticity는 미연결 | `src/self_hosted/lib/snapshot_ticket.pgy` | `REACHABLE` tooling/library |
 | BinaryProjection | existing layout id + explicit endian preflight 구현 | `src/self_hosted/lib/binary_projection_preflight_owner.pgy` | `REACHABLE` tooling/library |
 | executable probe | C와 LLVM 동일 positive/negative 실행 | `src/self_hosted/tools/binary_projection_preflight_probe/main.pgy`와 `intent.md` | focused evidence |
 | parity owner | N/N+1, offset, endian, missing-endian negative | `tests/self_hosted/parity/binary_projection_preflight_probe_parity.sh` | PASS |
@@ -194,10 +241,27 @@ C/LLVM 프로그램으로 실행된다는 뜻이다. production compiler root가
 
 - 완료: source C/LLVM parity와 A(N) → B(N+1) 뒤 A의
   wait/final/cleanup 거부.
+- 완료: active `skip`의 normal no-op, duplicate `spawn`의 typed rejection,
+  active `restart`의 generation advance, vacant 세 정책의 새 generation 발급,
+  generation 0/negative·unknown phase·증가 상한의 fail-closed 처리가 하나의
+  `ApplyPolicy` owner와 C/LLVM parity로 고정됐다.
 - 완료: Result/reason vocabulary, active module inventory, stable-use wiring.
 - 다음: 실제 host adapter가 existing task/future handle 옆의 ticket을 소비하고
+  policy decision의 `applied`/`status`를 시작 경계에서 소비한 뒤,
   publish/cleanup 직전에 current slot을 재확인한다.
 - Insere scheduler 전체를 재작성하지 않는다.
+
+### Phase 1.1 — post-failure supervision (`PROPOSED`)
+
+- Insere의 `spawn`/`restart`/`skip` start admission과 실패 뒤의
+  `bubble`/`stop`/`result`/bounded restart를 같은 policy로 합치지 않는다.
+- 미래 `HostTaskFailureDecision`은 attempt와 explicit max를 순수하게 판정한다.
+  Restart는 remembered execution source와 bounded max가 모두 있을 때만 후보며,
+  기본값은 stop이다.
+- 실제 host adapter가 source/attempt를 소유하기 전에는 fixture를 추가해도
+  `REACHABLE` 이상으로 세지 않는다.
+- Promise/AbortController callback, 두 번째 scheduler, unbounded retry,
+  `ApplyPolicy` 재사용은 금지한다.
 
 ### Phase 2 — normalized layout manifest tooling
 
@@ -217,6 +281,16 @@ C/LLVM 프로그램으로 실행된다는 뜻이다. production compiler root가
 - production이 receipt path를 사용하고 unchecked bypass가 삭제된 뒤에만
   `SUBSTITUTING` 승격을 검토한다.
 
+### Phase 4 — resolution/loss-aware diagnostic (`PARTIAL/SURFACE`)
+
+- 새 error taxonomy를 만들지 않고 기존 self semantic diagnostic fact에
+  loss-contract row id, observed/required stage와 phase를 결속한다.
+- `ambiguous`, `insufficient resolution`, `unsupported at phase`,
+  `produced-IR invariant violation`을 precise code와 별도 축으로 구분한다.
+- initializer/assignment/statement unresolved fixture가 AST 재탐색이나 fake line
+  0 없이 같은 diagnostic owner를 소비해야 한다. Production self-host driver가
+  소비하기 전에는 hard self-host 진척이 아니다.
+
 ## 7. Do not port
 
 Insere에서 가져오지 않는다:
@@ -227,6 +301,7 @@ Insere에서 가져오지 않는다:
 - worker pool, CPU parallel/shared-memory coordination
 - editor/document/cursor/CRDT/product policy
 - JS object identity 구현 자체와 무제한 retry
+- start admission과 post-failure supervision을 한 policy로 합치는 것
 
 Pergyra는 이미 `async`, `parallel`, `Channel<T>`, Slot, zone, intent, runtime
 scheduler owner를 가진다. `HostTaskSlot`은 작은 latest-only commit protocol이며
@@ -246,6 +321,11 @@ Zeno에서 가져오지 않는다:
 가져올 것은 Layout IR의 **소유권 구조**와 generation-bound projection
 admission이지 JavaScript memory API가 아니다.
 
+Zeno의 capability-derived runtime import/emission 원칙은 이미 Pergyra의
+`CodegenRuntimeUsageFactsFromSemantic`과 선택적 runtime emission owner에 대응한다.
+따라서 이 축은 새 registry 채택 대상이 아니며 기존 owner의 negative gate만
+유지한다.
+
 ## 8. Gate와 완료 정의
 
 현재 관찰된 focused evidence:
@@ -255,6 +335,15 @@ admission이지 JavaScript memory API가 아니다.
   compile/run PASS.
 - `PGY_HOST_TASK_SLOT_BACKENDS=llvm bash tests/host_task_slot_smoke.sh`: LLVM
   compile/run PASS.
+- `PGY_HOST_TASK_POLICY_BACKENDS=c bash tests/host_task_policy_smoke.sh`: active
+  skip/spawn/restart, vacant start, malformed phase/generation C 실행 PASS.
+- `PGY_HOST_TASK_POLICY_BACKENDS=llvm bash tests/host_task_policy_smoke.sh`:
+  동일 decision/status와 generation/ticket 결과 LLVM 실행 PASS.
+- `make stdlib-test-smoke`가 lifecycle과 policy gate를 모두 active stdlib CI
+  surface에 결속한다. `host-task-slot-test-smoke`와
+  `host-task-policy-test-smoke`는 focused target이다. 두 focused fixture가
+  stable `use host_task_slot;` 경계에서 lifecycle과 read-only skip decision을
+  각각 실제 소비한다.
 - `bash tests/stdlib_inventory_smoke.sh`: inventory/contracts PASS.
 - `PGY_BIN=bin/pgy.exe bash
   tests/self_hosted/parity/binary_projection_preflight_probe_parity.sh`:
@@ -278,7 +367,12 @@ Pergyra 방식으로 채택하기 시작했지만 compiler 전체나 stdlib가 �
    소비하고 key-only direct commit/delete 경로가 없음을 gate로 고정한다.
 2. public `Slot<T>` generation view는 실제 workload가 필요성을 증명할 때만
    설계한다. raw field 노출은 금지한다.
-3. manifest는 현재 MIR ABI tuple에서만 파생하고 same-name offset/endian
+3. post-failure supervision은 explicit attempt/max/source owner가 생긴 뒤에만
+   bounded decision fixture로 연다. Start admission을 retry policy로 재사용하지
+   않는다.
+4. manifest는 현재 MIR ABI tuple에서만 파생하고 same-name offset/endian
    mutation을 breaking으로 출력한다.
-4. 첫 real consumer에서 receipt 없는 direct open/truncate/read를 차단한다.
-5. production consumer와 old bypass 삭제 뒤에만 `SUBSTITUTING`을 검토한다.
+5. 첫 real consumer에서 receipt 없는 direct open/truncate/read를 차단한다.
+6. loss-aware diagnostic은 기존 diagnostic/loss-contract owner에 붙이고 새 오류
+   taxonomy나 AST reread를 만들지 않는다.
+7. production consumer와 old bypass 삭제 뒤에만 `SUBSTITUTING`을 검토한다.
