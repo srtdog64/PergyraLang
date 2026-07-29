@@ -8,8 +8,9 @@ owner, and the named executable gate.
 
 ## Current resume checkpoint - admitted typed intent self execution
 
-- Landing parent: `0228cd1161e49ac82c8e4110e7bba4b4265ac8f6` on `main`.
-  Verify the final landing revision and `origin/main` before resuming.
+- Landing revision: `bf55972ba6492074a4d829bbc1fa704b90e85c78` on `main`, pushed to
+  `origin/main`. The remaining dirty state is exactly the three protected
+  parity scripts and untracked bootstrap contract listed below.
 - Canonical meaning:
   - `intent` is defined by `docs/01_intent_first_design.md` and
     `docs/173_intent_axis_strengthening.md`: it closes one real-world purpose
