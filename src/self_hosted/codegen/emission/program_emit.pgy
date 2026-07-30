@@ -290,7 +290,7 @@ func GenerateCUnitFromReadySemanticFacts(
         );
     let dispatch_type_block: String = CodegenSemanticRoleDispatchTypeBlock(
         semantic_analysis.roles, signatures,
-        CodegenTypeEnv(env_acc[0], "")
+        CodegenTypeEnvFromPresealRows(env_acc[0], "")
     );
     let dispatch_forward_block: String =
         CodegenSemanticRoleDispatchForwardBlock(semantic_analysis.roles);
@@ -311,7 +311,7 @@ func GenerateCUnitFromReadySemanticFacts(
             )
         )
     );
-    let base_env: CodegenTypeEnv = CodegenTypeEnv(env_acc[0], "");
+    let base_env: CodegenTypeEnv = CodegenTypeEnvFromRows(env_acc[0], "");
     let usage: CodegenRuntimeUsageFacts =
         CodegenRuntimeUsageFactsFromSemantic(
             semantic_analysis.expression_surfaces,
@@ -413,7 +413,8 @@ func GenerateCUnitFromReadySemanticFacts(
         semantic_analysis.intent_signatures, base_env
     );
     let intent_definition_block: String = CodegenIntentDefinitionBlock(
-        artifact, semantic_analysis.intent_signatures,
+        artifact, signatures, semantic_analysis.intent_signatures,
+        semantic_analysis.zone_authorities,
         semantic_analysis.expression_surfaces, base_env, intent_execution
     );
     let admitted_intent_definition_block: String =

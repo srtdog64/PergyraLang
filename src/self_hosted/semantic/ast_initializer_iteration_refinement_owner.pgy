@@ -5,6 +5,7 @@
 // rows. It does not derive loop bindings from source or AST text.
 
 import "ast_initializer_type_fact_owner.pgy";
+import "ast_initializer_type_query_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
 import "ast_initializer_type_function_table_bridge_owner.pgy";
 

@@ -15,8 +15,8 @@ Program:
     IntentMode: exclusive
     IntentRollback: full
     IntentInvolves: checkout: CheckoutZone
-    IntentInvolves: buyer: Buyer
     IntentValue: price: Int
+    IntentInvolves: buyer: Buyer
     IntentValue: adjustments: Array<Int: Int>
     IntentStep: pay where CheckoutZone using checkout
       Who: buyer
@@ -34,5 +34,4 @@ Program:
         Let: buyer : Buyer = Buyer(3)
         Let: checkout : CheckoutZone = CheckoutZone(buyer)
         Log("intent value params minimal")
-        Log(Checkout(checkout, buyer, 7, [1, 2]))
-
+        Log(Checkout(checkout, 7, buyer, [1, 2]))

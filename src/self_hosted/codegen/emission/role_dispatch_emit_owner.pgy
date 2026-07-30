@@ -14,6 +14,8 @@ func CollectRoleOperators(
 ) -> String {
     let rows: Array<String> = [];
     let blocks: Array<String> = [];
+    let dependency_env: CodegenTypeEnv =
+        CodegenTypeEnvFromPresealRows(env_box[0], "");
     let i: Int = 0;
     while i < SemanticAstRoleCount(roles) {
         let role_name: String = CodegenSemanticRoleNameOrDie(roles, i);
@@ -38,7 +40,7 @@ func CollectRoleOperators(
                     for_type, "add"
                 );
                 let c_type: String = AbiLayoutCValueType(
-                    for_type, CodegenTypeEnv(env_box[0], "")
+                    for_type, dependency_env
                 );
                 ArrayPush(rows, Concat("Int+=op:", Concat(adapter, "|")));
                 ArrayPush(blocks, Concat(

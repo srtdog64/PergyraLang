@@ -23,7 +23,7 @@ func CodegenIntentPlanLocalEnv(
             env = TypeEnvAppendLocalRows(
                 env, CodegenFunctionValueBindingFactForCExpression(
                     outcome_name, view.plan.steps.outcome_type_names[step],
-                    env.global_rows,
+                    env,
                     CompilerSymbolCBindingName(outcome_name)
                 ).env_rows
             );
@@ -31,7 +31,7 @@ func CodegenIntentPlanLocalEnv(
                 env, CodegenFunctionValueBindingFactForCExpression(
                     success_name,
                     view.plan.steps.success_payload_type_names[step],
-                    env.global_rows,
+                    env,
                     CompilerSymbolCBindingName(success_name)
                 ).env_rows
             );
@@ -39,7 +39,7 @@ func CodegenIntentPlanLocalEnv(
                 env, CodegenFunctionValueBindingFactForCExpression(
                     failure_name,
                     view.plan.steps.failure_payload_type_names[step],
-                    env.global_rows,
+                    env,
                     CompilerSymbolCBindingName(failure_name)
                 ).env_rows
             );

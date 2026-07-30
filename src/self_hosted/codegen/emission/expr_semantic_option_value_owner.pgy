@@ -26,7 +26,7 @@ func CodegenOptionExpectedValueFactFromGraph(
     let some_fn: String = "";
     let none_fn: String = "";
     let struct_fact: Option<OptionStructRuntimeFact> =
-        OptionResultRuntimeStructOptionFact(option_type, env.global_rows);
+        OptionResultRuntimeStructOptionFact(option_type, env);
     if IsSome(struct_fact) {
         let option_struct: OptionStructRuntimeFact = UnwrapOption(struct_fact);
         inner_type = option_struct.inner_type_name;

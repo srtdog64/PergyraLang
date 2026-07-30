@@ -1,0 +1,32 @@
+// Executable contract for semantic leaf place-kind emission.
+
+import "expr_semantic_graph_emit_owner.pgy";
+
+func CodegenSemanticLeafPlaceContractReady() -> Bool {
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaFromRows(
+            [AstExpressionNodeLeaf()], ["shadow"], [0], [0],
+            [SemanticCallTargetNone()], [""],
+            [SemanticExpressionPlaceBinding()]
+        );
+    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        SemanticExpressionGraphArenaReady(arena), [0], [true], arena
+    );
+    let c_name: String = Concat("pgy", "_shadow");
+    let env: CodegenTypeEnv = CodegenTypeEnvFromRows(
+        "|shadow=e:41|shadow=f:Int|Choice=e:7|CallMe=f:Int|",
+        Concat("|shadow=cbind:", Concat(c_name, "|"))
+    );
+    if RewriteSemanticLeaf(graph, 0, "shadow", env) != c_name {
+        return false;
+    }
+    let missing: CodegenSemanticLeafBindingProjection =
+        CodegenSemanticLeafBindingProjectionFromGraph(
+            graph, 0, "missing", env
+        );
+    if !missing.applies || missing.ok { return false; }
+    graph.arena.place_kinds[0] = SemanticExpressionPlaceValue();
+    return RewriteSemanticLeaf(graph, 0, "Choice", env) == "7" &&
+        RewriteSemanticLeaf(graph, 0, "CallMe", env) ==
+            CompilerSymbolCIdentifier("CallMe");
+}

@@ -182,7 +182,8 @@ func SemanticExpressionGraphCallTargetsFromSignatures(
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopology(
         graph.arena.topology, graph.arena.node_texts,
-        target_kinds, target_names, graph.arena.place_kinds
+        target_kinds, target_names, graph.arena.call_return_type_names,
+        graph.arena.place_kinds
     );
     return SemanticExpressionGraphFacts(
         valid && SemanticExpressionGraphArenaReady(arena),

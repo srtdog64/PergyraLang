@@ -95,7 +95,7 @@ func SemanticAstInitializerEnvironmentCursorAdvance(
         cursor = SemanticAstInitializerEnvironmentCursorResetLocals(cursor);
         if !SemanticAstExpressionSeedEnumValues(
             enum_facts, names, types, modes
-        ) || !SemanticAstExpressionSeedOwnerFields(
+        ) || !SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
             signatures, constructors, function_node_id, names, types, modes
         ) || !SemanticAstExpressionSeedParameters(
             signatures, function_node_id, names, types

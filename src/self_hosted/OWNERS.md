@@ -164,6 +164,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_artifact_verdict_owner.pgy` -- semantic
   evidence derived directly from the shared parser-owned `AstTreeArtifact`,
   including the canonical intent signature bundle consumed by later codegen.
+- `src/self_hosted/semantic/ast_artifact_verdict_contract_owner.pgy` --
+  executable valid, stale-identity, stale-expression-graph, missing-entrypoint,
+  and duplicate-entrypoint witnesses for the artifact verdict owner.
 - `src/self_hosted/semantic/ast_signature_fact_owner.pgy` -- artifact-bound
   function owner, name, formal-generic, parameter, mode, and return signature
   facts, including ordered function node/name identity for entrypoint
@@ -217,6 +220,9 @@ inventory must not become a second fact-family owner registry.
   local-binding, and parser expression-graph facts without source re-scanning
   or projection-text recovery; declared List<T> sequence literals are
   contextualized here from the graph-owned element compatibility fact.
+- `src/self_hosted/semantic/ast_initializer_type_query_owner.pgy` -- read-only
+  verification, first-diagnostic, and artifact-compatibility queries over
+  initializer type facts; it does not produce or repair verdict rows.
 - `src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy` --
   initializer-only sequential visibility cursor. Local identity, order, and
   scope remain owned by local-binding/typed-AST facts; this owner keeps the
@@ -365,7 +371,8 @@ inventory must not become a second fact-family owner registry.
   statement-type contracts, including graph-owned `Exit(Int)`, collection
   mutation, and match-scrutinee validation.
 - `src/self_hosted/semantic/ast_statement_type_query_owner.pgy` -- stable
-  node-handle lookup for verified statement result-type rows.
+  node-handle lookup plus read-only readiness, first-diagnostic, and artifact-
+  compatibility queries over statement type facts; it does not produce rows.
 - `src/self_hosted/semantic/ast_body_verdict_owner.pgy` -- document-order body
   verdict across initializer, iteration, assignment, and statement owners.
 - `src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy` -- one-time
@@ -380,12 +387,20 @@ inventory must not become a second fact-family owner registry.
   facts plus readiness diagnostics consumed by driver and codegen projections.
 - `src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy` --
   body-fixpoint resolution of canonical expression call-target rows.
+- `src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy` --
+  one-time concrete call-result overlay derived from admitted signature and
+  generic-specialization facts; empty rows are limited to compiler structural
+  or builtin protocol targets absent from the source signature owner, and
+  recursive codegen may not reopen flat rows.
 - `src/self_hosted/semantic/ast_expression_place_fact_owner.pgy` --
   body-fixpoint value-category and place-kind rows for ref/inout argument
   lowering; codegen consumes the carried node fact without binding lookup.
 - `src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy` --
   semantic-owned direct generic call bindings keyed by expression call node;
   explicit calls and bounded inferred initializer calls share these rows.
+- `src/self_hosted/semantic/ast_generic_specialization_query_owner.pgy` --
+  read-only count, actual-type, shape, and expression-identity queries over
+  generic specialization facts; it does not produce or infer bindings.
 - `src/self_hosted/semantic/ast_expression_call_identity_owner.pgy` -- stable
   statement SyntaxNodeId, expression lane, and local-call ordinal identity for
   semantic call rows that cross into MIR; global graph indexes are not IDs.
@@ -393,6 +408,9 @@ inventory must not become a second fact-family owner registry.
   parser-artifact projection of intent declaration identity and ordered
   `involves`/`value` parameter facts used to admit intent calls without
   pretending that an intent is a function or action declaration.
+- `src/self_hosted/semantic/ast_zone_authority_fact_owner.pgy` -- exact
+  parser-artifact zone authority rows bound to one declared subject slot;
+  participant type or same-name fields cannot invent authority.
 - `src/self_hosted/semantic/ast_intent_transition_fact_owner.pgy` -- exact
   enum-scoped step variant, explicit predecessor, and labelled terminal
   payload identity for typed intents; spelling-only and source-order fallback
@@ -408,7 +426,8 @@ inventory must not become a second fact-family owner registry.
   from the intent signature owner.
 - `src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy` -- exact
   participant receiver to subject-action signature and return-type join for one
-  intent `on` expression.
+  intent `on` expression, plus the native-order explicit/receiver/step-action/
+  sole-participant actor derivation consumed by legacy intent emission.
 - `src/self_hosted/semantic/ast_intent_outcome_environment_owner.pgy` --
   step-local outcome plus explicit-predecessor and terminal payload bindings
   exposed only at their typed intent expression boundaries.
@@ -511,9 +530,11 @@ inventory must not become a second fact-family owner registry.
   mutator, collection type, and parameter-mode policy shared by source,
   statement-fact, and expression-graph consumers.
 - `src/self_hosted/semantic/expr_validation_owner.pgy` -- expression validation facts.
-- `src/self_hosted/semantic/program_check_owner.pgy` -- program/function signature checks.
+- `src/self_hosted/semantic/program_check_owner.pgy` -- program/function and
+  nominal constructor signature checks, including exact zone/world field rows.
 - `src/self_hosted/semantic/semantic_run_owner.pgy` -- semantic CLI run boundary.
-- `src/self_hosted/semantic/source_bundle_owner.pgy` -- root/import source bundle.
+- `src/self_hosted/semantic/source_bundle_owner.pgy` -- root/import source
+  bundle ordering and one-pass TextBuilder assembly over a sealed source length.
 - `src/self_hosted/semantic/text_scan_owner.pgy` -- semantic text scanning.
 
 ## Shared Source Scan
@@ -1073,6 +1094,11 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/text/struct_literal_field_owner.pgy` -- struct literal field-name/value entry facts.
 - `src/self_hosted/codegen/text/struct_field_access_owner.pgy` -- dotted member-access field spelling projection facts.
 - `src/self_hosted/codegen/type_facts/type_env.pgy` -- type environment facts.
+- `src/self_hosted/codegen/type_facts/type_env_global_index_owner.pgy` --
+  immutable same-epoch global type-row offset index; it owns no copied row
+  strings and never scans the sealed global serialization during lookup.
+- `src/self_hosted/codegen/type_facts/type_env_local_row_scan_owner.pgy` --
+  dynamic local-scope first-row lookup; sealed global rows are forbidden here.
 - `src/self_hosted/codegen/abi_layout/enum_abi_value_fact_owner.pgy` -- one
   semantic-enum-to-C-value/default ABI fact for payload-free and tagged enum
   consumers.
@@ -1110,6 +1136,9 @@ inventory must not become a second fact-family owner registry.
   codegen does not split migrated payloads to rediscover precedence. It is the
   semantic-check cluster root for the mutually recursive call and composite
   literal projection owners below.
+- `src/self_hosted/codegen/emission/expr_semantic_leaf_place_contract_owner.pgy` --
+  executable binding/value leaf projection contract: admitted place kind wins
+  over flat enum/function spellings, and missing binding identity fails closed.
 - `src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy` --
   canonical expected-type value emission from semantic graph handles and
   child edges, including arrays, Set, named structs, Result, resource, and
@@ -1192,6 +1221,15 @@ inventory must not become a second fact-family owner registry.
   prototype/environment/definition emission for admitted participant bindings,
   zone rebinding, action execution, projection synchronization, and caller
   value-result writeback; it does not reclassify intent as `func`.
+- `src/self_hosted/codegen/emission/intent_step_binding_owner.pgy` -- one
+  actor/using/authority parameter admission and exact-alias-or-unique-type zone
+  slot projection, including by-value versus inout zone C address spelling.
+- `src/self_hosted/codegen/emission/intent_step_binding_contract_owner.pgy` --
+  executable positive/negative contract for where/using identity, declared
+  authority, exact-or-unique subject-slot selection, and zone address mode.
+- `src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy` --
+  exact-alias-first, otherwise unique-type subject-slot resolution shared by
+  actor and authority binding; non-subject fields never satisfy the join.
 - `src/self_hosted/codegen/emission/intent_signature_emit_owner.pgy` -- intent
   callable environment, parameter ABI, prototype, and local-binding C facts;
   intent remains a distinct Bool orchestration boundary.

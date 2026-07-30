@@ -111,7 +111,8 @@ func ProbeExpressionSurfacesWithCallCallee(
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopology(
         graph.arena.topology, texts, graph.arena.call_target_kinds,
-        graph.arena.call_target_names, graph.arena.place_kinds
+        graph.arena.call_target_names, graph.arena.call_return_type_names,
+        graph.arena.place_kinds
     );
     let damaged: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFacts(
@@ -146,7 +147,8 @@ func ProbeAnalysisWithCallTarget(
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopology(
         graph.arena.topology, graph.arena.node_texts,
-        graph.arena.call_target_kinds, targets, graph.arena.place_kinds
+        graph.arena.call_target_kinds, targets,
+        graph.arena.call_return_type_names, graph.arena.place_kinds
     );
     let damaged_graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFacts(
@@ -159,6 +161,7 @@ func ProbeAnalysisWithCallTarget(
     return SemanticAstArtifactAnalysis(
         analysis.verdict, analysis.signatures, analysis.intent_signatures,
         analysis.intent_transitions, analysis.constructors,
+        analysis.zone_authorities,
         analysis.local_bindings, analysis.assignments, analysis.statements,
         analysis.enums, analysis.roles, damaged_surfaces,
         analysis.type_surfaces, analysis.kind_surfaces,
@@ -188,7 +191,8 @@ func ProbeExpressionSurfacesWithMemberName(
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopology(
         graph.arena.topology, texts, graph.arena.call_target_kinds,
-        graph.arena.call_target_names, graph.arena.place_kinds
+        graph.arena.call_target_names, graph.arena.call_return_type_names,
+        graph.arena.place_kinds
     );
     let damaged: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFacts(
@@ -223,7 +227,8 @@ func ProbeAnalysisWithoutCallTarget(
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopology(
         graph.arena.topology, graph.arena.node_texts,
-        target_kinds, target_names, graph.arena.place_kinds
+        target_kinds, target_names, graph.arena.call_return_type_names,
+        graph.arena.place_kinds
     );
     let damaged_graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFacts(
@@ -237,6 +242,7 @@ func ProbeAnalysisWithoutCallTarget(
     return SemanticAstArtifactAnalysis(
         analysis.verdict, analysis.signatures, analysis.intent_signatures,
         analysis.intent_transitions, analysis.constructors,
+        analysis.zone_authorities,
         analysis.local_bindings, analysis.assignments, analysis.statements,
         analysis.enums, analysis.roles, damaged_surfaces,
         analysis.type_surfaces, analysis.kind_surfaces,
@@ -286,7 +292,7 @@ func ProbeCodegenConsumesDirectTarget(
             ))
         ))
     );
-    let env: CodegenTypeEnv = CodegenTypeEnv(rows, "");
+    let env: CodegenTypeEnv = CodegenTypeEnvFromRows(rows, "");
     let i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(
         analysis.expression_surfaces.expression_graph.arena
@@ -333,7 +339,7 @@ func ProbeCodegenConsumesMemberTarget(
             ))
         ))
     );
-    let env: CodegenTypeEnv = CodegenTypeEnv(
+    let env: CodegenTypeEnv = CodegenTypeEnvFromRows(
         function_rows, value_rows
     );
     let i: Int = 0;

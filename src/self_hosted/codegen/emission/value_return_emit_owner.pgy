@@ -42,7 +42,7 @@ func EmitReturnValue(
     if StartsWith(return_type, "Option<") {
         let kind: Int = OptionResultRuntimeOptionPayloadKindForType(return_type);
         let struct_fact: Option<OptionStructRuntimeFact> =
-            OptionResultRuntimeStructOptionFact(return_type, env.global_rows);
+            OptionResultRuntimeStructOptionFact(return_type, env);
         if kind == 0 && !IsSome(struct_fact) {
             Die(Concat("unsupported option return payload type: ", return_type));
         }

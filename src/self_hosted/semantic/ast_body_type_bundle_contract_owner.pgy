@@ -21,10 +21,105 @@ func SemanticAstBodyTypeBundleContractError() -> String {
 func SemanticAstBodyTypeBundleContractReady() -> Bool {
     return SemanticAstBodyTypeBundleContractError() == "" &&
         SemanticExpressionPlaceKindContractReady() &&
+        SemanticAstBodyTypeBundleCallReturnPartitionContractReady() &&
         SemanticAstBodyTypeBundleMissingPlaceContractReady() &&
+        SemanticAstBodyTypeBundleMissingCallReturnContractReady() &&
         SemanticAstBodyTypeBundleStaleAdmissionContractReady() &&
         SemanticAstBodyTypeBundleMalformedProducerRowAdmissionContractReady() &&
         SemanticAstBodyAnalysisShapeAdmissionContractReady();
+}
+
+func SemanticAstBodyTypeBundleCallReturnPartitionContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Direct\n    Parameters:\n      value: Int\n    Returns: Int\n    Body:\n      Block:\n        Return: value\n  Function: Identity\n    Generic params: <T>\n    Parameters:\n      value: T\n    Returns: T\n    Body:\n      Block:\n        Return: value\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: direct : Int = Direct(1)\n        Let: generic : Int = Identity(2)\n        Let: structural : Option<Int> = Some(3)\n        Return: direct\n"
+    );
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    let bundle: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !SemanticAstBodyTypeBundleReady(artifact, analysis, bundle) {
+        return false;
+    }
+    let direct_ok: Bool = false;
+    let generic_ok: Bool = false;
+    let structural_absent: Bool = false;
+    let first_call: Int = -1;
+    let node_id: Int = 0;
+    while node_id < SemanticExpressionGraphArenaNodeCount(
+        analysis.expression_surfaces.expression_graph.arena
+    ) {
+        if analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[
+            node_id
+        ] == AstExpressionNodeCall() {
+            if first_call < 0 { first_call = node_id; }
+            let target: String = analysis.expression_surfaces.expression_graph.arena.call_target_names[
+                node_id
+            ];
+            let carried: Option<String> =
+                SemanticExpressionGraphCallReturnTypeName(
+                    analysis.expression_surfaces.expression_graph, node_id
+                );
+            if target == "Direct" {
+                direct_ok = IsSome(carried) && UnwrapOption(carried) == "Int";
+            } else if target == "Identity" {
+                generic_ok = IsSome(carried) && UnwrapOption(carried) == "Int";
+            } else if target == "Some" {
+                structural_absent = !IsSome(carried);
+            }
+        }
+        node_id = node_id + 1;
+    }
+    if !direct_ok || !generic_ok || !structural_absent || first_call < 0 {
+        return false;
+    }
+    let direct_row: Option<Int> = SemanticCallableIndex(
+        analysis.function_tables.names, "Direct"
+    );
+    if !IsSome(direct_row) { return false; }
+    analysis.function_tables.returns[UnwrapOption(direct_row)] = "Unknown";
+    if SemanticAstBodyTypeBundleReadinessError(
+        artifact, analysis, bundle
+    ) != "call_return_type_rows" { return false; }
+    let stale_analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    stale_analysis.expression_surfaces.expression_graph.arena.call_return_type_names[
+        first_call
+    ] = "stale";
+    return !SemanticAstAnalysisResolveCallReturnTypes(
+        artifact, stale_analysis, bundle.generic_specializations
+    );
+}
+
+func SemanticAstBodyTypeBundleMissingCallReturnContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = StringLength(\"x\")\n        Return: x\n"
+    );
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    let bundle: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !SemanticAstBodyTypeBundleReady(artifact, analysis, bundle) {
+        return false;
+    }
+    let node_id: Int = 0;
+    let call_node: Int = -1;
+    while node_id < SemanticExpressionGraphArenaNodeCount(
+        analysis.expression_surfaces.expression_graph.arena
+    ) {
+        if analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[
+            node_id
+        ] == AstExpressionNodeCall() {
+            call_node = node_id;
+        }
+        node_id = node_id + 1;
+    }
+    if call_node < 0 { return false; }
+    analysis.expression_surfaces.expression_graph.arena.call_return_type_names[
+        call_node
+    ] = "";
+    return SemanticAstBodyTypeBundleReadinessError(
+        artifact, analysis, bundle
+    ) == "call_return_type_rows";
 }
 
 func SemanticAstBodyTypeBundleMissingPlaceContractReady() -> Bool {

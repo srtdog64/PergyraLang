@@ -25,9 +25,9 @@ func ParseIntentDecl(
     if i < 0 {
         Exit(1);
     }
-    // Parse params and split into Involves vs Value by type.
-    let involves_lines: Array<String> = [];
-    let value_lines: Array<String> = [];
+    // Classify each parameter without changing its source order. Call sites and
+    // the semantic signature owner consume this same positional contract.
+    let parameter_lines: Array<String> = [];
     i = SkipWhitespaceAndComments(content, i);
     if ParserCharAt(content, i) != ")" {
         while true {
@@ -67,9 +67,9 @@ func ParseIntentDecl(
                 k = k + 1;
             }
             if is_involve {
-                ArrayPush(involves_lines, row);
+                ArrayPush(parameter_lines, Concat("IntentInvolves: ", row));
             } else {
-                ArrayPush(value_lines, row);
+                ArrayPush(parameter_lines, Concat("IntentValue: ", row));
             }
             i = SkipWhitespaceAndComments(content, i);
             if ParserCharAt(content, i) == "," {
@@ -549,17 +549,10 @@ func ParseIntentDecl(
     if StringLength(intent_retry) > 0 {
         out = AppendLine(out, Concat("    IntentRetry: ", intent_retry));
     }
-    let inv_len: Int = ArrayLength(involves_lines);
-    let inv_i: Int = 0;
-    while inv_i < inv_len {
-        out = AppendLine(out, Concat("    IntentInvolves: ", involves_lines[inv_i]));
-        inv_i = inv_i + 1;
-    }
-    let val_len: Int = ArrayLength(value_lines);
-    let val_i: Int = 0;
-    while val_i < val_len {
-        out = AppendLine(out, Concat("    IntentValue: ", value_lines[val_i]));
-        val_i = val_i + 1;
+    let parameter_i: Int = 0;
+    while parameter_i < ArrayLength(parameter_lines) {
+        out = AppendLine(out, Concat("    ", parameter_lines[parameter_i]));
+        parameter_i = parameter_i + 1;
     }
     if StringLength(step_blocks) > 0 {
         out = AppendLine(out, step_blocks);

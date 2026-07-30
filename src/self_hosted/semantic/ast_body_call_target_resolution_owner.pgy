@@ -15,7 +15,7 @@ func SemanticAstAnalysisResolveCallTargetsFromAdmittedBody(
     function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> Bool {
     if !analysis.verdict.ok || !analysis.signatures.ok ||
-        !SemanticAstNominalConstructorRowsReady(analysis.constructors) ||
+        !analysis.constructors.ok ||
         ArrayLength(inferred_types) !=
             SemanticAstLocalBindingCount(analysis.local_bindings) {
         return false;

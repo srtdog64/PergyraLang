@@ -77,14 +77,7 @@ func CodegenExpressionCallTypeFromGraph(
             source_name, argument_types
         );
     }
-    let call_symbol: String = source_name;
-    let alias: String = LookupKindType(env, source_name, "call");
-    if alias != "" { call_symbol = alias; }
-    let specialization: String = LookupKindType(
-        env, CodegenGenericCallNodeKey(call.call_node), "call"
+    return SemanticExpressionGraphCallReturnTypeName(
+        graph, call.call_node
     );
-    if specialization != "" { call_symbol = specialization; }
-    let return_type: String = LookupKindType(env, call_symbol, "f");
-    if return_type == "" || return_type == "Unknown" { return None; }
-    return Some(return_type);
 }

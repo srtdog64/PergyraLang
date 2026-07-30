@@ -142,7 +142,7 @@ func MirIntentExecutionGraphTargetProject(
         SemanticExpressionGraphArenaFromTopology(
             sequence.arena.topology, sequence.arena.node_texts,
             sequence.arena.call_target_kinds, target_names,
-            sequence.arena.place_kinds
+            sequence.arena.call_return_type_names, sequence.arena.place_kinds
         );
     return MirExpressionGraphSequence(
         SemanticExpressionGraphArenaReady(arena), sequence.ready_node_count,

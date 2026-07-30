@@ -82,18 +82,20 @@ func ProbeOptionAssignment(
     let target_graph: SemanticExpressionGraphView = ProbeExpressionGraph(
         name, true
     );
+    let base_env: CodegenTypeEnv = CodegenTypeEnvFromRows("|", "");
     let local_rows: String = "|";
     if carry_c_binding {
         let binding: CodegenFunctionValueBindingFact =
             CodegenFunctionValueBindingFactFor(
-                name, binding_type, "|"
+                name, binding_type, base_env
             );
         local_rows = Concat(local_rows, binding.env_rows);
     }
     let env_state: Array<String> = ["|", local_rows];
+    let env: CodegenTypeEnv = CodegenTypeEnvFromRows("|", local_rows);
     return EmitAssign(
         assignments, 0, expected_type, expected_type,
-        env_state, graph, target_graph
+        env_state, env, graph, target_graph
     );
 }
 
@@ -109,14 +111,17 @@ func ProbeIndexedAssignment(target_type: String) -> String {
     let env_state: Array<String> = [
         "|", "|nums=v:ArrayInt|nums=cbind:nums|"
     ];
+    let env: CodegenTypeEnv = CodegenTypeEnvFromRows(
+        env_state[0], env_state[1]
+    );
     return EmitAssign(
         assignments, 0, "Int", target_type,
-        env_state, value_graph, target_graph
+        env_state, env, value_graph, target_graph
     );
 }
 
 func ProbeCollectionCrefOnly() -> String {
-    let env: CodegenTypeEnv = CodegenTypeEnv(
+    let env: CodegenTypeEnv = CodegenTypeEnvFromRows(
         "|", "|xs=v:ArrayInt|xs=type:Array<Int>|xs=cref:pgy_ref_xs|"
     );
     return CodegenCollectionTargetCBindingOrDie(env, "xs");

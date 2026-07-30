@@ -5,6 +5,7 @@
 // self-checking contract fixture chain consumed by driver readiness.
 
 import "ast_initializer_type_fact_owner.pgy";
+import "ast_initializer_type_query_owner.pgy";
 
 func SemanticAstInitializerTypeFactsContractReady() -> Bool {
     if !SemanticExpressionGraphArrayLiteralContractReady() { return false; }

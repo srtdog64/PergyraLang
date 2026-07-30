@@ -15,11 +15,50 @@ import "expr_semantic_call_emit_owner.pgy";
 import "expr_semantic_type_owner.pgy";
 import "runtime_call_rewrite_owner.pgy";
 
+struct CodegenSemanticLeafBindingProjection {
+    applies: Bool;
+    ok: Bool;
+    c_name: String;
+}
+
+func CodegenSemanticLeafBindingProjectionFromGraph(
+    graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    text: String,
+    env: CodegenTypeEnv
+) -> CodegenSemanticLeafBindingProjection {
+    let place_kind: Option<Int> = SemanticExpressionGraphPlaceKind(
+        graph, node_id
+    );
+    if !IsSome(place_kind) {
+        return CodegenSemanticLeafBindingProjection(true, false, "");
+    }
+    if !SemanticExpressionPlaceKindDirectBinding(
+        UnwrapOption(place_kind)
+    ) {
+        return CodegenSemanticLeafBindingProjection(false, true, "");
+    }
+    let c_name: String = LookupKindType(env, text, "cbind");
+    return CodegenSemanticLeafBindingProjection(
+        true, c_name != "", c_name
+    );
+}
+
 func RewriteSemanticLeaf(
+    graph: SemanticExpressionGraphFacts,
+    node_id: Int,
     text: String,
     env: CodegenTypeEnv
 ) -> String {
     if IsIdentifier(text) {
+        let binding: CodegenSemanticLeafBindingProjection =
+            CodegenSemanticLeafBindingProjectionFromGraph(
+                graph, node_id, text, env
+            );
+        if !binding.ok {
+            Die(Concat("semantic leaf binding fact is missing: ", text));
+        }
+        if binding.applies { return binding.c_name; }
         let enum_value: String = LookupKindType(env, text, "e");
         if enum_value != "" { return enum_value; }
         let tagged_enum_value: String = LookupKindType(
@@ -41,12 +80,7 @@ func RewriteSemanticLeaf(
             }
             return CompilerSymbolCIdentifier(text);
         }
-        if LookupKindType(env, text, "cbind") == "" {
-            Die(Concat(
-                "semantic leaf binding fact is missing: ", text
-            ));
-        }
-        return TypeEnvBindingCName(env, text);
+        Die(Concat("semantic leaf value fact is missing: ", text));
     }
     Die(Concat("unsupported semantic leaf expression: ", text));
     return "";
@@ -185,7 +219,7 @@ func RewriteExprFromSemanticGraph(
     }
     if kind == AstExpressionNodeStringLiteral() { return text; }
     if kind == AstExpressionNodeLeaf() {
-        return RewriteSemanticLeaf(text, env);
+        return RewriteSemanticLeaf(graph, node_id, text, env);
     }
     if AstExpressionNodeIsCallSpine(kind) {
         return RewriteSemanticCall(graph, node_id, env);

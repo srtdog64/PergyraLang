@@ -58,7 +58,7 @@ func EmitStructLit(expr: String, env: CodegenTypeEnv) -> String {
                 cval = IntEval(val, env);
             } else if StartsWith(ftype, "Array<") {
                 let array_kind: String =
-                    CodegenBindingEnvKind(ftype, env.global_rows);
+                    CodegenBindingEnvKind(ftype, env);
                 let array_val: String = StringTrim(val);
                 if StringLength(array_val) > 0 && CodegenCharAt(array_val, 0) == "[" {
                     cval = EmitArrayLiteralValue(array_val, ftype, env);

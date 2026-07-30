@@ -1,6 +1,7 @@
 // Negative witnesses for one-time body analysis admission.
 
 import "ast_body_type_bundle_owner.pgy";
+import "ast_generic_specialization_query_owner.pgy";
 
 func SemanticAstBodyTypeBundleAdmissionRejectedBeforeMaterialization(
     ref bundle: SemanticAstBodyTypeBundle

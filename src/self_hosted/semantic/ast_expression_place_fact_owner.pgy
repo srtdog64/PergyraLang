@@ -11,6 +11,7 @@ import "ast_initializer_iteration_refinement_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
 import "ast_intent_expression_environment_owner.pgy";
+import "ast_body_analysis_admission_owner.pgy";
 
 func SemanticExpressionPlaceKindForNode(
     ref graph: SemanticExpressionGraphFacts,
@@ -145,7 +146,8 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
                         analysis.enums, names, types, modes
                     );
                 if environment_ok && IsSome(function_node_id) {
-                    environment_ok = SemanticAstExpressionSeedOwnerFields(
+                    environment_ok =
+                        SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
                         analysis.signatures, analysis.constructors,
                         UnwrapOption(function_node_id), names, types, modes
                     ) && SemanticAstExpressionSeedParameters(
@@ -231,7 +233,8 @@ func SemanticAstAnalysisResolveExpressionPlacesFromBody(
     iteration_types: SemanticAstIterationTypeFacts,
     function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> Bool {
-    if !SemanticAstExpressionSurfaceBorrowReady(
+    if !SemanticAstBodyAnalysisAdmissionReady(artifact, analysis) ||
+        !SemanticAstExpressionSurfaceBorrowReady(
         artifact, analysis.expression_surfaces
     ) || !SemanticAstIntentSignatureFactsReady(
         artifact, analysis.intent_signatures

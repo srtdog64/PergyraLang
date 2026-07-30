@@ -5,6 +5,10 @@ import "../lib/source_scan_owner.pgy";
 func CharAt(s: String, i: Int) -> String {
     return SourceCharAt(s, i);
 }
+func CharAtWithin(s: String, length: Int, i: Int) -> String {
+    if i < 0 || i >= length { return ""; }
+    return CharAtN(s, length, i);
+}
 func SkipQuotedString(content: String, start: Int, limit: Int) -> Int {
     let i: Int = start + 1;
     while i < limit &&
@@ -35,9 +39,10 @@ func SkipBlockComment(content: String, start: Int, limit: Int) -> Int {
     }
     return limit;
 }
-func SemanticMatchKeyword(content: String, start: Int, kw: String) -> Bool {
-    let i: Int = SkipWhitespaceAndComments(content, start);
-    let n: Int = StringLength(content);
+func SemanticMatchKeywordWithin(
+    content: String, n: Int, start: Int, kw: String
+) -> Bool {
+    let i: Int = SkipWhitespaceAndCommentsWithin(content, n, start);
     let kl: Int = StringLength(kw);
     if i + kl > n {
         return false;
@@ -47,9 +52,15 @@ func SemanticMatchKeyword(content: String, start: Int, kw: String) -> Bool {
     }
     return !SourceByteIsAlphaNum(SourceByteAt(content, n, i + kl));
 }
-func SemanticReadIdent(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
-    let i: Int = SkipWhitespaceAndComments(content, start);
-    let n: Int = StringLength(content);
+func SemanticMatchKeyword(content: String, start: Int, kw: String) -> Bool {
+    return SemanticMatchKeywordWithin(
+        content, StringLength(content), start, kw
+    );
+}
+func SemanticReadIdentWithin(
+    content: String, n: Int, start: Int, inout cursor_out: Array<Int>
+) -> String {
+    let i: Int = SkipWhitespaceAndCommentsWithin(content, n, start);
     if !SourceByteIsAlpha(SourceByteAt(content, n, i)) {
         ArraySet(cursor_out, 0, i);
         return "";
@@ -60,6 +71,11 @@ func SemanticReadIdent(content: String, start: Int, inout cursor_out: Array<Int>
     }
     ArraySet(cursor_out, 0, end);
     return Substring(content, i, end - i);
+}
+func SemanticReadIdent(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
+    return SemanticReadIdentWithin(
+        content, StringLength(content), start, cursor_out
+    );
 }
 func Trim(content: String) -> String {
     let start: Int = 0;
@@ -80,9 +96,10 @@ func Trim(content: String) -> String {
     }
     return Substring(content, start, end - start);
 }
-func ReadTypeName(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
-    let i: Int = SkipWhitespaceAndComments(content, start);
-    let n: Int = StringLength(content);
+func ReadTypeNameWithin(
+    content: String, n: Int, start: Int, inout cursor_out: Array<Int>
+) -> String {
+    let i: Int = SkipWhitespaceAndCommentsWithin(content, n, start);
     let depth: Int = 0;
     let end: Int = i;
     while end < n {
@@ -95,7 +112,7 @@ func ReadTypeName(content: String, start: Int, inout cursor_out: Array<Int>) -> 
             }
         } else if depth == 0 {
             if SourceByteIsWhitespace(c) &&
-                SemanticMatchKeyword(content, end + 1, "with") {
+                SemanticMatchKeywordWithin(content, n, end + 1, "with") {
                 break;
             }
             if c == SourceByteOf(",") || c == SourceByteOf(")") ||
@@ -110,13 +127,25 @@ func ReadTypeName(content: String, start: Int, inout cursor_out: Array<Int>) -> 
     ArraySet(cursor_out, 0, end);
     return Trim(Substring(content, i, end - i));
 }
-func ExpectLiteral(content: String, start: Int, tok: String) -> Option<Int> {
-    let i: Int = SkipWhitespaceAndComments(content, start);
+func ReadTypeName(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
+    return ReadTypeNameWithin(
+        content, StringLength(content), start, cursor_out
+    );
+}
+func ExpectLiteralWithin(
+    content: String, n: Int, start: Int, tok: String
+) -> Option<Int> {
+    let i: Int = SkipWhitespaceAndCommentsWithin(content, n, start);
     let tl: Int = StringLength(tok);
-    if !SubEqualsWithLen(content, StringLength(content), i, tl, tok) {
+    if !SubEqualsWithLen(content, n, i, tl, tok) {
         return None;
     }
     return Some(i + tl);
+}
+func ExpectLiteral(content: String, start: Int, tok: String) -> Option<Int> {
+    return ExpectLiteralWithin(
+        content, StringLength(content), start, tok
+    );
 }
 func FindStatementEnd(content: String, start: Int, limit: Int) -> Int {
     let i: Int = start;

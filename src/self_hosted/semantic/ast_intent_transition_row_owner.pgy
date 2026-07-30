@@ -13,6 +13,8 @@ struct SemanticAstIntentStepHeaderRow {
     ok: Bool;
     name: String;
     predecessor_name: String;
+    where_zone_name: String;
+    using_alias: String;
 }
 
 struct SemanticAstIntentVariantSeal {
@@ -45,8 +47,10 @@ func SemanticAstIntentStepHeaderFromText(
     let end: Int = StringLength(text);
     let where_at: Int = StringIndexOf(text, " where ");
     let using_at: Int = StringIndexOf(text, " using ");
+    let transfer_at: Int = StringIndexOf(text, " transfer ");
     if where_at >= 0 && where_at < end { end = where_at; }
     if using_at >= 0 && using_at < end { end = using_at; }
+    if transfer_at >= 0 && transfer_at < end { end = transfer_at; }
     let topology: String = Substring(text, 0, end);
     let after_at: Int = StringIndexOf(topology, " after ");
     let name: String = topology;
@@ -57,10 +61,41 @@ func SemanticAstIntentStepHeaderFromText(
             topology, after_at + 7, StringLength(topology) - after_at - 7
         );
     }
+    let where_zone_name: String = "";
+    if where_at >= 0 {
+        let where_start: Int = where_at + StringLength(" where ");
+        let where_end: Int = StringLength(text);
+        if using_at > where_at && using_at < where_end {
+            where_end = using_at;
+        }
+        if transfer_at > where_at && transfer_at < where_end {
+            where_end = transfer_at;
+        }
+        if where_end > where_start {
+            where_zone_name = StringTrim(Substring(
+                text, where_start, where_end - where_start
+            ));
+        }
+    }
+    let using_alias: String = "";
+    if using_at >= 0 {
+        let using_start: Int = using_at + StringLength(" using ");
+        let using_end: Int = StringLength(text);
+        if transfer_at > using_at && transfer_at < using_end {
+            using_end = transfer_at;
+        }
+        if using_end > using_start {
+            using_alias = StringTrim(Substring(
+                text, using_start, using_end - using_start
+            ));
+        }
+    }
     return SemanticAstIntentStepHeaderRow(
         IsIdentifier(name) &&
-            (predecessor_name == "" || IsIdentifier(predecessor_name)),
-        name, predecessor_name
+            (predecessor_name == "" || IsIdentifier(predecessor_name)) &&
+            (where_zone_name == "" || IsIdentifier(where_zone_name)) &&
+            (using_alias == "" || IsIdentifier(using_alias)),
+        name, predecessor_name, where_zone_name, using_alias
     );
 }
 

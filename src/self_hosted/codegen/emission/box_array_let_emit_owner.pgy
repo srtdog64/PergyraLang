@@ -61,7 +61,7 @@ func EmitBoxArrayLetDeclaration(
     graph: SemanticExpressionGraphView
 ) -> String {
     CodegenTypeEnvStateAppendTypedValueBinding(
-        env_state, name, type_name, type_name, c_name
+        env_state, env, name, type_name, type_name, c_name
     );
     let value: String = EmitBoxArrayLet(type_name, env, graph);
     return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ",

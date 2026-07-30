@@ -55,7 +55,7 @@ func AbiLayoutCValueType(type_name: String, struct_env: CodegenTypeEnv) -> Strin
     let result_fact: ResultRuntimeFact = ResultRuntimeFactForType(type_name);
     if result_fact.ok { return result_fact.c_type; }
     let option_struct_fact_opt: Option<OptionStructRuntimeFact> =
-        OptionResultRuntimeStructOptionFact(type_name, struct_env.global_rows);
+        OptionResultRuntimeStructOptionFact(type_name, struct_env);
     if IsSome(option_struct_fact_opt) {
         let option_struct_fact: OptionStructRuntimeFact = UnwrapOption(option_struct_fact_opt);
         return option_struct_fact.c_type;

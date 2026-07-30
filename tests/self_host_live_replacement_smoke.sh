@@ -40,6 +40,7 @@ generic_constructed_member_mir_source="src/self_hosted/mir_lower/fixture/generic
 generic_array_member_mir_source="src/self_hosted/mir_lower/fixture/generic_member_array_return_flow.pgy"
 generic_record_array_member_mir_source="src/self_hosted/mir_lower/fixture/generic_member_record_array_return_flow.pgy"
 cast_mir_source="src/self_hosted/mir_lower/fixture/cast_numeric.pgy"
+intent_typed_mir_source="tests/self_hosted/parity/fixture/intent_typed_outcome_execution.pgy"
 bad_mir="src/self_hosted/mir_lower/fixture/invalid_schema.json"
 
 (cd "$ROOT_DIR" && "$SELF_DRIVER" "$positive" --emit-c-verified) >"$WORK_DIR/direct.c"
@@ -154,6 +155,7 @@ check_live_mir_source "$generic_constructed_member_mir_source" "generic-member-c
 check_live_mir_source "$generic_array_member_mir_source" "generic-member-array-return"
 check_live_mir_source "$generic_record_array_member_mir_source" "generic-member-record-array-return"
 check_live_mir_source "$cast_mir_source" "cast-numeric"
+check_live_mir_source "$intent_typed_mir_source" "intent-typed-outcome"
 
 set +e
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --mir-json "$bad_mir") \

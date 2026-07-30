@@ -1,0 +1,127 @@
+// Semantic-owned zone authority slot identities.
+//
+// A zone authority is not inferred from a subject field's type.  The parser
+// carries the explicit `authority <slot> requires ...` row, and this owner
+// binds that row to one exact zone subject slot before codegen consumes it.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
+import "../lib/nominal_field_kind_owner.pgy";
+
+struct SemanticAstZoneAuthorityFacts {
+    ok: Bool;
+    artifact_node_count: Int;
+    owner_zone_names: Array<String>;
+    subject_slot_names: Array<String>;
+}
+
+func SemanticAstZoneAuthorityFactsError(
+    artifact_node_count: Int
+) -> SemanticAstZoneAuthorityFacts {
+    let strings: Array<String> = [];
+    return SemanticAstZoneAuthorityFacts(
+        false, artifact_node_count, strings, strings
+    );
+}
+
+func SemanticAstZoneAuthorityFactsFromArtifact(
+    artifact: AstTreeArtifact,
+    ref constructors: SemanticAstNominalConstructorFacts
+) -> SemanticAstZoneAuthorityFacts {
+    let owners: Array<String> = [];
+    let slots: Array<String> = [];
+    if !AstTreeArtifactReady(artifact) ||
+        !SemanticAstNominalConstructorRowsReady(constructors) ||
+        constructors.artifact_node_count != artifact.count {
+        return SemanticAstZoneAuthorityFactsError(artifact.count);
+    }
+    let node_id: Int = 0;
+    while node_id < artifact.count {
+        if !TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindZoneAuthorityTag()
+        ) {
+            node_id = node_id + 1;
+            continue;
+        }
+        let parent: Option<Int> = TypedAstArenaParentId(
+            artifact.arena, node_id
+        );
+        let slot: Option<String> = TypedAstArenaAtomText(
+            artifact.arena, node_id
+        );
+        if !IsSome(parent) || !IsSome(slot) ||
+            !IsIdentifier(UnwrapOption(slot)) {
+            return SemanticAstZoneAuthorityFactsError(artifact.count);
+        }
+        let owner_index: Int = -1;
+        let owner_row: Int = 0;
+        while owner_row < ArrayLength(constructors.node_ids) {
+            if constructors.node_ids[owner_row] == UnwrapOption(parent) {
+                if owner_index >= 0 {
+                    return SemanticAstZoneAuthorityFactsError(artifact.count);
+                }
+                owner_index = owner_row;
+            }
+            owner_row = owner_row + 1;
+        }
+        if owner_index < 0 ||
+            constructors.nominal_kinds[owner_index] != "zone" {
+            return SemanticAstZoneAuthorityFactsError(artifact.count);
+        }
+        let owner: String = constructors.names[owner_index];
+        let field_matches: Int = 0;
+        let field_index: Int = 0;
+        while field_index < constructors.param_counts[owner_index] {
+            let row: Int = constructors.param_starts[owner_index] + field_index;
+            if constructors.field_names[row] == UnwrapOption(slot) &&
+                constructors.field_kinds[row] ==
+                    NominalFieldKindSubjectSlot() {
+                field_matches = field_matches + 1;
+            }
+            field_index = field_index + 1;
+        }
+        if field_matches != 1 {
+            return SemanticAstZoneAuthorityFactsError(artifact.count);
+        }
+        let prior: Int = 0;
+        while prior < ArrayLength(owners) {
+            if owners[prior] == owner &&
+                slots[prior] == UnwrapOption(slot) {
+                return SemanticAstZoneAuthorityFactsError(artifact.count);
+            }
+            prior = prior + 1;
+        }
+        ArrayPush(owners, owner);
+        ArrayPush(slots, UnwrapOption(slot));
+        node_id = node_id + 1;
+    }
+    return SemanticAstZoneAuthorityFacts(
+        true, artifact.count, owners, slots
+    );
+}
+
+func SemanticAstZoneAuthorityFactsReady(
+    artifact: AstTreeArtifact,
+    ref facts: SemanticAstZoneAuthorityFacts
+) -> Bool {
+    return facts.ok && facts.artifact_node_count == artifact.count &&
+        ArrayLength(facts.owner_zone_names) ==
+            ArrayLength(facts.subject_slot_names);
+}
+
+func SemanticAstZoneAuthoritySlotPresent(
+    ref facts: SemanticAstZoneAuthorityFacts,
+    zone_name: String,
+    slot_name: String
+) -> Bool {
+    if !facts.ok || zone_name == "" || slot_name == "" { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(facts.owner_zone_names) {
+        if facts.owner_zone_names[row] == zone_name &&
+            facts.subject_slot_names[row] == slot_name {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}

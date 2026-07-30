@@ -15,6 +15,8 @@ func CollectEnumsSelected(
     }
     let blocks: Array<String> = [];
     let env_rows: Array<String> = [];
+    let dependency_env: CodegenTypeEnv =
+        CodegenTypeEnvFromPresealRows(env_box[0], "");
     let i: Int = 0;
     while i < SemanticAstEnumCount(facts) {
         if selected[i] == 0 {
@@ -111,13 +113,8 @@ func CollectEnumsSelected(
                             CodegenSemanticEnumVariantPayloadTypeAtOrDie(
                                 facts, ename, part, param_index
                             );
-                        let current_env: CodegenTypeEnv = CodegenTypeEnv(
-                            Concat(
-                                env_box[0], StringJoin(env_rows, "")
-                            ), ""
-                        );
                         let c_payload_type: String = AbiLayoutCFieldType(
-                            param_type, current_env
+                            param_type, dependency_env
                         );
                         let c_payload_field: String = Concat(
                             " _", Concat(ToString(param_index), ";")
@@ -191,9 +188,7 @@ func CollectEnumsSelected(
                     }
                     params = Concat(params, Concat(
                         AbiLayoutCParamType(
-                            param_type, CodegenTypeEnv(
-                                Concat(env_box[0], StringJoin(env_rows, "")), ""
-                            )
+                            param_type, dependency_env
                         ), Concat(" _", ToString(param_index))
                     ));
                     param_types = Concat(param_types, param_type);

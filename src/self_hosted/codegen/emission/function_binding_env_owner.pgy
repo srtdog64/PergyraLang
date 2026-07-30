@@ -15,11 +15,11 @@ struct CodegenFunctionValueBindingFact {
     let env_rows: String;
 }
 
-func CodegenBindingEnvKind(type_name: String, global_env: String) -> String {
+func CodegenBindingEnvKind(
+    type_name: String, env: CodegenTypeEnv
+) -> String {
     if StartsWith(type_name, "Array<") {
-        return CollectionRuntimeFactFromTypeName(
-            type_name, CodegenTypeEnv(global_env, "")
-        ).kind;
+        return CollectionRuntimeFactFromTypeName(type_name, env).kind;
     }
     if StartsWith(type_name, "Result<") && StringIndexOf(type_name, "Int") >= 0 {
         return "ResultInt";
@@ -30,7 +30,7 @@ func CodegenBindingEnvKind(type_name: String, global_env: String) -> String {
         let option_kind: String =
             OptionResultRuntimeOptionEnvKindForPayloadKind(payload_kind);
         if StringLength(option_kind) > 0 { return option_kind; }
-        if LookupKindTypeRows(global_env, type_name, "s") == "struct" {
+        if LookupKindType(env, type_name, "s") == "struct" {
             return type_name;
         }
     }
@@ -40,10 +40,10 @@ func CodegenBindingEnvKind(type_name: String, global_env: String) -> String {
 func CodegenFunctionValueBindingFactFor(
     source_name: String,
     type_name: String,
-    global_env: String
+    env: CodegenTypeEnv
 ) -> CodegenFunctionValueBindingFact {
     return CodegenFunctionValueBindingFactForCExpression(
-        source_name, type_name, global_env,
+        source_name, type_name, env,
         CompilerSymbolCBindingName(source_name)
     );
 }
@@ -51,7 +51,7 @@ func CodegenFunctionValueBindingFactFor(
 func CodegenFunctionValueBindingFactForCExpression(
     source_name: String,
     type_name: String,
-    global_env: String,
+    env: CodegenTypeEnv,
     c_expression: String
 ) -> CodegenFunctionValueBindingFact {
     if source_name == "" || type_name == "" {
@@ -61,7 +61,7 @@ func CodegenFunctionValueBindingFactForCExpression(
         Die("function value binding C expression is missing");
     }
     let value_kind: String = CodegenBindingEnvKind(
-        type_name, global_env
+        type_name, env
     );
     return CodegenFunctionValueBindingFact(
         source_name, type_name, value_kind, c_expression,
@@ -106,7 +106,7 @@ func CodegenFunctionOwnerFieldEnvRows(
         }
         ArrayPush(rows, TypeEnvTypedValueBindingRows(
             field_name, field_type,
-            CodegenBindingEnvKind(field_type, env.global_rows),
+            CodegenBindingEnvKind(field_type, env),
             Concat(
                 receiver_c_expression,
                 Concat(".", CompilerSymbolCFieldName(field_name))

@@ -1,0 +1,59 @@
+// Dynamic local-scope row lookup.  Global rows are sealed behind the
+// immutable type-env index and must never be routed through this owner.
+
+import "../text/text_owner.pgy";
+
+func LookupKindTypeRows(rows: String, name: String, kind: String) -> String {
+    let rows_length: Int = StringLength(rows);
+    let name_length: Int = StringLength(name);
+    let kind_length: Int = StringLength(kind);
+    if name_length == 0 {
+        return "";
+    }
+    let cursor: Int = 0;
+    while cursor < rows_length {
+        let name_offset: Int = SubIndexOfWithLen(
+            rows, rows_length, cursor, rows_length - cursor, name
+        );
+        if name_offset < 0 {
+            return "";
+        }
+        let name_start: Int = cursor + name_offset;
+        let kind_start: Int = name_start + name_length + 1;
+        let value_start: Int = kind_start + kind_length + 1;
+        if name_start > 0 && value_start <= rows_length &&
+            SubEqualsWithLen(rows, rows_length, name_start - 1, 1, "|") &&
+            SubEqualsWithLen(
+                rows, rows_length, name_start + name_length, 1, "="
+            ) &&
+            SubEqualsWithLen(
+                rows, rows_length, kind_start, kind_length, kind
+            ) &&
+            SubEqualsWithLen(
+                rows, rows_length, kind_start + kind_length, 1, ":"
+            ) {
+            let value_length: Int = SubIndexOfWithLen(
+                rows, rows_length, value_start,
+                rows_length - value_start, "|"
+            );
+            if value_length < 0 {
+                return Substring(
+                    rows, value_start, rows_length - value_start
+                );
+            }
+            return Substring(rows, value_start, value_length);
+        }
+        cursor = name_start + name_length;
+    }
+    return "";
+}
+
+func LookupKindTypeRowPresentRows(
+    rows: String, name: String, kind: String
+) -> Bool {
+    if name == "" || kind == "" { return false; }
+    let row_prefix: String = Concat(
+        "|", Concat(name, Concat("=", Concat(kind, ":")))
+    );
+    return StringIndexOf(rows, row_prefix) >= 0;
+}

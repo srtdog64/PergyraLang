@@ -109,13 +109,27 @@ func CodegenCallableReceiverFactsFromAnalysis(
     );
 }
 
+func CodegenCallableReceiverFactsFromAdmittedAnalysis(
+    analysis: SemanticAstArtifactAnalysis
+) -> CodegenCallableReceiverFacts {
+    let facts: CodegenCallableReceiverFacts =
+        CodegenCallableReceiverFactsFromAnalysis(analysis);
+    if !CodegenCallableReceiverFactsReady(facts, analysis.signatures) {
+        Die("admitted semantic analysis has invalid callable receiver facts");
+    }
+    return CodegenCallableReceiverFacts(
+        facts.ok, true, facts.source_syntax_ids, facts.owners, facts.names,
+        facts.carriages, facts.role_erased
+    );
+}
+
 func CodegenCallableReceiverFactCount(
     facts: CodegenCallableReceiverFacts
 ) -> Int {
     return ArrayLength(facts.source_syntax_ids);
 }
 
-func CodegenCallableReceiverFactsAdmittedReady(
+func CodegenCallableReceiverFactsShapeReady(
     facts: CodegenCallableReceiverFacts,
     signatures: SemanticAstFunctionSignatureFacts
 ) -> Bool {
@@ -127,12 +141,20 @@ func CodegenCallableReceiverFactsAdmittedReady(
         ArrayLength(facts.role_erased) == count;
 }
 
+func CodegenCallableReceiverFactsAdmittedReady(
+    facts: CodegenCallableReceiverFacts,
+    signatures: SemanticAstFunctionSignatureFacts
+) -> Bool {
+    return facts.admitted &&
+        CodegenCallableReceiverFactsShapeReady(facts, signatures);
+}
+
 func CodegenCallableReceiverFactsReady(
     facts: CodegenCallableReceiverFacts,
     signatures: SemanticAstFunctionSignatureFacts
 ) -> Bool {
     let count: Int = SemanticAstFunctionSignatureCount(signatures);
-    if !CodegenCallableReceiverFactsAdmittedReady(facts, signatures) {
+    if !CodegenCallableReceiverFactsShapeReady(facts, signatures) {
         return false;
     }
     let i: Int = 0;
@@ -273,6 +295,21 @@ func CodegenCallableReceiverCarriageForSignatureOrDie(
     return facts.carriages[signature_index];
 }
 
+// Ready emission already admitted the parallel receiver arrays once at its
+// composition boundary. Per-function emission consumes that receipt and only
+// guards the requested row; repeating the full identity/uniqueness proof here
+// makes one whole-program validation run for every emitted function.
+func CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(
+    facts: CodegenCallableReceiverFacts,
+    signature_index: Int
+) -> String {
+    if !facts.ok || !facts.admitted || signature_index < 0 ||
+        signature_index >= CodegenCallableReceiverFactCount(facts) {
+        Die("admitted callable receiver fact is missing");
+    }
+    return facts.carriages[signature_index];
+}
+
 func CodegenCallableReceiverRoleErasedForSignatureOrDie(
     facts: CodegenCallableReceiverFacts,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -280,6 +317,16 @@ func CodegenCallableReceiverRoleErasedForSignatureOrDie(
 ) -> Bool {
     CodegenCallableReceiverCarriageForSignatureOrDie(
         facts, signatures, signature_index
+    );
+    return facts.role_erased[signature_index];
+}
+
+func CodegenCallableReceiverRoleErasedForAdmittedSignatureOrDie(
+    facts: CodegenCallableReceiverFacts,
+    signature_index: Int
+) -> Bool {
+    CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(
+        facts, signature_index
     );
     return facts.role_erased[signature_index];
 }

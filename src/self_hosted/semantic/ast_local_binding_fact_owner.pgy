@@ -311,13 +311,23 @@ func SemanticAstLocalBindingIndexForNode(
     facts: SemanticAstLocalBindingFacts,
     node_id: Int
 ) -> Option<Int> {
-    let i: Int = 0;
-    while i < SemanticAstLocalBindingCount(facts) {
-        if facts.node_ids[i] == node_id {
-            return Some(i);
-        }
-        i = i + 1;
+    let count: Int = SemanticAstLocalBindingCount(facts);
+    if !facts.ok || node_id < 0 || node_id >= facts.artifact_node_count {
+        return None;
     }
+    // Producer traversal orders node IDs; lower-bound keeps the first row of
+    // a multi-binding destructure node.
+    let low: Int = 0;
+    let high: Int = count;
+    while low < high {
+        let middle: Int = low + ((high - low) / 2);
+        if facts.node_ids[middle] < node_id {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    if low < count && facts.node_ids[low] == node_id { return Some(low); }
     return None;
 }
 
@@ -401,9 +411,25 @@ func SemanticAstLocalBindingFactsContractReady() -> Bool {
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
     let facts: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
+    if SemanticAstLocalBindingCount(facts) != 4 { return false; }
+    let first_index: Option<Int> = SemanticAstLocalBindingIndexForNode(
+        facts, facts.node_ids[0]
+    );
+    let middle_index: Option<Int> = SemanticAstLocalBindingIndexForNode(
+        facts, facts.node_ids[2]
+    );
+    let last_index: Option<Int> = SemanticAstLocalBindingIndexForNode(
+        facts, facts.node_ids[3]
+    );
     if !SemanticAstLocalBindingFactsMatchArtifact(
         artifact, signatures, facts
-    ) || SemanticAstLocalBindingCount(facts) != 4 ||
+    ) ||
+        !IsSome(first_index) || UnwrapOption(first_index) != 0 ||
+        !IsSome(middle_index) || UnwrapOption(middle_index) != 2 ||
+        !IsSome(last_index) || UnwrapOption(last_index) != 3 ||
+        IsSome(SemanticAstLocalBindingIndexForNode(facts, 0)) ||
+        IsSome(SemanticAstLocalBindingIndexForNode(facts, -1)) ||
+        IsSome(SemanticAstLocalBindingIndexForNode(facts, artifact.count)) ||
         facts.names[0] != "x" || facts.declared_type_names[0] != "Int" ||
         facts.has_declared_types[0] != 1 || facts.initializer_texts[0] != "1" ||
         facts.names[1] != "xs" ||
@@ -421,6 +447,24 @@ func SemanticAstLocalBindingFactsContractReady() -> Bool {
         facts.scope_node_ids[0] != facts.scope_node_ids[1] ||
         facts.scope_node_ids[0] != facts.scope_node_ids[2] ||
         facts.scope_node_ids[0] == facts.scope_node_ids[3] {
+        return false;
+    }
+    let duplicate_node_facts: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFacts(
+            true, "", "", SemanticDiagnosticMessageFactEmpty(), 10,
+            [2, 5, 5, 8], [1, 1, 1, 1], [3, 3, 3, 3],
+            ["first", "left", "right", "last"],
+            ["Int", "Int", "Int", "Int"], [1, 1, 1, 1],
+            ["1", "pair", "pair", "2"],
+            [SemanticAstLocalBindingKindNormal(),
+                SemanticAstLocalBindingKindDestructure(),
+                SemanticAstLocalBindingKindDestructure(),
+                SemanticAstLocalBindingKindNormal()],
+            [0, 0, 1, 0], [1, 2, 2, 1]
+        );
+    let duplicate_first: Option<Int> =
+        SemanticAstLocalBindingIndexForNode(duplicate_node_facts, 5);
+    if !IsSome(duplicate_first) || UnwrapOption(duplicate_first) != 1 {
         return false;
     }
     let stale: AstTreeArtifact = AstTreeArtifactFromText(

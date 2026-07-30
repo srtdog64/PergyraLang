@@ -8,6 +8,18 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
     );
     let facts: SemanticAstExpressionSurfaceFacts =
         SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(artifact);
+    let surface_count: Int = SemanticAstExpressionSurfaceCount(facts);
+    if surface_count < 3 { return false; }
+    let middle_row: Int = surface_count / 2;
+    let first_index: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(
+        facts, facts.node_ids[0]
+    );
+    let middle_index: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(
+        facts, facts.node_ids[middle_row]
+    );
+    let last_index: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(
+        facts, facts.node_ids[surface_count - 1]
+    );
     let additive_shape: SemanticAstExpressionShapeFact =
         SemanticAstExpressionInvalidShape();
     let logical_shape: SemanticAstExpressionShapeFact =
@@ -71,6 +83,15 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
         );
     }
     return SemanticAstExpressionSurfaceFactsMatchArtifact(artifact, facts) &&
+        IsSome(first_index) && UnwrapOption(first_index) == 0 &&
+        IsSome(middle_index) && UnwrapOption(middle_index) == middle_row &&
+        IsSome(last_index) &&
+        UnwrapOption(last_index) == surface_count - 1 &&
+        !IsSome(SemanticAstExpressionSurfaceIndexForNode(facts, 0)) &&
+        !IsSome(SemanticAstExpressionSurfaceIndexForNode(facts, -1)) &&
+        !IsSome(SemanticAstExpressionSurfaceIndexForNode(
+            facts, artifact.count
+        )) &&
         SemanticAstExpressionSurfaceCallPresent(facts, "Concat") &&
         !SemanticAstExpressionSurfaceTokenPresent(facts, "None") &&
         !SemanticAstExpressionSurfaceCallPresent(facts, "Substring") &&

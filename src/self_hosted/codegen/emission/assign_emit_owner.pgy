@@ -16,10 +16,10 @@ func EmitAssign(
     expected_type: String,
     target_type: String,
     env_state: Array<String>,
+    env: CodegenTypeEnv,
     graph: SemanticExpressionGraphView,
     target_graph: SemanticExpressionGraphView
 ) -> String {
-    let env: CodegenTypeEnv = CodegenTypeEnvStateView(env_state);
     let name: String = CodegenSemanticAssignmentTargetOrDie(assignments, idx);
     let expr: String = CodegenSemanticAssignmentValueOrDie(assignments, idx);
     if expected_type == "" {

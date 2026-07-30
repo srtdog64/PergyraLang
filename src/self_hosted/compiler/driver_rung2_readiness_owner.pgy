@@ -6,6 +6,8 @@
 import "../parser/expression_set_literal_contract_owner.pgy";
 import "../semantic/ast_initializer_type_contract_owner.pgy";
 import "../semantic/ast_body_type_bundle_contract_owner.pgy";
+import "../semantic/ast_expression_surface_contract_owner.pgy";
+import "../codegen/emission/expr_semantic_leaf_place_contract_owner.pgy";
 
 func CompilerDriverRung2ReadinessError() -> String {
     if !CompilerDriverPipelineReady() { return "driver_pipeline"; }
@@ -13,6 +15,7 @@ func CompilerDriverRung2ReadinessError() -> String {
     if !SemanticBuiltinSignatureContractReady() { return "builtin_signature"; }
     if !SemanticCallableResolutionContractReady() { return "callable_resolution"; }
     if !SemanticExpressionNormalizationContractReady() { return "expression_normalization"; }
+    if !SemanticAstExpressionSurfaceFactsContractReady() { return "expression_surface"; }
     if !SemanticAstExpressionEnvironmentContractReady() { return "expression_environment"; }
     if !SemanticAstInitializerTypeFactsContractReady() { return "initializer_type_facts"; }
     if !SemanticAstIterationTypeFactsContractReady() { return "iteration_type_facts"; }
@@ -28,6 +31,7 @@ func CompilerDriverRung2ReadinessError() -> String {
     if !SemanticExpressionGraphCollectionMutationContractReady() { return "graph_collection_mutation"; }
     if !SemanticExpressionGraphFieldTypeContractReady() { return "graph_field_type"; }
     if !SemanticAstExpressionTypedBindingContractReady() { return "expression_typed_binding"; }
+    if !CodegenSemanticLeafPlaceContractReady() { return "codegen_leaf_place"; }
     if !SemanticAstStatementTypeFactsContractReady() { return "statement_type_facts"; }
     if !SemanticAstStatementTypeQueryContractReady() { return "statement_type_query"; }
     if !SemanticAstBodyTypeBundleContractReady() {

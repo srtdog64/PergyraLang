@@ -14,6 +14,17 @@
       "src/self_hosted/semantic/text_scan_owner.pgy"
     ]
   },
+  "current_scan_owner_closure": {
+    "measured_at": "2026-07-30",
+    "owner_set_sha256": "2C1267703948A3A57B05948448D65FD3E852CEFAB0C3651424F4167A985C4905",
+    "focused_target": "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy",
+    "source_bundle_bytes": 760066,
+    "source_bundle_elapsed_ms": 2978,
+    "semantic_check_elapsed_ms": 2681,
+    "semantic_status": "ok",
+    "previous_timeout_seconds": 60,
+    "historical_measurements_reused": false
+  },
   "baseline": {
     "source_commit": "982ea499",
     "elapsed_ms": [38071, 37915],

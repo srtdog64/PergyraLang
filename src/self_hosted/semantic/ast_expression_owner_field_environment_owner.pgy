@@ -27,7 +27,11 @@ func SemanticAstExpressionOwnerFieldType(
     );
 }
 
-func SemanticAstExpressionSeedOwnerFields(
+// Reconstruction-free owner-field projection for a constructor fact set that
+// has already crossed SemanticAstBodyAnalysisAdmissionReady.  The admitted
+// body stages may call this once per expression surface without reopening the
+// quadratic field-identity proof in SemanticAstNominalConstructorRowsReady.
+func SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
     function_node_id: Int,
@@ -39,8 +43,7 @@ func SemanticAstExpressionSeedOwnerFields(
         SemanticAstFunctionSignatureIndexForNode(
             signatures, function_node_id
         );
-    if !IsSome(signature_index) ||
-        !SemanticAstNominalConstructorRowsReady(constructors) {
+    if !IsSome(signature_index) || !constructors.ok {
         return false;
     }
     let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
@@ -79,6 +82,25 @@ func SemanticAstExpressionSeedOwnerFields(
     // They are valid expression environments with zero implicit owner fields;
     // only a matched nominal owner contributes field bindings.
     return true;
+}
+
+// Checked compatibility entry for callers that do not hold the body-analysis
+// admission receipt.  Keep the expensive structural proof here, outside the
+// per-expression admitted core.
+func SemanticAstExpressionSeedOwnerFields(
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    function_node_id: Int,
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>
+) -> Bool {
+    if !SemanticAstNominalConstructorRowsReady(constructors) {
+        return false;
+    }
+    return SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
+        signatures, constructors, function_node_id, names, types, modes
+    );
 }
 
 func SemanticAstExpressionOwnerFieldEnvironmentContractReady() -> Bool {

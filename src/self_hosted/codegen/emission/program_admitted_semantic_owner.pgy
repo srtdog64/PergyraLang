@@ -21,7 +21,7 @@ func GenerateCUnitFromAdmittedSemanticArtifact(
         Die("codegen semantic admission receipt is missing or stale");
     }
     let receiver_facts: CodegenCallableReceiverFacts =
-        CodegenCallableReceiverFactsFromAnalysis(semantic_analysis);
+        CodegenCallableReceiverFactsFromAdmittedAnalysis(semantic_analysis);
     let bundle: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAdmittedAnalysis(
             artifact, semantic_analysis

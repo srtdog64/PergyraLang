@@ -5,6 +5,7 @@
 
 import "../lib/json_fact_table.pgy";
 import "../semantic/ast_expression_call_identity_owner.pgy";
+import "../semantic/ast_generic_specialization_query_owner.pgy";
 import "../codegen/input/generic_specialization_codegen_view_owner.pgy";
 import "../mir/generic_specialization_owner.pgy";
 

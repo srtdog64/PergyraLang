@@ -7,7 +7,7 @@ zone CheckoutZone {
     subject slot buyer: Buyer
 }
 
-intent Checkout(checkout: CheckoutZone, buyer: Buyer, price: Int, adjustments: Array<Int>) {
+intent Checkout(checkout: CheckoutZone, price: Int, buyer: Buyer, adjustments: Array<Int>) {
     step pay {
         where: CheckoutZone;
         using: checkout;
@@ -24,5 +24,5 @@ func Main() -> Void {
     let buyer: Buyer = Buyer(3);
     let checkout: CheckoutZone = CheckoutZone(buyer);
     Log("intent value params minimal");
-    Log(Checkout(checkout, buyer, 7, [1, 2]));
+    Log(Checkout(checkout, 7, buyer, [1, 2]));
 }

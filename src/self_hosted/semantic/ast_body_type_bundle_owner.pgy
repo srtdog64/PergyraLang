@@ -3,7 +3,9 @@
 import "ast_body_analysis_admission_owner.pgy";
 import "ast_body_verdict_owner.pgy";
 import "ast_body_call_target_resolution_owner.pgy";
+import "ast_expression_call_return_type_owner.pgy";
 import "ast_generic_specialization_fact_owner.pgy";
+import "ast_generic_specialization_query_owner.pgy";
 import "ast_initializer_iteration_refinement_owner.pgy";
 import "ast_expression_place_fact_owner.pgy";
 import "ast_initializer_type_function_table_bridge_owner.pgy";
@@ -154,6 +156,13 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
             "iteration_graph_root_unresolved",
             "semantic foreach synthetic roots are incomplete", -1
         );
+    } else if verdict.ok && !SemanticAstAnalysisResolveCallReturnTypes(
+        artifact, analysis, generic_specializations
+    ) {
+        verdict = SemanticAstBodyVerdictError(
+            "call_return_type_unresolved",
+            "semantic call return type rows are incomplete", -1
+        );
     }
     SemanticAstBodyTypeStage(observe_pressure, "verdict:done");
     return SemanticAstBodyTypeBundle(
@@ -241,6 +250,10 @@ func SemanticAstBodyTypeBundleReadinessError(
     if !SemanticAstGenericSpecializationFactsMatchExpressionGraph(
         bundle.generic_specializations, analysis.expression_surfaces
     ) { return "generic_specializations"; }
+    if !SemanticExpressionGraphCallReturnTypesResolved(
+        analysis.expression_surfaces.expression_graph, analysis.signatures,
+        analysis.function_tables, bundle.generic_specializations
+    ) { return "call_return_type_rows"; }
     if bundle.initializer_types.artifact_node_count != artifact.count {
         return "initializer_node_count";
     }

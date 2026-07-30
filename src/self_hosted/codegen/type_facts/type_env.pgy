@@ -4,72 +4,41 @@
 
 import "../text/text_owner.pgy";
 import "../../semantic/array_type_shape_owner.pgy";
+import "type_env_global_index_owner.pgy";
+import "type_env_local_row_scan_owner.pgy";
 
 struct CodegenTypeEnv {
     global_rows: String;
     local_rows: String;
+    global_index: CodegenTypeGlobalIndex;
 }
 
-func LookupKindTypeRows(rows: String, name: String, kind: String) -> String {
-    let rows_length: Int = StringLength(rows);
-    let name_length: Int = StringLength(name);
-    let kind_length: Int = StringLength(kind);
-    if name_length == 0 {
-        return "";
+func CodegenTypeEnvFromRows(
+    global_rows: String, local_rows: String
+) -> CodegenTypeEnv {
+    let global_index: CodegenTypeGlobalIndex =
+        CodegenTypeGlobalIndexFromRows(global_rows);
+    if !CodegenTypeGlobalIndexArraysReady(global_index) {
+        Die("codegen global type rows are malformed");
     }
-    let cursor: Int = 0;
-    while cursor < rows_length {
-        let name_offset: Int = SubIndexOfWithLen(
-            rows, rows_length, cursor, rows_length - cursor, name
-        );
-        if name_offset < 0 {
-            return "";
-        }
-        let name_start: Int = cursor + name_offset;
-        let kind_start: Int = name_start + name_length + 1;
-        let value_start: Int = kind_start + kind_length + 1;
-        if name_start > 0 && value_start <= rows_length &&
-            SubEqualsWithLen(rows, rows_length, name_start - 1, 1, "|") &&
-            SubEqualsWithLen(
-                rows, rows_length, name_start + name_length, 1, "="
-            ) &&
-            SubEqualsWithLen(
-                rows, rows_length, kind_start, kind_length, kind
-            ) &&
-            SubEqualsWithLen(
-                rows, rows_length, kind_start + kind_length, 1, ":"
-            ) {
-            let value_length: Int = SubIndexOfWithLen(
-                rows, rows_length, value_start,
-                rows_length - value_start, "|"
-            );
-            if value_length < 0 {
-                return Substring(
-                    rows, value_start, rows_length - value_start
-                );
-            }
-            return Substring(rows, value_start, value_length);
-        }
-        cursor = name_start + name_length;
-    }
-    return "";
+    return CodegenTypeEnv(global_rows, local_rows, global_index);
 }
 
-func LookupKindTypeRowPresentRows(
-    rows: String, name: String, kind: String
-) -> Bool {
-    if name == "" || kind == "" { return false; }
-    let row_prefix: String = Concat(
-        "|", Concat(name, Concat("=", Concat(kind, ":")))
-    );
-    return StringIndexOf(rows, row_prefix) >= 0;
+func CodegenTypeEnvFromPresealRows(
+    global_rows: String, local_rows: String
+) -> CodegenTypeEnv {
+    // Declaration scheduling owns a changing row epoch.  Callers may seal one
+    // dependency snapshot per selected batch, never once per field/parameter.
+    return CodegenTypeEnvFromRows(global_rows, local_rows);
 }
 
 func LookupKindType(env: CodegenTypeEnv, name: String, kind: String) -> String {
     // Preserve the flat owner's established first-row semantics while the
     // rows live in separate storage. Scope-aware shadowing needs typed scope
     // facts; changing precedence here would silently redefine name lookup.
-    let global_value: String = LookupKindTypeRows(env.global_rows, name, kind);
+    let global_value: String = CodegenTypeGlobalIndexLookupAdmitted(
+        env.global_index, env.global_rows, name, kind
+    );
     if StringLength(global_value) > 0 {
         return global_value;
     }
@@ -79,7 +48,9 @@ func LookupKindType(env: CodegenTypeEnv, name: String, kind: String) -> String {
 func LookupKindTypeRowPresent(
     env: CodegenTypeEnv, name: String, kind: String
 ) -> Bool {
-    return LookupKindTypeRowPresentRows(env.global_rows, name, kind) ||
+    return CodegenTypeGlobalIndexContainsAdmitted(
+        env.global_index, env.global_rows, name, kind
+    ) ||
         LookupKindTypeRowPresentRows(env.local_rows, name, kind);
 }
 
@@ -97,34 +68,42 @@ func TypeEnvAppendLocalRows(
                 rows,
                 Substring(local_rows, 1, StringLength(local_rows) - 1)
             )
-        )
+        ), env.global_index
     );
 }
 
-func CodegenTypeEnvStateView(state: Array<String>) -> CodegenTypeEnv {
+func CodegenTypeEnvStateView(
+    state: Array<String>, base_env: CodegenTypeEnv
+) -> CodegenTypeEnv {
     if ArrayLength(state) != 2 {
         Die("codegen type environment state requires global/local rows");
     }
-    return CodegenTypeEnv(state[0], state[1]);
+    // `base_env` owns the sealed row epoch and its index. Comparing the
+    // multi-megabyte state snapshot to that row string at every statement
+    // would reopen whole-global work after the index has already been sealed.
+    return CodegenTypeEnv(
+        base_env.global_rows, state[1], base_env.global_index
+    );
 }
 
 func CodegenTypeEnvStateStoreLocal(
     inout state: Array<String>, env: CodegenTypeEnv
 ) -> Void {
-    if ArrayLength(state) != 2 || state[0] != env.global_rows {
+    if ArrayLength(state) != 2 {
         Die("codegen type environment global owner changed during emission");
     }
     ArraySet(state, 1, env.local_rows);
 }
 
 func CodegenTypeEnvStateAppendValueBinding(
-    inout state: Array<String>, source_name: String,
+    inout state: Array<String>, env: CodegenTypeEnv, source_name: String,
     value_kind: String, c_name: String
 ) -> Void {
-    let env: CodegenTypeEnv = TypeEnvAppendValueBinding(
-        CodegenTypeEnvStateView(state), source_name, value_kind, c_name
+    let next_env: CodegenTypeEnv = TypeEnvAppendValueBinding(
+        CodegenTypeEnvStateView(state, env),
+        source_name, value_kind, c_name
     );
-    CodegenTypeEnvStateStoreLocal(state, env);
+    CodegenTypeEnvStateStoreLocal(state, next_env);
 }
 
 func TypeEnvValueBindingRows(
@@ -157,16 +136,16 @@ func TypeEnvTypedValueBindingRows(
 }
 
 func CodegenTypeEnvStateAppendTypedValueBinding(
-    inout state: Array<String>, source_name: String,
+    inout state: Array<String>, env: CodegenTypeEnv, source_name: String,
     value_type: String, value_kind: String, c_name: String
 ) -> Void {
-    let env: CodegenTypeEnv = TypeEnvAppendLocalRows(
-        CodegenTypeEnvStateView(state),
+    let next_env: CodegenTypeEnv = TypeEnvAppendLocalRows(
+        CodegenTypeEnvStateView(state, env),
         TypeEnvTypedValueBindingRows(
             source_name, value_type, value_kind, c_name
         )
     );
-    CodegenTypeEnvStateStoreLocal(state, env);
+    CodegenTypeEnvStateStoreLocal(state, next_env);
 }
 
 func TypeEnvAppendValueBinding(env: CodegenTypeEnv, source_name: String, value_kind: String, c_name: String) -> CodegenTypeEnv {

@@ -73,7 +73,7 @@ func BindTaggedEnumMatchPayload(
         );
         c_value = Concat(c_value, Concat(".", field_name));
         CodegenTypeEnvStateAppendTypedValueBinding(
-            env_state, fact.bindings[binding_index],
+            env_state, env, fact.bindings[binding_index],
             payload_type, payload_type, c_value
         );
         binding_index = binding_index + 1;

@@ -75,7 +75,8 @@ func GenericReturnProbeWithTarget(
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopology(
         graph.arena.topology, graph.arena.node_texts,
-        graph.arena.call_target_kinds, targets, graph.arena.place_kinds
+        graph.arena.call_target_kinds, targets,
+        graph.arena.call_return_type_names, graph.arena.place_kinds
     );
     let damaged_graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFacts(
@@ -88,6 +89,7 @@ func GenericReturnProbeWithTarget(
     return SemanticAstArtifactAnalysis(
         analysis.verdict, analysis.signatures, analysis.intent_signatures,
         analysis.intent_transitions, analysis.constructors,
+        analysis.zone_authorities,
         analysis.local_bindings, analysis.assignments, analysis.statements,
         analysis.enums, analysis.roles, damaged_surfaces,
         analysis.type_surfaces, analysis.kind_surfaces,

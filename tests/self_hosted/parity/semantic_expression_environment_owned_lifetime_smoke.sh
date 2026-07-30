@@ -40,6 +40,8 @@ CODEGEN_RUNTIME_CALLS="$ROOT_DIR/src/self_hosted/codegen/emission/runtime_call_r
 CODEGEN_COLLECTION_RUNTIME="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy"
 CODEGEN_CALL_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"
 CODEGEN_PROGRAM_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/program_emit.pgy"
+CODEGEN_FUNCTION_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/function_emit.pgy"
+CODEGEN_RECEIVER_FACTS="$ROOT_DIR/src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy"
 CODEGEN_RUNTIME_HEADER="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy"
 
 for path in "$OWNER" "$OWNER_FIELDS" "$MATCH_BINDINGS" "$ITERATION_FACTS" \
@@ -53,6 +55,7 @@ for path in "$OWNER" "$OWNER_FIELDS" "$MATCH_BINDINGS" "$ITERATION_FACTS" \
     "$TRANS_EMIT" "$LLVM_EMIT" "$LLVM_RUNTIME" "$INLINE_RUNTIME" \
     "$EXPORT_RUNTIME" "$CODEGEN_RUNTIME_CALLS" "$CODEGEN_COLLECTION_RUNTIME" \
     "$CODEGEN_CALL_EMITTER" "$CODEGEN_PROGRAM_EMITTER" \
+    "$CODEGEN_FUNCTION_EMITTER" "$CODEGEN_RECEIVER_FACTS" \
     "$CODEGEN_RUNTIME_HEADER"; do
     [[ -f "$path" ]] || {
         echo "[self-host-parity:semantic-environment-lifetime] missing $path" >&2
@@ -198,7 +201,20 @@ for producer in \
     'SemanticAstExpressionSeedVisibleIterationRows'; do
     require_borrowed_environment_push "$OWNER" "$producer"
 done
-require_borrowed_environment_push "$OWNER_FIELDS" 'SemanticAstExpressionSeedOwnerFields'
+require_borrowed_environment_push "$OWNER_FIELDS" \
+    'SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors'
+checked_owner_fields_body="$(function_body "$OWNER_FIELDS" \
+    'SemanticAstExpressionSeedOwnerFields')"
+grep -Fq 'SemanticAstNominalConstructorRowsReady(constructors)' \
+    <<<"$checked_owner_fields_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] checked owner-field seed lost constructor row proof" >&2
+    exit 1
+}
+grep -Fq 'SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(' \
+    <<<"$checked_owner_fields_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] checked owner-field seed bypasses its admitted core" >&2
+    exit 1
+}
 require_borrowed_environment_push "$MATCH_BINDINGS" 'SemanticAstExpressionSeedMatchCaseBindings'
 require_borrowed_environment_push "$ITERATION_FACTS" 'SemanticAstIterationSeedVisibleRows'
 
@@ -280,8 +296,51 @@ grep -Fq 'SemanticAstBodyExpressionEnvironmentSeed(' \
     echo "[self-host-parity:semantic-environment-lifetime] admitted call-target resolver bypasses the body-environment owner" >&2
     exit 1
 }
+if grep -Fq 'SemanticAstNominalConstructorRowsReady(' \
+    <<<"$call_target_admitted_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] admitted call-target resolver repeats constructor row proof" >&2
+    exit 1
+fi
+grep -Fq 'SemanticAstNominalConstructorRowsReady(analysis.constructors)' \
+    <<<"$call_target_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] checked call-target resolver lost constructor row proof" >&2
+    exit 1
+}
 body_environment_body="$(function_body "$BODY_ENV" \
     'SemanticAstBodyExpressionEnvironmentSeed')"
+grep -Fq 'SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(' \
+    <<<"$body_environment_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] admitted body environment repeats checked owner-field seeding" >&2
+    exit 1
+}
+if grep -Fq 'SemanticAstExpressionSeedOwnerFields(' \
+    <<<"$body_environment_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] admitted body environment retained checked owner-field seeding" >&2
+    exit 1
+fi
+for admitted_owner_field_consumer in \
+    "$PLACE_FACTS|SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody" \
+    "$ASSIGNMENT_FACTS|SemanticAstAssignmentTypeFactsFromAdmittedArtifact" \
+    "$ITERATION_FACTS|SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables" \
+    "$STATEMENT_FACTS|SemanticAstStatementTypeFactsFromAdmittedArtifact" \
+    "$GENERIC_FACTS|SemanticAstGenericSpecializationFactsFromAdmittedBody" \
+    "$INITIALIZER_CURSOR|SemanticAstInitializerEnvironmentCursorAdvance"; do
+    admitted_owner_field_path="${admitted_owner_field_consumer%%|*}"
+    admitted_owner_field_function="${admitted_owner_field_consumer#*|}"
+    admitted_owner_field_body="$(function_body \
+        "$admitted_owner_field_path" "$admitted_owner_field_function")"
+    grep -Fq \
+        'SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(' \
+        <<<"$admitted_owner_field_body" || {
+        echo "[self-host-parity:semantic-environment-lifetime] admitted body core bypasses admitted owner-field seeding: $admitted_owner_field_function" >&2
+        exit 1
+    }
+    if grep -Fq 'SemanticAstExpressionSeedOwnerFields(' \
+        <<<"$admitted_owner_field_body"; then
+        echo "[self-host-parity:semantic-environment-lifetime] admitted body core retained checked owner-field seeding: $admitted_owner_field_function" >&2
+        exit 1
+    fi
+done
 grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(' \
     <<<"$body_environment_body" || {
     echo "[self-host-parity:semantic-environment-lifetime] body-environment owner rebuilds admitted match bindings" >&2
@@ -478,6 +537,64 @@ for admitted_check in \
         exit 1
     }
 done
+receiver_admitted_ready_body="$(function_body "$CODEGEN_RECEIVER_FACTS" \
+    'CodegenCallableReceiverFactsAdmittedReady')"
+grep -Fq 'facts.admitted' <<<"$receiver_admitted_ready_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] callable receiver admitted shape lost its identity receipt" >&2
+    exit 1
+}
+receiver_admitted_carriage_body="$(function_body "$CODEGEN_RECEIVER_FACTS" \
+    'CodegenCallableReceiverCarriageForAdmittedSignatureOrDie')"
+for admitted_guard in '!facts.ok' '!facts.admitted' 'signature_index < 0'; do
+    grep -Fq "$admitted_guard" <<<"$receiver_admitted_carriage_body" || {
+        echo "[self-host-parity:semantic-environment-lifetime] admitted callable receiver row lost O(1) fail-closed guard: $admitted_guard" >&2
+        exit 1
+    }
+done
+if grep -Fq 'CodegenCallableReceiverFactsReady(' \
+    <<<"$receiver_admitted_carriage_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] admitted callable receiver row repeats the whole-table proof" >&2
+    exit 1
+fi
+receiver_checked_carriage_body="$(function_body "$CODEGEN_RECEIVER_FACTS" \
+    'CodegenCallableReceiverCarriageForSignatureOrDie')"
+grep -Fq 'CodegenCallableReceiverFactsReady(' \
+    <<<"$receiver_checked_carriage_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] arbitrary callable receiver lookup lost its full proof" >&2
+    exit 1
+}
+receiver_admitted_producer_body="$(function_body "$CODEGEN_RECEIVER_FACTS" \
+    'CodegenCallableReceiverFactsFromAdmittedAnalysis')"
+receiver_producer_ready_count="$(grep -Fc \
+    'CodegenCallableReceiverFactsReady(' \
+    <<<"$receiver_admitted_producer_body" || true)"
+if [[ "$receiver_producer_ready_count" -ne 1 ]] ||
+    ! grep -Fq 'facts.ok, true' <<<"$receiver_admitted_producer_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] admitted callable receiver producer must prove identity once before sealing" >&2
+    exit 1
+fi
+assert_exact_call_files \
+    'CodegenCallableReceiverFactsFromAdmittedAnalysis(' \
+    'src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy' \
+    'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
+    'src/self_hosted/compiler/driver_pipeline_owner.pgy'
+for admitted_row_accessor in \
+    'CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(' \
+    'CodegenCallableReceiverRoleErasedForAdmittedSignatureOrDie('; do
+    grep -Fq "$admitted_row_accessor" "$CODEGEN_FUNCTION_EMITTER" || {
+        echo "[self-host-parity:semantic-environment-lifetime] ready function emission bypasses admitted receiver rows: $admitted_row_accessor" >&2
+        exit 1
+    }
+done
+for repeated_row_proof in \
+    'CodegenCallableReceiverCarriageForSignatureOrDie(' \
+    'CodegenCallableReceiverRoleErasedForSignatureOrDie(' \
+    'CodegenCallableReceiverFactsReady('; do
+    if grep -Fq "$repeated_row_proof" "$CODEGEN_FUNCTION_EMITTER"; then
+        echo "[self-host-parity:semantic-environment-lifetime] ready function emission repeats callable receiver proof: $repeated_row_proof" >&2
+        exit 1
+    fi
+done
 ready_admission_line="$(grep -nF 'SemanticAstArtifactAdmissionReady(' \
     <<<"$c_ready_body" | head -n 1 | cut -d: -f1)"
 ready_first_work_line="$(grep -nF 'RejectUnsupportedCodegenBuiltins(' \
@@ -538,6 +655,7 @@ assert_exact_call_files 'SemanticAstArtifactAdmissionReady(' \
     'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
     'src/self_hosted/codegen/emission/program_emit.pgy' \
     'src/self_hosted/compiler/driver_rung2_owner.pgy' \
+    'src/self_hosted/semantic/ast_artifact_verdict_contract_owner.pgy' \
     'src/self_hosted/semantic/ast_artifact_verdict_owner.pgy' \
     'src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy'
 assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysis(' \

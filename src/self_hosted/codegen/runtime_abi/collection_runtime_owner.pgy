@@ -479,7 +479,7 @@ func CollectionRuntimeNominalRecordArrayBlock(
     if !layout.ok {
         Die("nominal array ABI/layout fact is missing");
     }
-    let env: CodegenTypeEnv = CodegenTypeEnv(
+    let env: CodegenTypeEnv = CodegenTypeEnvFromRows(
         Concat("|", Concat(element_type, "=s:struct|")), ""
     );
     let fact: CollectionRuntimeFact =

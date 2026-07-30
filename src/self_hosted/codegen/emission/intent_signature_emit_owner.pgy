@@ -126,9 +126,11 @@ func CodegenIntentLocalEnv(
         }
         ArrayPush(rows, CodegenFunctionValueBindingFactForCExpression(
             intents.param_names[row], intents.param_types[row],
-            base_env.global_rows, c_expression
+            base_env, c_expression
         ).env_rows);
         p = p + 1;
     }
-    return CodegenTypeEnv(base_env.global_rows, StringJoin(rows, ""));
+    return CodegenTypeEnv(
+        base_env.global_rows, StringJoin(rows, ""), base_env.global_index
+    );
 }

@@ -104,7 +104,7 @@ func OptionResultRuntimeOptionInnerTypeName(
 
 func OptionResultRuntimeStructOptionFact(
     type_name: String,
-    env: String
+    env: CodegenTypeEnv
 ) -> Option<OptionStructRuntimeFact> {
     let inner_opt: Option<String> =
         OptionResultRuntimeOptionInnerTypeName(type_name);
@@ -114,8 +114,8 @@ func OptionResultRuntimeStructOptionFact(
     let inner: String = UnwrapOption(inner_opt);
     let inner_c_type: String = "";
     let enum_fact: EnumAbiValueFact =
-        EnumAbiValueFactForRows(inner, env);
-    let is_struct: Bool = LookupKindTypeRows(env, inner, "s") == "struct";
+        EnumAbiValueFactFor(inner, env);
+    let is_struct: Bool = LookupKindType(env, inner, "s") == "struct";
     if enum_fact.ok {
         inner_c_type = enum_fact.c_value_type;
     } else if is_struct {
@@ -285,7 +285,7 @@ func OptionResultRuntimeOptionValueTypeForPayloadKind(kind: Int) -> String {
 
 func OptionResultRuntimeCValueOptionDefinition(
     option_type_name: String,
-    env: String
+    env: CodegenTypeEnv
 ) -> OptionStructDefinitionBlockFact {
     let runtime_fact_opt: Option<OptionStructRuntimeFact> =
         OptionResultRuntimeStructOptionFact(option_type_name, env);

@@ -3088,6 +3088,102 @@ diagnostic을 실행해 PASS했다. 이 gate는 exhaustive self-host parity targ
 결속했다. Signature/role/intent/constructor/enum malformed shape negative는 별도
 body admission contract가 소유한다.
 
+### admitted body가 생성자 행을 표현식마다 다시 검증하는 경우
+
+2026-07-30 exact 5,106,665-byte fixture를 동일한 3,072MiB/2,400초 상한으로
+sampling하자 emission 진입 전 첫 체류가 다음 call stack으로 두 번 재현됐다.
+
+```text
+SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved
+-> SemanticAstAnalysisResolveCallTargetsFromAdmittedBody
+-> SemanticAstBodyExpressionEnvironmentSeed
+-> SemanticAstExpressionSeedOwnerFields
+-> SemanticAstNominalConstructorRowsReady
+```
+
+이 fixture에는 nominal 311개와 field row 2,280개가 있다. 현재
+`SemanticAstNominalConstructorRowsReady`의 중첩 uniqueness proof는 호출 한 번에
+field identity 비교 2,598,060회를 수행한다. admission receipt가 이미 같은 producer
+epoch과 parallel shape를 보증하는데 이 checked seeder를 expression surface마다
+호출한 것이 CPU RED의 첫 동적 원인이었다. 메모리는 약 374MiB private에 머물렀으므로
+3GiB 재발로 분류하지 않는다.
+
+call-target 한 곳만 admitted seeder로 내린 재실행은 call-target을 통과했지만
+77초와 145초 표본 모두 expression-place의 같은 `RowsReady`에서 체류했다. 이 run은
+원인이 반복 재현된 뒤 exact PID와 child만 157,212ms에 종료했으며, peak private
+374.0MiB인 **sampled RED**다. 완료나 timeout PASS가 아니다.
+
+수정 원칙은 다음과 같다.
+
+- body admission receipt를 받는 production core만
+  `SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors`를 사용한다.
+- arbitrary pair를 받는 public wrapper와 standalone contract는 기존 checked seeder와
+  `SemanticAstNominalConstructorRowsReady`를 유지한다.
+- admitted body transitive family에 checked seeder 호출이 하나라도 재도입되면
+  lifetime/component negative gate가 실패한다.
+- cache나 두 번째 constructor registry를 만들지 않는다. 기존 owner가 한 번 증명한
+  사실을 같은 epoch의 마지막 consumer까지 운반한다.
+
+여섯 body consumer를 모두 admitted seeder로 내린 r2 exact run은 87,896ms 표본에서
+body 단계를 전부 통과하고 emission의 unsupported-builtin text scan에 도달했다. 그
+표본은 일시적이었다. 199.7초와 310.1초 표본은 모두 다음 경로에 머물렀다.
+
+```text
+GenerateCUnitFromReadySemanticFacts
+-> EmitFunctionSet
+-> EmitFunctionWithSpecialization
+-> CodegenCallableReceiverCarriageForSignatureOrDie
+-> CodegenCallableReceiverFactsReady
+```
+
+receiver fact는 약 4,094개 signature와 parallel row identity를 검사하고 prior-row
+uniqueness까지 확인한다. 이를 함수/prototype/generic loop의 row accessor마다 다시
+호출하면 producer proof 하나가 emission에서 반복되는 같은 결함이 된다. r2는 세
+표본 뒤 exact PID와 child만 335,387ms에 종료했고 peak private 1,253.3MiB인
+**sampled RED**다. 메모리 상한 실패나 완료 PASS가 아니다.
+
+이 경계는 admitted receiver producer가 full identity/uniqueness `Ready`를 정확히
+한 번 수행한 뒤 receipt bit를 seal하게 한다. Ready emission은 `ok`, `admitted`, row
+bounds만 검사하는 O(1) accessor를 사용한다. 임의 facts용 accessor,
+`FromAdmittedRowsOrDie`, environment-row 외부 경계는 full `Ready`를 유지한다.
+Negative gate는 producer full proof 1회, `function_emit.pgy` 안의 old accessor/full
+proof 0회를 고정한다.
+
+최종 판정은 이 교정이 들어간 새 codegen binary로 동일 fixture를 끝까지 실행하고
+normalized emitted-C parity를 관측한 뒤에만 갱신한다.
+
+### focused gate는 통과하지만 cross-platform CI의 생성물·owner 상한이 깨지는 경우
+
+GitHub run `30510118949`의 Windows와 macOS C-only job은 같은 두 SoT drift를
+보고했다.
+
+- `language_word_implementation_inventory.generated.md`가 canonical 146-row keyword
+  registry에서 다시 계산한 source-use count와 달랐다.
+- semantic owner hard cap 599줄을 artifact verdict 600, generic specialization 641,
+  initializer type 637, statement type 622줄이 넘었다.
+
+키워드 실패는 문서 숫자를 수동으로 고치지 않는다.
+`render_language_keyword_registry.py --write`로 registry, self-host projection,
+TextMate grammar와 implementation inventory의 한 projection chain을 재생성한다.
+그 뒤 `tests/language_keyword_registry_smoke.sh`가 146 rows, 70 reserved rows,
+76 parser selectors와 fixture를 함께 검증해야 한다.
+
+줄 상한도 CI 숫자를 올려 숨기지 않는다. Production/admitted fact 생성은 기존
+owner에 남기고 read-only query와 readiness/match projection만 책임별 query owner로
+옮겼다.
+
+```text
+initializer: fact 548 + query 80
+generic specialization: fact 551 + query 92
+statement type: fact 525 + query 150
+artifact verdict: fact 534 + executable contract 70
+```
+
+모든 direct consumer는 새 query owner를 명시적으로 import한다. Component gate는
+old fact owner에 query 함수가 돌아오는 것을 거부하고 각 새 owner의 exact cap을
+고정한다. `tests/test_inc_size_smoke.sh`, 관련 self-host semantic checks와 component
+contract를 함께 관측해야 이 CI 결함을 닫았다고 기록한다.
+
 ### self-checker가 중첩 typed fact 필드를 undefined symbol로 보는 경우
 
 GitHub run `30502868266`의 exhaustive parity는 129/661
@@ -3131,3 +3227,85 @@ gate였다. Driver pipeline은 body bundle을 이미 만들고
 구식 gate에 맞춰 다시 reanalysis 경로로 되돌리는 것은 해결책이 아니다. 갱신된
 `tests/self_host_compiler_world_contract_smoke.sh`는 topology와 compiler-world source
 shape를 모두 실행해 exit 0을 관측했다.
+
+### 20GB 증상과 최신 5.1/5.3MB 부트스트랩 메모리 결과
+
+과거 3GB 이상 및 사용자 환경의 20GB 증상은 큰 AST 자체가 정상적으로 요구하는
+메모리가 아니었다. 이미 admission된 그래프/constructor/body owner proof를 여러 소비자가
+다시 열고, 그 안에서 전역 직렬화의 길이와 행을 매 lookup마다 재계산한 것이 핵심
+결함이었다. 특히 311개 nominal, 2,280개 field의 constructor readiness 한 번이
+2,598,060번의 field identity 비교를 수행했으며, 이것이 식별자/표현식마다 반복됐다.
+
+수정 뒤 동일한 3,072MiB/2,400초 pressure policy에서 완전한 codegen을 관측했다.
+
+- 고정 5,106,665-byte AST(r8): 158.020초, peak private 1,659.1MB,
+  working set 1,570.9MB, exit 0.
+- fresh parser의 5,326,689-byte AST(r9): 164.252초, peak private 1,742.1MB,
+  working set 1,648.5MB, exit 0.
+- exact zone authority/where/slot 검증을 포함한 동일 AST(r10d): 145.719초,
+  peak private 1,759.6MB, working set 1,666.9MB, exit 0. 생성 C는 r9와
+  byte-identical이다.
+- 현재 소스를 다시 parse하고 현재 codegen을 다시 build한 r11: 5,324,488-byte
+  AST, 164.133초, peak private 1,726.6MB, working set 1,635.7MB, exit 0.
+  생성 C는 5,351,899 bytes이며 CR 제거 후 5,256,386 bytes다. Codegen 자체의
+  fresh build도 52.295초, peak private 1,222.8MB에서 끝났다.
+
+따라서 현재 소스로 20GB는 재현되지 않으며 “오라클 프로젝트라서 원래 그 정도가
+필요하다”는 설명은 틀리다. 다만 이 수치는 셀프호스트 codegen 프로세스의 실제 peak이고
+여전히 최적화 대상이다. build leg도 약 1,213MB peak private에서 끝났으므로 build와 exact
+codegen을 합쳐 20GB 정상치로 해석하면 안 된다.
+
+같은-epoch `CodegenTypeGlobalIndex`를 처음 넣었을 때도 CPU가 비정상적으로 커졌다. 원인은
+index construction의 `HashRow`/`RowRangeEquals`가 각 문자 접근마다
+`StringLength(rows)`를 다시 수행한 것이다. producer가 한 번 계산한 `rows_length`를 두
+함수에 넘기고, `CodegenCharAt` 대신 길이가 봉인된 byte-range 비교를 사용해야 한다.
+Component ratchet은 lookup/contains/hash/range에서 `StringLength(rows)` 재도입과 builder의
+`CodegenCharAt(rows, ...)` 재도입을 거부한다.
+
+### exact codegen은 성공하지만 생성 C host compile이 실패하는 경우
+
+r10d와 현재 소스 r11의 exact C emission exit 0은 부트스트랩 완료가 아니다. r11 생성 C를
+host compiler로 컴파일하면 정확히 15개의 `*Zone_sync` declaration/body가 없고, 그 외의 이전 intent signature/argument
+order 오류는 사라졌다. 현재 self-host emitter가 intent action의 zone sync 호출은
+생성하지만 native runtime의 lock, generation, dirty state, bounded frontier/projection을
+가진 body와 필요한 zone storage field를 아직 만들지 않기 때문이다.
+
+빈 `Zone_sync`, 단순 generation 증가, 또는 이름만 보고 native body를 복사하는 방식으로
+link만 통과시키면 안 된다. DIR/MIR domain topology와
+`semantic.domain_runtime_assignment`에서 동일한 runtime plan을 투영하고, 필요한 사실이
+없으면 emission 전에 실패해야 한다. 검증 순서는 r11 C host compile, fresh isolated
+installed-driver build, live typed-intent gate이다. 기존 `bin/pgy-self-driver.exe`는 stale일 수
+있으므로 parser/order 수정을 검증할 때는 fresh parser로 AST를 다시 만들고 seed 경로를
+명시해야 한다.
+
+측정 실행 파일에 AST를 전달할 때 repository I/O policy도 보존해야 한다. `FileExists`는
+기본적으로 repository root 안의 상대 경로를 받으며, 별도 허용 없이 Windows 절대 경로를
+전달하면 실제 파일이 있어도 `AST file not found`로 fail closed한다. 이 즉시 실패를
+codegen 또는 메모리 결함으로 분류하지 말고, 측정 프로세스의 working directory를 repo
+root로 고정한 뒤 `.tmp/...` 상대 경로를 사용한다. 절대 경로 허용 정책을 측정 편의를 위해
+넓히지 않는다.
+
+별도의 leaf-place contract checker는 10분 이상 CPU를 사용하고 출력 없이 끝나지 않아
+중단했다. 이는 PASS가 아니다. 같은 contract가 포함된 graph semantic checker와 component
+gate의 PASS만 관측 증거로 사용하고, standalone 장시간 실행은 별도 성능 결함으로 남긴다.
+
+Intent step 경계는 `tests/self_hosted/parity/intent_step_binding_contract_owner.sh`로
+별도 고정한다. 이 실행 gate는 actor와 authority가 다른 정상 사례, by-value/inout zone
+주소 모드, `where`/`using` 불일치, 선언되지 않은 authority, 동일 타입 subject slot의
+모호성, slot 누락을 포함한다. 단순 문자열 ratchet만으로 이 의미를 검증했다고 기록하면
+안 된다.
+
+### real-source semantic selfcheck가 작은 root에서 60초 timeout인 경우
+
+`compiler_world_direct_mir_owner.pgy`는 61줄이지만 import signature bundle은 약
+760KB다. 2026-07-30 CI에서는 이 target이 60초를 넘었고, 로컬 동일 checker도
+86.383초 뒤까지 끝나지 않았다. 원인은 root 크기가 아니라 source-bundle/parser scan이
+이미 알고 있는 전체 문자열 길이를 `SkipWhitespaceAndComments`, keyword match, identifier
+read마다 다시 `StringLength`로 계산하고, import stub을 누적 `Concat`으로 조립한 것이었다.
+
+길이를 owner boundary에서 한 번 봉인하고 `*Within` scanner에 전달하며, bundle은
+`TextBuilder`로 한 번만 완성해야 한다. 또한 빨라진 checker가 처음 드러낸 `zone/world`
+constructor 누락을 시간 제한 완화로 가리면 안 된다. Nominal constructor owner는
+`zone`/`world`의 `zone`, `subject slot`, `object slot`, `tobject slot` 필드를 정확히 읽고
+중첩 action/function body를 field로 오인하지 않아야 한다. 수정 후 동일 Windows target은
+source bundle 2.978초, semantic check 2.681초, `Status: ok`를 관측했다.

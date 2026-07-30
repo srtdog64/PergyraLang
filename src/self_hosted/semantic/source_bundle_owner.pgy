@@ -26,17 +26,18 @@ func SourceBundleSeen(paths: Array<String>, path: String) -> Bool {
 }
 
 func SourceBundleReadImportPath(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
-    let i: Int = SkipWhitespaceAndComments(content, start);
-    if CharAt(content, i) != "\"" {
+    let n: Int = StringLength(content);
+    let i: Int = SkipWhitespaceAndCommentsWithin(content, n, start);
+    if CharAtWithin(content, n, i) != "\"" {
         ArraySet(cursor_out, 0, i);
         return "";
     }
     let begin: Int = i + 1;
     let end: Int = begin;
-    while end < StringLength(content) && CharAt(content, end) != "\"" {
+    while end < n && CharAtWithin(content, n, end) != "\"" {
         end = end + 1;
     }
-    if end >= StringLength(content) {
+    if end >= n {
         ArraySet(cursor_out, 0, end);
         return "";
     }
@@ -45,9 +46,10 @@ func SourceBundleReadImportPath(content: String, start: Int, inout cursor_out: A
 }
 
 func SourceBundleSkipString(content: String, start: Int) -> Int {
+    let n: Int = StringLength(content);
     let i: Int = start + 1;
-    while i < StringLength(content) && CharAt(content, i) != "\"" {
-        if CharAt(content, i) == "\\" {
+    while i < n && CharAtWithin(content, n, i) != "\"" {
+        if CharAtWithin(content, n, i) == "\\" {
             i = i + 1;
         }
         i = i + 1;
@@ -66,61 +68,85 @@ func LoadSemanticSourceBundleVisit(path: String, inout seen_paths: Array<String>
     ArrayPush(seen_paths, path);
 
     let content: String = ReadFile(path);
+    let content_length: Int = StringLength(content);
     let base_dir: String = SelfHostPath.Dirname(path);
-    let out: String = Concat(content, "\n");
+    let result_allocator: Allocator = AllocatorResult();
+    let out: TextBuilder = TextBuilderNew(content_length + 1);
+    let import_contents: Array<String> = [];
     let cursor: Array<Int> = [0];
     let i: Int = 0;
-    while i < StringLength(content) {
-        i = SkipWhitespaceAndComments(content, i);
-        if i >= StringLength(content) {
+    while i < content_length {
+        i = SkipWhitespaceAndCommentsWithin(content, content_length, i);
+        if i >= content_length {
             break;
         }
-        if CharAt(content, i) == "\"" {
+        if CharAtWithin(content, content_length, i) == "\"" {
             i = SourceBundleSkipString(content, i);
             continue;
         }
-        if SemanticMatchKeyword(content, i, "import") {
+        if SemanticMatchKeywordWithin(
+            content, content_length, i, "import"
+        ) {
             let rel_path: String = SourceBundleReadImportPath(content, i + 6, cursor);
             i = cursor[0];
             if StringLength(rel_path) > 0 {
                 let imp_path: String = SelfHostPath.NormalizeImportRelative(base_dir, rel_path);
                 let imp_content: String = LoadSemanticSourceBundleVisit(imp_path, seen_paths);
                 if StringLength(imp_content) > 0 {
-                    out = Concat(imp_content, out);
+                    ArrayPush(import_contents, imp_content);
                 }
             }
             continue;
         }
         i = i + 1;
     }
-    return out;
+    // The established bundle owner prepends each direct import. Preserve that
+    // reverse direct-import order while avoiding repeated whole-bundle copies.
+    let import_index: Int = ArrayLength(import_contents) - 1;
+    while import_index >= 0 {
+        TextBuilderAppend(out, import_contents[import_index]);
+        import_index = import_index - 1;
+    }
+    TextBuilderAppend(out, content);
+    TextBuilderAppend(out, "\n");
+    let bundle: String = TextBuilderFinish(out, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return bundle;
 }
 
 func SemanticSourceSignatureStubText(source: SemanticSourceText) -> SemanticSourceText {
     let content: String = source.value;
     let n: Int = StringLength(content);
-    let out: String = "";
+    let result_allocator: Allocator = AllocatorResult();
+    let out: TextBuilder = TextBuilderNew(n + 1);
     let i: Int = 0;
     let chunk_start: Int = 0;
     while i < n {
-        if CharAt(content, i) == "\"" {
+        if CharAtWithin(content, n, i) == "\"" {
             i = SourceBundleSkipString(content, i);
             continue;
         }
-        if CharAt(content, i) == "/" && CharAt(content, i + 1) == "/" {
+        if CharAtWithin(content, n, i) == "/" &&
+            CharAtWithin(content, n, i + 1) == "/" {
             i = SkipLineComment(content, i, n);
             continue;
         }
-        if CharAt(content, i) == "/" && CharAt(content, i + 1) == "*" {
+        if CharAtWithin(content, n, i) == "/" &&
+            CharAtWithin(content, n, i + 1) == "*" {
             i = SkipBlockComment(content, i, n);
             continue;
         }
-        if SemanticMatchKeyword(content, i, "func") {
+        if SemanticMatchKeywordWithin(content, n, i, "func") {
             let block_open: Int = FindBlockOpen(content, i, n);
-            if block_open < n && CharAt(content, block_open) == "{" {
-                out = Concat(out, Substring(content, chunk_start, i - chunk_start));
-                out = Concat(out, Substring(content, i, block_open + 1 - i));
-                out = Concat(out, "}\n");
+            if block_open < n &&
+                CharAtWithin(content, n, block_open) == "{" {
+                TextBuilderAppend(
+                    out, Substring(content, chunk_start, i - chunk_start)
+                );
+                TextBuilderAppend(
+                    out, Substring(content, i, block_open + 1 - i)
+                );
+                TextBuilderAppend(out, "}\n");
                 i = FindMatchingBraceWithin(content, block_open, n) + 1;
                 chunk_start = i;
                 continue;
@@ -129,9 +155,13 @@ func SemanticSourceSignatureStubText(source: SemanticSourceText) -> SemanticSour
         i = i + 1;
     }
     if chunk_start < n {
-        out = Concat(out, Substring(content, chunk_start, n - chunk_start));
+        TextBuilderAppend(
+            out, Substring(content, chunk_start, n - chunk_start)
+        );
     }
-    return SemanticSourceText(out);
+    let stub: String = TextBuilderFinish(out, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return SemanticSourceText(stub);
 }
 
 func LoadSemanticSourceSignatureBundleVisit(path: String, inout seen_paths: Array<String>) -> SemanticSourceBundle {
@@ -145,35 +175,49 @@ func LoadSemanticSourceSignatureBundleVisit(path: String, inout seen_paths: Arra
     ArrayPush(seen_paths, path);
 
     let content: String = ReadFile(path);
+    let content_length: Int = StringLength(content);
     let base_dir: String = SelfHostPath.Dirname(path);
     let stub: SemanticSourceText = SemanticSourceSignatureStubText(SemanticSourceText(content));
-    let out: String = Concat(stub.value, "\n");
+    let result_allocator: Allocator = AllocatorResult();
+    let out: TextBuilder = TextBuilderNew(StringLength(stub.value) + 1);
+    let import_contents: Array<String> = [];
     let cursor: Array<Int> = [0];
     let i: Int = 0;
-    while i < StringLength(content) {
-        i = SkipWhitespaceAndComments(content, i);
-        if i >= StringLength(content) {
+    while i < content_length {
+        i = SkipWhitespaceAndCommentsWithin(content, content_length, i);
+        if i >= content_length {
             break;
         }
-        if CharAt(content, i) == "\"" {
+        if CharAtWithin(content, content_length, i) == "\"" {
             i = SourceBundleSkipString(content, i);
             continue;
         }
-        if SemanticMatchKeyword(content, i, "import") {
+        if SemanticMatchKeywordWithin(
+            content, content_length, i, "import"
+        ) {
             let rel_path: String = SourceBundleReadImportPath(content, i + 6, cursor);
             i = cursor[0];
             if StringLength(rel_path) > 0 {
                 let imp_path: String = SelfHostPath.NormalizeImportRelative(base_dir, rel_path);
                 let imp_bundle: SemanticSourceBundle = LoadSemanticSourceSignatureBundleVisit(imp_path, seen_paths);
                 if StringLength(imp_bundle.content) > 0 {
-                    out = Concat(imp_bundle.content, out);
+                    ArrayPush(import_contents, imp_bundle.content);
                 }
             }
             continue;
         }
         i = i + 1;
     }
-    return SemanticSourceBundle(out);
+    let import_index: Int = ArrayLength(import_contents) - 1;
+    while import_index >= 0 {
+        TextBuilderAppend(out, import_contents[import_index]);
+        import_index = import_index - 1;
+    }
+    TextBuilderAppend(out, stub.value);
+    TextBuilderAppend(out, "\n");
+    let bundle: String = TextBuilderFinish(out, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return SemanticSourceBundle(bundle);
 }
 
 func LoadSemanticSourceCheckBundle(root_path: String) -> SemanticSourceBundle {
@@ -185,34 +229,42 @@ func LoadSemanticSourceCheckBundle(root_path: String) -> SemanticSourceBundle {
     ArrayPush(seen_paths, root_path);
 
     let content: String = ReadFile(root_path);
+    let content_length: Int = StringLength(content);
     let base_dir: String = SelfHostPath.Dirname(root_path);
-    let imports: String = "";
+    let result_allocator: Allocator = AllocatorResult();
+    let bundle: TextBuilder = TextBuilderNew(content_length + 64);
     let cursor: Array<Int> = [0];
     let i: Int = 0;
-    while i < StringLength(content) {
-        i = SkipWhitespaceAndComments(content, i);
-        if i >= StringLength(content) {
+    while i < content_length {
+        i = SkipWhitespaceAndCommentsWithin(content, content_length, i);
+        if i >= content_length {
             break;
         }
-        if CharAt(content, i) == "\"" {
+        if CharAtWithin(content, content_length, i) == "\"" {
             i = SourceBundleSkipString(content, i);
             continue;
         }
-        if SemanticMatchKeyword(content, i, "import") {
+        if SemanticMatchKeywordWithin(
+            content, content_length, i, "import"
+        ) {
             let rel_path: String = SourceBundleReadImportPath(content, i + 6, cursor);
             i = cursor[0];
             if StringLength(rel_path) > 0 {
                 let imp_path: String = SelfHostPath.NormalizeImportRelative(base_dir, rel_path);
                 let imp_bundle: SemanticSourceBundle = LoadSemanticSourceSignatureBundleVisit(imp_path, seen_paths);
                 if StringLength(imp_bundle.content) > 0 {
-                    imports = Concat(imports, imp_bundle.content);
+                    TextBuilderAppend(bundle, imp_bundle.content);
                 }
             }
             continue;
         }
         i = i + 1;
     }
-    return SemanticSourceBundle(Concat(imports, Concat("\n/*PGY_SEMANTIC_ROOT_START*/\n", content)));
+    TextBuilderAppend(bundle, "\n/*PGY_SEMANTIC_ROOT_START*/\n");
+    TextBuilderAppend(bundle, content);
+    let check_content: String = TextBuilderFinish(bundle, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return SemanticSourceBundle(check_content);
 }
 
 func LoadSemanticSourceBundle(root_path: String) -> String {

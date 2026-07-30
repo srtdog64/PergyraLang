@@ -230,7 +230,7 @@ func CodegenWrapperDeclarationBlock(
     }
     let option_fact: OptionStructDefinitionBlockFact =
         OptionResultRuntimeCValueOptionDefinition(
-            type_name, env.global_rows
+            type_name, env
         );
     if !option_fact.requires_bool_header {
         Die("constructed Option declaration fact is missing");
@@ -318,6 +318,8 @@ func CollectTypeDeclarations(
             remaining = remaining - nominal_selected_count;
             made_progress = true;
         }
+        let wrapper_dependency_env: CodegenTypeEnv =
+            CodegenTypeEnvFromPresealRows(env_box[0], "");
         let wrapper_index: Int = 0;
         while wrapper_index < wrapper_count {
             if wrapper_emitted[wrapper_index] == 0 &&
@@ -328,7 +330,7 @@ func CollectTypeDeclarations(
                 let wrapper_block: OptionStructDefinitionBlockFact =
                     CodegenWrapperDeclarationBlock(
                         wrapper_facts.type_names[wrapper_index],
-                        CodegenTypeEnv(env_box[0], "")
+                        wrapper_dependency_env
                     );
                 if wrapper_block.c_block != "" {
                     ArrayPush(blocks, wrapper_block.c_block);

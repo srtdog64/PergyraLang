@@ -1,0 +1,80 @@
+// Read-only verdict and compatibility queries over initializer type facts.
+
+import "ast_initializer_type_fact_owner.pgy";
+
+func SemanticAstInitializerTypesAllVerified(
+    facts: SemanticAstInitializerTypeFacts
+) -> Bool {
+    if !facts.ok { return false; }
+    let i: Int = 0;
+    while i < SemanticAstInitializerTypeCount(facts) {
+        if facts.verified[i] != 1 { return false; }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstInitializerFirstDiagnosticCode(
+    facts: SemanticAstInitializerTypeFacts
+) -> String {
+    if !facts.ok { return facts.diagnostic_code; }
+    let i: Int = 0;
+    while i < SemanticAstInitializerTypeCount(facts) {
+        if facts.verified[i] != 1 { return facts.diagnostic_codes[i]; }
+        i = i + 1;
+    }
+    return "";
+}
+
+func SemanticAstInitializerFirstDiagnosticMessage(
+    facts: SemanticAstInitializerTypeFacts
+) -> String {
+    if !facts.ok { return facts.diagnostic_message; }
+    let i: Int = 0;
+    while i < SemanticAstInitializerTypeCount(facts) {
+        if facts.verified[i] != 1 { return facts.diagnostic_messages[i]; }
+        i = i + 1;
+    }
+    return "";
+}
+
+func SemanticAstInitializerTypeFactsMatchArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    facts: SemanticAstInitializerTypeFacts
+) -> Bool {
+    let rebuilt: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            artifact, signatures, constructors, locals, expression_surfaces
+        );
+    let n: Int = SemanticAstInitializerTypeCount(facts);
+    if !facts.ok || !rebuilt.ok ||
+        facts.artifact_node_count != artifact.count ||
+        rebuilt.artifact_node_count != facts.artifact_node_count ||
+        SemanticAstInitializerTypeCount(rebuilt) != n ||
+        ArrayLength(facts.inferred_type_names) != n ||
+        ArrayLength(facts.verified) != n ||
+        ArrayLength(facts.diagnostic_codes) != n ||
+        ArrayLength(facts.diagnostic_messages) != n ||
+        ArrayLength(facts.binding_kinds) != n ||
+        ArrayLength(facts.binding_indices) != n {
+        return false;
+    }
+    let i: Int = 0;
+    while i < n {
+        if rebuilt.node_ids[i] != facts.node_ids[i] ||
+            rebuilt.inferred_type_names[i] != facts.inferred_type_names[i] ||
+            rebuilt.verified[i] != facts.verified[i] ||
+            rebuilt.diagnostic_codes[i] != facts.diagnostic_codes[i] ||
+            rebuilt.diagnostic_messages[i] != facts.diagnostic_messages[i] ||
+            rebuilt.binding_kinds[i] != facts.binding_kinds[i] ||
+            rebuilt.binding_indices[i] != facts.binding_indices[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}

@@ -4,6 +4,7 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "diagnostic_owner.pgy";
 import "ast_signature_artifact_match_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_zone_authority_fact_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
 import "ast_statement_fact_owner.pgy";
@@ -36,6 +37,7 @@ struct SemanticAstArtifactAnalysis {
     intent_signatures: SemanticAstIntentSignatureFacts;
     intent_transitions: SemanticAstIntentTransitionFacts;
     constructors: SemanticAstNominalConstructorFacts;
+    zone_authorities: SemanticAstZoneAuthorityFacts;
     local_bindings: SemanticAstLocalBindingFacts;
     assignments: SemanticAstAssignmentFacts;
     statements: SemanticAstStatementFacts;
@@ -172,6 +174,8 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
     let function_scopes: SemanticAstFunctionScopeFacts = SemanticAstFunctionScopeFactsFromArtifact(artifact);
     let constructors: SemanticAstNominalConstructorFacts =
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let zone_authorities: SemanticAstZoneAuthorityFacts =
+        SemanticAstZoneAuthorityFactsFromArtifact(artifact, constructors);
     let enums: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
     let function_tables: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFactsFromArtifact(
@@ -229,7 +233,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             SemanticAstStatementFactsFromArtifact(artifact, signatures);
         return SemanticAstArtifactAnalysis(
             rejected, signatures, intent_signatures, intent_transitions,
-            constructors,
+            constructors, zone_authorities,
             empty_locals, empty_assignments,
             empty_statements, enums, roles, expression_surfaces, type_surfaces,
             kind_surfaces, function_tables, function_scopes
@@ -253,10 +257,31 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             SemanticAstStatementFactsFromArtifact(artifact, signatures);
         return SemanticAstArtifactAnalysis(
             rejected_constructor, signatures, intent_signatures,
-            intent_transitions, constructors,
+            intent_transitions, constructors, zone_authorities,
             constructor_locals, constructor_assignments,
             constructor_statements, enums, roles, expression_surfaces,
             type_surfaces, kind_surfaces, function_tables, function_scopes
+        );
+    }
+    if !zone_authorities.ok {
+        let rejected_zone_authority: SemanticAstArtifactVerdict =
+            SemanticAstArtifactVerdictError(
+                "ast_artifact_invalid",
+                SemanticError1(
+                    "ast_artifact_invalid", "owner",
+                    "SemanticAstZoneAuthorityFacts"
+                ),
+                artifact.count, artifact.identity_digest,
+                0, requires_entrypoint
+            );
+        return SemanticAstArtifactAnalysis(
+            rejected_zone_authority, signatures, intent_signatures,
+            intent_transitions, constructors, zone_authorities,
+            SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
+            SemanticAstAssignmentFactsFromArtifact(artifact, signatures),
+            SemanticAstStatementFactsFromArtifact(artifact, signatures),
+            enums, roles, expression_surfaces, type_surfaces, kind_surfaces,
+            function_tables, function_scopes
         );
     }
     if !enums.ok {
@@ -271,7 +296,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             );
         return SemanticAstArtifactAnalysis(
             rejected_enum, signatures, intent_signatures, intent_transitions,
-            constructors,
+            constructors, zone_authorities,
             SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
             SemanticAstAssignmentFactsFromArtifact(artifact, signatures),
             SemanticAstStatementFactsFromArtifact(artifact, signatures),
@@ -291,7 +316,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             );
         return SemanticAstArtifactAnalysis(
             rejected_role, signatures, intent_signatures, intent_transitions,
-            constructors,
+            constructors, zone_authorities,
             SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
             SemanticAstAssignmentFactsFromArtifact(artifact, signatures),
             SemanticAstStatementFactsFromArtifact(artifact, signatures),
@@ -316,7 +341,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             );
         return SemanticAstArtifactAnalysis(
             rejected_ability_generic_bound, signatures, intent_signatures,
-            intent_transitions, constructors,
+            intent_transitions, constructors, zone_authorities,
             SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
             SemanticAstAssignmentFactsFromArtifact(artifact, signatures),
             SemanticAstStatementFactsFromArtifact(artifact, signatures),
@@ -339,7 +364,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             );
         return SemanticAstArtifactAnalysis(
             rejected_expression_surface, signatures, intent_signatures,
-            intent_transitions, constructors,
+            intent_transitions, constructors, zone_authorities,
             SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
             SemanticAstAssignmentFactsFromArtifact(artifact, signatures),
             SemanticAstStatementFactsFromArtifact(artifact, signatures),
@@ -359,7 +384,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             );
         return SemanticAstArtifactAnalysis(
             rejected_type_surface, signatures, intent_signatures,
-            intent_transitions, constructors,
+            intent_transitions, constructors, zone_authorities,
             SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
             SemanticAstAssignmentFactsFromArtifact(artifact, signatures),
             SemanticAstStatementFactsFromArtifact(artifact, signatures),
@@ -379,7 +404,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             );
         return SemanticAstArtifactAnalysis(
             rejected_kind_surface, signatures, intent_signatures,
-            intent_transitions, constructors,
+            intent_transitions, constructors, zone_authorities,
             SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
             SemanticAstAssignmentFactsFromArtifact(artifact, signatures),
             SemanticAstStatementFactsFromArtifact(artifact, signatures),
@@ -404,7 +429,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             SemanticAstStatementFactsFromArtifact(artifact, signatures);
         return SemanticAstArtifactAnalysis(
             rejected2, signatures, intent_signatures, intent_transitions,
-            constructors,
+            constructors, zone_authorities,
             local_bindings,
             rejected_assignments,
             rejected_statements, enums, roles, expression_surfaces, type_surfaces,
@@ -424,7 +449,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
         );
         return SemanticAstArtifactAnalysis(
             rejected3, signatures, intent_signatures, intent_transitions,
-            constructors,
+            constructors, zone_authorities,
             local_bindings, assignments,
             SemanticAstStatementFactsFromArtifact(artifact, signatures), enums,
             roles, expression_surfaces, type_surfaces, kind_surfaces,
@@ -444,7 +469,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
         );
         return SemanticAstArtifactAnalysis(
             rejected4, signatures, intent_signatures, intent_transitions,
-            constructors,
+            constructors, zone_authorities,
             local_bindings,
             assignments, statements, enums, roles, expression_surfaces,
             type_surfaces, kind_surfaces, function_tables, function_scopes
@@ -456,7 +481,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
         );
     return SemanticAstArtifactAnalysis(
         verdict, signatures, intent_signatures, intent_transitions,
-        constructors,
+        constructors, zone_authorities,
         local_bindings, assignments,
         statements, enums, roles, expression_surfaces, type_surfaces,
         kind_surfaces, function_tables, function_scopes
@@ -531,70 +556,4 @@ func SemanticAstArtifactAnalysisMatches(
     ) && SemanticAstFunctionScopeFactsMatchArtifact(
         artifact, analysis.function_scopes
     );
-}
-
-func SemanticAstArtifactVerdictContractReady() -> Bool {
-    let valid: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Enum: Direction { North, East }\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n"
-    );
-    let valid_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(valid, true);
-    if !SemanticAstArtifactAnalysisMatches(valid, valid_analysis, true) ||
-        valid_analysis.verdict.main_count != 1 ||
-        SemanticAstFunctionSignatureCount(valid_analysis.signatures) != 1 ||
-        SemanticAstNominalConstructorCount(valid_analysis.constructors) != 0 ||
-        SemanticAstLocalBindingCount(valid_analysis.local_bindings) != 1 ||
-        SemanticAstAssignmentCount(valid_analysis.assignments) != 0 ||
-        SemanticAstStatementCount(valid_analysis.statements) != 0 ||
-        SemanticAstEnumCount(valid_analysis.enums) != 1 ||
-        valid_analysis.enums.enum_names[0] != "Direction" ||
-        ArrayLength(valid_analysis.enums.variant_names) != 2 {
-        return false;
-    }
-    let stale_same_count: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Enum: Direction { South, West }\n  Function: Other\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: y : Int = 2\n"
-    );
-    if stale_same_count.count != valid.count ||
-        stale_same_count.identity_digest == valid.identity_digest ||
-        SemanticAstArtifactAdmissionReady(
-            stale_same_count, valid_analysis, true
-        ) {
-        return false;
-    }
-    let mutated_graph: AstExpressionGraphRows = AstExpressionGraphRows(
-        true, [TypedAstKindLetStmtTag()], [AstExpressionLaneValue()], [0],
-        AstExpressionArena([AstExpressionNodeLeaf()], ["1"], [0], [0])
-    );
-    let stale_same_tree: AstTreeArtifact = AstTreeArtifact(
-        valid.tree_text, valid.arena, valid.count, mutated_graph,
-        AstTreeArtifactIdentityDigest(
-            valid.tree_text, valid.count, mutated_graph
-        )
-    );
-    if !AstTreeArtifactReady(stale_same_tree) ||
-        stale_same_tree.identity_digest == valid.identity_digest ||
-        SemanticAstArtifactAdmissionReady(
-            stale_same_tree, valid_analysis, true
-        ) {
-        return false;
-    }
-    let missing: AstTreeArtifact = AstTreeArtifactFromText("Program:\n");
-    let missing_signatures: SemanticAstFunctionSignatureFacts =
-        SemanticAstFunctionSignatureFactsFromArtifact(missing);
-    let missing_verdict: SemanticAstArtifactVerdict =
-        SemanticAstArtifactEntrypointVerdict(missing, missing_signatures, true);
-    if missing_verdict.ok || missing_verdict.diagnostic_code != "entrypoint_cardinality" {
-        return false;
-    }
-    let duplicate: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
-    );
-    let duplicate_signatures: SemanticAstFunctionSignatureFacts =
-        SemanticAstFunctionSignatureFactsFromArtifact(duplicate);
-    let duplicate_verdict: SemanticAstArtifactVerdict =
-        SemanticAstArtifactEntrypointVerdict(
-            duplicate, duplicate_signatures, true
-        );
-    return !duplicate_verdict.ok && duplicate_verdict.main_count == 2 &&
-        duplicate_verdict.diagnostic_code == "entrypoint_cardinality";
 }

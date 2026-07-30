@@ -53,7 +53,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
         SemanticExpressionGraphArenaFromTopology(
             carried.arena.topology, carried.arena.node_texts,
             carried.arena.call_target_kinds, missing_names,
-            carried.arena.place_kinds
+            carried.arena.call_return_type_names, carried.arena.place_kinds
         );
     let missing: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
         true, carried.roots, carried.has_roots, missing_arena

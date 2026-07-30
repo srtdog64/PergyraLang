@@ -194,13 +194,22 @@ func SemanticAstAssignmentIndexForNode(
     facts: SemanticAstAssignmentFacts,
     node_id: Int
 ) -> Option<Int> {
-    let i: Int = 0;
-    while i < SemanticAstAssignmentCount(facts) {
-        if facts.node_ids[i] == node_id {
-            return Some(i);
-        }
-        i = i + 1;
+    let count: Int = SemanticAstAssignmentCount(facts);
+    if !facts.ok || node_id < 0 || node_id >= facts.artifact_node_count {
+        return None;
     }
+    // Assignment rows retain producer traversal order by syntax node ID.
+    let low: Int = 0;
+    let high: Int = count;
+    while low < high {
+        let middle: Int = low + ((high - low) / 2);
+        if facts.node_ids[middle] < node_id {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    if low < count && facts.node_ids[low] == node_id { return Some(low); }
     return None;
 }
 
@@ -251,9 +260,25 @@ func SemanticAstAssignmentFactsContractReady() -> Bool {
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
     let facts: SemanticAstAssignmentFacts =
         SemanticAstAssignmentFactsFromArtifact(artifact, signatures);
+    if SemanticAstAssignmentCount(facts) != 3 { return false; }
+    let first_index: Option<Int> = SemanticAstAssignmentIndexForNode(
+        facts, facts.node_ids[0]
+    );
+    let middle_index: Option<Int> = SemanticAstAssignmentIndexForNode(
+        facts, facts.node_ids[1]
+    );
+    let last_index: Option<Int> = SemanticAstAssignmentIndexForNode(
+        facts, facts.node_ids[2]
+    );
     return SemanticAstAssignmentFactsMatchArtifact(
         artifact, signatures, facts
-    ) && SemanticAstAssignmentCount(facts) == 3 &&
+    ) &&
+        IsSome(first_index) && UnwrapOption(first_index) == 0 &&
+        IsSome(middle_index) && UnwrapOption(middle_index) == 1 &&
+        IsSome(last_index) && UnwrapOption(last_index) == 2 &&
+        !IsSome(SemanticAstAssignmentIndexForNode(facts, 0)) &&
+        !IsSome(SemanticAstAssignmentIndexForNode(facts, -1)) &&
+        !IsSome(SemanticAstAssignmentIndexForNode(facts, artifact.count)) &&
         facts.target_texts[0] == "x" && facts.value_texts[0] == "x + 1" &&
         facts.target_root_names[0] == "x" &&
         facts.target_is_indexed[0] == 0 &&

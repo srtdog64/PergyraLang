@@ -3457,6 +3457,7 @@ self-host-compiler-world-contract-test-smoke: $(PGY)
 	self-host-intent-guard-post-compensation-execution-test-smoke \
 	self-host-intent-phase-carrier-negative-test-smoke \
 	self-host-intent-execution-fact-contract-test-smoke \
+	self-host-intent-step-binding-contract-test-smoke \
 	intent-typed-transition-native-execution-test-smoke \
 	self-host-tobject-boundary-test-smoke \
 	self-host-fallible-tobject-outcome-test-smoke \
@@ -3506,6 +3507,10 @@ self-host-intent-phase-carrier-negative-test-smoke: $(PGY)
 self-host-intent-execution-fact-contract-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 		"$(BASH)" tests/self_hosted/parity/intent_execution_fact_contract_owner.sh
+
+self-host-intent-step-binding-contract-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/self_hosted/parity/intent_step_binding_contract_owner.sh
 
 intent-typed-transition-native-execution-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \

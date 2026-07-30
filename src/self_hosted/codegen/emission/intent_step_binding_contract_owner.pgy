@@ -1,0 +1,144 @@
+// Executable contract for legacy intent-step actor/zone/authority binding.
+//
+// These cases pin the semantic boundary consumed by self-host C emission:
+// exact aliases win, type-only fallback must be unique, authority comes only
+// from a zone declaration, and an explicit where must name the using zone.
+
+import "intent_step_binding_owner.pgy";
+
+func CodegenIntentStepBindingContractSignature(
+    zone_is_value: Bool
+) -> SemanticAstIntentSignatureFacts {
+    return SemanticAstIntentSignatureFacts(
+        true, "", "", 4,
+        [0], ["Demo"], ["bool"], ["Bool"], [0], [3], [1, 2, 3],
+        [false, false, zone_is_value],
+        ["worker", "approver", "gate"],
+        ["Worker", "Approver", "Gate"]
+    );
+}
+
+func CodegenIntentStepBindingContractAuthorities(
+) -> SemanticAstZoneAuthorityFacts {
+    return SemanticAstZoneAuthorityFacts(
+        true, 4, ["Gate"], ["approver"]
+    );
+}
+
+func CodegenIntentStepBindingContractEnv(
+    fields: String,
+    include_worker: Bool
+) -> CodegenTypeEnv {
+    let rows: String = Concat(
+        "|Worker=nk:subject|Approver=nk:subject|Gate=nk:zone|Gate=fields:",
+        Concat(fields, Concat(
+            "|Gate.approver=field:Approver|",
+            Concat(
+                "Gate.approver=field_kind:subject_slot|",
+                "Gate=projection_sync:Gate_sync|"
+            )
+        ))
+    );
+    if include_worker {
+        rows = Concat(
+            rows,
+            "Gate.worker=field:Worker|Gate.worker=field_kind:subject_slot|"
+        );
+    }
+    return CodegenTypeEnvFromRows(rows, "");
+}
+
+func CodegenIntentStepBindingContractReady() -> Bool {
+    let by_value: SemanticAstIntentSignatureFacts =
+        CodegenIntentStepBindingContractSignature(true);
+    let authorities: SemanticAstZoneAuthorityFacts =
+        CodegenIntentStepBindingContractAuthorities();
+    let env: CodegenTypeEnv = CodegenIntentStepBindingContractEnv(
+        "worker,approver", true
+    );
+    let good: CodegenIntentStepBindingFact =
+        CodegenIntentStepBindingFactFromFacts(
+            by_value, authorities, 0,
+            "worker", "gate", "approver", "Gate", env
+        );
+    if !good.ok || good.who_type != "Worker" || good.zone_type != "Gate" ||
+        good.who_c != CompilerSymbolCBindingName("worker") ||
+        good.zone_member != Concat(
+            CompilerSymbolCBindingName("gate"),
+            Concat(".", CompilerSymbolCFieldName("worker"))
+        ) ||
+        good.zone_pointer != Concat(
+            "&", CompilerSymbolCBindingName("gate")
+        ) || good.sync_symbol != "Gate_sync" {
+        return false;
+    }
+    let where_mismatch: CodegenIntentStepBindingFact =
+        CodegenIntentStepBindingFactFromFacts(
+            by_value, authorities, 0,
+            "worker", "gate", "approver", "OtherZone", env
+        );
+    if where_mismatch.ok ||
+        where_mismatch.diagnostic != "where-using-zone-mismatch" {
+        return false;
+    }
+    let invented_authority: CodegenIntentStepBindingFact =
+        CodegenIntentStepBindingFactFromFacts(
+            by_value, authorities, 0,
+            "worker", "gate", "worker", "Gate", env
+        );
+    if invented_authority.ok ||
+        invented_authority.diagnostic != "authority-slot-not-declared" {
+        return false;
+    }
+    let inout: SemanticAstIntentSignatureFacts =
+        CodegenIntentStepBindingContractSignature(false);
+    let inout_good: CodegenIntentStepBindingFact =
+        CodegenIntentStepBindingFactFromFacts(
+            inout, authorities, 0,
+            "worker", "gate", "approver", "Gate", env
+        );
+    if !inout_good.ok ||
+        inout_good.zone_member != Concat(
+            "(*", Concat(
+                CompilerSymbolCBindingName("gate"),
+                Concat(").", CompilerSymbolCFieldName("worker"))
+            )
+        ) ||
+        inout_good.zone_pointer != CompilerSymbolCBindingName("gate") {
+        return false;
+    }
+    let ambiguous_rows: String = Concat(
+        "|Worker=nk:subject|Approver=nk:subject|Gate=nk:zone|",
+        Concat(
+            "Gate=fields:left,right,approver|Gate.left=field:Worker|",
+            Concat(
+                "Gate.left=field_kind:subject_slot|Gate.right=field:Worker|",
+                Concat(
+                    "Gate.right=field_kind:subject_slot|Gate.approver=field:Approver|",
+                    "Gate.approver=field_kind:subject_slot|Gate=projection_sync:Gate_sync|"
+                )
+            )
+        )
+    );
+    let ambiguous_env: CodegenTypeEnv = CodegenTypeEnvFromRows(
+        ambiguous_rows, ""
+    );
+    let ambiguous: CodegenIntentStepBindingFact =
+        CodegenIntentStepBindingFactFromFacts(
+            by_value, authorities, 0,
+            "worker", "gate", "approver", "Gate", ambiguous_env
+        );
+    if ambiguous.ok || ambiguous.diagnostic != "zone-subject-slot-ambiguous" {
+        return false;
+    }
+    let missing_env: CodegenTypeEnv = CodegenIntentStepBindingContractEnv(
+        "approver", false
+    );
+    let missing: CodegenIntentStepBindingFact =
+        CodegenIntentStepBindingFactFromFacts(
+            by_value, authorities, 0,
+            "worker", "gate", "approver", "Gate", missing_env
+        );
+    return !missing.ok &&
+        missing.diagnostic == "zone-subject-slot-missing";
+}

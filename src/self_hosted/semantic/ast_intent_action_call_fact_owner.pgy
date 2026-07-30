@@ -1,5 +1,6 @@
 // Exact subject-action return fact for an intent `on` expression.
 import "ast_signature_fact_owner.pgy";
+import "ast_intent_signature_fact_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
 
 struct SemanticAstIntentActionCallFact {
@@ -8,6 +9,16 @@ struct SemanticAstIntentActionCallFact {
     action_name: String;
     signature_index: Int;
     return_type_name: String;
+}
+
+// One resolved actor for the legacy executable-intent emitter.  `who` is an
+// actor/provenance fact, not an authority fact.  The resolution order mirrors
+// the native semantic owner: explicit who, direct on-call receiver, unique
+// participant action named by the step, then the sole subject participant.
+struct SemanticAstIntentStepActorFact {
+    ok: Bool;
+    actor_alias: String;
+    provenance: String;
 }
 
 func SemanticAstIntentActionSignatureIndex(
@@ -81,4 +92,111 @@ func SemanticAstIntentActionCallFromText(
         true, receiver, action, signature_index,
         signatures.return_types[signature_index]
     );
+}
+
+func SemanticAstIntentStepActorFromFacts(
+    signatures: SemanticAstFunctionSignatureFacts,
+    ref intents: SemanticAstIntentSignatureFacts,
+    intent_index: Int,
+    step_header_text: String,
+    on_text: String,
+    explicit_actor: String
+) -> SemanticAstIntentStepActorFact {
+    if intent_index < 0 ||
+        intent_index >= ArrayLength(intents.param_starts) ||
+        intent_index >= ArrayLength(intents.param_counts) {
+        return SemanticAstIntentStepActorFact(false, "", "intent-range");
+    }
+    let start: Int = intents.param_starts[intent_index];
+    let count: Int = intents.param_counts[intent_index];
+    if start < 0 || count < 0 ||
+        start + count > ArrayLength(intents.param_names) ||
+        start + count > ArrayLength(intents.param_types) ||
+        start + count > ArrayLength(intents.param_is_values) {
+        return SemanticAstIntentStepActorFact(false, "", "participant-range");
+    }
+
+    if explicit_actor != "" {
+        if !IsIdentifier(explicit_actor) {
+            return SemanticAstIntentStepActorFact(false, "", "explicit-who");
+        }
+        let explicit_row: Int = start;
+        while explicit_row < start + count {
+            if intents.param_names[explicit_row] == explicit_actor {
+                if intents.param_is_values[explicit_row] {
+                    return SemanticAstIntentStepActorFact(
+                        false, "", "explicit-who-value"
+                    );
+                }
+                return SemanticAstIntentStepActorFact(
+                    true, explicit_actor, "explicit-who"
+                );
+            }
+            explicit_row = explicit_row + 1;
+        }
+        return SemanticAstIntentStepActorFact(
+            false, "", "explicit-who-undeclared"
+        );
+    }
+
+    let on_call: SemanticAstIntentActionCallFact =
+        SemanticAstIntentActionCallFromText(
+            signatures, intents.param_names, intents.param_types,
+            intents.param_is_values, start, count, on_text
+        );
+    if on_call.ok {
+        return SemanticAstIntentStepActorFact(
+            true, on_call.receiver_alias, "on-receiver"
+        );
+    }
+
+    let first_space: Int = StringIndexOf(step_header_text, " ");
+    let step_name: String = step_header_text;
+    if first_space >= 0 {
+        step_name = Substring(step_header_text, 0, first_space);
+    }
+    if !IsIdentifier(step_name) {
+        return SemanticAstIntentStepActorFact(false, "", "step-name");
+    }
+    let action_actor: String = "";
+    let row: Int = start;
+    while row < start + count {
+        if !intents.param_is_values[row] &&
+            SemanticAstIntentActionSignatureIndex(
+                signatures, intents.param_types[row], step_name
+            ) >= 0 {
+            if action_actor != "" {
+                return SemanticAstIntentStepActorFact(
+                    false, "", "step-action-ambiguous"
+                );
+            }
+            action_actor = intents.param_names[row];
+        }
+        row = row + 1;
+    }
+    if action_actor != "" {
+        return SemanticAstIntentStepActorFact(
+            true, action_actor, "step-action"
+        );
+    }
+
+    let sole_actor: String = "";
+    row = start;
+    while row < start + count {
+        if !intents.param_is_values[row] {
+            if sole_actor != "" {
+                return SemanticAstIntentStepActorFact(
+                    false, "", "single-participant-ambiguous"
+                );
+            }
+            sole_actor = intents.param_names[row];
+        }
+        row = row + 1;
+    }
+    if sole_actor != "" {
+        return SemanticAstIntentStepActorFact(
+            true, sole_actor, "single-participant"
+        );
+    }
+    return SemanticAstIntentStepActorFact(false, "", "who-unresolved");
 }

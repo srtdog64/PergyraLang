@@ -74,6 +74,7 @@ func SemanticAstIterationSyntheticGraphRootsAttach(
     let node_texts: Array<String> = graph.arena.node_texts;
     let target_kinds: Array<Int> = graph.arena.call_target_kinds;
     let target_names: Array<String> = graph.arena.call_target_names;
+    let call_return_types: Array<String> = graph.arena.call_return_type_names;
     let place_kinds: Array<Int> = graph.arena.place_kinds;
     let synthetic_names: Array<String> = facts.synthetic_names;
     let synthetic_roots: Array<Int> = facts.synthetic_graph_root_ids;
@@ -100,6 +101,7 @@ func SemanticAstIterationSyntheticGraphRootsAttach(
             ArrayPush(node_texts, name);
             ArrayPush(target_kinds, SemanticCallTargetNone());
             ArrayPush(target_names, "");
+            ArrayPush(call_return_types, "");
             ArrayPush(place_kinds, SemanticExpressionPlaceBinding());
             ArraySet(synthetic_names, i, name);
             ArraySet(synthetic_roots, i, appended.root_id);
@@ -110,7 +112,8 @@ func SemanticAstIterationSyntheticGraphRootsAttach(
     }
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopology(
-            topology, node_texts, target_kinds, target_names, place_kinds
+            topology, node_texts, target_kinds, target_names,
+            call_return_types, place_kinds
         );
     let attached: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFacts(

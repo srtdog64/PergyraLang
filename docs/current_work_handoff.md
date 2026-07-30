@@ -6,6 +6,90 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+## Current checkpoint - exact bootstrap pressure and zone runtime closure
+
+- This material continuation started at
+  `c1070c0fcad5ee2fd949799674ba354667979aa8`, equal to `origin/main` before
+  the current dirty change set. The final commit/push must be verified with Git;
+  this note cannot name its own containing revision.
+- Active executable rung: project the native zone-sync runtime meaning from the
+  existing DIR/MIR domain topology and `semantic.domain_runtime_assignment`
+  owners into self-host C. The last consumer is the self-host zone
+  declaration/runtime emitter. Empty sync bodies, name-only reconstruction and
+  a copied native body detached from admitted facts are forbidden fallbacks.
+- Exact pressure is no longer the blocker. The fixed 5,106,665-byte AST
+  (`97EEFA34159BE8AFEA8D15F44BF5F74FB57D5DD1D8C03ABF565AF4A14B8D5190`)
+  completed C emission in 158.020 seconds at 1,659.1MB peak private. A fresh
+  parser artifact of 5,326,689 bytes
+  (`49BFB21900867135FBAF6F51F23364BB108B88A65C62328541D6089DBD64844B`)
+  completed in 164.252 seconds at 1,742.1MB peak private. After exact zone
+  authority/where/slot carriage, r10d completed the same artifact in 145.719
+  seconds at 1,759.6MB peak private and 1,666.9MB working set; its C output is
+  byte-identical to r9. All used the unchanged 3,072MiB / 2,400-second pressure
+  policy. The earlier 20GB symptom is not reproduced.
+- A fully current r11 rerun removes the remaining stale-artifact ambiguity. A
+  fresh parse produced a 5,324,488-byte AST. A fresh self-host codegen build
+  finished in 52.295 seconds at 1,222.8MB peak private; exact emission finished
+  in 164.133 seconds at 1,726.6MB peak private and 1,635.7MB working set. Its C
+  output is 5,351,899 bytes (5,256,386 after CR removal), SHA-256
+  `94B15E5D2DE819EB4F6844E8AB0CAB6878C0188452D2BD99859EF25E3061297E`.
+  Host compilation remains RED for exactly the same 15 missing `*Zone_sync`
+  declarations/bodies and no earlier intent signature/order error.
+- The measured closures are admitted constructor proof reuse, binary node-ID
+  reads, carried call-return/place facts and one same-epoch global type-row
+  index. Dynamic local rows retain their prepend/first-row rule. A general
+  cross-revision query engine remains deferred until a stable key/revision owner
+  and measured invalidation consumer exist.
+- Parser intent parameters now keep one source-order stream. The interleaved
+  zone/value/subject/value fixture passes through both native and freshly built
+  self-host parsers. Intent codegen derives omitted `who` through the semantic
+  actor owner, keeps actor distinct from authority, accepts by-value and inout
+  `using`, requires explicit `where` to match that zone, and accepts authority
+  only through an exact declared zone subject slot. Exact aliases win; a
+  type-only slot match must be unique.
+- Evidence grade is `REACHABLE`, not `SUBSTITUTING`. The current r11 self-host C is
+  5,351,899 bytes (5,256,386 after CR removal); the earlier r10d/r9 C is
+  5,365,353 bytes (5,270,018 after CR removal) versus the current
+  17,251,635-byte native C reference, so
+  normalized byte parity is false. Host compilation is RED with exactly 15
+  missing `*Zone_sync` declarations/bodies. A fresh isolated standard compiler build
+  reaches the same host-compile boundary; the currently installed
+  `bin/pgy-self-driver.exe` is stale and fails earlier current-source/typed-intent
+  gates.
+- Last observed green focused evidence: language keyword registry
+  (146 rows, 70 reserved, 76 contextual selectors, 9 fixtures), include-size
+  gate, semantic environment lifetime/admission ratchet, source-MIR execution
+  action gate, intent-step binding execution contract and full self-host
+  component contract. The standalone leaf-place
+  contract checker ran for more than ten minutes without output and was stopped;
+  it is **not a PASS**. The broad C/LLVM real-source semantic selfcheck was also
+  sampled only through the first 13 of 673 C targets and stopped because its
+  projected duration exceeds the repository's focused integration budget; it
+  is a scheduled/CI matrix and is **not recorded as a full PASS** here. The SoT
+  adequacy mutation checks pass with `PGY_ALLOW_MISSING_COQ=1`, but the Coq model
+  is an explicit skip because this runner has neither `rocq` nor `coqc`; the
+  unmodified fail-closed invocation exits nonzero and is not recorded as green.
+- The previous GitHub Actions selfcheck timeout on
+  `compiler_world_direct_mir_owner.pgy` was reproduced locally beyond 86.383
+  seconds. Sealed-length scanner calls and one-pass import-bundle assembly now
+  produce the 760,066-byte bundle in 2.978 seconds and return semantic
+  `Status: ok` in 2.681 seconds. The faster checker also exposed and closed the
+  missing `zone`/`world` nominal-constructor and slot-row semantics; the
+  60-second CI budget remains unchanged.
+- The focused semantic parity runner completed all 113 C verdict fixtures.
+  Its subsequent LLVM leg was stopped after the combined runner exceeded the
+  five-minute focused budget; LLVM semantic parity is therefore not recorded as
+  a PASS in this checkpoint and remains for CI/scheduled execution.
+- Next falsifying sequence:
+  1. carry exact lock, generation/dirty and bounded projection-frontier facts to
+     self-host zone storage and `Zone_sync` emission;
+  2. reject any missing fact or unbounded/no-op body before output;
+  3. host-compile the fresh r11 emitted C with zero missing sync symbols;
+  4. build a fresh installed driver, then run live replacement and typed-intent
+     execution/compensation gates;
+  5. only after those pass, compare the next compiler generation and classify a
+     real deleted C-owned path as `SUBSTITUTING`.
+
 ## Current checkpoint - body admission and latest-only publication
 
 - Material checkpoint: `835348ac318506031a375d8fc168a55e9ca94eb3`

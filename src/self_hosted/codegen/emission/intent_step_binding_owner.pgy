@@ -1,0 +1,152 @@
+// One fail-closed C binding projection for a legacy executable intent step.
+//
+// Actor identity and zone transport mode are distinct facts.  A subject actor
+// is an inout intent participant.  A `using` zone may arrive as either an
+// inout participant or a by-value intent row, so its C member/address spelling
+// follows that carried mode.  Zone slot selection mirrors the native owner:
+// exact alias first, otherwise one unique field with the actor's type.
+
+import "../../semantic/ast_intent_signature_fact_owner.pgy";
+import "../../semantic/ast_zone_authority_fact_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "intent_zone_subject_slot_owner.pgy";
+
+struct CodegenIntentStepBindingFact {
+    ok: Bool;
+    diagnostic: String;
+    who_type: String;
+    zone_type: String;
+    who_c: String;
+    zone_member: String;
+    zone_pointer: String;
+    sync_symbol: String;
+}
+
+func CodegenIntentStepBindingFactError(
+    diagnostic: String
+) -> CodegenIntentStepBindingFact {
+    return CodegenIntentStepBindingFact(
+        false, diagnostic, "", "", "", "", "", ""
+    );
+}
+
+func CodegenIntentStepBindingFactFromFacts(
+    ref intents: SemanticAstIntentSignatureFacts,
+    ref zone_authorities: SemanticAstZoneAuthorityFacts,
+    intent_index: Int,
+    who_alias: String,
+    using_alias: String,
+    authority_alias: String,
+    where_zone_name: String,
+    env: CodegenTypeEnv
+) -> CodegenIntentStepBindingFact {
+    if intent_index < 0 ||
+        intent_index >= ArrayLength(intents.param_starts) ||
+        intent_index >= ArrayLength(intents.param_counts) {
+        return CodegenIntentStepBindingFactError("intent-range");
+    }
+    let start: Int = intents.param_starts[intent_index];
+    let count: Int = intents.param_counts[intent_index];
+    if start < 0 || count < 0 ||
+        start + count > ArrayLength(intents.param_names) ||
+        start + count > ArrayLength(intents.param_types) ||
+        start + count > ArrayLength(intents.param_is_values) {
+        return CodegenIntentStepBindingFactError("participant-range");
+    }
+    let who_row: Int = -1;
+    let using_row: Int = -1;
+    let authority_row: Int = -1;
+    let row: Int = start;
+    while row < start + count {
+        if intents.param_names[row] == who_alias {
+            if who_row >= 0 {
+                return CodegenIntentStepBindingFactError("duplicate-who");
+            }
+            who_row = row;
+        }
+        if intents.param_names[row] == using_alias {
+            if using_row >= 0 {
+                return CodegenIntentStepBindingFactError("duplicate-using");
+            }
+            using_row = row;
+        }
+        if authority_alias != "" &&
+            intents.param_names[row] == authority_alias {
+            if authority_row >= 0 {
+                return CodegenIntentStepBindingFactError(
+                    "duplicate-authority"
+                );
+            }
+            authority_row = row;
+        }
+        row = row + 1;
+    }
+    if who_row < 0 || intents.param_is_values[who_row] {
+        return CodegenIntentStepBindingFactError("actor-not-subject");
+    }
+    if using_row < 0 {
+        return CodegenIntentStepBindingFactError("using-undeclared");
+    }
+    if authority_alias != "" &&
+        (authority_row < 0 || intents.param_is_values[authority_row]) {
+        return CodegenIntentStepBindingFactError("authority-not-subject");
+    }
+    let who_type: String = intents.param_types[who_row];
+    let zone_type: String = intents.param_types[using_row];
+    if LookupKindType(env, zone_type, "nk") != "zone" {
+        return CodegenIntentStepBindingFactError("using-not-zone");
+    }
+    // Native semantics derive a missing where boundary from the exact using
+    // zone. An explicit where remains a hard identity and must agree.
+    if where_zone_name != "" && where_zone_name != zone_type {
+        return CodegenIntentStepBindingFactError("where-using-zone-mismatch");
+    }
+    let actor_slot: CodegenIntentZoneSubjectSlotFact =
+        CodegenIntentZoneSubjectSlotFromFacts(
+            env, zone_type, who_alias, who_type
+        );
+    if !actor_slot.ok {
+        return CodegenIntentStepBindingFactError(actor_slot.diagnostic);
+    }
+    if authority_alias != "" {
+        let authority_type: String = intents.param_types[authority_row];
+        let authority_slot: CodegenIntentZoneSubjectSlotFact =
+            CodegenIntentZoneSubjectSlotFromFacts(
+                env, zone_type, authority_alias, authority_type
+            );
+        if !authority_slot.ok {
+            return CodegenIntentStepBindingFactError(
+                Concat("authority-", authority_slot.diagnostic)
+            );
+        }
+        if !SemanticAstZoneAuthoritySlotPresent(
+            zone_authorities, zone_type, authority_slot.slot_name
+        ) {
+            return CodegenIntentStepBindingFactError(
+                "authority-slot-not-declared"
+            );
+        }
+    }
+    let who_c: String = CompilerSymbolCBindingName(who_alias);
+    let zone_c: String = CompilerSymbolCBindingName(using_alias);
+    let field_c: String = CompilerSymbolCFieldName(actor_slot.slot_name);
+    let zone_member: String = Concat(
+        "(*", Concat(zone_c, Concat(").", field_c))
+    );
+    let zone_pointer: String = zone_c;
+    if intents.param_is_values[using_row] {
+        zone_member = Concat(zone_c, Concat(".", field_c));
+        zone_pointer = Concat("&", zone_c);
+    }
+    let sync_symbol: String = LookupKindType(
+        env, zone_type, "projection_sync"
+    );
+    if sync_symbol == "" {
+        return CodegenIntentStepBindingFactError("zone-sync-missing");
+    }
+    return CodegenIntentStepBindingFact(
+        true, "", who_type, zone_type, who_c, zone_member, zone_pointer,
+        sync_symbol
+    );
+}

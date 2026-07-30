@@ -198,13 +198,22 @@ func SemanticAstStatementIndexForNode(
     facts: SemanticAstStatementFacts,
     node_id: Int
 ) -> Option<Int> {
-    let i: Int = 0;
-    while i < SemanticAstStatementCount(facts) {
-        if facts.node_ids[i] == node_id {
-            return Some(i);
-        }
-        i = i + 1;
+    let count: Int = SemanticAstStatementCount(facts);
+    if !facts.ok || node_id < 0 || node_id >= facts.artifact_node_count {
+        return None;
     }
+    // Statement rows retain producer traversal order by syntax node ID.
+    let low: Int = 0;
+    let high: Int = count;
+    while low < high {
+        let middle: Int = low + ((high - low) / 2);
+        if facts.node_ids[middle] < node_id {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    if low < count && facts.node_ids[low] == node_id { return Some(low); }
     return None;
 }
 
@@ -253,9 +262,25 @@ func SemanticAstStatementFactsContractReady() -> Bool {
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
     let facts: SemanticAstStatementFacts =
         SemanticAstStatementFactsFromArtifact(artifact, signatures);
+    if SemanticAstStatementCount(facts) != 7 { return false; }
+    let first_index: Option<Int> = SemanticAstStatementIndexForNode(
+        facts, facts.node_ids[0]
+    );
+    let middle_index: Option<Int> = SemanticAstStatementIndexForNode(
+        facts, facts.node_ids[3]
+    );
+    let last_index: Option<Int> = SemanticAstStatementIndexForNode(
+        facts, facts.node_ids[6]
+    );
     return SemanticAstStatementFactsMatchArtifact(
         artifact, signatures, facts
-    ) && SemanticAstStatementCount(facts) == 7 &&
+    ) &&
+        IsSome(first_index) && UnwrapOption(first_index) == 0 &&
+        IsSome(middle_index) && UnwrapOption(middle_index) == 3 &&
+        IsSome(last_index) && UnwrapOption(last_index) == 6 &&
+        !IsSome(SemanticAstStatementIndexForNode(facts, 0)) &&
+        !IsSome(SemanticAstStatementIndexForNode(facts, -1)) &&
+        !IsSome(SemanticAstStatementIndexForNode(facts, artifact.count)) &&
         facts.kind_tags[0] == TypedAstKindForStmtTag() &&
         facts.payload_texts[0] == "i" && facts.value_texts[0] == "0" &&
         facts.auxiliary_texts[0] == "3" && facts.body_scope_node_ids[0] >= 0 &&

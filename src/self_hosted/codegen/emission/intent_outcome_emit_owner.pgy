@@ -47,7 +47,7 @@ func CodegenIntentEmitOnOutcome(
     return TypeEnvAppendLocalRows(
         step_env,
         CodegenFunctionValueBindingFactForCExpression(
-            outcome_name, outcome_type, step_env.global_rows, outcome_c_name
+            outcome_name, outcome_type, step_env, outcome_c_name
         ).env_rows
     );
 }

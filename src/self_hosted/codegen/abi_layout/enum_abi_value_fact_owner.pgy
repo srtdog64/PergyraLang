@@ -51,13 +51,22 @@ func EnumAbiValueFactFor(
     type_name: String,
     env: CodegenTypeEnv
 ) -> EnumAbiValueFact {
-    let global_fact: EnumAbiValueFact = EnumAbiValueFactForRows(
-        type_name, env.global_rows
-    );
-    if global_fact.ok {
-        return global_fact;
+    let layout: String = LookupKindType(env, type_name, "enum");
+    if layout == "payload_free" {
+        return EnumAbiValueFact(
+            true, type_name, layout,
+            CompilerAbiLayoutPayloadFreeEnumCValueType(),
+            CompilerAbiLayoutPayloadFreeEnumDefaultReturnValue()
+        );
     }
-    return EnumAbiValueFactForRows(type_name, env.local_rows);
+    if layout == "tagged" {
+        let c_value_type: String = CompilerSymbolCTypeName(type_name);
+        return EnumAbiValueFact(
+            true, type_name, layout, c_value_type,
+            Concat("(", Concat(c_value_type, "){0}"))
+        );
+    }
+    return EnumAbiValueFactMissing(type_name);
 }
 
 func EnumAbiValueFactContractReady() -> Bool {

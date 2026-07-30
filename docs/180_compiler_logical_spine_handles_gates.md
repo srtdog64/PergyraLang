@@ -640,3 +640,168 @@ Do not implement all handles at once.
 
 This order lets boundaries evolve without freezing today's physical folder
 shape as tomorrow's semantics.
+
+## 11. 2026-07-30 Architecture Review Execution Decision
+
+The external review observed `5fd9fc3a` and correctly promoted the exact
+5,106,665-byte bootstrap AST from a memory investigation to the active CPU
+falsifier. Its general query-engine, opaque artifact, binary transport, and
+installed-driver proposals are directions, not evidence that all four should
+be introduced in one migration.
+
+The active objective card is:
+
+```text
+objective: finish exact 5,106,665-byte C emission within 3,072 MiB and 2,400 s
+priority: first measured superlinear owner -> old-read ratchet -> exact parity
+fact owner: SemanticAstArtifactAnalysis plus AstBodyAnalysisAdmission receipt
+last consumer: SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved
+forbidden fallback: an admitted body consumer revalidates constructor rows or
+                    reconstructs an already-carried whole-program fact family
+gate: exact fixture pressure run plus normalized emitted-C parity
+falsifier: same fixture/hash, same memory cap, same timeout
+```
+
+The first dynamic samples did not enter emission. Both stayed in
+`SemanticAstNominalConstructorRowsReady`, reached from an admitted body
+call-target environment. The fixed fixture has 311 nominal declarations and
+2,280 field rows. One readiness call performs 2,598,060 field-identity
+comparisons before the owner-field projection; repeating it per expression is
+therefore a concrete superlinear consumer, not a hypothetical cache candidate.
+
+Removing only the call-target leak advanced the next sample to the expression-
+place stage, where the same checked seeder reopened the same proof. The correct
+closure is to let every body production core that already holds the admission
+receipt call the admitted constructor seeder, while public/arbitrary-pair and
+standalone contracts retain the checked entry. A negative gate fixes the
+transitive checked-seeder count of the admitted body family at zero. This is a
+validate-once repair behind the existing owner; it does not introduce a cache,
+second constructor authority, or caller-selectable fast path.
+
+The separate emission audit found four owner-local node-ID indexes still using
+linear search. Their producers already preserve ascending `SyntaxNodeId`, so
+lower-bound lookup is the smallest valid downstream correction. It keeps the
+same owner, schema, signatures, and first-row behavior for destructuring
+duplicates. Boundary fixtures cover first, middle, last, missing, out-of-range,
+and duplicate-first cases. This work must not be reported as the first observed
+bottleneck: the dynamic trace placed repeated constructor proof before it.
+
+A general incremental query engine remains deferred until a measured consumer
+needs cross-revision reuse and the repository has a stable revision/key owner.
+Introducing owner IDs, cache hit/miss policy, dependency edges, and invalidation
+before that proof would create a second authority beside the current fact
+owners. When the trigger exists, it must use the owner/handle/migration template
+in this document and retain a from-scratch differential oracle.
+
+Installed-driver promotion, opaque admitted capability packaging, and binary
+transport remain ordered after the current exact emission falsifier. JSON stays
+the parity and mutation oracle. No timeout or memory ceiling is raised to claim
+progress.
+
+### Same-epoch codegen type-row lookup rung
+
+The next repeated exact-run samples reached `RewriteSemanticDirectCall` and
+`RewriteSemanticLeaf` through `LookupKindTypeRows`.  The global environment was
+immutable by then, but every query recomputed its multi-megabyte length and
+rescanned the flat serialization.
+
+```text
+objective: remove whole-global-row work from each Ready emission lookup
+priority: same-epoch identity -> first-row behavior -> local-row behavior -> cost
+fact owner: CodegenTypeEnv.global_rows
+derived owner: CodegenTypeGlobalIndex (offsets plus sealed rows_length)
+last consumer: LookupKindType during Ready C emission
+forbidden fallback: LookupKindTypeRows(env.global_rows, ...)
+gate: index contract + raw-constructor allowlist + exact fixture rerun
+falsifier: Lookup/Contains calls StringLength(rows), scans global_rows, or a
+           declaration field/parameter loop rebuilds a pre-seal index
+```
+
+The index is not a cross-revision query engine. It is an immutable projection
+of one `global_rows` value and carries only boolean/integer arrays. Values stay
+owned by the row serialization and are sliced only for the lookup result, so a
+pre-seal snapshot does not retain copied placeholder/value strings. Dynamic
+local rows keep the existing prepended first-row rule. Declaration scheduling
+may seal one explicitly named dependency snapshot per selected batch; field and
+parameter loops may not rebuild it. The final Ready `base_env` seals the final
+row epoch once, and statement-local state views must retain that index. Those
+views take the sealed global rows from `base_env`; they must not compare the
+multi-megabyte state copy to `base_env.global_rows` on every statement.
+
+### Exact bootstrap emission result and next executable rung
+
+The fixed old artifact remains available as
+`.tmp/self_hosted/compiler/bootstrap/driver.ast.txt`: 5,106,665 bytes, SHA-256
+`97EEFA34159BE8AFEA8D15F44BF5F74FB57D5DD1D8C03ABF565AF4A14B8D5190`.
+After admitted constructor proof reuse, binary node-ID lookup, carried call
+return/place facts and the same-epoch type-row index, the complete codegen run
+finished under the unchanged 3,072 MiB / 2,400-second pressure policy:
+
+| Run | Input/result | Elapsed | Peak private | Outcome |
+|---|---|---:|---:|---|
+| r3 | old 5.1 MB AST | stopped after sampling | 1,282 MB | repeated global type lookup observed |
+| r5 | old 5.1 MB AST | 301.2 s | 1,687.4 MB | fail-closed intent step-shape diagnostic |
+| r8 | old 5.1 MB AST | 158.0 s | 1,659.1 MB | complete C emission, exit 0 |
+| r9 | fresh 5,326,689-byte AST | 164.3 s | 1,742.1 MB | complete C emission, exit 0 |
+| r10d | r9 AST + exact zone authority facts | 145.7 s | 1,759.6 MB | complete byte-identical C emission, exit 0 |
+| r11 | current 5,324,488-byte AST + sealed source scans | 164.1 s | 1,726.6 MB | complete C emission, exit 0 |
+
+The fresh r9 AST has SHA-256
+`49BFB21900867135FBAF6F51F23364BB108B88A65C62328541D6089DBD64844B`.
+Its parser preserves one source-ordered parameter stream instead of appending
+all `involves` rows before all value rows. The interleaved
+zone/value/subject/value fixture rejects reintroduction of the split arrays.
+
+The intent codegen correction follows the language owners rather than C-shaped
+argument heuristics: an omitted `who` is derived by the semantic actor owner;
+`who` records actor/provenance and is not required to equal `authority`; an
+explicit authority must resolve to a subject slot declared as authority by the
+exact `zone`; and `using` accepts both by-value intent values and `inout`
+participant zones. An explicit `where` must equal the `using` zone; an omitted
+`where` derives that exact boundary from `using`, matching native semantics.
+Exact zone-slot binding prefers the source alias and otherwise requires one
+unique participant-type match. The executable binding contract covers distinct
+actor/authority success plus mismatched where, undeclared authority, ambiguous
+slot, missing slot, and both zone address modes.
+
+This is `REACHABLE`, not `SUBSTITUTING`. The r10d self-host C is byte-identical
+to r9 at 5,365,353 bytes (5,270,018 bytes after CR removal). A newly parsed and
+newly built r11 run closes the stale-artifact ambiguity: its current AST is
+5,324,488 bytes and its emitted C is 5,351,899 bytes (5,256,386 bytes after CR
+removal). It finishes under the same limit at 1,726.6 MB peak private and
+1,635.7 MB working set,
+while the current native reference C is 17,251,635 bytes; normalized byte parity
+is false. Compiling the fresh r11 self-host C removes the earlier intent
+signature and argument-order errors but reports exactly 15 missing
+`*Zone_sync` declarations/bodies. A fresh isolated installed-driver build reaches the same host-compile
+failure, while the existing installed `bin/pgy-self-driver.exe` is stale and
+fails earlier admission/typed-intent gates.
+
+The next objective card is therefore:
+
+```text
+objective: make fresh self-host C carry and emit the native zone-sync semantics
+priority: runtime meaning -> one owner plan -> host compile -> installed driver
+fact owner: DIR/MIR domain topology and semantic.domain_runtime_assignment
+last consumer: self-host C zone declaration/runtime emitter
+forbidden fallback: empty Zone_sync body, name-only reconstruction, native C
+                    body copy detached from the admitted domain facts
+gate: compile r11 emitted C, then fresh installed-driver build and live typed intent
+falsifier: any missing sync symbol, missing lock/generation/dirty/frontier field,
+           unbounded projection loop, or output/runtime divergence
+```
+
+The native bodies currently combine write locking, generation/dirty state and a
+bounded projection frontier. Those are semantic obligations, not linker stubs.
+The next slice must project them from the existing domain owners and fail closed
+when required facts are absent. A generic incremental query engine stays
+deferred: the measured same-epoch lookup defect is closed without creating a
+cross-revision cache authority.
+
+The pre-existing CI selfcheck timeout was also closed without raising its
+60-second owner budget. `compiler_world_direct_mir_owner.pgy` expands to a
+760,066-byte signature bundle. Sealed-length source scans plus one-pass bundle
+assembly reduce the focused Windows run from more than 86 seconds without a
+verdict to 2.681 seconds with `Status: ok`. The faster path exposed and closed a
+real checker gap: `zone` and `world` constructors now derive their exact
+zone/subject/object/tobject slot types and skip nested callable bodies.

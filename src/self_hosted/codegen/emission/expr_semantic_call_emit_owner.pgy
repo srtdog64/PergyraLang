@@ -415,13 +415,6 @@ func RewriteSemanticDirectCall(
     let call_symbol: String = source_name;
     let alias: String = LookupKindType(env, source_name, "call");
     if alias != "" { call_symbol = alias; }
-    let tagged_constructor: String = LookupKindType(
-        env, source_name, "call"
-    );
-    if tagged_constructor != "" &&
-        LookupKindType(env, call_symbol, "f") != "" {
-        call_symbol = tagged_constructor;
-    }
     let carried_specialization: String = LookupKindType(
         env, CodegenGenericCallNodeKey(view.call_node), "call"
     );
@@ -514,7 +507,7 @@ func RewriteSemanticDirectCall(
             Die("ArrayLength argument type fact is missing");
         }
         let array_kind: String = CodegenBindingEnvKind(
-            UnwrapOption(array_type), env.global_rows
+            UnwrapOption(array_type), env
         );
         call_symbol =
             CollectionRuntimeFactFromKind(array_kind, env).c_len_fn;

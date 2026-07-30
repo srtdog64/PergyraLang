@@ -320,12 +320,6 @@ require_stage_owner_line_cap() {
         cap=600
         if [[ "$rel" == "src/self_hosted/codegen/emission/stmt_emit.pgy" ]]; then
             cap=640
-        elif [[ "$rel" == "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" ]]; then
-            cap=637
-        elif [[ "$rel" == "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" ]]; then
-            cap=641
-        elif [[ "$rel" == "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" ]]; then
-            cap=622
         fi
         require_max_lines "$rel" "$cap"
         require_text "src/self_hosted/OWNERS.md" "$rel"
@@ -366,6 +360,40 @@ require_file "src/self_hosted/codegen/input/callable_receiver_codegen_view_owner
 require_max_lines "src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy"
+require_function_text \
+    "src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy" \
+    "func CodegenCallableReceiverFactsFromAdmittedAnalysis(" \
+    "CodegenCallableReceiverFactsReady(facts, analysis.signatures)"
+require_function_text \
+    "src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy" \
+    "func CodegenCallableReceiverFactsAdmittedReady(" \
+    "facts.admitted"
+require_function_text \
+    "src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy" \
+    "func CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(" \
+    "!facts.admitted"
+reject_function_text \
+    "src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy" \
+    "func CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(" \
+    "CodegenCallableReceiverFactsReady("
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
+    "CodegenCallableReceiverFactsFromAdmittedAnalysis(semantic_analysis)"
+require_text \
+    "src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy" \
+    "CodegenCallableReceiverFactsFromAdmittedAnalysis(semantic_analysis)"
+for admitted_receiver_row_accessor in \
+    "CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(" \
+    "CodegenCallableReceiverRoleErasedForAdmittedSignatureOrDie("; do
+    require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+        "$admitted_receiver_row_accessor"
+done
+for repeated_receiver_row_proof in \
+    "CodegenCallableReceiverCarriageForSignatureOrDie(" \
+    "CodegenCallableReceiverRoleErasedForSignatureOrDie(" \
+    "CodegenCallableReceiverFactsReady("; do
+    reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+        "$repeated_receiver_row_proof"
+done
 require_file "src/self_hosted/compiler/codegen_callable_receiver_bridge_owner.pgy"
 require_max_lines "src/self_hosted/compiler/codegen_callable_receiver_bridge_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" \
@@ -1059,6 +1087,11 @@ require_text "src/self_hosted/parser/decl_ability_owner.pgy" 'import "function_d
 require_text "src/self_hosted/parser/decl_role_owner.pgy" 'import "function_decl_owner.pgy";'
 require_text "src/self_hosted/parser/decl_nominal_owner.pgy" 'import "function_decl_owner.pgy";'
 require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'import "expr_owner.pgy";'
+require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'let parameter_lines: Array<String> = [];'
+require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'ArrayPush(parameter_lines, Concat("IntentInvolves: ", row));'
+require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'ArrayPush(parameter_lines, Concat("IntentValue: ", row));'
+reject_text "src/self_hosted/parser/decl_intent_owner.pgy" 'let involves_lines:'
+reject_text "src/self_hosted/parser/decl_intent_owner.pgy" 'let value_lines:'
 require_text "src/self_hosted/parser/decl_zone_owner.pgy" 'import "expr_owner.pgy";'
 require_text "src/self_hosted/parser/decl_zone_owner.pgy" 'import "function_decl_owner.pgy";'
 require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" 'import "source_path_owner.pgy";'
@@ -1113,6 +1146,12 @@ reject_text "tests/self_hosted/parity/parser_parity.sh" "BYTE-DRIFT"
 require_owner_surface semantic \
     "semantic_run_owner.pgy"
 require_file "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" 560
+require_file "src/self_hosted/semantic/ast_artifact_verdict_contract_owner.pgy"
+require_max_lines \
+    "src/self_hosted/semantic/ast_artifact_verdict_contract_owner.pgy" 70
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/semantic/ast_artifact_verdict_contract_owner.pgy"
 require_file "src/self_hosted/semantic/ast_ability_generic_bound_verdict_owner.pgy"
 require_file "src/self_hosted/semantic/ast_signature_fact_owner.pgy"
 require_file "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy"
@@ -1429,6 +1468,65 @@ require_file "src/self_hosted/codegen/emission/intent_emit_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/intent_emit_owner.pgy" 360
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/codegen/emission/intent_emit_owner.pgy"
+require_text \
+    "src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy" \
+    "func SemanticAstIntentStepActorFromFacts("
+require_file "src/self_hosted/semantic/ast_zone_authority_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/semantic/ast_zone_authority_fact_owner.pgy" 180
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/semantic/ast_zone_authority_fact_owner.pgy"
+require_text \
+    "src/self_hosted/semantic/ast_zone_authority_fact_owner.pgy" \
+    "func SemanticAstZoneAuthoritySlotPresent("
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
+    "zone_authorities: SemanticAstZoneAuthorityFacts"
+require_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
+    "SemanticAstIntentStepActorFromFacts("
+reject_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
+    "authority_alias != who_alias"
+require_file \
+    "src/self_hosted/codegen/emission/intent_step_binding_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/emission/intent_step_binding_owner.pgy" 180
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/emission/intent_step_binding_owner.pgy"
+require_text \
+    "src/self_hosted/codegen/emission/intent_step_binding_owner.pgy" \
+    'LookupKindType(env, zone_type, "nk") != "zone"'
+require_file \
+    "src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy" 100
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy"
+require_text \
+    "src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy" \
+    'NominalFieldKindSubjectSlot()'
+require_text \
+    "src/self_hosted/codegen/emission/intent_step_binding_owner.pgy" \
+    'where-using-zone-mismatch'
+require_text \
+    "src/self_hosted/codegen/emission/intent_step_binding_owner.pgy" \
+    'SemanticAstZoneAuthoritySlotPresent('
+require_text \
+    "src/self_hosted/codegen/emission/intent_step_binding_owner.pgy" \
+    'zone_pointer = Concat("&", zone_c)'
+require_file \
+    "src/self_hosted/codegen/emission/intent_step_binding_contract_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/emission/intent_step_binding_contract_owner.pgy" 180
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/emission/intent_step_binding_contract_owner.pgy"
+require_text \
+    "src/self_hosted/codegen/emission/intent_step_binding_contract_owner.pgy" \
+    "func CodegenIntentStepBindingContractReady() -> Bool"
+require_text "Makefile" \
+    "self-host-intent-step-binding-contract-test-smoke"
+require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
+    '"=field_kind:"'
+reject_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
+    "intents.param_is_values[using_param]"
 require_file \
     "src/self_hosted/codegen/emission/intent_signature_emit_owner.pgy"
 require_max_lines \
@@ -1552,6 +1650,11 @@ require_text "src/self_hosted/semantic/semantic_run_owner.pgy" 'import "diagnost
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" 'import "program_check_owner.pgy";'
 require_text "src/self_hosted/semantic/source_bundle_owner.pgy" 'import "../lib/path.pgy";'
 require_text "src/self_hosted/semantic/source_bundle_owner.pgy" 'import "text_scan_owner.pgy";'
+require_max_lines "src/self_hosted/semantic/source_bundle_owner.pgy" 320
+require_text "src/self_hosted/semantic/source_bundle_owner.pgy" \
+    "TextBuilderFinish(bundle, result_allocator)"
+reject_text "src/self_hosted/semantic/source_bundle_owner.pgy" \
+    "while i < StringLength(content)"
 reject_text "src/self_hosted/semantic/main.pgy" 'import "../lib/path.pgy";'
 reject_text "src/self_hosted/semantic/main.pgy" 'import "text_scan_owner.pgy";'
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" 'import "../lib/diagnostic.pgy";'
@@ -1613,8 +1716,16 @@ require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "
 require_text "src/self_hosted/semantic/program_check_owner.pgy" "SeedSemanticBuiltinSignatures(func_names, func_rets, func_params)"
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "SeedSemanticOwnedBuiltinSignatures(names, returns, params)"
 reject_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "StringLength")'
-require_text "src/self_hosted/semantic/program_check_owner.pgy" 'if SemanticMatchKeyword(content, i, "let")'
-reject_text "src/self_hosted/semantic/program_check_owner.pgy" 'if !SemanticMatchKeyword(content, i, "let")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" \
+    'SemanticMatchKeywordWithin(content, content_length, i, "let")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" \
+    'SemanticMatchKeywordWithin(content, content_length, start, "zone")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" \
+    'SemanticMatchKeywordWithin(content, content_length, start, "world")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" \
+    "func NominalConstructorFieldNameStart("
+reject_text "src/self_hosted/semantic/program_check_owner.pgy" \
+    'if !SemanticMatchKeyword(content, i, "let")'
 require_file "src/self_hosted/lib/source_scan_owner.pgy"
 require_max_lines "src/self_hosted/lib/source_scan_owner.pgy" 600
 require_file "tests/self_host_source_scan_owner_smoke.sh"
@@ -1622,9 +1733,13 @@ require_text "Makefile" '"$(BASH)" tests/self_host_source_scan_owner_smoke.sh'
 require_text "src/self_hosted/parser/cursor_owner.pgy" 'import "../lib/source_scan_owner.pgy";'
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" 'import "../lib/source_scan_owner.pgy";'
 require_text "src/self_hosted/lib/source_scan_owner.pgy" "func SkipWhitespaceAndComments"
+require_text "src/self_hosted/lib/source_scan_owner.pgy" \
+    "func SkipWhitespaceAndCommentsWithin("
 require_text "src/self_hosted/lib/source_scan_owner.pgy" "func SourceByteAt"
 require_text "src/self_hosted/lib/source_scan_owner.pgy" "func SourceByteIsAlphaNum"
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func SemanticMatchKeyword"
+require_text "src/self_hosted/semantic/text_scan_owner.pgy" \
+    "func SemanticMatchKeywordWithin("
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func SemanticReadIdent"
 reject_text "src/self_hosted/parser/cursor_owner.pgy" "func IsAlpha("
 reject_text "src/self_hosted/parser/cursor_owner.pgy" "func IsDigit("
@@ -2168,8 +2283,97 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunc
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "struct CodegenTypeEnv"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "global_rows: String;"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "local_rows: String;"
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "global_index: CodegenTypeGlobalIndex;"
+require_file \
+    "src/self_hosted/codegen/type_facts/type_env_global_index_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/type_facts/type_env_global_index_owner.pgy" 400
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/type_facts/type_env_global_index_owner.pgy"
+require_file \
+    "src/self_hosted/codegen/type_facts/type_env_local_row_scan_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/type_facts/type_env_local_row_scan_owner.pgy" 80
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/type_facts/type_env_local_row_scan_owner.pgy"
+require_function_text \
+    "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "func LookupKindType(" "CodegenTypeGlobalIndexLookupAdmitted("
+reject_function_text \
+    "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "func LookupKindType(" "LookupKindTypeRows(env.global_rows"
+require_function_text \
+    "src/self_hosted/codegen/type_facts/type_env_global_index_owner.pgy" \
+    "func CodegenTypeGlobalIndexLookup(" "index.rows_length"
+require_function_text \
+    "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "func LookupKindType(" "CodegenTypeGlobalIndexLookupAdmitted("
+require_function_text \
+    "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "func LookupKindTypeRowPresent(" "CodegenTypeGlobalIndexContainsAdmitted("
+reject_function_text \
+    "src/self_hosted/codegen/type_facts/type_env_global_index_owner.pgy" \
+    "func CodegenTypeGlobalIndexLookupAdmitted(" "StringLength(rows)"
+reject_function_text \
+    "src/self_hosted/codegen/type_facts/type_env_global_index_owner.pgy" \
+    "func CodegenTypeGlobalIndexContainsAdmitted(" "StringLength(rows)"
+reject_function_text \
+    "src/self_hosted/codegen/type_facts/type_env_global_index_owner.pgy" \
+    "func CodegenTypeGlobalIndexHashRow(" "StringLength(rows)"
+reject_function_text \
+    "src/self_hosted/codegen/type_facts/type_env_global_index_owner.pgy" \
+    "func CodegenTypeGlobalIndexRowRangeEquals(" "StringLength(rows)"
+reject_function_text \
+    "src/self_hosted/codegen/type_facts/type_env_global_index_owner.pgy" \
+    "func CodegenTypeGlobalIndexFromRows(" "CodegenCharAt(rows"
+reject_text \
+    "src/self_hosted/codegen/type_facts/type_env_global_index_owner.pgy" \
+    "values: Array<String>"
+reject_text \
+    "src/self_hosted/codegen/type_facts/type_env_local_row_scan_owner.pgy" \
+    "global_rows"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func CodegenTypeEnvStateView"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func CodegenTypeEnvStateStoreLocal"
+require_function_text \
+    "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "func CodegenTypeEnvStateView(" "base_env.global_index"
+require_function_text \
+    "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "func CodegenTypeEnvStateView(" "base_env.global_rows"
+reject_function_text \
+    "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "func CodegenTypeEnvStateView(" "state[0] != base_env.global_rows"
+reject_function_text \
+    "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "func CodegenTypeEnvStateStoreLocal(" "state[0] != env.global_rows"
+raw_type_env_constructor_paths="$(
+    grep -RIl --include='*.pgy' 'CodegenTypeEnv(' \
+        "$ROOT_DIR/src/self_hosted" || true
+)"
+while IFS= read -r raw_type_env_constructor_path; do
+    [[ -n "$raw_type_env_constructor_path" ]] || continue
+    raw_type_env_constructor_rel="${raw_type_env_constructor_path#"$ROOT_DIR/"}"
+    case "$raw_type_env_constructor_rel" in
+        src/self_hosted/codegen/type_facts/type_env.pgy|\
+        src/self_hosted/codegen/emission/intent_signature_emit_owner.pgy)
+            ;;
+        *)
+            fail "raw CodegenTypeEnv constructor escaped allowlist: $raw_type_env_constructor_rel"
+            ;;
+    esac
+done <<<"$raw_type_env_constructor_paths"
+require_function_text \
+    "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "func GenerateCUnitFromReadySemanticFacts(" \
+    'let base_env: CodegenTypeEnv = CodegenTypeEnvFromRows(env_acc[0], "");'
+for preseal_batch_owner in \
+    "src/self_hosted/codegen/emission/enum_emit_owner.pgy" \
+    "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
+    "src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy"; do
+    require_text "$preseal_batch_owner" "CodegenTypeEnvFromPresealRows("
+    reject_text "$preseal_batch_owner" "CodegenTypeEnvFromRows(env_box"
+done
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'let env_state: Array<String> = [base_env.global_rows, ""];'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat("|", StringJoin(function_env_rows, ""))'
 reject_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func LookupKindType(env: String"
@@ -3675,7 +3879,14 @@ require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactEntrypointVerdict"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactAnalyzeCompactBridge"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactAnalyzeTyped"
-require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactVerdictContractReady"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_contract_owner.pgy" \
+    "func SemanticAstArtifactVerdictContractReady"
+reject_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
+    "func SemanticAstArtifactVerdictContractReady"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
+    'import "../semantic/ast_artifact_verdict_contract_owner.pgy";'
+require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" \
+    'import "../semantic/ast_artifact_verdict_contract_owner.pgy";'
 require_text "src/self_hosted/semantic/ast_ability_generic_bound_verdict_owner.pgy" \
     "func SemanticAstAbilityGenericBoundsVerdict("
 require_text "src/self_hosted/semantic/ast_ability_generic_bound_verdict_owner.pgy" \
@@ -3806,11 +4017,25 @@ require_max_lines "src/self_hosted/codegen/emission/enum_emit_owner.pgy" 600
 require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" \
     'part, Concat("=e:", Concat(cname, "|"))'
 require_file "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" 637
+require_max_lines "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" 548
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "struct SemanticAstInitializerTypeFacts"
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "func SemanticAstInitializerTypeFactsFromArtifact"
-require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "func SemanticAstInitializerTypeFactsMatchArtifact"
-require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "func SemanticAstInitializerTypesAllVerified"
+require_file "src/self_hosted/semantic/ast_initializer_type_query_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_initializer_type_query_owner.pgy" 80
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/semantic/ast_initializer_type_query_owner.pgy"
+require_text "src/self_hosted/semantic/ast_initializer_type_query_owner.pgy" \
+    "func SemanticAstInitializerTypeFactsMatchArtifact"
+require_text "src/self_hosted/semantic/ast_initializer_type_query_owner.pgy" \
+    "func SemanticAstInitializerTypesAllVerified"
+reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    "func SemanticAstInitializerTypeFactsMatchArtifact"
+reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    "func SemanticAstInitializerTypesAllVerified"
+require_text "src/self_hosted/semantic/ast_initializer_type_contract_owner.pgy" \
+    'import "ast_initializer_type_query_owner.pgy";'
+require_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" \
+    'import "ast_initializer_type_query_owner.pgy";'
 require_file "src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy" 260
 require_text "src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy" \
@@ -3831,7 +4056,7 @@ reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "Chec
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "LoadSemanticSource"
 require_file "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 257
+require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 275
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "struct SemanticAstBodyTypeBundle"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleFromAnalysis"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
@@ -3840,9 +4065,13 @@ require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
     "func SemanticAstBodyTypeBundleFromAdmittedAnalysis("
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleReady"
 require_file "src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy" 100
+require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy" 180
 require_text "src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy" "func SemanticAstBodyTypeBundleContractReady"
+require_text "src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy" \
+    "func SemanticAstBodyTypeBundleCallReturnPartitionContractReady("
 require_text "src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy" "func SemanticAstBodyTypeBundleMissingPlaceContractReady("
+require_text "src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy" \
+    "func SemanticAstBodyTypeBundleMissingCallReturnContractReady("
 require_text \
     "src/self_hosted/semantic/ast_body_analysis_admission_contract_owner.pgy" \
     "func SemanticAstBodyAnalysisShapeAdmissionContractReady("
@@ -3861,11 +4090,35 @@ reject_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
     "SemanticAstInitializerTypeFactsRefinedByIterationsFromAdmittedFactsWithFunctionTables("
 require_file "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" 641
+require_max_lines "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" 553
 require_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
     "struct SemanticAstGenericSpecializationFacts"
 require_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
     "func SemanticAstGenericSpecializationFactsFromBody("
+require_file "src/self_hosted/semantic/ast_generic_specialization_query_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_generic_specialization_query_owner.pgy" 92
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/semantic/ast_generic_specialization_query_owner.pgy"
+require_text "src/self_hosted/semantic/ast_generic_specialization_query_owner.pgy" \
+    "func SemanticAstGenericSpecializationFactsReady("
+require_text "src/self_hosted/semantic/ast_generic_specialization_query_owner.pgy" \
+    "func SemanticAstGenericSpecializationFactsMatchExpressionGraph("
+reject_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
+    "func SemanticAstGenericSpecializationFactsReady("
+reject_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
+    "func SemanticAstGenericSpecializationFactsMatchExpressionGraph("
+require_text "src/self_hosted/codegen/input/generic_specialization_codegen_view_owner.pgy" \
+    'import "../../semantic/ast_generic_specialization_query_owner.pgy";'
+require_text "src/self_hosted/mir/artifact_lower_owner.pgy" \
+    'import "../semantic/ast_generic_specialization_query_owner.pgy";'
+require_text "src/self_hosted/mir/generic_specialization_owner.pgy" \
+    'import "../semantic/ast_generic_specialization_query_owner.pgy";'
+require_text "src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy" \
+    'import "../semantic/ast_generic_specialization_query_owner.pgy";'
+require_text "src/self_hosted/semantic/ast_body_analysis_admission_contract_owner.pgy" \
+    'import "ast_generic_specialization_query_owner.pgy";'
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    'import "ast_generic_specialization_query_owner.pgy";'
 require_file "src/self_hosted/semantic/ast_expression_call_identity_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_call_identity_owner.pgy" 160
 require_text "src/self_hosted/semantic/ast_expression_call_identity_owner.pgy" \
@@ -3879,6 +4132,28 @@ require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
 require_file "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" 166
 require_text "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" "func SemanticAstAnalysisResolveCallTargetsFromBody"
+require_file "src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy" 260
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy"
+require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
+    "call_return_type_names: Array<String>;"
+require_text "src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy" \
+    "func SemanticAstAnalysisResolveCallReturnTypes("
+require_text "src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy" \
+    "func SemanticExpressionGraphCallReturnTypesResolved("
+require_text "src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy" \
+    'type_name = Concat("", projection.type_name);'
+require_text "src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy" \
+    'if type_name == "" { type_name = Concat("", ""); }'
+reject_text "src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy" \
+    "ArraySet(graph.arena.call_return_type_names"
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    "SemanticAstAnalysisResolveCallReturnTypes("
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_type_owner.pgy" \
+    "SemanticExpressionGraphCallReturnTypeName("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_type_owner.pgy" \
+    "func CodegenExpressionCallTypeFromGraph(" "LookupKindType("
 require_file "src/self_hosted/semantic/ast_assignment_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_assignment_fact_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_assignment_fact_owner.pgy" "func SemanticAstAssignmentFactsMatchArtifact"
@@ -3914,8 +4189,15 @@ require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
     "SemanticAstExpressionMemberRootNames("
 require_file "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" 622
-require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "func SemanticAstStatementTypeFactsMatchArtifact"
+require_max_lines "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" 525
+require_text "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" \
+    "func SemanticAstStatementTypeFactsMatchArtifact"
+reject_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
+    "func SemanticAstStatementTypeFactsMatchArtifact"
+require_text "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" \
+    'import "ast_statement_type_query_owner.pgy";'
+require_text "src/self_hosted/mir/artifact_lower_owner.pgy" \
+    'import "../semantic/ast_statement_type_query_owner.pgy";'
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
     "kind == TypedAstKindExitStmtTag()"
 
@@ -4189,7 +4471,7 @@ require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
     "func CodegenFunctionValueBindingFactFor("
 require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
     "func CodegenFunctionOwnerFieldEnvRows("
-require_text "src/self_hosted/codegen/type_facts/type_env.pgy" \
+require_text "src/self_hosted/codegen/type_facts/type_env_local_row_scan_owner.pgy" \
     "func LookupKindTypeRowPresentRows("
 require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
     'if !LookupKindTypeRowPresent(env, owner_name, "fields")'
@@ -4207,9 +4489,57 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     "func CodegenFunctionLocalEnvRows("
 require_file "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" 120
+require_max_lines "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" 137
 require_text "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" \
     "func SemanticAstExpressionSeedOwnerFields("
+require_function_text \
+    "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" \
+    "func SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(" \
+    "if !IsSome(signature_index) || !constructors.ok"
+reject_function_text \
+    "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" \
+    "func SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(" \
+    "SemanticAstNominalConstructorRowsReady("
+require_function_text \
+    "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" \
+    "func SemanticAstExpressionSeedOwnerFields(" \
+    "SemanticAstNominalConstructorRowsReady(constructors)"
+require_function_text \
+    "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" \
+    "func SemanticAstExpressionSeedOwnerFields(" \
+    "SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors("
+require_function_text \
+    "src/self_hosted/semantic/ast_body_expression_environment_owner.pgy" \
+    "func SemanticAstBodyExpressionEnvironmentSeed(" \
+    "SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors("
+reject_function_text \
+    "src/self_hosted/semantic/ast_body_expression_environment_owner.pgy" \
+    "func SemanticAstBodyExpressionEnvironmentSeed(" \
+    "SemanticAstExpressionSeedOwnerFields("
+for admitted_owner_field_consumer in \
+    "src/self_hosted/semantic/ast_expression_place_fact_owner.pgy|func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(" \
+    "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy|func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(" \
+    "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy|func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(" \
+    "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy|func SemanticAstStatementTypeFactsFromAdmittedArtifact(" \
+    "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy|func SemanticAstGenericSpecializationFactsFromAdmittedBody(" \
+    "src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy|func SemanticAstInitializerEnvironmentCursorAdvance("; do
+    admitted_owner_field_path="${admitted_owner_field_consumer%%|*}"
+    admitted_owner_field_function="${admitted_owner_field_consumer#*|}"
+    require_function_text "$admitted_owner_field_path" \
+        "$admitted_owner_field_function" \
+        "SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors("
+    reject_function_text "$admitted_owner_field_path" \
+        "$admitted_owner_field_function" \
+        "SemanticAstExpressionSeedOwnerFields("
+done
+reject_function_text \
+    "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
+    "func SemanticAstAnalysisResolveCallTargetsFromAdmittedBody(" \
+    "SemanticAstNominalConstructorRowsReady("
+require_function_text \
+    "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
+    "func SemanticAstAnalysisResolveCallTargetsFromBody(" \
+    "SemanticAstNominalConstructorRowsReady(analysis.constructors)"
 require_text "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" \
     'ArrayPush(modes, "owner_field")'
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
@@ -5365,7 +5695,7 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     "pgy_selfhost_verify_driver_rung2_string_concat_alias_emitted_c "
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/fieldless_class_method/main.pgy"'
-require_text "src/self_hosted/codegen/type_facts/type_env.pgy" \
+require_text "src/self_hosted/codegen/type_facts/type_env_local_row_scan_owner.pgy" \
     "func LookupKindTypeRowPresentRows("
 require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
     'LookupKindTypeRowPresent(env, owner_name, "fields")'
@@ -6212,6 +6542,10 @@ require_text "tests/self_host_live_replacement_smoke.sh" \
     'check_live_mir_source "$generic_array_member_mir_source" "generic-member-array-return"'
 require_text "tests/self_host_live_replacement_smoke.sh" \
     'check_live_mir_source "$generic_record_array_member_mir_source" "generic-member-record-array-return"'
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    'intent_typed_mir_source="tests/self_hosted/parity/fixture/intent_typed_outcome_execution.pgy"'
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    'check_live_mir_source "$intent_typed_mir_source" "intent-typed-outcome"'
 require_text "tests/self_host_live_replacement_smoke.sh" \
     '--canonicalize-oracle-mir-json "$live_arg"'
 require_file "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh"
@@ -7310,8 +7644,8 @@ reject_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenFunctionValueBindingFactFor("
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCBindingName("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenTypeEnvStateAppendTypedValueBinding("
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "env_state, name,"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "loop_env, loop_var,"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "env_state, env, name,"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "loop_env, env, loop_var,"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'let then_env: Array<String> = [env_state[0], env_state[1]];'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
@@ -7329,11 +7663,11 @@ require_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" \
     "CodegenFunctionValueBindingFactFor("
 reject_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" "CompilerSymbolCBindingName("
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" \
-    "CodegenBindingEnvKind(ftype, env.global_rows)"
+    "CodegenBindingEnvKind(ftype, env)"
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" \
     "CollectionRuntimeFactFromTypeName(ftype, env).kind"
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" \
-    "CodegenBindingEnvKind(ftype, env.global_rows)"
+    "CodegenBindingEnvKind(ftype, env)"
 reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" \
     "CollectionRuntimeFactFromTypeName(ftype, env).kind"
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
@@ -7464,6 +7798,40 @@ reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "assignments: SemanticAstAssignmentFacts"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLocalBindingIs(local_bindings, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticAssignmentIs(assignments, idx)"
+for ordered_lookup in \
+    "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy|func SemanticAstLocalBindingIndexForNode(" \
+    "src/self_hosted/semantic/ast_assignment_fact_owner.pgy|func SemanticAstAssignmentIndexForNode(" \
+    "src/self_hosted/semantic/ast_statement_fact_owner.pgy|func SemanticAstStatementIndexForNode(" \
+    "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy|func SemanticAstExpressionSurfaceIndexForNode("; do
+    lookup_path="${ordered_lookup%%|*}"
+    lookup_function="${ordered_lookup#*|}"
+    require_function_text "$lookup_path" "$lookup_function" \
+        "while low < high"
+    require_function_text "$lookup_path" "$lookup_function" \
+        "facts.node_ids[middle] < node_id"
+    require_function_text "$lookup_path" "$lookup_function" \
+        "facts.node_ids[low] == node_id"
+    reject_function_text "$lookup_path" "$lookup_function" \
+        "while i <"
+done
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
+    "SemanticAstExpressionSurfaceFactsContractReady()"
+require_function_text \
+    "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" \
+    "func SemanticAstLocalBindingFactsContractReady(" \
+    "UnwrapOption(duplicate_first) != 1"
+for ordered_contract in \
+    "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy|func SemanticAstLocalBindingFactsContractReady(" \
+    "src/self_hosted/semantic/ast_assignment_fact_owner.pgy|func SemanticAstAssignmentFactsContractReady(" \
+    "src/self_hosted/semantic/ast_statement_fact_owner.pgy|func SemanticAstStatementFactsContractReady(" \
+    "src/self_hosted/semantic/ast_expression_surface_contract_owner.pgy|func SemanticAstExpressionSurfaceFactsContractReady("; do
+    contract_path="${ordered_contract%%|*}"
+    contract_function="${ordered_contract#*|}"
+    require_function_text "$contract_path" "$contract_function" \
+        "facts.node_ids[0]"
+    require_function_text "$contract_path" "$contract_function" \
+        "artifact.count"
+done
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaLetNameOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaLetTypeNameOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaLetInitializerOrDie"
@@ -7637,7 +8005,7 @@ require_text "src/self_hosted/parser/stmt_owner.pgy" \
 require_text "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" \
     'TypedAstKindExitStmtTag()'
 require_file "src/self_hosted/semantic/ast_statement_type_query_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" 80
+require_max_lines "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" 150
 require_text "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" \
     "func SemanticAstStatementInferredTypeForNode("
 require_text "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" \
@@ -7683,7 +8051,8 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "CodegenSemanticAssignmentTargetIsIndex(assignments, idx)"
 reject_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy" "func CodegenSemanticValueExpressionShapeOrDie"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let let_graph: SemanticExpressionGraphView"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitLet(local_bindings, arena, idx, env_state, let_graph)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "local_bindings, arena, idx, env_state, env, let_graph"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let assign_graph: SemanticExpressionGraphView"
 require_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" \
     "func EmitReturnWithCleanup("
@@ -7805,6 +8174,48 @@ require_file "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pg
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func RewriteExprFromSemanticGraph("
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func RewriteSemanticLeaf("
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func WrapExprWithSemanticGraph("
+require_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func CodegenSemanticLeafBindingProjectionFromGraph(" \
+    "SemanticExpressionGraphPlaceKind("
+require_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func CodegenSemanticLeafBindingProjectionFromGraph(" \
+    "SemanticExpressionPlaceKindDirectBinding("
+require_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func CodegenSemanticLeafBindingProjectionFromGraph(" \
+    'LookupKindType(env, text, "cbind")'
+for retired_leaf_binding_probe in '"e"' '"eval"' '"etag"' '"call"' '"f"'; do
+    reject_function_text \
+        "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+        "func CodegenSemanticLeafBindingProjectionFromGraph(" \
+        "LookupKindType(env, text, $retired_leaf_binding_probe)"
+done
+leaf_binding_cbind_count="$(awk '
+    index($0, "func CodegenSemanticLeafBindingProjectionFromGraph(") == 1 {
+        inside = 1
+    }
+    inside && seen && /^func / { exit }
+    inside { print; seen = 1 }
+' "$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    | grep -F -c 'LookupKindType(env, text, "cbind")' || true)"
+[[ "$leaf_binding_cbind_count" -eq 1 ]] ||
+    fail "semantic leaf direct-binding projection must read cbind exactly once"
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func RewriteSemanticLeaf(" 'LookupKindType(env, text, "cbind")'
+require_file \
+    "src/self_hosted/codegen/emission/expr_semantic_leaf_place_contract_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/emission/expr_semantic_leaf_place_contract_owner.pgy" 80
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/emission/expr_semantic_leaf_place_contract_owner.pgy"
+require_text \
+    "src/self_hosted/codegen/emission/expr_semantic_leaf_place_contract_owner.pgy" \
+    "func CodegenSemanticLeafPlaceContractReady() -> Bool"
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
+    'if !CodegenSemanticLeafPlaceContractReady() { return "codegen_leaf_place"; }'
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
+    'import "../codegen/emission/expr_semantic_leaf_place_contract_owner.pgy";'
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticDirectCall(" "tagged_constructor"
 require_text "src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy" \
     'import "../../semantic/ast_expression_call_target_fact_owner.pgy";'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"'
@@ -8364,11 +8775,11 @@ reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'StringIndexOf(p
 reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'StringIndexOf(part, ": ")'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CsvAt(field_names, field_pos)"
 reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "CsvAt(field_names, field_pos)"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CodegenBindingEnvKind(ftype, env.global_rows)"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CodegenBindingEnvKind(ftype, env)"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "EmitArrayLiteralValue(array_val, ftype, env)"
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "array struct argument field must consume a named array value"
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'import "../runtime_abi/collection_runtime_owner.pgy";'
-require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "CodegenBindingEnvKind(ftype, env.global_rows)"
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "CodegenBindingEnvKind(ftype, env)"
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType(env, enum_key, "e")'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CompilerSymbolCEnumVariantName(expected_type, p)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'LookupKindType(env, p, "e")'
@@ -8475,7 +8886,9 @@ require_max_lines "src/self_hosted/semantic/ast_expression_surface_query_owner.p
 require_text "src/self_hosted/semantic/ast_expression_surface_query_owner.pgy" "SubEqualsWithLen(text, n, i, m, token)"
 reject_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "SubEqualsWithLen(text, n, i, m, token)"
 reject_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "Substring(text, i, m) == token"
-require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "SubIndexOfWithLen("
+require_text \
+    "src/self_hosted/codegen/type_facts/type_env_local_row_scan_owner.pgy" \
+    "SubIndexOfWithLen("
 reject_text "src/self_hosted/codegen/type_facts/type_env.pgy" "let rest: String = Substring(env, start"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "Array<String: String>"
 require_file "src/self_hosted/codegen/runtime_abi/list_runtime_owner.pgy"
@@ -8721,7 +9134,7 @@ require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pg
 reject_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" \
     "func OptionResultRuntimeCNamedOptionDefinition"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" \
-    "EnumAbiValueFactForRows(inner, env)"
+    "EnumAbiValueFactFor(inner, env)"
 reject_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" \
     'LookupKindTypeRows(env, inner, "enum")'
 reject_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" \
@@ -8736,7 +9149,8 @@ reject_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy
     'LookupKindTypeRows(env, inner, "s") != "struct"'
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "type_declaration_fact.requires_bool_header"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "option_struct_block"
-require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "OptionResultRuntimeStructOptionFact(type_name, struct_env.global_rows)"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" \
+    "OptionResultRuntimeStructOptionFact(type_name, struct_env)"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "OptionResultRuntimeCStructOptionDefinitionBlock(base_env.global_rows)"
 require_file "src/self_hosted/codegen/emission/option_value_emit_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" 160
@@ -8747,7 +9161,7 @@ require_max_lines "src/self_hosted/codegen/emission/expr_semantic_option_value_o
 require_text "src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy" \
     "func CodegenOptionExpectedValueFactFromGraph("
 require_text "src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy" \
-    "OptionResultRuntimeStructOptionFact(option_type, env.global_rows)"
+    "OptionResultRuntimeStructOptionFact(option_type, env)"
 require_text "src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy" \
     "SemanticCallSpineViewFromGraph("
 require_text "src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy" \

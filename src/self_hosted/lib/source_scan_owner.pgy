@@ -47,8 +47,9 @@ func IsAlphaNum(c: String) -> Bool {
     return IsAlpha(c) || IsDigit(c);
 }
 
-func SkipWhitespaceAndComments(content: String, start: Int) -> Int {
-    let n: Int = StringLength(content);
+func SkipWhitespaceAndCommentsWithin(
+    content: String, n: Int, start: Int
+) -> Int {
     let i: Int = start;
     while i < n {
         let c: Int = SourceByteAt(content, n, i);
@@ -79,4 +80,10 @@ func SkipWhitespaceAndComments(content: String, start: Int) -> Int {
         return i;
     }
     return i;
+}
+
+func SkipWhitespaceAndComments(content: String, start: Int) -> Int {
+    return SkipWhitespaceAndCommentsWithin(
+        content, StringLength(content), start
+    );
 }

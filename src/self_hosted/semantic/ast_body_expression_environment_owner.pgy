@@ -22,7 +22,8 @@ func SemanticAstBodyExpressionEnvironmentSeed(
 ) -> Bool {
     let environment_ok: Bool = false;
     if IsSome(function_node_id) {
-        environment_ok = SemanticAstExpressionSeedOwnerFields(
+        environment_ok =
+            SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
             analysis.signatures, analysis.constructors,
             UnwrapOption(function_node_id), names, types, modes
         ) && SemanticAstExpressionSeedParameters(

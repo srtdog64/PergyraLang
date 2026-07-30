@@ -303,7 +303,7 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
             enum_facts, names, types, modes
         );
         if environment_ok && IsSome(function_node) {
-            environment_ok = SemanticAstExpressionSeedOwnerFields(
+            environment_ok = SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
                 signatures, constructors, UnwrapOption(function_node),
                 names, types, modes
             ) && SemanticAstExpressionSeedParameters(
@@ -526,7 +526,9 @@ func SemanticAstGenericSpecializationFactsFromBody(
         );
     let function_scopes: SemanticAstFunctionScopeFacts =
         SemanticAstFunctionScopeFactsFromArtifact(artifact);
-    if !SemanticAstExpressionSurfaceBorrowReady(
+    if !SemanticAstNominalConstructorRowsReady(constructors) ||
+        constructors.artifact_node_count != artifact.count ||
+        !SemanticAstExpressionSurfaceBorrowReady(
         artifact, expression_surfaces
     ) || !SemanticAstIntentSignatureFactsReady(
         artifact, intent_signatures
@@ -548,94 +550,4 @@ func SemanticAstGenericSpecializationFactsFromBody(
         expression_surfaces, function_tables, enum_facts, intent_signatures,
         intent_transitions, function_scopes
     );
-}
-
-func SemanticAstGenericSpecializationCount(
-    ref facts: SemanticAstGenericSpecializationFacts
-) -> Int {
-    return ArrayLength(facts.call_node_ids);
-}
-
-func SemanticAstGenericSpecializationActuals(
-    ref facts: SemanticAstGenericSpecializationFacts,
-    index: Int
-) -> Array<String> {
-    let actuals: Array<String> = [];
-    if !facts.ok || index < 0 ||
-        index >= SemanticAstGenericSpecializationCount(facts) {
-        return actuals;
-    }
-    let i: Int = 0;
-    while i < facts.actual_counts[index] {
-        ArrayPush(actuals, facts.actual_type_names[facts.actual_starts[index] + i]);
-        i = i + 1;
-    }
-    return actuals;
-}
-
-func SemanticAstGenericSpecializationFactsReady(
-    ref facts: SemanticAstGenericSpecializationFacts
-) -> Bool {
-    let count: Int = SemanticAstGenericSpecializationCount(facts);
-    if !facts.ok || facts.diagnostic_code != "" ||
-        facts.diagnostic_message != "" ||
-        ArrayLength(facts.source_owner_node_ids) != count ||
-        ArrayLength(facts.source_lanes) != count ||
-        ArrayLength(facts.source_call_ordinals) != count ||
-        ArrayLength(facts.signature_indexes) != count ||
-        ArrayLength(facts.actual_starts) != count ||
-        ArrayLength(facts.actual_counts) != count {
-        return false;
-    }
-    let expected_start: Int = 0;
-    let i: Int = 0;
-    while i < count {
-        if facts.call_node_ids[i] < 0 ||
-            facts.source_owner_node_ids[i] < 0 ||
-            facts.source_lanes[i] < AstExpressionLaneAtom() ||
-            facts.source_lanes[i] > AstExpressionLaneAuxiliary() ||
-            facts.source_call_ordinals[i] < 0 ||
-            facts.signature_indexes[i] < 0 ||
-            facts.actual_starts[i] != expected_start ||
-            facts.actual_counts[i] <= 0 {
-            return false;
-        }
-        let prior: Int = 0;
-        while prior < i {
-            if SemanticExpressionCallIdentityEqual(
-                facts.source_owner_node_ids[prior],
-                facts.source_lanes[prior],
-                facts.source_call_ordinals[prior],
-                facts.source_owner_node_ids[i], facts.source_lanes[i],
-                facts.source_call_ordinals[i]
-            ) {
-                return false;
-            }
-            prior = prior + 1;
-        }
-        expected_start = expected_start + facts.actual_counts[i];
-        i = i + 1;
-    }
-    return expected_start == ArrayLength(facts.actual_type_names);
-}
-
-func SemanticAstGenericSpecializationFactsMatchExpressionGraph(
-    ref facts: SemanticAstGenericSpecializationFacts,
-    ref expression_surfaces: SemanticAstExpressionSurfaceFacts
-) -> Bool {
-    if !SemanticAstGenericSpecializationFactsReady(facts) {
-        return false;
-    }
-    let i: Int = 0;
-    while i < SemanticAstGenericSpecializationCount(facts) {
-        let node: Option<Int> = SemanticExpressionCallNodeForIdentity(
-            expression_surfaces, facts.source_owner_node_ids[i],
-            facts.source_lanes[i], facts.source_call_ordinals[i]
-        );
-        if !IsSome(node) || UnwrapOption(node) != facts.call_node_ids[i] {
-            return false;
-        }
-        i = i + 1;
-    }
-    return true;
 }

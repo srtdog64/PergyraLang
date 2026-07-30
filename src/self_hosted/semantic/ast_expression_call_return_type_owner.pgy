@@ -1,0 +1,209 @@
+// Concrete call-result types carried by admitted semantic expression graphs.
+//
+// Function-table and generic-specialization owners decide the result once.
+// Recursive C emission must not reopen the flat codegen signature rows.
+
+import "ast_expression_graph_fact_owner.pgy";
+import "ast_artifact_verdict_owner.pgy";
+import "ast_expression_function_table_fact_owner.pgy";
+import "ast_generic_specialization_query_owner.pgy";
+import "ast_expression_graph_generic_call_owner.pgy";
+import "ast_domain_query_protocol_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+import "callable_resolution_owner.pgy";
+
+struct SemanticExpressionCallReturnProjection {
+    ok: Bool;
+    carried: Bool;
+    type_name: String;
+}
+
+func SemanticExpressionCallReturnProjectionAt(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    signatures: SemanticAstFunctionSignatureFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts,
+    ref generic_specializations: SemanticAstGenericSpecializationFacts
+) -> SemanticExpressionCallReturnProjection {
+    if node_id < 0 || node_id >=
+        SemanticExpressionGraphArenaNodeCount(graph.arena) ||
+        graph.arena.topology.node_kinds[node_id] != AstExpressionNodeCall() {
+        return SemanticExpressionCallReturnProjection(false, false, "");
+    }
+    let target_name: String = graph.arena.call_target_names[node_id];
+    let domain_query: SemanticAstDomainQueryProtocol =
+        SemanticAstDomainQueryProtocolFromName(target_name);
+    if domain_query.applies {
+        return SemanticExpressionCallReturnProjection(true, true, "Bool");
+    }
+    let specialization: Option<Int> =
+        SemanticAstGenericSpecializationIndexForCall(
+            generic_specializations.call_node_ids, node_id
+        );
+    if IsSome(specialization) {
+        let row: Int = UnwrapOption(specialization);
+        let signature_index: Int =
+            generic_specializations.signature_indexes[row];
+        if signature_index < 0 || signature_index >=
+            SemanticAstFunctionSignatureCount(signatures) {
+            return SemanticExpressionCallReturnProjection(false, false, "");
+        }
+        let actuals: Array<String> =
+            SemanticAstGenericSpecializationActuals(
+                generic_specializations, row
+            );
+        let generic_count: Option<Int> =
+            SemanticAstFunctionGenericCountAt(signatures, signature_index);
+        if !IsSome(generic_count) ||
+            UnwrapOption(generic_count) != ArrayLength(actuals) {
+            return SemanticExpressionCallReturnProjection(false, false, "");
+        }
+        let resolved: Option<String> =
+            SemanticAstSignatureReturnTypeResolveAt(
+                signatures.type_expressions, signature_index,
+                signatures.generic_starts[signature_index],
+                UnwrapOption(generic_count), signatures.generic_names, actuals
+            );
+        if !IsSome(resolved) || UnwrapOption(resolved) == "" ||
+            SemanticTypeNameContainsUnresolvedUnknown(UnwrapOption(resolved)) {
+            return SemanticExpressionCallReturnProjection(false, false, "");
+        }
+        return SemanticExpressionCallReturnProjection(
+            true, true, UnwrapOption(resolved)
+        );
+    }
+    let function_index: Option<Int> = SemanticCallableIndex(
+        function_tables.names, target_name
+    );
+    if !IsSome(function_index) {
+        return SemanticExpressionCallReturnProjection(false, false, "");
+    }
+    let signature_index: Option<Int> =
+        SemanticGenericCallSignatureIndex(signatures, target_name);
+    if IsSome(signature_index) {
+        let generic_count: Option<Int> = SemanticAstFunctionGenericCountAt(
+            signatures, UnwrapOption(signature_index)
+        );
+        if !IsSome(generic_count) || UnwrapOption(generic_count) > 0 {
+            return SemanticExpressionCallReturnProjection(false, false, "");
+        }
+    }
+    let return_type: String =
+        function_tables.returns[UnwrapOption(function_index)];
+    if return_type != "" &&
+        !SemanticTypeNameContainsUnresolvedUnknown(return_type) {
+        return SemanticExpressionCallReturnProjection(
+            true, true, return_type
+        );
+    }
+    // Rows absent from the source signature owner are compiler structural,
+    // builtin, constructor, enum, or intent protocols. Their dynamic result
+    // is projected by the dedicated graph/emission owner, never guessed here.
+    if !IsSome(signature_index) {
+        return SemanticExpressionCallReturnProjection(true, false, "");
+    }
+    return SemanticExpressionCallReturnProjection(false, false, "");
+}
+
+func SemanticAstAnalysisResolveCallReturnTypes(
+    artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis,
+    ref generic_specializations: SemanticAstGenericSpecializationFacts
+) -> Bool {
+    if !analysis.verdict.ok || artifact.count != analysis.verdict.node_count ||
+        artifact.identity_digest != analysis.verdict.artifact_identity_digest {
+        return false;
+    }
+    let graph: SemanticExpressionGraphFacts =
+        analysis.expression_surfaces.expression_graph;
+    let signatures: SemanticAstFunctionSignatureFacts = analysis.signatures;
+    let function_tables: SemanticAstExpressionFunctionTableFacts =
+        analysis.function_tables;
+    let node_count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    if !SemanticExpressionGraphCarriedCallTargetsReady(graph) ||
+        !SemanticAstExpressionFunctionTableFactsReady(function_tables) ||
+        !SemanticAstGenericSpecializationFactsReady(generic_specializations) ||
+        ArrayLength(graph.arena.call_return_type_names) != node_count {
+        return false;
+    }
+    // Build a wholly owned candidate in one pass. The admitted graph is not
+    // touched until every row succeeds and the replacement surface is ready.
+    let call_return_types: Array<String> = [];
+    let node_id: Int = 0;
+    while node_id < node_count {
+        if graph.arena.call_return_type_names[node_id] != "" {
+            ArrayDropOwnedStrings(call_return_types);
+            return false;
+        }
+        let type_name: String = "";
+        if graph.arena.topology.node_kinds[node_id] == AstExpressionNodeCall() {
+            let projection: SemanticExpressionCallReturnProjection =
+                SemanticExpressionCallReturnProjectionAt(
+                    graph, node_id, signatures, function_tables,
+                    generic_specializations
+                );
+            if !projection.ok {
+                ArrayDropOwnedStrings(call_return_types);
+                return false;
+            }
+            if projection.carried {
+                type_name = Concat("", projection.type_name);
+            }
+        }
+        if type_name == "" { type_name = Concat("", ""); }
+        ArrayPush(call_return_types, type_name);
+        node_id = node_id + 1;
+    }
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaFromTopology(
+            graph.arena.topology, graph.arena.node_texts,
+            graph.arena.call_target_kinds, graph.arena.call_target_names,
+            call_return_types, graph.arena.place_kinds
+        );
+    let published: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            SemanticExpressionGraphArenaReady(arena),
+            graph.roots, graph.has_roots, arena
+        );
+    if !published.ok {
+        ArrayDropOwnedStrings(call_return_types);
+        return false;
+    }
+    let surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsWithGraph(
+            artifact, analysis.expression_surfaces, published
+        );
+    if !surfaces.ok {
+        ArrayDropOwnedStrings(call_return_types);
+        return false;
+    }
+    analysis.expression_surfaces = surfaces;
+    return true;
+}
+
+func SemanticExpressionGraphCallReturnTypesResolved(
+    ref graph: SemanticExpressionGraphFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts,
+    ref generic_specializations: SemanticAstGenericSpecializationFacts
+) -> Bool {
+    let node_id: Int = 0;
+    while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        if graph.arena.topology.node_kinds[node_id] == AstExpressionNodeCall() {
+            let projection: SemanticExpressionCallReturnProjection =
+                SemanticExpressionCallReturnProjectionAt(
+                    graph, node_id, signatures, function_tables,
+                    generic_specializations
+                );
+            let carried: Option<String> =
+                SemanticExpressionGraphCallReturnTypeName(graph, node_id);
+            if !projection.ok || projection.carried != IsSome(carried) ||
+                (projection.carried && UnwrapOption(carried) !=
+                    projection.type_name) {
+                return false;
+            }
+        }
+        node_id = node_id + 1;
+    }
+    return true;
+}

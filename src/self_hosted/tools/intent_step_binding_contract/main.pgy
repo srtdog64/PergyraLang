@@ -1,0 +1,12 @@
+// Focused executable for the self-host intent-step binding contract.
+
+import "../../codegen/emission/intent_step_binding_contract_owner.pgy";
+
+func Main() -> Void {
+    if !CodegenIntentStepBindingContractReady() {
+        Log("intent step binding contract: FAIL");
+        Exit(1);
+        return;
+    }
+    Log("intent step binding contract: PASS");
+}

@@ -14,6 +14,9 @@ func SemanticAstBodyAnalysisAdmissionReady(
     if !SemanticAstArtifactAdmissionReady(
         artifact, analysis, analysis.verdict.requires_entrypoint
     ) || !SemanticAstBodyAnalysisRowsAdmittedReady(artifact, analysis) ||
+        !SemanticAstZoneAuthorityFactsReady(
+            artifact, analysis.zone_authorities
+        ) ||
         !SemanticAstExpressionFunctionTableFactsReady(
             analysis.function_tables
         ) || !analysis.function_scopes.ok ||
@@ -102,6 +105,8 @@ func SemanticAstBodyAnalysisAdmissionReady(
             .call_target_kinds) == graph_node_count &&
         ArrayLength(analysis.expression_surfaces.expression_graph.arena
             .call_target_names) == graph_node_count &&
+        ArrayLength(analysis.expression_surfaces.expression_graph.arena
+            .call_return_type_names) == graph_node_count &&
         ArrayLength(analysis.expression_surfaces.expression_graph.arena
             .place_kinds) == graph_node_count;
 }

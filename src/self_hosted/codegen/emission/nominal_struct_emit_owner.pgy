@@ -18,6 +18,8 @@ func CollectStructsSelected(
         Die("nominal declaration selection mask does not match semantic rows");
     }
     let typedefs: Array<String> = [];
+    let dependency_env: CodegenTypeEnv =
+        CodegenTypeEnvFromPresealRows(env_box[0], "");
     let i: Int = 0;
     while i < SemanticAstNominalConstructorCount(facts) {
         if selected[i] == 0 {
@@ -48,7 +50,7 @@ func CollectStructsSelected(
                 facts, i, field_index
             );
             let cfield_type: String = AbiLayoutCFieldType(
-                ftype, CodegenTypeEnv(env_box[0], "")
+                ftype, dependency_env
             );
             let c_fname: String = CompilerSymbolCFieldName(fname);
             ArrayPush(field_names, fname);
@@ -58,6 +60,11 @@ func CollectStructsSelected(
                 ArrayPush(constructor_field_names, fname);
             }
             ArrayPush(struct_env_rows, Concat(sname, Concat(".", Concat(fname, Concat("=field:", Concat(ftype, "|"))))));
+            ArrayPush(struct_env_rows, Concat(
+                sname, Concat(".", Concat(fname, Concat(
+                    "=field_kind:", Concat(field_kind, "|")
+                )))
+            ));
             ArrayPush(fields_c, Concat("    ", Concat(cfield_type, Concat(" ", Concat(c_fname, ";\n")))));
             if field_kind == NominalFieldKindObjectSlot() ||
                 field_kind == NominalFieldKindTObjectSlot() {

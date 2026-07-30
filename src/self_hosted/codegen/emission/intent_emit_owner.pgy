@@ -7,6 +7,9 @@
 // immutable value available to the same step predicates and compensation.
 
 import "../../semantic/ast_intent_signature_fact_owner.pgy";
+import "../../semantic/ast_intent_action_call_fact_owner.pgy";
+import "../../semantic/ast_intent_transition_row_owner.pgy";
+import "../../semantic/ast_zone_authority_fact_owner.pgy";
 import "../input/intent_execution_codegen_view_owner.pgy";
 import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
@@ -18,10 +21,13 @@ import "expr_semantic_graph_emit_owner.pgy";
 import "intent_signature_emit_owner.pgy";
 import "intent_outcome_emit_owner.pgy";
 import "intent_control_flow_emit_owner.pgy";
+import "intent_step_binding_owner.pgy";
 
 func CodegenIntentDefinitionBlock(
     artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
     ref intents: SemanticAstIntentSignatureFacts,
+    ref zone_authorities: SemanticAstZoneAuthorityFacts,
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
     base_env: CodegenTypeEnv,
     ref intent_execution: CodegenIntentExecutionView
@@ -161,63 +167,69 @@ func CodegenIntentDefinitionBlock(
                 }
                 if on_count != 1 || on_node < 0 || outcome_count > 1 ||
                     (outcome_count == 1 && outcome_name == "") ||
-                    expect_count > 1 || guard_count > 1 || post_count > 1 ||
-                    who_alias == "" || using_alias == "" ||
-                    authority_alias != who_alias {
-                    Die("self-host intent executable step shape is invalid");
+                    expect_count > 1 || guard_count > 1 || post_count > 1 {
+                    Die("self-host intent executable step clause shape is invalid");
                 }
-                let who_param: Int = 0 - 1;
-                let using_param: Int = 0 - 1;
-                let p: Int = 0;
-                while p < intents.param_counts[intent_index] {
-                    let param_row: Int =
-                        intents.param_starts[intent_index] + p;
-                    if intents.param_names[param_row] == who_alias {
-                        if who_param >= 0 { Die("duplicate intent who binding"); }
-                        who_param = param_row;
-                    }
-                    if intents.param_names[param_row] == using_alias {
-                        if using_param >= 0 { Die("duplicate intent using binding"); }
-                        using_param = param_row;
-                    }
-                    p = p + 1;
-                }
-                if who_param < 0 || using_param < 0 ||
-                    intents.param_is_values[who_param] ||
-                    intents.param_is_values[using_param] {
-                    Die("self-host intent step participant binding is invalid");
-                }
-                let who_type: String = intents.param_types[who_param];
-                let zone_type: String = intents.param_types[using_param];
-                if LookupFieldType(env, zone_type, who_alias) != who_type {
-                    Die("self-host intent zone participant field is missing");
-                }
-                let who_c: String = CompilerSymbolCBindingName(who_alias);
-                let zone_c: String = CompilerSymbolCBindingName(using_alias);
-                let zone_member: String = Concat(
-                    "(*", Concat(zone_c, Concat(").",
-                        CompilerSymbolCFieldName(who_alias)
-                    ))
+                let step_header: Option<String> = TypedAstArenaAtomText(
+                    artifact.arena, child_id
                 );
-                let sync_symbol: String = LookupKindType(
-                    env, zone_type, "projection_sync"
+                let on_text: Option<String> = TypedAstArenaAtomText(
+                    artifact.arena, on_node
                 );
-                if sync_symbol == "" {
-                    Die("self-host intent zone sync owner is missing");
+                if !IsSome(step_header) || !IsSome(on_text) {
+                    Die("self-host intent executable step text is missing");
+                }
+                let header: SemanticAstIntentStepHeaderRow =
+                    SemanticAstIntentStepHeaderFromText(
+                        UnwrapOption(step_header)
+                    );
+                if !header.ok ||
+                    (header.using_alias != "" &&
+                     header.using_alias != using_alias) {
+                    Die("self-host intent executable step boundary is invalid");
+                }
+                let actor: SemanticAstIntentStepActorFact =
+                    SemanticAstIntentStepActorFromFacts(
+                        signatures, intents, intent_index,
+                        header.name, UnwrapOption(on_text),
+                        who_alias
+                    );
+                if !actor.ok {
+                    Die(Concat(
+                        "self-host intent executable step actor is unresolved: ",
+                        actor.provenance
+                    ));
+                }
+                who_alias = actor.actor_alias;
+                if using_alias == "" {
+                    Die("self-host intent executable step using binding is missing");
+                }
+                let binding: CodegenIntentStepBindingFact =
+                    CodegenIntentStepBindingFactFromFacts(
+                        intents, zone_authorities, intent_index,
+                        who_alias, using_alias, authority_alias,
+                        header.where_zone_name, env
+                    );
+                if !binding.ok {
+                    Die(Concat(
+                        "self-host intent step binding is invalid: ",
+                        binding.diagnostic
+                    ));
                 }
                 ArrayPush(body, Concat(
-                    "    ", Concat(zone_member, Concat(
-                        " = (*", Concat(who_c, ");\n")
+                    "    ", Concat(binding.zone_member, Concat(
+                        " = (*", Concat(binding.who_c, ");\n")
                     ))
                 ));
                 ArrayPush(body, Concat(
-                    "    ", Concat(sync_symbol, Concat(
-                        "(", Concat(zone_c, ");\n")
+                    "    ", Concat(binding.sync_symbol, Concat(
+                        "(", Concat(binding.zone_pointer, ");\n")
                     ))
                 ));
                 let step_env: CodegenTypeEnv = TypeEnvAppendLocalRows(
                     env, CodegenFunctionValueBindingFactForCExpression(
-                        who_alias, who_type, env.global_rows, zone_member
+                        who_alias, binding.who_type, env,
+                        binding.zone_member
                     ).env_rows
                 );
                 let on_graph: SemanticExpressionGraphView =
@@ -233,13 +245,13 @@ func CodegenIntentDefinitionBlock(
                     outcome_name, step_env
                 );
                 ArrayPush(body, Concat(
-                    "    ", Concat(sync_symbol, Concat(
-                        "(", Concat(zone_c, ");\n")
+                    "    ", Concat(binding.sync_symbol, Concat(
+                        "(", Concat(binding.zone_pointer, ");\n")
                     ))
                 ));
                 ArrayPush(body, Concat(
-                    "    (*", Concat(who_c, Concat(") = ", Concat(
-                        zone_member, ";\n"
+                    "    (*", Concat(binding.who_c, Concat(") = ", Concat(
+                        binding.zone_member, ";\n"
                     )))
                 ));
                 CodegenIntentEmitStepCompleted(body, step_index);
@@ -258,10 +270,14 @@ func CodegenIntentDefinitionBlock(
                     compensate_index = compensate_index + 1;
                 }
                 ArrayPush(step_sync_expressions, Concat(
-                    sync_symbol, Concat("(", Concat(zone_c, ")"))
+                    binding.sync_symbol, Concat(
+                        "(", Concat(binding.zone_pointer, ")")
+                    )
                 ));
                 ArrayPush(step_writeback_expressions, Concat(
-                    "(*", Concat(who_c, Concat(") = ", zone_member))
+                    "(*", Concat(binding.who_c, Concat(
+                        ") = ", binding.zone_member
+                    ))
                 ));
                 if guard_count == 1 {
                     CodegenIntentEmitPredicate(

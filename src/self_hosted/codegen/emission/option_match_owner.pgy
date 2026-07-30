@@ -22,7 +22,7 @@ func CodegenOptionMatchInnerTypeOrDie(
         OptionResultRuntimeOptionPayloadKindForType(subject_type);
     if payload_kind == 0 &&
         !IsSome(OptionResultRuntimeStructOptionFact(
-            subject_type, env.global_rows
+            subject_type, env
         )) {
         Die(Concat("Option match payload type fact is missing: ", inner_type));
     }
@@ -82,7 +82,7 @@ func BindOptionMatchPayload(
         Concat("(", Concat(RewriteExpr(match_value, env), ")"))
     );
     CodegenTypeEnvStateAppendTypedValueBinding(
-        env_state, fact.bindings[0], inner_type,
-        CodegenBindingEnvKind(inner_type, env.global_rows), c_value
+        env_state, env, fact.bindings[0], inner_type,
+        CodegenBindingEnvKind(inner_type, env), c_value
     );
 }
