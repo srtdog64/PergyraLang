@@ -7642,6 +7642,8 @@ require_file "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pg
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func RewriteExprFromSemanticGraph("
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func RewriteSemanticLeaf("
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func WrapExprWithSemanticGraph("
+require_text "src/self_hosted/codegen/emission/expr_semantic_option_value_owner.pgy" \
+    'import "../../semantic/ast_expression_call_target_fact_owner.pgy";'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/codegen/emission/expr_semantic_dynamic_ability_call_emit_owner.pgy"'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy"'

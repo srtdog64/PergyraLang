@@ -2960,6 +2960,17 @@ graph target semantic checker가 exit 0, `Status: ok`, `Diagnostics: none`을
 반환했다. 한 cluster 누락을 고칠 때는 실패한 함수의 파일을 무조건 import하지
 말고, 실제 통합 root와 completeness owner의 target projection을 먼저 확인한다.
 
+같은 날 다음 run `30502023063`은 이 target을 통과해 29번째
+`expr_semantic_option_value_owner.pgy`까지 진행한 뒤
+`SemanticExpressionGraphCallTargetKind`에서 다시 실패했다. 이 경우는 순환
+closure가 아니었다. Option value owner가 call-target kind/name을 직접
+소비하면서 실제 정의 owner인
+`ast_expression_call_target_fact_owner.pgy`를 import하지 않았고, 상위 composite
+graph의 통합 import가 누락을 가리고 있었다. 따라서 이 경계에는 completeness
+redirect가 아니라 직접 import를 추가하고 component contract가 그 owner edge를
+고정한다. `undefined_function`이라는 표면 진단이 같아도, 먼저 import graph의
+순환 여부와 실제 정의 owner를 확인해 두 수정을 구분해야 한다.
+
 ### linked runtime ABI consumer가 실제 owner보다 먼저 검색되는 경우
 
 Resource lowering은 실제 `MIR_INST_RESOURCE_OP` owner의 primary runtime-call ABI
