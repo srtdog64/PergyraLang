@@ -8,16 +8,16 @@ owner, and the named executable gate.
 
 ## Current checkpoint - admitted semantic artifact emission
 
-- Material checkpoint after this session is `e4112fbb` on `main`, with a clean
-  worktree before this handoff-only refresh and three commits ahead of
-  `origin/main`: `28e371df` (Insere/Zeno audits), `2c2b3028` (semantic
-  admission), and `e4112fbb` (CI portability). Push is authorized but was still
-  pending when this paragraph was written; verify remote equality on resume.
-- Exact working base is `ab9f9fce20b83fae473d52d48b6b0b5582e1f8b6` on
-  `main`, equal to `origin/main` when this checkpoint began. Earlier dirty-tree
-  language below describes the integration interval; the material commits
-  above supersede it. Verify final HEAD and clean state after the authorized
-  push.
+- Exact pre-repair base is `5fd9fc3ac0ce26fe57ffb1961033a7bda26b1cde` on
+  `main`, equal to `origin/main` when this continuation began. It contains
+  `28e371df` (Insere/Zeno audits), `2c2b3028` (semantic admission),
+  `e4112fbb` (CI portability) and `5fd9fc3a` (handoff refresh).
+- Material repair checkpoint is
+  `3bc5e7247ad13c123eb8c3727b1ad367791691d8` (`fix: close self-host CI
+  contract drift`). At handoff-writing time the worktree is dirty only for
+  this handoff refresh and `main` is one commit ahead of `origin/main`; push is
+  authorized and pending. Verify final remote equality after the handoff
+  commit rather than treating this paragraph as Git authority.
 - Active executable seam: a Pergyra-built codegen created one
   `SemanticAstArtifactAnalysis`, then C emission called
   `SemanticAstArtifactAnalysisMatches` and reconstructed signatures,
@@ -83,10 +83,22 @@ owner, and the named executable gate.
   Pergyra-built codegen hot-path reconstruction and fixes its provenance
   boundary, but does not yet prove a fresh installed self driver or replace a
   new native C semantic owner.
-- Next falsifier: isolate the 5.1MB CPU bottleneck without reopening semantic
-  reconstruction, then run the installed-driver/launcher parity boundary. The
-  5.1MB native-seed run stayed below the memory cap but timed out; it is not a
-  green output and must not be relabelled by silently raising the memory cap.
+- The 5.1MB CPU audit isolated two remaining costs. Before emission,
+  `SemanticAstBodyTypeBundleFromAnalysis` repeatedly deep-matches or rebuilds
+  signature/local/iteration/assignment/statement facts. During emission,
+  `EmitStmtList` performs nested linear node-id searches for local, assignment,
+  statement-kind and expression rows. The fixed fixture has 110,971 nonempty
+  AST rows, 4,094 callables, 12,224 locals, 6,958 assignments and at least
+  27,675 tracked statements. Local/assignment misses alone imply a
+  530,861,850-comparison lower bound; statement-kind lookup is approximately
+  3.50 billion comparisons from the current loop order and average row
+  position. These are source/census calculations, not runtime counters.
+- Next falsifier: add coarse, non-row-level stage markers, close body semantic
+  proof admission without reopening whole-artifact reconstruction, then rerun
+  the exact 5,106,665-byte fixture under the 3GiB/2,400-second cap with
+  normalized-C parity. Only after that seam closes should a separate emission
+  rung replace owner-local linear node-id scans with ordered lookup. The timed
+  out 5.1MB run remains non-green.
 
 ## Current checkpoint - independent CI portability repairs
 
@@ -101,6 +113,34 @@ owner, and the named executable gate.
   both C focused gates passed.
 - The macOS hard-contract false failure no longer uses early-exit `grep -q`
   behind a producer under `pipefail`. Hard contract and build inventory passed.
+- GitHub run `30498129265` then exposed three remaining contract drifts:
+  - self-host parity checked `expr_semantic_call_type_owner.pgy` outside its
+    intentional recursive expression-emission closure. Completeness now maps
+    that source to `expr_semantic_graph_emit_owner.pgy`, as it already did for
+    the other cyclic cluster members; direct reverse import remains forbidden;
+  - the new `SFSemanticAstArtifactAdmission` registry fact had no corresponding
+    Coq `SpineFact -> SpineOwner` projection and the registry summary still
+    claimed `ACTIVE=0`. The projection is now
+    `SFSemanticAstArtifactAdmission => SOSemanticArtifact`, the count is
+    `ACTIVE=1`, and enforcement anchors point to executable negatives;
+  - the machine-layer projection probe still emitted routine source identity
+    zero and omitted let-row ABI type facts after the MIR consumer tightened
+    those contracts. It now emits positive identity `1` and producer-owned
+    `DeviceSlot<Int>`/`Int` ABI types.
+- Valid post-fix evidence:
+  - generated selfcheck source-to-target row exact and graph-emission semantic
+    checker `Status: ok`, `Diagnostics: none`;
+  - full self-host component contract: PASS;
+  - SoT authority edge: `62 authorities, 67 derived fact carriers;
+    CLOSED=34 BRIDGE=27 ACTIVE=1`;
+  - unique repo-relative full machine-layer gate: exit 0; MIR/AIR declaration
+    rows and self-host C `DeviceSlot`/`RemoteFuture` lowering wired, malformed
+    owner identity rejected.
+- One absolute unique-build attempt failed before product execution because an
+  MSYS-form absolute path was not stripped to the repository-relative input
+  required by self-host I/O policy. One overlapping default-dir run was also
+  excluded because two validators briefly shared output names. Neither is
+  counted as product evidence; only the clean relative unique run above is.
 - One process-management error remains part of the handoff record: while
   narrowing its own 661-file selfcheck, the CI worker incorrectly terminated a
   separate `C:\msys64\usr\bin\bash.exe` process running
