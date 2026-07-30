@@ -2932,6 +2932,34 @@ build-dir은 `${path#$ROOT_DIR/}`의 MSYS 표기와 맞지 않아 self-host abso
 않는다. 유효한 unique run은 SoT authority edge, component contract와 전체
 machine-layer MIR/AIR/C 경계를 모두 통과해야 한다.
 
+### self-host closure의 간접 구성원이 source selfcheck에서만 빠지는 경우
+
+2026-07-30 GitHub run `30501338487`의 `self-host-parity-linux`는 앞선
+`expr_semantic_call_type_owner.pgy` 보정 뒤 25개 source target을 통과하고,
+26번째 `expr_semantic_dynamic_ability_call_emit_owner.pgy`에서
+`RewriteExprFromSemanticGraph`를 찾지 못해 실패했다. 마지막 명시적 green은
+C/LLVM semantic parity 113 fixtures였고, 진단은 `undefined_function`이었다.
+
+이 파일도 독립 모듈이 아니라 다음 재귀 emission closure의 구성원이다.
+
+```text
+expr_semantic_graph_emit_owner
+  -> expr_semantic_call_emit_owner
+  -> expr_semantic_dynamic_ability_call_emit_owner
+  -> RewriteExprFromSemanticGraph (graph root 소유)
+```
+
+따라서 dynamic owner에서 graph root를 역-import하는 수정은 순환 import와
+이중 선언을 만들며 해법이 아니다. `CompilerCompletenessSemanticCheckTarget`가
+dynamic source의 검사 target을 `expr_semantic_graph_emit_owner.pgy`로 투영해야
+한다. Component contract는 그 source-to-target 행의 존재와 dynamic-to-graph
+역-import 금지를 함께 고정한다.
+
+좁은 재검증에서는 현재 tree로 manifest를 다시 빌드해 정확한 행이 생성됐고,
+graph target semantic checker가 exit 0, `Status: ok`, `Diagnostics: none`을
+반환했다. 한 cluster 누락을 고칠 때는 실패한 함수의 파일을 무조건 import하지
+말고, 실제 통합 root와 completeness owner의 target projection을 먼저 확인한다.
+
 ### linked runtime ABI consumer가 실제 owner보다 먼저 검색되는 경우
 
 Resource lowering은 실제 `MIR_INST_RESOURCE_OP` owner의 primary runtime-call ABI
