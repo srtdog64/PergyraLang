@@ -4203,6 +4203,16 @@ reject_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
 require_text "src/self_hosted/mir/json_projection_owner.pgy" \
     "SelfMirJsonMachineLayer(machine)"
 require_file "src/self_hosted/tools/machine_layer_mir_projection_probe/main.pgy"
+require_text "src/self_hosted/tools/machine_layer_mir_projection_probe/main.pgy" \
+    '[1], ["Main"], ["function"], [""], ["none"], ["Void"]'
+reject_function_text "src/self_hosted/tools/machine_layer_mir_projection_probe/main.pgy" \
+    "func MachineProbeFacts(" '[0], ["Main"], ["function"]'
+require_text "src/self_hosted/tools/machine_layer_mir_projection_probe/main.pgy" \
+    'SelfMirCfgAttachLastAbiTypeName('
+require_text "src/self_hosted/tools/machine_layer_mir_projection_probe/main.pgy" \
+    '"AST_LET_DECL", "DeviceSlot<Int>"'
+require_text "src/self_hosted/tools/machine_layer_mir_projection_probe/main.pgy" \
+    '"AST_LET_DECL", "Int"'
 require_file "src/self_hosted/tools/machine_layer_rir_validator/main.pgy"
 require_text "tests/self_hosted/mir_machine_layer_smoke.sh" \
     "machine_layer_mir_projection_probe"
@@ -7634,6 +7644,7 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pg
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func WrapExprWithSemanticGraph("
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy"'
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/codegen/emission/expr_semantic_call_type_owner.pgy"'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy"'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'CompilerCompletenessCheckTarget("src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy")'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let call_graph: SemanticExpressionGraphView"

@@ -1013,6 +1013,7 @@ Qed.
 
 Inductive SpineFact : Type :=
   | SFDomainRuntimeAssignment
+  | SFSemanticAstArtifactAdmission
   | SFSourceModuleGraph
   | SFTokenStream
   | SFLanguageWordRegistry
@@ -1076,6 +1077,7 @@ Inductive SpineFact : Type :=
 
 Inductive SpineOwner : Type :=
   | SODomainRuntimeAssignment
+  | SOSemanticArtifact
   | SOModuleLoader
   | SOLexer
   | SOLanguageLexicon
@@ -1133,6 +1135,7 @@ Inductive SpineOwner : Type :=
 Definition spine_authority (fact : SpineFact) : SpineOwner :=
   match fact with
   | SFDomainRuntimeAssignment => SODomainRuntimeAssignment
+  | SFSemanticAstArtifactAdmission => SOSemanticArtifact
   | SFSourceModuleGraph => SOModuleLoader
   | SFTokenStream => SOLexer
   | SFLanguageWordRegistry => SOLanguageLexicon

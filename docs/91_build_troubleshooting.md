@@ -2851,6 +2851,87 @@ output을 완성하지 못했으므로 end-to-end PASS가 아니다. 제한을 �
 재분류하지 않는다. 처음 두 absolute-path 시도는 `PGY_IO_ALLOW_ABSOLUTE`가 없는
 self-host I/O 정책에 의해 즉시 거부됐으며 pressure 증거에서 제외했다.
 
+### 5.1MB 입력이 메모리 상한보다 CPU 시간에서 먼저 멈추는 경우
+
+2026-07-30의 5,106,665-byte driver AST 측정은 3,072MB 상한을 넘지
+않았지만 2,400,686ms에 timeout 124로 끝났다. 따라서 이 관측을 메모리
+회귀나 end-to-end 성공으로 분류하면 안 된다. pressure 곡선과 실제 호출
+그래프를 함께 감사하면 CPU 비용은 두 구간으로 나뉜다.
+
+첫 구간은
+`SemanticAstBodyTypeBundleFromAnalysis` 안의 body semantic proof다. 이미
+생산된 signature/local/iteration/assignment/statement facts를 각
+`*FactsMatchArtifact`가 다시 만들거나 deep-match하고, 일부 match는 그
+안에서 signature 또는 iteration 전체 검증을 다시 호출한다. emission core의
+whole-artifact 재구성은 제거됐지만, 그 직전 body admission에는 같은 종류의
+반복 proof가 남아 있다.
+
+둘째 구간은 `GenerateCUnitFromReadySemanticFacts`의 definitions loop에서
+`EmitFunctionSet -> EmitStmtList`로 이어지는 C emission이다. 현재 각 문장은
+local, assignment, statement kind와 expression surface를 각각 선형 검색한다.
+고정 fixture에는 nonempty AST row 110,971개, callable 4,094개, local
+12,224개, assignment 6,958개와 최소 27,675개의 명백한 tracked statement가
+있다. tracked statement의 local/assignment miss만 계산해도 node-id 비교
+하한은 530,861,850회다. 현재 predicate 순서와 평균 statement 위치를
+적용한 statement-index 비교는 약 35억 회로 추정된다. 이 수치는 runtime
+counter가 아니라 현재 loop와 fixture census에서 계산한 작업량이므로,
+최적화 성공 판정에는 아래 coarse stage 계측과 동일 fixture 재측정을 쓴다.
+
+다음 active seam은 body semantic proof admission이다.
+
+- owner: artifact identity를 봉인한 semantic analysis/admission owner;
+- last consumer: `SemanticAstBodyTypeBundleFromAnalysisObserved` 입구;
+- forbidden fallback: admitted body 경로의 `*FactsMatchArtifact`,
+  `*FactsFromArtifact`, iteration/local/statement fact 재생성;
+- negative gate: stale digest와 malformed parallel-row 길이를 body loop 전에
+  거부하고, admitted body transitive call graph에서 deep-match/rebuild를
+  금지하며 fast caller exact allowlist와 immutable-after-admission 계약을
+  유지한다;
+- falsifier: 같은 5,106,665-byte fixture, 3GiB 상한, 2,400초 상한과
+  normalized C parity.
+
+계측은 row별 로그가 아니라 `artifact`, `semantic-analysis`, body의
+`base/iteration/refine/assignment/statement`, emission의
+`definitions/assembly` 경계만 기록한다. 그 seam이 닫힌 뒤 별도 rung에서
+이미 정렬되어 생산되는 owner-local `node_ids`에 lower-bound 조회를 적용한다.
+local destructure duplicate의 첫 행 우선 규칙은 보존하고, generic cache나 AST
+재스캔을 새 authority로 만들지 않는다.
+
+### self-host CI가 통합 root에서는 통과하고 source selfcheck에서만 실패하는 경우
+
+2026-07-30 GitHub run `30498129265`의 `self-host-parity-linux`는
+`expr_semantic_call_type_owner.pgy`에서 `CodegenExpressionTypeFromGraph`를 찾지
+못해 실패했다. 이 함수의 owner를 직접 import하면
+`expr_semantic_type_owner -> expr_semantic_call_type_owner ->
+expr_semantic_type_owner` 순환이 생기며, Pergyra module resolver는 이를
+의도적으로 거부한다. 실제 결함은 순환 expression emission cluster를
+`expr_semantic_graph_emit_owner.pgy` closure로 검사하는 completeness manifest에
+`expr_semantic_call_type_owner.pgy` 행만 빠진 것이었다. 기존 closure mapping에
+그 행을 추가하고 component contract가 mapping의 재누락을 거부하도록 했다.
+역-import나 duplicate declaration은 해법이 아니다.
+
+같은 run의 Linux/Windows/macOS build에는 두 개의 독립 계약 드리프트가 더
+있었다.
+
+- `selfhost.semantic_artifact_admission` registry 행은
+  `SFSemanticAstArtifactAdmission / SOSemanticArtifact`를 선언했지만 Coq
+  `SpineFact`, `SpineOwner`, `spine_authority` projection이 갱신되지 않았다.
+  registry 상태 집계도 `ACTIVE=0`으로 낡아 있었다. projection과 집계를
+  `ACTIVE=1`로 고치고 enforcement evidence는 주석이 아니라 실제
+  unbounded-proof 진단과 `stale_same_count`/`stale_same_tree` falsifier에
+  연결한다.
+- machine-layer MIR projection probe는 강화된 소비자 계약 뒤에도 routine
+  source identity `0`과 `abi_type_name:null`인 let rows를 생산했다. `0`은
+  stable identity의 sentinel이므로 양수 `1`로 바꾸고, 두 let row에
+  `DeviceSlot<Int>`와 `Int` ABI type facts를 producer에서 명시한다. 소비자에서
+  추측하거나 machine-layer validation을 느슨하게 하면 안 된다.
+
+검증은 새 repo-relative `PGY_SELFHOST_BUILD_DIR` 하나에서만 실행한다. 절대
+build-dir은 `${path#$ROOT_DIR/}`의 MSYS 표기와 맞지 않아 self-host absolute-I/O
+정책에 의해 거부될 수 있으며, 이 harness 실패를 제품 실패나 성공으로 세지
+않는다. 유효한 unique run은 SoT authority edge, component contract와 전체
+machine-layer MIR/AIR/C 경계를 모두 통과해야 한다.
+
 ### linked runtime ABI consumer가 실제 owner보다 먼저 검색되는 경우
 
 Resource lowering은 실제 `MIR_INST_RESOURCE_OP` owner의 primary runtime-call ABI

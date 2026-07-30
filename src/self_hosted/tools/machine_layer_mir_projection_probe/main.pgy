@@ -7,6 +7,7 @@
 
 import "../../mir/json_projection_owner.pgy";
 import "../../mir/cfg_instruction_mutation_owner.pgy";
+import "../../mir/instruction_scalar_mutation_owner.pgy";
 import "../../semantic/ast_expression_graph_build_owner.pgy";
 import "../../compiler/machine_layer_declaration_consumer.pgy";
 
@@ -81,6 +82,7 @@ func MachineProbeAddCall(
     arg1: String,
     expression: String,
     source_type: String,
+    abi_type_name: String,
     uses: Array<String>,
     target_name: String,
     declaration: SelfHostMachineLayerDeclaration
@@ -92,9 +94,12 @@ func MachineProbeAddCall(
     let projected: SelfMirCfgRows = SelfMirCfgAttachLastExpr0Graph(
         added, MachineProbeCallGraph(target_name, expression), declaration
     );
-    let instruction_index: Int = ArrayLength(projected.instructions.ids) - 1;
+    let typed: SelfMirCfgRows = SelfMirCfgAttachLastAbiTypeName(
+        projected, abi_type_name
+    );
+    let instruction_index: Int = ArrayLength(typed.instructions.ids) - 1;
     let operation: String =
-        projected.instructions.machine_layer_runtime_operations[
+        typed.instructions.machine_layer_runtime_operations[
             instruction_index
         ];
     let abi_fact: CompilerRuntimeCallAbiFact =
@@ -102,10 +107,10 @@ func MachineProbeAddCall(
             "DeviceSlot<Int>", operation
         );
     if !abi_fact.ok {
-        return projected;
+        return typed;
     }
     return SelfMirCfgAttachLastRuntimeCallAbi(
-        projected, "DeviceSlot<Int>", operation, abi_fact
+        typed, "DeviceSlot<Int>", operation, abi_fact
     );
 }
 
@@ -117,31 +122,32 @@ func MachineProbeFacts(
     let no_ints: Array<Int> = [];
     let cfg1: SelfMirCfgRows = MachineProbeAddCall(
         cfg0, 0, "def", "ssa-def", "dev.1", "dev", "",
-        "ClaimDeviceSlot()", "AST_LET_DECL", no_uses, "ClaimDeviceSlot",
+        "ClaimDeviceSlot()", "AST_LET_DECL", "DeviceSlot<Int>", no_uses,
+        "ClaimDeviceSlot",
         declaration
     );
     let cfg2: SelfMirCfgRows = MachineProbeAddCall(
         cfg1, 1, "def", "ssa-def", "current.1", "current", "",
-        "ClaimDeviceSlot()", "AST_LET_DECL", ["dev.1"], "DeviceRead",
+        "ClaimDeviceSlot()", "AST_LET_DECL", "Int", ["dev.1"], "DeviceRead",
         declaration
     );
     let cfg3: SelfMirCfgRows = MachineProbeAddCall(
         cfg2, 2, "stmt", "stmt", "", "DeviceWrite", "current",
-        "ClaimDeviceSlot()", "AST_CALL", ["dev.1", "current.1"],
+        "ClaimDeviceSlot()", "AST_CALL", "", ["dev.1", "current.1"],
         "DeviceWrite", declaration
     );
     let cfg4: SelfMirCfgRows = MachineProbeAddCall(
         cfg3, 3, "stmt", "stmt", "", "ReleaseDeviceSlot", "",
-        "ClaimDeviceSlot()", "AST_CALL", ["dev.1"], "ReleaseDeviceSlot",
+        "ClaimDeviceSlot()", "AST_CALL", "", ["dev.1"], "ReleaseDeviceSlot",
         declaration
     );
     let cfg5: SelfMirCfgRows = MachineProbeAddCall(
         cfg4, 4, "stmt", "stmt", "", "SubmitDeviceRead", "",
-        "ClaimDeviceSlot()", "AST_CALL", ["dev.1"], "SubmitDeviceRead",
+        "ClaimDeviceSlot()", "AST_CALL", "", ["dev.1"], "SubmitDeviceRead",
         declaration
     );
     let routines: SelfMirRoutineRows = SelfMirRoutineRows(
-        [0], ["Main"], ["function"], [""], ["none"], ["Void"],
+        [1], ["Main"], ["function"], [""], ["none"], ["Void"],
         [0], [0], no_uses, [0], [0], no_uses, no_uses, no_ints,
         no_ints,
         [0], [1], [0], [2], ["dev", "current"],
