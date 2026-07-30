@@ -283,6 +283,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy` --
   self-checking contract fixtures for the body-type bundle owner, consumed by
   driver readiness; the bundle owner keeps production and readiness checks.
+- `src/self_hosted/semantic/ast_body_analysis_admission_contract_owner.pgy` --
+  fail-closed stale-identity and malformed producer-row witnesses for the
+  one-time body analysis admission boundary.
 - `src/self_hosted/semantic/ast_initializer_type_contract_owner.pgy` --
   self-checking contract fixture chain for the initializer-type fact owner,
   consumed by driver readiness; the fact owner keeps production/projection.
@@ -365,6 +368,13 @@ inventory must not become a second fact-family owner registry.
   node-handle lookup for verified statement result-type rows.
 - `src/self_hosted/semantic/ast_body_verdict_owner.pgy` -- document-order body
   verdict across initializer, iteration, assignment, and statement owners.
+- `src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy` -- one-time
+  identity and parallel-row-shape admission for the producer-sealed semantic
+  analysis consumed by body materialization; stage owners may not reconstruct
+  the artifact proof behind this boundary.
+- `src/self_hosted/semantic/ast_body_analysis_shape_owner.pgy` --
+  reconstruction-free signature, role, intent, constructor, enum, and span
+  shape proof consumed exactly once by body analysis admission.
 - `src/self_hosted/semantic/ast_body_type_bundle_owner.pgy` -- canonical
   one-pass assembly of initializer, iteration, assignment, and statement type
   facts plus readiness diagnostics consumed by driver and codegen projections.
@@ -1748,6 +1758,9 @@ inventory must not become a second fact-family owner registry.
   `publishDiagnostics` JSON payload projection.
 - `src/self_hosted/lsp/document_store_owner.pgy` -- LSP-2f buffered
   didOpen/didChange multi-document state projection.
+- `src/self_hosted/lsp/document_revision_owner.pgy` -- Insere-derived URI,
+  monotonic version, exact text, and HostTask generation receipt used by the
+  buffered store and its latest-only diagnostics publication admission.
 - `src/self_hosted/lsp/feature_owner.pgy` -- LSP-2g advertised textDocument
   no-index response shapes.
 - `src/self_hosted/lsp/squiggle_owner.pgy` -- LSP-1 diagnostic code/fact to

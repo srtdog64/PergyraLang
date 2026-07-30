@@ -127,7 +127,7 @@ func SemanticAstIterationSeedVisibleRows(
     return true;
 }
 
-func SemanticAstIterationTypeFactsFromArtifactWithFunctionTables(
+func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
@@ -136,23 +136,36 @@ func SemanticAstIterationTypeFactsFromArtifactWithFunctionTables(
     statements: SemanticAstStatementFacts,
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
     enum_facts: SemanticAstEnumFacts,
+    function_scopes: SemanticAstFunctionScopeFacts,
     function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> SemanticAstIterationTypeFacts {
-    if !AstTreeArtifactReady(artifact) ||
-        !SemanticAstFunctionSignatureFactsMatchArtifact(
-            artifact, signatures
-        ) || !SemanticAstNominalConstructorFactsMatchArtifact(
-            artifact, constructors
-        ) || !SemanticAstLocalBindingFactsMatchArtifact(
-            artifact, signatures, locals
-        ) || !SemanticAstInitializerTypeFactsReadyProjection(
+    let local_count: Int = SemanticAstLocalBindingCount(locals);
+    let statement_count: Int = SemanticAstStatementCount(statements);
+    if !signatures.ok ||
+        signatures.artifact_node_count != artifact.count ||
+        !constructors.ok ||
+        constructors.artifact_node_count != artifact.count ||
+        !locals.ok || locals.artifact_node_count != artifact.count ||
+        ArrayLength(locals.function_node_ids) != local_count ||
+        ArrayLength(locals.scope_node_ids) != local_count ||
+        ArrayLength(locals.binding_kinds) != local_count ||
+        ArrayLength(locals.binding_indices) != local_count ||
+        !SemanticAstInitializerTypeFactsReadyProjection(
             artifact, locals, initializer_types
-         ) || !SemanticAstStatementFactsMatchArtifact(
-             artifact, signatures, statements
-         ) || !SemanticAstExpressionSurfaceFactsMatchArtifact(
-             artifact, expression_surfaces
-         ) || !SemanticAstEnumRowsReady(enum_facts) ||
-         !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
+        ) || !statements.ok ||
+        statements.artifact_node_count != artifact.count ||
+        ArrayLength(statements.kind_tags) != statement_count ||
+        ArrayLength(statements.function_node_ids) != statement_count ||
+        ArrayLength(statements.payload_texts) != statement_count ||
+        ArrayLength(statements.value_texts) != statement_count ||
+        ArrayLength(statements.auxiliary_texts) != statement_count ||
+        !expression_surfaces.ok ||
+        expression_surfaces.artifact_node_count != artifact.count ||
+        !SemanticAstEnumRowsReady(enum_facts) ||
+        !function_scopes.ok ||
+        function_scopes.artifact_node_count != artifact.count ||
+        ArrayLength(function_scopes.function_node_ids) != artifact.count ||
+        !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
         return SemanticAstIterationTypeStructuralError(artifact);
     }
     let member_root_names: Array<String> = [];
@@ -200,8 +213,9 @@ func SemanticAstIterationTypeFactsFromArtifactWithFunctionTables(
             artifact, statements, node_ids, binding_types, verified,
             statements.function_node_ids[i], statements.node_ids[i],
             names, types, modes
-        ) || !SemanticAstExpressionSeedVisibleMatchBindings(
-            artifact, expression_surfaces, signatures, constructors,
+        ) || !SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
+            artifact, expression_surfaces, constructors, enum_facts,
+            function_scopes,
             statements.function_node_ids[i], statements.node_ids[i],
             names, types, modes, function_tables
         ) || ArrayLength(names) != ArrayLength(modes) {
@@ -328,6 +342,46 @@ func SemanticAstIterationTypeFactsFromArtifactWithFunctionTables(
         true, "", "", artifact.count, node_ids, binding_types,
         iterable_types, collection_hoists, synthetic_names,
         synthetic_graph_root_ids, verified, diagnostic_codes, diagnostic_messages
+    );
+}
+
+func SemanticAstIterationTypeFactsFromArtifactWithFunctionTables(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    statements: SemanticAstStatementFacts,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    enum_facts: SemanticAstEnumFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> SemanticAstIterationTypeFacts {
+    if !AstTreeArtifactReady(artifact) ||
+        !SemanticAstFunctionSignatureFactsMatchArtifact(
+            artifact, signatures
+        ) || !SemanticAstNominalConstructorFactsMatchArtifact(
+            artifact, constructors
+        ) || !SemanticAstLocalBindingFactsMatchArtifact(
+            artifact, signatures, locals
+        ) || !SemanticAstInitializerTypeFactsReadyProjection(
+            artifact, locals, initializer_types
+        ) || !SemanticAstStatementFactsMatchArtifact(
+            artifact, signatures, statements
+        ) || !SemanticAstExpressionSurfaceFactsMatchArtifact(
+            artifact, expression_surfaces
+        ) || !SemanticAstEnumRowsReady(enum_facts) ||
+        !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
+        return SemanticAstIterationTypeStructuralError(artifact);
+    }
+    let function_scopes: SemanticAstFunctionScopeFacts =
+        SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    if !function_scopes.ok {
+        return SemanticAstIterationTypeStructuralError(artifact);
+    }
+    return SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
+        artifact, signatures, constructors, locals, initializer_types,
+        statements, expression_surfaces, enum_facts, function_scopes,
+        function_tables
     );
 }
 

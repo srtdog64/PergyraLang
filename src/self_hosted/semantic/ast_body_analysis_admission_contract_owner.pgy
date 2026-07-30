@@ -1,0 +1,118 @@
+// Negative witnesses for one-time body analysis admission.
+
+import "ast_body_type_bundle_owner.pgy";
+
+func SemanticAstBodyTypeBundleAdmissionRejectedBeforeMaterialization(
+    ref bundle: SemanticAstBodyTypeBundle
+) -> Bool {
+    return !bundle.verdict.ok &&
+        bundle.verdict.diagnostic_code == "body_analysis_admission" &&
+        bundle.verdict.first_node_id == -1 &&
+        !bundle.initializer_types.ok &&
+        SemanticAstInitializerTypeCount(bundle.initializer_types) == 0 &&
+        !bundle.iteration_types.ok &&
+        SemanticAstIterationTypeCount(bundle.iteration_types) == 0 &&
+        !bundle.assignment_types.ok &&
+        ArrayLength(bundle.assignment_types.node_ids) == 0 &&
+        !bundle.statement_types.ok &&
+        ArrayLength(bundle.statement_types.node_ids) == 0 &&
+        !bundle.generic_specializations.ok &&
+        bundle.generic_specializations.diagnostic_code ==
+            "body_analysis_admission" &&
+        SemanticAstGenericSpecializationCount(
+            bundle.generic_specializations
+        ) == 0;
+}
+
+func SemanticAstBodyTypeBundleStaleAdmissionContractReady() -> Bool {
+    let source_artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: alpha : Int = 1\n        Return: alpha\n"
+    );
+    let stale_artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: omega : Int = 1\n        Return: omega\n"
+    );
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(source_artifact, true);
+    if !SemanticAstBodyAnalysisAdmissionReady(source_artifact, analysis) ||
+        source_artifact.identity_digest == stale_artifact.identity_digest ||
+        SemanticAstBodyAnalysisAdmissionReady(stale_artifact, analysis) {
+        return false;
+    }
+    let rejected: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
+            stale_artifact, analysis, true
+        );
+    return SemanticAstBodyTypeBundleAdmissionRejectedBeforeMaterialization(
+        rejected
+    );
+}
+
+func SemanticAstBodyTypeBundleMalformedProducerRowAdmissionContractReady(
+) -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: malformed : Int = 1\n        Return: malformed\n"
+    );
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    if !SemanticAstBodyAnalysisAdmissionReady(artifact, analysis) ||
+        ArrayLength(analysis.local_bindings.node_ids) != 1 ||
+        ArrayLength(analysis.local_bindings.names) != 1 {
+        return false;
+    }
+    let malformed_names: Array<String> = [];
+    analysis.local_bindings.names = malformed_names;
+    if SemanticAstBodyAnalysisAdmissionReady(artifact, analysis) {
+        return false;
+    }
+    let rejected: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
+            artifact, analysis, true
+        );
+    return SemanticAstBodyTypeBundleAdmissionRejectedBeforeMaterialization(
+        rejected
+    );
+}
+
+func SemanticAstBodyAnalysisShapeAdmissionContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Return: 1\n"
+    );
+    let signature_analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    if !SemanticAstBodyAnalysisAdmissionReady(artifact, signature_analysis) ||
+        ArrayLength(signature_analysis.signatures.generic_starts) != 1 {
+        return false;
+    }
+    signature_analysis.signatures.generic_starts[0] = 1;
+    if SemanticAstBodyAnalysisAdmissionReady(artifact, signature_analysis) {
+        return false;
+    }
+
+    let constructor_analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    constructor_analysis.constructors.artifact_node_count = artifact.count + 1;
+    if SemanticAstBodyAnalysisAdmissionReady(artifact, constructor_analysis) {
+        return false;
+    }
+
+    let enum_analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    enum_analysis.enums.artifact_node_count = artifact.count + 1;
+    if SemanticAstBodyAnalysisAdmissionReady(artifact, enum_analysis) {
+        return false;
+    }
+
+    let role_analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    let stale_role_starts: Array<Int> = [0];
+    role_analysis.roles.impl_starts = stale_role_starts;
+    if SemanticAstBodyAnalysisAdmissionReady(artifact, role_analysis) {
+        return false;
+    }
+
+    let intent_analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    let stale_intent_starts: Array<Int> = [0];
+    intent_analysis.intent_transitions.intent_starts = stale_intent_starts;
+    return !SemanticAstBodyAnalysisAdmissionReady(artifact, intent_analysis);
+}

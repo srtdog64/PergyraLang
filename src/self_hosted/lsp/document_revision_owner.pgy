@@ -1,0 +1,155 @@
+// Insere-derived self-host LSP latest-document admission owner.
+//
+// URI/version/text remain one typed revision fact. HostTaskSlot contributes
+// only its generation ticket: it does not reinterpret LSP version or payload
+// identity and it does not introduce a second scheduler.
+
+class LspDocumentRevision
+{
+    let uri: String;
+    let version: Int;
+    let text: String;
+    let slot: HostTaskSlot;
+    let ticket: HostTaskTicket;
+}
+
+class LspDocumentRevisionAdmission
+{
+    let revision: Option<LspDocumentRevision>;
+    let applied: Bool;
+    let status: String;
+    let reason: String;
+}
+
+class LspDocumentPublicationAdmission
+{
+    let applied: Bool;
+    let reason: String;
+}
+
+func LspDocumentRevisionRejected(reason: String) -> LspDocumentRevisionAdmission
+{
+    let missing: Option<LspDocumentRevision> = None;
+    return LspDocumentRevisionAdmission(missing, false, "rejected", reason);
+}
+
+func LspDocumentRevisionVersion(version_text: String) -> Option<Int>
+{
+    if version_text == "" {
+        return None;
+    }
+    let version: Int = ToInt(version_text);
+    if version < 0 || ToString(version) != version_text {
+        return None;
+    }
+    return Some(version);
+}
+
+func LspDocumentRevisionOpen(
+    uri: String,
+    version_text: String,
+    text: String
+) -> LspDocumentRevisionAdmission
+{
+    if uri == "" {
+        return LspDocumentRevisionRejected("missing_uri");
+    }
+    let version_opt: Option<Int> = LspDocumentRevisionVersion(version_text);
+    if !IsSome(version_opt) {
+        return LspDocumentRevisionRejected("invalid_version");
+    }
+    let opened: HostTaskSlotTransition = HostTasks_Open(uri);
+    if !opened.applied || !HostTasks_IsCurrent(opened.slot, opened.ticket) {
+        return LspDocumentRevisionRejected(opened.reason);
+    }
+    let revision: LspDocumentRevision = LspDocumentRevision(
+        uri,
+        UnwrapOption(version_opt),
+        text,
+        opened.slot,
+        opened.ticket
+    );
+    return LspDocumentRevisionAdmission(Some(revision), true, "opened", "");
+}
+
+func LspDocumentRevisionChange(
+    current: LspDocumentRevision,
+    version_text: String,
+    text: String
+) -> LspDocumentRevisionAdmission
+{
+    let version_opt: Option<Int> = LspDocumentRevisionVersion(version_text);
+    if !IsSome(version_opt) {
+        return LspDocumentRevisionRejected("invalid_version");
+    }
+    let version: Int = UnwrapOption(version_opt);
+    if version < current.version {
+        return LspDocumentRevisionRejected("stale_version");
+    }
+    if version == current.version {
+        if text != current.text {
+            return LspDocumentRevisionRejected("version_payload_conflict");
+        }
+        return LspDocumentRevisionAdmission(
+            Some(current),
+            false,
+            "duplicate",
+            "duplicate_version"
+        );
+    }
+
+    let decision: HostTaskPolicyDecision = HostTasks_ApplyPolicy(
+        current.slot,
+        HostTasks_RestartPolicy()
+    );
+    if !decision.transition.applied || decision.status != "restarted" ||
+        !HostTasks_IsCurrent(
+            decision.transition.slot,
+            decision.transition.ticket
+        ) {
+        return LspDocumentRevisionRejected(decision.transition.reason);
+    }
+    let revision: LspDocumentRevision = LspDocumentRevision(
+        current.uri,
+        version,
+        text,
+        decision.transition.slot,
+        decision.transition.ticket
+    );
+    return LspDocumentRevisionAdmission(Some(revision), true, "changed", "");
+}
+
+func LspDocumentPublicationAdmissionFor(
+    current: LspDocumentRevision,
+    candidate: LspDocumentRevision
+) -> LspDocumentPublicationAdmission
+{
+    if candidate.uri != current.uri {
+        return LspDocumentPublicationAdmission(false, "wrong_uri");
+    }
+    if !HostTasks_IsCurrent(current.slot, candidate.ticket) {
+        return LspDocumentPublicationAdmission(false, "stale_generation");
+    }
+    if candidate.version != current.version {
+        return LspDocumentPublicationAdmission(false, "stale_version");
+    }
+    if candidate.text != current.text {
+        return LspDocumentPublicationAdmission(false, "version_payload_conflict");
+    }
+    return LspDocumentPublicationAdmission(true, "applied");
+}
+
+func LspDocumentRevisionFindUri(
+    revisions: Array<LspDocumentRevision>,
+    uri: String
+) -> Option<Int>
+{
+    let index: Int = 0;
+    while index < ArrayLength(revisions) {
+        if revisions[index].uri == uri {
+            return Some(index);
+        }
+        index = index + 1;
+    }
+    return None;
+}

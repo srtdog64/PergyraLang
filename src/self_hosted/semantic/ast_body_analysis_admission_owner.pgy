@@ -1,0 +1,107 @@
+// One-time body admission over a producer-sealed semantic analysis.
+//
+// The artifact verdict owner produces the fact family. This owner checks its
+// identity and parallel row shapes once before body materialization; body
+// stages must not reopen value-by-value artifact reconstruction.
+
+import "ast_artifact_verdict_owner.pgy";
+import "ast_body_analysis_shape_owner.pgy";
+
+func SemanticAstBodyAnalysisAdmissionReady(
+    artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis
+) -> Bool {
+    if !SemanticAstArtifactAdmissionReady(
+        artifact, analysis, analysis.verdict.requires_entrypoint
+    ) || !SemanticAstBodyAnalysisRowsAdmittedReady(artifact, analysis) ||
+        !SemanticAstExpressionFunctionTableFactsReady(
+            analysis.function_tables
+        ) || !analysis.function_scopes.ok ||
+        analysis.function_scopes.artifact_node_count != artifact.count ||
+        ArrayLength(analysis.function_scopes.function_node_ids) !=
+            artifact.count {
+        return false;
+    }
+    let local_count: Int = ArrayLength(analysis.local_bindings.node_ids);
+    if !analysis.local_bindings.ok ||
+        analysis.local_bindings.artifact_node_count != artifact.count ||
+        ArrayLength(analysis.local_bindings.function_node_ids) != local_count ||
+        ArrayLength(analysis.local_bindings.scope_node_ids) != local_count ||
+        ArrayLength(analysis.local_bindings.names) != local_count ||
+        ArrayLength(analysis.local_bindings.declared_type_names) != local_count ||
+        ArrayLength(analysis.local_bindings.has_declared_types) != local_count ||
+        ArrayLength(analysis.local_bindings.initializer_texts) != local_count ||
+        ArrayLength(analysis.local_bindings.binding_kinds) != local_count ||
+        ArrayLength(analysis.local_bindings.binding_indices) != local_count ||
+        ArrayLength(analysis.local_bindings.binding_arities) != local_count {
+        return false;
+    }
+    let assignment_count: Int = ArrayLength(analysis.assignments.node_ids);
+    if !analysis.assignments.ok ||
+        analysis.assignments.artifact_node_count != artifact.count ||
+        ArrayLength(analysis.assignments.function_node_ids) != assignment_count ||
+        ArrayLength(analysis.assignments.scope_node_ids) != assignment_count ||
+        ArrayLength(analysis.assignments.target_texts) != assignment_count ||
+        ArrayLength(analysis.assignments.target_base_names) != assignment_count ||
+        ArrayLength(analysis.assignments.target_root_names) != assignment_count ||
+        ArrayLength(analysis.assignments.target_is_indexed) != assignment_count ||
+        ArrayLength(analysis.assignments.target_index_texts) != assignment_count ||
+        ArrayLength(analysis.assignments.value_texts) != assignment_count {
+        return false;
+    }
+    let statement_count: Int = ArrayLength(analysis.statements.node_ids);
+    if !analysis.statements.ok ||
+        analysis.statements.artifact_node_count != artifact.count ||
+        ArrayLength(analysis.statements.kind_tags) != statement_count ||
+        ArrayLength(analysis.statements.function_node_ids) != statement_count ||
+        ArrayLength(analysis.statements.scope_node_ids) != statement_count ||
+        ArrayLength(analysis.statements.body_scope_node_ids) != statement_count ||
+        ArrayLength(analysis.statements.payload_texts) != statement_count ||
+        ArrayLength(analysis.statements.value_texts) != statement_count ||
+        ArrayLength(analysis.statements.auxiliary_texts) != statement_count {
+        return false;
+    }
+    let surface_count: Int = ArrayLength(analysis.expression_surfaces.node_ids);
+    let graph_node_count: Int = SemanticExpressionGraphArenaNodeCount(
+        analysis.expression_surfaces.expression_graph.arena
+    );
+    return analysis.expression_surfaces.ok &&
+        analysis.expression_surfaces.artifact_node_count == artifact.count &&
+        ArrayLength(analysis.expression_surfaces.function_node_ids) ==
+            surface_count &&
+        ArrayLength(analysis.expression_surfaces.has_atoms) == surface_count &&
+        ArrayLength(analysis.expression_surfaces.atoms) == surface_count &&
+        ArrayLength(analysis.expression_surfaces.has_values) == surface_count &&
+        ArrayLength(analysis.expression_surfaces.values) == surface_count &&
+        ArrayLength(analysis.expression_surfaces.has_auxiliary_values) ==
+            surface_count &&
+        ArrayLength(analysis.expression_surfaces.auxiliary_values) ==
+            surface_count &&
+        ArrayLength(analysis.expression_surfaces.normalized_atoms) ==
+            surface_count &&
+        ArrayLength(analysis.expression_surfaces.normalized_values) ==
+            surface_count &&
+        ArrayLength(analysis.expression_surfaces.normalized_auxiliary_values) ==
+            surface_count &&
+        ArrayLength(analysis.expression_surfaces.operator_rows) ==
+            surface_count * SemanticAstExpressionShapeWidth() &&
+        analysis.expression_surfaces.expression_graph.ok &&
+        ArrayLength(analysis.expression_surfaces.expression_graph.roots) ==
+            surface_count * 3 &&
+        ArrayLength(analysis.expression_surfaces.expression_graph.has_roots) ==
+            surface_count * 3 &&
+        ArrayLength(analysis.expression_surfaces.expression_graph.arena
+            .topology.node_texts) == graph_node_count &&
+        ArrayLength(analysis.expression_surfaces.expression_graph.arena
+            .topology.left_children) == graph_node_count &&
+        ArrayLength(analysis.expression_surfaces.expression_graph.arena
+            .topology.right_children) == graph_node_count &&
+        ArrayLength(analysis.expression_surfaces.expression_graph.arena
+            .node_texts) == graph_node_count &&
+        ArrayLength(analysis.expression_surfaces.expression_graph.arena
+            .call_target_kinds) == graph_node_count &&
+        ArrayLength(analysis.expression_surfaces.expression_graph.arena
+            .call_target_names) == graph_node_count &&
+        ArrayLength(analysis.expression_surfaces.expression_graph.arena
+            .place_kinds) == graph_node_count;
+}

@@ -128,6 +128,28 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
     if !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
         return SemanticAstAssignmentTypeStructuralError(artifact, "ExpressionFunctionTableFacts");
     }
+    let function_scopes: SemanticAstFunctionScopeFacts =
+        SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    return SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
+        artifact, signatures, constructors, locals, initializer_types,
+        statements, expression_surfaces, iteration_types, assignments,
+        enum_facts, function_scopes, function_tables
+    );
+}
+func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    statements: SemanticAstStatementFacts,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    iteration_types: SemanticAstIterationTypeFacts,
+    assignments: SemanticAstAssignmentFacts,
+    enum_facts: SemanticAstEnumFacts,
+    function_scopes: SemanticAstFunctionScopeFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> SemanticAstAssignmentTypeFacts {
     let node_ids: Array<Int> = [];
     let target_binding_modes: Array<String> = [];
     let target_type_names: Array<String> = [];
@@ -155,7 +177,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
         if !SemanticAstExpressionSeedVisibleLocals(artifact, locals, initializer_types.inferred_type_names, assignments.function_node_ids[i], assignments.node_ids[i], names, types) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedVisibleLocals@", ToString(i))); }
         if !SemanticAstExpressionSeedVisibleLocalModes(artifact, locals, assignments.function_node_ids[i], assignments.node_ids[i], modes) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedVisibleLocalModes@", ToString(i))); }
         if !SemanticAstIterationSeedVisibleBindings(artifact, statements, iteration_types, assignments.function_node_ids[i], assignments.node_ids[i], names, types, modes) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedIterationBindings@", ToString(i))); }
-        if !SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(artifact, expression_surfaces, signatures, constructors, assignments.function_node_ids[i], assignments.node_ids[i], names, types, modes, function_tables) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedMatchBindings@", ToString(i))); }
+        if !SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(artifact, expression_surfaces, constructors, enum_facts, function_scopes, assignments.function_node_ids[i], assignments.node_ids[i], names, types, modes, function_tables) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedMatchBindings@", ToString(i))); }
         if ArrayLength(names) != ArrayLength(modes) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("EnvironmentModeCount@", ToString(i))); }
         let target_graph_root: Option<Int> =
             SemanticAstExpressionGraphRootForNode(

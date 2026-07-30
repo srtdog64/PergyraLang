@@ -1,6 +1,6 @@
 // Canonical semantic assembly of body-level type facts.
 // Driver/codegen consume this bundle and may not rebuild its body-type rows.
-import "ast_artifact_verdict_owner.pgy";
+import "ast_body_analysis_admission_owner.pgy";
 import "ast_body_verdict_owner.pgy";
 import "ast_body_call_target_resolution_owner.pgy";
 import "ast_generic_specialization_fact_owner.pgy";
@@ -16,77 +16,112 @@ struct SemanticAstBodyTypeBundle {
     statement_types: SemanticAstStatementTypeFacts;
     generic_specializations: SemanticAstGenericSpecializationFacts;
 }
+func SemanticAstBodyTypeBundleAdmissionError(
+    artifact: AstTreeArtifact,
+    message: String
+) -> SemanticAstBodyTypeBundle {
+    let empty_ints: Array<Int> = [];
+    let empty_strings: Array<String> = [];
+    return SemanticAstBodyTypeBundle(
+        SemanticAstBodyVerdictError(
+            "body_analysis_admission", message, -1
+        ),
+        SemanticAstInitializerTypeStructuralError(artifact),
+        SemanticAstIterationTypeStructuralError(artifact),
+        SemanticAstAssignmentTypeStructuralError(
+            artifact, "BodyAnalysisAdmission"
+        ),
+        SemanticAstStatementTypeStructuralError(
+            artifact, "BodyAnalysisAdmission"
+        ),
+        SemanticAstGenericSpecializationError(
+            "body_analysis_admission", message,
+            empty_ints, empty_ints, empty_ints, empty_ints, empty_strings
+        )
+    );
+}
 func SemanticAstBodyTypeStage(enabled: Bool, stage: String) -> Void { if enabled { Log(Concat("[semantic-body-type-stage] ", stage)); } }
-func SemanticAstBodyTypeBundleFromAnalysisObserved(
+func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
     artifact: AstTreeArtifact,
     inout analysis: SemanticAstArtifactAnalysis,
     observe_pressure: Bool
 ) -> SemanticAstBodyTypeBundle {
+    if !SemanticAstBodyAnalysisAdmissionReady(artifact, analysis) {
+        return SemanticAstBodyTypeBundleAdmissionError(
+            artifact, "semantic body analysis admission is missing or stale"
+        );
+    }
     let function_tables: SemanticAstExpressionFunctionTableFacts =
         analysis.function_tables;
     SemanticAstBodyTypeStage(observe_pressure, "base-initializer:start");
     let base_initializer_types: SemanticAstInitializerTypeFacts =
-        SemanticAstInitializerTypeFactsFromArtifactObservedWithFunctionTables(
+        SemanticAstInitializerTypeFactsFromAdmittedArtifactObservedWithFunctionTables(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, analysis.expression_surfaces,
+            analysis.enums, analysis.function_scopes,
             observe_pressure, function_tables
         );
     SemanticAstBodyTypeStage(observe_pressure, "base-initializer:done");
     SemanticAstBodyTypeStage(observe_pressure, "iteration:start");
     let iteration_types: SemanticAstIterationTypeFacts =
-        SemanticAstIterationTypeFactsFromArtifactWithFunctionTables(
+        SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, base_initializer_types,
             analysis.statements,
-            analysis.expression_surfaces, analysis.enums, function_tables
+            analysis.expression_surfaces, analysis.enums,
+            analysis.function_scopes, function_tables
         );
     SemanticAstBodyTypeStage(observe_pressure, "iteration:done");
     SemanticAstBodyTypeStage(observe_pressure, "call-targets:start");
     let call_targets_resolved: Bool =
-        SemanticAstAnalysisResolveCallTargetsFromBody(
+        SemanticAstAnalysisResolveCallTargetsFromAdmittedBody(
             artifact, analysis, base_initializer_types.inferred_type_names,
             iteration_types, function_tables
         );
     SemanticAstBodyTypeStage(observe_pressure, "call-targets:done");
     SemanticAstBodyTypeStage(observe_pressure, "initializer-refine:start");
     let initializer_types: SemanticAstInitializerTypeFacts =
-        SemanticAstInitializerTypeFactsRefinedByIterationsWithFunctionTables(
+        SemanticAstInitializerTypeFactsRefinedByIterationsFromAdmittedFactsWithFunctionTables(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, analysis.expression_surfaces,
-            analysis.statements, base_initializer_types, iteration_types,
-            function_tables
+            analysis.enums, analysis.function_scopes, analysis.statements,
+            base_initializer_types, iteration_types, function_tables
         );
     SemanticAstBodyTypeStage(observe_pressure, "initializer-refine:done");
     SemanticAstBodyTypeStage(observe_pressure, "expression-places:start");
     let expression_places_resolved: Bool =
-        SemanticAstAnalysisResolveExpressionPlacesFromBody(
+        SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
             artifact, analysis, initializer_types, iteration_types, function_tables
         );
     SemanticAstBodyTypeStage(observe_pressure, "expression-places:done");
     SemanticAstBodyTypeStage(observe_pressure, "assignment:start");
     let assignment_types: SemanticAstAssignmentTypeFacts =
-        SemanticAstAssignmentTypeFactsFromArtifact(
+        SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, initializer_types, analysis.statements,
             analysis.expression_surfaces, iteration_types,
-            analysis.assignments, analysis.enums, function_tables
+            analysis.assignments, analysis.enums, analysis.function_scopes,
+            function_tables
         );
     SemanticAstBodyTypeStage(observe_pressure, "assignment:done");
     SemanticAstBodyTypeStage(observe_pressure, "statement:start");
     let statement_types: SemanticAstStatementTypeFacts =
-        SemanticAstStatementTypeFactsFromArtifact(
+        SemanticAstStatementTypeFactsFromAdmittedArtifact(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, initializer_types,
             analysis.expression_surfaces, iteration_types,
-            analysis.statements, function_tables
+            analysis.statements, analysis.enums, analysis.roles,
+            analysis.function_scopes, function_tables
         );
     SemanticAstBodyTypeStage(observe_pressure, "statement:done");
     SemanticAstBodyTypeStage(observe_pressure, "generic:start");
     let generic_specializations: SemanticAstGenericSpecializationFacts =
-        SemanticAstGenericSpecializationFactsFromBody(
+        SemanticAstGenericSpecializationFactsFromAdmittedBody(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, initializer_types,
-            analysis.expression_surfaces, function_tables
+            analysis.expression_surfaces, function_tables, analysis.enums,
+            analysis.intent_signatures, analysis.intent_transitions,
+            analysis.function_scopes
         );
     SemanticAstBodyTypeStage(observe_pressure, "generic:done");
     SemanticAstBodyTypeStage(observe_pressure, "verdict:start");
@@ -125,6 +160,30 @@ func SemanticAstBodyTypeBundleFromAnalysisObserved(
         verdict,
         initializer_types, iteration_types, assignment_types, statement_types,
         generic_specializations
+    );
+}
+func SemanticAstBodyTypeBundleFromAnalysisObserved(
+    artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis,
+    observe_pressure: Bool
+) -> SemanticAstBodyTypeBundle {
+    if !SemanticAstArtifactAnalysisMatches(
+        artifact, analysis, analysis.verdict.requires_entrypoint
+    ) {
+        return SemanticAstBodyTypeBundleAdmissionError(
+            artifact, "semantic body analysis deep proof failed"
+        );
+    }
+    return SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
+        artifact, analysis, observe_pressure
+    );
+}
+func SemanticAstBodyTypeBundleFromAdmittedAnalysis(
+    artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis
+) -> SemanticAstBodyTypeBundle {
+    return SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
+        artifact, analysis, false
     );
 }
 func SemanticAstBodyTypeBundleFromAnalysis(

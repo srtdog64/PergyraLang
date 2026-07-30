@@ -152,9 +152,13 @@ C LSP 분해: protocol(framing 229L)/diagnostics/hover/features. 페이로드
   shape는 LSP-2g owner를 통해 replay에 소비된다.
 - **LSP-2f — buffered document-store projection (landed)**:
   `lsp/document_store_owner.pgy`가 한 stdin buffer 안의 `didOpen`/`didChange`
-  request들을 deterministic insertion-order multi-document state artifact로 투영한다. 이 rung은
-  document-store mutation의 첫 self-host owner지만, 아직 live read-exact
-  loop나 semantic feature response는 아니다.
+  request들을 deterministic insertion-order multi-document state artifact로
+  투영한다. `document_revision_owner.pgy`는 URI별 numeric version, exact text,
+  HostTask generation/ticket을 한 typed revision으로 admission하고, 지연 완료된
+  diagnostics 후보는 current generation일 때만 publication admission을 받는다.
+  기존 document-store target은 기본 parity와 latest-only negative gate를 함께
+  실행한다. 이 rung은 document-store mutation의 첫 self-host owner지만, 아직
+  live read-exact loop나 semantic feature response는 아니다.
 - **LSP-2g — no-index feature response shapes (landed)**:
   `lsp/feature_owner.pgy`가 `textDocument/hover`, completion, documentSymbol,
   definition, references, rename에 대해 유효한 빈/무정보 response result

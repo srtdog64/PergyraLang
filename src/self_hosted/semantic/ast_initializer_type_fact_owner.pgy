@@ -74,12 +74,14 @@ func SemanticAstInitializerTypePressureRow(
     }
 }
 
-func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFunctionTables(
+func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObservedWithFunctionTables(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    enum_facts: SemanticAstEnumFacts,
+    function_scopes: SemanticAstFunctionScopeFacts,
     iteration_node_ids: Array<Int>,
     iteration_function_node_ids: Array<Int>,
     iteration_binding_names: Array<String>,
@@ -90,29 +92,27 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFun
     observe_pressure: Bool,
     function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> SemanticAstInitializerTypeFacts {
-    SemanticAstInitializerTypePressureStage(observe_pressure, "ready:start");
-    if !AstTreeArtifactReady(artifact) ||
-        !SemanticAstFunctionSignatureFactsMatchArtifact(
-            artifact, signatures
-        ) || !SemanticAstNominalConstructorFactsMatchArtifact(
-            artifact, constructors
-        ) || !SemanticAstLocalBindingFactsMatchArtifact(
-            artifact, signatures, locals
-        ) || !SemanticAstExpressionSurfaceBorrowReady(
-            artifact, expression_surfaces
-        ) || !SemanticAstExpressionFunctionTableFactsReady(
-            function_tables
-        ) {
+    SemanticAstInitializerTypePressureStage(
+        observe_pressure, "admitted:start"
+    );
+    if !signatures.ok ||
+        signatures.artifact_node_count != artifact.count ||
+        !constructors.ok ||
+        constructors.artifact_node_count != artifact.count ||
+        !locals.ok || locals.artifact_node_count != artifact.count ||
+        !expression_surfaces.ok ||
+        expression_surfaces.artifact_node_count != artifact.count ||
+        !SemanticAstEnumRowsReady(enum_facts) ||
+        !function_scopes.ok ||
+        function_scopes.artifact_node_count != artifact.count ||
+        ArrayLength(function_scopes.function_node_ids) != artifact.count ||
+        !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
         return SemanticAstInitializerTypeStructuralError(artifact);
     }
-    SemanticAstInitializerTypePressureStage(observe_pressure, "ready:done");
-
-    let enum_facts: SemanticAstEnumFacts =
-        SemanticAstEnumFactsFromArtifact(artifact);
+    SemanticAstInitializerTypePressureStage(
+        observe_pressure, "admitted:done"
+    );
     SemanticAstInitializerTypePressureStage(observe_pressure, "enum:done");
-    if !enum_facts.ok {
-        return SemanticAstInitializerTypeStructuralError(artifact);
-    }
     SemanticAstInitializerTypePressureStage(
         observe_pressure,
         Concat("function-tables:done:locals=", ToString(
@@ -198,8 +198,9 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFun
             i = i + 1;
             continue;
         }
-        if !SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
-            artifact, expression_surfaces, signatures, constructors,
+        if !SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
+            artifact, expression_surfaces, constructors, enum_facts,
+            function_scopes,
             locals.function_node_ids[i],
             locals.node_ids[i], names, types, modes, function_tables
         ) || ArrayLength(names) != ArrayLength(modes) {
@@ -361,6 +362,55 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFun
         true, "", "", artifact.count, node_ids,
         inferred_type_names, verified, diagnostic_codes,
         diagnostic_messages, binding_kinds, binding_indices
+    );
+}
+
+func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFunctionTables(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    iteration_node_ids: Array<Int>,
+    iteration_function_node_ids: Array<Int>,
+    iteration_binding_names: Array<String>,
+    iteration_binding_types: Array<String>,
+    iteration_verified: Array<Int>,
+    base_facts: SemanticAstInitializerTypeFacts,
+    reuse_unaffected: Bool,
+    observe_pressure: Bool,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> SemanticAstInitializerTypeFacts {
+    SemanticAstInitializerTypePressureStage(observe_pressure, "ready:start");
+    if !AstTreeArtifactReady(artifact) ||
+        !SemanticAstFunctionSignatureFactsMatchArtifact(
+            artifact, signatures
+        ) || !SemanticAstNominalConstructorFactsMatchArtifact(
+            artifact, constructors
+        ) || !SemanticAstLocalBindingFactsMatchArtifact(
+            artifact, signatures, locals
+        ) || !SemanticAstExpressionSurfaceBorrowReady(
+            artifact, expression_surfaces
+        ) || !SemanticAstExpressionFunctionTableFactsReady(
+            function_tables
+        ) {
+        return SemanticAstInitializerTypeStructuralError(artifact);
+    }
+    let enum_facts: SemanticAstEnumFacts =
+        SemanticAstEnumFactsFromArtifact(artifact);
+    let function_scopes: SemanticAstFunctionScopeFacts =
+        SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    if !enum_facts.ok || !function_scopes.ok {
+        return SemanticAstInitializerTypeStructuralError(artifact);
+    }
+    SemanticAstInitializerTypePressureStage(observe_pressure, "ready:done");
+    return SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObservedWithFunctionTables(
+        artifact, signatures, constructors, locals, expression_surfaces,
+        enum_facts, function_scopes,
+        iteration_node_ids, iteration_function_node_ids,
+        iteration_binding_names, iteration_binding_types,
+        iteration_verified, base_facts, reuse_unaffected,
+        observe_pressure, function_tables
     );
 }
 

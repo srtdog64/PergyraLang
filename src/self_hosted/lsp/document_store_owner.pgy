@@ -6,6 +6,8 @@
 
 import "../lib/json_emit.pgy";
 import "../lib/json_fact_table.pgy";
+import "../../../stdlib/host_task_slot.pgy";
+import "document_revision_owner.pgy";
 import "transport_owner.pgy";
 
 func LspDocumentStoreSchema() -> String {
@@ -38,23 +40,22 @@ func LspDocumentStoreEventJson(
     return JsonEmitObject(fields);
 }
 
-func LspDocumentStoreStateRowJson(uri: String, version: String, text: String) -> Option<String> {
+func LspDocumentStoreStateRowJson(revision: LspDocumentRevision) -> Option<String> {
     let fields: Array<String> = [];
-    ArrayPush(fields, JsonEmitFieldString("uri", uri));
-    ArrayPush(fields, JsonEmitFieldString("version", version));
-    ArrayPush(fields, JsonEmitFieldString("text", text));
+    ArrayPush(fields, JsonEmitFieldString("uri", revision.uri));
+    ArrayPush(fields, JsonEmitFieldString("version", ToString(revision.version)));
+    ArrayPush(fields, JsonEmitFieldString("text", revision.text));
+    ArrayPush(fields, JsonEmitFieldNumber("generation", ToString(revision.ticket.generation)));
     return Some(JsonEmitObject(fields));
 }
 
 func LspDocumentStoreStateRowsJson(
-    uris: Array<String>,
-    versions: Array<String>,
-    texts: Array<String>
+    revisions: Array<LspDocumentRevision>
 ) -> String {
     let rows: Array<String> = [];
     let i: Int = 0;
-    while i < ArrayLength(uris) {
-        let row: Option<String> = LspDocumentStoreStateRowJson(uris[i], versions[i], texts[i]);
+    while i < ArrayLength(revisions) {
+        let row: Option<String> = LspDocumentStoreStateRowJson(revisions[i]);
         if IsSome(row) {
             ArrayPush(rows, UnwrapOption(row));
         }
@@ -63,15 +64,47 @@ func LspDocumentStoreStateRowsJson(
     return JsonEmitArray(rows);
 }
 
-func LspDocumentStoreFindUri(uris: Array<String>, uri: String) -> Option<Int> {
-    let i: Int = 0;
-    while i < ArrayLength(uris) {
-        if uris[i] == uri {
-            return Some(i);
-        }
-        i = i + 1;
+func LspDocumentStoreEventForAdmission(
+    method: String,
+    uri: String,
+    version: String,
+    action: String,
+    admission: LspDocumentRevisionAdmission
+) -> String {
+    if admission.applied {
+        return LspDocumentStoreEventJson(method, uri, version, action, true, "");
     }
-    return None;
+    if admission.status == "duplicate" {
+        return LspDocumentStoreEventJson(
+            method,
+            uri,
+            version,
+            "duplicate",
+            true,
+            admission.reason
+        );
+    }
+    return LspDocumentStoreEventJson(
+        method,
+        uri,
+        version,
+        "error",
+        false,
+        admission.reason
+    );
+}
+
+func LspDocumentStorePublicationJson(
+    candidate: LspDocumentRevision,
+    admission: LspDocumentPublicationAdmission
+) -> String {
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("uri", candidate.uri));
+    ArrayPush(fields, JsonEmitFieldString("version", ToString(candidate.version)));
+    ArrayPush(fields, JsonEmitFieldNumber("generation", ToString(candidate.ticket.generation)));
+    ArrayPush(fields, JsonEmitFieldBool("ok", admission.applied));
+    ArrayPush(fields, JsonEmitFieldString("reason", admission.reason));
+    return JsonEmitObject(fields);
 }
 
 func LspDocumentStoreOpenText(table: JsonObjectFactTable) -> Option<String> {
@@ -158,9 +191,8 @@ func LspDocumentStoreJson(buffer: String) -> Option<String> {
     let frame_count: Int = 0;
     let mutations: Int = 0;
     let errors: Int = 0;
-    let uris: Array<String> = [];
-    let versions: Array<String> = [];
-    let texts: Array<String> = [];
+    let revisions: Array<LspDocumentRevision> = [];
+    let publication_candidates: Array<LspDocumentRevision> = [];
     let final_uri: String = "";
     let final_version: String = "";
     let final_text: String = "";
@@ -184,39 +216,88 @@ func LspDocumentStoreJson(buffer: String) -> Option<String> {
                 let root: JsonObjectFactTable = JsonDocumentObjectFactTable(body);
                 let action_open: Bool = StringIndexOf(event, "\"action\":\"open\"") >= 0;
                 let action_change: Bool = StringIndexOf(event, "\"action\":\"change\"") >= 0;
-                if action_change && JsonObjectFactTableReady(root) {
+                if (action_open || action_change) && JsonObjectFactTableReady(root) {
                     let text_document: JsonObjectFactTable = LspDocumentStoreTextDocument(root);
-                    let uri_opt: Option<String> = JsonObjectFactStringFieldOpt(text_document, "uri");
-                    if IsSome(uri_opt) {
-                        let uri: String = UnwrapOption(uri_opt);
-                        if !IsSome(LspDocumentStoreFindUri(uris, uri)) {
-                            event = LspDocumentStoreEventJson("textDocument/didChange", uri, "", "error", false, "unknown_document");
+                    let uri: String = UnwrapOption(JsonObjectFactStringFieldOpt(text_document, "uri"));
+                    let version_opt: Option<String> = JsonObjectFactNumberFieldOpt(text_document, "version");
+                    let version: String = "";
+                    if IsSome(version_opt) {
+                        version = UnwrapOption(version_opt);
+                    }
+                    let text: String = UnwrapOption(LspDocumentStoreApplyText(body));
+                    let existing_opt: Option<Int> = LspDocumentRevisionFindUri(revisions, uri);
+                    if action_open {
+                        if IsSome(existing_opt) {
+                            event = LspDocumentStoreEventJson(
+                                "textDocument/didOpen",
+                                uri,
+                                version,
+                                "error",
+                                false,
+                                "document_already_open"
+                            );
+                        } else {
+                            let admission: LspDocumentRevisionAdmission =
+                                LspDocumentRevisionOpen(uri, version, text);
+                            event = LspDocumentStoreEventForAdmission(
+                                "textDocument/didOpen",
+                                uri,
+                                version,
+                                "open",
+                                admission
+                            );
+                            if admission.applied {
+                                let revision: LspDocumentRevision =
+                                    UnwrapOption(admission.revision);
+                                ArrayPush(revisions, revision);
+                                ArrayPush(publication_candidates, revision);
+                                final_uri = revision.uri;
+                                final_version = ToString(revision.version);
+                                final_text = revision.text;
+                                mutations = mutations + 1;
+                            }
+                        }
+                    } else {
+                        if !IsSome(existing_opt) {
+                            event = LspDocumentStoreEventJson(
+                                "textDocument/didChange",
+                                uri,
+                                version,
+                                "error",
+                                false,
+                                "unknown_document"
+                            );
+                        } else {
+                            let existing: Int = UnwrapOption(existing_opt);
+                            let admission: LspDocumentRevisionAdmission =
+                                LspDocumentRevisionChange(
+                                    revisions[existing],
+                                    version,
+                                    text
+                                );
+                            event = LspDocumentStoreEventForAdmission(
+                                "textDocument/didChange",
+                                uri,
+                                version,
+                                "change",
+                                admission
+                            );
+                            if admission.applied {
+                                let revision: LspDocumentRevision =
+                                    UnwrapOption(admission.revision);
+                                ArraySet(revisions, existing, revision);
+                                ArrayPush(publication_candidates, revision);
+                                final_uri = revision.uri;
+                                final_version = ToString(revision.version);
+                                final_text = revision.text;
+                                mutations = mutations + 1;
+                            }
                         }
                     }
                 }
                 ArrayPush(events, event);
                 if StringIndexOf(event, "\"ok\":false") >= 0 {
                     errors = errors + 1;
-                }
-                if StringIndexOf(event, "\"ok\":true") >= 0 && (action_open || action_change) {
-                    let text_document: JsonObjectFactTable = LspDocumentStoreTextDocument(JsonDocumentObjectFactTable(body));
-                    final_uri = UnwrapOption(JsonObjectFactStringFieldOpt(text_document, "uri"));
-                    let version_opt: Option<String> = JsonObjectFactNumberFieldOpt(text_document, "version");
-                    if IsSome(version_opt) {
-                        final_version = UnwrapOption(version_opt);
-                    }
-                    final_text = UnwrapOption(LspDocumentStoreApplyText(body));
-                    let existing_opt: Option<Int> = LspDocumentStoreFindUri(uris, final_uri);
-                    if IsSome(existing_opt) {
-                        let existing: Int = UnwrapOption(existing_opt);
-                        ArraySet(versions, existing, final_version);
-                        ArraySet(texts, existing, final_text);
-                    } else {
-                        ArrayPush(uris, final_uri);
-                        ArrayPush(versions, final_version);
-                        ArrayPush(texts, final_text);
-                    }
-                    mutations = mutations + 1;
                 }
                 cursor = cursor + UnwrapOption(complete_opt);
             }
@@ -226,6 +307,29 @@ func LspDocumentStoreJson(buffer: String) -> Option<String> {
     let partial_reason_text: String = "";
     if IsSome(partial_reason) {
         partial_reason_text = UnwrapOption(partial_reason);
+    }
+
+    let publications: Array<String> = [];
+    let publication_rejections: Int = 0;
+    let candidate_index: Int = 0;
+    while candidate_index < ArrayLength(publication_candidates) {
+        let candidate: LspDocumentRevision = publication_candidates[candidate_index];
+        let current_index: Int = UnwrapOption(
+            LspDocumentRevisionFindUri(revisions, candidate.uri)
+        );
+        let publication: LspDocumentPublicationAdmission =
+            LspDocumentPublicationAdmissionFor(
+                revisions[current_index],
+                candidate
+            );
+        if !publication.applied {
+            publication_rejections = publication_rejections + 1;
+        }
+        ArrayPush(
+            publications,
+            LspDocumentStorePublicationJson(candidate, publication)
+        );
+        candidate_index = candidate_index + 1;
     }
 
     let fields: Array<String> = [];
@@ -238,8 +342,11 @@ func LspDocumentStoreJson(buffer: String) -> Option<String> {
     ArrayPush(fields, JsonEmitFieldString("finalUri", final_uri));
     ArrayPush(fields, JsonEmitFieldString("finalVersion", final_version));
     ArrayPush(fields, JsonEmitFieldString("finalText", final_text));
-    ArrayPush(fields, JsonEmitFieldNumber("documentCount", ToString(ArrayLength(uris))));
-    ArrayPush(fields, JsonEmitFieldRaw("documents", LspDocumentStoreStateRowsJson(uris, versions, texts)));
+    ArrayPush(fields, JsonEmitFieldNumber("documentCount", ToString(ArrayLength(revisions))));
+    ArrayPush(fields, JsonEmitFieldNumber("publicationCandidates", ToString(ArrayLength(publication_candidates))));
+    ArrayPush(fields, JsonEmitFieldNumber("publicationRejections", ToString(publication_rejections)));
+    ArrayPush(fields, JsonEmitFieldRaw("documents", LspDocumentStoreStateRowsJson(revisions)));
+    ArrayPush(fields, JsonEmitFieldRaw("publications", JsonEmitArray(publications)));
     ArrayPush(fields, JsonEmitFieldRaw("events", JsonEmitArray(events)));
     return Some(JsonEmitObject(fields));
 }

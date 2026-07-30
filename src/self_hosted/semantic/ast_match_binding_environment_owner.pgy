@@ -133,13 +133,15 @@ func SemanticAstExpressionSeedMatchCaseBindings(
     return true;
 }
 
-// Hot semantic passes prove artifact/surface readiness once before iterating
-// use sites. This borrowed entrypoint must not repeat whole-graph readiness.
-func SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
+// The body-analysis owner has admitted these whole-program facts once. This
+// entrypoint may walk only the use-site ancestry and individual case pattern;
+// it must not rebuild enum or function-scope inventories per use site.
+func SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
     artifact: AstTreeArtifact,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
-    signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
+    enums: SemanticAstEnumFacts,
+    function_scopes: SemanticAstFunctionScopeFacts,
     function_node_id: Int,
     use_node_id: Int,
     inout names: Array<String>,
@@ -169,14 +171,9 @@ func SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
         traversed = traversed + 1;
     }
     if ArrayLength(case_nodes) == 0 { return true; }
-    let enums: SemanticAstEnumFacts =
-        SemanticAstEnumFactsFromArtifact(artifact);
-    if !enums.ok {
-        return false;
-    }
-    let function_scopes: SemanticAstFunctionScopeFacts =
-        SemanticAstFunctionScopeFactsFromArtifact(artifact);
-    if !function_scopes.ok {
+    if !SemanticAstEnumRowsReady(enums) || !function_scopes.ok ||
+        function_scopes.artifact_node_count != artifact.count ||
+        ArrayLength(function_scopes.function_node_ids) != artifact.count {
         return false;
     }
     let i: Int = ArrayLength(case_nodes) - 1;
@@ -191,6 +188,34 @@ func SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
         i = i - 1;
     }
     return true;
+}
+
+// Hot checked semantic passes prove artifact/surface readiness once before
+// iterating use sites. They still reconstruct the compatibility facts here;
+// producer-sealed body analysis calls the admitted-facts entrypoint directly.
+func SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
+    artifact: AstTreeArtifact,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    function_node_id: Int,
+    use_node_id: Int,
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> Bool {
+    let enums: SemanticAstEnumFacts =
+        SemanticAstEnumFactsFromArtifact(artifact);
+    let function_scopes: SemanticAstFunctionScopeFacts =
+        SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    if !enums.ok || !function_scopes.ok {
+        return false;
+    }
+    return SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
+        artifact, expression_surfaces, constructors, enums, function_scopes,
+        function_node_id, use_node_id, names, types, modes, function_tables
+    );
 }
 
 func SemanticAstExpressionSeedVisibleMatchBindings(

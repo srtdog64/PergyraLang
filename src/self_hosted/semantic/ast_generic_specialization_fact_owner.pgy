@@ -100,14 +100,18 @@ func SemanticAstGenericSpecializationAppend(
     return true;
 }
 
-func SemanticAstGenericSpecializationFactsFromBody(
+func SemanticAstGenericSpecializationFactsFromAdmittedBody(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts,
     initializer_types: SemanticAstInitializerTypeFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
-    function_tables: SemanticAstExpressionFunctionTableFacts
+    function_tables: SemanticAstExpressionFunctionTableFacts,
+    enum_facts: SemanticAstEnumFacts,
+    intent_signatures: SemanticAstIntentSignatureFacts,
+    intent_transitions: SemanticAstIntentTransitionFacts,
+    function_scopes: SemanticAstFunctionScopeFacts
 ) -> SemanticAstGenericSpecializationFacts {
     let call_node_ids: Array<Int> = [];
     let signature_indexes: Array<Int> = [];
@@ -116,8 +120,6 @@ func SemanticAstGenericSpecializationFactsFromBody(
     let actual_type_names: Array<String> = [];
     if !SemanticAstInitializerTypeFactsReadyProjection(
         artifact, locals, initializer_types
-    ) || !SemanticAstExpressionSurfaceBorrowReady(
-        artifact, expression_surfaces
     ) {
         return SemanticAstGenericSpecializationError(
             "ast_artifact_invalid",
@@ -213,9 +215,7 @@ func SemanticAstGenericSpecializationFactsFromBody(
         node_id = node_id + 1;
     }
 
-    let enum_facts: SemanticAstEnumFacts =
-        SemanticAstEnumFactsFromArtifact(artifact);
-    if !enum_facts.ok {
+    if !SemanticAstEnumRowsReady(enum_facts) {
         return SemanticAstGenericSpecializationError(
             "ast_artifact_invalid",
             SemanticError1(
@@ -235,9 +235,9 @@ func SemanticAstGenericSpecializationFactsFromBody(
             actual_type_names
         );
     }
-    let intent_signatures: SemanticAstIntentSignatureFacts =
-        SemanticAstIntentSignatureFactsFromArtifact(artifact);
-    if !SemanticAstIntentSignatureFactsReady(artifact, intent_signatures) {
+    if !SemanticAstIntentSignatureFactsAdmittedReady(
+        artifact, intent_signatures
+    ) {
         return SemanticAstGenericSpecializationError(
             "ast_artifact_invalid",
             SemanticError1(
@@ -247,11 +247,11 @@ func SemanticAstGenericSpecializationFactsFromBody(
             actual_type_names
         );
     }
-    let intent_transitions: SemanticAstIntentTransitionFacts =
-        SemanticAstIntentTransitionFactsFromArtifact(
-            artifact, signatures, intent_signatures
-        );
-    if !SemanticAstIntentTransitionFactsReady(artifact, intent_transitions) {
+    if !intent_transitions.ok ||
+        intent_transitions.artifact_node_count != artifact.count ||
+        !function_scopes.ok ||
+        function_scopes.artifact_node_count != artifact.count ||
+        ArrayLength(function_scopes.function_node_ids) != artifact.count {
         return SemanticAstGenericSpecializationError(
             "ast_artifact_invalid",
             SemanticError1(
@@ -316,8 +316,9 @@ func SemanticAstGenericSpecializationFactsFromBody(
             ) && SemanticAstExpressionSeedVisibleLocalModes(
                 artifact, locals, UnwrapOption(function_node), use_node_id,
                 modes
-            ) && SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
-                artifact, expression_surfaces, signatures, constructors,
+            ) && SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
+                artifact, expression_surfaces, constructors, enum_facts,
+                function_scopes,
                 UnwrapOption(function_node), use_node_id,
                 names, types, modes, function_tables
             );
@@ -503,6 +504,49 @@ func SemanticAstGenericSpecializationFactsFromBody(
         true, "", "", call_node_ids, source_owner_node_ids,
         source_lanes, source_call_ordinals, signature_indexes,
         actual_starts, actual_counts, actual_type_names
+    );
+}
+
+func SemanticAstGenericSpecializationFactsFromBody(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> SemanticAstGenericSpecializationFacts {
+    let enum_facts: SemanticAstEnumFacts =
+        SemanticAstEnumFactsFromArtifact(artifact);
+    let intent_signatures: SemanticAstIntentSignatureFacts =
+        SemanticAstIntentSignatureFactsFromArtifact(artifact);
+    let intent_transitions: SemanticAstIntentTransitionFacts =
+        SemanticAstIntentTransitionFactsFromArtifact(
+            artifact, signatures, intent_signatures
+        );
+    let function_scopes: SemanticAstFunctionScopeFacts =
+        SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    if !SemanticAstExpressionSurfaceBorrowReady(
+        artifact, expression_surfaces
+    ) || !SemanticAstIntentSignatureFactsReady(
+        artifact, intent_signatures
+    ) || !SemanticAstIntentTransitionFactsReady(
+        artifact, intent_transitions
+    ) || !function_scopes.ok {
+        let empty_ints: Array<Int> = [];
+        let empty_strings: Array<String> = [];
+        return SemanticAstGenericSpecializationError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "generic_specialization"
+            ),
+            empty_ints, empty_ints, empty_ints, empty_ints, empty_strings
+        );
+    }
+    return SemanticAstGenericSpecializationFactsFromAdmittedBody(
+        artifact, signatures, constructors, locals, initializer_types,
+        expression_surfaces, function_tables, enum_facts, intent_signatures,
+        intent_transitions, function_scopes
     );
 }
 

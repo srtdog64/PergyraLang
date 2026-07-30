@@ -114,18 +114,24 @@ doc = json.loads(source.read_text(encoding="utf-8"))
 # not by accidental numeric equality with the parser's current arena IDs.
 owner_ids = {}
 field_ids = {}
+field_ids_by_source_id = {}
+directive_ids = {}
 for decl in doc["decls"]:
     for field in decl["fields"]:
         old_field_id = field["source_syntax_id"]
         field["source_syntax_id"] = old_field_id + 200000
         field_ids[(decl["name"], field["name"], old_field_id)] = \
             field["source_syntax_id"]
+        field_ids_by_source_id[old_field_id] = field["source_syntax_id"]
 for row in doc["domain_topology"]["rows"]:
     old_owner_id = row["owner_source_syntax_id"]
     if row["owner_name"] not in owner_ids:
         owner_ids[row["owner_name"]] = old_owner_id + 100000
     row["owner_source_syntax_id"] = owner_ids[row["owner_name"]]
+    old_directive_id = row["source_syntax_id"]
     row["source_syntax_id"] += 300000
+    directive_ids[(row["owner_name"], old_directive_id)] = \
+        row["source_syntax_id"]
     for prefix in (
         "projection_slot", "source_slot", "layer_slot", "target_slot",
         "left_slot", "right_slot", "participant_slot",
@@ -136,6 +142,37 @@ for row in doc["domain_topology"]["rows"]:
             row[prefix + "_source_syntax_id"] = field_ids[
                 (row["owner_name"], name, old_id)
             ]
+
+# Runtime assignment rows are part of the same producer identity epoch. Keep
+# them exact with the transformed declaration/topology carrier so the positive
+# fixture reaches canonicalization instead of failing machine admission first.
+runtime = doc["domain_runtime_assignments"]
+for role in runtime["participant_roles"]:
+    old_field_id = role["field_syntax_id"]
+    role["owner_syntax_id"] = owner_ids[role["owner_name"]]
+    role["field_syntax_id"] = field_ids[
+        (role["owner_name"], role["field_name"], old_field_id)
+    ]
+for member in runtime["projection_members"]:
+    owner = member["owner_name"]
+    member["owner_syntax_id"] = owner_ids[owner]
+    member["directive_syntax_id"] = directive_ids[
+        (owner, member["directive_syntax_id"])
+    ]
+    member["projection_slot_syntax_id"] = field_ids[
+        (owner, member["projection_slot_name"],
+         member["projection_slot_syntax_id"])
+    ]
+    member["source_slot_syntax_id"] = field_ids[
+        (owner, member["source_slot_name"], member["source_slot_syntax_id"])
+    ]
+    member["target_field_syntax_id"] = field_ids_by_source_id[
+        member["target_field_syntax_id"]
+    ]
+    for segment in member["source_path_segments"]:
+        segment["field_syntax_id"] = field_ids_by_source_id[
+            segment["field_syntax_id"]
+        ]
 
 main = next(row for row in doc["routines"] if row["name"] == "Main")
 main["blocks"] = [{
@@ -280,6 +317,9 @@ for decl in carrier["decls"]:
         exact = (decl["name"], field["name"], field["field_kind"])
         field["source_syntax_id"] = canonical_fields[exact]
 carrier["domain_topology"] = copy.deepcopy(canonical_topology)
+carrier["domain_runtime_assignments"] = copy.deepcopy(
+    canonical["domain_runtime_assignments"]
+)
 carrier_path.write_text(
     json.dumps(carrier, separators=(",", ":")), encoding="utf-8"
 )

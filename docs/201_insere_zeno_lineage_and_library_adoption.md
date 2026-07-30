@@ -13,9 +13,12 @@ Pergyra의 기존 Slot, MIR ABI/layout, ownership 경계에 맞춰 의미를 번
 현재 `HostTaskSlot`과 그 typed `spawn`/`restart`/`skip` admission policy는
 C/LLVM으로 실행되는 official-library slice로 구현되어 `REACHABLE`이고,
 `SnapshotTicket`과 `BinaryProjectionPreflight`도 Pergyra로 컴파일되는 internal
-library/tooling slice에서 `REACHABLE`이다. 이 완료 표시는 각 bounded slice의
-구현과 focused gate 완료를 뜻한다. 어느 경로도 C-owned compiler production
-path를 삭제하지 않았으므로 `SUBSTITUTING`이 아니다.
+library/tooling slice에서 `REACHABLE`이다. Insere-derived URI revision/ticket은
+production self-host LSP `Main --document-store-probe`에서 stale diagnostics
+publication을 거부하는 bounded `REACHABLE` consumer까지 연결됐다. 이 완료
+표시는 각 bounded slice의 구현과 focused gate 완료를 뜻한다. 어느 경로도
+C-owned compiler/LSP production path를 삭제하지 않았으므로 `SUBSTITUTING`이
+아니다.
 
 검토 기준 snapshot은 Insere `997287030f3cbc64c6f5f8f15053a67cdae4e9a9`
 (`main == origin/main`, clean)과 Zeno
@@ -233,6 +236,50 @@ host boundary publication과 receipt lifecycle이 없으므로 현재 결과는 
 value이며, future adapter가 detached handoff를 요구할 때 별도의 materialization
 owner를 증명해야 한다.
 
+## 5.2 Objective card E — self-host LSP latest document publication
+
+- Objective: production self-host LSP entrypoint의 `--document-store-probe`가
+  URI별 문서 revision을 typed monotonic fact로 admission하고, superseded
+  generation에서 끝난 diagnostics 후보가 최신 문서 publication을 덮지 못하게
+  한다.
+- Priority: URI별 version monotonicity, same-version payload identity, current
+  HostTask generation, stale publication rejection, 기존 LSP transport/JSON fact
+  owner 재사용, output 편의성.
+- Fact owner: `LspDocumentRevision`이 URI, numeric version, exact text,
+  `HostTaskSlot`, current ticket을 한 record로 소유한다.
+  `LspDocumentRevisionChange`가 version/payload admission을,
+  `LspDocumentPublicationAdmissionFor`가 마지막 publication 결정을 소유한다.
+  `HostTaskSlot`은 generation identity만 소유하며 LSP version이나 text를
+  재판단하지 않는다.
+- Production entrypoint / last consumer: `src/self_hosted/lsp/main.pgy`의 기존
+  `--document-store-probe` route와 그 `LspDocumentStoreJson` publication-admission
+  artifact다.
+- Direct bypass to delete: `document_store_owner.pgy`가 URI/version/text 평행
+  배열을 직접 `ArraySet`하고 version order나 current ticket 없이 mutation을
+  성공 처리하는 경로.
+- Forbidden fallback: version 문자열 비교, lower/equal version overwrite,
+  same-version different-text acceptance, URI-only latest 판정, stale candidate의
+  payload equality만으로 publication 허용, rejected change 뒤 partial document
+  mutation, 별도 scheduler/runtime 도입이다.
+- Verification: `A@10`, `B@3`, `A@12`, stale `A@11`, conflicting
+  `A@12(other text)` 순서에서 최종 state는 정확히 A@12/B@3이고 errors는 두
+  종류로 구분된다. 지연 완료 후보 A@10은 `stale_generation`, B@3과 A@12만
+  publication admission을 얻어야 하며 C/LLVM artifact가 byte-equal해야 한다.
+
+이 경계는 실제 self-host LSP `Main`에서 실행되므로 bounded `REACHABLE`이다.
+하지만 buffered probe가 live editor loop나 C-owned released LSP path를 삭제하지
+않으므로 `SUBSTITUTING`은 아니다. `tobject` publication receipt도 아직 만들지
+않는다. 현재 artifact는 admission 관측값이며 실제 JSON-RPC
+`publishDiagnostics` 송신 transaction이 생길 때 detached receipt owner를 연다.
+
+현재 MIR-only self-host C path는 외부 stdlib import 안의 namespace-qualified
+`HostTasks.*` call을 nested owner body에서 아직 resolve하지 못한다. 따라서 이
+internal owner는 그 parser-owned normalized callable identity인
+`HostTasks_Open`/`HostTasks_ApplyPolicy`/`HostTasks_IsCurrent`를 직접 소비한다.
+이는 policy 재구현이나 두 번째 API owner가 아니라 현재 call-target carriage
+blocker다. namespace call-target가 닫히면 의미 owner 변경 없이 source spelling만
+canonical `HostTasks.*`로 되돌리는 것이 다음 DX ratchet이다.
+
 ## 6. 단계별 구현 계획
 
 ### Phase 0 — 현재 구현된 bounded slice
@@ -240,6 +287,7 @@ owner를 증명해야 한다.
 | Track | 상태 | Evidence | Grade |
 | --- | --- | --- | --- |
 | HostTaskSlot | generation guard와 typed admission policy 구현·배치·focused parity 완료 | `stdlib/host_task_slot.pgy`, `tests/host_task_slot_smoke.sh`, `tests/host_task_policy_smoke.sh`, `docs/stdlib/host_task_slot.md`, stdlib inventory/stable-use wiring | `REACHABLE` official library |
+| LSP latest publication | URI/version/text/ticket revision admission과 stale diagnostics publication rejection이 production self-host LSP Main에 연결됨 | `src/self_hosted/lsp/document_revision_owner.pgy`, `document_store_owner.pgy`, `tests/self_hosted/parity/lsp_document_latest_publication_parity.sh` | bounded `REACHABLE` self-host LSP |
 | SnapshotTicket | caller-provided identity의 immutable 결속과 generation rejection 구현; live handle authenticity는 미연결 | `src/self_hosted/lib/snapshot_ticket.pgy` | `REACHABLE` tooling/library |
 | BinaryProjection | existing layout id + explicit endian preflight 구현 | `src/self_hosted/lib/binary_projection_preflight_owner.pgy` | `REACHABLE` tooling/library |
 | executable probe | C와 LLVM 동일 positive/negative 실행 | `src/self_hosted/tools/binary_projection_preflight_probe/main.pgy`와 `intent.md` | focused evidence |
@@ -247,7 +295,9 @@ owner를 증명해야 한다.
 
 `REACHABLE`은 official-library fixture 또는 tooling entrypoint가 실제 Pergyra
 C/LLVM 프로그램으로 실행된다는 뜻이다. production compiler root가 소비한다는
-뜻이 아니며 세 track 모두 hard self-host `SUBSTITUTING` 진척으로 세지 않는다.
+뜻이 아니다. LSP latest slice도 production self-host LSP `Main`의 buffered mode가
+소비하지만 C-owned released LSP를 대체하지 않으므로, 어느 track도 hard self-host
+`SUBSTITUTING` 진척으로 세지 않는다.
 
 ### Phase 1 — HostTaskSlot production adoption
 
@@ -258,9 +308,12 @@ C/LLVM 프로그램으로 실행된다는 뜻이다. production compiler root가
   generation 0/negative·unknown phase·증가 상한의 fail-closed 처리가 하나의
   `ApplyPolicy` owner와 C/LLVM parity로 고정됐다.
 - 완료: Result/reason vocabulary, active module inventory, stable-use wiring.
-- 다음: 실제 host adapter가 existing task/future handle 옆의 ticket을 소비하고
-  policy decision의 `applied`/`status`를 시작 경계에서 소비한 뒤,
-  publish/cleanup 직전에 current slot을 재확인한다.
+- 완료: self-host LSP `Main --document-store-probe`가 URI별 typed revision 옆의
+  ticket을 소비하고 diagnostics publication 직전에 current slot을 재확인한다.
+  A@10/B@3/A@12 뒤 A@10 publication과 stale/conflicting change가 거부된다.
+- 다음: live LSP read-exact loop가 동일 owner를 소비하고, 실제 diagnostics
+  computation completion이 candidate ticket을 운반한 뒤 released C LSP direct
+  document mutation을 삭제한다.
 - Insere scheduler 전체를 재작성하지 않는다.
 
 ### Phase 1.1 — post-failure supervision (`PROPOSED`)
@@ -351,6 +404,14 @@ Zeno의 capability-derived runtime import/emission 원칙은 이미 Pergyra의
   skip/spawn/restart, vacant start, malformed phase/generation C 실행 PASS.
 - `PGY_HOST_TASK_POLICY_BACKENDS=llvm bash tests/host_task_policy_smoke.sh`:
   동일 decision/status와 generation/ticket 결과 LLVM 실행 PASS.
+- `PGY_SELFHOST_LSP_BACKENDS=c bash
+  tests/self_hosted/parity/lsp_document_latest_publication_parity.sh`: production
+  `Main --document-store-probe`의 monotonic revision과 stale publication C PASS.
+- `PGY_SELFHOST_LSP_BACKENDS=llvm bash
+  tests/self_hosted/parity/lsp_document_latest_publication_parity.sh`: 동일 artifact
+  LLVM PASS; C/LLVM byte parity PASS.
+- 기존 `lsp_document_store_parity.sh`와 `lsp_session_state_parity.sh`도 갱신된
+  revision/publication artifact로 C/LLVM PASS.
 - `make stdlib-test-smoke`가 lifecycle과 policy gate를 모두 active stdlib CI
   surface에 결속한다. `host-task-slot-test-smoke`와
   `host-task-policy-test-smoke`는 focused target이다. 두 focused fixture가
@@ -369,17 +430,18 @@ Track 하나를 complete로 부르려면 named owner, missing-fact failure, old-
 deletion, negative ratchet, real last consumer가 모두 필요하다. self-host track은
 추가로 Pergyra implementation이 C-owned production path를 대체해야 한다.
 
-현재는 focused library/tooling evidence만 존재한다. 두 역작의 좋은 설계를
-Pergyra 방식으로 채택하기 시작했지만 compiler 전체나 stdlib가 이 설계로
-완성됐다고 주장하지 않는다.
+현재는 focused library/tooling evidence와 buffered self-host LSP entrypoint의
+bounded latest-only evidence가 존재한다. 두 역작의 좋은 설계를 Pergyra 방식으로
+채택하기 시작했지만 released LSP, compiler 전체나 stdlib가 이 설계로 완성됐다고
+주장하지 않는다.
 
 ## 9. 다음 falsifier 순서
 
 1. 현재 `selfhost.semantic_artifact_admission`의 2.9MB/5.1MB fixed-cap pressure와
    immutable-after-admission caller ratchet을 닫는다.
-2. Insere-derived slice로 self-host LSP의 URI별 typed monotonic version,
-   same-version payload conflict, stale diagnostic publication을
-   `A@10/B@3/A@12/stale A@11/conflicting A@12` corpus로 고정한다.
+2. self-host LSP의 live read-exact loop와 실제 diagnostics completion이 현재
+   revision ticket을 운반하게 하고 released C LSP의 direct document mutation을
+   삭제한다. Buffered `A@10/B@3/A@12/stale A@11/conflicting A@12` corpus는 완료다.
 3. Zeno-derived slice로 기존 `MirAbiLayoutRowCapture` exact tuple에서만 ABI
    inspect/diff를 파생하고 offset/size/alignment/endian mutation과 ID collision
    drift를 fail-closed한다. 새 layout IR/hash는 만들지 않는다.

@@ -67,7 +67,9 @@ func CompileAstArtifactToC(
         Exit(1);
     }
     let bundle: SemanticAstBodyTypeBundle =
-        SemanticAstBodyTypeBundleFromAnalysis(artifact, semantic_analysis);
+        SemanticAstBodyTypeBundleFromAdmittedAnalysis(
+            artifact, semantic_analysis
+        );
     let generic_specializations: CodegenGenericSpecializationFacts =
         CodegenGenericSpecializationFactsFromSemantic(
             semantic_analysis.signatures, bundle.generic_specializations

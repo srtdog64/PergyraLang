@@ -157,11 +157,12 @@ func ProbeAnalysisWithCallTarget(
             artifact, analysis.expression_surfaces, damaged_graph
         );
     return SemanticAstArtifactAnalysis(
-        analysis.verdict, analysis.signatures, analysis.constructors,
+        analysis.verdict, analysis.signatures, analysis.intent_signatures,
+        analysis.intent_transitions, analysis.constructors,
         analysis.local_bindings, analysis.assignments, analysis.statements,
         analysis.enums, analysis.roles, damaged_surfaces,
         analysis.type_surfaces, analysis.kind_surfaces,
-        analysis.function_tables
+        analysis.function_tables, analysis.function_scopes
     );
 }
 
@@ -234,11 +235,12 @@ func ProbeAnalysisWithoutCallTarget(
             artifact, analysis.expression_surfaces, damaged_graph
         );
     return SemanticAstArtifactAnalysis(
-        analysis.verdict, analysis.signatures, analysis.constructors,
+        analysis.verdict, analysis.signatures, analysis.intent_signatures,
+        analysis.intent_transitions, analysis.constructors,
         analysis.local_bindings, analysis.assignments, analysis.statements,
         analysis.enums, analysis.roles, damaged_surfaces,
         analysis.type_surfaces, analysis.kind_surfaces,
-        analysis.function_tables
+        analysis.function_tables, analysis.function_scopes
     );
 }
 

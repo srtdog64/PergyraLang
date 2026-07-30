@@ -8,6 +8,53 @@ import "ast_initializer_type_fact_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
 import "ast_initializer_type_function_table_bridge_owner.pgy";
 
+func SemanticAstInitializerTypeFactsRefinedByIterationsFromAdmittedFactsWithFunctionTables(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    enum_facts: SemanticAstEnumFacts,
+    function_scopes: SemanticAstFunctionScopeFacts,
+    statements: SemanticAstStatementFacts,
+    base_facts: SemanticAstInitializerTypeFacts,
+    iterations: SemanticAstIterationTypeFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> SemanticAstInitializerTypeFacts {
+    let count: Int = SemanticAstIterationTypeCount(iterations);
+    if !statements.ok ||
+        statements.artifact_node_count != artifact.count ||
+        !iterations.ok ||
+        iterations.artifact_node_count != artifact.count ||
+        ArrayLength(iterations.binding_type_names) != count ||
+        ArrayLength(iterations.verified) != count {
+        return SemanticAstInitializerTypeStructuralError(artifact);
+    }
+    let function_node_ids: Array<Int> = [];
+    let binding_names: Array<String> = [];
+    let i: Int = 0;
+    while i < count {
+        let statement_index: Option<Int> =
+            SemanticAstStatementIndexForNode(
+                statements, iterations.node_ids[i]
+            );
+        if !IsSome(statement_index) {
+            return SemanticAstInitializerTypeStructuralError(artifact);
+        }
+        let row: Int = UnwrapOption(statement_index);
+        ArrayPush(function_node_ids, statements.function_node_ids[row]);
+        ArrayPush(binding_names, statements.payload_texts[row]);
+        i = i + 1;
+    }
+    return SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsUsingFunctionTables(
+        artifact, signatures, constructors, locals, expression_surfaces,
+        enum_facts, function_scopes,
+        iterations.node_ids, function_node_ids, binding_names,
+        iterations.binding_type_names, iterations.verified,
+        base_facts, true, function_tables
+    );
+}
+
 func SemanticAstInitializerTypeFactsRefinedByIterationsWithFunctionTables(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,

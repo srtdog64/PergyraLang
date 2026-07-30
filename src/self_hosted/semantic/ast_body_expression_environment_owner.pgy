@@ -38,10 +38,11 @@ func SemanticAstBodyExpressionEnvironmentSeed(
         ) && SemanticAstIterationSeedVisibleBindings(
             artifact, analysis.statements, iteration_types,
             UnwrapOption(function_node_id), use_node_id, names, types, modes
-        ) && SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
-            artifact, analysis.expression_surfaces, analysis.signatures,
-            analysis.constructors, UnwrapOption(function_node_id), use_node_id,
-            names, types, modes, function_tables
+        ) && SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
+            artifact, analysis.expression_surfaces, analysis.constructors,
+            analysis.enums, analysis.function_scopes,
+            UnwrapOption(function_node_id), use_node_id, names, types, modes,
+            function_tables
         );
     } else if IsSome(intent_node_id) {
         environment_ok = SemanticAstExpressionSeedEnumValues(

@@ -75,24 +75,22 @@ func SemanticExpressionGraphPlaceKindsReady(
     return true;
 }
 
-func SemanticAstAnalysisResolveExpressionPlacesFromBody(
+func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
     artifact: AstTreeArtifact,
     inout analysis: SemanticAstArtifactAnalysis,
     initializer_types: SemanticAstInitializerTypeFacts,
     iteration_types: SemanticAstIterationTypeFacts,
     function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> Bool {
-    if !SemanticAstExpressionSurfaceBorrowReady(
-        artifact, analysis.expression_surfaces
-    ) || !initializer_types.ok || !iteration_types.ok ||
+    if !initializer_types.ok || !iteration_types.ok ||
         !SemanticAstExpressionFunctionTableFactsReady(function_tables) ||
         ArrayLength(initializer_types.inferred_type_names) !=
             SemanticAstLocalBindingCount(analysis.local_bindings) {
         return false;
     }
-    let intent_signatures: SemanticAstIntentSignatureFacts =
-        SemanticAstIntentSignatureFactsFromArtifact(artifact);
-    if !SemanticAstIntentSignatureFactsReady(artifact, intent_signatures) {
+    if !SemanticAstIntentSignatureFactsAdmittedReady(
+        artifact, analysis.intent_signatures
+    ) {
         return false;
     }
     let iteration_function_node_ids: Array<Int> = [];
@@ -172,15 +170,17 @@ func SemanticAstAnalysisResolveExpressionPlacesFromBody(
                         iteration_types.verified,
                         UnwrapOption(function_node_id), use_node_id,
                         names, types, modes
-                    ) && SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
+                    ) && SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
                         artifact, analysis.expression_surfaces,
-                        analysis.signatures, analysis.constructors,
+                        analysis.constructors, analysis.enums,
+                        analysis.function_scopes,
                         UnwrapOption(function_node_id), use_node_id,
                         names, types, modes, function_tables
                     );
                 } else if environment_ok && IsSome(intent_node_id) {
                     environment_ok = SemanticAstIntentExpressionSeedEnvironment(
-                        artifact, analysis.signatures, intent_signatures,
+                        artifact, analysis.signatures,
+                        analysis.intent_signatures,
                         analysis.intent_transitions,
                         UnwrapOption(intent_node_id), use_node_id,
                         names, types, modes
@@ -217,8 +217,30 @@ func SemanticAstAnalysisResolveExpressionPlacesFromBody(
         valid = false;
     }
     analysis.expression_surfaces.expression_graph = graph;
-    return valid && SemanticExpressionGraphPlaceKindsReady(
-        analysis.expression_surfaces.expression_graph
+    return valid && ArrayLength(
+        analysis.expression_surfaces.expression_graph.arena.place_kinds
+    ) == SemanticExpressionGraphArenaNodeCount(
+        analysis.expression_surfaces.expression_graph.arena
+    );
+}
+
+func SemanticAstAnalysisResolveExpressionPlacesFromBody(
+    artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    iteration_types: SemanticAstIterationTypeFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> Bool {
+    if !SemanticAstExpressionSurfaceBorrowReady(
+        artifact, analysis.expression_surfaces
+    ) || !SemanticAstIntentSignatureFactsReady(
+        artifact, analysis.intent_signatures
+    ) {
+        return false;
+    }
+    return SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
+        artifact, analysis, initializer_types, iteration_types,
+        function_tables
     );
 }
 

@@ -11,6 +11,7 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "../mir/domain_topology_fact_owner.pgy";
 import "../mir/domain_runtime_assignment_verify_owner.pgy";
 import "../mir/program_fact_owner.pgy";
+import "../mir_lower/domain_runtime_assignment_fact_owner.pgy";
 import "../mir_lower/domain_topology_fact_owner.pgy";
 import "../mir_lower/program_declaration_index_owner.pgy";
 import "../mir_lower/program_routine_index_owner.pgy";
@@ -227,37 +228,38 @@ func CanonicalMirIdentityEpochAppendOwnerTopology(
             ArraySet(directive_node_ids, row, node_count);
             node_count = node_count + 1;
             let assignment_row: Int = 0;
-            while assignment_row < ArrayLength(
-                runtime_assignments.projection_members.explicit_maps
-            ) {
-                if runtime_assignments.projection_members.
-                        topology_row_indices[assignment_row] == row &&
-                    runtime_assignments.projection_members.
-                        explicit_maps[assignment_row] {
-                    let segment_count: Int =
-                        runtime_assignments.projection_members.
-                            source_path_segment_counts[assignment_row];
-                    let segment_start: Int =
-                        runtime_assignments.projection_members.
-                            source_path_segment_starts[assignment_row];
+            while assignment_row <
+                MirDomainRuntimeProjectionAssignmentCount(runtime_assignments) {
+                if MirDomainRuntimeProjectionTopologyRowAt(
+                        runtime_assignments, assignment_row
+                    ) == row && MirDomainRuntimeProjectionExplicitAt(
+                        runtime_assignments, assignment_row
+                    ) {
+                    let segment_count: Int = MirDomainRuntimeProjectionSegmentCountAt(
+                        runtime_assignments, assignment_row
+                    );
+                    let segment_start: Int = MirDomainRuntimeProjectionSegmentStartAt(
+                        runtime_assignments, assignment_row
+                    );
                     if segment_count <= 0 {
                         return false;
                     }
                     let source_name: String =
-                        runtime_assignments.projection_members.
-                            source_path_segment_field_names[
+                        MirDomainRuntimeProjectionSegmentFieldNameAt(
+                            runtime_assignments,
                             segment_start + segment_count - 1
-                        ];
-                    if source_name == "" ||
-                        runtime_assignments.projection_members.
-                            target_field_names[assignment_row] == "" {
+                        );
+                    let target_name: String =
+                        MirDomainRuntimeProjectionTargetFieldNameAt(
+                            runtime_assignments, assignment_row
+                        );
+                    if source_name == "" || target_name == "" {
                         return false;
                     }
                     output = AppendLine(output, Concat(
                         IndentStr(indent + 4), Concat(
                             "ProjectionMap: ", Concat(
-                                runtime_assignments.projection_members.
-                                    target_field_names[assignment_row],
+                                target_name,
                                 Concat(" <- ", source_name)
                             )
                         )

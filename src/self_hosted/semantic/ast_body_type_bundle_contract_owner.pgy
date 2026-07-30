@@ -5,6 +5,7 @@
 // contract fixtures consumed by driver readiness.
 
 import "ast_body_type_bundle_owner.pgy";
+import "ast_body_analysis_admission_contract_owner.pgy";
 
 func SemanticAstBodyTypeBundleContractError() -> String {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
@@ -20,7 +21,10 @@ func SemanticAstBodyTypeBundleContractError() -> String {
 func SemanticAstBodyTypeBundleContractReady() -> Bool {
     return SemanticAstBodyTypeBundleContractError() == "" &&
         SemanticExpressionPlaceKindContractReady() &&
-        SemanticAstBodyTypeBundleMissingPlaceContractReady();
+        SemanticAstBodyTypeBundleMissingPlaceContractReady() &&
+        SemanticAstBodyTypeBundleStaleAdmissionContractReady() &&
+        SemanticAstBodyTypeBundleMalformedProducerRowAdmissionContractReady() &&
+        SemanticAstBodyAnalysisShapeAdmissionContractReady();
 }
 
 func SemanticAstBodyTypeBundleMissingPlaceContractReady() -> Bool {

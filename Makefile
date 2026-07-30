@@ -2967,6 +2967,7 @@ self-host-preparation-exhaustive-parity-test-smoke: $(PGY) $(PGY_LSP) self-host-
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung1_parity.sh
 	PGY_SELFHOST_DRIVER_BACKENDS="$${PGY_SELFHOST_DRIVER_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung2_body_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung2_analysis_admission_owner.sh
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" PGY_LSP_BIN="$(abspath $(PGY_LSP))" "$(BASH)" tests/self_hosted/parity/lsp_diagnostics_parity.sh
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
@@ -3233,6 +3234,8 @@ self-host-lsp-session-replay-parity-test-smoke: $(PGY)
 self-host-lsp-document-store-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_document_store_parity.sh
+	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_document_latest_publication_parity.sh
 
 self-host-lsp-session-state-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \

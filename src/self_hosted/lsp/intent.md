@@ -99,7 +99,10 @@ The `--session-replay-probe` mode prints a
 wire string and per-frame list.
 The `--document-store-probe` mode prints a
 `pgy.selfhost.lsp-document-store.v1` artifact with mutation count, final URI,
-final version, final text, deterministic document rows, and event rows.
+final version, final text, deterministic typed revision rows, queued
+publication candidates, current-generation publication admissions, and event
+rows. URI/version/text and HostTask generation remain one revision record;
+lower/equal conflicting versions do not partially mutate the store.
 The `--session-state-probe` mode prints a
 `pgy.selfhost.lsp-session-state.v1` artifact with raw `session` and
 `documentStore` fact objects.
@@ -125,6 +128,11 @@ emission parity is checked by
 replay parity is checked by
 `tests/self_hosted/parity/lsp_session_replay_parity.sh`; LSP-2f document-store
 parity is checked by `tests/self_hosted/parity/lsp_document_store_parity.sh`.
+Its Insere-derived latest-only negative is checked by
+`tests/self_hosted/parity/lsp_document_latest_publication_parity.sh`: the real
+`Main --document-store-probe` route rejects stale version, same-version payload
+conflict, and a superseded diagnostics candidate while admitting the latest
+candidate for each URI on C and LLVM.
 LSP-2g feature-shape parity is checked by the response-emission and
 session-replay parity gates because those are the artifact owners that consume
 `feature_owner.pgy`.

@@ -13,9 +13,12 @@ ITERATION_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_iteration_type_fact_owne
 ASSIGNMENT_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
 CALL_TARGETS="$ROOT_DIR/src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy"
 BODY_ENV="$ROOT_DIR/src/self_hosted/semantic/ast_body_expression_environment_owner.pgy"
+BODY_TYPES="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
 PLACE_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_expression_place_fact_owner.pgy"
 GENERIC_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy"
 INITIALIZER_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy"
+INITIALIZER_REFINEMENT="$ROOT_DIR/src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy"
+INITIALIZER_TABLE_BRIDGE="$ROOT_DIR/src/self_hosted/semantic/ast_initializer_type_function_table_bridge_owner.pgy"
 INITIALIZER_CURSOR="$ROOT_DIR/src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy"
 STATEMENT_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_statement_type_fact_owner.pgy"
 BUILTINS="$ROOT_DIR/src/self_hosted/semantic/builtin_signature_owner.pgy"
@@ -23,6 +26,7 @@ MIR_FACTS="$ROOT_DIR/src/self_hosted/mir/artifact_lower_owner.pgy"
 DRIVER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy"
 PIPELINE="$ROOT_DIR/src/self_hosted/compiler/driver_pipeline_owner.pgy"
 VERDICT="$ROOT_DIR/src/self_hosted/semantic/ast_artifact_verdict_owner.pgy"
+BODY_ADMISSION="$ROOT_DIR/src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy"
 ENTRY="$ROOT_DIR/src/self_hosted/codegen/emission/program_entry_owner.pgy"
 ADMITTED_ENTRY="$ROOT_DIR/src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy"
 TYPECHECK="$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_array.c"
@@ -39,9 +43,11 @@ CODEGEN_PROGRAM_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/program_emit
 CODEGEN_RUNTIME_HEADER="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy"
 
 for path in "$OWNER" "$OWNER_FIELDS" "$MATCH_BINDINGS" "$ITERATION_FACTS" \
-    "$ASSIGNMENT_FACTS" "$CALL_TARGETS" "$BODY_ENV" "$PLACE_FACTS" "$GENERIC_FACTS" \
-    "$INITIALIZER_FACTS" "$INITIALIZER_CURSOR" "$STATEMENT_FACTS" \
-    "$MIR_FACTS" "$DRIVER" "$PIPELINE" "$VERDICT" "$ENTRY" \
+    "$ASSIGNMENT_FACTS" "$CALL_TARGETS" "$BODY_ENV" "$BODY_TYPES" \
+    "$PLACE_FACTS" "$GENERIC_FACTS" "$INITIALIZER_FACTS" \
+    "$INITIALIZER_REFINEMENT" "$INITIALIZER_TABLE_BRIDGE" \
+    "$INITIALIZER_CURSOR" "$STATEMENT_FACTS" \
+    "$MIR_FACTS" "$DRIVER" "$PIPELINE" "$VERDICT" "$BODY_ADMISSION" "$ENTRY" \
     "$ADMITTED_ENTRY" \
     "$BUILTINS" "$TYPECHECK" "$TRANS_POLICY" \
     "$TRANS_EMIT" "$LLVM_EMIT" "$LLVM_RUNTIME" "$INLINE_RUNTIME" \
@@ -81,6 +87,28 @@ assert_exact_call_files() {
     fi
 }
 
+assert_admitted_core_has_no_reconstruction() {
+    local path="$1"
+    local function_name="$2"
+    local body
+    body="$(function_body "$path" "$function_name")"
+    [[ -n "$body" ]] || {
+        echo "[self-host-parity:semantic-environment-lifetime] missing admitted core $function_name" >&2
+        exit 1
+    }
+    for forbidden in \
+        'SemanticAstArtifactAnalysisMatches(' \
+        'FactsMatchArtifact(' \
+        'FactsFromArtifact(' \
+        'SemanticAstExpressionSurfaceBorrowReady(' \
+        'SemanticExpressionGraphFactsReady('; do
+        if grep -Fq "$forbidden" <<<"$body"; then
+            echo "[self-host-parity:semantic-environment-lifetime] admitted core $function_name reopened whole-artifact reconstruction: $forbidden" >&2
+            exit 1
+        fi
+    done
+}
+
 assignment_type_body="$(function_body \
     "$ASSIGNMENT_FACTS" 'SemanticAstAssignmentTypeFactsFromArtifact')"
 borrow_ready_count="$(grep -Fc \
@@ -90,16 +118,20 @@ if [[ "$borrow_ready_count" -ne 1 ]]; then
     echo "[self-host-parity:semantic-environment-lifetime] assignment owner must prove the expression surface exactly once" >&2
     exit 1
 fi
-grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' \
+grep -Fq 'SemanticAstAssignmentTypeFactsFromAdmittedArtifact(' \
     <<<"$assignment_type_body" || {
-    echo "[self-host-parity:semantic-environment-lifetime] assignment hot loop lost the borrowed match-binding seam" >&2
+    echo "[self-host-parity:semantic-environment-lifetime] checked assignment wrapper bypasses its admitted core" >&2
     exit 1
 }
-if grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindings(' \
-    <<<"$assignment_type_body"; then
-    echo "[self-host-parity:semantic-environment-lifetime] assignment hot loop repeats checked expression-graph readiness" >&2
+assignment_admitted_body="$(function_body \
+    "$ASSIGNMENT_FACTS" 'SemanticAstAssignmentTypeFactsFromAdmittedArtifact')"
+grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(' \
+    <<<"$assignment_admitted_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] admitted assignment core rebuilds match-binding inputs" >&2
     exit 1
-fi
+}
+assert_admitted_core_has_no_reconstruction "$ASSIGNMENT_FACTS" \
+    'SemanticAstAssignmentTypeFactsFromAdmittedArtifact'
 
 require_borrowed_environment_push() {
     local path="$1"
@@ -182,6 +214,30 @@ for forbidden in 'AstTreeArtifactReady(' 'AstExpressionGraphRowsReady('; do
     fi
 done
 
+admitted_match_body="$(function_body "$MATCH_BINDINGS" \
+    'SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts')"
+[[ -n "$admitted_match_body" ]] || {
+    echo "[self-host-parity:semantic-environment-lifetime] missing admitted-facts match environment owner" >&2
+    exit 1
+}
+for carried in \
+    'enums: SemanticAstEnumFacts' \
+    'function_scopes: SemanticAstFunctionScopeFacts' \
+    'SemanticAstExpressionSeedMatchCaseBindings('; do
+    grep -Fq "$carried" <<<"$admitted_match_body" || {
+        echo "[self-host-parity:semantic-environment-lifetime] admitted match environment lost carried fact: $carried" >&2
+        exit 1
+    }
+done
+for forbidden in \
+    'SemanticAstEnumFactsFromArtifact(' \
+    'SemanticAstFunctionScopeFactsFromArtifact('; do
+    if grep -Fq "$forbidden" <<<"$admitted_match_body"; then
+        echo "[self-host-parity:semantic-environment-lifetime] admitted match environment rebuilds an analysis-owned fact: $forbidden" >&2
+        exit 1
+    fi
+done
+
 checked_match_body="$(function_body "$MATCH_BINDINGS" 'SemanticAstExpressionSeedVisibleMatchBindings')"
 grep -Fq 'AstTreeArtifactReady(artifact)' <<<"$checked_match_body" || {
     echo "[self-host-parity:semantic-environment-lifetime] checked match environment lost artifact readiness" >&2
@@ -193,14 +249,17 @@ grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' <<<"$
 }
 
 initializer_body="$(function_body "$INITIALIZER_FACTS" 'SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFunctionTables')"
-grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' <<<"$initializer_body" || {
-    echo "[self-host-parity:semantic-environment-lifetime] initializer hot loop lost ready-artifact match environment" >&2
+grep -Fq 'SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObservedWithFunctionTables(' <<<"$initializer_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] checked initializer wrapper bypasses its admitted core" >&2
     exit 1
 }
-if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' <<<"$initializer_body"; then
-    echo "[self-host-parity:semantic-environment-lifetime] initializer hot loop repeats checked match environment" >&2
+initializer_admitted_body="$(function_body "$INITIALIZER_FACTS" \
+    'SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObservedWithFunctionTables')"
+grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(' \
+    <<<"$initializer_admitted_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] admitted initializer core rebuilds match-binding inputs" >&2
     exit 1
-fi
+}
 initializer_wrapper_body="$(function_body "$INITIALIZER_FACTS" 'SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObserved')"
 grep -Fq 'SemanticAstExpressionFunctionTableFactsRelease(function_tables);' \
     <<<"$initializer_wrapper_body" || {
@@ -209,19 +268,23 @@ grep -Fq 'SemanticAstExpressionFunctionTableFactsRelease(function_tables);' \
 }
 
 call_target_body="$(function_body "$CALL_TARGETS" 'SemanticAstAnalysisResolveCallTargetsFromBody')"
-grep -Fq 'SemanticAstBodyExpressionEnvironmentSeed(' <<<"$call_target_body" || {
-    echo "[self-host-parity:semantic-environment-lifetime] call-target resolver bypasses the body-environment owner" >&2
+grep -Fq 'SemanticAstAnalysisResolveCallTargetsFromAdmittedBody(' \
+    <<<"$call_target_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] checked call-target resolver bypasses its admitted core" >&2
     exit 1
 }
-if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' <<<"$call_target_body"; then
-    echo "[self-host-parity:semantic-environment-lifetime] call-target resolver repeats checked match environment" >&2
+call_target_admitted_body="$(function_body "$CALL_TARGETS" \
+    'SemanticAstAnalysisResolveCallTargetsFromAdmittedBody')"
+grep -Fq 'SemanticAstBodyExpressionEnvironmentSeed(' \
+    <<<"$call_target_admitted_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] admitted call-target resolver bypasses the body-environment owner" >&2
     exit 1
-fi
+}
 body_environment_body="$(function_body "$BODY_ENV" \
     'SemanticAstBodyExpressionEnvironmentSeed')"
-grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' \
+grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(' \
     <<<"$body_environment_body" || {
-    echo "[self-host-parity:semantic-environment-lifetime] body-environment owner lost ready-artifact match bindings" >&2
+    echo "[self-host-parity:semantic-environment-lifetime] body-environment owner rebuilds admitted match bindings" >&2
     exit 1
 }
 if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' \
@@ -231,27 +294,36 @@ if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' \
 fi
 
 place_body="$(function_body "$PLACE_FACTS" 'SemanticAstAnalysisResolveExpressionPlacesFromBody')"
-grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' <<<"$place_body" || {
-    echo "[self-host-parity:semantic-environment-lifetime] expression-place resolver lost ready-artifact match environment" >&2
+grep -Fq 'SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(' \
+    <<<"$place_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] checked expression-place resolver bypasses its admitted core" >&2
     exit 1
 }
-if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' <<<"$place_body"; then
-    echo "[self-host-parity:semantic-environment-lifetime] expression-place resolver repeats checked match environment" >&2
+place_admitted_body="$(function_body "$PLACE_FACTS" \
+    'SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody')"
+grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(' \
+    <<<"$place_admitted_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] admitted expression-place resolver rebuilds match bindings" >&2
     exit 1
-fi
+}
 statement_body="$(function_body "$STATEMENT_FACTS" 'SemanticAstStatementTypeFactsFromArtifact')"
 grep -Fq 'SemanticAstExpressionSurfaceBorrowReady(' <<<"$statement_body" || {
     echo "[self-host-parity:semantic-environment-lifetime] statement resolver lost expression-surface readiness proof" >&2
     exit 1
 }
-grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' <<<"$statement_body" || {
-    echo "[self-host-parity:semantic-environment-lifetime] statement resolver lost ready-artifact match environment" >&2
+grep -Fq 'SemanticAstStatementTypeFactsFromAdmittedArtifact(' <<<"$statement_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] checked statement wrapper bypasses its admitted core" >&2
     exit 1
 }
-if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' <<<"$statement_body"; then
-    echo "[self-host-parity:semantic-environment-lifetime] statement resolver repeats checked match environment" >&2
+statement_admitted_body="$(function_body \
+    "$STATEMENT_FACTS" 'SemanticAstStatementTypeFactsFromAdmittedArtifact')"
+grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(' \
+    <<<"$statement_admitted_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] admitted statement core rebuilds match-binding inputs" >&2
     exit 1
-fi
+}
+assert_admitted_core_has_no_reconstruction "$STATEMENT_FACTS" \
+    'SemanticAstStatementTypeFactsFromAdmittedArtifact'
 
 
 generic_body="$(function_body "$GENERIC_FACTS" 'SemanticAstGenericSpecializationFactsFromBody')"
@@ -259,14 +331,40 @@ grep -Fq 'SemanticAstExpressionSurfaceBorrowReady(' <<<"$generic_body" || {
     echo "[self-host-parity:semantic-environment-lifetime] generic resolver lost expression-surface readiness proof" >&2
     exit 1
 }
-grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(' <<<"$generic_body" || {
-    echo "[self-host-parity:semantic-environment-lifetime] generic resolver lost ready-artifact match environment" >&2
+grep -Fq 'SemanticAstGenericSpecializationFactsFromAdmittedBody(' \
+    <<<"$generic_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] checked generic resolver bypasses its admitted core" >&2
     exit 1
 }
-if grep -Eq 'SemanticAstExpressionSeedVisibleMatchBindings[[:space:]]*\(' <<<"$generic_body"; then
-    echo "[self-host-parity:semantic-environment-lifetime] generic resolver repeats checked match environment" >&2
+generic_admitted_body="$(function_body "$GENERIC_FACTS" \
+    'SemanticAstGenericSpecializationFactsFromAdmittedBody')"
+grep -Fq 'SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(' \
+    <<<"$generic_admitted_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] admitted generic resolver rebuilds match bindings" >&2
     exit 1
-fi
+}
+
+# Every body-stage core below consumes the producer-sealed analysis epoch. A
+# new stage may perform bounded row work, but it may not reopen an artifact,
+# expression-surface, or full expression-graph proof.
+for admitted_stage in \
+    "$BODY_TYPES|SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved" \
+    "$BODY_TYPES|SemanticAstBodyTypeBundleFromAdmittedAnalysis" \
+    "$INITIALIZER_FACTS|SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObservedWithFunctionTables" \
+    "$INITIALIZER_TABLE_BRIDGE|SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsUsingFunctionTables" \
+    "$INITIALIZER_TABLE_BRIDGE|SemanticAstInitializerTypeFactsFromAdmittedArtifactObservedWithFunctionTables" \
+    "$ITERATION_FACTS|SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables" \
+    "$CALL_TARGETS|SemanticAstAnalysisResolveCallTargetsFromAdmittedBody" \
+    "$INITIALIZER_REFINEMENT|SemanticAstInitializerTypeFactsRefinedByIterationsFromAdmittedFactsWithFunctionTables" \
+    "$PLACE_FACTS|SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody" \
+    "$ASSIGNMENT_FACTS|SemanticAstAssignmentTypeFactsFromAdmittedArtifact" \
+    "$STATEMENT_FACTS|SemanticAstStatementTypeFactsFromAdmittedArtifact" \
+    "$GENERIC_FACTS|SemanticAstGenericSpecializationFactsFromAdmittedBody"; do
+    stage_path="${admitted_stage%%|*}"
+    stage_function="${admitted_stage#*|}"
+    assert_admitted_core_has_no_reconstruction \
+        "$stage_path" "$stage_function"
+done
 
 mir_ready_body="$(function_body "$MIR_FACTS" 'SelfMirProgramFactsFromReadyArtifact')"
 for forbidden in \
@@ -291,7 +389,7 @@ grep -Fq 'SelfMirProgramFactsFromReadyArtifact(' <<<"$mir_checked_body" || {
     exit 1
 }
 
-driver_mir_body="$(function_body "$DRIVER" 'DriverRung2MirProjectionFromAnalysisObserved')"
+driver_mir_body="$(function_body "$DRIVER" 'DriverRung2MirProjectionFromAdmittedAnalysisObserved')"
 grep -Fq 'SelfMirProgramFactsFromReadyArtifact(' <<<"$driver_mir_body" || {
     echo "[self-host-parity:semantic-environment-lifetime] verified driver lost ready-artifact MIR path" >&2
     exit 1
@@ -317,6 +415,29 @@ for forbidden in \
         exit 1
     fi
 done
+body_admission_body="$(function_body "$BODY_ADMISSION" \
+    'SemanticAstBodyAnalysisAdmissionReady')"
+grep -Fq 'analysis.function_scopes.ok' <<<"$body_admission_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] semantic admission lost carried function-scope readiness" >&2
+    exit 1
+}
+grep -Fq 'analysis.function_scopes.function_node_ids' \
+    <<<"$body_admission_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] semantic admission lost function-scope row shape" >&2
+    exit 1
+}
+analysis_producer_body="$(function_body "$VERDICT" \
+    'SemanticAstArtifactAnalyzeFromExpressionSurfaces')"
+grep -Fq 'SemanticAstFunctionScopeFactsFromArtifact(artifact)' \
+    <<<"$analysis_producer_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] semantic analysis no longer owns function-scope production" >&2
+    exit 1
+}
+grep -Fq 'kind_surfaces, function_tables, function_scopes' \
+    <<<"$analysis_producer_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] semantic analysis drops function scopes before sealing" >&2
+    exit 1
+}
 
 c_ready_body="$(function_body "$CODEGEN_PROGRAM_EMITTER" \
     'GenerateCUnitFromReadySemanticFacts')"
@@ -391,7 +512,7 @@ if grep -Fq 'SemanticAstArtifactAnalysisMatches(' <<<"$admitted_entry_body" ||
 fi
 admitted_receipt_line="$(grep -nF 'SemanticAstArtifactAdmissionReady(' \
     <<<"$admitted_entry_body" | head -n 1 | cut -d: -f1)"
-admitted_first_work_line="$(grep -nF 'SemanticAstBodyTypeBundleFromAnalysis(' \
+admitted_first_work_line="$(grep -nF 'SemanticAstBodyTypeBundleFromAdmittedAnalysis(' \
     <<<"$admitted_entry_body" | head -n 1 | cut -d: -f1)"
 if [[ -z "$admitted_receipt_line" || -z "$admitted_first_work_line" ||
     "$admitted_receipt_line" -ge "$admitted_first_work_line" ]]; then
@@ -417,7 +538,39 @@ assert_exact_call_files 'SemanticAstArtifactAdmissionReady(' \
     'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
     'src/self_hosted/codegen/emission/program_emit.pgy' \
     'src/self_hosted/compiler/driver_rung2_owner.pgy' \
-    'src/self_hosted/semantic/ast_artifact_verdict_owner.pgy'
+    'src/self_hosted/semantic/ast_artifact_verdict_owner.pgy' \
+    'src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy'
+assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysis(' \
+    'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
+    'src/self_hosted/compiler/driver_pipeline_owner.pgy' \
+    'src/self_hosted/semantic/ast_body_type_bundle_owner.pgy'
+assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(' \
+    'src/self_hosted/compiler/driver_rung2_owner.pgy' \
+    'src/self_hosted/semantic/ast_body_analysis_admission_contract_owner.pgy' \
+    'src/self_hosted/semantic/ast_body_type_bundle_owner.pgy'
+
+for production_body in \
+    "$ADMITTED_ENTRY|GenerateCUnitFromAdmittedSemanticArtifact|SemanticAstBodyTypeBundleFromAdmittedAnalysis(" \
+    "$PIPELINE|CompileAstArtifactToC|SemanticAstBodyTypeBundleFromAdmittedAnalysis(" \
+    "$DRIVER|VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved|SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved("; do
+    production_path="${production_body%%|*}"
+    production_rest="${production_body#*|}"
+    production_function="${production_rest%%|*}"
+    admitted_call="${production_rest#*|}"
+    body="$(function_body "$production_path" "$production_function")"
+    grep -Fq "$admitted_call" <<<"$body" || {
+        echo "[self-host-parity:semantic-environment-lifetime] production body $production_function lost admitted body analysis" >&2
+        exit 1
+    }
+    for checked_call in \
+        'SemanticAstBodyTypeBundleFromAnalysis(' \
+        'SemanticAstBodyTypeBundleFromAnalysisObserved('; do
+        if grep -Fq "$checked_call" <<<"$body"; then
+            echo "[self-host-parity:semantic-environment-lifetime] production body $production_function reopened checked body analysis: $checked_call" >&2
+            exit 1
+        fi
+    done
+done
 
 verified_entry_body="$(function_body "$ENTRY" \
     'GenerateCFromVerifiedSemanticArtifact')"
@@ -453,13 +606,13 @@ if [[ "$driver_analysis_count" -ne 1 ]] ||
 fi
 
 for consumer_contract in \
-    "$ASSIGNMENT_FACTS|SemanticAstAssignmentTypeFactsFromArtifact" \
-    "$CALL_TARGETS|SemanticAstAnalysisResolveCallTargetsFromBody" \
-    "$PLACE_FACTS|SemanticAstAnalysisResolveExpressionPlacesFromBody" \
-    "$GENERIC_FACTS|SemanticAstGenericSpecializationFactsFromBody" \
-    "$INITIALIZER_FACTS|SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFunctionTables" \
-    "$ITERATION_FACTS|SemanticAstIterationTypeFactsFromArtifactWithFunctionTables" \
-    "$STATEMENT_FACTS|SemanticAstStatementTypeFactsFromArtifact"; do
+    "$ASSIGNMENT_FACTS|SemanticAstAssignmentTypeFactsFromAdmittedArtifact" \
+    "$CALL_TARGETS|SemanticAstAnalysisResolveCallTargetsFromAdmittedBody" \
+    "$PLACE_FACTS|SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody" \
+    "$GENERIC_FACTS|SemanticAstGenericSpecializationFactsFromAdmittedBody" \
+    "$INITIALIZER_FACTS|SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObservedWithFunctionTables" \
+    "$ITERATION_FACTS|SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables" \
+    "$STATEMENT_FACTS|SemanticAstStatementTypeFactsFromAdmittedArtifact"; do
     path="${consumer_contract%%|*}"
     function_name="${consumer_contract#*|}"
     function_body "$path" "$function_name" |
@@ -470,7 +623,7 @@ for consumer_contract in \
 done
 
 for reuse_contract in \
-    "$CALL_TARGETS|SemanticAstAnalysisResolveCallTargetsFromBody" \
+    "$CALL_TARGETS|SemanticAstAnalysisResolveCallTargetsFromAdmittedBody" \
     "$INITIALIZER_CURSOR|SemanticAstInitializerEnvironmentCursorAdvance"; do
     path="${reuse_contract%%|*}"
     function_name="${reuse_contract#*|}"

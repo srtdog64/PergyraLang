@@ -4,6 +4,32 @@
 
 import "ast_initializer_type_fact_owner.pgy";
 
+func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsUsingFunctionTables(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    enum_facts: SemanticAstEnumFacts,
+    function_scopes: SemanticAstFunctionScopeFacts,
+    iteration_node_ids: Array<Int>,
+    iteration_function_node_ids: Array<Int>,
+    iteration_binding_names: Array<String>,
+    iteration_binding_types: Array<String>,
+    iteration_verified: Array<Int>,
+    base_facts: SemanticAstInitializerTypeFacts,
+    reuse_unaffected: Bool,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> SemanticAstInitializerTypeFacts {
+    return SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObservedWithFunctionTables(
+        artifact, signatures, constructors, locals, expression_surfaces,
+        enum_facts, function_scopes,
+        iteration_node_ids, iteration_function_node_ids,
+        iteration_binding_names, iteration_binding_types, iteration_verified,
+        base_facts, reuse_unaffected, false, function_tables
+    );
+}
+
 func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsUsingFunctionTables(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -24,6 +50,28 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsUsingFunctionTa
         iteration_node_ids, iteration_function_node_ids,
         iteration_binding_names, iteration_binding_types, iteration_verified,
         base_facts, reuse_unaffected, false, function_tables
+    );
+}
+
+func SemanticAstInitializerTypeFactsFromAdmittedArtifactObservedWithFunctionTables(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    enum_facts: SemanticAstEnumFacts,
+    function_scopes: SemanticAstFunctionScopeFacts,
+    observe_pressure: Bool,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> SemanticAstInitializerTypeFacts {
+    let empty_ints: Array<Int> = [];
+    let empty_strings: Array<String> = [];
+    return SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObservedWithFunctionTables(
+        artifact, signatures, constructors, locals, expression_surfaces,
+        enum_facts, function_scopes,
+        empty_ints, empty_ints, empty_strings, empty_strings, empty_ints,
+        SemanticAstInitializerTypeStructuralError(artifact), false,
+        observe_pressure, function_tables
     );
 }
 

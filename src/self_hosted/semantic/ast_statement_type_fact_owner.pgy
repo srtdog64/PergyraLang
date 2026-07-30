@@ -122,6 +122,28 @@ func SemanticAstStatementTypeFactsFromArtifact(
             artifact, "function_table"
         );
     }
+    let function_scopes: SemanticAstFunctionScopeFacts =
+        SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    return SemanticAstStatementTypeFactsFromAdmittedArtifact(
+        artifact, signatures, constructors, locals, initializer_types,
+        expression_surfaces, iteration_types, statements, enum_facts,
+        role_facts, function_scopes, function_tables
+    );
+}
+func SemanticAstStatementTypeFactsFromAdmittedArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    iteration_types: SemanticAstIterationTypeFacts,
+    statements: SemanticAstStatementFacts,
+    enum_facts: SemanticAstEnumFacts,
+    role_facts: SemanticAstRoleFacts,
+    function_scopes: SemanticAstFunctionScopeFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> SemanticAstStatementTypeFacts {
     let node_ids: Array<Int> = [];
     let kind_tags: Array<Int> = [];
     let expected_types: Array<String> = [];
@@ -170,8 +192,9 @@ func SemanticAstStatementTypeFactsFromArtifact(
             statements.function_node_ids[i], statements.node_ids[i],
             names, types, modes
         ) { environment_fact = "iteration_environment"; }
-        else if !SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
-            artifact, expression_surfaces, signatures, constructors,
+        else if !SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
+            artifact, expression_surfaces, constructors, enum_facts,
+            function_scopes,
             statements.function_node_ids[i], statements.node_ids[i],
             names, types, modes, function_tables
         ) { environment_fact = "match_binding_environment"; }

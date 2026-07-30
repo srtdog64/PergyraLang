@@ -1,0 +1,22 @@
+import "../../../src/self_hosted/compiler/driver_rung2_owner.pgy";
+
+func Main() -> Void {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: alpha : Int = 1\n        Return: alpha\n"
+    );
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    if !SemanticAstBodyAnalysisAdmissionReady(artifact, analysis) ||
+        ArrayLength(analysis.local_bindings.names) != 1 {
+        Die("mutable-analysis probe setup failed");
+    }
+    analysis.local_bindings.names[0] = "omega";
+    if !SemanticAstBodyAnalysisAdmissionReady(artifact, analysis) ||
+        SemanticAstArtifactAnalysisMatches(artifact, analysis, true) {
+        Die("mutable-analysis probe did not preserve shape-only admission");
+    }
+    let json: String = CompileArtifactAnalysisToMirJsonVerifiedObserved(
+        artifact, analysis, SelfHostMachineLayerDeclarationEmpty(), true
+    );
+    Die(Concat("raw driver accepted mutable semantic analysis: ", json));
+}

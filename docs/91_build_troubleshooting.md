@@ -3038,3 +3038,96 @@ census `173 total / 168 Markdown / 0 missing`과 같은 입력의 synthetic dead
 `168 missing`을 expected artifact에 반영한 뒤 C/LLVM artifact parity와 negative
 fixture가 통과했다. Golden 갱신은 현재 입력 owner를 다시 실행한 관측값과 음성
 fixture가 함께 맞을 때만 허용하며, 단순 byte-equal 맞추기로 실패를 숨기지 않는다.
+
+### body 의미분석이 이미 sealed된 사실을 단계마다 다시 검증하는 경우
+
+5.1MB bootstrap AST에서 3GB 이상으로 커졌던 핵심 결함은 “의미분석이 원래
+무겁다”가 아니라, 하나의 `SemanticAstArtifactAnalysis`가 이미 소유한 enum,
+function-scope, signature/local/assignment/statement 및 expression-graph 사실을 body
+8단계가 다시 match하거나 재구축한 것이었다. 특히 match-visible 환경 seeder가
+사용 지점마다 enum과 function-scope inventory를 다시 만들었다. 한 번의 producer
+proof면 되는 일을 stage와 use-site마다 반복한 것이다.
+
+현재 경계는 다음처럼 닫는다.
+
+- `SemanticAstArtifactAnalysis`가 `function_scopes`를 한 번 생산해 소유한다.
+- `ast_body_analysis_admission_owner.pgy`가 artifact identity와 producer row의
+  parallel shape를 body materialization 전에 한 번만 검사한다.
+- Reconstruction-free `ast_body_analysis_shape_owner.pgy`가 signature
+  generic/parameter span, role method/impl/ability span, intent step/terminal
+  span, constructor/enum artifact epoch과 nested type-expression row 범위를
+  같은 receipt에서 검증한다. `ok` flag만 믿고 growable parallel row를 직접
+  인덱싱하지 않는다.
+- initializer, iteration, call-target, refinement, expression-place, assignment,
+  statement, generic stage는 각각 admitted core를 호출한다.
+- production caller는 codegen admitted entry, source-to-C pipeline, rung2 세 곳만
+  admitted body API를 사용한다. 임의/mutable pair용 checked API는 deep proof를 한
+  번 수행한 뒤 같은 admitted core로 내려간다.
+- stale same-shape identity와 깨진 local parallel row는
+  `base-initializer:start` 전에 `body_analysis_admission`으로 실패하고 모든 파생 row가
+  비어 있어야 한다.
+- 외부 raw `SemanticAstArtifactAnalysis`를 받는 rung2 API는 먼저
+  `SemanticAstArtifactAnalysisMatches` deep proof를 수행한다. Fresh analyzer를 바로
+  소비하는 production call edge만 이름이 명시된 admitted verifier/projection을
+  사용한다. 같은 길이의 local name을 변조한 fixture는 shape admission은 통과하지만
+  raw driver boundary에서 `body-types:start` 전에 거부된다.
+- 정적 ratchet은 admitted core 안의 `SemanticAstArtifactAnalysisMatches`,
+  `*FactsMatchArtifact`, 이미 운반된 plural `*FactsFromArtifact`, surface borrow 및
+  full graph readiness 재도입을 거부한다.
+
+이 변경 뒤 fresh semantic checker C build는 `0 errors, 0 warnings`, 수정된 semantic
+owner와 negative contract, generic/initializer probe, production admitted entry 및
+source-to-C pipeline self-check가 통과했다. Rung2 전체 owner check는 180초 제한 안에
+끝나지 않았으므로 PASS로 기록하지 않는다. 5.1MB fixture의 새 시간/peak/parity도
+아직 재측정 전이며, 기존 timeout 수치를 개선 결과로 재라벨하지 않는다.
+
+후속 raw-boundary 보강 뒤
+`tests/self_hosted/parity/driver_rung2_analysis_admission_owner.sh`는 fresh/checked
+호출 방향의 정적 ratchet, mutable-analysis C probe build, materialization 전 exact
+diagnostic을 실행해 PASS했다. 이 gate는 exhaustive self-host parity target에도
+결속했다. Signature/role/intent/constructor/enum malformed shape negative는 별도
+body admission contract가 소유한다.
+
+### self-checker가 중첩 typed fact 필드를 undefined symbol로 보는 경우
+
+GitHub run `30502868266`의 exhaustive parity는 129/661
+`canonical_mir_identity_epoch_owner.pgy`에서 `topology_row_indices`를 undefined local로
+진단했다. 필드는 실제 `MirDomainProjectionAssignmentFacts`에 존재했으므로 단순 필드
+누락이 아니었다. completeness 경계에서
+`runtime_assignments.projection_members.topology_row_indices`처럼 두 단계 이상 내려간
+field chain의 중간 타입이 정확히 보존되지 않은 것이 원인이었다.
+
+정의 owner를 direct import하는 것만으로는 충분하지 않았다. 반대로 nested aggregate를
+새 typed local에 복사하면 native compiler가 borrowed `ref` provenance의 탈출로 정확히
+거부한다. 최종 경계는 canonical consumer의 기존
+`ref MirDomainRuntimeAssignmentFacts` 수명을 보존하고, nested projection row 접근만
+정의 owner의 `MirDomainRuntimeProjection*` accessor로 내린다. Accessor는 exact topology
+row, explicit-map flag, segment bounds/name과 target field를 typed receipt에서 읽으며 이름
+join이나 두 번째 topology SoT를 만들지 않는다. 두 owner의 self-host semantic checker는
+이 형태에서 `Status: ok`가 되었다. Native focused execution gate도 최종적으로
+`[self-host-parity:canonical-identity-epoch] ... ok`와 exit 0을 관측했다. 이 gate는
+hosted-method tree ID, apply/link epoch remap, stale raw ID와 wrong-kind canonical ID
+negative를 모두 실행한다. Checker PASS와 executable PASS를 별도 증거로 기록한다.
+
+이 과정에서 focused gate의 positive fixture도 별도 stale epoch 결함을 드러냈다. Fixture는
+declaration field와 topology ID에만 offset epoch를 적용하고, 같은 identity epoch에 묶인
+`domain_runtime_assignments`의 participant owner/field 및 projection
+owner/directive/slot/target/path-segment ID는 옛 값으로 남겼다. 따라서 canonicalizer에
+도달하기 전에 machine admission이 `MIR machine-layer facts are missing or invalid`로
+정확히 거부했다. Positive fixture는 이 runtime assignment ID들도 같은 mapping으로
+원자적으로 옮겨야 한다. Validator를 느슨하게 하거나 stale runtime assignment를
+허용해서 gate를 통과시키면 안 된다. 첫 fixture 보정 뒤에는 두 번째 stale seam도
+드러났다. Canonical carrier가 declaration/topology만 canonical output으로 바꾸고
+`domain_runtime_assignments`를 raw epoch에 남겨 machine admission에서 거부된 것이다.
+최종 carrier는 canonicalizer가 방금 생산한 runtime-assignment receipt까지 같은 epoch로
+복사한다. 즉 test도 declaration, topology, runtime assignment를 하나의 identity epoch로
+취급한다.
+
+같은 run에서 macOS/Linux/Windows가 공통으로 실패한 원인은 별개인 stale source-shape
+gate였다. Driver pipeline은 body bundle을 이미 만들고
+`GenerateCUnitFromReadySemanticFacts`를 호출하는데 compiler-world contract가 삭제된
+중간 reanalysis 호출 `GenerateCFromVerifiedSemanticArtifact`를 계속 요구했다. Gate는
+현재 Ready-fact call을 요구하고 옛 checked call의 재도입을 금지해야 한다. 구현을
+구식 gate에 맞춰 다시 reanalysis 경로로 되돌리는 것은 해결책이 아니다. 갱신된
+`tests/self_host_compiler_world_contract_smoke.sh`는 topology와 compiler-world source
+shape를 모두 실행해 exit 0을 관측했다.

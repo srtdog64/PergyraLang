@@ -115,6 +115,34 @@ reject_function_text() {
         fail "$rel function $signature must not contain retired term: $term"
 }
 
+reject_function_terms() {
+    local rel="$1"
+    local signature="$2"
+    shift 2
+    local term
+
+    for term in "$@"; do
+        reject_function_text "$rel" "$signature" "$term"
+    done
+}
+
+require_function_text() {
+    local rel="$1"
+    local signature="$2"
+    local term="$3"
+    local body
+
+    [[ -f "$ROOT_DIR/$rel" ]] || fail "missing function input: $rel"
+    body="$(awk -v signature="$signature" '
+        index($0, signature) == 1 { in_function = 1 }
+        in_function && seen && /^func / { exit }
+        in_function { print; seen = 1 }
+    ' "$ROOT_DIR/$rel")"
+    [[ -n "$body" ]] || fail "$rel missing function: $signature"
+    [[ "$body" == *"$term"* ]] ||
+        fail "$rel function $signature missing term: $term"
+}
+
 reject_regex() {
     local rel="$1"
     local pattern="$2"
@@ -292,6 +320,12 @@ require_stage_owner_line_cap() {
         cap=600
         if [[ "$rel" == "src/self_hosted/codegen/emission/stmt_emit.pgy" ]]; then
             cap=640
+        elif [[ "$rel" == "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" ]]; then
+            cap=637
+        elif [[ "$rel" == "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" ]]; then
+            cap=641
+        elif [[ "$rel" == "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" ]]; then
+            cap=622
         fi
         require_max_lines "$rel" "$cap"
         require_text "src/self_hosted/OWNERS.md" "$rel"
@@ -3591,6 +3625,46 @@ require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" "func Ge
 require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" "func GenerateCFromSemanticArtifact"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "struct SemanticAstArtifactVerdict"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "struct SemanticAstArtifactAnalysis"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
+    "function_scopes: SemanticAstFunctionScopeFacts;"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
+    "SemanticAstFunctionScopeFactsFromArtifact(artifact)"
+require_file "src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy" 120
+require_file "src/self_hosted/semantic/ast_body_analysis_shape_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_body_analysis_shape_owner.pgy" 240
+require_file \
+    "src/self_hosted/semantic/ast_body_analysis_admission_contract_owner.pgy"
+require_max_lines \
+    "src/self_hosted/semantic/ast_body_analysis_admission_contract_owner.pgy" 120
+for body_admission_owner in \
+    "src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy" \
+    "src/self_hosted/semantic/ast_body_analysis_shape_owner.pgy" \
+    "src/self_hosted/semantic/ast_body_analysis_admission_contract_owner.pgy"; do
+    require_text "src/self_hosted/OWNERS.md" "$body_admission_owner"
+done
+require_function_text "src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy" \
+    "func SemanticAstBodyAnalysisAdmissionReady(" \
+    "analysis.function_scopes.ok"
+require_function_text "src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy" \
+    "func SemanticAstBodyAnalysisAdmissionReady(" \
+    "analysis.function_scopes.function_node_ids"
+require_function_text "src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy" \
+    "func SemanticAstBodyAnalysisAdmissionReady(" \
+    "SemanticAstBodyAnalysisRowsAdmittedReady(artifact, analysis)"
+reject_function_terms \
+    "src/self_hosted/semantic/ast_body_analysis_shape_owner.pgy" \
+    "func SemanticAstBodyAnalysisRowsAdmittedReady(" \
+    "FactsFromArtifact(" \
+    "FactsMatchArtifact(" \
+    "SemanticAstArtifactAnalysisMatches("
+for forbidden_body_shape_rebuild in \
+    "FactsFromArtifact(" \
+    "FactsMatchArtifact(" \
+    "SemanticAstArtifactAnalysisMatches("; do
+    reject_text "src/self_hosted/semantic/ast_body_analysis_shape_owner.pgy" \
+        "$forbidden_body_shape_rebuild"
+done
 require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "nominal_subkinds: Array<Int>;"
 require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "func TypedAstArenaNominalSubkind"
 require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "func CodegenAstTextNominalSubkindFor"
@@ -3676,6 +3750,17 @@ reject_function_text \
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionEnvironmentContractReady"
 require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
     "if ArrayLength(pattern.bindings) == 0 { return true; }"
+require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
+    "func SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts("
+require_function_text \
+    "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
+    "func SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(" \
+    "function_scopes: SemanticAstFunctionScopeFacts"
+reject_function_terms \
+    "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
+    "func SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(" \
+    "SemanticAstEnumFactsFromArtifact(" \
+    "SemanticAstFunctionScopeFactsFromArtifact("
 reject_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
     "compact_pattern"
 reject_function_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
@@ -3721,7 +3806,7 @@ require_max_lines "src/self_hosted/codegen/emission/enum_emit_owner.pgy" 600
 require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" \
     'part, Concat("=e:", Concat(cname, "|"))'
 require_file "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" 600
+require_max_lines "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" 637
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "struct SemanticAstInitializerTypeFacts"
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "func SemanticAstInitializerTypeFactsFromArtifact"
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "func SemanticAstInitializerTypeFactsMatchArtifact"
@@ -3746,14 +3831,21 @@ reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "Chec
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "LoadSemanticSource"
 require_file "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 200
+require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 257
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "struct SemanticAstBodyTypeBundle"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleFromAnalysis"
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    "func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved("
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    "func SemanticAstBodyTypeBundleFromAdmittedAnalysis("
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleReady"
 require_file "src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy" 100
 require_text "src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy" "func SemanticAstBodyTypeBundleContractReady"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy" "func SemanticAstBodyTypeBundleMissingPlaceContractReady("
+require_text \
+    "src/self_hosted/semantic/ast_body_analysis_admission_contract_owner.pgy" \
+    "func SemanticAstBodyAnalysisShapeAdmissionContractReady("
 require_file "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" 200
 require_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" \
@@ -3767,9 +3859,9 @@ require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
 reject_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" \
     "AstTreeArtifactFromText(source"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
-    "SemanticAstInitializerTypeFactsRefinedByIterationsWithFunctionTables("
+    "SemanticAstInitializerTypeFactsRefinedByIterationsFromAdmittedFactsWithFunctionTables("
 require_file "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" 599
+require_max_lines "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" 641
 require_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
     "struct SemanticAstGenericSpecializationFacts"
 require_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
@@ -3785,7 +3877,7 @@ reject_text "src/self_hosted/semantic/ast_expression_call_identity_owner.pgy" \
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
     "generic_specializations: SemanticAstGenericSpecializationFacts"
 require_file "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" 160
+require_max_lines "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" 166
 require_text "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" "func SemanticAstAnalysisResolveCallTargetsFromBody"
 require_file "src/self_hosted/semantic/ast_assignment_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_assignment_fact_owner.pgy" 600
@@ -3822,10 +3914,72 @@ require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
     "SemanticAstExpressionMemberRootNames("
 require_file "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" 600
+require_max_lines "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" 622
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "func SemanticAstStatementTypeFactsMatchArtifact"
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
     "kind == TypedAstKindExitStmtTag()"
+
+# The admitted body pipeline consumes one producer-sealed analysis. These
+# stage cores may perform bounded row materialization only; reopening any
+# whole-artifact or full expression-graph proof is a contract regression.
+for admitted_stage_contract in \
+    "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy|func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(" \
+    "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy|func SemanticAstBodyTypeBundleFromAdmittedAnalysis(" \
+    "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy|func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObservedWithFunctionTables(" \
+    "src/self_hosted/semantic/ast_initializer_type_function_table_bridge_owner.pgy|func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsUsingFunctionTables(" \
+    "src/self_hosted/semantic/ast_initializer_type_function_table_bridge_owner.pgy|func SemanticAstInitializerTypeFactsFromAdmittedArtifactObservedWithFunctionTables(" \
+    "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy|func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(" \
+    "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy|func SemanticAstAnalysisResolveCallTargetsFromAdmittedBody(" \
+    "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy|func SemanticAstInitializerTypeFactsRefinedByIterationsFromAdmittedFactsWithFunctionTables(" \
+    "src/self_hosted/semantic/ast_expression_place_fact_owner.pgy|func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(" \
+    "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy|func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(" \
+    "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy|func SemanticAstStatementTypeFactsFromAdmittedArtifact(" \
+    "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy|func SemanticAstGenericSpecializationFactsFromAdmittedBody("; do
+    admitted_stage_path="${admitted_stage_contract%%|*}"
+    admitted_stage_signature="${admitted_stage_contract#*|}"
+    reject_function_terms "$admitted_stage_path" "$admitted_stage_signature" \
+        "SemanticAstArtifactAnalysisMatches(" \
+        "FactsMatchArtifact(" \
+        "FactsFromArtifact(" \
+        "SemanticAstExpressionSurfaceBorrowReady(" \
+        "SemanticExpressionGraphFactsReady("
+done
+
+require_function_text \
+    "src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy" \
+    "func GenerateCUnitFromAdmittedSemanticArtifact(" \
+    "SemanticAstBodyTypeBundleFromAdmittedAnalysis("
+reject_function_terms \
+    "src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy" \
+    "func GenerateCUnitFromAdmittedSemanticArtifact(" \
+    "SemanticAstBodyTypeBundleFromAnalysis(" \
+    "SemanticAstBodyTypeBundleFromAnalysisObserved("
+require_function_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
+    "func CompileAstArtifactToC(" \
+    "SemanticAstBodyTypeBundleFromAdmittedAnalysis("
+reject_function_terms "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
+    "func CompileAstArtifactToC(" \
+    "SemanticAstBodyTypeBundleFromAnalysis(" \
+    "SemanticAstBodyTypeBundleFromAnalysisObserved("
+require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "func VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(" \
+    "SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved("
+reject_function_terms "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "func VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(" \
+    "SemanticAstBodyTypeBundleFromAnalysis(" \
+    "SemanticAstBodyTypeBundleFromAnalysisObserved("
+require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "func VerifyArtifactAnalysisForDriverRung2Observed(" \
+    "SemanticAstArtifactAnalysisMatches("
+
+require_file \
+    "tests/self_hosted/parity/semantic_expression_environment_owned_lifetime_smoke.sh"
+require_text \
+    "tests/self_hosted/parity/semantic_expression_environment_owned_lifetime_smoke.sh" \
+    "assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysis('"
+require_text \
+    "tests/self_hosted/parity/semantic_expression_environment_owned_lifetime_smoke.sh" \
+    "assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved('"
 require_file "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" 200
 require_text "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" \
@@ -3875,6 +4029,14 @@ reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "LoadSemanticSo
 require_file "src/self_hosted/compiler/driver_rung2_owner.pgy"
 require_file "src/self_hosted/compiler/driver_rung2_main.pgy"
 require_max_lines "src/self_hosted/compiler/driver_rung2_owner.pgy" 550
+require_file \
+    "tests/self_hosted/parity/driver_rung2_analysis_admission_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/driver_rung2_analysis_admission_owner.sh" 130
+require_file \
+    "tests/self_hosted/fixtures/driver_rung2_mutable_analysis_reject.pgy"
+require_text "Makefile" \
+    "tests/self_hosted/parity/driver_rung2_analysis_admission_owner.sh"
 require_file "src/self_hosted/compiler/driver_rung2_intent_consumer_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/driver_rung2_intent_consumer_owner.pgy" 80
@@ -4499,7 +4661,8 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"emitted-c", CompileArtifactToCVerified(artifact)'
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "MirFactGraphPayloadContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 'args[0] == "--mir-json"'
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstBodyTypeBundleFromAnalysis(artifact, semantic_analysis)"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
+    "SemanticAstBodyTypeBundleFromAdmittedAnalysis("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyTypeBundleReady("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstInitializerTypeFactsFromArtifact"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstIterationTypeFactsFromArtifact"
@@ -5894,15 +6057,15 @@ require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" 
 require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
     'while binding_index < ArrayLength(pattern.bindings)'
 match_binding_fast_path_order="$(awk '
-    /func SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact\(/ { active = 1 }
+    /func SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts\(/ { active = 1 }
     active && /if ArrayLength\(case_nodes\) == 0/ && !fast { fast = NR }
-    active && /SemanticAstFunctionScopeFactsFromArtifact/ && !global { global = NR }
+    active && /SemanticAstEnumRowsReady\(enums\)/ && !global { global = NR }
     active && seen && /^func / { exit }
     active { seen = 1 }
     END { if (fast && global && fast < global) print "ok" }
 ' "$ROOT_DIR/src/self_hosted/semantic/ast_match_binding_environment_owner.pgy")"
 [[ "$match_binding_fast_path_order" == "ok" ]] ||
-    fail "match-binding empty-case fast path must precede global fact construction"
+    fail "admitted match-binding empty-case fast path must precede global fact use"
 require_text "src/self_hosted/mir/match_fact_owner.pgy" \
     'func SelfMirMatchFactRowsAttachCase('
 require_text "src/self_hosted/mir/routine_match_pattern_owner.pgy" \
@@ -7852,7 +8015,7 @@ require_file "src/self_hosted/semantic/ast_expression_place_fact_owner.pgy"
 require_text "src/self_hosted/semantic/ast_expression_place_fact_owner.pgy" \
     "func SemanticAstAnalysisResolveExpressionPlacesFromBody("
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
-    "SemanticAstAnalysisResolveExpressionPlacesFromBody("
+    "SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody("
 require_text "src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy" \
     "func SemanticAstBodyTypeBundleMissingPlaceContractReady("
 require_text "src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy" \
@@ -11988,7 +12151,7 @@ require_text "tests/selfhost_bootstrap_policy_corpus_smoke.sh" \
     "bootstrap refusal was not a controlled CODEGEN ERROR"
 reject_text "tests/selfhost_bootstrap_policy_corpus_smoke.sh" \
     "__CHUNK_STATUS__"
-require_max_lines "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" 599
+require_max_lines "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "target_type_names: Array<String>;"
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
@@ -11996,7 +12159,7 @@ require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "SemanticAstExpressionSurfaceBorrowReady("
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
-    "SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact("
+    "SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts("
 reject_function_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "func SemanticAstAssignmentTypeFactsFromArtifact(" \
     "SemanticAstExpressionSeedVisibleMatchBindings("

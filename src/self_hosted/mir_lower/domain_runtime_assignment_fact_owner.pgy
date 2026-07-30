@@ -47,6 +47,68 @@ struct MirDomainRuntimeAssignmentFacts {
     let projection_members: MirDomainProjectionAssignmentFacts;
 }
 
+// Narrow accessors keep the nested projection carrier behind its typed owner.
+// Importing consumers borrow the whole admitted assignment receipt and do not
+// rebind its aggregate storage or recover topology identity from spelling.
+func MirDomainRuntimeProjectionAssignmentCount(
+    ref facts: MirDomainRuntimeAssignmentFacts
+) -> Int {
+    return ArrayLength(facts.projection_members.explicit_maps);
+}
+
+func MirDomainRuntimeProjectionTopologyRowAt(
+    ref facts: MirDomainRuntimeAssignmentFacts, row: Int
+) -> Int {
+    if row < 0 || row >= ArrayLength(
+        facts.projection_members.topology_row_indices
+    ) { return -1; }
+    return facts.projection_members.topology_row_indices[row];
+}
+
+func MirDomainRuntimeProjectionExplicitAt(
+    ref facts: MirDomainRuntimeAssignmentFacts, row: Int
+) -> Bool {
+    return row >= 0 && row < ArrayLength(
+        facts.projection_members.explicit_maps
+    ) && facts.projection_members.explicit_maps[row];
+}
+
+func MirDomainRuntimeProjectionSegmentCountAt(
+    ref facts: MirDomainRuntimeAssignmentFacts, row: Int
+) -> Int {
+    if row < 0 || row >= ArrayLength(
+        facts.projection_members.source_path_segment_counts
+    ) { return -1; }
+    return facts.projection_members.source_path_segment_counts[row];
+}
+
+func MirDomainRuntimeProjectionSegmentStartAt(
+    ref facts: MirDomainRuntimeAssignmentFacts, row: Int
+) -> Int {
+    if row < 0 || row >= ArrayLength(
+        facts.projection_members.source_path_segment_starts
+    ) { return -1; }
+    return facts.projection_members.source_path_segment_starts[row];
+}
+
+func MirDomainRuntimeProjectionSegmentFieldNameAt(
+    ref facts: MirDomainRuntimeAssignmentFacts, row: Int
+) -> String {
+    if row < 0 || row >= ArrayLength(
+        facts.projection_members.source_path_segment_field_names
+    ) { return ""; }
+    return facts.projection_members.source_path_segment_field_names[row];
+}
+
+func MirDomainRuntimeProjectionTargetFieldNameAt(
+    ref facts: MirDomainRuntimeAssignmentFacts, row: Int
+) -> String {
+    if row < 0 || row >= ArrayLength(
+        facts.projection_members.target_field_names
+    ) { return ""; }
+    return facts.projection_members.target_field_names[row];
+}
+
 func EmptyMirDomainProjectionAssignmentFacts(valid: Bool
 ) -> MirDomainProjectionAssignmentFacts {
     let a0: Array<String> = [];

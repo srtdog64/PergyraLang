@@ -7,27 +7,23 @@ import "ast_expression_function_table_fact_owner.pgy";
 import "ast_body_expression_environment_owner.pgy";
 import "ast_intent_expression_environment_owner.pgy";
 
-func SemanticAstAnalysisResolveCallTargetsFromBody(
+func SemanticAstAnalysisResolveCallTargetsFromAdmittedBody(
     artifact: AstTreeArtifact,
     inout analysis: SemanticAstArtifactAnalysis,
     inferred_types: Array<String>,
     iteration_types: SemanticAstIterationTypeFacts,
     function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> Bool {
-    if !SemanticAstExpressionSurfaceBorrowReady(
-        artifact, analysis.expression_surfaces
-    ) || !analysis.signatures.ok ||
+    if !analysis.verdict.ok || !analysis.signatures.ok ||
         !SemanticAstNominalConstructorRowsReady(analysis.constructors) ||
-        !SemanticAstLocalBindingFactsMatchArtifact(
-            artifact, analysis.signatures, analysis.local_bindings
-        ) || ArrayLength(inferred_types) !=
+        ArrayLength(inferred_types) !=
             SemanticAstLocalBindingCount(analysis.local_bindings) {
         return false;
     }
     if !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
         return false;
     }
-    if !SemanticAstIntentSignatureFactsReady(
+    if !SemanticAstIntentSignatureFactsAdmittedReady(
         artifact, analysis.intent_signatures
     ) {
         return false;
@@ -136,8 +132,35 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
         valid = false;
     }
     SemanticAstExpressionEnvironmentClear(names, types, modes);
-    return valid && SemanticExpressionGraphFactsReady(
-        analysis.expression_surfaces.expression_graph,
-        ArrayLength(analysis.expression_surfaces.expression_graph.roots)
+    let graph_node_count: Int = SemanticExpressionGraphArenaNodeCount(
+        analysis.expression_surfaces.expression_graph.arena
+    );
+    return valid && ArrayLength(
+        analysis.expression_surfaces.expression_graph.arena.call_target_kinds
+    ) == graph_node_count && ArrayLength(
+        analysis.expression_surfaces.expression_graph.arena.call_target_names
+    ) == graph_node_count;
+}
+
+func SemanticAstAnalysisResolveCallTargetsFromBody(
+    artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis,
+    inferred_types: Array<String>,
+    iteration_types: SemanticAstIterationTypeFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> Bool {
+    if !SemanticAstExpressionSurfaceBorrowReady(
+        artifact, analysis.expression_surfaces
+    ) || !analysis.signatures.ok ||
+        !SemanticAstNominalConstructorRowsReady(analysis.constructors) ||
+        !SemanticAstLocalBindingFactsMatchArtifact(
+            artifact, analysis.signatures, analysis.local_bindings
+        ) || !SemanticAstIntentSignatureFactsReady(
+            artifact, analysis.intent_signatures
+        ) {
+        return false;
+    }
+    return SemanticAstAnalysisResolveCallTargetsFromAdmittedBody(
+        artifact, analysis, inferred_types, iteration_types, function_tables
     );
 }

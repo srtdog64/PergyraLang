@@ -1,0 +1,232 @@
+// Reconstruction-free row-shape proof for producer-sealed body facts.
+//
+// This owner validates parallel arrays and flat span tables only. It must not
+// rebuild semantic facts from the AST; arbitrary analysis values still enter
+// through the public deep-checked boundary before this receipt is used.
+
+import "ast_artifact_verdict_owner.pgy";
+
+func SemanticAstSignatureTypeExpressionRowsAdmittedReady(
+    ref facts: SemanticAstSignatureTypeExpressionFacts,
+    signature_count: Int,
+    parameter_count: Int
+) -> Bool {
+    let node_count: Int = ArrayLength(facts.node_names);
+    if !facts.ok || ArrayLength(facts.return_roots) != signature_count ||
+        ArrayLength(facts.parameter_roots) != parameter_count ||
+        ArrayLength(facts.child_starts) != node_count ||
+        ArrayLength(facts.child_counts) != node_count {
+        return false;
+    }
+    let row: Int = 0;
+    while row < node_count {
+        if facts.child_starts[row] < 0 || facts.child_counts[row] < 0 ||
+            facts.child_starts[row] + facts.child_counts[row] >
+                ArrayLength(facts.children) {
+            return false;
+        }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(facts.return_roots) {
+        if facts.return_roots[row] < 0 ||
+            facts.return_roots[row] >= node_count { return false; }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(facts.parameter_roots) {
+        if facts.parameter_roots[row] < 0 ||
+            facts.parameter_roots[row] >= node_count { return false; }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(facts.children) {
+        if facts.children[row] < 0 || facts.children[row] >= node_count {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstSignatureRowsAdmittedReady(
+    artifact: AstTreeArtifact,
+    ref facts: SemanticAstFunctionSignatureFacts
+) -> Bool {
+    let count: Int = ArrayLength(facts.function_node_ids);
+    let parameter_count: Int = ArrayLength(facts.param_node_ids);
+    if !facts.ok || facts.artifact_node_count != artifact.count ||
+        ArrayLength(facts.owner_names) != count ||
+        ArrayLength(facts.runtime_callables) != count ||
+        ArrayLength(facts.names) != count ||
+        ArrayLength(facts.return_types) != count ||
+        ArrayLength(facts.generic_starts) != count ||
+        ArrayLength(facts.generic_counts) != count ||
+        ArrayLength(facts.param_starts) != count ||
+        ArrayLength(facts.param_counts) != count ||
+        ArrayLength(facts.param_names) != parameter_count ||
+        ArrayLength(facts.param_types) != parameter_count ||
+        ArrayLength(facts.param_modes) != parameter_count ||
+        !SemanticAstActionContractFactsReady(artifact, facts.action_contracts) ||
+        !SemanticAstSignatureTypeExpressionRowsAdmittedReady(
+            facts.type_expressions, count, parameter_count
+        ) {
+        return false;
+    }
+    let generic_start: Int = 0;
+    let parameter_start: Int = 0;
+    let row: Int = 0;
+    while row < count {
+        if facts.function_node_ids[row] < 0 ||
+            facts.function_node_ids[row] >= artifact.count ||
+            facts.generic_starts[row] != generic_start ||
+            facts.generic_counts[row] < 0 ||
+            facts.param_starts[row] != parameter_start ||
+            facts.param_counts[row] < 0 {
+            return false;
+        }
+        generic_start = generic_start + facts.generic_counts[row];
+        parameter_start = parameter_start + facts.param_counts[row];
+        row = row + 1;
+    }
+    return generic_start == ArrayLength(facts.generic_names) &&
+        parameter_start == parameter_count;
+}
+
+func SemanticAstRoleRowsAdmittedReady(
+    artifact: AstTreeArtifact,
+    ref facts: SemanticAstRoleFacts
+) -> Bool {
+    let role_count: Int = ArrayLength(facts.role_node_ids);
+    let ability_count: Int = ArrayLength(facts.ability_node_ids);
+    let generic_count: Int = ArrayLength(facts.ability_generic_names);
+    if !facts.ok || facts.artifact_node_count != artifact.count ||
+        ArrayLength(facts.names) != role_count ||
+        ArrayLength(facts.target_type_names) != role_count ||
+        ArrayLength(facts.method_starts) != role_count ||
+        ArrayLength(facts.method_counts) != role_count ||
+        ArrayLength(facts.impl_starts) != role_count ||
+        ArrayLength(facts.impl_counts) != role_count ||
+        ArrayLength(facts.ability_names) != ability_count ||
+        ArrayLength(facts.ability_generic_starts) != ability_count ||
+        ArrayLength(facts.ability_generic_counts) != ability_count ||
+        ArrayLength(facts.ability_method_starts) != ability_count ||
+        ArrayLength(facts.ability_method_counts) != ability_count ||
+        ArrayLength(facts.ability_generic_constraint_type_names) !=
+            generic_count ||
+        ArrayLength(facts.ability_generic_default_type_names) !=
+            generic_count {
+        return false;
+    }
+    let method_start: Int = 0;
+    let impl_start: Int = 0;
+    let row: Int = 0;
+    while row < role_count {
+        if facts.role_node_ids[row] < 0 ||
+            facts.role_node_ids[row] >= artifact.count ||
+            facts.method_starts[row] != method_start ||
+            facts.method_counts[row] < 0 ||
+            facts.impl_starts[row] != impl_start ||
+            facts.impl_counts[row] < 0 {
+            return false;
+        }
+        method_start = method_start + facts.method_counts[row];
+        impl_start = impl_start + facts.impl_counts[row];
+        row = row + 1;
+    }
+    if method_start != ArrayLength(facts.method_node_ids) ||
+        impl_start != ArrayLength(facts.impl_ability_names) {
+        return false;
+    }
+    let ability_generic_start: Int = 0;
+    let ability_method_start: Int = 0;
+    row = 0;
+    while row < ability_count {
+        if facts.ability_node_ids[row] < 0 ||
+            facts.ability_node_ids[row] >= artifact.count ||
+            facts.ability_generic_starts[row] != ability_generic_start ||
+            facts.ability_generic_counts[row] < 0 ||
+            facts.ability_method_starts[row] != ability_method_start ||
+            facts.ability_method_counts[row] < 0 {
+            return false;
+        }
+        ability_generic_start = ability_generic_start +
+            facts.ability_generic_counts[row];
+        ability_method_start = ability_method_start +
+            facts.ability_method_counts[row];
+        row = row + 1;
+    }
+    return ability_generic_start == generic_count &&
+        ability_method_start == ArrayLength(facts.ability_method_node_ids);
+}
+
+func SemanticAstIntentSignatureRowsAdmittedReady(
+    artifact: AstTreeArtifact,
+    ref facts: SemanticAstIntentSignatureFacts
+) -> Bool {
+    if !SemanticAstIntentSignatureFactsAdmittedReady(artifact, facts) {
+        return false;
+    }
+    let parameter_start: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(facts.intent_node_ids) {
+        if facts.param_starts[row] != parameter_start ||
+            facts.param_counts[row] < 0 {
+            return false;
+        }
+        parameter_start = parameter_start + facts.param_counts[row];
+        row = row + 1;
+    }
+    return parameter_start == ArrayLength(facts.param_node_ids);
+}
+
+func SemanticAstIntentTransitionRowsAdmittedReady(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstIntentSignatureFacts,
+    ref facts: SemanticAstIntentTransitionFacts
+) -> Bool {
+    let intent_count: Int = ArrayLength(signatures.intent_node_ids);
+    if !SemanticAstIntentTransitionFactsReady(artifact, facts) ||
+        ArrayLength(facts.intent_starts) != intent_count ||
+        ArrayLength(facts.intent_counts) != intent_count ||
+        ArrayLength(facts.terminal_starts) != intent_count ||
+        ArrayLength(facts.terminal_counts) != intent_count {
+        return false;
+    }
+    let step_start: Int = 0;
+    let terminal_start: Int = 0;
+    let row: Int = 0;
+    while row < intent_count {
+        if facts.intent_starts[row] != step_start ||
+            facts.intent_counts[row] < 0 ||
+            facts.terminal_starts[row] != terminal_start ||
+            facts.terminal_counts[row] < 0 {
+            return false;
+        }
+        step_start = step_start + facts.intent_counts[row];
+        terminal_start = terminal_start + facts.terminal_counts[row];
+        row = row + 1;
+    }
+    return step_start == ArrayLength(facts.step_node_ids) &&
+        terminal_start == ArrayLength(facts.terminal_expression_node_ids);
+}
+
+func SemanticAstBodyAnalysisRowsAdmittedReady(
+    artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis
+) -> Bool {
+    return SemanticAstSignatureRowsAdmittedReady(
+            artifact, analysis.signatures
+        ) && SemanticAstNominalConstructorRowsReady(analysis.constructors) &&
+        analysis.constructors.artifact_node_count == artifact.count &&
+        SemanticAstEnumRowsReady(analysis.enums) &&
+        analysis.enums.artifact_node_count == artifact.count &&
+        ArrayLength(analysis.enums.node_ids) ==
+            ArrayLength(analysis.enums.enum_names) &&
+        SemanticAstRoleRowsAdmittedReady(artifact, analysis.roles) &&
+        SemanticAstIntentSignatureRowsAdmittedReady(
+            artifact, analysis.intent_signatures
+        ) && SemanticAstIntentTransitionRowsAdmittedReady(
+            artifact, analysis.intent_signatures, analysis.intent_transitions
+        );
+}
