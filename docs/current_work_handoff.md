@@ -1,12 +1,69 @@
 # Current Work Handoff
 
-Updated: 2026-07-30 (Asia/Seoul)
+Updated: 2026-07-31 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Current checkpoint - exhaustive self-host CI and executable-rung closure
+## Active self-host context — source-to-MIR full bootstrap
+
+- Resume scope: read this card, verify the named owner and gate, then continue
+  this one executable rung. Sections below `Historical checkpoint archive` are
+  lookup evidence only and must not be treated as parallel work queues.
+- Verified predecessor: `c883e75ff42c36a51afc43c3e4af6c23857b34ea` on
+  `main`, pushed to `origin/main`. This note cannot name its own containing
+  refocus commit; verify the exact HEAD and dirty state with Git.
+- Production entrypoint: `driver_bootstrap_main.pgy -> PgyCompilerWorld.source_mir
+  -> DriverSourceMirExecution -> DriverRung2MirProjectionFromAdmittedAnalysisObserved
+  -> SelfMirProgramFactsFromReadyArtifactObserved`.
+- Active falsifier: the latest full integration reached `mir-facts:start` and
+  was policy-stopped after 2,534,272 ms at 2,284.8 MB peak private. This is a
+  CPU/incomplete result under the unchanged 3,072 MiB limit, not a 20 GB memory
+  reproduction and not a semantic PASS.
+- Fact owner: `src/self_hosted/mir/artifact_lower_owner.pgy`. Last orchestration
+  consumer: `src/self_hosted/compiler/driver_rung2_owner.pgy`. The pressure-
+  observed path now distinguishes iteration validation, generic projection,
+  domain projection, each routine/intent, and canonical-ID materialization.
+- Forbidden fallback: increase the timeout or memory cap, add a general query
+  engine/cache before one exact repeated operation is measured, rebuild facts
+  from AST text, or resume Insere/Zeno/library research as if it were the active
+  compiler rung.
+- Next gate: run `tests/build_pressure_contract_smoke.sh`, focused component and
+  semantic gates, then one bounded pressure-owned full bootstrap. Use the last
+  emitted `mir-facts:*` start/done pair as the next optimization owner. Only a
+  Pergyra path that deletes a real C-owned compiler bypass may be recorded as
+  `SUBSTITUTING`.
+- Observed green for this change: build-pressure contract plus a live synthetic
+  stage capture (`observed_stage_count=1` and exact `last_observed_stage`),
+  self-host component contract, semantic-environment lifetime/no-direct-bypass
+  gate, fresh C semantic checker enum contract and the original failing source,
+  exhaustive C and LLVM self-application over 684/684 real sources per backend,
+  native `test-parser`,
+  imported-intent composition positive/negative, semantic declaration identity,
+  production-owner size, scaffold, and zone-authority semantic-to-DIR no-rescan
+  gates. The pressure-owned full bootstrap and remaining CI matrix are not
+  implied by these focused passes.
+- CI watch: GitHub Actions run `30557474963` is the current post-`c883e75f`
+  matrix. It exposed five shared contract drifts rather than platform-specific
+  failures: `outcome_enum` was mistaken for an enum declaration; three positive
+  parser fixtures omitted `Guard`/`Actor`; composed declaration hints preempted
+  the semantic duplicate-identity owner; `parser.c` crossed the 699-line owner
+  cap; and `zone_authority_fact_probe` lacked its scaffold manifest. The scanner
+  now rejects identifier suffixes, fixtures declare their types, equal-kind
+  duplicates reach the semantic checker while conflicting role evidence still
+  fails in composition, program assembly owns `parser_program.c`, and the probe
+  declares its executable parity contract. Focused gates above pass. A post-fix
+  CI run is still required; the old red run is not reclassified as green.
+
+## Historical checkpoint archive — inactive unless explicitly referenced
+
+The remaining sections preserve exact revisions and prior falsifiers. They are
+lookup evidence, not an ordered TODO list. Do not resume Insere/Zeno, an older
+zone/ABI seam, or an architecture proposal unless the active card or the user
+explicitly names it.
+
+## Historical checkpoint - exhaustive self-host CI and executable-rung closure
 
 - This continuation started at
   `ef1522821f9de89783f23ebdbcacbc34bec05705`, equal to `origin/main` before
@@ -91,7 +148,7 @@ owner, and the named executable gate.
   keys, followed by a full bootstrap under the unchanged limit. Do not raise
   the timeout or call this incomplete run green.
 
-## Current checkpoint - exact bootstrap pressure and zone runtime closure
+## Historical checkpoint - exact bootstrap pressure and zone runtime closure
 
 - This material continuation started at
   `3f1416bd1f09864bb45dcea982af611e67fffb5b`, equal to `origin/main` before
@@ -200,7 +257,7 @@ owner, and the named executable gate.
   5. keep composite-intent full DIR admission and thread-safe lock lifecycle as
      separately named open seams rather than weakening the zero-topology gate.
 
-## Current checkpoint - body admission and latest-only publication
+## Historical checkpoint - body admission and latest-only publication
 
 - Material checkpoint: `835348ac318506031a375d8fc168a55e9ca94eb3`
   (`feat: seal self-host body and publication facts`), based on
@@ -281,7 +338,7 @@ owner, and the named executable gate.
      `MirAbiLayoutRowCapture`, rejecting offset/size/alignment/endian drift and
      identity collisions without introducing another layout owner.
 
-## Current checkpoint - admitted semantic artifact emission
+## Historical checkpoint - admitted semantic artifact emission
 
 - Exact remote base for this continuation was
   `18c105a75894d1b09c66da2cad5b1b380e3c7a73` on `main`, equal to
@@ -406,7 +463,7 @@ owner, and the named executable gate.
   This is still `REACHABLE` performance closure, not a new native-C owner
   substitution and therefore not `SUBSTITUTING` evidence.
 
-## Current checkpoint - independent CI portability repairs
+## Historical checkpoint - independent CI portability repairs
 
 - `expr_semantic_call_argument_owner.pgy` now directly imports the owner that
   defines `RewriteSemanticExpectedValue`; the final integrated driver source
@@ -609,7 +666,7 @@ owner, and the named executable gate.
   `examples/function_clause_order_minimal.pgy` direct/launcher byte parity be
   claimed.
 
-## Current checkpoint - Insere/Zeno adoption continuation
+## Historical checkpoint - Insere/Zeno adoption continuation
 
 - `docs/201_insere_zeno_lineage_and_library_adoption.md` remains the canonical
   provenance/adoption contract for the user-authored `F:/insere` and `F:/zeno`.
@@ -738,7 +795,7 @@ owner, and the named executable gate.
   local run ended at its 180-second ceiling; no full platform PASS is claimed
   until the next pushed CI result is observed.
 
-## Current checkpoint - Insere/Zeno three-track reachable slices
+## Historical checkpoint - Insere/Zeno three-track reachable slices
 
 - Exact working base is `6e1891f54aa7770880ae1b89276adc90895b61b7` on
   `main`. This checkpoint integrates 17 explicitly named paths; no broad
@@ -785,7 +842,7 @@ owner, and the named executable gate.
   unexpected temporary path, compiler output, or binary artifact included.
   Commit remains intentionally pending.
 
-## Current checkpoint - unified CI recovery and next Pergyra-native rung
+## Historical checkpoint - unified CI recovery and next Pergyra-native rung
 
 - Exact clean base is `0b848787245b1272334c5fd9ef503b988d0ff6b2` on
   `main`, equal to `origin/main` when this checkpoint was written. The

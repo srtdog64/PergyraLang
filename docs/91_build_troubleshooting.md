@@ -140,9 +140,26 @@ The current bottleneck is therefore split explicitly:
 - memory: no 20 GB compiler process reproduced; current full peak is below the
   unchanged 3,072 MB cap;
 - CPU: full integration still does not complete inside the policy window;
-- next evidence: profile operation/query counts in the reached `mir-facts`
-  owner path and define stable revision/query identity before introducing a
-  dependency cache or opaque admitted artifact.
+- next evidence: the pressure-observed `mir-facts` owner now emits bounded
+  iteration-validation, generic-specializations, domain-projection,
+  routine/intent row, and canonical-ID start/done events. The pressure summary
+  records `observed_stage_count` and `last_observed_stage`; use the final open
+  event to select one owner before measuring its operation count.
+- no cache/query identity has been approved yet. Define one only after that
+  measurement proves a repeated query at this exact production boundary. A
+  generic query engine, longer timeout, or larger memory cap is not a diagnosis.
+- The summary-field wiring was executed with one synthetic
+  `[driver-pressure-stage] mir-facts:test:start` line: the JSON reported
+  `observed_stage_count: 1` and preserved that exact line as
+  `last_observed_stage`. This verifies instrumentation transport only; it is not
+  a full-bootstrap performance result.
+- A clean dependency rebuild caused by adding `parser_program.c` was sampled
+  while native `gcc` was compiling the full compiler source set. The visible
+  `gcc`, `cc1`, `make`, `bash`, and `sh` process set used about 48.9 MiB working
+  set and 43.2 MiB private memory at that sample. This is not a peak profile,
+  but it confirms that ordinary native compilation is not the multi-gigabyte
+  owner; the historical pressure belongs to repeated self-host whole-program
+  graph work.
 
 ## 0. Resource pressure first
 

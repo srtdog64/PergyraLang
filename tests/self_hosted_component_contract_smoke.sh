@@ -5167,7 +5167,7 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstAssign
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstStatementTypeFactsFromArtifact"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileSourceToMirJsonVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CanonicalizeMirJsonVerified"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SelfMirProgramFactsFromReadyArtifact("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SelfMirProgramFactsFromReadyArtifactObserved("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SelfMirProgramFactsFromArtifact("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \

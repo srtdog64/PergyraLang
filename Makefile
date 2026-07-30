@@ -339,6 +339,7 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/ast_print_world.c \
                    $(PARSER_DIR)/ast_print_zone.c \
                    $(PARSER_DIR)/parser.c \
+                   $(PARSER_DIR)/parser_program.c \
                    $(PARSER_DIR)/parser_decl_hints.c \
                    $(PARSER_DIR)/parser_doc.c \
                    $(PARSER_DIR)/parser_enum.c \

@@ -86,6 +86,8 @@ public sealed class BuildPressureOutputCapture : IDisposable
     private Task stderrTask;
     private volatile bool stdoutEof;
     private volatile bool stderrEof;
+    private string lastObservedStage = "";
+    private int observedStageCount;
 
     public BuildPressureOutputCapture(string stagePath)
     {
@@ -194,7 +196,19 @@ public sealed class BuildPressureOutputCapture : IDisposable
                 clock.ElapsedMilliseconds,
                 stream,
                 escapedStage);
+            lastObservedStage = line;
+            observedStageCount++;
         }
+    }
+
+    public string LastObservedStage()
+    {
+        lock (stageWriter) { return lastObservedStage; }
+    }
+
+    public int ObservedStageCount()
+    {
+        lock (stageWriter) { return observedStageCount; }
     }
 
     public string StandardOutputText()
@@ -484,6 +498,8 @@ if (-not $outputCaptureComplete) {
 }
 $stdoutText = $capture.StandardOutputText()
 $stderrText = $capture.StandardErrorText()
+$lastObservedStage = $capture.LastObservedStage()
+$observedStageCount = $capture.ObservedStageCount()
 if ($outputCaptureStopped) { $capture.Dispose() }
 $exitCode = if ($rootExitComplete) { [int]$process.ExitCode } else { -1 }
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
@@ -518,6 +534,8 @@ $summary = [ordered]@{
     limit_exceeded = $limitExceeded
     detached_compiler_worker_tracking = $trackDetachedCompilerWorkers
     output_capture_complete = $outputCaptureComplete
+    observed_stage_count = $observedStageCount
+    last_observed_stage = $lastObservedStage
     phases = [ordered]@{
         orchestrate = $phaseStats.orchestrate
         compile = $phaseStats.compile

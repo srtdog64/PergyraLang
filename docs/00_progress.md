@@ -1,8 +1,47 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-07-30
+마지막 업데이트: 2026-07-31
 
-## 2026-07-30 exhaustive self-host CI and executable-rung closure checkpoint
+## 활성 우선순위 — self-host source-to-MIR bootstrap 하나만
+
+- 현재 작업 그래프는 `driver_bootstrap_main.pgy -> PgyCompilerWorld.source_mir
+  -> DriverSourceMirExecution -> DriverRung2MirProjectionFromAdmittedAnalysisObserved
+  -> SelfMirProgramFactsFromReadyArtifactObserved` 하나다. 설치 경로와 full
+  bootstrap이 이 owner graph를 공유하며, 다음 목표는 실제 C 우회 제거로
+  이어지는 실행 rung이다.
+- 최근 full integration은 3,072 MiB 제한 아래 `mir-facts:start`에 도달했고
+  2,534,272 ms 뒤 정책 중단됐다. Peak private 2,284.8 MB이므로 현재 증거는
+  20 GB memory regression이 아니라 MIR fact 생산의 CPU/incomplete blocker다.
+- MIR owner의 pressure-observed 경로를 iteration/generic/domain/routine/intent/
+  canonical-ID 단계로 나눴다. 다음 bounded run에서 마지막 start/done pair가
+  지목한 owner만 최적화한다. 측정 전에 general cache/query engine을 만들거나
+  timeout·memory cap을 올리는 것은 금지한다.
+- Insere/Zeno와 다른 외부 프로젝트 검토는 완료된 provenance archive다.
+  사용자가 명시적으로 다시 열지 않는 한 self-host resume context, TODO,
+  `SUBSTITUTING` 진척으로 취급하지 않는다.
+- Post-`c883e75f` CI의 공유 contract drift 다섯 개도 active self-host 범위에서
+  닫았다.
+  `outcome_enum`의 suffix를 enum 선언으로 오인하던 scanner에 leading identifier
+  boundary와 negative contract를 추가했고, strict intent composition과 충돌하던
+  parser fixture 세 개는 `Guard`/`Actor`를 실제로 선언한다. 동일 종류
+  중복 선언은 semantic identity owner까지 전달하되 충돌하는 role evidence는
+  composition에서 fail closed한다. Program 조립은 `parser_program.c`로 분리했고
+  zone-authority probe에 필수 parity manifest를 복구했다. Fresh C self-host
+  semantic checker의 enum contract와 exact 실패 source, native `test-parser`, semantic
+  declaration identity, owner-size/scaffold, zone-authority, build-pressure, self-host
+  component/lifetime, imported-intent composition gate가 PASS했다. Fresh C/LLVM
+  checker는 각 backend에서 실제 production source 684/684를 전부 수용했다.
+  Pressure summary의 stage
+  count와 last-stage runtime capture도 확인했다. 새 CI 전까지 이전 run의 red
+  결론은 그대로 유지하며 full bootstrap PASS를 추론하지 않는다.
+
+## 비활성 진행 기록 archive
+
+이 절 아래의 모든 날짜별 checkpoint는 과거 증거와 회귀 falsifier를
+보존한다. 활성 TODO 또는 재개 후보가 아니며, 다음 작업은 위의
+`self-host source-to-MIR bootstrap`에서만 선택한다.
+
+## Historical — 2026-07-30 exhaustive self-host CI and executable-rung closure checkpoint
 
 - GitHub run `30535237959` separated five failures that had previously been
   hidden behind focused gates: imported enum variants were missing from the
@@ -91,7 +130,10 @@
   source의 focused driver rebuild는 성공했고, broader machine-layer gate는 별도
   기존 producer/consumer fact mismatch에서 RED다.
 
-## 2026-07-30 Insere/Zeno library lineage checkpoint
+## 비활성 provenance archive — 2026-07-30 Insere/Zeno
+
+이 절은 완료된 설계 출처 기록이다. 활성 self-host rung이나 재개 큐가 아니며,
+사용자가 명시적으로 다시 열지 않는 한 여기서 후속 작업을 고르지 않는다.
 
 - 사용자 소유 `F:/insere`와 `F:/zeno`의 채택 계약을
   `docs/201_insere_zeno_lineage_and_library_adoption.md`에 revision까지 고정했다.

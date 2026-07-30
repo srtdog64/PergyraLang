@@ -115,7 +115,9 @@ func SeedDeclaredEnumVariantSignatures(
             scan = SkipQuotedString(content, scan, n);
             continue;
         }
-        if !SemanticMatchKeywordWithin(content, n, scan, "enum") {
+        if (scan > 0 && SourceByteIsAlphaNum(
+            SourceByteAt(content, n, scan - 1)
+        )) || !SemanticMatchKeywordWithin(content, n, scan, "enum") {
             scan = scan + 1;
             continue;
         }
@@ -227,6 +229,17 @@ func SemanticEnumCallableProjectionContractReady() -> Bool {
         IsSome(SemanticCallableIndex(
             names, "ImportedDecision.StableCode"
         )) || IsSome(SemanticCallableIndex(names, "StableCode")) {
+        return false;
+    }
+
+    let non_enum_names: Array<String> = [];
+    let non_enum_returns: Array<String> = [];
+    let non_enum_params: Array<String> = [];
+    if !SeedDeclaredEnumVariantSignatures(
+        "func Example() -> Void { let outcome_enum: String = \"ready\"; }",
+        non_enum_names, non_enum_returns, non_enum_params
+    ) || ArrayLength(non_enum_names) != 0 ||
+        ArrayLength(non_enum_returns) != 0 || ArrayLength(non_enum_params) != 0 {
         return false;
     }
 

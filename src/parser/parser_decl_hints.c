@@ -126,6 +126,8 @@ bool
 parser_register_composed_decl_hint(Parser *parser, ASTNode *node)
 {
     const char *name;
+    ASTNodeType node_type;
+    NominalDeclKind nominal_kind = NOMINAL_DECL_CLASS;
     size_t prior_count;
 
     if (parser == NULL || node == NULL)
@@ -133,12 +135,22 @@ parser_register_composed_decl_hint(Parser *parser, ASTNode *node)
     name = parser_decl_hint_name(node);
     if (name == NULL)
         return true;
+    node_type = node->type;
+    if (node_type == AST_CLASS_DECL)
+        nominal_kind = node->data.class_decl.nominal_kind;
 
     for (size_t i = 0; i < parser->decl_hint_count; i++) {
         if (parser->decl_hint_names[i] != NULL
             && strcmp(parser->decl_hint_names[i], name) == 0) {
+            if (parser->decl_hint_types[i] == node_type
+                && (node_type != AST_CLASS_DECL
+                    || parser->decl_hint_nominal_kinds[i] == nominal_kind)) {
+                /* Declaration identity belongs to the semantic checker. The
+                 * composed registry only rejects conflicting role evidence. */
+                return true;
+            }
             parser_error(parser,
-                "Declaration composition contains duplicate type owner '%s'",
+                "Declaration composition contains conflicting type owner '%s'",
                 name);
             return false;
         }

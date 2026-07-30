@@ -500,6 +500,7 @@ static int
 run_typed_intent_tobject_transition_parse_test(void)
 {
     const char *code =
+        "subject Actor {}\n"
         "intent Workflow(actor: Actor) -> WorkflowOutcome {\n"
         "    step A {\n"
         "        on outcome_a: actor.ForwardA();\n"
@@ -531,8 +532,8 @@ run_typed_intent_tobject_transition_parse_test(void)
         return 1;
     }
     program = parser_parse_program(parser);
-    if (program != NULL && ast_program_statement_count(program) == 1)
-        intent = ast_program_statement(program, 0);
+    if (program != NULL && ast_program_statement_count(program) == 2)
+        intent = ast_program_statement(program, 1);
     if (intent != NULL)
         steps = ast_intent_decl_steps(intent, NULL);
 

@@ -1,5 +1,41 @@
 # Pergyra TODO (Beta Closure)
 
+## Active TODO - one source-to-MIR self-host bootstrap rung
+
+- Objective: replace one real C-owned compiler path through the production
+  self-host entrypoint. The only active execution graph is
+  `driver_bootstrap_main.pgy -> PgyCompilerWorld.source_mir ->
+  DriverSourceMirExecution -> DriverRung2MirProjectionFromAdmittedAnalysisObserved
+  -> SelfMirProgramFactsFromReadyArtifactObserved`.
+- Priority: semantic identity and one SoT, owner-directed MIR facts, removal of
+  the direct C bypass, one negative ratchet, then performance and structure.
+- Fact owner: `src/self_hosted/mir/artifact_lower_owner.pgy`. Last orchestration
+  consumer: `src/self_hosted/compiler/driver_rung2_owner.pgy`.
+- Current falsifier: the bounded full bootstrap reached `mir-facts:start` and
+  was policy-stopped after 2,534,272 ms at 2,284.8 MB peak private under the
+  unchanged 3,072 MiB cap. This is an incomplete CPU-bound result, not a 20 GB
+  memory reproduction and not a semantic pass.
+- Next action: use the pressure-observed iteration/generic/domain/routine/
+  intent/canonical-ID stage boundary to identify one repeated operation, move
+  that operation behind its existing owner, and rerun the focused pressure and
+  component gates before one bounded full-bootstrap attempt.
+- Forbidden fallback: increasing timeout or memory limits, adding a general
+  query/cache system before measuring one exact repeated operation, rebuilding
+  MIR facts from AST text, or treating Insere/Zeno/library research as an
+  active compiler rung.
+- Status: `REACHABLE`, not `SUBSTITUTING`. C and LLVM semantic self-application
+  currently accept 684/684 real self-host sources per backend, but only removal
+  of a real C-owned production bypass may advance hard self-host progress.
+
+## Historical beta/self-host ledger - inactive
+
+Everything below this boundary is preserved evidence for gates and archaeology,
+not an ordered work queue. In particular, old `Current`, `Active`, `Queued`,
+percentage, v-rung, directory-reorganization, Insere, and Zeno labels must not
+override the active card above. Resume from `docs/current_work_handoff.md` and
+the named executable owner/gate; consult a historical item only when the active
+rung or the user explicitly references it.
+
 English anchor for tooling/doc gates:
 
 - Closed SoT closure: `src/lexer/language_keyword_registry.def` now owns one

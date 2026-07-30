@@ -425,7 +425,7 @@ for admitted_stage in \
         "$stage_path" "$stage_function"
 done
 
-mir_ready_body="$(function_body "$MIR_FACTS" 'SelfMirProgramFactsFromReadyArtifact')"
+mir_ready_body="$(function_body "$MIR_FACTS" 'SelfMirProgramFactsFromReadyArtifactObserved')"
 for forbidden in \
     'SemanticAstArtifactAnalysisMatches(' \
     'SemanticAstInitializerTypeFactsReadyProjection(' \
@@ -449,7 +449,7 @@ grep -Fq 'SelfMirProgramFactsFromReadyArtifact(' <<<"$mir_checked_body" || {
 }
 
 driver_mir_body="$(function_body "$DRIVER" 'DriverRung2MirProjectionFromAdmittedAnalysisObserved')"
-grep -Fq 'SelfMirProgramFactsFromReadyArtifact(' <<<"$driver_mir_body" || {
+grep -Fq 'SelfMirProgramFactsFromReadyArtifactObserved(' <<<"$driver_mir_body" || {
     echo "[self-host-parity:semantic-environment-lifetime] verified driver lost ready-artifact MIR path" >&2
     exit 1
 }
@@ -576,8 +576,7 @@ fi
 assert_exact_call_files \
     'CodegenCallableReceiverFactsFromAdmittedAnalysis(' \
     'src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy' \
-    'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
-    'src/self_hosted/compiler/driver_pipeline_owner.pgy'
+    'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy'
 for admitted_row_accessor in \
     'CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(' \
     'CodegenCallableReceiverRoleErasedForAdmittedSignatureOrDie('; do
@@ -643,11 +642,11 @@ fi
 assert_exact_call_files 'GenerateCUnitFromReadySemanticFacts(' \
     'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
     'src/self_hosted/codegen/emission/program_emit.pgy' \
-    'src/self_hosted/codegen/emission/program_entry_owner.pgy' \
-    'src/self_hosted/compiler/driver_pipeline_owner.pgy'
+    'src/self_hosted/codegen/emission/program_entry_owner.pgy'
 assert_exact_call_files 'GenerateCUnitFromAdmittedSemanticArtifact(' \
     'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
-    'src/self_hosted/codegen/emission/program_entry_owner.pgy'
+    'src/self_hosted/codegen/emission/program_entry_owner.pgy' \
+    'src/self_hosted/compiler/driver_pipeline_owner.pgy'
 assert_exact_call_files 'GenerateCFromVerifiedSemanticArtifact(' \
     'src/self_hosted/codegen/emission/program_entry_owner.pgy' \
     'src/self_hosted/compiler/driver_rung2_owner.pgy'
@@ -660,7 +659,6 @@ assert_exact_call_files 'SemanticAstArtifactAdmissionReady(' \
     'src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy'
 assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysis(' \
     'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
-    'src/self_hosted/compiler/driver_pipeline_owner.pgy' \
     'src/self_hosted/semantic/ast_body_type_bundle_owner.pgy'
 assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(' \
     'src/self_hosted/compiler/driver_rung2_owner.pgy' \
@@ -669,7 +667,6 @@ assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved('
 
 for production_body in \
     "$ADMITTED_ENTRY|GenerateCUnitFromAdmittedSemanticArtifact|SemanticAstBodyTypeBundleFromAdmittedAnalysis(" \
-    "$PIPELINE|CompileAstArtifactToC|SemanticAstBodyTypeBundleFromAdmittedAnalysis(" \
     "$DRIVER|VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved|SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved("; do
     production_path="${production_body%%|*}"
     production_rest="${production_body#*|}"
@@ -705,9 +702,10 @@ pipeline_body="$(function_body "$PIPELINE" 'CompileAstArtifactToC')"
 pipeline_analysis_count="$(grep -Fc \
     'SemanticAstArtifactAnalyzeCompactBridge(' <<<"$pipeline_body" || true)"
 if [[ "$pipeline_analysis_count" -ne 1 ]] ||
-    ! grep -Fq 'GenerateCUnitFromReadySemanticFacts(' <<<"$pipeline_body" ||
+    ! grep -Fq 'GenerateCUnitFromAdmittedSemanticArtifact(' <<<"$pipeline_body" ||
+    grep -Fq 'GenerateCUnitFromReadySemanticFacts(' <<<"$pipeline_body" ||
     grep -Fq 'GenerateCUnitFromSemanticFacts(' <<<"$pipeline_body"; then
-    echo "[self-host-parity:semantic-environment-lifetime] source-to-C pipeline lost its one-analysis ready path" >&2
+    echo "[self-host-parity:semantic-environment-lifetime] source-to-C pipeline lost its one-analysis admitted path" >&2
     exit 1
 fi
 

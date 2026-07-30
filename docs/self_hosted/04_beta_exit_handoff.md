@@ -1,5 +1,11 @@
 # Beta Exit Handoff
 
+Status: **HISTORICAL START CONTRACT**. Beta exit and the first tooling packages
+have already been crossed. Do not resume from this document's numbered work
+packages; the active executable rung is owned by the top card in
+`docs/current_work_handoff.md`. This document remains the evidence for why hard
+self-host was allowed to start.
+
 This document defines the handoff from beta closure to self-host preparation.
 It is intentionally narrow: if the beta contract is not closed, do not start a
 self-host migration.
@@ -36,7 +42,7 @@ Self-host preparation may begin after all of these are true:
 - A dogfood path exists through emitted C and at least one compiler-adjacent
   tool candidate has a concrete input/output contract.
 
-## Current Handoff Judgement (2026-06-22)
+## Historical Handoff Judgement (2026-06-22)
 
 Hard self-host has started as staged substitution after the substrate gates
 became ready. The allowed scope is still narrow: compiler-adjacent tooling,

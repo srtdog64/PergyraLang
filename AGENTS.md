@@ -8,6 +8,14 @@ cosmetic reshuffling.
 - Start a resumed session with `docs/current_work_handoff.md`, then verify its
   checkpoint with `git status`, the named owner document, and the named
   focused gate.
+- Resume only from the handoff's top `Active self-host context` card. Everything
+  below its historical archive boundary is evidence for lookup, not an active
+  work queue. Do not revive an older checkpoint because it is longer or more
+  detailed than the active card.
+- External-project provenance, library-adoption research, architecture reviews,
+  and performance proposals are inactive unless the active card names one as
+  the exact blocker or the user explicitly reopens it. In particular, Insere
+  and Zeno are bounded provenance, not compiler context owners.
 - `docs/current_work_handoff.md` is a navigation snapshot, not semantic
   authority. The SoT registry, active rung owner, protocol/ABI registry, and
   executable gates remain authoritative when a handoff and the current tree
@@ -89,6 +97,13 @@ cosmetic reshuffling.
 
 ## Hard Self-Host Progress Guard
 
+- Keep one active self-host rung in this order: production entrypoint, direct C
+  bypass to delete, Pergyra fact owner, last orchestration consumer, focused
+  parity/negative gate, installed-driver evidence, then bounded performance
+  evidence when execution is the blocker.
+- Do not start a general query engine, cache architecture, library adoption, or
+  unrelated SoT cleanup while an executable rung is open. Instrument only the
+  reached Pergyra owner needed to identify the next falsifying case.
 - SoT is a hard-substitution rung condition, not an independent cleanup track.
   Close only the semantic seam reached by the one active executable rung.
 - Do not make more than two consecutive SoT-only commits. Before a third, land

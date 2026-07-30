@@ -2,8 +2,11 @@
 
 Updated: 2026-07-30 (Asia/Seoul)
 
-Status: canonical lineage/adoption plan. 구현 상태는 source와 executable gate가
-우선하며, 이 문서는 외부 프로젝트를 새 semantic authority로 만들지 않는다.
+Status: **ARCHIVED PROVENANCE / INACTIVE**. 이 문서는 완료된 bounded 채택의
+출처와 falsifier를 보존한다. 활성 self-host rung, 재개 큐, compiler semantic
+authority가 아니다. 사용자가 명시적으로 다시 열지 않는 한 세션 시작 시 읽거나
+여기서 다음 작업을 선택하지 않는다. 구현 상태는 Pergyra source와 executable
+gate가 우선한다.
 
 이 문서는 사용자가 직접 만든 `F:/insere`와 `F:/zeno`에서 Pergyra로 가져올
 핵심 불변식을 기록한다. 두 프로젝트는 실제 압력 아래 다듬어진 설계 자산이다.

@@ -1,5 +1,32 @@
 # Self-Host Progress
 
+## Active self-host context — 2026-07-31
+
+- Resume authority is the top card in `docs/current_work_handoff.md`; this file
+  is implementation history, not an independent TODO queue.
+- The one active executable graph is `driver_bootstrap_main.pgy ->
+  PgyCompilerWorld.source_mir -> DriverSourceMirExecution ->
+  DriverRung2MirProjectionFromAdmittedAnalysisObserved ->
+  SelfMirProgramFactsFromReadyArtifactObserved`.
+- The current full-bootstrap blocker is CPU time inside `mir-facts`, not the
+  historical 20 GB memory symptom. The latest bounded run reached
+  `mir-facts:start`, stopped after 2,534,272 ms, and peaked at 2,284.8 MB private
+  under the unchanged 3,072 MiB limit.
+- The pressure-observed MIR owner now emits iteration/generic/domain,
+  routine/intent row, and canonical-ID start/done events. The next bounded run
+  selects the last open event as one optimization owner; no general cache/query
+  engine is active.
+- Focused evidence for this refocus is green: component contract,
+  semantic-environment lifetime/no-direct-bypass, native parser, imported intent
+  composition, enum contract/exact failing source, and C/LLVM self-application
+  over all 684 real self-host sources per backend. This does not promote the
+  rung to `SUBSTITUTING`; full-bootstrap completion remains open.
+- Insere, Zeno, old CFG fixtures, and the historical v-rungs below are inactive
+  provenance unless the user explicitly reopens them. They do not supersede the
+  production entrypoint above and do not count as `SUBSTITUTING` progress.
+
+## Historical self-host ledger — inactive navigation evidence
+
 2026-07-27 v72 replaces the bounded single-header while CFG slice. One
 unchanged 4,692-byte `whileloop.pgy` `pgy.mir.v1` artifact has SHA-256
 `c48c9f598969a01864371bac9f11609ccfaecf499444eb5e263eed8a57e50fb0`.

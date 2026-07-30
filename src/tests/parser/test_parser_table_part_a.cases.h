@@ -255,6 +255,7 @@
         },
         {
             "Intent Default Who Alias Clause",
+            "subject Guard {}\n"
             "intent Patrol(guard: Guard) {\n"
             "    who: guard;\n"
             "    step Check {\n"
@@ -265,6 +266,7 @@
         },
         {
             "Intent Default Where Clause",
+            "subject Guard {}\n"
             "intent Patrol(guard: Guard) {\n"
             "    where: GuardZone;\n"
             "    step Check {\n"

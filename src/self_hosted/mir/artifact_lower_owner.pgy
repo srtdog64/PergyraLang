@@ -288,6 +288,23 @@ struct SelfMirProgramDomainProjection {
     let domain_graph: SelfDirDomainGraphFacts;
 }
 
+func SelfMirArtifactPressureStage(enabled: Bool, stage: String) -> Void {
+    if enabled {
+        Log(Concat("[driver-pressure-stage] mir-facts:", stage));
+    }
+}
+
+func SelfMirArtifactRoutinePressureStage(
+    enabled: Bool, kind: String, row: Int, state: String
+) -> Void {
+    if enabled {
+        Log(Concat(
+            "[driver-pressure-stage] mir-facts:",
+            Concat(kind, Concat(":", Concat(ToString(row), Concat(":", state))))
+        ));
+    }
+}
+
 func SelfMirProgramDomainFactsFromReadyArtifact(
     artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis
@@ -350,7 +367,7 @@ func SelfMirProgramDomainFactsFromReadyArtifact(
     );
 }
 
-func SelfMirProgramFactsFromReadyArtifact(
+func SelfMirProgramFactsFromReadyArtifactObserved(
     artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
     initializer_types: SemanticAstInitializerTypeFacts,
@@ -358,9 +375,11 @@ func SelfMirProgramFactsFromReadyArtifact(
     assignment_types: SemanticAstAssignmentTypeFacts,
     statement_types: SemanticAstStatementTypeFacts,
     generic_specializations: SemanticAstGenericSpecializationFacts,
-    machine_declaration: SelfHostMachineLayerDeclaration
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    observe_pressure: Bool
 ) -> SelfMirProgramFacts {
     let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(artifact.count);
+    SelfMirArtifactPressureStage(observe_pressure, "iteration-validation:start");
     let iteration_i: Int = 0;
     while iteration_i < SemanticAstIterationTypeCount(iteration_types) {
         if iteration_types.verified[iteration_i] != 1 ||
@@ -377,6 +396,8 @@ func SelfMirProgramFactsFromReadyArtifact(
         }
         iteration_i = iteration_i + 1;
     }
+    SelfMirArtifactPressureStage(observe_pressure, "iteration-validation:done");
+    SelfMirArtifactPressureStage(observe_pressure, "generic-specializations:start");
     let generic_rows: SelfMirGenericSpecializationRows =
         SelfMirGenericSpecializationRowsFromSemantic(
             analysis, generic_specializations
@@ -389,10 +410,13 @@ func SelfMirProgramFactsFromReadyArtifact(
             "MIR producer requires stable generic specialization rows"
         );
     }
+    SelfMirArtifactPressureStage(observe_pressure, "generic-specializations:done");
+    SelfMirArtifactPressureStage(observe_pressure, "domain-projection:start");
     let domain_projection: SelfMirProgramDomainProjection =
         SelfMirProgramDomainFactsFromReadyArtifact(artifact, analysis);
     let domain_facts: SelfMirProgramFacts = domain_projection.facts;
     if !domain_facts.ok { return domain_facts; }
+    SelfMirArtifactPressureStage(observe_pressure, "domain-projection:done");
     let declarations: SelfMirDeclarationRows = domain_facts.declarations;
     let domain_graph: SelfDirDomainGraphFacts =
         domain_projection.domain_graph;
@@ -409,6 +433,7 @@ func SelfMirProgramFactsFromReadyArtifact(
         statement_types,
         machine_declaration
     );
+    SelfMirArtifactPressureStage(observe_pressure, "routine-lowering:start");
     let i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(analysis.signatures) {
         // Declaration-only signatures (for example an ability contract
@@ -424,6 +449,9 @@ func SelfMirProgramFactsFromReadyArtifact(
             i = i + 1;
             continue;
         }
+        SelfMirArtifactRoutinePressureStage(
+            observe_pressure, "routine", i, "start"
+        );
         let build: SelfMirRoutineBuild = SelfMirRoutineFromInput(
             input, function_node_id
         );
@@ -436,10 +464,18 @@ func SelfMirProgramFactsFromReadyArtifact(
             facts, analysis, input, i, build,
             iteration_types, initializer_types
         );
+        SelfMirArtifactRoutinePressureStage(
+            observe_pressure, "routine", i, "done"
+        );
         i = i + 1;
     }
+    SelfMirArtifactPressureStage(observe_pressure, "routine-lowering:done");
+    SelfMirArtifactPressureStage(observe_pressure, "intent-lowering:start");
     let intent_i: Int = 0;
     while intent_i < SelfDirIntentCount(domain_graph.intents) {
+        SelfMirArtifactRoutinePressureStage(
+            observe_pressure, "intent", intent_i, "start"
+        );
         let intent_build: SelfMirRoutineBuild = SelfMirIntentRoutineBuild(
             input, declarations, domain_graph.intents, intent_i
         );
@@ -452,9 +488,33 @@ func SelfMirProgramFactsFromReadyArtifact(
         facts = SelfMirAppendIntentRoutine(
             facts, domain_graph.intents, intent_i, intent_build
         );
+        SelfMirArtifactRoutinePressureStage(
+            observe_pressure, "intent", intent_i, "done"
+        );
         intent_i = intent_i + 1;
     }
-    return SelfMirCanonicalInstructionIds(facts);
+    SelfMirArtifactPressureStage(observe_pressure, "intent-lowering:done");
+    SelfMirArtifactPressureStage(observe_pressure, "canonical-ids:start");
+    facts = SelfMirCanonicalInstructionIds(facts);
+    SelfMirArtifactPressureStage(observe_pressure, "canonical-ids:done");
+    return facts;
+}
+
+func SelfMirProgramFactsFromReadyArtifact(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    iteration_types: SemanticAstIterationTypeFacts,
+    assignment_types: SemanticAstAssignmentTypeFacts,
+    statement_types: SemanticAstStatementTypeFacts,
+    generic_specializations: SemanticAstGenericSpecializationFacts,
+    machine_declaration: SelfHostMachineLayerDeclaration
+) -> SelfMirProgramFacts {
+    return SelfMirProgramFactsFromReadyArtifactObserved(
+        artifact, analysis, initializer_types, iteration_types,
+        assignment_types, statement_types, generic_specializations,
+        machine_declaration, false
+    );
 }
 
 func SelfMirProgramFactsFromArtifact(

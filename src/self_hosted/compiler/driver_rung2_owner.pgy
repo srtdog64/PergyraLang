@@ -113,13 +113,13 @@ func DriverRung2MirProjectionFromAdmittedAnalysisObserved(
         );
     DriverRung2PressureStage(observe_pressure, "verify:done");
     DriverRung2PressureStage(observe_pressure, "mir-facts:start");
-    let mir_facts: SelfMirProgramFacts = SelfMirProgramFactsFromReadyArtifact(
+    let mir_facts: SelfMirProgramFacts = SelfMirProgramFactsFromReadyArtifactObserved(
         artifact, verified.analysis, verified.body_types.initializer_types,
         verified.body_types.iteration_types,
         verified.body_types.assignment_types,
         verified.body_types.statement_types,
         verified.body_types.generic_specializations,
-        machine_declaration
+        machine_declaration, observe_pressure
     );
     if !SelfMirProgramFactsReady(mir_facts) {
         Log(SelfMirProgramFactsValidationError(mir_facts));

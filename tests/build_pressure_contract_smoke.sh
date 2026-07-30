@@ -46,6 +46,10 @@ require '[semantic-initializer-stage]'
 require 'WaitForCompletion'
 require 'AbortReaders'
 require 'output_capture_complete = $outputCaptureComplete'
+require 'observed_stage_count = $observedStageCount'
+require 'last_observed_stage = $lastObservedStage'
+require 'LastObservedStage()'
+require 'ObservedStageCount()'
 require '[int]$OutputDrainTimeoutMs = 5000'
 if grep -Fq 'BeginOutputReadLine()' "$PROBE"; then
     echo "[build-pressure-contract] line-normalizing stdout capture returned" >&2
@@ -110,6 +114,15 @@ grep -Fq 'CompileSourceToMirJsonPressureObserved(' "$SOURCE_MIR_EXECUTION" \
     || { echo "[build-pressure-contract] source-MIR action lacks stage observation" >&2; exit 1; }
 grep -Fq '[driver-pressure-stage]' "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy" \
     || { echo "[build-pressure-contract] full driver pressure stages are not observable" >&2; exit 1; }
+MIR_ARTIFACT_OWNER="$ROOT_DIR/src/self_hosted/mir/artifact_lower_owner.pgy"
+grep -Fq 'SelfMirProgramFactsFromReadyArtifactObserved(' "$MIR_ARTIFACT_OWNER" \
+    || { echo "[build-pressure-contract] MIR fact owner lacks observed production entry" >&2; exit 1; }
+grep -Fq 'machine_declaration, observe_pressure' "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    || { echo "[build-pressure-contract] full driver does not carry pressure observation into MIR facts" >&2; exit 1; }
+for stage in iteration-validation generic-specializations domain-projection routine-lowering intent-lowering canonical-ids; do
+    grep -Fq "SelfMirArtifactPressureStage(observe_pressure, \"$stage:start\")" "$MIR_ARTIFACT_OWNER" \
+        || { echo "[build-pressure-contract] MIR fact stage is not observable: $stage" >&2; exit 1; }
+done
 grep -Fq '[semantic-body-type-stage]' "$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
     || { echo "[build-pressure-contract] body type pressure stages are not observable" >&2; exit 1; }
 grep -Fq '[semantic-initializer-stage]' "$ROOT_DIR/src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
