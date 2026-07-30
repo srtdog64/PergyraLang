@@ -310,7 +310,7 @@ body_environment_body="$(function_body "$BODY_ENV" \
     'SemanticAstBodyExpressionEnvironmentSeed')"
 grep -Fq 'SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(' \
     <<<"$body_environment_body" || {
-    echo "[self-host-parity:semantic-environment-lifetime] admitted body environment repeats checked owner-field seeding" >&2
+    echo "[self-host-parity:semantic-environment-lifetime] admitted body reopens checked constructor rows: environment repeats checked owner-field seeding" >&2
     exit 1
 }
 if grep -Fq 'SemanticAstExpressionSeedOwnerFields(' \

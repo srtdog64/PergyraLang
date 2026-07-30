@@ -3262,21 +3262,47 @@ index construction의 `HashRow`/`RowRangeEquals`가 각 문자 접근마다
 Component ratchet은 lookup/contains/hash/range에서 `StringLength(rows)` 재도입과 builder의
 `CodegenCharAt(rows, ...)` 재도입을 거부한다.
 
-### exact codegen은 성공하지만 생성 C host compile이 실패하는 경우
+### exact codegen의 `*Zone_sync` 누락과 typed runtime receipt
 
-r10d와 현재 소스 r11의 exact C emission exit 0은 부트스트랩 완료가 아니다. r11 생성 C를
-host compiler로 컴파일하면 정확히 15개의 `*Zone_sync` declaration/body가 없고, 그 외의 이전 intent signature/argument
-order 오류는 사라졌다. 현재 self-host emitter가 intent action의 zone sync 호출은
-생성하지만 native runtime의 lock, generation, dirty state, bounded frontier/projection을
-가진 body와 필요한 zone storage field를 아직 만들지 않기 때문이다.
+r10d/r11의 exact C emission은 성공했지만 host compiler가 15개의 `*Zone_sync`
+declaration/body 누락으로 실패했다. 원인은 호출된 15개 이름이 아니라, 모든 zone
+declaration을 typed runtime fact에서 저장·sync 정의로 투영하는 self-host owner가 없었던
+것이다. compiler world 18개와 support zone 2개를 합친 실제 program graph zone은
+20개다.
 
-빈 `Zone_sync`, 단순 generation 증가, 또는 이름만 보고 native body를 복사하는 방식으로
-link만 통과시키면 안 된다. DIR/MIR domain topology와
-`semantic.domain_runtime_assignment`에서 동일한 runtime plan을 투영하고, 필요한 사실이
-없으면 emission 전에 실패해야 한다. 검증 순서는 r11 C host compile, fresh isolated
-installed-driver build, live typed-intent gate이다. 기존 `bin/pgy-self-driver.exe`는 stale일 수
-있으므로 parser/order 수정을 검증할 때는 fresh parser로 AST를 다시 만들고 seed 경로를
-명시해야 한다.
+수정 후 zone-sync 9c 측정은 다음과 같다.
+
+- fresh codegen build: 71.756초, peak private 911.2MB, working set 865.2MB;
+- 5,324,488-byte exact AST emission: 123.632초, peak private 1,838.6MB,
+  working set 1,733.1MB, output 5,368,419 bytes;
+- AST zone identity 20개와 C `static void *Zone_sync` definition 20개의 exact
+  sorted bijection;
+- host GCC compile 성공; 생성 executable이 예상된 driver argument 오류까지 진입;
+- zero-topology fixture에서 sync 2회 후 atomic generation `0 -> 2`, object와
+  `tobject`의 ready/dirty/epoch/cause tuple 불변;
+- `PGY_ZONE_THREADSAFE`도 fixture가 명시적으로 init/destroy를 소유하는 harness에서
+  실행 PASS. 언어가 생성한 zone constructor/destructor의 lifecycle owner는 아직
+  OPEN이다.
+
+최종 owner/policy 통합 뒤 current-source codegen도 동일 AST를 136.249초에 다시
+내렸고 raw UTF-8 C 5,368,053 bytes, 20/20 bijection, host GCC compile을 재확인했다.
+이 repeat는 pressure sampling 없이 실행했으므로 peak memory에는 9c 측정값을 사용한다.
+
+해법은 빈 stub이나 이름 열거가 아니다. Zone 구조체는 공용
+`pgy_runtime_zone_sync_abi.h`에서 lock/generation ABI를 소비하고, self-host emitter는
+declaration inventory와 admitted DIR/MIR topology 및
+`semantic.domain_runtime_assignment`를 소비한다. Semantic-artifact fast path는 현재
+증명 가능한 zero topology만 직접 받으며, nonzero topology 또는 projection map을 만나면
+partial C 전에 fail closed한다. 반대로 기존 direct-MIR 경로의 admitted nonzero topology는
+그 plan을 계속 실행해야 한다. Zero-only receipt를 direct-MIR consumer까지 퍼뜨리면
+`domain_runtime_assignment_execution_owner.sh`가 회귀하므로 두 경계의 evidence lifetime을
+섞지 않는다.
+
+Exact host compile 성공은 `REACHABLE` 증거다. Fresh installed driver가 실제 production
+entrypoint를 대체하고 이전 C-owned 경로를 삭제하기 전에는 hard `SUBSTITUTING`으로
+기록하지 않는다. 다음 검증은 fresh installed-driver build, launcher parity, live
+typed-intent execution/compensation 순서다. 기존 `bin/pgy-self-driver.exe`는 stale일 수
+있으므로 현재 source/typed contract의 증거로 재사용하지 않는다.
 
 측정 실행 파일에 AST를 전달할 때 repository I/O policy도 보존해야 한다. `FileExists`는
 기본적으로 repository root 안의 상대 경로를 받으며, 별도 허용 없이 Windows 절대 경로를
@@ -3289,8 +3315,10 @@ root로 고정한 뒤 `.tmp/...` 상대 경로를 사용한다. 절대 경로 �
 중단했다. 이는 PASS가 아니다. 같은 contract가 포함된 graph semantic checker와 component
 gate의 PASS만 관측 증거로 사용하고, standalone 장시간 실행은 별도 성능 결함으로 남긴다.
 
-Intent step 경계는 `tests/self_hosted/parity/intent_step_binding_contract_owner.sh`로
-별도 고정한다. 이 실행 gate는 actor와 authority가 다른 정상 사례, by-value/inout zone
+Intent step의 공개 gate는
+`tests/self_hosted/parity/intent_step_binding_contract_parity.sh`로 별도 고정하고,
+내부 owner runner를 source한다. Tool scaffold는 `intent.md`를 소유해야 하며 둘 중 하나가
+없으면 build-source inventory에서 실패한다. 이 실행 gate는 actor와 authority가 다른 정상 사례, by-value/inout zone
 주소 모드, `where`/`using` 불일치, 선언되지 않은 authority, 동일 타입 subject slot의
 모호성, slot 누락을 포함한다. 단순 문자열 ratchet만으로 이 의미를 검증했다고 기록하면
 안 된다.
@@ -3309,3 +3337,20 @@ constructor 누락을 시간 제한 완화로 가리면 안 된다. Nominal cons
 `zone`/`world`의 `zone`, `subject slot`, `object slot`, `tobject slot` 필드를 정확히 읽고
 중첩 action/function body를 field로 오인하지 않아야 한다. 수정 후 동일 Windows target은
 source bundle 2.978초, semantic check 2.681초, `Status: ok`를 관측했다.
+
+CI의 exhaustive real-source selfcheck는 큰 root timeout을 닫은 뒤 더 뒤의 독립된
+standalone-owner 결함을 드러낼 수 있다. 2026-07-30 run `30524796373`은 155/677의
+`direct_mir_llvm_text_format_owner.pgy`에서 `undefined_function: Die`로 멈췄다. 이
+owner는 큰 emitter import graph에서는 우연히 `Die`를 볼 수 있었지만 standalone
+source root로는 그 소유자를 import하지 않았다. 해결은 builtin 목록에 `Die`를 넣거나
+checker를 느슨하게 하는 것이 아니라 `../codegen/text/text_owner.pgy`를 direct import하고
+component ratchet으로 그 edge를 고정하는 것이다.
+
+같은 run에서 함께 드러난 독립 결함도 한 원인으로 합치지 않는다. Bash 3.2 hosted
+runner는 `case` pattern의 줄 연속을 안전하게 해석하지 못했으므로 allowlist pattern을 한
+줄로 고정했다. 새 self-host tool은 executable owner만 추가해서 끝나지 않고 tool-local
+`intent.md`와 public parity wrapper를 함께 inventory에 넣어야 한다. Expression surface
+contract의 canonical root는 `Call`이 아니라 `CallArgument`이며, 이전 이름을 expected
+fixture로 유지하면 의미 회귀가 아니라 stale oracle failure가 된다. 이 네 문제는 각각
+component contract, build-source inventory, intent-step executable gate, MIR machine-layer
+gate로 분리해 재발을 막는다.

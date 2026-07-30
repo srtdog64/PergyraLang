@@ -60,6 +60,7 @@ func SemanticAstBodyTypeBundleMalformedProducerRowAdmissionContractReady(
         ArrayLength(analysis.local_bindings.names) != 1 {
         return false;
     }
+    // malformed_parallel_shape: preserve shape while severing storage identity.
     let malformed_names: Array<String> = [];
     analysis.local_bindings.names = malformed_names;
     if SemanticAstBodyAnalysisAdmissionReady(artifact, analysis) {

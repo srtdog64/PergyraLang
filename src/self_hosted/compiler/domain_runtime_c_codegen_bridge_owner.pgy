@@ -5,6 +5,8 @@
 // reparses JSON, chooses a same-name member, or chooses a participant ordinal.
 
 import "../mir_lower/machine_layer_fact_owner.pgy";
+import "../mir_lower/program_declaration_index_owner.pgy";
+import "../mir/declaration_verify_owner.pgy";
 import "../codegen/input/domain_runtime_codegen_view_owner.pgy";
 import "symbol_table_owner.pgy";
 
@@ -43,7 +45,7 @@ func CompilerDomainRuntimeCPathSuffix(
 }
 
 func CompilerDomainRuntimeCProjectionBlockForOwner(
-    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref admitted: MirDomainRuntimeAdmittedDocument,
     owner_name: String,
     owner_c_expression: String
 ) -> String {
@@ -65,74 +67,155 @@ func CompilerDomainRuntimeCProjectionBlockForOwner(
         let kind: String =
             admitted.domain_runtime_plan.operation_kinds[plan_row];
         if kind == "refresh" || kind == "publish" || kind == "bind" {
-            let start: Int = admitted.domain_runtime_plan.
-                projection_assignment_starts[plan_row];
-            let count: Int = admitted.domain_runtime_plan.
-                projection_assignment_counts[plan_row];
+            let start: Int = admitted.domain_runtime_plan.projection_assignment_starts[
+                plan_row
+            ];
+            let count: Int = admitted.domain_runtime_plan.projection_assignment_counts[
+                plan_row
+            ];
             if start < 0 || count <= 0 || start + count > ArrayLength(
                 admitted.domain_runtime_plan.projection_assignment_rows
             ) {
                 Die("domain runtime projection rows escaped admitted plan");
             }
-            let assignment_offset: Int = 0;
-            while assignment_offset < count {
-                let assignment_row: Int = admitted.domain_runtime_plan.
-                    projection_assignment_rows[start + assignment_offset];
-                if assignment_row < 0 || assignment_row >= ArrayLength(
-                    admitted.domain_runtime_assignments.projection_members.
-                        owner_names
-                ) || admitted.domain_runtime_assignments.projection_members.
-                    owner_names[assignment_row] != owner_name {
-                    Die("domain runtime projection owner identity is stale");
-                }
-                let target: String = Concat(
-                    owner_c_expression, Concat(".", Concat(
-                        CompilerDomainRuntimeCField(
-                            admitted.domain_runtime_assignments.
-                                projection_members.
-                                projection_slot_names[assignment_row]
-                        ), Concat(".", CompilerDomainRuntimeCField(
-                            admitted.domain_runtime_assignments.
-                                projection_members.
-                                target_field_names[assignment_row]
-                        ))
-                    ))
-                );
-                let source: String = Concat(
-                    owner_c_expression, Concat(".", Concat(
-                        CompilerDomainRuntimeCField(
-                            admitted.domain_runtime_assignments.
-                                projection_members.
-                                source_slot_names[assignment_row]
-                        ), CompilerDomainRuntimeCPathSuffix(
-                            admitted.domain_runtime_assignments.
-                                projection_members,
-                            assignment_row
-                        )
-                    ))
-                );
-                output = Concat(output, Concat(
-                    "    ", Concat(target, Concat(" = ", Concat(source, ";\n")))
-                ));
-                assignment_offset = assignment_offset + 1;
-            }
-            let topology_row: Int = admitted.domain_runtime_plan.
-                topology_row_indices[plan_row];
+            let topology_row: Int = admitted.domain_runtime_plan.topology_row_indices[
+                plan_row
+            ];
             if topology_row < 0 || topology_row >= ArrayLength(
                 admitted.domain_topology.projection_slot_names
             ) || admitted.domain_topology.projection_slot_names[
                 topology_row] == "" {
                 Die("domain runtime projection readiness identity is stale");
             }
+            let projection_slot: String = CompilerDomainRuntimeCField(
+                admitted.domain_topology.projection_slot_names[topology_row]
+            );
+            output = Concat(output, Concat(
+                "    if (", Concat(owner_c_expression, Concat(
+                    ".__projection_dirty_", Concat(
+                        projection_slot, ") {\n        "
+                    )
+                ))
+            ));
+            output = Concat(output, Concat(
+                owner_c_expression, Concat(
+                    ".__projection_ready_", Concat(
+                        projection_slot, " = false;\n"
+                    )
+                )
+            ));
+            let assignment_offset: Int = 0;
+            while assignment_offset < count {
+                let assignment_row: Int = admitted.domain_runtime_plan.projection_assignment_rows[
+                    start + assignment_offset
+                ];
+                if assignment_row < 0 || assignment_row >= ArrayLength(
+                    admitted.domain_runtime_assignments.projection_members.owner_names
+                ) || admitted.domain_runtime_assignments.projection_members.owner_names[
+                    assignment_row
+                ] != owner_name {
+                    Die("domain runtime projection owner identity is stale");
+                }
+                let target: String = Concat(
+                    owner_c_expression, Concat(".", Concat(
+                        CompilerDomainRuntimeCField(
+                            admitted.domain_runtime_assignments.projection_members.projection_slot_names[
+                                assignment_row
+                            ]
+                        ), Concat(".", CompilerDomainRuntimeCField(
+                            admitted.domain_runtime_assignments.projection_members.target_field_names[
+                                assignment_row
+                            ]
+                        ))
+                    ))
+                );
+                let source: String = Concat(
+                    owner_c_expression, Concat(".", Concat(
+                        CompilerDomainRuntimeCField(
+                            admitted.domain_runtime_assignments.projection_members.source_slot_names[
+                                assignment_row
+                            ]
+                        ), CompilerDomainRuntimeCPathSuffix(
+                            admitted.domain_runtime_assignments.projection_members,
+                            assignment_row
+                        )
+                    ))
+                );
+                output = Concat(output, Concat(
+                    "        ", Concat(target, Concat(" = ", Concat(source, ";\n")))
+                ));
+                assignment_offset = assignment_offset + 1;
+            }
+            output = Concat(output, Concat(
+                "        ", Concat(owner_c_expression, Concat(
+                    ".__projection_ready_", Concat(projection_slot,
+                    Concat(" = true;\n        ", Concat(
+                        owner_c_expression, Concat(
+                            ".__projection_dirty_", Concat(
+                                projection_slot,
+                                Concat(" = false;\n        ", Concat(
+                                    owner_c_expression, Concat(
+                                        ".__projection_epoch_", Concat(
+                                            projection_slot,
+                                            Concat("++;\n        ", Concat(
+                                                owner_c_expression, Concat(
+                                                    ".__projection_cause_",
+                                                    Concat(projection_slot,
+                                                        " = 1;\n    }\n"
+                                                    )
+                                                )
+                                            ))
+                                        )
+                                    )
+                                ))
+                            )
+                        )
+                    )))
+                ))
+            ));
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}
+
+func CompilerDomainRuntimeCProjectionDirtyBlockForOwner(
+    ref admitted: MirDomainRuntimeAdmittedDocument,
+    owner_name: String,
+    owner_c_expression: String
+) -> String {
+    let output: String = "";
+    let ordinal: Int = 0;
+    let operation_count: Int =
+        MirDomainRuntimePlanOperationCountForOwner(
+            admitted.domain_runtime_plan, owner_name
+        );
+    while ordinal < operation_count {
+        let plan_row: Int = MirDomainRuntimePlanOperationRowForOwnerAt(
+            admitted.domain_runtime_plan, owner_name, ordinal
+        );
+        let kind: String =
+            admitted.domain_runtime_plan.operation_kinds[plan_row];
+        if kind == "refresh" || kind == "publish" || kind == "bind" {
+            let topology_row: Int =
+                admitted.domain_runtime_plan.topology_row_indices[plan_row];
+            if topology_row < 0 || topology_row >= ArrayLength(
+                admitted.domain_topology.projection_slot_names
+            ) || admitted.domain_topology.projection_slot_names[
+                topology_row] == "" {
+                Die("domain runtime projection dirty identity is stale");
+            }
+            let slot: String = CompilerDomainRuntimeCField(
+                admitted.domain_topology.projection_slot_names[topology_row]
+            );
             output = Concat(output, Concat(
                 "    ", Concat(owner_c_expression, Concat(
-                    ".__projection_ready_", Concat(
-                        CompilerDomainRuntimeCField(
-                            admitted.domain_topology.projection_slot_names[
-                                topology_row
-                            ]
-                        ), " = true;\n"
-                    )
+                    ".__projection_dirty_", Concat(slot, " = true;\n")
+                ))
+            ));
+            output = Concat(output, Concat(
+                "    ", Concat(owner_c_expression, Concat(
+                    ".__projection_ready_", Concat(slot, " = false;\n")
                 ))
             ));
         }
@@ -142,7 +225,7 @@ func CompilerDomainRuntimeCProjectionBlockForOwner(
 }
 
 func CompilerDomainRuntimeCZoneOperationBlock(
-    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref admitted: MirDomainRuntimeAdmittedDocument,
     plan_row: Int
 ) -> String {
     if plan_row < 0 || plan_row >= ArrayLength(
@@ -170,22 +253,34 @@ func CompilerDomainRuntimeCZoneOperationBlock(
         ArrayLength(admitted.domain_runtime_plan.participant_role_rows) {
         Die("domain runtime participant roles escaped admitted plan");
     }
-    let output: String = "";
+    let layer_field: String = CompilerDomainRuntimeCField(layer_name);
+    let output: String = Concat(
+        "    if (!(*self).__layer_active_", layer_field
+    );
+    output = Concat(output, ") {\n        (*self).__layer_active_");
+    output = Concat(output, layer_field);
+    output = Concat(
+        output,
+        " = true;\n        _pgy_zone_frontier_continue = true;\n    }\n"
+    );
     let layer_owner: String = "";
     let role_offset: Int = 0;
     while role_offset < role_count {
-        let role_row: Int = admitted.domain_runtime_plan.
-            participant_role_rows[role_start + role_offset];
+        let role_row: Int = admitted.domain_runtime_plan.participant_role_rows[
+            role_start + role_offset
+        ];
         if role_row < 0 || role_row >= ArrayLength(
             admitted.domain_runtime_assignments.participant_roles.roles
         ) {
             Die("domain runtime participant role row is stale");
         }
         if layer_owner == "" {
-            layer_owner = admitted.domain_runtime_assignments.
-                participant_roles.owner_names[role_row];
-        } else if layer_owner != admitted.domain_runtime_assignments.
-            participant_roles.owner_names[role_row] {
+            layer_owner = admitted.domain_runtime_assignments.participant_roles.owner_names[
+                role_row
+            ];
+        } else if layer_owner != admitted.domain_runtime_assignments.participant_roles.owner_names[
+            role_row
+        ] {
             Die("domain runtime zone operation crosses layer owners");
         }
         let participant_name: String = "";
@@ -193,8 +288,9 @@ func CompilerDomainRuntimeCZoneOperationBlock(
                 "apply-effect" ||
             admitted.domain_runtime_plan.operation_kinds[plan_row] ==
                 "maintain-effect" {
-            if role_count != 1 || admitted.domain_runtime_assignments.
-                participant_roles.roles[role_row] != "effect-bearer" {
+            if role_count != 1 || admitted.domain_runtime_assignments.participant_roles.roles[
+                role_row
+            ] != "effect-bearer" {
                 Die("domain runtime effect operation lost its bearer role");
             }
             participant_name =
@@ -202,12 +298,14 @@ func CompilerDomainRuntimeCZoneOperationBlock(
         } else if admitted.domain_runtime_plan.operation_kinds[plan_row] ==
                 "link-relation" {
             if role_count != 2 { Die("domain runtime relation roles are incomplete"); }
-            if admitted.domain_runtime_assignments.participant_roles.
-                    roles[role_row] == "relation-source" {
+            if admitted.domain_runtime_assignments.participant_roles.roles[
+                role_row
+            ] == "relation-source" {
                 participant_name =
                     admitted.domain_topology.left_slot_names[topology_row];
-            } else if admitted.domain_runtime_assignments.participant_roles.
-                    roles[role_row] == "relation-target" {
+            } else if admitted.domain_runtime_assignments.participant_roles.roles[
+                role_row
+            ] == "relation-target" {
                 participant_name =
                     admitted.domain_topology.right_slot_names[topology_row];
             } else {
@@ -219,8 +317,9 @@ func CompilerDomainRuntimeCZoneOperationBlock(
         output = Concat(output, Concat(
             "    ", Concat(layer_expression, Concat(".", Concat(
                 CompilerDomainRuntimeCField(
-                    admitted.domain_runtime_assignments.participant_roles.
-                        field_names[role_row]
+                    admitted.domain_runtime_assignments.participant_roles.field_names[
+                        role_row
+                    ]
                 ),
                 Concat(" = (*self).", Concat(
                     CompilerDomainRuntimeCField(participant_name), ";\n"
@@ -229,20 +328,15 @@ func CompilerDomainRuntimeCZoneOperationBlock(
         ));
         role_offset = role_offset + 1;
     }
+    output = Concat(output, CompilerDomainRuntimeCProjectionDirtyBlockForOwner(
+        admitted, layer_owner, layer_expression
+    ));
     return Concat(output, CompilerDomainRuntimeCProjectionBlockForOwner(
         admitted, layer_owner, layer_expression
     ));
 }
 
-func CompilerDomainRuntimeCMethodPrologueForOwner(
-    ref admitted: MirMachineLayerAdmittedJsonInput,
-    owner_name: String
-) -> String {
-    if MirDomainRuntimePlanOperationCountForOwner(
-        admitted.domain_runtime_plan, owner_name
-    ) <= 0 {
-        return "";
-    }
+func CompilerDomainRuntimeCZonePrologue(owner_name: String) -> String {
     return Concat(
         "    ", Concat(
             CompilerSymbolCQualifiedName(owner_name, "sync"),
@@ -251,9 +345,87 @@ func CompilerDomainRuntimeCMethodPrologueForOwner(
     );
 }
 
-func CompilerDomainRuntimeCSyncBlockForOwner(
-    ref admitted: MirMachineLayerAdmittedJsonInput,
+func CompilerDomainRuntimeCMethodPrologueForOwner(
+    ref admitted: MirDomainRuntimeAdmittedDocument,
+    owner_name: String,
+    owner_is_zone: Bool
+) -> String {
+    if !owner_is_zone && MirDomainRuntimePlanOperationCountForOwner(
+        admitted.domain_runtime_plan, owner_name
+    ) <= 0 { return ""; }
+    return CompilerDomainRuntimeCZonePrologue(owner_name);
+}
+
+func CompilerDomainRuntimeCZoneSyncBlock(
+    owner_name: String,
+    body: String,
+    frontier_limit: Int
+) -> String {
+    if frontier_limit <= 0 {
+        Die("domain runtime zone frontier pass limit is invalid");
+    }
+    let wrapped: String = Concat(
+        "    PGY_ZONE_WRLOCK(self);\n    PGY_ZONE_GENERATION_INC(self);\n    size_t _pgy_zone_frontier_pass = 0;\n    size_t _pgy_zone_frontier_pass_limit = ",
+        Concat(ToString(frontier_limit), Concat(
+            ";\n    bool _pgy_zone_frontier_continue = true;\n    while (_pgy_zone_frontier_continue && _pgy_zone_frontier_pass < _pgy_zone_frontier_pass_limit) {\n        _pgy_zone_frontier_continue = false;\n        _pgy_zone_frontier_pass++;\n",
+            Concat(body,
+                "    }\n    if (_pgy_zone_frontier_continue) {\n        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_FRONTIER_REASON_ZONE_OVERFLOW);\n    }\n    PGY_ZONE_UNLOCK(self);\n"
+            )
+        ))
+    );
+    return Concat(
+        "static void ", Concat(
+            CompilerSymbolCQualifiedName(owner_name, "sync"), Concat(
+                "(", Concat(
+                    CompilerSymbolCIdentifier(owner_name), Concat(
+                        " *self)\n{\n", Concat(wrapped, "}\n\n")
+                    )
+                )
+            )
+        )
+    );
+}
+
+func CompilerDomainRuntimeCZoneFrontierPassLimit(
+    ref admitted: MirDomainRuntimeAdmittedDocument,
     owner_name: String
+) -> Int {
+    // missing admitted frontier owner or invalid pass limit
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(
+        admitted.domain_topology_plan.owner_names
+    ) {
+        if admitted.domain_topology_plan.owner_names[row] == owner_name {
+            if found >= 0 {
+                Die("domain runtime zone frontier owner is duplicated");
+            }
+            found = row;
+        }
+        row = row + 1;
+    }
+    if found >= 0 {
+        let pass_limit: Int =
+            admitted.domain_topology_plan.owner_pass_limits[found];
+        if pass_limit <= 0 {
+            Die("domain runtime zone frontier pass limit is invalid");
+        }
+        return pass_limit;
+    }
+    if MirDomainRuntimePlanOperationCountForOwner(
+        admitted.domain_runtime_plan, owner_name
+    ) != 0 {
+        Die("domain runtime zone operation is missing its admitted frontier owner");
+    }
+    // The native frontier owner defines zero rows as one bounded convergence
+    // protocol, not permission to omit the body.
+    return 1;
+}
+
+func CompilerDomainRuntimeCSyncBlockForOwner(
+    ref admitted: MirDomainRuntimeAdmittedDocument,
+    owner_name: String,
+    owner_is_zone: Bool
 ) -> String {
     let output: String = CompilerDomainRuntimeCProjectionBlockForOwner(
         admitted, owner_name, "(*self)"
@@ -276,7 +448,16 @@ func CompilerDomainRuntimeCSyncBlockForOwner(
         }
         ordinal = ordinal + 1;
     }
-    if output == "" { return ""; }
+    if !owner_is_zone && output == "" { return ""; }
+    if owner_is_zone {
+        let frontier_limit: Int =
+            CompilerDomainRuntimeCZoneFrontierPassLimit(
+                admitted, owner_name
+            );
+        return CompilerDomainRuntimeCZoneSyncBlock(
+            owner_name, output, frontier_limit
+        );
+    }
     return Concat(
         "static void ", Concat(
             CompilerSymbolCQualifiedName(owner_name, "sync"), Concat(
@@ -290,15 +471,26 @@ func CompilerDomainRuntimeCSyncBlockForOwner(
     );
 }
 
-func CodegenDomainRuntimeFactsFromAdmittedOrDie(
-    ref admitted: MirMachineLayerAdmittedJsonInput
+func CodegenDomainRuntimeFactsFromDomainAdmittedOrDie(
+    ref admitted: MirDomainRuntimeAdmittedDocument
 ) -> CodegenDomainRuntimeFacts {
-    if !admitted.domain_runtime_plan.present {
-        return CodegenDomainRuntimeFactsEmpty(true);
+    if !admitted.declarations.valid {
+        Die("domain runtime C view declaration inventory is invalid");
     }
     let owner_names: Array<String> = [];
+    let owner_is_zone: Array<Bool> = [];
     let method_prologues: Array<String> = [];
     let sync_blocks: Array<String> = [];
+    let declaration_row: Int = 0;
+    while declaration_row < ArrayLength(admitted.declarations.names) {
+        if admitted.declarations.nominal_kinds[declaration_row] == "zone" {
+            ArrayPush(
+                owner_names, admitted.declarations.names[declaration_row]
+            );
+            ArrayPush(owner_is_zone, true);
+        }
+        declaration_row = declaration_row + 1;
+    }
     let row: Int = 0;
     while row < ArrayLength(admitted.domain_runtime_plan.owner_names) {
         let owner_name: String =
@@ -310,28 +502,99 @@ func CodegenDomainRuntimeFactsFromAdmittedOrDie(
             prior = prior + 1;
         }
         if !seen {
-            let prologue: String =
-                CompilerDomainRuntimeCMethodPrologueForOwner(
-                    admitted, owner_name
-                );
-            let sync_block: String = CompilerDomainRuntimeCSyncBlockForOwner(
-                admitted, owner_name
+            ArrayPush(owner_names, owner_name);
+            ArrayPush(owner_is_zone,
+                MirProgramDeclarationIndexContains(
+                    admitted.declarations, "zone", owner_name
+                )
             );
-            if prologue != "" && sync_block != "" {
-                ArrayPush(owner_names, owner_name);
-                ArrayPush(method_prologues, prologue);
-                ArrayPush(sync_blocks, sync_block);
-            } else if prologue != "" || sync_block != "" {
-                Die("domain runtime C sync/prologue projection is incomplete");
-            }
         }
         row = row + 1;
     }
+    let owner_row: Int = 0;
+    while owner_row < ArrayLength(owner_names) {
+        let prologue: String =
+            CompilerDomainRuntimeCMethodPrologueForOwner(
+                admitted, owner_names[owner_row], owner_is_zone[owner_row]
+            );
+        let sync_block: String = CompilerDomainRuntimeCSyncBlockForOwner(
+            admitted, owner_names[owner_row], owner_is_zone[owner_row]
+        );
+        if prologue != "" && sync_block != "" {
+            ArrayPush(method_prologues, prologue);
+            ArrayPush(sync_blocks, sync_block);
+        } else {
+            Die("domain runtime C sync/prologue projection is incomplete");
+        }
+        owner_row = owner_row + 1;
+    }
     let result: CodegenDomainRuntimeFacts = CodegenDomainRuntimeFacts(
-        true, owner_names, method_prologues, sync_blocks
+        true, owner_names, owner_is_zone, method_prologues, sync_blocks
     );
     if !CodegenDomainRuntimeFactsReady(result) {
         Die("domain runtime C view did not preserve admitted plan identity");
     }
     return result;
+}
+
+// Narrow source-to-C receipt for the currently executable zero-topology rung.
+// It consumes typed declaration/topology/map owners directly and deliberately
+// does not synthesize a partial DIR graph identity or a pgy.mir.v1 document.
+func CodegenDomainRuntimeFactsFromZeroTopologyOrDie(
+    own declarations: SelfMirDeclarationRows,
+    topology: SelfDirDomainTopologyRows,
+    projection_maps: SelfDirDomainProjectionMapRows
+) -> CodegenDomainRuntimeFacts {
+    if !SelfMirDeclarationRowsReady(declarations) {
+        Die("zero-topology C receipt declaration inventory is invalid");
+    }
+    if !SelfDirDomainTopologyRowsReady(topology) {
+        Die("zero-topology C receipt DIR topology rows are invalid");
+    }
+    if ArrayLength(topology.kinds) != 0 {
+        Die("nonzero domain runtime zone topology is not executable in self-host C");
+    }
+    if !SelfDirDomainProjectionMapRowsReady(projection_maps) ||
+        ArrayLength(projection_maps.target_names) != 0 {
+        Die("zero-topology C receipt projection assignment rows are invalid");
+    }
+    let owner_names: Array<String> = [];
+    let owner_is_zone: Array<Bool> = [];
+    let method_prologues: Array<String> = [];
+    let sync_blocks: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(declarations.names) {
+        if declarations.nominal_kinds[row] == "zone" {
+            let owner_name: String = declarations.names[row];
+            if owner_name == "" {
+                Die("zero-topology C receipt zone identity is missing");
+            }
+            ArrayPush(owner_names, owner_name);
+            ArrayPush(owner_is_zone, true);
+            ArrayPush(
+                method_prologues,
+                CompilerDomainRuntimeCZonePrologue(owner_name)
+            );
+            ArrayPush(
+                sync_blocks,
+                CompilerDomainRuntimeCZoneSyncBlock(owner_name, "", 1)
+            );
+        }
+        row = row + 1;
+    }
+    let result: CodegenDomainRuntimeFacts = CodegenDomainRuntimeFacts(
+        true, owner_names, owner_is_zone, method_prologues, sync_blocks
+    );
+    if !CodegenDomainRuntimeFactsReady(result) {
+        Die("zero-topology C receipt did not preserve zone identities");
+    }
+    return result;
+}
+
+func CodegenDomainRuntimeFactsFromAdmittedOrDie(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> CodegenDomainRuntimeFacts {
+    return CodegenDomainRuntimeFactsFromDomainAdmittedOrDie(
+        admitted.domain_runtime_admission
+    );
 }

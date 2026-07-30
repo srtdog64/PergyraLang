@@ -1130,6 +1130,7 @@ inventory must not become a second fact-family owner registry.
   of re-deriving header capabilities.
 - `src/self_hosted/codegen/runtime_abi/spawn_runtime_owner.pgy` -- bounded self-host C spawn/await runtime ABI facts for scalar Int/String async work through one tagged invocation descriptor, including named `Future<T>` handle materialization; unsupported payload/arity shapes fail closed.
 - `src/self_hosted/codegen/runtime_abi/box_array_runtime_owner.pgy` -- self-host C allocator-backed Box<Array<T>> type and constructor ABI facts.
+- `src/self_hosted/codegen/runtime_abi/zone_runtime_owner.pgy` -- isolated C include projection for the canonical native/self-host zone lock and generation ABI.
 - `src/self_hosted/codegen/emission/expr_rewrite.pgy` -- expression rewrite/lowering.
 - `src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy` --
   recursive expression emission from semantic node handles and child edges;

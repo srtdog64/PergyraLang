@@ -72,6 +72,7 @@ mir_domain_runtime_clear(MIRProgram *mir)
     mir->domain_participant_role_fact_count = 0;
     mir->domain_projection_member_assignment_facts = NULL;
     mir->domain_projection_member_assignment_fact_count = 0;
+    mir->domain_runtime_program_syntax_id = 0;
     mir->has_domain_runtime_facts = false;
 }
 
@@ -281,13 +282,12 @@ mir_domain_runtime_projection_member_valid(
 bool
 mir_domain_runtime_validate(const MIRProgram *mir, char **error_message)
 {
-    uint32_t program_syntax_id = 0;
-
     if (error_message != NULL)
         *error_message = NULL;
     if (mir == NULL
         || (!mir->has_domain_runtime_facts
-            && (mir->domain_participant_role_fact_count > 0
+            && (mir->domain_runtime_program_syntax_id != 0
+                || mir->domain_participant_role_fact_count > 0
                 || mir->domain_participant_role_facts != NULL
                 || mir->domain_projection_member_assignment_fact_count > 0
                 || mir->domain_projection_member_assignment_facts != NULL))
@@ -302,6 +302,12 @@ mir_domain_runtime_validate(const MIRProgram *mir, char **error_message)
     }
     if (!mir->has_domain_runtime_facts)
         return true;
+    if (mir->domain_runtime_program_syntax_id == 0) {
+        mir_domain_runtime_set_error(
+            error_message,
+            "MIR domain runtime assignments are missing their program identity epoch");
+        return false;
+    }
     for (size_t i = 0; i < mir->domain_participant_role_fact_count; i++) {
         const PgyDomainParticipantRoleFact *fact =
             &mir->domain_participant_role_facts[i];
@@ -311,9 +317,8 @@ mir_domain_runtime_validate(const MIRProgram *mir, char **error_message)
                 "MIR domain participant role has incomplete identity or type");
             return false;
         }
-        if (program_syntax_id == 0)
-            program_syntax_id = fact->program_syntax_id;
-        if (fact->program_syntax_id != program_syntax_id) {
+        if (fact->program_syntax_id
+            != mir->domain_runtime_program_syntax_id) {
             mir_domain_runtime_set_error(
                 error_message,
                 "MIR domain participant roles cross program identity epochs");
@@ -351,9 +356,8 @@ mir_domain_runtime_validate(const MIRProgram *mir, char **error_message)
                 "MIR domain projection member has incomplete identity or path segment");
             return false;
         }
-        if (program_syntax_id == 0)
-            program_syntax_id = fact->program_syntax_id;
-        if (fact->program_syntax_id != program_syntax_id) {
+        if (fact->program_syntax_id
+            != mir->domain_runtime_program_syntax_id) {
             mir_domain_runtime_set_error(
                 error_message,
                 "MIR domain runtime assignments cross program identity epochs");
@@ -399,6 +403,9 @@ mir_domain_runtime_project_from_dir(MIRProgram *mir,
     }
     mir_domain_runtime_clear(mir);
     mir->has_domain_runtime_facts = dir->has_domain_runtime_facts;
+    if (dir->has_domain_runtime_facts)
+        mir->domain_runtime_program_syntax_id =
+            dir->source_program_syntax_id;
     if (!dir->has_domain_runtime_facts
         && (dir->domain_participant_role_fact_count > 0
             || dir->domain_participant_role_facts != NULL

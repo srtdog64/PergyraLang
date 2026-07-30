@@ -1047,6 +1047,7 @@ Inductive SpineFact : Type :=
   | SFBackendArtifact
   | SFCompilerArtifactCommit
   | SFCompatibilityEvolution
+  | SFZoneAuthorityRows
   | SFExpressionGraph
   | SFCollectionMutationStatement
   | SFEnumDeclarationRows
@@ -1107,6 +1108,7 @@ Inductive SpineOwner : Type :=
   | SOArtifactZone
   | SOCompilerArtifactCommit
   | SOCompatibilityEvolution
+  | SOSemanticZoneAuthority
   | SOSemanticLocalBinding
   | SOParserExpressionGraph
   | SOSemanticStatement
@@ -1169,6 +1171,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFBackendArtifact => SOArtifactZone
   | SFCompilerArtifactCommit => SOCompilerArtifactCommit
   | SFCompatibilityEvolution => SOCompatibilityEvolution
+  | SFZoneAuthorityRows => SOSemanticZoneAuthority
   | SFExpressionGraph => SOParserExpressionGraph
   | SFCollectionMutationStatement => SOSemanticStatement
   | SFEnumDeclarationRows => SOSemanticEnum

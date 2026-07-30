@@ -33,6 +33,7 @@ struct MIRProgram
     MIRDomainTopologyRow *domain_topology_rows;
     size_t      domain_topology_row_count;
     bool        has_domain_runtime_facts;
+    uint32_t    domain_runtime_program_syntax_id;
     PgyDomainParticipantRoleFact *domain_participant_role_facts;
     size_t      domain_participant_role_fact_count;
     PgyDomainProjectionMemberAssignmentFact

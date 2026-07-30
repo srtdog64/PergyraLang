@@ -141,9 +141,11 @@
   모두 역순으로 실행된다.
 - 통합 LLVM compiler rebuild, native typed execution gate, MIR 157/157,
   self frontend/fact/result-signature gate가 모두 PASS다. 후속 MIR smoke에서 찾은
-  self JSON admission 회귀도 닫았다. Native writer의 exact empty two-array
-  `domain_runtime_assignments`는 topology가 없을 때만 semantic absent로
-  정규화하고, non-empty stray row는 partial AST 없이 fail-close한다.
+  self JSON admission 회귀도 닫았다. 현재 wire는 participant/projection fact가
+  모두 없으면 `domain_runtime_assignments` namespace 자체를 생략한다. Non-empty
+  namespace는 `program_syntax_id`, `participant_roles`, `projection_members`의 exact
+  3-key shape만 허용하며 top-level epoch와 각 row epoch를 교차 봉인한다. 임의 epoch를
+  가진 explicit empty namespace와 non-empty stray row는 partial C 없이 fail-close한다.
 - Self frontend/DIR/MIR은 `legacy_bool`과 typed result signature를 구분해 운반하고
   target-neutral execution fact owner도 schema/digest/fact 책임으로 분리했다.
   하지만 self top-level MIR JSON admission은 아직 routine result와 plan을 한 번

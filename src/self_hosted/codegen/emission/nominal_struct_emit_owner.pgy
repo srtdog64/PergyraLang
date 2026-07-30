@@ -75,7 +75,26 @@ func CollectStructsSelected(
                     "    bool __projection_ready_",
                     Concat(c_fname, ";\n")
                 ));
+                ArrayPush(fields_c, Concat(
+                    "    bool __projection_dirty_",
+                    Concat(c_fname, ";\n")
+                ));
+                ArrayPush(fields_c, Concat(
+                    "    uint32_t __projection_epoch_",
+                    Concat(c_fname, ";\n")
+                ));
+                ArrayPush(fields_c, Concat(
+                    "    int __projection_cause_",
+                    Concat(c_fname, ";\n")
+                ));
                 has_projection_slots = true;
+            }
+            if field_kind == NominalFieldKindEffectSlot() ||
+                field_kind == NominalFieldKindRelationSlot() {
+                ArrayPush(fields_c, Concat(
+                    "    bool __layer_active_",
+                    Concat(c_fname, ";\n")
+                ));
             }
             field_index = field_index + 1;
         }
@@ -126,6 +145,15 @@ func CollectStructsSelected(
         if field_count == 0 && role_slot_count == 0 {
             field_block = AbiLayoutCFieldlessNominalFieldBlock();
         }
+        if nominal_kind == "zone" {
+            // Zone identity always carries its synchronization protocol, even
+            // when its admitted DIR graph has no projection/layer rows.
+            // The macros keep the native single-threaded zero-cost policy and
+            // the atomic generation ABI instead of inventing C-only storage.
+            field_block = Concat(field_block,
+                "    PGY_ZONE_LOCK_FIELD\n    PGY_ZONE_GENERATION_FIELD\n"
+            );
+        }
         ArrayPush(typedefs, Concat("typedef struct {\n", Concat(field_block, Concat("} ", Concat(c_sname, ";\n\n")))));
         ArrayPush(struct_env_rows, Concat(sname, "=s:struct|"));
         ArrayPush(struct_env_rows, Concat(
@@ -137,7 +165,7 @@ func CollectStructsSelected(
                 StringJoin(constructor_field_names, ","), "|"
             ))
         ));
-        if has_projection_slots {
+        if has_projection_slots || nominal_kind == "zone" {
             ArrayPush(struct_env_rows, Concat(
                 sname, Concat("=projection_sync:", Concat(
                     CompilerSymbolCQualifiedName(sname, "sync"), "|"

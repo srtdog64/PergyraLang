@@ -124,6 +124,10 @@ func SelfMirDomainRuntimeAssignmentsJsonPrefix(
 ) -> String {
     if !facts.present { return ""; }
     if !SelfMirDomainRuntimeAssignmentFactsReady(facts) { return ""; }
+    if ArrayLength(facts.participant_roles.roles) == 0 &&
+        ArrayLength(facts.projection_members.owner_names) == 0 {
+        return "";
+    }
     let roles: Array<String> = [];
     let role_row: Int = 0;
     while role_row < ArrayLength(facts.participant_roles.roles) {
@@ -142,11 +146,16 @@ func SelfMirDomainRuntimeAssignmentsJsonPrefix(
         projection_row = projection_row + 1;
     }
     return Concat(
-        ",\"domain_runtime_assignments\":{\"participant_roles\":",
         Concat(
-            JsonEmitArray(roles),
-            Concat(",\"projection_members\":", Concat(
-                JsonEmitArray(projections), "}"
+            ",\"domain_runtime_assignments\":{\"program_syntax_id\":",
+            ToString(facts.program_source_syntax_id)
+        ),
+        Concat(
+            ",\"participant_roles\":",
+            Concat(JsonEmitArray(roles), Concat(
+                ",\"projection_members\":", Concat(
+                    JsonEmitArray(projections), "}"
+                )
             ))
         )
     );

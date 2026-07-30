@@ -272,8 +272,9 @@ func MirDomainTopologyDeclarationIndexReady(
             ArrayLength(declarations.field_identities.declaration_names);
 }
 
-func MirDomainTopologyFactsFromDocument(
-    ref document: MirDocumentFactIndex
+func MirDomainTopologyFactsFromDocumentWithDeclarations(
+    ref document: MirDocumentFactIndex,
+    ref declarations: MirProgramDeclarationIndex
 ) -> MirDomainTopologyFacts {
     if !document.valid || !JsonObjectFactTableReady(document.domain_topology) {
         return EmptyMirDomainTopologyFacts(false);
@@ -290,8 +291,6 @@ func MirDomainTopologyFactsFromDocument(
         !JsonArrayObjectFactTableReady(rows) {
         return EmptyMirDomainTopologyFacts(true);
     }
-    let declarations: MirProgramDeclarationIndex =
-        BuildMirProgramDeclarationIndex(document.root.json);
     if !MirDomainTopologyDeclarationIndexReady(declarations) {
         return EmptyMirDomainTopologyFacts(true);
     }
@@ -413,5 +412,15 @@ func MirDomainTopologyFactsFromDocument(
         source_slot_ids, layer_names, layer_ids, target_names, target_ids,
         left_names, left_ids, right_names, right_ids, participant_names,
         participant_ids
+    );
+}
+
+func MirDomainTopologyFactsFromDocument(
+    ref document: MirDocumentFactIndex
+) -> MirDomainTopologyFacts {
+    let declarations: MirProgramDeclarationIndex =
+        BuildMirProgramDeclarationIndex(document.root.json);
+    return MirDomainTopologyFactsFromDocumentWithDeclarations(
+        document, declarations
     );
 }

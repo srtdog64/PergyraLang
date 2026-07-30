@@ -82,7 +82,7 @@ endif
 # - macOS:         pthread is in libSystem, so THREAD_LINK_LIB is empty
 #                  yet threading is still active; gate on darwin too.
 #
-# The atomic generation counter (in pgy_runtime_zone_result_option_inline.h)
+# The atomic generation counter (in pgy_runtime_zone_sync_abi.h)
 # is the minimum safety net; the rwlock becomes the structural lock for
 # the rest of the zone state.
 #
@@ -3285,6 +3285,10 @@ self-host-domain-runtime-assignment-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" \
 		tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh
 
+self-host-domain-runtime-zone-sync-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" \
+		tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh
+
 self-host-mir-cfg-graph-query-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_cfg_graph_query_owner_smoke.sh
 
@@ -3297,7 +3301,7 @@ self-host-json-bounded-string-test-smoke: $(PGY)
 self-host-mir-json-instruction-writer-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_json_instruction_writer_byte_parity.sh
 
-.PHONY: self-host-domain-topology-admission-test-smoke self-host-intent-execution-plan-admission-test-smoke self-host-domain-runtime-assignment-test-smoke self-host-mir-cfg-graph-query-test-smoke self-host-mir-program-routine-index-owner-test-smoke self-host-json-bounded-string-test-smoke self-host-mir-json-instruction-writer-parity-test-smoke
+.PHONY: self-host-domain-topology-admission-test-smoke self-host-intent-execution-plan-admission-test-smoke self-host-domain-runtime-assignment-test-smoke self-host-domain-runtime-zone-sync-test-smoke self-host-mir-cfg-graph-query-test-smoke self-host-mir-program-routine-index-owner-test-smoke self-host-json-bounded-string-test-smoke self-host-mir-json-instruction-writer-parity-test-smoke
 
 match-binding-type-fact-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/match_binding_type_fact_smoke.sh
@@ -3510,7 +3514,7 @@ self-host-intent-execution-fact-contract-test-smoke: $(PGY)
 
 self-host-intent-step-binding-contract-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/intent_step_binding_contract_owner.sh
+		"$(BASH)" tests/self_hosted/parity/intent_step_binding_contract_parity.sh
 
 intent-typed-transition-native-execution-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \

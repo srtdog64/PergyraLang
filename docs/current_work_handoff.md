@@ -9,14 +9,15 @@ owner, and the named executable gate.
 ## Current checkpoint - exact bootstrap pressure and zone runtime closure
 
 - This material continuation started at
-  `c1070c0fcad5ee2fd949799674ba354667979aa8`, equal to `origin/main` before
+  `3f1416bd1f09864bb45dcea982af611e67fffb5b`, equal to `origin/main` before
   the current dirty change set. The final commit/push must be verified with Git;
   this note cannot name its own containing revision.
-- Active executable rung: project the native zone-sync runtime meaning from the
-  existing DIR/MIR domain topology and `semantic.domain_runtime_assignment`
-  owners into self-host C. The last consumer is the self-host zone
-  declaration/runtime emitter. Empty sync bodies, name-only reconstruction and
-  a copied native body detached from admitted facts are forbidden fallbacks.
+- Active executable rung: close self-host zone storage and synchronization from
+  the existing declaration, DIR topology and
+  `semantic.domain_runtime_assignment` owners. The last consumer is the
+  self-host C runtime emitter. Empty sync bodies, name-only reconstruction,
+  fabricated MIR/domain-graph identity and a copied native body detached from
+  admitted facts are forbidden fallbacks.
 - Exact pressure is no longer the blocker. The fixed 5,106,665-byte AST
   (`97EEFA34159BE8AFEA8D15F44BF5F74FB57D5DD1D8C03ABF565AF4A14B8D5190`)
   completed C emission in 158.020 seconds at 1,659.1MB peak private. A fresh
@@ -27,14 +28,20 @@ owner, and the named executable gate.
   seconds at 1,759.6MB peak private and 1,666.9MB working set; its C output is
   byte-identical to r9. All used the unchanged 3,072MiB / 2,400-second pressure
   policy. The earlier 20GB symptom is not reproduced.
-- A fully current r11 rerun removes the remaining stale-artifact ambiguity. A
-  fresh parse produced a 5,324,488-byte AST. A fresh self-host codegen build
-  finished in 52.295 seconds at 1,222.8MB peak private; exact emission finished
-  in 164.133 seconds at 1,726.6MB peak private and 1,635.7MB working set. Its C
-  output is 5,351,899 bytes (5,256,386 after CR removal), SHA-256
-  `94B15E5D2DE819EB4F6844E8AB0CAB6878C0188452D2BD99859EF25E3061297E`.
-  Host compilation remains RED for exactly the same 15 missing `*Zone_sync`
-  declarations/bodies and no earlier intent signature/order error.
+- A fully current r11 rerun removes the remaining stale-artifact ambiguity. Its
+  fresh AST is 5,324,488 bytes. The zone-sync 9c codegen build completed in
+  71.756 seconds at 911.2MB peak private and 865.2MB working set. Exact C
+  emission completed in 123.632 seconds at 1,838.6MB peak private and 1,733.1MB
+  working set, below the unchanged 3,072MiB limit. The output is 5,368,419
+  bytes. The AST contains 20 zone identities and the emitted C contains exactly
+  the same 20 `static void *Zone_sync` definitions: 18 compiler-world zones and
+  two support zones. Host GCC compilation now succeeds and the executable
+  reaches the expected driver argument boundary. The former 15 missing-symbol
+  host-compile failure is closed. After the final owner/policy consolidation, a
+  fresh current-source codegen repeated the exact emission in 136.249 seconds,
+  produced 5,368,053 raw UTF-8 C bytes, preserved the 20/20 bijection and again
+  host-compiled successfully. This last repeat was not pressure-sampled; the
+  9c peak figures above remain the measured memory evidence.
 - The measured closures are admitted constructor proof reuse, binary node-ID
   reads, carried call-return/place facts and one same-epoch global type-row
   index. Dynamic local rows retain their prepend/first-row rule. A general
@@ -47,20 +54,26 @@ owner, and the named executable gate.
   `using`, requires explicit `where` to match that zone, and accepts authority
   only through an exact declared zone subject slot. Exact aliases win; a
   type-only slot match must be unique.
-- Evidence grade is `REACHABLE`, not `SUBSTITUTING`. The current r11 self-host C is
-  5,351,899 bytes (5,256,386 after CR removal); the earlier r10d/r9 C is
-  5,365,353 bytes (5,270,018 after CR removal) versus the current
-  17,251,635-byte native C reference, so
-  normalized byte parity is false. Host compilation is RED with exactly 15
-  missing `*Zone_sync` declarations/bodies. A fresh isolated standard compiler build
-  reaches the same host-compile boundary; the currently installed
-  `bin/pgy-self-driver.exe` is stale and fails earlier current-source/typed-intent
-  gates.
+- Evidence grade for the new exact compiler-world zone result is `REACHABLE`,
+  not hard `SUBSTITUTING`. It removes the self-host emitter's empty runtime
+  fallback and produces executable C, but no released C-owned production route
+  has yet been replaced by a freshly installed self driver. The already
+  substituting admitted MIR domain-runtime slice remains intact: nonzero typed
+  topology continues through its admitted plan, while the semantic-artifact
+  fast path accepts only proven zero topology and fails closed before partial C
+  on nonzero topology. The currently installed `bin/pgy-self-driver.exe` remains
+  stale until the next installed-driver replacement rung.
 - Last observed green focused evidence: language keyword registry
   (146 rows, 70 reserved, 76 contextual selectors, 9 fixtures), include-size
   gate, semantic environment lifetime/admission ratchet, source-MIR execution
-  action gate, intent-step binding execution contract and full self-host
-  component contract. The standalone leaf-place
+  action gate, intent-step binding execution contract, MIR machine layer,
+  domain-runtime assignment, zero-topology zone-sync execution and full
+  self-host component contract. The zone gate proves a declaration/definition
+  identity bijection, two generation increments with unchanged object/tobject
+  projection tuples, default atomic execution, thread-safe execution under an
+  explicit harness-owned init/destroy lifecycle and fail-closed
+  semantic-artifact nonzero topology. Language-generated zone constructor/
+  destructor lifecycle ownership is still open. The standalone leaf-place
   contract checker ran for more than ten minutes without output and was stopped;
   it is **not a PASS**. The broad C/LLVM real-source semantic selfcheck was also
   sampled only through the first 13 of 673 C targets and stopped because its
@@ -80,15 +93,27 @@ owner, and the named executable gate.
   Its subsequent LLVM leg was stopped after the combined runner exceeded the
   five-minute focused budget; LLVM semantic parity is therefore not recorded as
   a PASS in this checkpoint and remains for CI/scheduled execution.
+- GitHub CI run `30524796373` proved that the former 60-second
+  `compiler_world_direct_mir_owner.pgy` timeout is closed: exhaustive C
+  selfcheck passed that root and advanced to 155/677. It then exposed a
+  separate standalone import defect in `direct_mir_llvm_text_format_owner.pgy`
+  (`undefined_function: Die`). The owner now imports the existing codegen text
+  boundary directly, and the component gate rejects removal of that edge. A
+  replacement CI run is required before this fix is called green remotely.
+- The attached 2026-07-30 architecture review's 40-minute/1.55GB timeout was
+  valid for its older checkpoint, but it is superseded by the measured 9c exact
+  result above. A general query/dependency engine is therefore an evidence-led
+  future architecture target, not permission to start a parallel cache owner in
+  the active rung.
 - Next falsifying sequence:
-  1. carry exact lock, generation/dirty and bounded projection-frontier facts to
-     self-host zone storage and `Zone_sync` emission;
-  2. reject any missing fact or unbounded/no-op body before output;
-  3. host-compile the fresh r11 emitted C with zero missing sync symbols;
-  4. build a fresh installed driver, then run live replacement and typed-intent
-     execution/compensation gates;
-  5. only after those pass, compare the next compiler generation and classify a
-     real deleted C-owned path as `SUBSTITUTING`.
+  1. build and install a fresh self driver from the host-compilable exact C;
+  2. run installed launcher parity plus live typed-intent execution and reverse
+     compensation gates;
+  3. prove the installed production entrypoint reaches the world/action owner
+     and delete the replaced C-owned route without a dual read;
+  4. only then classify that deleted-path replacement as `SUBSTITUTING`;
+  5. keep composite-intent full DIR admission and thread-safe lock lifecycle as
+     separately named open seams rather than weakening the zero-topology gate.
 
 ## Current checkpoint - body admission and latest-only publication
 

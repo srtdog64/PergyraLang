@@ -13,8 +13,22 @@ import "domain_runtime_assignment_fact_owner.pgy";
 import "domain_runtime_plan_owner.pgy";
 import "program_routine_index_owner.pgy";
 import "intent_execution_plan_fact_owner.pgy";
+import "program_declaration_index_owner.pgy";
 import "../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
+
+// Domain-only admission receipt shared by the source semantic C path and the
+// complete machine-layer consumer.  Domain codegen must not depend on routine
+// machine contacts or intent-plan admission, but it must consume the exact
+// same topology/assignment validators as that complete consumer.
+struct MirDomainRuntimeAdmittedDocument {
+    let document: MirDocumentFactIndex;
+    let declarations: MirProgramDeclarationIndex;
+    let domain_topology: MirDomainTopologyFacts;
+    let domain_topology_plan: MirDomainTopologyGraphPlan;
+    let domain_runtime_assignments: MirDomainRuntimeAssignmentFacts;
+    let domain_runtime_plan: MirDomainRuntimePlan;
+}
 
 // Typed proof carrier for a MIR document admitted by the one machine-layer
 // validator.  Consumers must carry the declaration used for admission with the
@@ -28,6 +42,83 @@ struct MirMachineLayerAdmittedJsonInput {
     let domain_runtime_plan: MirDomainRuntimePlan;
     let routines: MirProgramRoutineIndex;
     let intent_execution_plan: MirIntentExecutionPlan;
+    let domain_runtime_admission: MirDomainRuntimeAdmittedDocument;
+}
+
+func MirDomainRuntimeAdmitDocumentWithTopologyAndDeclarations(
+    document: MirDocumentFactIndex,
+    domain_topology: MirDomainTopologyFacts,
+    declarations: MirProgramDeclarationIndex
+) -> Option<MirDomainRuntimeAdmittedDocument> {
+    if !document.valid ||
+        !MirDomainTopologyDeclarationIndexReady(declarations) ||
+        ((MirDomainTopologyRequiredForDocument(document) &&
+            (!domain_topology.present || !domain_topology.valid)) ||
+         (domain_topology.present && !domain_topology.valid)) {
+        return None;
+    }
+    let domain_topology_plan: MirDomainTopologyGraphPlan =
+        MirDomainTopologyGraphPlanFromFacts(domain_topology);
+    if !MirDomainTopologyGraphPlanReady(domain_topology_plan) ||
+        domain_topology_plan.present != domain_topology.present ||
+        (domain_topology.present &&
+            domain_topology_plan.domain_graph_id !=
+                domain_topology.domain_graph_id) {
+        return None;
+    }
+    let domain_runtime_assignments: MirDomainRuntimeAssignmentFacts =
+        MirDomainRuntimeAssignmentFactsFromDocumentWithDeclarations(
+            document, domain_topology, declarations
+        );
+    if (MirDomainTopologyRequiredForDocument(document) &&
+            (!domain_runtime_assignments.present ||
+             !domain_runtime_assignments.valid)) ||
+        (domain_runtime_assignments.present &&
+            !domain_runtime_assignments.valid) {
+        return None;
+    }
+    let domain_runtime_plan: MirDomainRuntimePlan =
+        MirDomainRuntimePlanFromFacts(
+            document, domain_topology, domain_runtime_assignments
+        );
+    if !MirDomainRuntimePlanReady(domain_runtime_plan) ||
+        domain_runtime_plan.present != domain_runtime_assignments.present ||
+        domain_runtime_plan.present != domain_topology.present ||
+        (domain_runtime_plan.present &&
+            domain_runtime_plan.domain_graph_id !=
+                domain_topology.domain_graph_id) {
+        return None;
+    }
+    return Some(MirDomainRuntimeAdmittedDocument(
+        document, declarations, domain_topology, domain_topology_plan,
+        domain_runtime_assignments, domain_runtime_plan
+    ));
+}
+
+func MirDomainRuntimeAdmitDocumentWithTopology(
+    document: MirDocumentFactIndex,
+    domain_topology: MirDomainTopologyFacts
+) -> Option<MirDomainRuntimeAdmittedDocument> {
+    let declarations: MirProgramDeclarationIndex =
+        BuildMirProgramDeclarationIndex(document.root.json);
+    return MirDomainRuntimeAdmitDocumentWithTopologyAndDeclarations(
+        document, domain_topology, declarations
+    );
+}
+
+func MirDomainRuntimeAdmitDocument(
+    document: MirDocumentFactIndex
+) -> Option<MirDomainRuntimeAdmittedDocument> {
+    if !document.valid { return None; }
+    let declarations: MirProgramDeclarationIndex =
+        BuildMirProgramDeclarationIndex(document.root.json);
+    let topology: MirDomainTopologyFacts =
+        MirDomainTopologyFactsFromDocumentWithDeclarations(
+            document, declarations
+        );
+    return MirDomainRuntimeAdmitDocumentWithTopologyAndDeclarations(
+        document, topology, declarations
+    );
 }
 
 func MirMachineLayerPressureStage(enabled: Bool, stage: String) -> Void {
@@ -230,10 +321,15 @@ func MirMachineLayerAdmitDocumentObserved(
     observe_pressure: Bool
 ) -> Option<MirMachineLayerAdmittedJsonInput> {
     if !document.valid { return None; }
+    let declarations: MirProgramDeclarationIndex =
+        BuildMirProgramDeclarationIndex(document.root.json);
     let domain_topology: MirDomainTopologyFacts =
-        MirDomainTopologyFactsFromDocument(document);
-    return MirMachineLayerAdmitDocumentWithTopologyObserved(
-        machine_declaration, document, domain_topology, observe_pressure
+        MirDomainTopologyFactsFromDocumentWithDeclarations(
+            document, declarations
+        );
+    return MirMachineLayerAdmitDocumentWithTopologyAndDeclarationsObserved(
+        machine_declaration, document, domain_topology, declarations,
+        observe_pressure
     );
 }
 
@@ -243,44 +339,36 @@ func MirMachineLayerAdmitDocumentWithTopologyObserved(
     domain_topology: MirDomainTopologyFacts,
     observe_pressure: Bool
 ) -> Option<MirMachineLayerAdmittedJsonInput> {
-    if !document.valid ||
-        ((MirDomainTopologyRequiredForDocument(document) &&
-            (!domain_topology.present || !domain_topology.valid)) ||
-         (domain_topology.present && !domain_topology.valid)) {
+    let declarations: MirProgramDeclarationIndex =
+        BuildMirProgramDeclarationIndex(document.root.json);
+    return MirMachineLayerAdmitDocumentWithTopologyAndDeclarationsObserved(
+        machine_declaration, document, domain_topology, declarations,
+        observe_pressure
+    );
+}
+
+func MirMachineLayerAdmitDocumentWithTopologyAndDeclarationsObserved(
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    document: MirDocumentFactIndex,
+    domain_topology: MirDomainTopologyFacts,
+    declarations: MirProgramDeclarationIndex,
+    observe_pressure: Bool
+) -> Option<MirMachineLayerAdmittedJsonInput> {
+    let domain_admission_opt: Option<MirDomainRuntimeAdmittedDocument> =
+        MirDomainRuntimeAdmitDocumentWithTopologyAndDeclarations(
+            document, domain_topology, declarations
+        );
+    if !IsSome(domain_admission_opt) {
         return None;
     }
+    let domain_admission: MirDomainRuntimeAdmittedDocument =
+        UnwrapOption(domain_admission_opt);
     let domain_topology_plan: MirDomainTopologyGraphPlan =
-        MirDomainTopologyGraphPlanFromFacts(domain_topology);
-    if !MirDomainTopologyGraphPlanReady(domain_topology_plan) ||
-        domain_topology_plan.present != domain_topology.present ||
-        (domain_topology.present &&
-            domain_topology_plan.domain_graph_id !=
-                domain_topology.domain_graph_id) {
-        return None;
-    }
+        domain_admission.domain_topology_plan;
     let domain_runtime_assignments: MirDomainRuntimeAssignmentFacts =
-        MirDomainRuntimeAssignmentFactsFromDocument(
-            document, domain_topology
-        );
-    if (MirDomainTopologyRequiredForDocument(document) &&
-            (!domain_runtime_assignments.present ||
-             !domain_runtime_assignments.valid)) ||
-        (domain_runtime_assignments.present &&
-            !domain_runtime_assignments.valid) {
-        return None;
-    }
+        domain_admission.domain_runtime_assignments;
     let domain_runtime_plan: MirDomainRuntimePlan =
-        MirDomainRuntimePlanFromFacts(
-            document, domain_topology, domain_runtime_assignments
-        );
-    if !MirDomainRuntimePlanReady(domain_runtime_plan) ||
-        domain_runtime_plan.present != domain_runtime_assignments.present ||
-        domain_runtime_plan.present != domain_topology.present ||
-        (domain_runtime_plan.present &&
-            domain_runtime_plan.domain_graph_id !=
-                domain_topology.domain_graph_id) {
-        return None;
-    }
+        domain_admission.domain_runtime_plan;
     let json: String = document.routines.json;
     MirMachineLayerPressureStage(
         observe_pressure, "consumer:input:machine-layer:routine-index:start"
@@ -319,7 +407,8 @@ func MirMachineLayerAdmitDocumentWithTopologyObserved(
     return Some(MirMachineLayerAdmittedJsonInput(
         machine_declaration, document, domain_topology,
         domain_topology_plan, domain_runtime_assignments,
-        domain_runtime_plan, routines, intent_execution_plan
+        domain_runtime_plan, routines, intent_execution_plan,
+        domain_admission
     ));
 }
 

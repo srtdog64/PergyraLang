@@ -283,6 +283,70 @@ func SelfMirCanonicalInstructionIds(
 
 // Driver verification owns whole-semantic readiness before MIR materialization.
 // This borrowed entrypoint must not repeat that graph-wide proof.
+struct SelfMirProgramDomainProjection {
+    let facts: SelfMirProgramFacts;
+    let domain_graph: SelfDirDomainGraphFacts;
+}
+
+func SelfMirProgramDomainFactsFromReadyArtifact(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis
+) -> SelfMirProgramDomainProjection {
+    let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(artifact.count);
+    let enum_facts: SemanticAstEnumFacts = analysis.enums;
+    if !enum_facts.ok {
+        return SelfMirProgramDomainProjection(
+            SelfMirProgramFactsError(
+                facts, "mir_artifact_invalid",
+                "MIR domain producer requires complete enum variant facts"
+            ),
+            SelfDirDomainGraphFactsAbsent()
+        );
+    }
+    let declarations: SelfMirDeclarationRows =
+        SelfMirDeclarationsFromAnalysis(artifact, analysis, enum_facts);
+    let domain_graph: SelfDirDomainGraphFacts =
+        SelfDirDomainGraphFactsFromArtifact(
+            artifact, declarations, analysis.signatures
+        );
+    if !SelfDirDomainGraphFactsReady(domain_graph) {
+        return SelfMirProgramDomainProjection(
+            SelfMirProgramFactsError(
+                facts, "mir_domain_graph_invalid",
+                domain_graph.diagnostic_message
+            ),
+            domain_graph
+        );
+    }
+    let domain_topology: SelfMirDomainTopologyFacts =
+        SelfMirDomainTopologyFactsFromSelfDir(domain_graph);
+    let domain_projection_maps: SelfDirDomainProjectionMapRows =
+        SelfDirDomainProjectionMapRowsFromArtifact(artifact);
+    let domain_runtime_assignments: SelfMirDomainRuntimeAssignmentFacts =
+        SelfMirDomainRuntimeAssignmentsFromFacts(
+            declarations, analysis.constructors, domain_topology,
+            domain_projection_maps
+        );
+    if !domain_runtime_assignments.ok {
+        return SelfMirProgramDomainProjection(
+            SelfMirProgramFactsError(
+                facts, "mir_domain_runtime_assignment_invalid",
+                "MIR producer requires exact domain participant and projection assignment facts"
+            ),
+            domain_graph
+        );
+    }
+    return SelfMirProgramDomainProjection(
+        SelfMirProgramFacts(
+            true, "", "", artifact.count, declarations,
+            domain_topology, domain_runtime_assignments,
+            facts.generic_specializations, facts.parallel_captures,
+            facts.routines, facts.cfg
+        ),
+        domain_graph
+    );
+}
+
 func SelfMirProgramFactsFromReadyArtifact(
     artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
@@ -310,13 +374,6 @@ func SelfMirProgramFactsFromReadyArtifact(
         }
         iteration_i = iteration_i + 1;
     }
-    let enum_facts: SemanticAstEnumFacts = analysis.enums;
-    if !enum_facts.ok {
-        return SelfMirProgramFactsError(
-            facts, "mir_artifact_invalid",
-            "MIR producer requires complete enum variant facts"
-        );
-    }
     let generic_rows: SelfMirGenericSpecializationRows =
         SelfMirGenericSpecializationRowsFromSemantic(
             analysis, generic_specializations
@@ -329,32 +386,17 @@ func SelfMirProgramFactsFromReadyArtifact(
             "MIR producer requires stable generic specialization rows"
         );
     }
-    let declarations: SelfMirDeclarationRows = SelfMirDeclarationsFromAnalysis(artifact, analysis, enum_facts);
+    let domain_projection: SelfMirProgramDomainProjection =
+        SelfMirProgramDomainFactsFromReadyArtifact(artifact, analysis);
+    let domain_facts: SelfMirProgramFacts = domain_projection.facts;
+    if !domain_facts.ok { return domain_facts; }
+    let declarations: SelfMirDeclarationRows = domain_facts.declarations;
     let domain_graph: SelfDirDomainGraphFacts =
-        SelfDirDomainGraphFactsFromArtifact(
-            artifact, declarations, analysis.signatures
-        );
-    if !SelfDirDomainGraphFactsReady(domain_graph) {
-        return SelfMirProgramFactsError(facts, "mir_domain_graph_invalid", domain_graph.diagnostic_message);
-    }
-    let domain_topology: SelfMirDomainTopologyFacts =
-        SelfMirDomainTopologyFactsFromSelfDir(domain_graph);
-    let domain_projection_maps: SelfDirDomainProjectionMapRows =
-        SelfDirDomainProjectionMapRowsFromArtifact(artifact);
-    let domain_runtime_assignments: SelfMirDomainRuntimeAssignmentFacts =
-        SelfMirDomainRuntimeAssignmentsFromFacts(
-            declarations, analysis.constructors, domain_topology,
-            domain_projection_maps
-        );
-    if !domain_runtime_assignments.ok {
-        return SelfMirProgramFactsError(
-            facts, "mir_domain_runtime_assignment_invalid",
-            "MIR producer requires exact domain participant and projection assignment facts"
-        );
-    }
+        domain_projection.domain_graph;
     facts = SelfMirProgramFacts(
         true, "", "", artifact.count, declarations,
-        domain_topology, domain_runtime_assignments, generic_rows,
+        domain_facts.domain_topology,
+        domain_facts.domain_runtime_assignments, generic_rows,
         facts.parallel_captures, facts.routines, facts.cfg);
     let input: SelfMirRoutineInput = SelfMirRoutineInput(
         artifact, analysis,

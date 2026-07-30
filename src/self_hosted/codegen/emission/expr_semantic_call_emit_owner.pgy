@@ -6,6 +6,7 @@ import "../../semantic/ast_expression_graph_call_view_owner.pgy";
 import "../../semantic/ast_expression_graph_collection_call_protocol_owner.pgy";
 import "../../semantic/ast_expression_graph_member_view_owner.pgy";
 import "../../semantic/wrapper_type_owner.pgy";
+import "../../lib/nominal_field_kind_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/result_runtime_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
@@ -31,12 +32,6 @@ func RewriteSemanticStructCall(
     if !LookupKindTypeRowPresent(env, type_name, "constructor_fields") {
         Die(Concat("struct call constructor-field inventory is missing: ", type_name));
     }
-    if ArrayLength(view.argument_nodes) == 0 {
-        if fields != "" {
-            Die(Concat("struct call argument fact is missing: ", type_name));
-        }
-        return Concat("(", Concat(AbiLayoutCStructTypeName(type_name), Concat("){ ", Concat(AbiLayoutCFieldlessNominalInitializer(), " }"))));
-    }
     let out: String = Concat(
         "(", Concat(AbiLayoutCStructTypeName(type_name), "){ ")
     );
@@ -60,6 +55,28 @@ func RewriteSemanticStructCall(
     }
     if CsvAt(fields, ArrayLength(view.argument_nodes)) != "" {
         Die(Concat("struct call argument fact is missing: ", type_name));
+    }
+    let initializer_count: Int = ArrayLength(view.argument_nodes);
+    let all_fields: String = LookupKindType(env, type_name, "fields");
+    let field_index: Int = 0;
+    while CsvAt(all_fields, field_index) != "" {
+        let field_name: String = CsvAt(all_fields, field_index);
+        let field_kind: String = LookupKindType(
+            env, Concat(type_name, Concat(".", field_name)), "field_kind"
+        );
+        if field_kind == NominalFieldKindObjectSlot() ||
+            field_kind == NominalFieldKindTObjectSlot() {
+            if initializer_count > 0 { out = Concat(out, ", "); }
+            out = Concat(out, Concat(
+                ".__projection_dirty_",
+                Concat(CompilerSymbolCFieldName(field_name), " = true")
+            ));
+            initializer_count = initializer_count + 1;
+        }
+        field_index = field_index + 1;
+    }
+    if initializer_count == 0 {
+        out = Concat(out, AbiLayoutCFieldlessNominalInitializer());
     }
     return Concat(out, " }");
 }

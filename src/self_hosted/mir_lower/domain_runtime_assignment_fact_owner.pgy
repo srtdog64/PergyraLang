@@ -503,15 +503,19 @@ func MirDomainProjectionAssignmentFactsFromTable(
     );
 }
 
-func MirDomainRuntimeAssignmentFactsFromDocument(
+func MirDomainRuntimeAssignmentFactsFromDocumentWithDeclarations(
     ref document: MirDocumentFactIndex,
-    ref topology: MirDomainTopologyFacts
+    ref topology: MirDomainTopologyFacts,
+    ref declarations: MirProgramDeclarationIndex
 ) -> MirDomainRuntimeAssignmentFacts {
     if !document.valid ||
         !JsonObjectFactTableReady(document.domain_runtime_assignments) {
         return EmptyMirDomainRuntimeAssignmentFacts(false);
     }
-    if JsonObjectFactCount(document.domain_runtime_assignments) != 2 ||
+    if JsonObjectFactCount(document.domain_runtime_assignments) != 3 ||
+        !JsonObjectFactHasField(
+            document.domain_runtime_assignments, "program_syntax_id"
+        ) ||
         !JsonObjectFactHasField(
             document.domain_runtime_assignments, "participant_roles"
         ) || !JsonObjectFactHasField(
@@ -519,11 +523,18 @@ func MirDomainRuntimeAssignmentFactsFromDocument(
         ) {
         return EmptyMirDomainRuntimeAssignmentFacts(true);
     }
-    let declarations: MirProgramDeclarationIndex =
-        BuildMirProgramDeclarationIndex(document.root.json);
     if !MirDomainTopologyDeclarationIndexReady(declarations) {
         return EmptyMirDomainRuntimeAssignmentFacts(true);
     }
+    let program_id_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+        document.domain_runtime_assignments, "program_syntax_id"
+    );
+    if !IsSome(program_id_opt) || !MirDomainTopologyPositiveDecimal(
+        UnwrapOption(program_id_opt)
+    ) {
+        return EmptyMirDomainRuntimeAssignmentFacts(true);
+    }
+    let program_id: String = UnwrapOption(program_id_opt);
     let participant_rows: JsonArrayObjectFactTable =
         JsonObjectFactArrayObjectTable(
             document.domain_runtime_assignments, "participant_roles"
@@ -532,16 +543,14 @@ func MirDomainRuntimeAssignmentFactsFromDocument(
         JsonObjectFactArrayObjectTable(
             document.domain_runtime_assignments, "projection_members"
         );
-    // The native pgy.mir.v1 writer projects this canonical two-array object
-    // even for a program with no domain topology.  Syntactic object presence
-    // is therefore not semantic runtime-plan presence.  Only the exact empty
-    // pair may normalize to absent; a partial or non-empty carrier continues
-    // through the owner joins below and fails closed without matching topology.
+    // explicit empty runtime namespace or missing/mismatched program epoch
+    // The wire omits this namespace when both fact families are absent. An
+    // explicit empty object has no independent owner against which its epoch
+    // can be sealed, so accepting it would turn an arbitrary positive ID into
+    // a second program-identity authority.
     if JsonArrayObjectFactCount(participant_rows) == 0 &&
-        JsonArrayObjectFactCount(projection_rows) == 0 &&
-        !MirDomainTopologyRequiredForDocument(document) &&
-        !topology.present {
-        return EmptyMirDomainRuntimeAssignmentFacts(false);
+        JsonArrayObjectFactCount(projection_rows) == 0 {
+        return EmptyMirDomainRuntimeAssignmentFacts(true);
     }
     let participants: MirDomainParticipantRoleFacts =
         MirDomainParticipantRoleFactsFromTable(participant_rows, declarations);
@@ -552,22 +561,28 @@ func MirDomainRuntimeAssignmentFactsFromDocument(
     if !participants.valid || !projections.valid {
         return EmptyMirDomainRuntimeAssignmentFacts(true);
     }
-    let program_id: String = "";
     if ArrayLength(participants.program_syntax_ids) > 0 {
-        program_id = participants.program_syntax_ids[0];
-    }
-    if ArrayLength(projections.program_syntax_ids) > 0 {
-        if StringLength(program_id) > 0 &&
-            program_id != projections.program_syntax_ids[0] {
+        if participants.program_syntax_ids[0] != program_id {
             return EmptyMirDomainRuntimeAssignmentFacts(true);
         }
-        program_id = projections.program_syntax_ids[0];
     }
-    if MirDomainTopologyRequiredForDocument(document) &&
-        StringLength(program_id) == 0 {
-        return EmptyMirDomainRuntimeAssignmentFacts(true);
+    if ArrayLength(projections.program_syntax_ids) > 0 {
+        if program_id != projections.program_syntax_ids[0] {
+            return EmptyMirDomainRuntimeAssignmentFacts(true);
+        }
     }
     return MirDomainRuntimeAssignmentFacts(
         true, true, program_id, participants, projections
+    );
+}
+
+func MirDomainRuntimeAssignmentFactsFromDocument(
+    ref document: MirDocumentFactIndex,
+    ref topology: MirDomainTopologyFacts
+) -> MirDomainRuntimeAssignmentFacts {
+    let declarations: MirProgramDeclarationIndex =
+        BuildMirProgramDeclarationIndex(document.root.json);
+    return MirDomainRuntimeAssignmentFactsFromDocumentWithDeclarations(
+        document, topology, declarations
     );
 }

@@ -74,10 +74,14 @@ for path, candidate in ((sys.argv[2], missing), (sys.argv[3], unknown)):
         stream.write("\n")
 
 runtime = document.get("domain_runtime_assignments")
-if runtime != {"participant_roles": [], "projection_members": []}:
-    raise SystemExit(f"canonical empty domain runtime projection drifted: {runtime!r}")
+if runtime is not None:
+    raise SystemExit(f"empty domain runtime projection must be omitted: {runtime!r}")
 stray_runtime = copy.deepcopy(document)
-stray_runtime["domain_runtime_assignments"]["participant_roles"].append({})
+stray_runtime["domain_runtime_assignments"] = {
+    "program_syntax_id": 1,
+    "participant_roles": [],
+    "projection_members": [],
+}
 with open(sys.argv[4], "w", encoding="utf-8", newline="\n") as stream:
     json.dump(stray_runtime, stream, ensure_ascii=False, separators=(",", ":"))
     stream.write("\n")
@@ -93,10 +97,9 @@ grep -Fq 'Let: v : Int = UnwrapOption(val)' "$REAST" || {
     exit 1
 }
 
-# The native writer always projects the canonical two-array domain-runtime
-# object.  For a program without domain topology, only the exact empty pair is
-# semantically absent.  A non-empty stray carrier must still fail before AST
-# reconstruction instead of being hidden by the empty-projection rule.
+# The wire omits domain-runtime assignments when both fact families are absent.
+# An explicit empty namespace has no external epoch owner, so it must fail
+# before AST reconstruction instead of becoming a second spelling of absence.
 if (cd "$ROOT_DIR" && "$MIR_LOWER" "${MIR_STRAY_RUNTIME#$ROOT_DIR/}" \
         >"$MIR_STRAY_RUNTIME.out" 2>"$MIR_STRAY_RUNTIME.err"); then
     echo "[match-binding-type-fact] stray domain runtime fact was accepted" >&2

@@ -67,18 +67,6 @@ func CompileAstArtifactToC(
         Log(semantic_analysis.verdict.diagnostic_message);
         Exit(1);
     }
-    let bundle: SemanticAstBodyTypeBundle =
-        SemanticAstBodyTypeBundleFromAdmittedAnalysis(
-            artifact, semantic_analysis
-        );
-    let generic_specializations: CodegenGenericSpecializationFacts =
-        CodegenGenericSpecializationFactsFromSemantic(
-            semantic_analysis.signatures, bundle.generic_specializations
-        );
-    let body_types: CodegenSemanticBodyTypeFacts =
-        CodegenSemanticBodyTypeFactsFromBundleOrDie(
-            artifact, semantic_analysis, bundle, generic_specializations
-        );
     let target_projection: CompilerTargetProjectionFact =
         CompilerTargetProjectionFactFromOwner(
             CompilerTargetCpuCProjection()
@@ -88,18 +76,11 @@ func CompileAstArtifactToC(
     ) {
         Die("self-host C emission target projection fact is missing or invalid");
     }
-    let receiver_facts: CodegenCallableReceiverFacts =
-        CodegenCallableReceiverFactsFromAdmittedAnalysis(semantic_analysis);
-    let domain_runtime: CodegenDomainRuntimeFacts =
-        CodegenDomainRuntimeFactsEmpty(true);
-    let intent_execution: CodegenIntentExecutionView =
-        CodegenIntentExecutionViewEmpty(true);
     let emission: CompilerEmissionArtifact = CompilerEmissionArtifact(
         "emitted-c",
-        GenerateCUnitFromReadySemanticFacts(
-            artifact, semantic_analysis, body_types, receiver_facts,
-            domain_runtime, intent_execution,
-            true, SelfHostMachineLayerDeclarationEmpty()
+        GenerateCUnitFromAdmittedSemanticArtifact(
+            artifact, semantic_analysis, true,
+            SelfHostMachineLayerDeclarationEmpty()
         ),
         target_projection.schema,
         target_projection.projection,

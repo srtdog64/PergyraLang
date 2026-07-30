@@ -1,0 +1,16 @@
+object ProjectionView {
+    value: Int;
+}
+
+tobject BoundaryPacket {
+    value: Int;
+}
+
+zone EmptyZone {
+    object slot view: ProjectionView
+    tobject slot packet: BoundaryPacket
+}
+
+func Main() -> Void {
+    Log(0);
+}

@@ -44,4 +44,4 @@ done
 grep -Fq 'intent step binding contract: PASS' "$BUILD_DIR/run.out" \
     || fail "probe PASS marker is missing"
 
-echo "[self-host-intent-step-binding] exact slot + authority negatives: PASS"
+echo "[self-host-intent-step-binding] distinct actor/authority plus where/value/inout/ambiguous/missing negatives: PASS"

@@ -109,6 +109,7 @@ for path in (native_path, self_path):
         document = json.load(stream)
     assert document["schema"] == "pgy.mir.v1"
     runtime = document["domain_runtime_assignments"]
+    assert runtime["program_syntax_id"] > 0
     roles = {
         (row["owner_name"], row["role"], row["field_name"], row["field_type_name"])
         for row in runtime["participant_roles"]
@@ -118,6 +119,8 @@ for path in (native_path, self_path):
         ("TrustedLink", "relation-source", "source", "Player"),
         ("TrustedLink", "relation-target", "target", "Player"),
     }, roles
+    for row in runtime["participant_roles"]:
+        assert row["program_syntax_id"] == runtime["program_syntax_id"]
     projections = {
         (
             row["owner_name"], row["operation"],
@@ -133,6 +136,7 @@ for path in (native_path, self_path):
         ("TrustedLink", "publish", "packet", "name", "target", "name", "String", "String", False),
     }, projections
     for row in runtime["projection_members"]:
+        assert row["program_syntax_id"] == runtime["program_syntax_id"]
         assert len(row["source_path_segments"]) == 1
         segment = row["source_path_segments"][0]
         assert segment["field_syntax_id"] > 0
@@ -146,11 +150,28 @@ decls = {row["name"]: row for row in base["decls"]}
 poison_fields = {row["name"]: row for row in decls["Poisoned"]["fields"]}
 player_fields = {row["name"]: row for row in decls["Player"]["fields"]}
 
+# strict three-key namespace and epoch drift negatives
 mutations = {}
 
 doc = copy.deepcopy(base)
 doc.pop("domain_runtime_assignments")
 mutations["missing-runtime-namespace"] = doc
+
+doc = copy.deepcopy(base)
+doc["domain_runtime_assignments"].pop("program_syntax_id")
+mutations["missing-program-epoch"] = doc
+
+doc = copy.deepcopy(base)
+doc["domain_runtime_assignments"]["program_syntax_id"] = 0
+mutations["zero-program-epoch"] = doc
+
+doc = copy.deepcopy(base)
+doc["domain_runtime_assignments"]["unknown_schema_field"] = 1
+mutations["runtime-schema-drift"] = doc
+
+doc = copy.deepcopy(base)
+doc["domain_runtime_assignments"]["program_syntax_id"] += 1
+mutations["runtime-program-epoch-drift"] = doc
 
 doc = copy.deepcopy(base)
 doc["domain_runtime_assignments"]["participant_roles"].append(

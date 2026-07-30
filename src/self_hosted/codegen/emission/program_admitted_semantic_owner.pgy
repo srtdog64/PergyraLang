@@ -7,7 +7,11 @@ import "program_emit.pgy";
 import "../text/text_owner.pgy";
 import "../input/domain_runtime_codegen_view_owner.pgy";
 import "../../compiler/machine_layer_declaration_consumer.pgy";
+import "../../compiler/domain_runtime_c_codegen_bridge_owner.pgy";
 import "../input/intent_execution_codegen_view_owner.pgy";
+import "../../mir/declaration_rows_owner.pgy";
+import "../../dir/domain_topology_row_owner.pgy";
+import "../../dir/domain_projection_map_row_owner.pgy";
 
 func GenerateCUnitFromAdmittedSemanticArtifact(
     artifact: AstTreeArtifact,
@@ -26,6 +30,21 @@ func GenerateCUnitFromAdmittedSemanticArtifact(
         SemanticAstBodyTypeBundleFromAdmittedAnalysis(
             artifact, semantic_analysis
         );
+    // The active source-to-C rung owns only zero domain topology. Prove that
+    // boundary from typed DIR rows and the exact projection-map owner; do not
+    // force intent lowering or invent a partial MIR/domain-graph identity.
+    let declarations: SelfMirDeclarationRows =
+        SelfMirDeclarationsFromAnalysis(
+            artifact, semantic_analysis, semantic_analysis.enums
+        );
+    let topology: SelfDirDomainTopologyRows =
+        SelfDirDomainTopologyRowsFromArtifact(artifact, declarations);
+    let projection_maps: SelfDirDomainProjectionMapRows =
+        SelfDirDomainProjectionMapRowsFromArtifact(artifact);
+    let domain_runtime: CodegenDomainRuntimeFacts =
+        CodegenDomainRuntimeFactsFromZeroTopologyOrDie(
+            declarations, topology, projection_maps
+        );
     let generic_specializations: CodegenGenericSpecializationFacts =
         CodegenGenericSpecializationFactsFromSemantic(
             semantic_analysis.signatures, bundle.generic_specializations
@@ -34,8 +53,6 @@ func GenerateCUnitFromAdmittedSemanticArtifact(
         CodegenSemanticBodyTypeFactsFromBundleOrDie(
             artifact, semantic_analysis, bundle, generic_specializations
         );
-    let domain_runtime: CodegenDomainRuntimeFacts =
-        CodegenDomainRuntimeFactsEmpty(true);
     let intent_execution: CodegenIntentExecutionView =
         CodegenIntentExecutionViewEmpty(true);
     return GenerateCUnitFromReadySemanticFacts(

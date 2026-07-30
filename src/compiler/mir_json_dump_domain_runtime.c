@@ -89,9 +89,14 @@ void
 mir_json_emit_domain_runtime_assignments(
     FILE *out, const MIRProgram *mir)
 {
-    if (out == NULL || mir == NULL || !mir->has_domain_runtime_facts)
+    if (out == NULL || mir == NULL || !mir->has_domain_runtime_facts ||
+        (mir->domain_participant_role_fact_count == 0 &&
+         mir->domain_projection_member_assignment_fact_count == 0))
         return;
-    fputs(",\"domain_runtime_assignments\":{\"participant_roles\":[", out);
+    fprintf(out,
+        ",\"domain_runtime_assignments\":{\"program_syntax_id\":%" PRIu32
+        ",\"participant_roles\":[",
+        mir->domain_runtime_program_syntax_id);
     for (size_t i = 0; i < mir->domain_participant_role_fact_count; i++) {
         if (i > 0)
             fputc(',', out);

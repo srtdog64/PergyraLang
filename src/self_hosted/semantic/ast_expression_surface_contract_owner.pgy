@@ -104,7 +104,7 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
         logical_graph.ok && IsSome(logical_root_kind) &&
         UnwrapOption(logical_root_kind) == AstExpressionNodeLogicalOr() &&
         value_graph.ok && IsSome(value_root_kind) &&
-        UnwrapOption(value_root_kind) == AstExpressionNodeLeaf() &&
+        UnwrapOption(value_root_kind) == AstExpressionNodeCallArgument() &&
         IsSome(value_root_text) &&
         UnwrapOption(value_root_text) == "Concat(\"None\", \"x\")" &&
         arithmetic_graph.ok && IsSome(arithmetic_root_kind) &&

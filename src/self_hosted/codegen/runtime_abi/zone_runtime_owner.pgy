@@ -1,0 +1,5 @@
+// Isolated C include projection for the native/self-host zone sync ABI owner.
+// Keep this spelling out of semantic emission owners.
+func DomainRuntimeZoneCHeaderIncludeBlock() -> String {
+    return "#include \"pgy_runtime_zone_sync_abi.h\"\n#include \"pgy_frontier_policy.h\"\n";
+}

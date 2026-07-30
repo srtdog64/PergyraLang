@@ -1,5 +1,10 @@
 // LLVM text encoding for runtime line-format facts shared by direct emitters.
 
+// This owner is checked as a standalone real-source root. Die is owned by the
+// codegen text boundary, so this edge must not depend on a larger emitter's
+// transitive import graph.
+import "../codegen/text/text_owner.pgy";
+
 func DirectMirScalarLlvmFormatPayload(line_format: String) -> String {
     let payload: String = "";
     let i: Int = 0;

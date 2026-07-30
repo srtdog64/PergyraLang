@@ -376,7 +376,7 @@ reject_function_text \
     "src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy" \
     "func CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(" \
     "CodegenCallableReceiverFactsReady("
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
+reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
     "CodegenCallableReceiverFactsFromAdmittedAnalysis(semantic_analysis)"
 require_text \
     "src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy" \
@@ -426,6 +426,42 @@ require_text "src/self_hosted/mir/domain_runtime_assignment_fact_owner.pgy" \
 reject_text "src/self_hosted/mir/domain_runtime_assignment_fact_owner.pgy" \
     "func SelfMirDomainProjectionTypeAssignable"
 require_text "Makefile" "self-host-domain-runtime-assignment-test-smoke"
+require_file "src/runtime/pgy_runtime_zone_sync_abi.h"
+require_file "src/self_hosted/codegen/runtime_abi/zone_runtime_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/runtime_abi/zone_runtime_owner.pgy"
+require_text "src/runtime/pgy_runtime_zone_result_option_inline.h" \
+    '#include "pgy_runtime_zone_sync_abi.h"'
+require_file "tests/self_hosted/fixtures/domain_runtime_zone_sync_zero.pgy"
+require_file \
+    "tests/self_hosted/parity/fixture/domain_runtime_zone_sync_harness.c"
+require_file \
+    "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh" 180
+for zone_sync_gate_term in \
+    "compare_zone_bijection" \
+    "PGY_ZONE_THREADSAFE" \
+    "PGY_FRONTIER_REASON_ZONE_OVERFLOW" \
+    "nonzero domain runtime zone topology is not executable in self-host C"; do
+    require_text \
+        "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh" \
+        "$zone_sync_gate_term"
+done
+require_text \
+    "tests/self_hosted/parity/fixture/domain_runtime_zone_sync_harness.c" \
+    "PGY_ZONE_GENERATION_LOAD"
+require_text "Makefile" "self-host-domain-runtime-zone-sync-test-smoke"
+require_text "Makefile" \
+    "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh"
+require_text \
+    "src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy" \
+    "CodegenDomainRuntimeFactsFromZeroTopologyOrDie("
+reject_text \
+    "src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy" \
+    "SelfMirDomainRuntimeCarrierJson("
+reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
+    "CodegenDomainRuntimeFactsEmpty(true)"
 require_file "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" \
@@ -1471,6 +1507,7 @@ require_text "src/self_hosted/OWNERS.md" \
 require_text \
     "src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy" \
     "func SemanticAstIntentStepActorFromFacts("
+# zone authority owner and consumer ratchets
 require_file "src/self_hosted/semantic/ast_zone_authority_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/semantic/ast_zone_authority_fact_owner.pgy" 180
@@ -2355,8 +2392,7 @@ while IFS= read -r raw_type_env_constructor_path; do
     [[ -n "$raw_type_env_constructor_path" ]] || continue
     raw_type_env_constructor_rel="${raw_type_env_constructor_path#"$ROOT_DIR/"}"
     case "$raw_type_env_constructor_rel" in
-        src/self_hosted/codegen/type_facts/type_env.pgy|\
-        src/self_hosted/codegen/emission/intent_signature_emit_owner.pgy)
+        src/self_hosted/codegen/type_facts/type_env.pgy|src/self_hosted/codegen/emission/intent_signature_emit_owner.pgy)
             ;;
         *)
             fail "raw CodegenTypeEnv constructor escaped allowlist: $raw_type_env_constructor_rel"
@@ -4238,9 +4274,10 @@ reject_function_terms \
     "SemanticAstBodyTypeBundleFromAnalysisObserved("
 require_function_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
     "func CompileAstArtifactToC(" \
-    "SemanticAstBodyTypeBundleFromAdmittedAnalysis("
+    "GenerateCUnitFromAdmittedSemanticArtifact("
 reject_function_terms "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
     "func CompileAstArtifactToC(" \
+    "SemanticAstBodyTypeBundleFromAdmittedAnalysis(" \
     "SemanticAstBodyTypeBundleFromAnalysis(" \
     "SemanticAstBodyTypeBundleFromAnalysisObserved("
 require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -4892,9 +4929,11 @@ require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
 require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
     "MirParallelCaptureFactsFromTableReady("
 require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
-    "MirMachineLayerAdmitDocumentWithTopologyObserved("
+    "MirMachineLayerAdmitDocumentWithTopologyAndDeclarationsObserved("
 require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
-    "MirDomainTopologyFactsFromDocument("
+    "MirDomainTopologyFactsFromDocumentWithDeclarations("
+require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
+    "BuildMirProgramDeclarationIndex(document.root.json)"
 reject_function_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
     "func MirJsonReadMachineAdmittedInputObserved(" \
     "MirDocumentSchemaEquals("
@@ -4991,8 +5030,8 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"emitted-c", CompileArtifactToCVerified(artifact)'
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "MirFactGraphPayloadContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 'args[0] == "--mir-json"'
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
-    "SemanticAstBodyTypeBundleFromAdmittedAnalysis("
+reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
+    "GenerateCUnitFromReadySemanticFacts("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyTypeBundleReady("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstInitializerTypeFactsFromArtifact"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstIterationTypeFactsFromArtifact"
@@ -12753,6 +12792,9 @@ require_file "src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy" 140
 require_file "src/self_hosted/compiler/direct_mir_llvm_text_format_owner.pgy"
+require_text \
+    "src/self_hosted/compiler/direct_mir_llvm_text_format_owner.pgy" \
+    'import "../codegen/text/text_owner.pgy";'
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_llvm_text_format_owner.pgy" 60
 require_file "src/self_hosted/air/mir_cfg_certificate_owner.pgy"

@@ -9,6 +9,7 @@ import "../text/text_owner.pgy";
 struct CodegenDomainRuntimeFacts {
     let admitted: Bool;
     let owner_names: Array<String>;
+    let owner_is_zone: Array<Bool>;
     let method_prologues: Array<String>;
     let sync_blocks: Array<String>;
 }
@@ -17,10 +18,11 @@ func CodegenDomainRuntimeFactsEmpty(
     admitted: Bool
 ) -> CodegenDomainRuntimeFacts {
     let owner_names: Array<String> = [];
+    let owner_is_zone: Array<Bool> = [];
     let prologues: Array<String> = [];
     let sync_blocks: Array<String> = [];
     return CodegenDomainRuntimeFacts(
-        admitted, owner_names, prologues, sync_blocks
+        admitted, owner_names, owner_is_zone, prologues, sync_blocks
     );
 }
 
@@ -29,9 +31,23 @@ func CodegenDomainRuntimeFactsAdmittedReady(
 ) -> Bool {
     return facts.admitted &&
         ArrayLength(facts.owner_names) ==
+            ArrayLength(facts.owner_is_zone) &&
+        ArrayLength(facts.owner_names) ==
             ArrayLength(facts.method_prologues) &&
         ArrayLength(facts.owner_names) ==
             ArrayLength(facts.sync_blocks);
+}
+
+func CodegenDomainRuntimeHasZoneOwners(
+    ref facts: CodegenDomainRuntimeFacts
+) -> Bool {
+    if !CodegenDomainRuntimeFactsAdmittedReady(facts) { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(facts.owner_is_zone) {
+        if facts.owner_is_zone[row] { return true; }
+        row = row + 1;
+    }
+    return false;
 }
 
 func CodegenDomainRuntimeFactsReady(
