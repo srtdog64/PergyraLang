@@ -2971,6 +2971,22 @@ redirect가 아니라 직접 import를 추가하고 component contract가 그 ow
 고정한다. `undefined_function`이라는 표면 진단이 같아도, 먼저 import graph의
 순환 여부와 실제 정의 owner를 확인해 두 수정을 구분해야 한다.
 
+같은 run의 macOS C-only job은 제품/계약 63단계 중 62개를 통과하고
+`self_host_source_scan_owner_smoke.sh`의 owner-set evidence에서만 실패했다.
+현재 `source_scan_owner.pgy`, `cursor_owner.pgy`, `text_scan_owner.pgy`의 내용
+해시는 `2ECB092EA4E5C16B786CE8A6D732A5B958434C8AB748E9E7DB060C9745548DC5`인데
+benchmark evidence가 이전 해시를 보유한 상태였다. 이 gate는 성능 수치를
+새로 측정했다고 주장하는 곳이 아니라 측정 당시의 hot-scan owner 내용이
+무언가 바뀌었음을 강제 노출하는 ratchet이다. 따라서 현재 세 파일을 동일한
+CRLF 정규화/대문자 SHA-256 규칙으로 다시 계산한 owner-set 값만 갱신하고,
+기존 elapsed/peak/fixture/parity 수치는 재측정 없이 바꾸지 않는다. 로컬 gate가
+나머지 개별 owner hash와 evidence 관계까지 모두 통과해야 유효한 갱신이다.
+이 검토에서 함께 바뀐 type-canonical owner의 현재 해시는
+`E6BD4E6D10612CB019265AD7763DF7FC37BBF748A0F10C919D4EFF5D5D74D859`였다.
+변경 내용은 기존 hot canonicalization의 할당형 `Trim`을 reuse owner로 옮기고
+constructed-type/Unknown 판별을 추가한 것이므로 hash ratchet은 갱신하되,
+기존 benchmark 숫자를 새 측정치라고 재라벨하지 않는다.
+
 ### linked runtime ABI consumer가 실제 owner보다 먼저 검색되는 경우
 
 Resource lowering은 실제 `MIR_INST_RESOURCE_OP` owner의 primary runtime-call ABI

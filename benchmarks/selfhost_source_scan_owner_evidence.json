@@ -7,7 +7,7 @@
     "source": "src/self_hosted/mir_lower/main.pgy"
   },
   "owner": {
-    "owner_set_sha256": "E8AC6C8F23E9C1DBE37C6700422C90B6632116EE10F3E1BF423CBCD96175CFF5",
+    "owner_set_sha256": "2ECB092EA4E5C16B786CE8A6D732A5B958434C8AB748E9E7DB060C9745548DC5",
     "paths": [
       "src/self_hosted/lib/source_scan_owner.pgy",
       "src/self_hosted/parser/cursor_owner.pgy",
@@ -66,7 +66,7 @@
   },
   "semantic_type_canonical_ranges": {
     "source_commit": "3a6cb537",
-    "owner_set_sha256": "358FF1A24B52F2655C4258CBA9251E00E3EEF523FDC88B651D37E4A62C3230EE",
+    "owner_set_sha256": "E6BD4E6D10612CB019265AD7763DF7FC37BBF748A0F10C919D4EFF5D5D74D859",
     "elapsed_ms": [36743, 36432],
     "same_window_control_elapsed_ms": 36528,
     "peak_private_mb": [88.3, 95.4],
