@@ -8,13 +8,13 @@ owner, and the named executable gate.
 
 ## Current checkpoint - admitted semantic artifact emission
 
-- Exact pre-repair base is `5fd9fc3ac0ce26fe57ffb1961033a7bda26b1cde` on
-  `main`, equal to `origin/main` when this continuation began. It contains
-  `28e371df` (Insere/Zeno audits), `2c2b3028` (semantic admission),
-  `e4112fbb` (CI portability) and `5fd9fc3a` (handoff refresh).
-- Material repair checkpoint is
-  `3bc5e7247ad13c123eb8c3727b1ad367791691d8` (`fix: close self-host CI
-  contract drift`). At handoff-writing time the worktree is dirty only for
+- Exact remote base for this continuation was
+  `18c105a75894d1b09c66da2cad5b1b380e3c7a73` on `main`, equal to
+  `origin/main`. It contains `28e371df` (Insere/Zeno audits), `2c2b3028`
+  (semantic admission), `3bc5e724` (cross-platform self-host CI contract
+  closure) and `18c105a7` (handoff refresh).
+- Latest material checkpoint is `0984ba77` (`fix: close dynamic ability
+  selfcheck target`). At handoff-writing time the worktree is dirty only for
   this handoff refresh and `main` is one commit ahead of `origin/main`; push is
   authorized and pending. Verify final remote equality after the handoff
   commit rather than treating this paragraph as Git authority.
@@ -136,6 +136,22 @@ owner, and the named executable gate.
   - unique repo-relative full machine-layer gate: exit 0; MIR/AIR declaration
     rows and self-host C `DeviceSlot`/`RemoteFuture` lowering wired, malformed
     owner identity rejected.
+- GitHub run `30501338487` reached a later self-host parity failure after all
+  preceding semantic C/LLVM 113 fixtures and 25/661 C source targets passed.
+  Target 26, `expr_semantic_dynamic_ability_call_emit_owner.pgy`, called the
+  graph-root-owned `RewriteExprFromSemanticGraph` from the intentional
+  `graph -> call -> dynamic ability` recursive emission closure. Completeness
+  omitted only this indirect cluster member. The source now maps to
+  `expr_semantic_graph_emit_owner.pgy`; a negative gate forbids solving it with
+  a dynamic-to-graph reverse import.
+- Post-repair evidence for that later failure: current-tree manifest build
+  exit 0 with 0 errors/warnings; exact dynamic-source-to-graph-target row;
+  graph semantic checker exit 0, `Status: ok`, `Diagnostics: none`; full
+  self-host component contract PASS; `git diff --check` PASS. The same remote
+  run already has Rocq 9 proofs, sanitizers, TSan and the completed backend
+  comparison shards green, but its older self-host parity job remains red by
+  definition and the long Linux/Windows/macOS/bootstrap jobs were still in
+  progress when this snapshot was written. A fresh pushed run is required.
 - One absolute unique-build attempt failed before product execution because an
   MSYS-form absolute path was not stripped to the repository-relative input
   required by self-host I/O policy. One overlapping default-dir run was also
