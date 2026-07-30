@@ -21,6 +21,7 @@ ASTNode* ast_create_intent_declaration(const char* name) {
     node->data.intent_decl.bindings = NULL;
     node->data.intent_decl.binding_count = 0;
     node->data.intent_decl.binding_capacity = 0;
+    node->data.intent_decl.header_binding_count = 0;
     node->data.intent_decl.steps = NULL;
     node->data.intent_decl.step_count = 0;
     node->data.intent_decl.step_capacity = 0;

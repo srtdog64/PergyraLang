@@ -1,3 +1,14 @@
 func AddOne(x: Int) -> Int {
     return x + 1;
 }
+
+enum ImportedDecision {
+    ImportedReady
+    ImportedValue(value: Int)
+
+    func StableCode(self) -> Int {
+        return 7;
+    }
+
+    ImportedPair(left: Int, right: String)
+}

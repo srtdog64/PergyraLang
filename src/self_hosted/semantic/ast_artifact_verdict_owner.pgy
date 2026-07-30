@@ -174,8 +174,11 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
     let function_scopes: SemanticAstFunctionScopeFacts = SemanticAstFunctionScopeFactsFromArtifact(artifact);
     let constructors: SemanticAstNominalConstructorFacts =
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let roles: SemanticAstRoleFacts = SemanticAstRoleFactsFromArtifact(artifact);
     let zone_authorities: SemanticAstZoneAuthorityFacts =
-        SemanticAstZoneAuthorityFactsFromArtifact(artifact, constructors);
+        SemanticAstZoneAuthorityFactsFromArtifact(
+            artifact, constructors, roles
+        );
     let enums: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
     let function_tables: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFactsFromArtifact(
@@ -194,7 +197,6 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             artifact, input_expression_surfaces, target_graph
         );
     }
-    let roles: SemanticAstRoleFacts = SemanticAstRoleFactsFromArtifact(artifact);
     let ability_generic_bounds: SemanticAstAbilityGenericBoundVerdict =
         SemanticAstAbilityGenericBoundsVerdict(roles);
     let type_surfaces: SemanticAstTypeSurfaceFacts =

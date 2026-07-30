@@ -68,6 +68,54 @@ func CheckUndefinedIdentifiers(
                 continue;
             }
             if after < n && SourceByteAt(text, n, after) == dot {
+                let member_start: Int = SkipWhitespaceAndComments(
+                    text, after + 1
+                );
+                let member_end: Int = member_start;
+                if member_start < n && SourceByteIsAlpha(
+                    SourceByteAt(text, n, member_start)
+                ) {
+                    member_end = member_start + 1;
+                    while member_end < n && SourceByteIsAlphaNum(
+                        SourceByteAt(text, n, member_end)
+                    ) {
+                        member_end = member_end + 1;
+                    }
+                    let after_member: Int = SkipWhitespaceAndComments(
+                        text, member_end
+                    );
+                    let owner_initial: Int = SourceByteAt(
+                        text, n, start
+                    );
+                    let member_initial: Int = SourceByteAt(
+                        text, n, member_start
+                    );
+                    if owner_initial >= 65 && owner_initial <= 90 &&
+                        member_initial >= 65 && member_initial <= 90 &&
+                        (after_member >= n || SourceByteAt(
+                            text, n, after_member
+                        ) != open_paren) {
+                        let qualified_name: String = Concat(
+                            name,
+                            Concat(
+                                ".",
+                                Substring(
+                                    text,
+                                    member_start,
+                                    member_end - member_start
+                                )
+                            )
+                        );
+                        if !IsSome(SemanticCallableIndex(
+                            callable_names, qualified_name
+                        )) {
+                            return SemanticError1(
+                                "undefined_symbol", "name", qualified_name
+                            );
+                        }
+                        i = member_end;
+                    }
+                }
                 continue;
             }
             if !EnvContainsName(names, name) &&

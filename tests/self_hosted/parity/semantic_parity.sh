@@ -263,8 +263,8 @@ read_semantic_fixture_manifest() {
         SOURCE_PAIRS+=("$line")
     done <"$SEMANTIC_FIXTURE_MANIFEST_FILE"
 
-    if [[ "${#SOURCE_PAIRS[@]}" -ne 113 ]]; then
-        echo "[self-host-parity:semantic] fixture manifest count drifted: ${#SOURCE_PAIRS[@]} != 113" >&2
+    if [[ "${#SOURCE_PAIRS[@]}" -ne 114 ]]; then
+        echo "[self-host-parity:semantic] fixture manifest count drifted: ${#SOURCE_PAIRS[@]} != 114" >&2
         exit 1
     fi
 }
@@ -272,6 +272,15 @@ read_semantic_fixture_manifest() {
 run_semantic_backend() {
     local backend="$1"
     local tool_bin="$2"
+
+    local enum_contract
+    enum_contract="$(cd "$ROOT_DIR" && "$tool_bin" \
+        --enum-callable-contract 2>/dev/null | tr -d '\r')"
+    if [[ "$enum_contract" != "enum-callable-projection: ok" ]]; then
+        echo "[self-host-parity:semantic] backend=$backend enum callable projection contract failed" >&2
+        printf '%s\n' "$enum_contract" >&2
+        exit 1
+    fi
 
     for pair in "${SOURCE_PAIRS[@]}"; do
         local base

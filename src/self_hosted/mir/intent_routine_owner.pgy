@@ -251,25 +251,19 @@ func SelfMirIntentRoutineBuild(
         let outcome_name: String = intents.steps.outcome_names[step_row];
         let outcome_type_name: String =
             intents.steps.outcome_type_names[step_row];
-        let action_signature_index: Int =
-            intents.steps.action_signature_indices[step_row];
+        let target_declaration_node_id: Int =
+            intents.steps.target_declaration_node_ids[step_row];
         if intents.steps.outcome_node_ids[step_row] >= 0 {
             if outcome_name == "" || outcome_type_name == "" ||
                 outcome_type_name == "Unknown" || outcome_type_name == "Void" ||
-                action_signature_index < 0 || action_signature_index >=
-                    ArrayLength(input.analysis.signatures.function_node_ids) ||
-                input.analysis.signatures.function_node_ids[
-                    action_signature_index
-                ] <= 0 {
+                target_declaration_node_id <= 0 {
                 return SelfMirRoutineBuildError(
                     build, "MIR intent outcome binding is invalid"
                 );
             }
             build = SelfMirIntentAddResultInstruction(
                 build, "stmt", "IntentOutcomeBinding", outcome_name,
-                ToString(input.analysis.signatures.function_node_ids[
-                    action_signature_index
-                ]),
+                ToString(target_declaration_node_id),
                 step_name, outcome_name, "", "AST_INTENT_STEP",
                 outcome_type_name, SelfMirNoUses()
             );

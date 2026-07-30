@@ -9,6 +9,7 @@ import "../hir/ast_expression_owner_kind_binding.pgy";
 import "../hir/ast_destructure_graph_owner.pgy";
 import "cursor_owner.pgy";
 import "decl_dispatch_owner.pgy";
+import "intent_parameter_resolution_owner.pgy";
 
 struct ParserProgramBuild {
     tree_text: String;
@@ -43,6 +44,17 @@ func ParseProgramBuildWithImportPolicy(
         content, i, cursor, "", false, src_dir, false, follow_imports, "",
         involve_types, import_paths, expression_graphs
     );
+    if !ParserIntentParameterResolutionContractReady() {
+        ParserProgramGraphFail("intent parameter resolution contract drifted");
+    }
+    let resolved_intents: ParserIntentParameterResolution =
+        ParserIntentParameterRowsResolve(decls, involve_types);
+    if !resolved_intents.ok {
+        ParserProgramGraphFail(
+            "intent parameter role resolution failed after import composition"
+        );
+    }
+    decls = resolved_intents.tree_text;
     let composed_rows: AstExpressionGraphRows = expression_graphs[0];
     if !AstExpressionGraphRowsReady(composed_rows) {
         ParserProgramGraphFail(

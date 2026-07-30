@@ -1,0 +1,52 @@
+// Exact action-or-intent target identity validation for one DIR intent step.
+
+import "../semantic/ast_intent_signature_fact_owner.pgy";
+import "../semantic/ast_signature_fact_owner.pgy";
+import "intent_row_owner.pgy";
+import "intent_step_carriage_contract_owner.pgy";
+
+func SelfDirIntentStepTargetContractReady(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref intent_signatures: SemanticAstIntentSignatureFacts,
+    ref steps: SelfDirIntentStepFacts,
+    step_index: Int
+) -> Bool {
+    if !SelfDirIntentStepCarriageShapeReady(steps) || step_index < 0 ||
+        step_index >= ArrayLength(steps.node_ids) {
+        return false;
+    }
+    if steps.target_kinds[step_index] == "action" {
+        let action_index: Int =
+            steps.action_signature_indices[step_index];
+        return steps.receiver_aliases[step_index] != "" &&
+            steps.action_names[step_index] != "" && action_index >= 0 &&
+            action_index < SemanticAstFunctionSignatureCount(signatures) &&
+            steps.target_indices[step_index] == action_index &&
+            steps.target_names[step_index] ==
+                steps.action_names[step_index] &&
+            steps.target_declaration_node_ids[step_index] ==
+                signatures.function_node_ids[action_index] &&
+            steps.target_return_type_names[step_index] ==
+                signatures.return_types[action_index] &&
+            steps.target_param_counts[step_index] ==
+                signatures.param_counts[action_index] - 1;
+    }
+    if steps.target_kinds[step_index] == "intent" {
+        let intent_index: Int = steps.target_indices[step_index];
+        return steps.receiver_aliases[step_index] == "" &&
+            steps.action_names[step_index] == "" &&
+            steps.action_signature_indices[step_index] == -1 &&
+            intent_index >= 0 &&
+            intent_index <
+                SemanticAstIntentSignatureCount(intent_signatures) &&
+            steps.target_names[step_index] ==
+                intent_signatures.names[intent_index] &&
+            steps.target_declaration_node_ids[step_index] ==
+                intent_signatures.intent_node_ids[intent_index] &&
+            steps.target_return_type_names[step_index] ==
+                intent_signatures.return_type_names[intent_index] &&
+            steps.target_param_counts[step_index] ==
+                intent_signatures.param_counts[intent_index];
+    }
+    return false;
+}

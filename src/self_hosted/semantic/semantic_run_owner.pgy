@@ -25,6 +25,14 @@ func RunSemanticFromArgs(args: Array<String>) -> Void {
         EmitSemanticDiagnosticSurfaceAudit();
         return;
     }
+    if args[0] == "--enum-callable-contract" {
+        if !SemanticEnumCallableProjectionContractReady() {
+            Exit(1);
+            return;
+        }
+        Log("enum-callable-projection: ok");
+        return;
+    }
     if args[0] == "--oracle-json-code-match" {
         if ArrayLength(args) < 3 {
             Log(SemanticError2("input_missing", "expected", "oracle-json-and-code", "actual", "none"));

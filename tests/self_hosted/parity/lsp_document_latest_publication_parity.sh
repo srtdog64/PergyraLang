@@ -25,8 +25,11 @@ for path in "$LSP_SOURCE" "$STORE_OWNER" "$REVISION_OWNER" "$EXPECTED"; do
     [[ -f "$path" ]] || fail "missing input: $path"
 done
 
-grep -Fq 'import "../../../stdlib/host_task_slot.pgy";' "$STORE_OWNER" ||
-    fail "production document-store graph does not import HostTaskSlot"
+grep -Fq 'import "../../../stdlib/host_task_slot.pgy";' "$REVISION_OWNER" ||
+    fail "typed revision owner does not import its HostTaskSlot dependency"
+if grep -Fq 'import "../../../stdlib/host_task_slot.pgy";' "$STORE_OWNER"; then
+    fail "document store re-owns the revision owner's HostTaskSlot dependency"
+fi
 grep -Fq 'import "document_revision_owner.pgy";' "$STORE_OWNER" ||
     fail "production document-store graph bypasses typed revision owner"
 grep -Fq 'LspDocumentRevisionChange(' "$STORE_OWNER" ||

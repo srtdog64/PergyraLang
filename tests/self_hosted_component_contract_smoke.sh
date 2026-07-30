@@ -1124,8 +1124,9 @@ require_text "src/self_hosted/parser/decl_role_owner.pgy" 'import "function_decl
 require_text "src/self_hosted/parser/decl_nominal_owner.pgy" 'import "function_decl_owner.pgy";'
 require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'import "expr_owner.pgy";'
 require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'let parameter_lines: Array<String> = [];'
-require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'ArrayPush(parameter_lines, Concat("IntentInvolves: ", row));'
-require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'ArrayPush(parameter_lines, Concat("IntentValue: ", row));'
+require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'ArrayPush(parameter_lines, Concat("IntentBinding: ", row));'
+reject_text "src/self_hosted/parser/decl_intent_owner.pgy" 'ArrayPush(parameter_lines, Concat("IntentInvolves: ", row));'
+reject_text "src/self_hosted/parser/decl_intent_owner.pgy" 'ArrayPush(parameter_lines, Concat("IntentValue: ", row));'
 reject_text "src/self_hosted/parser/decl_intent_owner.pgy" 'let involves_lines:'
 reject_text "src/self_hosted/parser/decl_intent_owner.pgy" 'let value_lines:'
 require_text "src/self_hosted/parser/decl_zone_owner.pgy" 'import "expr_owner.pgy";'
@@ -1182,7 +1183,7 @@ reject_text "tests/self_hosted/parity/parser_parity.sh" "BYTE-DRIFT"
 require_owner_surface semantic \
     "semantic_run_owner.pgy"
 require_file "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" 560
+require_max_lines "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" 570
 require_file "src/self_hosted/semantic/ast_artifact_verdict_contract_owner.pgy"
 require_max_lines \
     "src/self_hosted/semantic/ast_artifact_verdict_contract_owner.pgy" 70
@@ -1202,6 +1203,33 @@ require_text "src/self_hosted/semantic/ast_intent_signature_fact_owner.pgy" \
     '"IntentValue: "'
 require_text "src/self_hosted/semantic/ast_intent_signature_fact_owner.pgy" \
     "func SemanticAstIntentSignatureFactsReady"
+require_file "src/self_hosted/semantic/ast_intent_call_fact_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_intent_call_fact_owner.pgy" 140
+require_text "src/self_hosted/semantic/ast_intent_call_fact_owner.pgy" \
+    'import "ast_intent_signature_fact_owner.pgy";'
+require_text "src/self_hosted/semantic/ast_intent_call_fact_owner.pgy" \
+    "func SemanticAstIntentCallFromGraph("
+require_text "src/self_hosted/semantic/ast_intent_call_fact_owner.pgy" \
+    "SemanticExpressionGraphCallTargetKind("
+require_text "src/self_hosted/semantic/ast_intent_call_fact_owner.pgy" \
+    "SemanticExpressionGraphCallTargetName("
+reject_text "src/self_hosted/semantic/ast_intent_call_fact_owner.pgy" \
+    "SemanticAstIntentCallFromText("
+require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    'import "../semantic/ast_intent_call_fact_owner.pgy";'
+require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    "expression_surfaces, on_node_id"
+require_text "src/self_hosted/dir/intent_row_owner.pgy" \
+    "target_kinds: Array<String>;"
+require_text "src/self_hosted/dir/intent_row_owner.pgy" \
+    "target_declaration_node_ids: Array<Int>;"
+require_file "tests/self_hosted/parity/fixture/intent_nested_call_reachability.pgy"
+require_text "tests/self_hosted/parity/fixture/intent_nested_call_reachability.pgy" \
+    "on: IntakeSource(intake, source, paths);"
+require_text "tests/self_hosted/parity/intent_callable_reachability_owner.sh" \
+    "nested-wrong-arity"
+require_text "tests/self_hosted/parity/intent_callable_reachability_owner.sh" \
+    "nested-ambiguous"
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
     'import "ast_intent_signature_fact_owner.pgy";'
 reject_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
@@ -1234,6 +1262,12 @@ require_file "src/self_hosted/dir/intent_fact_owner.pgy"
 require_max_lines "src/self_hosted/dir/intent_fact_owner.pgy" 560
 require_file "src/self_hosted/dir/intent_step_fact_owner.pgy"
 require_max_lines "src/self_hosted/dir/intent_step_fact_owner.pgy" 470
+require_file "src/self_hosted/dir/intent_step_target_contract_owner.pgy"
+require_max_lines "src/self_hosted/dir/intent_step_target_contract_owner.pgy" 100
+require_text "src/self_hosted/dir/intent_fact_owner.pgy" \
+    'import "intent_step_target_contract_owner.pgy";'
+require_text "src/self_hosted/dir/intent_fact_owner.pgy" \
+    "SelfDirIntentStepTargetContractReady("
 require_file "src/self_hosted/dir/intent_row_owner.pgy"
 require_max_lines "src/self_hosted/dir/intent_row_owner.pgy" 80
 require_text "src/self_hosted/OWNERS.md" \
@@ -1284,6 +1318,8 @@ require_text "src/self_hosted/mir_lower/json_fact_read.pgy" \
     "let intent_execution: JsonObjectFactTable;"
 require_text "src/self_hosted/mir_lower/intent_execution_json_rows_owner.pgy" \
     'import "intent_execution_json_decode_owner.pgy";'
+require_text "src/self_hosted/mir_lower/intent_execution_json_rows_owner.pgy" \
+    'import "program_routine_index_owner.pgy";'
 require_text \
     "src/self_hosted/mir_lower/intent_execution_identity_index_owner.pgy" \
     "func MirIntentExecutionTobjectDeclarationReady("
@@ -1407,6 +1443,12 @@ done
 reject_text \
     "src/self_hosted/mir_lower/intent_execution_tree_projection_owner.pgy" \
     "candidate_texts"
+require_text \
+    "src/self_hosted/mir_lower/intent_execution_tree_projection_owner.pgy" \
+    'import "intent_carrier_projection_owner.pgy";'
+require_text \
+    "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
+    'import "intent_carrier_projection_owner.pgy";'
 reject_text \
     "src/self_hosted/mir_lower/intent_execution_graph_mirror_owner.pgy" \
     "selected_text"
@@ -1510,7 +1552,15 @@ require_text \
 # zone authority owner and consumer ratchets
 require_file "src/self_hosted/semantic/ast_zone_authority_fact_owner.pgy"
 require_max_lines \
-    "src/self_hosted/semantic/ast_zone_authority_fact_owner.pgy" 180
+    "src/self_hosted/semantic/ast_zone_authority_fact_owner.pgy" 220
+require_file \
+    "src/self_hosted/semantic/ast_zone_authority_validation_owner.pgy"
+require_max_lines \
+    "src/self_hosted/semantic/ast_zone_authority_validation_owner.pgy" 200
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/semantic/ast_zone_authority_validation_owner.pgy"
+require_text "Makefile" \
+    'tests/self_hosted/parity/zone_authority_fact_owner.sh'
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/semantic/ast_zone_authority_fact_owner.pgy"
 require_text \
@@ -1627,8 +1677,34 @@ reject_text "src/self_hosted/dir/intent_fact_owner.pgy" '"Checkout"'
 reject_text "src/self_hosted/dir/intent_step_fact_owner.pgy" '"Checkout"'
 reject_text "src/self_hosted/dir/intent_fact_owner.pgy" 'FileRead('
 reject_text "src/self_hosted/dir/intent_step_fact_owner.pgy" 'FileRead('
+reject_text "src/self_hosted/dir/intent_fact_owner.pgy" \
+    'SemanticAstIntentSignatureFactsFromArtifact('
+reject_text "src/self_hosted/dir/intent_fact_owner.pgy" \
+    'SemanticAstIntentTransitionFactsFromArtifact('
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" \
     'artifact, declarations, analysis.signatures'
+require_text "src/self_hosted/mir/artifact_lower_owner.pgy" \
+    'analysis.intent_signatures, analysis.intent_transitions'
+require_file "src/self_hosted/parser/intent_parameter_resolution_owner.pgy"
+require_max_lines \
+    "src/self_hosted/parser/intent_parameter_resolution_owner.pgy" 120
+require_text "src/self_hosted/parser/program_parse_owner.pgy" \
+    'ParserIntentParameterRowsResolve(decls, involve_types)'
+reject_text "src/self_hosted/parser/intent_parameter_resolution_owner.pgy" \
+    'StringIndexOf(result, "IntentBinding:")'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" \
+    "grep -Eq '^[[:space:]]*IntentBinding:'"
+reject_text "tests/self_hosted/parity/driver_bootstrap.sh" \
+    'IntentValue: [^:]+: [A-Za-z_][A-Za-z0-9_]*Zone'
+require_file "tests/parser_imported_intent_composition_smoke.sh"
+require_text "Makefile" \
+    'parser-imported-intent-composition-test-smoke:'
+require_text "src/compiler/import_resolver.c" \
+    'parser_parse_program_for_module_composition(parser)'
+require_text "src/compiler/import_resolver.c" \
+    'parser_finalize_composed_intent_parameter_roles('
+reject_text "src/parser/parser_intent_bindings.c" \
+    'StringEndsWith(type_node->data.type.name, "Zone")'
 require_text "tests/self_hosted/parity/intent_callable_reachability_owner.sh" \
     '"domain_graph_id":14937234969446610600'
 require_text "tests/self_hosted/parity/intent_callable_reachability_owner.sh" \
@@ -1674,6 +1750,54 @@ require_file "src/self_hosted/semantic/delimited_range_fact_owner.pgy"
 require_file "src/self_hosted/semantic/call_check_owner.pgy"
 require_file "src/self_hosted/semantic/body_check_owner.pgy"
 require_file "src/self_hosted/semantic/program_check_owner.pgy"
+require_file "src/self_hosted/semantic/enum_callable_signature_owner.pgy"
+require_max_lines "src/self_hosted/semantic/enum_callable_signature_owner.pgy" 280
+require_text "src/self_hosted/semantic/program_check_owner.pgy" \
+    'import "enum_callable_signature_owner.pgy";'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" \
+    "SeedDeclaredEnumVariantSignatures("
+require_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
+    "SemanticCallableCanonicalDeclaredName("
+require_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
+    "func SemanticEnumMethodEnd("
+require_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
+    "let staged_names: Array<String> = [];"
+require_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
+    "SemanticEnumVariantParamSignature("
+require_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
+    "func SemanticEnumCallableProjectionContractReady()"
+reject_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
+    "let variants_source: String"
+reject_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
+    "let variants: SemanticDelimitedRangeFacts"
+require_text "src/self_hosted/semantic/program_check_owner.pgy" \
+    '"SemanticEnumCallableProjection"'
+require_text "src/self_hosted/semantic/semantic_run_owner.pgy" \
+    'args[0] == "--enum-callable-contract"'
+require_text "tests/self_hosted/parity/semantic_parity.sh" \
+    "enum-callable-projection: ok"
+require_text "src/self_hosted/semantic/fixture/valid_import_call.pgy" \
+    "ImportedDecision = ImportedReady"
+require_text "src/self_hosted/semantic/fixture/valid_import_call.pgy" \
+    "ImportedDecision = ImportedValue(41)"
+require_text "src/self_hosted/semantic/fixture/valid_import_call.pgy" \
+    "ImportedDecision.ImportedReady"
+require_text "src/self_hosted/semantic/fixture/valid_import_call.pgy" \
+    "ImportedDecision.ImportedValue(41)"
+require_text "src/self_hosted/semantic/fixture/valid_import_call.pgy" \
+    'ImportedDecision.ImportedPair(7, "ready")'
+require_text "src/self_hosted/semantic/fixture/valid_import_call.pgy" \
+    'ImportedPair(7, "ready")'
+require_text "src/self_hosted/semantic/fixture/imports/semantic_math_lib.pgy" \
+    "ImportedValue(value: Int)"
+require_text "src/self_hosted/semantic/fixture/imports/semantic_math_lib.pgy" \
+    "func StableCode(self) -> Int"
+require_file "src/self_hosted/semantic/fixture/bad_import_enum_variant.pgy"
+require_file "src/self_hosted/semantic/expected/bad_import_enum_variant.diag"
+require_text "src/self_hosted/semantic/fixture/bad_import_enum_variant.pgy" \
+    "ImportedDecision.Missing"
+require_text "src/self_hosted/semantic/expected/bad_import_enum_variant.diag" \
+    "- name: ImportedDecision.Missing"
 reject_text "src/self_hosted/semantic/main.pgy" 'import "source_bundle_owner.pgy";'
 reject_text "src/self_hosted/semantic/main.pgy" 'import "diagnostic_owner.pgy";'
 reject_text "src/self_hosted/semantic/main.pgy" 'import "env_owner.pgy";'
@@ -1743,6 +1867,8 @@ while IFS= read -r die_consumer; do
 done < <(grep -RIl -E --include='*.pgy' '(^|[^A-Za-z0-9_])Die[[:space:]]*\(' "$ROOT_DIR/src/self_hosted/codegen")
 require_text "src/self_hosted/semantic/program_check_owner.pgy" "func SeedDeclaredFunctionSignatures("
 require_text "src/self_hosted/semantic/program_check_owner.pgy" "func FindNominalFieldEnd("
+require_text "src/self_hosted/semantic/program_check_owner.pgy" \
+    'content, content_length, after_let, "mut"'
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" 'c == SourceByteOf("}")'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" "SemanticCallableCanonicalDeclaredName("
 require_text "src/self_hosted/mir/routine_iteration_owner.pgy" 'import "expression_fact_owner.pgy";'
@@ -1816,6 +1942,8 @@ require_text "src/self_hosted/semantic/expression_normalization_owner.pgy" "func
 reject_text "src/self_hosted/semantic/expr_type_owner.pgy" "func SemanticStripOuterParens"
 require_text "src/self_hosted/semantic/expr_validation_owner.pgy" "func CheckUndefinedIdentifiers"
 reject_text "src/self_hosted/semantic/expr_type_owner.pgy" "func CheckUndefinedIdentifiers"
+require_text "src/self_hosted/semantic/ast_contextual_builtin_type_owner.pgy" \
+    'import "ast_expression_call_target_fact_owner.pgy";'
 require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" "func SemanticDiagnosticCodeKnown"
 require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" "func SemanticDiagnosticCodes"
 require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" "func SemanticDiagnosticCodeCount"
@@ -1828,7 +1956,7 @@ require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "func Sema
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadSchema"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "pgy.selfhost.semantic.v1"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadFixtureFrontierCount() -> Int"
-require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "return 113;"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "return 114;"
 require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount()"
 reject_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticVerdictPayloadFixtureCount() != 110"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadFixtureManifestRows"
@@ -5649,6 +5777,8 @@ require_text "src/self_hosted/semantic/ast_expression_graph_queue_call_owner.pgy
     "struct SemanticExpressionGraphQueueCallFact"
 require_text "src/self_hosted/semantic/ast_expression_graph_queue_call_owner.pgy" \
     "func SemanticExpressionGraphQueueCallFactFromResolvedTarget("
+require_text "src/self_hosted/semantic/ast_expression_graph_queue_call_owner.pgy" \
+    'import "ast_expression_graph_scalar_shape_owner.pgy";'
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "SemanticExpressionGraphQueueCallFactFromGraph("
 require_file "src/self_hosted/semantic/ast_expression_graph_set_call_owner.pgy"
@@ -5657,6 +5787,8 @@ require_text "src/self_hosted/semantic/ast_expression_graph_set_call_owner.pgy" 
     "struct SemanticExpressionGraphSetCallFact"
 require_text "src/self_hosted/semantic/ast_expression_graph_set_call_owner.pgy" \
     "func SemanticExpressionGraphSetCallFactFromResolvedTarget("
+require_text "src/self_hosted/semantic/ast_expression_graph_set_call_owner.pgy" \
+    'import "ast_expression_graph_scalar_shape_owner.pgy";'
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "SemanticExpressionGraphSetCallFactFromGraph("
 require_text "src/self_hosted/codegen/emission/list_call_emit_owner.pgy" \
@@ -6223,6 +6355,8 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     "pgy_selfhost_verify_driver_rung2_set_literal_emitted_c"
 require_text "src/self_hosted/semantic/ast_expression_graph_set_literal_owner.pgy" \
     "SemanticExpressionGraphSetLiteralMatchesDeclaredType"
+require_text "src/self_hosted/semantic/ast_expression_graph_set_literal_owner.pgy" \
+    'import "ast_expression_graph_type_owner.pgy";'
 require_file "src/self_hosted/parser/expression_set_literal_graph_owner.pgy"
 require_max_lines "src/self_hosted/parser/expression_set_literal_graph_owner.pgy" 100
 require_file "src/self_hosted/parser/expression_set_literal_contract_owner.pgy"
@@ -7246,6 +7380,8 @@ require_text "src/self_hosted/parser/stmt_owner.pgy" \
     'import "stmt_call_graph_owner.pgy";'
 require_text "src/self_hosted/parser/stmt_call_graph_owner.pgy" \
     "TypedAstCallStatementKindForCallee("
+require_text "src/self_hosted/parser/stmt_call_graph_owner.pgy" \
+    'import "expr_owner.pgy";'
 require_text "src/self_hosted/parser/stmt_call_graph_owner.pgy" \
     "TypedAstKindBareCallStmtTag()"
 require_text "src/self_hosted/parser/stmt_call_graph_owner.pgy" \
@@ -9736,6 +9872,10 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"self-host-complet
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" 'SELF_TARGET_ROWS=()'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" 'SEMANTIC_TARGET_MANIFEST'
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
+    'if path == "src/self_hosted/semantic/result_call_type_owner.pgy" {'
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
+    'CompilerCompletenessCheckTarget("src/self_hosted/semantic/expr_type_owner.pgy")'
 reject_text "tests/self_hosted/parity/selfcheck_sources.sh" 'SELF_SOURCES=('
 reject_text "tests/self_hosted/parity/selfcheck_sources.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/semantic/main.pgy"'
 require_text "tests/self_hosted/parity/completeness_ledger.sh" '"codegen-parity-paths"'
@@ -12237,11 +12377,11 @@ reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "ReadJsonString(json,"
 
 semantic_fixture_count="$(find "$SELF_HOST_DIR/semantic/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 semantic_expected_count="$(find "$SELF_HOST_DIR/semantic/expected" -maxdepth 1 -type f -name '*.diag' | wc -l | tr -d ' ')"
-[[ "$semantic_fixture_count" -eq 113 ]] ||
-    fail "semantic fixture count drifted: $semantic_fixture_count != 113"
-[[ "$semantic_expected_count" -eq 113 ]] ||
-    fail "semantic expected count drifted: $semantic_expected_count != 113"
-require_text "src/self_hosted/PROGRESS.md" "across 113 fixtures"
+[[ "$semantic_fixture_count" -eq 114 ]] ||
+    fail "semantic fixture count drifted: $semantic_fixture_count != 114"
+[[ "$semantic_expected_count" -eq 114 ]] ||
+    fail "semantic expected count drifted: $semantic_expected_count != 114"
+require_text "src/self_hosted/PROGRESS.md" "across 114 fixtures"
 require_file "src/self_hosted/semantic/fixture/valid_long_suffix.pgy"
 require_file "src/self_hosted/semantic/expected/valid_long_suffix.diag"
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" \

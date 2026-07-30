@@ -93,6 +93,9 @@ void     parser_set_recovered_error_output(Parser *parser, bool enabled);
  * Main parsing function
  */
 ASTNode *parser_parse_program(Parser *parser);
+ASTNode *parser_parse_program_for_module_composition(Parser *parser);
+bool parser_finalize_composed_intent_parameter_roles(ASTNode *program,
+                                                     char **error_message);
 
 /*
  * Statement parsing functions

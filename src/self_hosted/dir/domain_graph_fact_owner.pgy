@@ -5,6 +5,11 @@
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../mir/declaration_fact_owner.pgy";
 import "../lib/nominal_field_kind_owner.pgy";
+import "../semantic/ast_expression_surface_fact_owner.pgy";
+import "../semantic/ast_intent_signature_fact_owner.pgy";
+import "../semantic/ast_intent_transition_fact_owner.pgy";
+import "../semantic/ast_role_fact_owner.pgy";
+import "../semantic/ast_zone_authority_validation_owner.pgy";
 import "domain_topology_row_owner.pgy";
 import "intent_fact_owner.pgy";
 
@@ -96,8 +101,15 @@ func SelfDirAbilityMethodCount(
 
 func SelfDirDomainAuthorityEdges(
     artifact: AstTreeArtifact,
-    rows: SelfMirDeclarationRows
+    rows: SelfMirDeclarationRows,
+    ref authorities: SemanticAstZoneAuthorityFacts,
+    ref roles: SemanticAstRoleFacts
 ) -> Option<Int> {
+    if !SemanticAstZoneAuthorityFactsAdmittedReady(
+        artifact.count, roles, authorities
+    ) {
+        return None;
+    }
     let edge_count: Int = 0;
     let node_id: Int = 0;
     while node_id < artifact.count {
@@ -132,71 +144,61 @@ func SelfDirDomainAuthorityEdges(
             }
             edge_count = edge_count + 1;
         }
-        if TypedAstArenaNodeKindIs(
-            artifact.arena, node_id, TypedAstKindZoneAuthorityTag()
-        ) {
-            let parent: Option<Int> = TypedAstArenaParentId(
-                artifact.arena, node_id
-            );
-            let slot: Option<String> = TypedAstArenaAtomText(
-                artifact.arena, node_id
-            );
-            if !IsSome(parent) || !IsSome(slot) ||
-                !TypedAstArenaNodeKindIs(
-                    artifact.arena, UnwrapOption(parent),
-                    TypedAstKindNominalDeclTag()
-                ) {
-                return None;
-            }
-            let parent_subkind: Option<Int> = TypedAstArenaNominalSubkind(
-                artifact.arena, UnwrapOption(parent)
-            );
-            let owner_name: Option<String> = TypedAstArenaAtomText(
-                artifact.arena, UnwrapOption(parent)
-            );
-            if !IsSome(parent_subkind) ||
-                UnwrapOption(parent_subkind) != TypedAstNominalSubkindZone() ||
-                !IsSome(owner_name) {
-                return None;
-            }
-            let owner_index: Int = SelfDirDeclarationIndexForName(
-                rows, UnwrapOption(owner_name)
-            );
-            if !SelfDirFieldKindPresent(
-                rows, owner_index, UnwrapOption(slot),
-                NominalFieldKindSubjectSlot()
-            ) || artifact.arena.child_counts[node_id] != 1 {
-                return None;
-            }
-            let requires_node: Option<Int> = TypedAstArenaChildAt(
-                artifact.arena, node_id, 0
-            );
-            if !IsSome(requires_node) || !TypedAstArenaNodeKindIs(
-                artifact.arena, UnwrapOption(requires_node),
-                TypedAstKindActionRequiresTag()
-            ) {
-                return None;
-            }
-            let required: Option<String> = TypedAstArenaAtomText(
-                artifact.arena, UnwrapOption(requires_node)
-            );
-            if !IsSome(required) { return None; }
-            let abilities: Array<String> = Split(UnwrapOption(required), ",");
-            if ArrayLength(abilities) == 0 { return None; }
-            let ability_i: Int = 0;
-            while ability_i < ArrayLength(abilities) {
-                let ability_name: String = StringTrim(abilities[ability_i]);
-                if ability_name == "" ||
-                    SelfDirAbilityMethodCount(rows, ability_name) < 0 {
-                    return None;
-                }
-                ability_i = ability_i + 1;
-            }
-            // owner->authority-slot, authority-slot->subject-slot, and two
-            // ability edges per requirement (zone owner plus authority slot).
-            edge_count = edge_count + 2 + 2 * ArrayLength(abilities);
-        }
         node_id = node_id + 1;
+    }
+    let authority_i: Int = 0;
+    while authority_i < ArrayLength(authorities.authority_node_ids) {
+        let owner_index: Int = SelfDirDeclarationIndexForName(
+            rows, authorities.owner_zone_names[authority_i]
+        );
+        if owner_index < 0 || rows.nominal_kinds[owner_index] != "zone" {
+            return None;
+        }
+        let slot_matches: Int = 0;
+        let field_i: Int = 0;
+        while field_i < rows.field_counts[owner_index] {
+            let field_row: Int = rows.field_starts[owner_index] + field_i;
+            if rows.field_names[field_row] ==
+                    authorities.subject_slot_names[authority_i] &&
+                rows.field_kinds[field_row] ==
+                    NominalFieldKindSubjectSlot() &&
+                rows.field_source_syntax_ids[field_row] ==
+                    authorities.subject_slot_node_ids[authority_i] {
+                slot_matches = slot_matches + 1;
+            }
+            field_i = field_i + 1;
+        }
+        if slot_matches != 1 { return None; }
+        let ability_i: Int = 0;
+        while ability_i < authorities.required_ability_counts[authority_i] {
+            let ability_row: Int =
+                authorities.required_ability_starts[authority_i] + ability_i;
+            let role_ability_index: Int = -1;
+            let role_ability_matches: Int = 0;
+            let role_ability_i: Int = 0;
+            while role_ability_i < ArrayLength(roles.ability_node_ids) {
+                if roles.ability_node_ids[role_ability_i] ==
+                        authorities.required_ability_node_ids[ability_row] &&
+                    roles.ability_names[role_ability_i] ==
+                        authorities.required_ability_names[ability_row] {
+                    role_ability_index = role_ability_i;
+                    role_ability_matches = role_ability_matches + 1;
+                }
+                role_ability_i = role_ability_i + 1;
+            }
+            if role_ability_matches != 1 || role_ability_index < 0 ||
+                SelfDirAbilityMethodCount(
+                    rows, authorities.required_ability_names[ability_row]
+                ) != roles.ability_method_counts[role_ability_index] {
+                return None;
+            }
+            ability_i = ability_i + 1;
+        }
+        // owner->authority-slot, authority-slot->subject-slot, and two
+        // ability edges per requirement (zone owner plus authority slot).
+        edge_count = edge_count + 2 + 2 *
+            authorities.required_ability_counts[authority_i];
+        authority_i = authority_i + 1;
     }
     return Some(edge_count);
 }
@@ -204,12 +206,20 @@ func SelfDirDomainAuthorityEdges(
 func SelfDirDomainGraphFactsFromArtifact(
     artifact: AstTreeArtifact,
     rows: SelfMirDeclarationRows,
-    signatures: SemanticAstFunctionSignatureFacts
+    signatures: SemanticAstFunctionSignatureFacts,
+    ref intent_signatures: SemanticAstIntentSignatureFacts,
+    intent_transitions: SemanticAstIntentTransitionFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    ref authorities: SemanticAstZoneAuthorityFacts,
+    ref roles: SemanticAstRoleFacts
 ) -> SelfDirDomainGraphFacts {
     let intents: SelfDirIntentFacts = SelfDirIntentFactsFromArtifact(
-        artifact, rows, signatures
+        artifact, rows, signatures, intent_signatures, intent_transitions,
+        expression_surfaces
     );
-    if !SelfDirIntentFactsReady(artifact, rows, signatures, intents) {
+    if !SelfDirIntentFactsReady(
+        artifact, rows, signatures, intent_signatures, intents
+    ) {
         return SelfDirDomainGraphFactsError(intents.diagnostic_message);
     }
     let required: Bool = intents.required;
@@ -328,7 +338,7 @@ func SelfDirDomainGraphFactsFromArtifact(
         i = i + 1;
     }
     let authority_edges: Option<Int> = SelfDirDomainAuthorityEdges(
-        artifact, rows
+        artifact, rows, authorities, roles
     );
     if !IsSome(authority_edges) {
         return SelfDirDomainGraphFactsError(
@@ -349,16 +359,8 @@ func SelfDirDomainGraphFactsFromArtifact(
         }
         topology_i = topology_i + 1;
     }
-    let authority_node_count: Int = 0;
-    let node_id: Int = 0;
-    while node_id < artifact.count {
-        if TypedAstArenaNodeKindIs(
-            artifact.arena, node_id, TypedAstKindZoneAuthorityTag()
-        ) {
-            authority_node_count = authority_node_count + 1;
-        }
-        node_id = node_id + 1;
-    }
+    let authority_node_count: Int =
+        ArrayLength(authorities.authority_node_ids);
     // Intent declarations are DIR nodes but are not MIR declaration rows.
     // Count the typed intent owner exactly once, matching native DIR.
     node_count = node_count + authority_node_count +

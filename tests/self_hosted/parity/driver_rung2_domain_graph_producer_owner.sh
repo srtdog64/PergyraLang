@@ -46,4 +46,28 @@ pgy_selfhost_verify_driver_rung2_domain_graph_producer() {
         return 1
     }
 
+    local optional_source="tests/self_hosted/fixtures/driver_execution_action_abi_probe.pgy"
+    local optional_self="$BUILD_DIR/optional_authority_${backend}.self.mir.json"
+    local optional_native="$BUILD_DIR/optional_authority_${backend}.native.mir.json"
+    if ! (cd "$ROOT_DIR" && "$driver_bin" --emit-mir-json-verified \
+            "$optional_source" >"$optional_self" \
+            2>"$optional_self.err"); then
+        cat "$optional_self" "$optional_self.err" >&2
+        echo "[self-host-parity:driver-rung2] $backend bare authority was rejected" >&2
+        return 1
+    fi
+    if ! (cd "$ROOT_DIR" && "$PGY" --mir-json "$optional_source" \
+            >"$optional_native" 2>"$optional_native.err"); then
+        cat "$optional_native" "$optional_native.err" >&2
+        echo "[self-host-parity:driver-rung2] native bare authority oracle failed" >&2
+        return 1
+    fi
+    local optional_topology='"domain_topology":{"domain_graph_id":14937234930791904899,"rows":[]}'
+    for optional_mir in "$optional_native" "$optional_self"; do
+        grep -Fq "$optional_topology" "$optional_mir" || {
+            echo "[self-host-parity:driver-rung2] $backend bare authority 10-node/9-edge anchor drifted" >&2
+            return 1
+        }
+    done
+
 }

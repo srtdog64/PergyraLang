@@ -1,5 +1,11 @@
 import "imports/semantic_math_lib.pgy";
 
 func Main() -> Int {
+    let ready: ImportedDecision = ImportedDecision.ImportedReady;
+    let bare_ready: ImportedDecision = ImportedReady;
+    let value: ImportedDecision = ImportedDecision.ImportedValue(41);
+    let bare_value: ImportedDecision = ImportedValue(41);
+    let pair: ImportedDecision = ImportedDecision.ImportedPair(7, "ready");
+    let bare_pair: ImportedDecision = ImportedPair(7, "ready");
     return AddOne(41);
 }

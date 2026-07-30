@@ -87,7 +87,7 @@ for required_zone_lock_guard in \
     "zone write lock failed" \
     "zone unlock failed"; do
     if ! grep -Fq "$required_zone_lock_guard" \
-        "$ROOT_DIR/src/runtime/pgy_runtime_zone_result_option_inline.h"; then
+        "$ROOT_DIR/src/runtime/pgy_runtime_zone_sync_abi.h"; then
         echo "[memory-concurrency] zone lock macros must fail closed: $required_zone_lock_guard" >&2
         exit 1
     fi

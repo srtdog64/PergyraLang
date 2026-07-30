@@ -502,7 +502,9 @@ implicit_main_oom:
 }
 
 // 프로그램 파싱
-ASTNode* parser_parse_program(Parser* parser) {
+static ASTNode*
+parser_parse_program_with_intent_finalization(Parser* parser,
+                                              bool finalize_intent_roles) {
     ASTNode* program = ast_create_program();
 
     while (!parser_is_at_end(parser)) {
@@ -526,6 +528,12 @@ ASTNode* parser_parse_program(Parser* parser) {
         }
     }
 
+    if (finalize_intent_roles
+        && !parser_finalize_intent_parameter_roles(parser, program)) {
+        ast_destroy(program);
+        return NULL;
+    }
+
     parser_synthesize_implicit_main(parser, program);
 
     if (!ast_assign_stable_ids(program)) {
@@ -534,6 +542,14 @@ ASTNode* parser_parse_program(Parser* parser) {
         return NULL;
     }
     return program;
+}
+
+ASTNode* parser_parse_program(Parser* parser) {
+    return parser_parse_program_with_intent_finalization(parser, true);
+}
+
+ASTNode* parser_parse_program_for_module_composition(Parser* parser) {
+    return parser_parse_program_with_intent_finalization(parser, false);
 }
 
 // 문장 파싱

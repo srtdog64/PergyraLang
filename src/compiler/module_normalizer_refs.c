@@ -226,6 +226,29 @@ module_normalizer_normalize_node_refs(ASTNode *node,
             module_normalizer_normalize_node_refs(ast_event_return_type(node), scope, shadow);
             return;
 
+        case AST_INTENT_DECL: {
+            size_t binding_count = 0;
+            ASTNode **bindings = ast_intent_decl_bindings(
+                node, &binding_count);
+            for (size_t i = 0; i < binding_count; i++) {
+                module_normalizer_normalize_node_refs(
+                    bindings != NULL ? bindings[i] : NULL, scope, shadow);
+            }
+            module_normalizer_normalize_node_refs(
+                ast_intent_decl_return_type(node), scope, shadow);
+            return;
+        }
+
+        case AST_INTENT_INVOLVES:
+            module_normalizer_normalize_node_refs(
+                ast_intent_involves_subject_type(node), scope, shadow);
+            return;
+
+        case AST_INTENT_VALUE:
+            module_normalizer_normalize_node_refs(
+                ast_intent_value_type(node), scope, shadow);
+            return;
+
         case AST_REQUIRE_FIELD:
             module_normalizer_normalize_node_refs(ast_require_field_type(node), scope, shadow);
             return;

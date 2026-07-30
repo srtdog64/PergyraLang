@@ -1,0 +1,144 @@
+// Executable contract for semantic-owned zone authority carriage.
+
+import "../../semantic/ast_zone_authority_validation_owner.pgy";
+
+func ZoneAuthorityProbeArtifact() -> AstTreeArtifact {
+    return AstTreeArtifactFromText(
+        "Program:\n" +
+        "  Ability: Runnable\n" +
+        "    Function: Run\n" +
+        "      Parameters:\n" +
+        "      Returns: Void\n" +
+        "  Subject: Worker\n" +
+        "  Zone: Gate\n" +
+        "    SubjectSlot: worker: Worker\n" +
+        "    Authority: worker\n" +
+        "      Requires: Runnable\n" +
+        "  Function: Main\n" +
+        "    Parameters:\n" +
+        "    Returns: Void\n" +
+        "    Body:\n" +
+        "      Block:\n"
+    );
+}
+
+func ZoneAuthorityProbeRoles() -> SemanticAstRoleFacts {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return SemanticAstRoleFacts(
+        true, 8,
+        ints, strings, strings, ints, ints, ints,
+        ints, ints, strings,
+        [1], ["Runnable"],
+        [0], [0], strings, strings, strings,
+        [0], [1], [2]
+    );
+}
+
+func ZoneAuthorityProbeFacts() -> SemanticAstZoneAuthorityFacts {
+    return SemanticAstZoneAuthorityFacts(
+        true, 8,
+        [5], [3], ["Gate"], [4], ["worker"],
+        [0], [1], [1], ["Runnable"]
+    );
+}
+
+func ZoneAuthorityProbeMissingAbility(
+    facts: SemanticAstZoneAuthorityFacts
+) -> SemanticAstZoneAuthorityFacts {
+    let ability_node_ids: Array<Int> = facts.required_ability_node_ids;
+    ArraySet(ability_node_ids, 0, 7);
+    return SemanticAstZoneAuthorityFacts(
+        facts.ok, facts.artifact_node_count,
+        facts.authority_node_ids, facts.owner_zone_node_ids,
+        facts.owner_zone_names, facts.subject_slot_node_ids,
+        facts.subject_slot_names, facts.required_ability_starts,
+        facts.required_ability_counts, ability_node_ids,
+        facts.required_ability_names
+    );
+}
+
+func ZoneAuthorityProbeDuplicateAbility(
+    facts: SemanticAstZoneAuthorityFacts
+) -> SemanticAstZoneAuthorityFacts {
+    return SemanticAstZoneAuthorityFacts(
+        facts.ok, facts.artifact_node_count,
+        facts.authority_node_ids, facts.owner_zone_node_ids,
+        facts.owner_zone_names, facts.subject_slot_node_ids,
+        facts.subject_slot_names, [0], [2], [1, 1],
+        ["Runnable", "Runnable"]
+    );
+}
+
+func ZoneAuthorityProbeDuplicateSlot(
+    facts: SemanticAstZoneAuthorityFacts
+) -> SemanticAstZoneAuthorityFacts {
+    return SemanticAstZoneAuthorityFacts(
+        facts.ok, facts.artifact_node_count,
+        [5, 6], [3, 3], ["Gate", "Gate"], [4, 4],
+        ["worker", "worker"], [0, 1], [1, 1], [1, 1],
+        ["Runnable", "Runnable"]
+    );
+}
+
+func Main() -> Void {
+    let artifact: AstTreeArtifact = ZoneAuthorityProbeArtifact();
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let produced_roles: SemanticAstRoleFacts =
+        SemanticAstRoleFactsFromArtifact(artifact);
+    let produced: SemanticAstZoneAuthorityFacts =
+        SemanticAstZoneAuthorityFactsFromArtifact(
+            artifact, constructors, produced_roles
+        );
+    if !SemanticAstZoneAuthorityFactsReady(
+            artifact, produced_roles, produced
+        ) || ArrayLength(produced.authority_node_ids) != 1 ||
+        ArrayLength(produced.required_ability_node_ids) != 1 ||
+        produced.owner_zone_names[0] != "Gate" ||
+        produced.subject_slot_names[0] != "worker" ||
+        produced.required_ability_names[0] != "Runnable" {
+        Log("zone-authority-producer=failed");
+        Exit(1);
+        return;
+    }
+    let empty_ints: Array<Int> = [];
+    let empty_strings: Array<String> = [];
+    let omitted: SemanticAstZoneAuthorityFacts =
+        SemanticAstZoneAuthorityFacts(
+            true, artifact.count, empty_ints, empty_ints, empty_strings,
+            empty_ints, empty_strings, empty_ints, empty_ints, empty_ints,
+            empty_strings
+        );
+    if SemanticAstZoneAuthorityFactsReady(
+        artifact, produced_roles, omitted
+    ) {
+        Log("zone-authority-missing-row=accepted");
+        Exit(1);
+        return;
+    }
+    let roles: SemanticAstRoleFacts = ZoneAuthorityProbeRoles();
+    let facts: SemanticAstZoneAuthorityFacts = ZoneAuthorityProbeFacts();
+    if !SemanticAstZoneAuthorityFactsAdmittedReady(8, roles, facts) {
+        Log("zone-authority-positive=failed");
+        Exit(1);
+        return;
+    }
+    let missing: SemanticAstZoneAuthorityFacts =
+        ZoneAuthorityProbeMissingAbility(facts);
+    let duplicate_ability: SemanticAstZoneAuthorityFacts =
+        ZoneAuthorityProbeDuplicateAbility(facts);
+    let duplicate_slot: SemanticAstZoneAuthorityFacts =
+        ZoneAuthorityProbeDuplicateSlot(facts);
+    if SemanticAstZoneAuthorityFactsAdmittedReady(8, roles, missing) ||
+        SemanticAstZoneAuthorityFactsAdmittedReady(
+            8, roles, duplicate_ability
+        ) || SemanticAstZoneAuthorityFactsAdmittedReady(
+            8, roles, duplicate_slot
+        ) {
+        Log("zone-authority-negative=accepted");
+        Exit(1);
+        return;
+    }
+    Log("zone-authority-carriage=PASS");
+}

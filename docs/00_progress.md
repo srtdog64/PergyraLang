@@ -2,6 +2,60 @@
 
 마지막 업데이트: 2026-07-30
 
+## 2026-07-30 exhaustive self-host CI and executable-rung closure checkpoint
+
+- GitHub run `30535237959` separated five failures that had previously been
+  hidden behind focused gates: imported enum variants were missing from the
+  lightweight semantic callable SoT, standalone sources relied on transitive
+  imports, the generated language-word inventory was stale, two platform gates
+  still read pre-zone-sync owners, and full bootstrap exposed an action-only
+  DIR intent-step contract.
+- Canonical enum callables now carry qualified identity, payload signature and
+  enum return type. The scanner admits comma-separated and newline-separated
+  variants, strips labels from payload types, excludes enum methods, and emits
+  no partial rows for malformed declarations. The semantic fixture frontier is
+  114 and includes a fail-closed qualified missing-variant case. Delimited
+  comma scanning no longer treats a spaced comparison `<` as a generic opener;
+  nominal constructors consume `let mut`; direct consumers name their imports;
+  one intentional recursive semantic cluster maps to its checker root instead
+  of adding a circular import.
+- The current semantic-target manifest contains 684 real self-host sources;
+  all 684 were accepted by the C semantic checker. The production-header
+  census is 717 and its self-host C/LLVM checker is artifact-equal; the
+  C-focused memory-concurrency model follows the canonical zone-sync ABI owner.
+  These results prove source acceptance, not full bootstrap.
+- The documented nested-intent seam now carries an expression-graph call spine
+  into DIR instead of reparsing the `on` text. A fresh self-host driver emitted
+  and compiled through C, then matched native domain graph identities for the
+  single-step, `FrontendPipeline -> IntakeSource -> SourceUnit.Read`, and
+  two-step fixtures. Missing, wrong-arity and ambiguous nested targets fail
+  before a partial MIR artifact. This is `REACHABLE`, not `SUBSTITUTING`.
+- Exact semantic authority rows now carry authority, owning zone, subject slot,
+  and required-ability node/name identities into DIR. The old DIR
+  `TypedAstKindZoneAuthorityTag` rescan is forbidden; missing or duplicate
+  identity mutations fail closed. This also remains a `BRIDGE` while the
+  production MIR authority transition and shared zone-sync runtime plan are
+  open.
+- Native and self-host parsers now defer intent parameter role classification
+  until the complete declaration/import graph exists. Neutral `IntentBinding`
+  rows are resolved once to `IntentInvolves` or `IntentValue`; source-order
+  imports and suffix guesses are not authorities. The self resolver only
+  recognizes indentation-anchored AST labels so its own contract strings are
+  not mistaken for unresolved parameters. The native cross-module positive and
+  unresolved negative gate passes, and the actual bootstrap driver AST resolves
+  `SourceIntakeZone` as involved and `StagePathManifest` as a value. The focused
+  self resolver reproduction passes, but a whole-driver self-parser run was
+  policy-stopped after 1,532.042 seconds with no artifact; last observed private
+  memory was 717,144,064 bytes. It is CPU/incomplete evidence, not a full-parser
+  PASS or a memory blow-up.
+- The attached architecture review's memory conclusion is supported, but its
+  CPU warning is not superseded. The latest full integration attempt reached
+  `mir-facts:start` and was stopped after 2,534,272 ms with 2,284.8 MB peak
+  private memory. No 20 GB compiler process was reproduced; the run is an
+  incomplete CPU timeout, not a semantic pass or memory regression. The next
+  performance rung must profile that current owner path and define stable query
+  keys before adding a cache, opaque artifact, or general query engine.
+
 ## 2026-07-30 installed source-to-MIR one-graph checkpoint
 
 - 실제 사용자 경로를 다시 추적해 `bin/pgy --self-driver`가

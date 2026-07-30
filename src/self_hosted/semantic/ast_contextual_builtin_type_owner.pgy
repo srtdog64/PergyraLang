@@ -1,6 +1,7 @@
 // Contextual builtin result types join call-spine facts with declared types.
 
 import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_call_target_fact_owner.pgy";
 import "builtin_signature_owner.pgy";
 
 func SemanticContextualBuiltinReturnTypeFromGraph(

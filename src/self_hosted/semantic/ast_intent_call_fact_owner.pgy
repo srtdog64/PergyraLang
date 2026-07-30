@@ -1,0 +1,78 @@
+// Exact nested-intent direct-call admission from carried expression-graph
+// target identity plus the immutable intent signature rows.
+
+import "ast_expression_call_target_fact_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
+import "ast_expression_surface_fact_owner.pgy";
+import "ast_intent_signature_fact_owner.pgy";
+
+struct SemanticAstIntentCallFact {
+    ok: Bool;
+    intent_index: Int;
+    declaration_node_id: Int;
+    name: String;
+    return_type_name: String;
+    param_count: Int;
+}
+
+func SemanticAstIntentCallFactInvalid() -> SemanticAstIntentCallFact {
+    return SemanticAstIntentCallFact(false, -1, -1, "", "", -1);
+}
+
+func SemanticAstIntentCallFromGraph(
+    ref facts: SemanticAstIntentSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    expression_node_id: Int
+) -> SemanticAstIntentCallFact {
+    if !facts.ok || !surfaces.ok ||
+        facts.artifact_node_count != surfaces.artifact_node_count {
+        return SemanticAstIntentCallFactInvalid();
+    }
+    let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, expression_node_id, 0
+    );
+    if !IsSome(root) { return SemanticAstIntentCallFactInvalid(); }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        surfaces.expression_graph, UnwrapOption(root)
+    );
+    if !call.ok || ArrayLength(call.generic_actual_type_names) != 0 {
+        return SemanticAstIntentCallFactInvalid();
+    }
+    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
+        surfaces.expression_graph, call.call_node
+    );
+    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+        surfaces.expression_graph, call.call_node
+    );
+    if !IsSome(target_kind) || !IsSome(target_name) ||
+        UnwrapOption(target_kind) != SemanticCallTargetDirect() ||
+        UnwrapOption(target_name) == "" {
+        return SemanticAstIntentCallFactInvalid();
+    }
+    let name: String = UnwrapOption(target_name);
+    let actual_count: Int = ArrayLength(call.argument_nodes);
+    let found: Int = -1;
+    let match_count: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(facts.names) {
+        if facts.names[i] == name {
+            found = i;
+            match_count = match_count + 1;
+        }
+        i = i + 1;
+    }
+    if match_count != 1 || found < 0 ||
+        found >= ArrayLength(facts.intent_node_ids) ||
+        found >= ArrayLength(facts.return_type_names) ||
+        found >= ArrayLength(facts.param_counts) ||
+        facts.intent_node_ids[found] < 0 ||
+        facts.return_type_names[found] == "" ||
+        facts.param_counts[found] != actual_count {
+        return SemanticAstIntentCallFactInvalid();
+    }
+    return SemanticAstIntentCallFact(
+        true, found, facts.intent_node_ids[found], name,
+        facts.return_type_names[found], actual_count
+    );
+}

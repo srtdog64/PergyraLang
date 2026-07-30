@@ -6,6 +6,7 @@
 
 import "intent_routine_carrier_projection_owner.pgy";
 import "intent_execution_tree_projection_owner.pgy";
+import "intent_carrier_projection_owner.pgy";
 import "intent_action_contract_owner.pgy";
 import "intent_phase_projection_owner.pgy";
 import "intent_phase_tree_owner.pgy";

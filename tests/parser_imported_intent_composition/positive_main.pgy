@@ -1,0 +1,11 @@
+import "positive_stage.pgy";
+
+zone SourceIntakeZone {
+}
+
+object StagePathManifest {
+    root: String;
+}
+
+func Main() -> Void {
+}

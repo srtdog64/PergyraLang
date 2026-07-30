@@ -21,7 +21,8 @@ func CodegenIntentStepBindingContractSignature(
 func CodegenIntentStepBindingContractAuthorities(
 ) -> SemanticAstZoneAuthorityFacts {
     return SemanticAstZoneAuthorityFacts(
-        true, 4, ["Gate"], ["approver"]
+        true, 4, [1], [2], ["Gate"], [3], ["approver"],
+        [0], [0], [], []
     );
 }
 

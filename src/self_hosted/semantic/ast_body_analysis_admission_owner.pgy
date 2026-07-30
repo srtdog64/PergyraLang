@@ -5,6 +5,7 @@
 // stages must not reopen value-by-value artifact reconstruction.
 
 import "ast_artifact_verdict_owner.pgy";
+import "ast_zone_authority_validation_owner.pgy";
 import "ast_body_analysis_shape_owner.pgy";
 
 func SemanticAstBodyAnalysisAdmissionReady(
@@ -15,7 +16,7 @@ func SemanticAstBodyAnalysisAdmissionReady(
         artifact, analysis, analysis.verdict.requires_entrypoint
     ) || !SemanticAstBodyAnalysisRowsAdmittedReady(artifact, analysis) ||
         !SemanticAstZoneAuthorityFactsReady(
-            artifact, analysis.zone_authorities
+            artifact, analysis.roles, analysis.zone_authorities
         ) ||
         !SemanticAstExpressionFunctionTableFactsReady(
             analysis.function_tables

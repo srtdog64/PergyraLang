@@ -1,0 +1,5 @@
+import "imports/semantic_math_lib.pgy";
+
+func Main() -> Void {
+    let value: ImportedDecision = ImportedDecision.Missing;
+}

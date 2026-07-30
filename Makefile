@@ -3454,6 +3454,7 @@ self-host-compiler-world-contract-test-smoke: $(PGY)
 	mir-decl-field-kind-vocabulary-test-smoke \
 	intent-observability-abi-registry-test-smoke \
 	self-host-intent-callable-reachability-test-smoke \
+	self-host-zone-authority-fact-test-smoke \
 	self-host-intent-callable-execution-test-smoke \
 	self-host-intent-outcome-frontend-test-smoke \
 	self-host-intent-typed-outcome-execution-test-smoke \
@@ -3484,6 +3485,10 @@ intent-observability-abi-registry-test-smoke:
 self-host-intent-callable-reachability-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 		"$(BASH)" tests/self_hosted/parity/intent_callable_reachability_owner.sh
+
+self-host-zone-authority-fact-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+		"$(BASH)" tests/self_hosted/parity/zone_authority_fact_owner.sh
 
 self-host-intent-callable-execution-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
@@ -3745,6 +3750,9 @@ parallel-core-contract-test-smoke:
 
 parser-lexer-diagnostic-test-smoke:
 	"$(BASH)" tests/parser_lexer_diagnostic_smoke.sh
+
+parser-imported-intent-composition-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parser_imported_intent_composition_smoke.sh
 
 diagnostics-json-test-smoke:
 	$(MAKE) $(PGY)
@@ -4020,6 +4028,7 @@ llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memo
         example-hello example-slots llvm emit-llvm-% lsp post-selfhost-validation-manifest-test-smoke parallel-backpressure-stress-test-smoke channel-pool-starvation-test-smoke nested-parallel-witness-test-smoke parallel-worker-invariance-test-smoke parallel-budget-chunk-charge-test-smoke parallel-join-emit-shape-test-smoke selfhost-parallel-chunk-policy-test-smoke selfhost-parallel-lane-policy-test-smoke selfhost-spawn-lane-plan-test-smoke mn-executor-test-smoke selfhost-reachability-contract-test-smoke parallel-production-contract-test-smoke function-param-flow-summary-test-smoke runtime-bc-contract-test-smoke surface-boundary-hygiene-test-smoke adversarial-input-test-smoke emitted-c-warning-clean-test-smoke backend-compare-bc-on-test-smoke fuzz-backend-parity-campaign-test-smoke redteam-repair-contract-test-smoke
 .PHONY: self-host-codegen-bootstrap-seed-test-smoke self-host-driver-bootstrap-test-smoke self-host-driver-bootstrap-full-test-smoke self-host-driver-bootstrap-full-pressure-body-test-smoke self-host-bootstrap-policy-corpus-test-smoke self-host-driver-rung0-parity-test-smoke self-host-driver-rung1-parity-test-smoke self-host-driver-rung2-body-parity-test-smoke self-host-hard-driver-rung2-parity-test-smoke self-host-hard-driver-rung2-parity-full-test-smoke self-host-mir-abi-first-test-smoke self-host-lsp-diagnostics-parity-test-smoke self-host-progress-metric-test-smoke self-host-substitution-velocity-test-smoke sot-authority-adequacy-test-smoke sot-authority-edge-test-smoke self-host-compiler self-host-live-replacement-test-smoke
 .PHONY: runtime-cache-identity-test-smoke arena-ledger-test-smoke runtime-context-test-smoke
+.PHONY: parser-imported-intent-composition-test-smoke
 .PHONY: grammar-self-driver-test-smoke
 .PHONY: object-action-boundary-contract-test-smoke
 .PHONY: artifact-atomic-transaction-contract-test-smoke artifact-atomic-runtime-test-smoke artifact-atomic-transaction-test-smoke

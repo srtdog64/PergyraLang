@@ -53,7 +53,7 @@ func LspHoverPresentationWordAt(index: Int) -> String {
 
 func LspHoverPresentationTextAt(index: Int) -> String {
     if index == 0 { return "**action** - Subject-host contract-bearing operation\n- carries an action contract pack: `within`, `requires`, `authorized by`, `causes`\n- matching intent steps may reuse this contract pack instead of repeating every clause"; }
-    if index == 1 { return "**authority** - Zone mutation authority declaration\n- `authority subjectSlot requires Ability` declares which participant may mutate authority-bearing zone state\n- this often overlaps with action/step `requires`, so diagnostics should explain when the requirement was inherited rather than written twice"; }
+    if index == 1 { return "**authority** - Zone mutation authority declaration\n- `authority subjectSlot` names the participant; optional `requires Ability` adds capability evidence\n- this often overlaps with action/step `requires`, so diagnostics should explain when the requirement was inherited rather than written twice"; }
     if index == 2 { return "**authorized by** - Authority contract clause\n- required when a step/action mutates authority-bearing zone state or runs secure/effectful work inside an authority boundary\n- matching intent steps may reuse this from the action contract"; }
     if index == 3 { return "**by** - Authority clause tail\n- used in `authorized by` and domain lifecycle commands to name the approving participant"; }
     if index == 4 { return "**causes** - Effect contract clause\n- declares which effect layer/state transition the action or step drives\n- matching intent steps may reuse this from the action contract"; }
@@ -125,7 +125,7 @@ func LspHoverPresentationLanguageWordAt(index: Int) -> Bool {
 
 func LspHoverPresentationTextForWord(word: String) -> Option<String> {
     if word == "action" { return Some("**action** - Subject-host contract-bearing operation\n- carries an action contract pack: `within`, `requires`, `authorized by`, `causes`\n- matching intent steps may reuse this contract pack instead of repeating every clause"); }
-    if word == "authority" { return Some("**authority** - Zone mutation authority declaration\n- `authority subjectSlot requires Ability` declares which participant may mutate authority-bearing zone state\n- this often overlaps with action/step `requires`, so diagnostics should explain when the requirement was inherited rather than written twice"); }
+    if word == "authority" { return Some("**authority** - Zone mutation authority declaration\n- `authority subjectSlot` names the participant; optional `requires Ability` adds capability evidence\n- this often overlaps with action/step `requires`, so diagnostics should explain when the requirement was inherited rather than written twice"); }
     if word == "authorized" { return Some("**authorized by** - Authority contract clause\n- required when a step/action mutates authority-bearing zone state or runs secure/effectful work inside an authority boundary\n- matching intent steps may reuse this from the action contract"); }
     if word == "by" { return Some("**by** - Authority clause tail\n- used in `authorized by` and domain lifecycle commands to name the approving participant"); }
     if word == "causes" { return Some("**causes** - Effect contract clause\n- declares which effect layer/state transition the action or step drives\n- matching intent steps may reuse this from the action contract"); }

@@ -50,9 +50,13 @@ bool            parser_attach_pending_doc_comment(Parser *parser,
 ASTNode        *parser_finalize_statement(Parser *parser, ASTNode *node);
 void            parser_reject_reserved_cast_after_expression(Parser *parser);
 void            parser_register_decl_hint(Parser *parser, ASTNode *node);
+bool            parser_register_composed_decl_hint(Parser *parser,
+                                                    ASTNode *node);
 bool            parser_lookup_decl_hint(Parser *parser, const char *name,
                                         ASTNodeType *node_type_out,
                                         NominalDeclKind *nominal_kind_out);
+bool            parser_finalize_intent_parameter_roles(Parser *parser,
+                                                        ASTNode *node);
 
 /* --- Expressions (parser_expr.c) --- */
 ASTNode *parse_logical_or(Parser *parser);

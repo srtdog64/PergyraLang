@@ -1,0 +1,4 @@
+intent ImportedBrokenPipeline(missing: MissingZone) {
+    success: true;
+    failure: false;
+}

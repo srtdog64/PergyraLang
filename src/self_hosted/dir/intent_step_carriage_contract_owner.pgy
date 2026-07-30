@@ -4,7 +4,7 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "intent_row_owner.pgy";
 
 func SelfDirIntentStepCarriageShapeReady(
-    steps: SelfDirIntentStepFacts
+    ref steps: SelfDirIntentStepFacts
 ) -> Bool {
     let count: Int = ArrayLength(steps.node_ids);
     return ArrayLength(steps.names) == count &&
@@ -14,6 +14,12 @@ func SelfDirIntentStepCarriageShapeReady(
         ArrayLength(steps.receiver_aliases) == count &&
         ArrayLength(steps.action_names) == count &&
         ArrayLength(steps.action_signature_indices) == count &&
+        ArrayLength(steps.target_kinds) == count &&
+        ArrayLength(steps.target_declaration_node_ids) == count &&
+        ArrayLength(steps.target_indices) == count &&
+        ArrayLength(steps.target_names) == count &&
+        ArrayLength(steps.target_return_type_names) == count &&
+        ArrayLength(steps.target_param_counts) == count &&
         ArrayLength(steps.outcome_node_ids) == count &&
         ArrayLength(steps.outcome_names) == count &&
         ArrayLength(steps.outcome_type_names) == count &&

@@ -6,6 +6,7 @@
 
 import "ast_expression_graph_fact_owner.pgy";
 import "ast_expression_graph_scalar_type_owner.pgy";
+import "ast_expression_graph_type_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "expr_type_owner.pgy";

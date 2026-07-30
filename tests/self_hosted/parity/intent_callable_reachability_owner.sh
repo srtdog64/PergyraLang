@@ -2,9 +2,10 @@
 set -euo pipefail
 
 # REACHABLE, not SUBSTITUTING: this gate proves that intent declaration,
-# participant, action-default step, and predecessor facts reach the production
-# self-host DIR graph. Native/self must publish the same graph anchor. The
-# separate intent_callable_execution gate owns the bounded MIR execution rung.
+# participant, exact action or nested-intent step target, and predecessor facts
+# reach the production self-host DIR graph. Native/self must publish the same
+# graph anchor. The separate intent_callable_execution gate owns the bounded
+# MIR execution rung.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
@@ -15,6 +16,7 @@ PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 DRIVER="${PGY_SELFHOST_PREBUILT_DRIVER:-}"
 BUILD_DIR="${PGY_SELFHOST_INTENT_CALLABLE_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/intent_callable_reachability}"
 FIXTURE="tests/self_hosted/parity/fixture/intent_callable_reachability.pgy"
+NESTED_FIXTURE="tests/self_hosted/parity/fixture/intent_nested_call_reachability.pgy"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 fail() {
@@ -109,6 +111,69 @@ done
 assert_graph_id_parity "$positive_out" "$native_mir" "single-step"
 grep -Fq '"domain_graph_id":14937234969446610600' "$positive_out" \
     || fail "single-step exact 14-node/30-edge graph anchor drifted"
+
+nested_out="$BUILD_DIR/nested.out"
+nested_err="$BUILD_DIR/nested.err"
+if ! (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+        "$NESTED_FIXTURE" >"$nested_out" 2>"$nested_err"); then
+    cat "$nested_out" "$nested_err" >&2
+    fail "FrontendPipeline -> IntakeSource -> SourceUnit.Read did not reach self MIR"
+fi
+for fact in '"name":"IntakeSource","kind":"intent"' \
+    '"name":"FrontendPipeline","kind":"intent"' \
+    '"expr0":"IntakeSource(intake, source, paths)"' \
+    '"call_target_kind":"direct","call_target_name":"IntakeSource"' \
+    '"name":"Read","kind":"method"'; do
+    grep -Fq -- "$fact" "$nested_out" \
+        || fail "nested intent self MIR lost fact: $fact"
+done
+nested_native="$BUILD_DIR/nested.native.mir.log"
+(cd "$ROOT_DIR" && "$PGY" --mir-json "$NESTED_FIXTURE" \
+    >"$nested_native" 2>&1) \
+    || { cat "$nested_native" >&2; fail "nested native MIR oracle failed"; }
+assert_graph_id_parity "$nested_out" "$nested_native" "nested-intent"
+
+"$PYTHON_BIN" - "$ROOT_DIR/$NESTED_FIXTURE" "$BUILD_DIR" <<'PY'
+from pathlib import Path
+import sys
+
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+build = Path(sys.argv[2])
+call = "on: IntakeSource(intake, source, paths);"
+if source.count(call) != 1:
+    raise SystemExit("nested intent fixture call site drifted")
+(build / "nested-missing.pgy").write_text(
+    source.replace(call, "on: MissingIntakeSource(intake, source, paths);"),
+    encoding="utf-8",
+    newline="\n",
+)
+(build / "nested-wrong-arity.pgy").write_text(
+    source.replace(call, "on: IntakeSource(intake, source);"),
+    encoding="utf-8",
+    newline="\n",
+)
+start = source.index("intent IntakeSource(")
+end = source.index("intent FrontendPipeline(")
+duplicate = source[start:end]
+(build / "nested-ambiguous.pgy").write_text(
+    source[:end] + duplicate + source[end:],
+    encoding="utf-8",
+    newline="\n",
+)
+PY
+
+for case_name in nested-missing nested-wrong-arity nested-ambiguous; do
+    case_out="$BUILD_DIR/$case_name.out"
+    case_err="$BUILD_DIR/$case_name.err"
+    case_source="${BUILD_DIR#"$ROOT_DIR"/}/$case_name.pgy"
+    if (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+            "$case_source" >"$case_out" 2>"$case_err"); then
+        fail "$case_name nested-intent target negative was accepted"
+    fi
+    if grep -Fq '"schema":"pgy.mir.v1"' "$case_out" "$case_err"; then
+        fail "$case_name nested-intent negative emitted a partial MIR artifact"
+    fi
+done
 
 "$PYTHON_BIN" - "$ROOT_DIR/$FIXTURE" "$BUILD_DIR" <<'PY'
 from pathlib import Path

@@ -1,0 +1,4 @@
+import "unresolved_stage.pgy";
+
+func Main() -> Void {
+}

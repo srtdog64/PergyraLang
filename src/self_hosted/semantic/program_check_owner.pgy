@@ -5,6 +5,7 @@ import "expr_type_owner.pgy";
 import "body_check_owner.pgy";
 import "builtin_signature_owner.pgy";
 import "callable_resolution_owner.pgy";
+import "enum_callable_signature_owner.pgy";
 
 func NominalDeclKeywordLength(
     content: String, content_length: Int, start: Int
@@ -66,7 +67,15 @@ func NominalConstructorFieldNameStart(
 ) -> Int {
     let i: Int = start;
     if SemanticMatchKeywordWithin(content, content_length, i, "let") {
-        return i + 3;
+        let after_let: Int = SkipWhitespaceAndCommentsWithin(
+            content, content_length, i + 3
+        );
+        if SemanticMatchKeywordWithin(
+            content, content_length, after_let, "mut"
+        ) {
+            return after_let + 3;
+        }
+        return after_let;
     }
     if SemanticMatchKeywordWithin(content, content_length, i, "zone") {
         return i + 4;
@@ -332,6 +341,14 @@ func CheckProgram(content: String) -> String {
         return SemanticError1("function_signature_invalid", "owner", "SemanticBuiltinSignatureRows");
     }
     SeedNominalConstructors(content, func_names, func_rets, func_params);
+    if !SeedDeclaredEnumVariantSignatures(
+        content, func_names, func_rets, func_params
+    ) {
+        return SemanticError1(
+            "function_signature_invalid", "owner",
+            "SemanticEnumCallableProjection"
+        );
+    }
     let n: Int = StringLength(content);
     SeedDeclaredFunctionSignatures(
         content, n, 0, n, "", func_names, func_rets, func_params

@@ -307,7 +307,10 @@ func SelfMirProgramDomainFactsFromReadyArtifact(
         SelfMirDeclarationsFromAnalysis(artifact, analysis, enum_facts);
     let domain_graph: SelfDirDomainGraphFacts =
         SelfDirDomainGraphFactsFromArtifact(
-            artifact, declarations, analysis.signatures
+            artifact, declarations, analysis.signatures,
+            analysis.intent_signatures, analysis.intent_transitions,
+            analysis.expression_surfaces, analysis.zone_authorities,
+            analysis.roles
         );
     if !SelfDirDomainGraphFactsReady(domain_graph) {
         return SelfMirProgramDomainProjection(

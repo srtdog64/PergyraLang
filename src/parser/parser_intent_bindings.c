@@ -213,6 +213,248 @@ intent_param_type_is_value_binding(Parser *parser, ASTNode *type_node)
     return intent_header_value_type_name(type_node->data.type.name);
 }
 
+static bool
+intent_param_final_value_role(Parser *parser, ASTNode *type_node,
+                              bool *is_value_out)
+{
+    ASTNodeType decl_type = AST_PROGRAM;
+    NominalDeclKind nominal_kind = NOMINAL_DECL_CLASS;
+
+    if (is_value_out != NULL)
+        *is_value_out = false;
+    if (parser == NULL || type_node == NULL || type_node->type != AST_TYPE
+        || type_node->data.type.name == NULL || is_value_out == NULL) {
+        return false;
+    }
+    if (type_node->data.type.generic_args != NULL
+        && type_node->data.type.generic_args->count > 0) {
+        *is_value_out = true;
+        return true;
+    }
+    if (parser_lookup_decl_hint(parser, type_node->data.type.name,
+                                &decl_type, &nominal_kind)) {
+        if (decl_type == AST_CLASS_DECL) {
+            *is_value_out = nominal_kind != NOMINAL_DECL_SUBJECT;
+            return true;
+        }
+        *is_value_out = decl_type != AST_ZONE_DECL
+            && decl_type != AST_WORLD_DECL
+            && decl_type != AST_RELATION_DECL
+            && decl_type != AST_EFFECT_DECL
+            && decl_type != AST_PARTY_DECL
+            && decl_type != AST_ROSTER_DECL
+            && decl_type != AST_INTENT_DECL
+            && decl_type != AST_EVENT_DECL;
+        return true;
+    }
+    if (intent_header_value_type_name(type_node->data.type.name)) {
+        *is_value_out = true;
+        return true;
+    }
+    parser_error(parser,
+        "Intent parameter type '%s' is unresolved after declaration composition",
+        type_node->data.type.name);
+    return false;
+}
+
+static void
+intent_binding_reclassify(ASTNode *binding, bool is_value)
+{
+    char *alias;
+    ASTNode *type_node;
+
+    if (binding == NULL)
+        return;
+    if (binding->type == AST_INTENT_VALUE) {
+        if (is_value)
+            return;
+        alias = binding->data.intent_value.alias;
+        type_node = binding->data.intent_value.value_type;
+        binding->data.intent_value.alias = NULL;
+        binding->data.intent_value.value_type = NULL;
+        binding->type = AST_INTENT_INVOLVES;
+        binding->data.intent_involves.alias = alias;
+        binding->data.intent_involves.subject_type = type_node;
+        return;
+    }
+    if (binding->type == AST_INTENT_INVOLVES) {
+        if (!is_value)
+            return;
+        alias = binding->data.intent_involves.alias;
+        type_node = binding->data.intent_involves.subject_type;
+        binding->data.intent_involves.alias = NULL;
+        binding->data.intent_involves.subject_type = NULL;
+        binding->type = AST_INTENT_VALUE;
+        binding->data.intent_value.alias = alias;
+        binding->data.intent_value.value_type = type_node;
+    }
+}
+
+static bool
+intent_finalize_header_parameter_roles(Parser *parser, ASTNode *intent)
+{
+    ASTNode **involves;
+    ASTNode **values;
+    bool *header_roles;
+    size_t involve_count = 0;
+    size_t value_count = 0;
+
+    if (intent == NULL || intent->type != AST_INTENT_DECL)
+        return false;
+    if (intent->data.intent_decl.header_binding_count
+        > intent->data.intent_decl.binding_count) {
+        return false;
+    }
+    header_roles = calloc(
+        intent->data.intent_decl.header_binding_count > 0
+            ? intent->data.intent_decl.header_binding_count : 1,
+        sizeof(bool));
+    involves = calloc(intent->data.intent_decl.binding_count > 0
+        ? intent->data.intent_decl.binding_count : 1, sizeof(ASTNode *));
+    values = calloc(intent->data.intent_decl.binding_count > 0
+        ? intent->data.intent_decl.binding_count : 1, sizeof(ASTNode *));
+    if (header_roles == NULL || involves == NULL || values == NULL) {
+        free(header_roles);
+        free(involves);
+        free(values);
+        parser_error(parser,
+            "Out of memory while finalizing intent parameter roles");
+        return false;
+    }
+    for (size_t i = 0;
+         i < intent->data.intent_decl.header_binding_count; i++) {
+        ASTNode *binding = intent->data.intent_decl.bindings[i];
+        ASTNode *type_node = binding != NULL
+            && binding->type == AST_INTENT_VALUE
+            ? binding->data.intent_value.value_type
+            : (binding != NULL && binding->type == AST_INTENT_INVOLVES
+                ? binding->data.intent_involves.subject_type : NULL);
+        if (!intent_param_final_value_role(
+                parser, type_node, &header_roles[i])) {
+            free(header_roles);
+            free(involves);
+            free(values);
+            return false;
+        }
+    }
+    for (size_t i = 0; i < intent->data.intent_decl.binding_count; i++) {
+        ASTNode *binding = intent->data.intent_decl.bindings[i];
+        if (i < intent->data.intent_decl.header_binding_count)
+            intent_binding_reclassify(binding, header_roles[i]);
+        if (binding != NULL && binding->type == AST_INTENT_INVOLVES)
+            involves[involve_count++] = binding;
+        else if (binding != NULL && binding->type == AST_INTENT_VALUE)
+            values[value_count++] = binding;
+        else {
+            free(header_roles);
+            free(involves);
+            free(values);
+            parser_error(parser,
+                "Intent binding role is invalid after declaration composition");
+            return false;
+        }
+    }
+    free(header_roles);
+    free(intent->data.intent_decl.involves);
+    free(intent->data.intent_decl.values);
+    intent->data.intent_decl.involves = involves;
+    intent->data.intent_decl.involve_count = involve_count;
+    intent->data.intent_decl.involve_capacity =
+        intent->data.intent_decl.binding_count;
+    intent->data.intent_decl.values = values;
+    intent->data.intent_decl.value_count = value_count;
+    intent->data.intent_decl.value_capacity =
+        intent->data.intent_decl.binding_count;
+    return true;
+}
+
+bool
+parser_finalize_intent_parameter_roles(Parser *parser, ASTNode *node)
+{
+    if (parser == NULL || node == NULL)
+        return false;
+    if (node->type == AST_INTENT_DECL)
+        return intent_finalize_header_parameter_roles(parser, node);
+    if (node->type == AST_PROGRAM) {
+        for (size_t i = 0; i < node->data.program.count; i++) {
+            if (!parser_finalize_intent_parameter_roles(
+                    parser, node->data.program.statements[i]))
+                return false;
+        }
+    } else if (node->type == AST_NAMESPACE_DECL) {
+        for (size_t i = 0; i < node->data.namespace_decl.count; i++) {
+            if (!parser_finalize_intent_parameter_roles(
+                    parser, node->data.namespace_decl.statements[i]))
+                return false;
+        }
+    }
+    return true;
+}
+
+static bool
+intent_register_composed_declarations(Parser *resolver, ASTNode *node)
+{
+    if (resolver == NULL || node == NULL)
+        return false;
+    if (node->type == AST_PROGRAM) {
+        for (size_t i = 0; i < node->data.program.count; i++) {
+            if (!intent_register_composed_declarations(
+                    resolver, node->data.program.statements[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+    if (node->type == AST_NAMESPACE_DECL) {
+        for (size_t i = 0; i < node->data.namespace_decl.count; i++) {
+            if (!intent_register_composed_declarations(
+                    resolver, node->data.namespace_decl.statements[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+    return parser_register_composed_decl_hint(resolver, node);
+}
+
+bool
+parser_finalize_composed_intent_parameter_roles(ASTNode *program,
+                                                 char **error_message)
+{
+    Parser *resolver;
+    bool ok;
+
+    if (error_message != NULL)
+        *error_message = NULL;
+    if (program == NULL || program->type != AST_PROGRAM) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "intent parameter finalization requires a composed Program");
+        return false;
+    }
+
+    resolver = calloc(1, sizeof(Parser));
+    if (resolver == NULL) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "out of memory while finalizing composed declarations");
+        return false;
+    }
+    resolver->emit_recovered_errors = false;
+    ok = intent_register_composed_declarations(resolver, program)
+        && parser_finalize_intent_parameter_roles(resolver, program);
+    if (!ok && error_message != NULL) {
+        const char *diagnostic = parser_get_error(resolver);
+        if (diagnostic == NULL || diagnostic[0] == '\0') {
+            diagnostic =
+                "intent parameter roles could not be finalized after declaration composition";
+        }
+        *error_message = pergyra_strdup(diagnostic);
+    }
+    parser_destroy(resolver);
+    return ok;
+}
+
 void
 parse_intent_param_list(Parser *parser, ASTNode *intent)
 {
@@ -248,4 +490,6 @@ parse_intent_param_list(Parser *parser, ASTNode *intent)
             break;
     }
     parser_consume(parser, TOKEN_RPAREN, "Expected ')' after intent parameter list");
+    intent->data.intent_decl.header_binding_count =
+        intent->data.intent_decl.binding_count;
 }

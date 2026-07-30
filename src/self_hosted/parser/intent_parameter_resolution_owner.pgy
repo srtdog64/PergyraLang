@@ -1,0 +1,113 @@
+// Final intent-parameter role projection after the import graph is complete.
+//
+// ParseIntentDecl emits neutral rows. This owner resolves each row exactly once
+// from the completed subject/zone declaration identity inventory, so source or
+// import order cannot change IntentInvolves versus IntentValue semantics.
+
+import "cursor_owner.pgy";
+import "../hir/ast_text_scan_owner.pgy";
+
+struct ParserIntentParameterResolution {
+    ok: Bool;
+    tree_text: String;
+}
+
+func ParserIntentParticipantTypePresent(
+    ref participant_types: Array<String>,
+    type_name: String
+) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(participant_types) {
+        if participant_types[i] == type_name { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+func ParserIntentParameterResolvedLine(
+    line: String,
+    ref participant_types: Array<String>
+) -> Option<String> {
+    let marker: String = "IntentBinding: ";
+    let marker_index: Int = StringIndexOf(line, marker);
+    if marker_index < 0 { return Some(line); }
+    let indent_index: Int = 0;
+    while indent_index < marker_index {
+        let c: String = ParserCharAt(line, indent_index);
+        // The integrated parser parses this owner's own contract strings.
+        // A marker inside a Literal row is source text, not an unresolved
+        // parameter node, so only an indentation-anchored label is eligible.
+        if c != " " && c != "\t" { return Some(line); }
+        indent_index = indent_index + 1;
+    }
+    let payload: String = Substring(
+        line, marker_index + StringLength(marker),
+        StringLength(line) - marker_index - StringLength(marker)
+    );
+    let colon: Int = StringIndexOf(payload, ":");
+    if colon <= 0 { return None; }
+    let alias: String = StringTrim(Substring(payload, 0, colon));
+    let rendered_type: String = StringTrim(Substring(
+        payload, colon + 1, StringLength(payload) - colon - 1
+    ));
+    if !IsIdentifier(alias) || rendered_type == "" { return None; }
+    let cursor: Array<Int> = [0];
+    let base_name: String = ReadIdent(rendered_type, 0, cursor);
+    if base_name == "" { return None; }
+    let label: String = "IntentValue: ";
+    if StringIndexOf(rendered_type, "<") < 0 &&
+        ParserIntentParticipantTypePresent(participant_types, base_name) {
+        label = "IntentInvolves: ";
+    }
+    let indentation: String = Substring(line, 0, marker_index);
+    return Some(Concat(indentation, Concat(label, payload)));
+}
+
+func ParserIntentParameterRowsResolve(
+    tree_text: String,
+    ref participant_types: Array<String>
+) -> ParserIntentParameterResolution {
+    let n: Int = StringLength(tree_text);
+    let out: TextBuilder = TextBuilderNew(n + 1);
+    let line_start: Int = 0;
+    let valid: Bool = true;
+    while line_start < n && valid {
+        let line_end: Int = line_start;
+        while line_end < n && ParserCharAt(tree_text, line_end) != "\n" {
+            line_end = line_end + 1;
+        }
+        let line: String = Substring(
+            tree_text, line_start, line_end - line_start
+        );
+        let resolved: Option<String> =
+            ParserIntentParameterResolvedLine(line, participant_types);
+        if !IsSome(resolved) {
+            valid = false;
+        } else {
+            TextBuilderAppend(out, UnwrapOption(resolved));
+            if line_end < n {
+                TextBuilderAppend(out, "\n");
+                line_end = line_end + 1;
+            }
+            line_start = line_end;
+        }
+    }
+    let result_allocator: Allocator = AllocatorResult();
+    let result: String = TextBuilderFinish(out, result_allocator);
+    if !valid {
+        AllocatorDestroy(result_allocator);
+        return ParserIntentParameterResolution(false, "");
+    }
+    AllocatorDestroy(result_allocator);
+    return ParserIntentParameterResolution(true, result);
+}
+
+func ParserIntentParameterResolutionContractReady() -> Bool {
+    let participant_types: Array<String> = ["Harbor", "Worker"];
+    let pending: String =
+        "    IntentBinding: boundary: Harbor\n    IntentBinding: actor: Worker\n    Literal: \"IntentBinding: source text\"\n    IntentBinding: audit: AuditZone\n    IntentBinding: count: Int";
+    let resolved: ParserIntentParameterResolution =
+        ParserIntentParameterRowsResolve(pending, participant_types);
+    return resolved.ok && resolved.tree_text ==
+        "    IntentInvolves: boundary: Harbor\n    IntentInvolves: actor: Worker\n    Literal: \"IntentBinding: source text\"\n    IntentValue: audit: AuditZone\n    IntentValue: count: Int";
+}

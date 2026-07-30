@@ -3,6 +3,7 @@
 // reordered fields are rejected before semantic plan construction.
 
 import "intent_execution_json_decode_owner.pgy";
+import "program_routine_index_owner.pgy";
 import "../mir/intent_execution_fact_owner.pgy";
 
 func MirIntentExecutionCaptureCompensations(

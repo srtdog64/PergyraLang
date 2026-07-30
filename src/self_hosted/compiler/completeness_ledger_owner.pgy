@@ -230,6 +230,9 @@ func CompilerCompletenessSemanticCheckTarget(path: String) -> CompilerCompletene
     if path == "src/self_hosted/parser/stmt_parallel_owner.pgy" {
         return CompilerCompletenessCheckTarget("src/self_hosted/parser/stmt_owner.pgy");
     }
+    if path == "src/self_hosted/semantic/result_call_type_owner.pgy" {
+        return CompilerCompletenessCheckTarget("src/self_hosted/semantic/expr_type_owner.pgy");
+    }
     if path == "src/self_hosted/codegen/text/expr_scan.pgy" {
         return CompilerCompletenessCheckTarget("src/self_hosted/codegen/emission/expr_rewrite.pgy");
     }

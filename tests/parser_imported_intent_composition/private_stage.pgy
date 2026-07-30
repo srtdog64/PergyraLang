@@ -1,0 +1,8 @@
+private object LocalManifest {
+    root: String;
+}
+
+export intent ExportedPipeline(manifest: LocalManifest) {
+    success: true;
+    failure: false;
+}

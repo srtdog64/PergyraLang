@@ -6,6 +6,91 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+## Current checkpoint - exhaustive self-host CI and executable-rung closure
+
+- This continuation started at
+  `ef1522821f9de89783f23ebdbcacbc34bec05705`, equal to `origin/main` before
+  the current dirty change set. The containing repair commit and push must be
+  verified with Git; this note cannot name its own containing revision.
+- GitHub Actions run `30535237959` kept the backend comparison shards, formal
+  proofs, sanitizers and self-host codegen bootstrap green, while exposing five
+  independent contract failures: imported enum variants were absent from the
+  lightweight semantic callable table; several standalone sources relied on
+  transitive imports; language-word implementation inventory was stale;
+  memory-concurrency and production-header gates still named the pre-zone-sync
+  owners; and full bootstrap rejected compiler-stage nested intent calls at
+  `mir-facts:start` because DIR admitted only direct subject actions.
+- The semantic SoT repair projects declared enum variants into the canonical
+  callable table with enum return and payload signature. The positive fixture
+  covers qualified and bare zero/payload variants. The negative fixture locks
+  `ImportedDecision.Missing -> undefined_symbol`; rewriting the driver or
+  treating a missing qualified variant as an arbitrary member read is a
+  forbidden fallback.
+- The exhaustive checker also falsified three older scanner/import assumptions.
+  The delimiter owner now distinguishes a spaced comparison `<` from a
+  type-argument opener, nominal constructor scanning consumes `let mut`, and
+  direct consumers own their imports. The intentional
+  `expr_type_owner/result_call_type_owner` recursion remains one declared
+  checker cluster rather than being turned into a circular source import.
+- Last observed broad semantic evidence for this dirty set is the current
+  TestHarness manifest plus C semantic checker accepting all 684 real
+  self-host sources. This is source semantic acceptance, not full-bootstrap
+  execution. The native
+  production-header census passes at 717 headers; the self-host C/LLVM header
+  checker is artifact-equal for clean and over-cap cases. The memory-concurrency
+  model passes its C-focused path while following
+  `pgy_runtime_zone_sync_abi.h` as the lock-diagnostic owner.
+- Objective card for the now-reached nested-intent seam:
+  - objective: admit the documented `FrontendPipeline -> IntakeSource ->
+    SourceUnit.Read` composition without flattening or disguising an intent as
+    an action;
+  - priority: exact intent identity, action/intent discrimination, return/arity
+    carriage, fail-closed negative cases, then bootstrap completion;
+  - fact owner: `SemanticAstIntentSignatureFacts` plus the parser-owned
+    expression graph; `SemanticAstIntentCallFromGraph` carries the exact chosen
+    target and DIR/MIR consume that identity;
+  - last consumer: self-host MIR intent routine construction during full
+    bootstrap;
+  - forbidden fallback: rewrite `stage_intents.pgy`, insert intents into the
+    action/function table, accept name-only/ambiguous calls, or silently skip
+    the compiler intent cluster;
+  - observed falsifier: a fresh C-emitted self driver passed documented nested
+    intent, single-step and two-step graph identity parity plus missing,
+    ambiguous and wrong-arity target negatives. Classification is `REACHABLE`,
+    not `SUBSTITUTING`.
+- The adjacent authority seam is also reached: semantic facts now carry exact
+  authority, zone, subject-slot and required-ability identities into DIR, and
+  `zone_authority_fact_owner.sh` proves the old AST rescan is absent plus
+  mutation negatives. It remains `BRIDGE` until the production MIR authority
+  transition and runtime plan consume the same owner.
+- Parser intent parameters are finalized after declaration/import composition,
+  not in source order. Native C tracks the header-binding prefix and rebuilds
+  the involved/value views once. The self parser emits neutral
+  `IntentBinding` rows and resolves exact final subject/zone identities; its
+  matcher is indentation-anchored so embedded contract strings are preserved.
+  Native cross-module positive/unresolved-negative fixtures pass, and
+  `bin/pgy --ast src/self_hosted/compiler/driver_bootstrap_main.pgy` resolves
+  `SourceIntakeZone -> IntentInvolves` and `StagePathManifest -> IntentValue`.
+  The focused self resolver reproduction passes; the whole-driver self-parser
+  run was policy-stopped after 1,532.042 seconds with zero output. Its last
+  observed private memory was 717,144,064 bytes, not an exact peak. Therefore
+  full self-parser integration remains incomplete for performance, not a
+  semantic PASS.
+- Focused green evidence: component contract, zone-authority carriage, fresh
+  nested-intent self-driver reachability, language-keyword registry, LSP
+  latest-publication C/LLVM parity, changed-owner semantic checks, 684/684 C
+  real-source semantic acceptance, and SoT live owner/consumer negative gates.
+  Coq/Rocq is absent on this runner, so the formal model was explicitly skipped
+  with `PGY_ALLOW_MISSING_COQ=1`; it was not claimed as checked.
+- The attached architecture review's query-engine and opaque-admitted-artifact
+  proposals remain valuable follow-up candidates, not concurrent owners in this
+  repair. Its memory improvement still holds, but the CPU warning remains
+  current: the latest full integration reached `mir-facts:start` and was
+  stopped after 2,534,272 ms at 2,284.8 MB peak private. The next executable
+  falsifier is a profile of that exact owner path with stable revision/query
+  keys, followed by a full bootstrap under the unchanged limit. Do not raise
+  the timeout or call this incomplete run green.
+
 ## Current checkpoint - exact bootstrap pressure and zone runtime closure
 
 - This material continuation started at

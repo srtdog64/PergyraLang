@@ -61,7 +61,7 @@ parse_program_file(const char *path, char **error_message)
     }
     parser->source_path = path;
 
-    ast = parser_parse_program(parser);
+    ast = parser_parse_program_for_module_composition(parser);
     if (parser_has_error(parser)) {
         set_error(error_message, "parse error in '%s': %s",
                   path, parser_get_error(parser));
@@ -261,6 +261,19 @@ import_resolver_load_program(const char *source_path, char **error_message)
                                             NULL,
                                             "",
                                             error_message);
+    if (program != NULL) {
+        char *composition_error = NULL;
+        if (!parser_finalize_composed_intent_parameter_roles(
+                program, &composition_error)) {
+            set_error(error_message,
+                "declaration composition failed: %s",
+                composition_error != NULL ? composition_error
+                                          : "intent parameter owner unavailable");
+            free(composition_error);
+            ast_destroy(program);
+            program = NULL;
+        }
+    }
     if (program != NULL && !ast_assign_stable_ids(program)) {
         set_error(error_message,
                   "syntax node identity space exhausted after import merge");

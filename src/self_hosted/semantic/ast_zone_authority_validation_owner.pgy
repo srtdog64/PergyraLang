@@ -1,0 +1,188 @@
+// Deep and fixed-carriage validation for semantic zone-authority facts.
+
+import "ast_zone_authority_fact_owner.pgy";
+
+func SemanticAstZoneAuthorityFactsAdmittedReady(
+    artifact_node_count: Int,
+    ref roles: SemanticAstRoleFacts,
+    ref facts: SemanticAstZoneAuthorityFacts
+) -> Bool {
+    let count: Int = ArrayLength(facts.authority_node_ids);
+    let required_count: Int = ArrayLength(facts.required_ability_node_ids);
+    if !facts.ok || facts.artifact_node_count != artifact_node_count ||
+        !roles.ok || roles.artifact_node_count != artifact_node_count ||
+        ArrayLength(facts.owner_zone_node_ids) != count ||
+        ArrayLength(facts.owner_zone_names) != count ||
+        ArrayLength(facts.subject_slot_node_ids) != count ||
+        ArrayLength(facts.subject_slot_names) != count ||
+        ArrayLength(facts.required_ability_starts) != count ||
+        ArrayLength(facts.required_ability_counts) != count ||
+        ArrayLength(facts.required_ability_names) != required_count {
+        return false;
+    }
+    let expected_start: Int = 0;
+    let i: Int = 0;
+    while i < count {
+        if facts.authority_node_ids[i] <= 0 ||
+            facts.owner_zone_node_ids[i] <= 0 ||
+            facts.owner_zone_names[i] == "" ||
+            facts.subject_slot_node_ids[i] <= 0 ||
+            facts.subject_slot_names[i] == "" ||
+            facts.required_ability_starts[i] != expected_start ||
+            facts.required_ability_counts[i] < 0 ||
+            expected_start + facts.required_ability_counts[i] > required_count {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < i {
+            if facts.authority_node_ids[prior] == facts.authority_node_ids[i] ||
+                (facts.owner_zone_node_ids[prior] == facts.owner_zone_node_ids[i] &&
+                 facts.subject_slot_node_ids[prior] == facts.subject_slot_node_ids[i]) {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        let requirement_i: Int = 0;
+        while requirement_i < facts.required_ability_counts[i] {
+            let requirement_row: Int = expected_start + requirement_i;
+            let ability_matches: Int = 0;
+            let ability_i: Int = 0;
+            while ability_i < ArrayLength(roles.ability_node_ids) {
+                if roles.ability_node_ids[ability_i] ==
+                        facts.required_ability_node_ids[requirement_row] &&
+                    roles.ability_names[ability_i] ==
+                        facts.required_ability_names[requirement_row] {
+                    ability_matches = ability_matches + 1;
+                }
+                ability_i = ability_i + 1;
+            }
+            if ability_matches != 1 { return false; }
+            let prior_requirement: Int = expected_start;
+            while prior_requirement < requirement_row {
+                if facts.required_ability_node_ids[prior_requirement] ==
+                    facts.required_ability_node_ids[requirement_row] {
+                    return false;
+                }
+                prior_requirement = prior_requirement + 1;
+            }
+            requirement_i = requirement_i + 1;
+        }
+        expected_start = expected_start + facts.required_ability_counts[i];
+        i = i + 1;
+    }
+    return expected_start == required_count;
+}
+
+func SemanticAstZoneAuthorityFactsReady(
+    artifact: AstTreeArtifact,
+    ref roles: SemanticAstRoleFacts,
+    ref facts: SemanticAstZoneAuthorityFacts
+) -> Bool {
+    if !SemanticAstZoneAuthorityFactsAdmittedReady(artifact.count, roles, facts) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(facts.authority_node_ids) {
+        let authority_node_id: Int = facts.authority_node_ids[i];
+        let owner_node_id: Int = facts.owner_zone_node_ids[i];
+        let slot_node_id: Int = facts.subject_slot_node_ids[i];
+        let authority_parent: Option<Int> = TypedAstArenaParentId(
+            artifact.arena, authority_node_id
+        );
+        let slot_parent: Option<Int> = TypedAstArenaParentId(
+            artifact.arena, slot_node_id
+        );
+        let owner_name: Option<String> = TypedAstArenaAtomText(
+            artifact.arena, owner_node_id
+        );
+        let owner_subkind: Option<Int> = TypedAstArenaNominalSubkind(
+            artifact.arena, owner_node_id
+        );
+        let authority_slot_name: Option<String> = TypedAstArenaAtomText(
+            artifact.arena, authority_node_id
+        );
+        let slot_name: Option<String> = TypedAstArenaAtomText(
+            artifact.arena, slot_node_id
+        );
+        let slot_kind: Option<String> = TypedAstArenaAuxValueText(
+            artifact.arena, slot_node_id
+        );
+        if !TypedAstArenaNodeKindIs(
+                artifact.arena, authority_node_id, TypedAstKindZoneAuthorityTag()
+            ) || !TypedAstArenaNodeKindIs(
+                artifact.arena, owner_node_id, TypedAstKindNominalDeclTag()
+            ) || !TypedAstArenaNodeKindIs(
+                artifact.arena, slot_node_id, TypedAstKindFieldTag()
+            ) || !IsSome(authority_parent) ||
+            UnwrapOption(authority_parent) != owner_node_id ||
+            !IsSome(slot_parent) || UnwrapOption(slot_parent) != owner_node_id ||
+            !IsSome(owner_name) ||
+            UnwrapOption(owner_name) != facts.owner_zone_names[i] ||
+            !IsSome(owner_subkind) ||
+            UnwrapOption(owner_subkind) != TypedAstNominalSubkindZone() ||
+            !IsSome(authority_slot_name) ||
+            UnwrapOption(authority_slot_name) != facts.subject_slot_names[i] ||
+            !IsSome(slot_name) ||
+            UnwrapOption(slot_name) != facts.subject_slot_names[i] ||
+            !IsSome(slot_kind) ||
+            UnwrapOption(slot_kind) != NominalFieldKindSubjectSlot() ||
+            artifact.arena.child_counts[authority_node_id] > 1 {
+            return false;
+        }
+        let carried_required_count: Int = facts.required_ability_counts[i];
+        if artifact.arena.child_counts[authority_node_id] == 0 {
+            if carried_required_count != 0 { return false; }
+        } else {
+            let requires_node: Option<Int> = TypedAstArenaChildAt(
+                artifact.arena, authority_node_id, 0
+            );
+            if !IsSome(requires_node) || !TypedAstArenaNodeKindIs(
+                artifact.arena, UnwrapOption(requires_node),
+                TypedAstKindActionRequiresTag()
+            ) { return false; }
+            let required: Option<String> = TypedAstArenaAtomText(
+                artifact.arena, UnwrapOption(requires_node)
+            );
+            if !IsSome(required) { return false; }
+            let ability_names: Array<String> = Split(UnwrapOption(required), ",");
+            if ArrayLength(ability_names) != carried_required_count {
+                return false;
+            }
+            let ability_i: Int = 0;
+            while ability_i < carried_required_count {
+                let required_name_fact: SemanticCanonicalTypeNameFact =
+                    SemanticCanonicalTypeNameFactFrom(
+                        StringTrim(ability_names[ability_i])
+                    );
+                let required_row: Int =
+                    facts.required_ability_starts[i] + ability_i;
+                if required_name_fact.nominal_base_name !=
+                    facts.required_ability_names[required_row] {
+                    return false;
+                }
+                ability_i = ability_i + 1;
+            }
+        }
+        i = i + 1;
+    }
+    let artifact_authority_count: Int = 0;
+    let node_id: Int = 0;
+    while node_id < artifact.count {
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindZoneAuthorityTag()
+        ) {
+            artifact_authority_count = artifact_authority_count + 1;
+            let matches: Int = 0;
+            let fact_i: Int = 0;
+            while fact_i < ArrayLength(facts.authority_node_ids) {
+                if facts.authority_node_ids[fact_i] == node_id {
+                    matches = matches + 1;
+                }
+                fact_i = fact_i + 1;
+            }
+            if matches != 1 { return false; }
+        }
+        node_id = node_id + 1;
+    }
+    return artifact_authority_count == ArrayLength(facts.authority_node_ids);
+}

@@ -181,6 +181,8 @@ if ! (cd "$ROOT_DIR" && "$PARSER_BIN" "$driver_rel" 2>"$BUILD_DIR/parser.err" | 
     exit 1
 fi
 
+! grep -Eq '^[[:space:]]*IntentBinding:' "$ast_abs" || { echo "[self-host-driver-bootstrap] unresolved intent parameter role" >&2; exit 1; }
+
 echo "[self-host-driver-bootstrap] emitting integrated driver seed"
 if ! (cd "$ROOT_DIR" && "$CODEGEN_BIN" "$ast_rel" 2>"$BUILD_DIR/seed_emit.err" | tr -d '\r' >"$BUILD_DIR/driver_seed.c"); then
     echo "[self-host-driver-bootstrap] Pergyra-built codegen failed to emit driver seed" >&2

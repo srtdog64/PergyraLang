@@ -4,6 +4,9 @@
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../semantic/ast_signature_fact_owner.pgy";
 import "../semantic/ast_intent_action_call_fact_owner.pgy";
+import "../semantic/ast_intent_call_fact_owner.pgy";
+import "../semantic/ast_intent_signature_fact_owner.pgy";
+import "../semantic/ast_expression_surface_fact_owner.pgy";
 import "../mir/declaration_fact_owner.pgy";
 import "domain_topology_row_owner.pgy";
 import "intent_step_clause_fact_owner.pgy";
@@ -27,6 +30,12 @@ struct SelfDirIntentResolvedStep {
     receiver_alias: String;
     action_name: String;
     action_signature_index: Int;
+    target_kind: String;
+    target_declaration_node_id: Int;
+    target_index: Int;
+    target_name: String;
+    target_return_type_name: String;
+    target_param_count: Int;
     outcome_node_id: Int;
     outcome_name: String;
     outcome_type_name: String;
@@ -55,7 +64,8 @@ func SelfDirIntentResolvedStepError(
     let authorized_names: Array<String> = [];
     let compensate_node_ids: Array<Int> = [];
     return SelfDirIntentResolvedStep(
-        false, message, -1, "", "", -1, "", "", "", -1, -1, "", "",
+        false, message, -1, "", "", -1, "", "", "", -1,
+        "", -1, -1, "", "", -1, -1, "", "",
         -1, -1, -1, -1, compensate_node_ids, 0, -1, "", -1,
         who_names, requires_names, requires_indices, authorized_names, 0
     );
@@ -170,6 +180,8 @@ func SelfDirIntentStepFromArtifact(
     artifact: AstTreeArtifact,
     rows: SelfMirDeclarationRows,
     signatures: SemanticAstFunctionSignatureFacts,
+    ref intent_signatures: SemanticAstIntentSignatureFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     step_node_id: Int,
     participant_aliases: Array<String>,
     participant_type_names: Array<String>,
@@ -219,37 +231,73 @@ func SelfDirIntentStepFromArtifact(
     let requires_names: Array<String> = clauses.requires_names;
     let authorized_names: Array<String> = clauses.authorized_names;
 
-    let on_call: SemanticAstIntentActionCallFact =
+    let action_call: SemanticAstIntentActionCallFact =
         SemanticAstIntentActionCallFromText(
             signatures, participant_aliases, participant_type_names,
             participant_is_values, participant_start, participant_count,
             on_text
         );
-    if !on_call.ok {
-        return SelfDirIntentResolvedStepError(
-            "self-host DIR intent step requires one direct action on-call"
-        );
-    }
-    let receiver_row: Int = SelfDirIntentParticipantIndex(
-        participant_aliases, participant_start, participant_count,
-        on_call.receiver_alias
+    let intent_call: SemanticAstIntentCallFact =
+        SemanticAstIntentCallFactInvalid();
+    intent_call = SemanticAstIntentCallFromGraph(
+        intent_signatures, expression_surfaces, on_node_id
     );
-    if receiver_row < 0 || participant_is_values[receiver_row] {
+    if action_call.ok && intent_call.ok {
         return SelfDirIntentResolvedStepError(
-            "self-host DIR intent action receiver is not a subject participant"
+            "self-host DIR intent step target identity is ambiguous"
         );
     }
-    let action_index: Int = on_call.signature_index;
-    if action_index < 0 {
+    if !action_call.ok && !intent_call.ok {
         return SelfDirIntentResolvedStepError(
-            "self-host DIR intent action contract is unresolved"
+            "self-host DIR intent step target is neither an exact action nor intent call"
         );
+    }
+    let target_kind: String = "intent";
+    let target_declaration_node_id: Int = intent_call.declaration_node_id;
+    let target_index: Int = intent_call.intent_index;
+    let target_name: String = intent_call.name;
+    let target_return_type_name: String = intent_call.return_type_name;
+    let target_param_count: Int = intent_call.param_count;
+    let receiver_alias: String = "";
+    let action_name: String = "";
+    let action_index: Int = -1;
+    if action_call.ok {
+        target_kind = "action";
+        receiver_alias = action_call.receiver_alias;
+        action_name = action_call.action_name;
+        action_index = action_call.signature_index;
+        if action_index < 0 || action_index >=
+            SemanticAstFunctionSignatureCount(signatures) {
+            return SelfDirIntentResolvedStepError(
+                "self-host DIR intent action contract is unresolved"
+            );
+        }
+        let receiver_row: Int = SelfDirIntentParticipantIndex(
+            participant_aliases, participant_start, participant_count,
+            receiver_alias
+        );
+        if receiver_row < 0 || participant_is_values[receiver_row] {
+            return SelfDirIntentResolvedStepError(
+                "self-host DIR intent action receiver is not a subject participant"
+            );
+        }
+        target_declaration_node_id =
+            signatures.function_node_ids[action_index];
+        target_index = action_index;
+        target_name = action_name;
+        target_return_type_name = signatures.return_types[action_index];
+        target_param_count = signatures.param_counts[action_index] - 1;
+        if target_declaration_node_id < 0 || target_param_count < 0 {
+            return SelfDirIntentResolvedStepError(
+                "self-host DIR intent action target identity is invalid"
+            );
+        }
     }
     let outcome_type_name: String = "";
     if outcome_node_id >= 0 {
-        if outcome_name == "" || signatures.return_types[action_index] == "" ||
-            signatures.return_types[action_index] == "Unknown" ||
-            signatures.return_types[action_index] == "Void" ||
+        if outcome_name == "" || target_return_type_name == "" ||
+            target_return_type_name == "Unknown" ||
+            target_return_type_name == "Void" ||
             SelfDirIntentParticipantIndex(
                 participant_aliases, participant_start, participant_count,
                 outcome_name
@@ -258,27 +306,21 @@ func SelfDirIntentStepFromArtifact(
                 "self-host DIR intent outcome binding is invalid"
             );
         }
-        outcome_type_name = signatures.return_types[action_index];
+        outcome_type_name = target_return_type_name;
     }
     let contracts: SemanticAstActionContractFacts = signatures.action_contracts;
     let where_zone: String = header.where_zone_name;
-    if where_zone == "" {
+    if action_call.ok && where_zone == "" {
         where_zone = contracts.within_zone_names[action_index];
-    } else if contracts.within_zone_names[action_index] != "" &&
+    } else if action_call.ok &&
+        contracts.within_zone_names[action_index] != "" &&
         contracts.within_zone_names[action_index] != where_zone {
         return SelfDirIntentResolvedStepError(
             "self-host DIR intent explicit and action step zones disagree"
         );
     }
-    let where_index: Int = SelfDirDeclarationIndexForName(rows, where_zone);
-    if where_zone == "" || where_index < 0 ||
-        rows.nominal_kinds[where_index] != "zone" {
-        return SelfDirIntentResolvedStepError(
-            "self-host DIR intent step zone is unresolved"
-        );
-    }
     let using_alias: String = explicit_using;
-    if using_alias == "" {
+    if action_call.ok && using_alias == "" {
         using_alias = SelfDirIntentUniqueParticipantForType(
             participant_aliases, participant_type_names,
             participant_start, participant_count, where_zone
@@ -287,31 +329,53 @@ func SelfDirIntentStepFromArtifact(
     let using_row: Int = SelfDirIntentParticipantIndex(
         participant_aliases, participant_start, participant_count, using_alias
     );
+    if !action_call.ok && where_zone == "" && using_row >= 0 &&
+        using_row < ArrayLength(participant_type_names) {
+        where_zone = participant_type_names[using_row];
+    }
+    let where_index: Int = SelfDirDeclarationIndexForName(rows, where_zone);
+    if where_zone == "" || where_index < 0 ||
+        rows.nominal_kinds[where_index] != "zone" {
+        return SelfDirIntentResolvedStepError(
+            "self-host DIR intent step zone is unresolved"
+        );
+    }
     if using_alias == "" || using_row < 0 ||
         participant_is_values[using_row] ||
         participant_type_names[using_row] != where_zone {
+        let using_type: String = "<missing>";
+        if using_row >= 0 && using_row < ArrayLength(participant_type_names) {
+            using_type = participant_type_names[using_row];
+        }
+        let diagnostic: String = Concat(
+            "self-host DIR intent step using binding is unresolved: step=",
+            step_name
+        );
+        diagnostic = Concat(diagnostic, Concat(" using=", using_alias));
+        diagnostic = Concat(diagnostic, Concat(" type=", using_type));
+        diagnostic = Concat(diagnostic, Concat(" where=", where_zone));
         return SelfDirIntentResolvedStepError(
-            "self-host DIR intent step using binding is unresolved"
+            diagnostic
         );
     }
-    if ArrayLength(who_names) == 0 {
-        ArrayPush(who_names, on_call.receiver_alias);
+    if action_call.ok && ArrayLength(who_names) == 0 {
+        ArrayPush(who_names, receiver_alias);
     }
-    if ArrayLength(requires_names) == 0 &&
+    if action_call.ok && ArrayLength(requires_names) == 0 &&
         !SelfDirIntentStepAppendActionContractRange(
             contracts.requires_names, contracts.requires_starts[action_index],
-            contracts.requires_counts[action_index], on_call.receiver_alias,
+            contracts.requires_counts[action_index], receiver_alias,
             false, requires_names
         ) {
         return SelfDirIntentResolvedStepError(
             "self-host DIR intent inherited requires row is invalid"
         );
     }
-    if ArrayLength(authorized_names) == 0 &&
+    if action_call.ok && ArrayLength(authorized_names) == 0 &&
         !SelfDirIntentStepAppendActionContractRange(
             contracts.authorized_by_names,
             contracts.authorized_by_starts[action_index],
-            contracts.authorized_by_counts[action_index], on_call.receiver_alias,
+            contracts.authorized_by_counts[action_index], receiver_alias,
             true, authorized_names
         ) {
         return SelfDirIntentResolvedStepError(
@@ -319,7 +383,9 @@ func SelfDirIntentStepFromArtifact(
         );
     }
     let cause_name: String = explicit_causes;
-    if cause_name == "" { cause_name = contracts.causes_names[action_index]; }
+    if action_call.ok && cause_name == "" {
+        cause_name = contracts.causes_names[action_index];
+    }
     let cause_index: Int = -1;
     if cause_name != "" {
         cause_index = SelfDirDeclarationIndexForName(rows, cause_name);
@@ -379,8 +445,10 @@ func SelfDirIntentStepFromArtifact(
     if predecessor >= 0 { edge_count = edge_count + 1; }
     return SelfDirIntentResolvedStep(
         true, "", step_node_id, step_name, where_zone, where_index,
-        using_alias, on_call.receiver_alias, on_call.action_name,
-        action_index, outcome_node_id, outcome_name, outcome_type_name,
+        using_alias, receiver_alias, action_name, action_index,
+        target_kind, target_declaration_node_id, target_index, target_name,
+        target_return_type_name, target_param_count,
+        outcome_node_id, outcome_name, outcome_type_name,
         on_node_id, clauses.guard_node_id, clauses.post_node_id,
         expect_node_id, clauses.compensate_node_ids, clauses.child_count,
         predecessor, cause_name, cause_index,

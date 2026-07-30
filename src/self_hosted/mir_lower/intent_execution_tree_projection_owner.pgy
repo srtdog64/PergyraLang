@@ -6,6 +6,7 @@ import "intent_execution_structure_owner.pgy";
 import "structured_expression_emission_order_owner.pgy";
 import "intent_action_contract_owner.pgy";
 import "intent_phase_projection_owner.pgy";
+import "intent_carrier_projection_owner.pgy";
 
 func MirIntentExecutionInstructionGlobalRow(
     ref routines: MirProgramRoutineIndex,

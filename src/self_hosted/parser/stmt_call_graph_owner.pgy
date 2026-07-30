@@ -1,5 +1,7 @@
 // Graph-owned classification for expression statements that are calls.
 
+import "expr_owner.pgy";
+
 func ParserExpressionCallStatementKind(
     fact: ParserExpressionFact
 ) -> Int {

@@ -6,6 +6,144 @@
 
 ---
 
+## 2026-07-30 exhaustive self-check and platform-contract failures
+
+When `selfcheck_sources.sh` is strengthened, a new failure does not
+automatically mean that the latest compiler rung introduced the defect. The
+full 679-source C run exposed several older owner-boundary assumptions at once;
+the repaired current manifest has since grown to 684 sources.
+Repair the owning seam; do not edit the failing source merely to make the
+checker accept it.
+
+Observed failure classes and their owner-correct repairs:
+
+- Imported enum declarations survive source-bundle flattening, but the
+  lightweight semantic checker previously seeded only function and nominal
+  constructor callables. Project every enum variant into the canonical callable
+  table, including payload signature and enum return type. Keep qualified
+  zero-payload values such as `ImportedDecision.ImportedReady` visible, and
+  reject a missing qualified variant with `undefined_symbol`.
+- A shared comma-range scanner treated every `<` as a generic opener. Thus a
+  comparison such as `root < Limit(3), tail` swallowed the later comma. Track
+  angle, parenthesis, and bracket depth separately, and recognize a type-angle
+  opener only from the type-shaped lexical context owned by that scanner.
+- Nominal field scans must consume optional `mut` after `let`; otherwise the
+  constructor table records `mut` as the field name.
+- Every standalone self-host source must import the owner it directly uses.
+  Do not rely on transitive imports from a document store, projection, parser,
+  or expression consumer. If two owners are an intentional recursive cluster,
+  map the checker target to the declared cluster root instead of creating a
+  circular import.
+
+The focused C self-application after these repairs reported:
+
+```text
+[self-host-selfcheck] backend=c ok: 679 real sources accepted
+[self-host-selfcheck] real-source self-application ok: 679 sources; backends=c
+```
+
+Platform contract drift found in the same CI run has three separate owners:
+
+- Language-word implementation counts are generated output. Run
+  `scripts/render_language_keyword_registry.py ... --write` after all `.pgy`
+  edits, then run `tests/language_keyword_registry_smoke.sh`; never hand-edit
+  the generated inventory.
+- Production header count changes belong in the self-host checker golden only
+  after `tests/production_header_size_smoke.sh` proves the actual census. The
+  zone sync ABI header changed the clean count from 716 to 717 while leaving
+  the 600-line cap intact.
+- A runtime failure-string gate must read the canonical ABI owner. Zone lock
+  initialization/read/write/unlock diagnostics moved to
+  `pgy_runtime_zone_sync_abi.h`; duplicating those strings back into the old
+  result/option header would restore dual ownership.
+
+The semantic self-check proves source acceptance, not full bootstrap execution.
+A later `mir-facts:start` failure must be diagnosed at the DIR/MIR contract or
+consumer cost that reached it, and remains a separate gate.
+
+### Full-bootstrap intent bindings and optional authority shape
+
+The first fresh full-bootstrap rerun after the exhaustive source repairs failed
+with `using binding unresolved`. That stable diagnostic prefix did **not** mean
+that the production `using`, `where`, or participant spelling was wrong. All 14
+production intent steps named a declared parameter and a matching zone. The
+integrated AST instead revealed source-order classification: an imported intent
+could be parsed before the subject/zone declaration that determines whether a
+header parameter is an involved participant or a value.
+
+The repair is declaration-order finalization, not moving imports. Both parsers
+first emit or retain neutral header bindings, complete the declaration/import
+graph, and then resolve each header parameter exactly once from the final
+nominal inventory. A generic container remains a value; an exact subject/zone
+identity becomes an involved participant; unresolved required native facts fail
+closed. Do not reintroduce type-name suffix guesses or a `Zone`-typed
+`IntentValue` blanket rejection: a value type such as `AuditZone` is legal when
+no zone declaration owns that exact identity.
+
+The self-host resolver must match only an indentation-anchored
+`IntentBinding:` AST label. Searching the whole line or the final rendered
+tree mistakes contract strings inside this owner's own source for unresolved
+parameters and makes self-application fail. The parser gate therefore rejects
+only anchored leaked binding rows after resolution.
+
+The native import resolver has a distinct lifetime boundary: standalone
+`parser_parse_program()` stays strict, while import loading defers only the
+intent-role finalizer until recursive splice/normalization has produced the
+whole AST. It then builds one exact declaration-name registry and finalizes all
+header roles once. Cross-module zone/value and unresolved negatives belong in
+`parser_imported_intent_composition_smoke.sh`; a parser-local success alone does
+not prove this import boundary.
+
+The corrected self resolver accepted its own focused source, but the integrated
+whole-driver self-parser run produced no artifact before the 1,532.042-second
+policy stop. Last observed working set/private values were 648,421,376 and
+717,144,064 bytes; peak measurement was not enabled, so they are observation
+lower bounds rather than exact peaks. Classify this result as CPU timeout /
+incomplete, not parser failure, full-parser success, or memory regression.
+
+The next reached seam was `self-host DIR authority shape is unsupported`.
+Pergyra permits both a bare authority slot and one optional `requires` child:
+
+```text
+authority execution
+authority semantic requires CompilerSemanticAnalysis
+```
+
+The native graph meaning is one authority node with two ownership/subject
+edges, plus two edges for every required ability. The self-host DIR owner now
+admits child count 0 or exactly one well-formed `requires` child and still
+rejects unknown slots, unknown abilities, other child kinds, and multiple
+children. The focused native/self anchor for the existing bare-authority driver
+fixture is 10 nodes, 9 edges, and domain graph id
+`14937234930791904899`.
+
+Fresh process-tree measurements distinguish these semantic failures from the
+old memory defect. The post-import-order codegen seed completed in 491,300 ms
+at 1,504.5 MB peak private. Its full fixpoint reached the later authority seam
+in 1,070,135 ms at 2,270.2 MB peak private, below the unchanged 3,072 MB cap.
+After the authority repair, the codegen seed completed in 573,290 ms at
+1,504.7 MB peak private. The following full integration attempt reached
+`mir-facts:start` and was manually stopped at the fixed policy boundary after
+2,534,272 ms; peak private memory was 2,284.8 MB and peak working set was
+2,134.1 MB. It is an incomplete CPU timeout, not a passing build. These are
+project-tree peaks, not whole-desktop memory totals; none reproduces a 20 GB
+compiler process.
+
+The historical high-pressure cause remains the repeated validation of an
+already completed whole-program graph from local consumers. The owning boundary
+must validate that graph once and carry the typed readiness/identity evidence.
+A consumer-loop revalidation is a regression even if a small fixture happens to
+stay below the cap.
+
+The current bottleneck is therefore split explicitly:
+
+- memory: no 20 GB compiler process reproduced; current full peak is below the
+  unchanged 3,072 MB cap;
+- CPU: full integration still does not complete inside the policy window;
+- next evidence: profile operation/query counts in the reached `mir-facts`
+  owner path and define stable revision/query identity before introducing a
+  dependency cache or opaque admitted artifact.
+
 ## 0. Resource pressure first
 
 If the desktop hangs during local builds, check disk and scratch pressure before

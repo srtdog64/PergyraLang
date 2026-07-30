@@ -7,7 +7,7 @@ import "intent_variant_binding_owner.pgy";
 import "intent_terminal_clause_owner.pgy";
 func ParseIntentDecl(
     content: String, start: Int, inout cursor_out: Array<Int>,
-    decl_prefix: String, inout involve_types: Array<String>,
+    decl_prefix: String,
     inout expression_graphs: Array<AstExpressionGraphRows>
 ) -> String {
     let i: Int = start;
@@ -43,13 +43,6 @@ func ParseIntentDecl(
                 Exit(1);
             }
             i = SkipWhitespaceAndComments(content, i);
-            // Snapshot the base type name before ReadType
-            // mangles it; primitive-ness is decided on the
-            // base, not on the full `Map<String: String, ...>`
-            // print form.
-            let probe_i: Int = i;
-            ArraySet(cursor_out, 0, probe_i);
-            let base_name: String = ReadIdent(content, probe_i, cursor_out);
             ArraySet(cursor_out, 0, i);
             let ip_type: String = ReadType(content, i, cursor_out);
             i = cursor_out[0];
@@ -57,20 +50,9 @@ func ParseIntentDecl(
                 Exit(1);
             }
             let row: String = Concat(ip_name, Concat(": ", ip_type));
-            let is_involve: Bool = false;
-            let k: Int = 0;
-            let n_inv: Int = ArrayLength(involve_types);
-            while k < n_inv {
-                if base_name == involve_types[k] {
-                    is_involve = true;
-                }
-                k = k + 1;
-            }
-            if is_involve {
-                ArrayPush(parameter_lines, Concat("IntentInvolves: ", row));
-            } else {
-                ArrayPush(parameter_lines, Concat("IntentValue: ", row));
-            }
+            // Final role classification is deferred until the complete import
+            // graph has registered every subject and zone declaration.
+            ArrayPush(parameter_lines, Concat("IntentBinding: ", row));
             i = SkipWhitespaceAndComments(content, i);
             if ParserCharAt(content, i) == "," {
                 i = i + 1;

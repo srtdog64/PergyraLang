@@ -5,12 +5,14 @@
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../semantic/ast_intent_signature_fact_owner.pgy";
 import "../semantic/ast_intent_transition_fact_owner.pgy";
+import "../semantic/ast_expression_surface_fact_owner.pgy";
 import "../semantic/ast_signature_fact_owner.pgy";
 import "../mir/declaration_fact_owner.pgy";
 import "domain_topology_row_owner.pgy";
 import "intent_row_owner.pgy";
 import "intent_step_fact_owner.pgy";
 import "intent_step_carriage_contract_owner.pgy";
+import "intent_step_target_contract_owner.pgy";
 import "intent_outcome_contract_owner.pgy";
 import "intent_result_contract_owner.pgy";
 
@@ -31,10 +33,11 @@ func SelfDirIntentDirectChildAllowed(kind: Int) -> Bool {
 func SelfDirIntentFactsFromArtifact(
     artifact: AstTreeArtifact,
     rows: SelfMirDeclarationRows,
-    signatures: SemanticAstFunctionSignatureFacts
+    signatures: SemanticAstFunctionSignatureFacts,
+    ref signature_facts: SemanticAstIntentSignatureFacts,
+    transition_facts: SemanticAstIntentTransitionFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts
 ) -> SelfDirIntentFacts {
-    let signature_facts: SemanticAstIntentSignatureFacts =
-        SemanticAstIntentSignatureFactsFromArtifact(artifact);
     let required: Bool = SemanticAstIntentSignatureCount(signature_facts) > 0;
     if !required {
         return SelfDirIntentFactsEmpty(false, true, "", artifact.count);
@@ -42,15 +45,14 @@ func SelfDirIntentFactsFromArtifact(
     if !AstTreeArtifactReady(artifact) || !signatures.ok ||
         !SemanticAstActionContractFactsReady(
             artifact, signatures.action_contracts
-        ) || !SemanticAstIntentSignatureFactsReady(artifact, signature_facts) {
+        ) || !SemanticAstIntentSignatureFactsReady(artifact, signature_facts) ||
+        !SemanticAstExpressionSurfaceBorrowReady(
+            artifact, expression_surfaces
+        ) {
         return SelfDirIntentFactsError(
             "self-host DIR intent inputs are incomplete", artifact.count
         );
     }
-    let transition_facts: SemanticAstIntentTransitionFacts =
-        SemanticAstIntentTransitionFactsFromArtifact(
-            artifact, signatures, signature_facts
-        );
     if !SemanticAstIntentTransitionFactsReady(artifact, transition_facts) {
         return SelfDirIntentFactsError(
             transition_facts.diagnostic_message, artifact.count
@@ -78,6 +80,12 @@ func SelfDirIntentFactsFromArtifact(
     let step_receiver_aliases: Array<String> = [];
     let step_action_names: Array<String> = [];
     let step_action_signature_indices: Array<Int> = [];
+    let step_target_kinds: Array<String> = [];
+    let step_target_declaration_node_ids: Array<Int> = [];
+    let step_target_indices: Array<Int> = [];
+    let step_target_names: Array<String> = [];
+    let step_target_return_type_names: Array<String> = [];
+    let step_target_param_counts: Array<Int> = [];
     let step_outcome_node_ids: Array<Int> = [];
     let step_outcome_names: Array<String> = [];
     let step_outcome_type_names: Array<String> = [];
@@ -157,7 +165,8 @@ func SelfDirIntentFactsFromArtifact(
                     ArrayLength(step_node_ids) - step_start;
                 let resolved: SelfDirIntentResolvedStep =
                     SelfDirIntentStepFromArtifact(
-                        artifact, rows, signatures, child_id,
+                        artifact, rows, signatures, signature_facts,
+                        expression_surfaces, child_id,
                         participant_aliases, participant_type_names,
                         participant_is_values, participant_start,
                         participant_count, local_step_index,
@@ -207,6 +216,20 @@ func SelfDirIntentFactsFromArtifact(
                 ArrayPush(step_action_names, resolved.action_name);
                 ArrayPush(step_action_signature_indices,
                     resolved.action_signature_index);
+                ArrayPush(step_target_kinds, resolved.target_kind);
+                ArrayPush(
+                    step_target_declaration_node_ids,
+                    resolved.target_declaration_node_id
+                );
+                ArrayPush(step_target_indices, resolved.target_index);
+                ArrayPush(step_target_names, resolved.target_name);
+                ArrayPush(
+                    step_target_return_type_names,
+                    resolved.target_return_type_name
+                );
+                ArrayPush(
+                    step_target_param_counts, resolved.target_param_count
+                );
                 ArrayPush(step_outcome_node_ids, resolved.outcome_node_id);
                 ArrayPush(step_outcome_names, resolved.outcome_name);
                 ArrayPush(step_outcome_type_names,
@@ -273,7 +296,10 @@ func SelfDirIntentFactsFromArtifact(
             step_node_ids, step_names, step_where_zone_names,
             step_where_declaration_indices, step_using_aliases,
             step_receiver_aliases, step_action_names,
-            step_action_signature_indices, step_outcome_node_ids,
+            step_action_signature_indices, step_target_kinds,
+            step_target_declaration_node_ids, step_target_indices,
+            step_target_names, step_target_return_type_names,
+            step_target_param_counts, step_outcome_node_ids,
             step_outcome_names, step_outcome_type_names, step_on_node_ids,
             step_guard_node_ids, step_post_node_ids, step_expect_node_ids,
             step_compensate_starts, step_compensate_counts,
@@ -293,13 +319,17 @@ func SelfDirIntentFactsReady(
     artifact: AstTreeArtifact,
     rows: SelfMirDeclarationRows,
     signatures: SemanticAstFunctionSignatureFacts,
+    ref intent_signatures: SemanticAstIntentSignatureFacts,
     facts: SelfDirIntentFacts
 ) -> Bool {
     if !facts.ok || !signatures.ok || facts.diagnostic_message != "" ||
         facts.artifact_node_count != artifact.count ||
         !SelfDirIntentFactsShapeReady(facts) ||
         !SelfDirIntentStepCarriageReady(artifact, facts.steps) ||
-        !SemanticAstIntentTransitionFactsReady(artifact, facts.transitions) {
+        !SemanticAstIntentTransitionFactsReady(artifact, facts.transitions) ||
+        !SemanticAstIntentSignatureFactsReady(
+            artifact, intent_signatures
+        ) {
         return false;
     }
     let intent_count: Int = ArrayLength(facts.intent_node_ids);
@@ -348,7 +378,9 @@ func SelfDirIntentFactsReady(
                 facts.steps.authorized_counts[step_row];
             if facts.steps.predecessor_step_indices[step_row] !=
                     expected_predecessor ||
-                who_start != expected_who_start || who_count <= 0 ||
+                who_start != expected_who_start || who_count < 0 ||
+                (facts.steps.target_kinds[step_row] == "action" &&
+                 who_count == 0) ||
                 who_start + who_count > ArrayLength(facts.steps.who_names) ||
                 requires_start != expected_requires_start ||
                 requires_count < 0 ||
@@ -369,11 +401,20 @@ func SelfDirIntentFactsReady(
                     facts.steps.where_zone_names[step_row] {
                 return false;
             }
-            let receiver_row: Int = SelfDirIntentParticipantIndex(
-                facts.participants.aliases, p_start, p_count,
-                facts.steps.receiver_aliases[step_row]
-            );
-            if receiver_row < 0 || facts.participants.is_values[receiver_row] {
+            if facts.steps.target_kinds[step_row] == "action" {
+                let receiver_row: Int = SelfDirIntentParticipantIndex(
+                    facts.participants.aliases, p_start, p_count,
+                    facts.steps.receiver_aliases[step_row]
+                );
+                if receiver_row < 0 ||
+                    facts.participants.is_values[receiver_row] {
+                    return false;
+                }
+            } else if facts.steps.target_kinds[step_row] == "intent" {
+                if facts.steps.receiver_aliases[step_row] != "" {
+                    return false;
+                }
+            } else {
                 return false;
             }
             let name_i: Int = 0;
@@ -439,12 +480,7 @@ func SelfDirIntentFactsReady(
     }
     i = 0;
     while i < step_count {
-        if facts.steps.receiver_aliases[i] == "" ||
-            facts.transitions.step_node_ids[i] != facts.steps.node_ids[i] ||
-            facts.steps.action_names[i] == "" ||
-            facts.steps.action_signature_indices[i] < 0 ||
-            facts.steps.action_signature_indices[i] >=
-                SemanticAstFunctionSignatureCount(signatures) ||
+        if facts.transitions.step_node_ids[i] != facts.steps.node_ids[i] ||
             facts.steps.where_zone_names[i] == "" ||
             facts.steps.where_declaration_indices[i] < 0 ||
             facts.steps.where_declaration_indices[i] >= ArrayLength(rows.names) ||
@@ -452,7 +488,7 @@ func SelfDirIntentFactsReady(
             rows.names[facts.steps.where_declaration_indices[i]] !=
                 facts.steps.where_zone_names[i] ||
             facts.steps.using_aliases[i] == "" ||
-            facts.steps.who_starts[i] < 0 || facts.steps.who_counts[i] <= 0 ||
+            facts.steps.who_starts[i] < 0 || facts.steps.who_counts[i] < 0 ||
             facts.steps.who_starts[i] + facts.steps.who_counts[i] >
                 ArrayLength(facts.steps.who_names) ||
             facts.steps.requires_starts[i] < 0 ||
@@ -465,8 +501,13 @@ func SelfDirIntentFactsReady(
                 ArrayLength(facts.steps.authorized_names) {
             return false;
         }
+        if !SelfDirIntentStepTargetContractReady(
+            signatures, intent_signatures, facts.steps, i
+        ) {
+            return false;
+        }
         if !SelfDirIntentStepOutcomeContractReady(
-            artifact, signatures, facts.participants,
+            artifact, signatures, intent_signatures, facts.participants,
             facts.participant_starts, facts.participant_counts,
             facts.step_starts, facts.step_counts, facts.steps, i
         ) {

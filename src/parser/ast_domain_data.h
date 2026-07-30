@@ -177,6 +177,9 @@ typedef struct {
     ASTNode** bindings;
     size_t binding_count;
     size_t binding_capacity;
+    /* Prefix of `bindings` originating in the intent header. Its
+     * Value/Involves role is finalized after all declarations exist. */
+    size_t header_binding_count;
     ASTNode** steps;
     size_t step_count;
     size_t step_capacity;

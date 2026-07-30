@@ -6,7 +6,6 @@
 
 import "../lib/json_emit.pgy";
 import "../lib/json_fact_table.pgy";
-import "../../../stdlib/host_task_slot.pgy";
 import "document_revision_owner.pgy";
 import "transport_owner.pgy";
 

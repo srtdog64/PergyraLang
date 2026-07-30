@@ -1,0 +1,4 @@
+import "private_stage.pgy";
+
+func Main() -> Void {
+}

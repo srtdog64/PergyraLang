@@ -271,7 +271,8 @@ func ParseDecls(
 
         if MatchLanguageWord(content, i, LanguageWordId.WordZone) {
             let zone_block: String = ParseZoneDecl(
-                content, i, cursor_out, decl_prefix, involve_types, out_graphs
+                content, i, cursor_out, decl_prefix, involve_types,
+                out_graphs
             );
             i = cursor_out[0];
             if out_has_line { TextBuilderAppend(out, "\n"); }
@@ -316,7 +317,7 @@ func ParseDecls(
 
         if MatchLanguageWord(content, i, LanguageWordId.WordIntent) {
             let intent_block: String = ParseIntentDecl(
-                content, i, cursor_out, decl_prefix, involve_types, out_graphs
+                content, i, cursor_out, decl_prefix, out_graphs
             );
             i = cursor_out[0];
             if out_has_line { TextBuilderAppend(out, "\n"); }

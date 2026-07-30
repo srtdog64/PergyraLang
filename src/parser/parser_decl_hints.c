@@ -10,6 +10,10 @@ parser_decl_hint_name(ASTNode *node)
     switch (node->type) {
     case AST_CLASS_DECL:
         return node->data.class_decl.name;
+    case AST_ENUM_DECL:
+        return node->data.enum_decl.name;
+    case AST_TYPE_ALIAS:
+        return node->data.type_alias.name;
     case AST_INTENT_DECL:
         return node->data.intent_decl.name;
     case AST_ZONE_DECL:
@@ -116,6 +120,38 @@ parser_register_decl_hint(Parser *parser, ASTNode *node)
     parser->decl_hint_types[parser->decl_hint_count] = node_type;
     parser->decl_hint_nominal_kinds[parser->decl_hint_count] = nominal_kind;
     parser->decl_hint_count++;
+}
+
+bool
+parser_register_composed_decl_hint(Parser *parser, ASTNode *node)
+{
+    const char *name;
+    size_t prior_count;
+
+    if (parser == NULL || node == NULL)
+        return false;
+    name = parser_decl_hint_name(node);
+    if (name == NULL)
+        return true;
+
+    for (size_t i = 0; i < parser->decl_hint_count; i++) {
+        if (parser->decl_hint_names[i] != NULL
+            && strcmp(parser->decl_hint_names[i], name) == 0) {
+            parser_error(parser,
+                "Declaration composition contains duplicate type owner '%s'",
+                name);
+            return false;
+        }
+    }
+
+    prior_count = parser->decl_hint_count;
+    parser_register_decl_hint(parser, node);
+    if (parser->decl_hint_count != prior_count + 1) {
+        parser_error(parser,
+            "Out of memory while composing declaration owner '%s'", name);
+        return false;
+    }
+    return true;
 }
 
 bool

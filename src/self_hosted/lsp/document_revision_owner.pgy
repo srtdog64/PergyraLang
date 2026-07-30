@@ -4,6 +4,8 @@
 // only its generation ticket: it does not reinterpret LSP version or payload
 // identity and it does not introduce a second scheduler.
 
+import "../../../stdlib/host_task_slot.pgy";
+
 class LspDocumentRevision
 {
     let uri: String;

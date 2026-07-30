@@ -1,0 +1,7 @@
+intent ImportedFrontendPipeline(
+    intake: SourceIntakeZone,
+    paths: StagePathManifest
+) {
+    success: true;
+    failure: false;
+}

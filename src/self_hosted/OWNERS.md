@@ -82,6 +82,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/decl_intent_owner.pgy` -- intent declarations,
   singleton guard/post/expect admission, ordered compensation rows, and their
   parser-owned expression graphs.
+- `src/self_hosted/parser/intent_parameter_resolution_owner.pgy` -- one final
+  intent-header parameter-role projection after the complete import graph has
+  supplied subject/zone identities; neutral parser rows may not escape it.
 - `src/self_hosted/parser/intent_variant_binding_owner.pgy` -- exact
   one-payload variant-pattern syntax for typed intent step transitions.
 - `src/self_hosted/parser/intent_terminal_clause_owner.pgy` -- exact legacy or
@@ -408,9 +411,17 @@ inventory must not become a second fact-family owner registry.
   parser-artifact projection of intent declaration identity and ordered
   `involves`/`value` parameter facts used to admit intent calls without
   pretending that an intent is a function or action declaration.
+- `src/self_hosted/semantic/ast_intent_call_fact_owner.pgy` -- exact direct
+  nested-intent call admission by the carried expression-graph target,
+  argument handles, and unique signature identity; source text is not reparsed
+  and the owner never populates the action table.
 - `src/self_hosted/semantic/ast_zone_authority_fact_owner.pgy` -- exact
   parser-artifact zone authority rows bound to one declared subject slot;
-  participant type or same-name fields cannot invent authority.
+  required ability ranges carry role-owned node identity instead of DIR scans,
+  and participant type or same-name fields cannot invent authority.
+- `src/self_hosted/semantic/ast_zone_authority_validation_owner.pgy` -- deep
+  AST cross-seal and fixed-carriage validation for admitted authority rows;
+  lower consumers import this boundary and never rediscover authority syntax.
 - `src/self_hosted/semantic/ast_intent_transition_fact_owner.pgy` -- exact
   enum-scoped step variant, explicit predecessor, and labelled terminal
   payload identity for typed intents; spelling-only and source-order fallback
@@ -532,6 +543,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/expr_validation_owner.pgy` -- expression validation facts.
 - `src/self_hosted/semantic/program_check_owner.pgy` -- program/function and
   nominal constructor signature checks, including exact zone/world field rows.
+- `src/self_hosted/semantic/enum_callable_signature_owner.pgy` -- atomic
+  lightweight-checker projection of local and imported enum variant callable/
+  value rows; it follows parser-owned comma-optional variants, erases payload
+  labels, skips enum methods, and fails closed before publishing partial rows.
 - `src/self_hosted/semantic/semantic_run_owner.pgy` -- semantic CLI run boundary.
 - `src/self_hosted/semantic/source_bundle_owner.pgy` -- root/import source
   bundle ordering and one-pass TextBuilder assembly over a sealed source length.
@@ -844,6 +859,9 @@ inventory must not become a second fact-family owner registry.
   clauses reject duplicates while compensation retains source order.
 - `src/self_hosted/dir/intent_step_carriage_contract_owner.pgy` -- structural
   range, node-kind, and child-census validation for intent-step row carriage.
+- `src/self_hosted/dir/intent_step_target_contract_owner.pgy` -- exact
+  discriminated action-or-intent target identity, return, and arity validation
+  over one carried DIR step.
 - `src/self_hosted/dir/intent_step_fact_owner.pgy` -- one intent-step
   resolution owner for `on` receiver/action binding, semantic action-contract
   defaults, zone/using/who/requires/causes/authorized identities, and ordered
