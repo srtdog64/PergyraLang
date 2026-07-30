@@ -13,11 +13,13 @@ owner, and the named executable gate.
   `origin/main`. It contains `28e371df` (Insere/Zeno audits), `2c2b3028`
   (semantic admission), `3bc5e724` (cross-platform self-host CI contract
   closure) and `18c105a7` (handoff refresh).
-- Latest material checkpoint is `0984ba77` (`fix: close dynamic ability
-  selfcheck target`). At handoff-writing time the worktree is dirty only for
-  this handoff refresh and `main` is one commit ahead of `origin/main`; push is
-  authorized and pending. Verify final remote equality after the handoff
-  commit rather than treating this paragraph as Git authority.
+- Latest local checkpoints are `22054b4e` (`fix: import option call target
+  owner`) and `9d51ff5d` (`test: refresh source scan owner evidence`), after
+  `0984ba77` closed the dynamic ability selfcheck target. At handoff-writing
+  time the worktree is dirty only for this handoff refresh and `origin/main`
+  remains at `15485120`; push is authorized and pending. Verify final remote
+  equality after the handoff commit rather than treating this paragraph as Git
+  authority.
 - Active executable seam: a Pergyra-built codegen created one
   `SemanticAstArtifactAnalysis`, then C emission called
   `SemanticAstArtifactAnalysisMatches` and reconstructed signatures,
@@ -99,6 +101,35 @@ owner, and the named executable gate.
   normalized-C parity. Only after that seam closes should a separate emission
   rung replace owner-local linear node-id scans with ordered lookup. The timed
   out 5.1MB run remains non-green.
+- The body-admission implementation card is now concrete:
+  - owner: the existing `SemanticAstArtifactVerdict` identity and analysis
+    produced by `SemanticAstArtifactAnalyzeFromExpressionSurfaces`; do not add
+    a parallel body authority;
+  - last legitimate proof consumer: a new
+    `SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved` entry that checks
+    artifact identity plus fixed parallel-row shapes before body work;
+  - production callers: only `program_admitted_semantic_owner.pgy`,
+    `driver_pipeline_owner.pgy` and `driver_rung2_owner.pgy`; probes and
+    arbitrary/mutable-pair contracts retain the checked entry;
+  - forbidden admitted closure: `SemanticAstArtifactAnalysisMatches`, every
+    whole-program `*FactsMatchArtifact` and already-carried plural
+    `*FactsFromArtifact`, repeated expression-surface/graph full readiness and
+    a `fast ? checked : admitted` dual path;
+  - the admitted family cores must receive analysis-owned enums, roles, intent
+    signatures/transitions and function tables. The existing checked APIs
+    perform their deep proof once and then descend into those cores;
+  - hidden cost: `SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact`
+    currently rebuilds enum and function-scope facts at match-visible use
+    sites from initializer, assignment, statement, call-target, place and
+    generic passes. Add an admitted-facts seeder consuming the existing scope
+    local view; a single case pattern projection may remain, but plural
+    whole-program reconstruction may not;
+  - negative gate: stale identity or one malformed parallel row fails before
+    `base-initializer:start`; admitted transitive forbidden-call count is zero;
+    exact caller allowlist holds. Run component/lifetime and body parity first,
+    then 2.9MB normalized parity, then the exact 5.1MB capped falsifier.
+  This is still `REACHABLE` performance closure, not a new native-C owner
+  substitution and therefore not `SUBSTITUTING` evidence.
 
 ## Current checkpoint - independent CI portability repairs
 
@@ -152,6 +183,27 @@ owner, and the named executable gate.
   comparison shards green, but its older self-host parity job remains red by
   definition and the long Linux/Windows/macOS/bootstrap jobs were still in
   progress when this snapshot was written. A fresh pushed run is required.
+- Fresh run `30502023063` proved the dynamic source-to-graph target by reaching
+  29/661, then exposed a distinct direct-import defect in
+  `expr_semantic_option_value_owner.pgy`: it consumed
+  `SemanticExpressionGraphCallTargetKind/Name` without importing
+  `ast_expression_call_target_fact_owner.pgy`. That direct owner edge is now
+  present and ratcheted. Current-tree C and LLVM standalone semantic checks
+  both return exit 0, `Status: ok`, `Diagnostics: none`; the LLVM checker build
+  has 0 errors/warnings and the full component contract passes. Unlike the
+  recursive graph-emission cluster, this file must not use a completeness
+  redirect because no import cycle exists.
+- The same run's macOS C-only job passed 62/63 staged contracts and failed only
+  because source-scan evidence still named pre-keyword-registry/pre-canonical-
+  reuse owner hashes. Current CRLF-normalized owner-set hash is
+  `2ECB092EA4E5C16B786CE8A6D732A5B958434C8AB748E9E7DB060C9745548DC5`;
+  current type-canonical owner hash is
+  `E6BD4E6D10612CB019265AD7763DF7FC37BBF748A0F10C919D4EFF5D5D74D859`.
+  Only those ratchet identities changed; historical elapsed/peak values were
+  not relabeled as new measurements. The full local source-scan contract now
+  passes. A bounded follow-on C selfcheck of targets 30-36 found no additional
+  `undefined_function`; three large targets reached the explicit 45-second
+  audit timeout with no diagnostic and are not counted as PASS.
 - One absolute unique-build attempt failed before product execution because an
   MSYS-form absolute path was not stripped to the repository-relative input
   required by self-host I/O policy. One overlapping default-dir run was also
