@@ -6,6 +6,87 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+## Current checkpoint - body admission and latest-only publication
+
+- Material checkpoint: `835348ac318506031a375d8fc168a55e9ca94eb3`
+  (`feat: seal self-host body and publication facts`), based on
+  `6f83a7cd40ba6ff06ab1bb429fe5e877d41b1752`. At handoff-writing time `main`
+  is one commit ahead of `origin/main` and the only intended dirty file is this
+  handoff refresh. Verify the final handoff commit and remote equality with Git;
+  this paragraph is not repository-state authority.
+- Active self-host seam: producer-time `SemanticAstArtifactAnalysis` now carries
+  function scopes, and `AstBodyAnalysisAdmission` performs one identity,
+  parallel-row and reconstruction-free structural-shape admission before the
+  body stages. Initializer, iteration, call-target, refinement, place,
+  assignment, statement and generic owners consume the admitted analysis and
+  its existing enum/scope/table facts instead of reopening the whole artifact.
+- Fact owners are
+  `ast_body_analysis_admission_owner.pgy` and
+  `ast_body_analysis_shape_owner.pgy`; the fail-closed witnesses live in
+  `ast_body_analysis_admission_contract_owner.pgy`. The last orchestration
+  consumers are the body bundle, driver rung 2 and admitted codegen pipeline.
+  Forbidden fallbacks are per-stage artifact reconstruction, repeated graph
+  validation, and trusting a caller-supplied mutable analysis solely because
+  its row counts still match.
+- The driver boundary is intentionally split. Fresh analyses use the admitted
+  entrypoints. Externally supplied raw analyses retain one deep
+  `SemanticAstArtifactAnalysisMatches` proof. The mutable-analysis fixture
+  changes a local name without changing shape and is rejected before
+  `body-types:start`.
+- Canonical MIR identity/epoch projection now obtains nested domain-runtime
+  assignment facts through the typed owner accessors while preserving the
+  whole borrow. The parity fixture remaps declaration, topology, directive,
+  slot, field, path and runtime-assignment epochs atomically. The stale
+  compiler-world smoke assertion was updated to require the admitted
+  `GenerateCUnitFromReadySemanticFacts` path rather than a deleted fallback.
+- Insere adoption is no longer documentation-only. The production self-host LSP
+  `Main --document-store-probe` consumes one `LspDocumentRevision` fact owning
+  URI, numeric version, exact text and `HostTaskSlot` ticket. Lower versions,
+  same-version/different-text changes and stale diagnostics publication are
+  rejected without partially mutating the document store. This is bounded
+  `REACHABLE`; it does not yet replace the released C LSP loop.
+- Zeno adoption remains the existing `SnapshotTicket` plus
+  `BinaryProjectionPreflight` slice. It binds slot generation, the existing
+  `MirAbiLayoutRowCapture` identity and explicit endian, then runs through C and
+  LLVM. It is `REACHABLE` tooling/library evidence, not a second Layout IR and
+  not `SUBSTITUTING` compiler progress.
+- Last observed focused evidence for this material checkpoint:
+  - body analysis admission owner and shape owner self-host semantic checks:
+    PASS;
+  - standalone admission-contract semantic check exceeded the focused CPU
+    budget and was stopped after about 16 minutes: **not a PASS**. The same
+    contract is reached by the driver readiness path exercised by the passing
+    component gate;
+  - raw-analysis mutation admission gate: PASS, fixture build `0 errors, 0
+    warnings`;
+  - semantic environment lifetime/admission ratchet: PASS;
+  - self-host component contract: PASS;
+  - compiler-world topology/source-shape contract: PASS;
+  - canonical identity/epoch C execution and stale/wrong-kind negatives: PASS;
+  - Insere-derived LSP latest-publication C/LLVM parity plus the existing
+    document-store/session-state parity: PASS;
+  - Zeno-derived binary-projection preflight C/LLVM executable parity: PASS;
+  - build-source inventory, documentation quality, shell syntax and
+    `git diff --check`: PASS.
+- No new 2.9MB or 5,106,665-byte pressure run was performed for this checkpoint.
+  The previous exact 5.1MB run stayed under 3GiB but timed out, so it remains a
+  performance falsifier rather than an end-to-end PASS. A sampled final focused
+  build showed the Pergyra process and `cc1` each near 0.9GiB, but that sample is
+  not a formal peak measurement.
+- Evidence grade remains `REACHABLE`, not `SUBSTITUTING`: this checkpoint closes
+  repeated semantic admission and mutable-boundary defects and adds a real
+  self-host LSP consumer, but does not yet delete another C-owned production
+  compiler/LSP entrypoint.
+- Next falsifiers, in order:
+  1. rerun the exact 5,106,665-byte normalized parity fixture under the
+     3GiB/2,400-second cap; only if body admission remains below the dominant
+     cost, close the measured emission-side linear node-ID lookup seam;
+  2. carry the Insere-derived revision ticket through the live read-exact
+     diagnostics completion and delete released-C direct document mutation;
+  3. derive Zeno-style ABI inspect/diff only from
+     `MirAbiLayoutRowCapture`, rejecting offset/size/alignment/endian drift and
+     identity collisions without introducing another layout owner.
+
 ## Current checkpoint - admitted semantic artifact emission
 
 - Exact remote base for this continuation was
