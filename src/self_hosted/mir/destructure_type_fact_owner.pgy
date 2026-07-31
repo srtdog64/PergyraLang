@@ -56,11 +56,15 @@ func SelfMirDestructureTypeFactsReadyForRoutine(
     if SemanticAstInitializerTypeCount(initializer_types) != local_count {
         return false;
     }
-    let i: Int = 0;
-    while i < local_count {
-        if analysis.local_bindings.function_node_ids[i] == function_node_id &&
-            analysis.local_bindings.binding_kinds[i] ==
-                SemanticAstLocalBindingKindDestructure() {
+    let local_range: SemanticAstLocalBindingFunctionRange =
+        SemanticAstLocalBindingRangeForFunction(
+            analysis.local_bindings, function_node_id
+        );
+    if !local_range.ok { return false; }
+    let i: Int = local_range.start;
+    while i < local_range.end {
+        if analysis.local_bindings.binding_kinds[i] ==
+            SemanticAstLocalBindingKindDestructure() {
             if initializer_types.node_ids[i] !=
                     analysis.local_bindings.node_ids[i] ||
                 initializer_types.binding_kinds[i] !=
@@ -95,11 +99,14 @@ func SelfMirDestructureTypeFactRowsAppendRoutine(
     let binding_types: Array<String> = rows.binding_types;
     ArrayPush(routine_starts, ArrayLength(function_syntax_ids));
     let routine_count: Int = 0;
-    let i: Int = 0;
-    while i < SemanticAstLocalBindingCount(analysis.local_bindings) {
-        if analysis.local_bindings.function_node_ids[i] == function_node_id &&
-            analysis.local_bindings.binding_kinds[i] ==
-                SemanticAstLocalBindingKindDestructure() {
+    let local_range: SemanticAstLocalBindingFunctionRange =
+        SemanticAstLocalBindingRangeForFunction(
+            analysis.local_bindings, function_node_id
+        );
+    let i: Int = local_range.start;
+    while i < local_range.end {
+        if analysis.local_bindings.binding_kinds[i] ==
+            SemanticAstLocalBindingKindDestructure() {
             ArrayPush(function_syntax_ids, function_node_id);
             ArrayPush(
                 destructure_syntax_ids,

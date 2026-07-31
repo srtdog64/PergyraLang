@@ -7816,6 +7816,62 @@ reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "ReplaceAllOutsi
 require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "func RuntimeCallCName("
 require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "func RewriteRuntimeCallsOutsideStrings("
 require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "StringRuntimeCStringLengthFn()"
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" \
+    'source_name == "Split" || source_name == "StringSplit"'
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    'StartsWith(e, "Split(") || StartsWith(e, "StringSplit(")'
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" \
+    'if index == 1 { return "StringSplit"; }'
+require_text "src/self_hosted/codegen/fixture/str_builtins2.pgy" \
+    'StringSplit("left,right", ",")'
+require_text "src/self_hosted/mir/routine_input_owner.pgy" \
+    "func SelfMirRoutineInputRowsReady("
+require_text "src/self_hosted/mir/routine_input_owner.pgy" \
+    "func SelfMirInitializerIndexForNodeFromReadyRows("
+require_text "src/self_hosted/mir/routine_input_owner.pgy" \
+    "func SelfMirIterationRowForNodeFromReadyRows("
+require_text "src/self_hosted/mir/artifact_lower_owner.pgy" \
+    "SelfMirRoutineInputRowsReady(input)"
+reject_function_text "src/self_hosted/mir/routine_let_owner.pgy" \
+    "func SelfMirLowerLetFromArtifact(" "SelfMirInitializerRowsReady("
+reject_function_text "src/self_hosted/mir/routine_assignment_owner.pgy" \
+    "func SelfMirLowerAssignmentFromArtifact(" "SelfMirAssignmentRowsReady("
+reject_function_text "src/self_hosted/mir/routine_iteration_owner.pgy" \
+    "func SelfMirIterationLoweringFactForNode(" "SelfMirIterationRowsReady("
+reject_function_text "src/self_hosted/mir/routine_local_inventory_owner.pgy" \
+    "func SelfMirRoutineLocalInventoryFromInput(" "SelfMirInitializerRowsReady("
+reject_function_text "src/self_hosted/mir/routine_local_inventory_owner.pgy" \
+    "func SelfMirRoutineLocalInventoryFromInput(" "SelfMirIterationRowsReady("
+require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" \
+    "func SemanticAstStatementRangeForFunction("
+require_text "src/self_hosted/mir/loop_flow_rows_owner.pgy" \
+    "SemanticAstStatementRangeForFunction("
+reject_function_text "src/self_hosted/mir/loop_flow_rows_owner.pgy" \
+    "func SelfMirLoopFlowRowsAppendRoutine(" "SemanticAstStatementCount(statements)"
+reject_function_text "src/self_hosted/mir/destructure_type_fact_owner.pgy" \
+    "func SelfMirDestructureTypeFactsReadyForRoutine(" "while i < local_count"
+reject_function_text "src/self_hosted/mir/destructure_type_fact_owner.pgy" \
+    "func SelfMirDestructureTypeFactRowsAppendRoutine(" \
+    "SemanticAstLocalBindingCount(analysis.local_bindings)"
+reject_function_text "src/self_hosted/mir/routine_local_inventory_owner.pgy" \
+    "func SelfMirRoutineLocalInventoryFromInput(" \
+    "while i < ArrayLength(input.iterations.node_ids)"
+reject_function_text "src/self_hosted/mir/artifact_lower_owner.pgy" \
+    "func SelfMirAppendRoutine(" \
+    "while iteration_i < SemanticAstIterationTypeCount(iteration_types)"
+require_file "tests/self_hosted/parity/driver_full_mir_seed_pressure_shard.sh"
+require_text "Makefile" \
+    "self-host-driver-full-mir-seed-pressure-shard-test-smoke:"
+require_text "Makefile" \
+    "PGY_SELFHOST_DRIVER_MIR_SHARD_TIMEOUT_SEC ?= 300"
+require_text "tests/self_hosted/parity/driver_full_mir_seed_pressure_shard.sh" \
+    'DRIVER_SOURCE_REL="${paths[8]}"'
+require_text "tests/self_hosted/parity/driver_full_mir_seed_pressure_shard.sh" \
+    "--pressure-owned-full-fixpoint"
+reject_text "tests/self_hosted/parity/driver_full_mir_seed_pressure_shard.sh" \
+    'DRIVER_SOURCE_REL="src/self_hosted/compiler/driver_bootstrap_main.pgy"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" \
+    '-I"$ROOT_DIR/src/runtime"'
 require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "HostIORuntimeCWriteFileFn()"
 require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "OptionResultRuntimeCResultUnwrapFn()"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" 'Concat("(*", Concat(ref_c_name, ")"))'

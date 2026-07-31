@@ -24,7 +24,7 @@ func SelfMirLowerAssignmentFromArtifact(
         input.analysis.assignments.target_root_names[assignment_index];
     let target_text: String =
         input.analysis.assignments.target_texts[assignment_index];
-    let binding_row_opt: Option<Int> = SelfMirAssignmentRowForNode(
+    let binding_row_opt: Option<Int> = SelfMirAssignmentRowForNodeFromReadyRows(
         input.assignments, node_id
     );
     if !IsSome(binding_row_opt) {

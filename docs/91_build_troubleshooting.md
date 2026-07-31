@@ -137,9 +137,30 @@ stay below the cap.
 
 The current bottleneck is therefore split explicitly:
 
-- memory: no 20 GB compiler process reproduced; current full peak is below the
-  unchanged 3,072 MB cap;
+The pressure owner samples its own process tree and writes the maximum to the
+final summary. Do not repeatedly query live processes or tail the raw sample
+file during a normal run. Read `peak_private_gib` and
+`attention_required` once after termination. The hard limit is 3 GiB; the
+memory attention threshold is 80% (2.4 GiB). A result below that threshold is
+recorded but does not become an optimization task.
+
+- memory: no 20 GB compiler process reproduced; the latest full peak is 2.228
+  GiB, below both the 2.4 GiB attention threshold and 3 GiB hard limit;
 - CPU: full integration still does not complete inside the policy window;
+- observed CPU improvement: one-time MIR input-row validation advanced the
+  30-minute cutoff from routine 588 to 696. Function-scoped statement and local
+  ranges advanced it again to routine 776, a 32.0% increase from the original
+  cutoff without increasing memory pressure;
+- focused shard: the existing seed runs MIR only for five minutes and reached
+  routine 303 at 1.561 GiB peak private. Semantic verification consumed about
+  151.6 seconds and routines 0..302 about 125.1 seconds. The slowest routines
+  were large AST-text projections, so the next falsifier is routine-lowering
+  fact access, not memory tuning;
+- rejected experiment: seeding each routine with a value snapshot of the
+  program expression graph avoided repeated whole-graph equality but regressed
+  the five-minute cutoff from routine 303 to 267. Peak private stayed at 1.562
+  GiB with `attention_required=false`. The change was reverted. The graph must
+  remain program-owned while MIR instructions carry only root/range handles;
 - next evidence: the pressure-observed `mir-facts` owner now emits bounded
   iteration-validation, generic-specializations, domain-projection,
   routine/intent row, and canonical-ID start/done events. The pressure summary

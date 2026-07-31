@@ -9,12 +9,20 @@
   DriverRung2MirProjectionFromAdmittedAnalysisObserved ->
   SelfMirProgramFactsFromReadyArtifactObserved`.
 - The current full-bootstrap blocker is CPU time inside `mir-facts`, not the
-  historical 20 GB memory symptom. The latest bounded run reached
-  `mir-facts:start`, stopped after 2,534,272 ms, and peaked at 2,284.8 MB private
-  under the unchanged 3,072 MiB limit.
-- The pressure-observed MIR owner now emits iteration/generic/domain,
-  routine/intent row, and canonical-ID start/done events. The next bounded run
-  selects the last open event as one optimization owner; no general cache/query
+  historical 20 GB memory symptom. One-time row validation and function-scoped
+  ranges advanced the 30-minute cutoff from routine 588 to routine 776. The run
+  remained incomplete at 2.228 GiB peak private.
+- The five-minute seed-only MIR shard reached routine 303 at 1.561 GiB peak.
+  Large AST-text projection routines now name the CPU falsifier.
+- A routine-local program-graph value snapshot regressed the cutoff to 267 at
+  1.562 GiB and was reverted. The program must own one graph while instructions
+  carry root/range handles only.
+- Read memory only from the pressure owner's final summary. The hard limit is
+  3 GiB and the attention threshold is 2.4 GiB; below it, memory does not own
+  an optimization task.
+- The next vertical slice moves the immutable expression graph to one
+  program-owned MIR boundary and removes per-routine graph storage plus repeated
+  graph equality. It uses the existing five-minute shard; no general cache/query
   engine is active.
 - Focused evidence for this refocus is green: component contract,
   semantic-environment lifetime/no-direct-bypass, native parser, imported intent

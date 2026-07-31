@@ -33,8 +33,7 @@ func SelfMirIterationLoweringFactForNode(
     node_id: Int,
     statement_index: Int
 ) -> SelfMirIterationLoweringFact {
-    if !SelfMirIterationRowsReady(input.iterations) ||
-        statement_index < 0 ||
+    if statement_index < 0 ||
         statement_index >= SemanticAstStatementCount(input.analysis.statements) ||
         input.analysis.statements.node_ids[statement_index] != node_id ||
         input.analysis.statements.kind_tags[statement_index] !=
@@ -48,26 +47,22 @@ func SelfMirIterationLoweringFactForNode(
     let collection_hoist: Int = 0;
     let synthetic_name: String = "";
     let synthetic_graph_root_id: Int = -1;
-    let found_iteration: Bool = false;
-    let i: Int = 0;
-    while i < ArrayLength(input.iterations.node_ids) {
-        if input.iterations.node_ids[i] == node_id {
-            binding_type = input.iterations.binding_type_names[i];
-            iterable_type = input.iterations.iterable_type_names[i];
-            collection_hoist = input.iterations.collection_hoists[i];
-            synthetic_name = input.iterations.synthetic_names[i];
-            synthetic_graph_root_id =
-                input.iterations.synthetic_graph_root_ids[i];
-            found_iteration = true;
-            break;
-        }
-        i = i + 1;
-    }
-    if !found_iteration {
+    let iteration_row_opt: Option<Int> =
+        SelfMirIterationRowForNodeFromReadyRows(
+            input.iterations, node_id
+        );
+    if !IsSome(iteration_row_opt) {
         return SelfMirIterationLoweringError(
             "MIR for-loop iteration type fact is missing"
         );
     }
+    let iteration_row: Int = UnwrapOption(iteration_row_opt);
+    binding_type = input.iterations.binding_type_names[iteration_row];
+    iterable_type = input.iterations.iterable_type_names[iteration_row];
+    collection_hoist = input.iterations.collection_hoists[iteration_row];
+    synthetic_name = input.iterations.synthetic_names[iteration_row];
+    synthetic_graph_root_id =
+        input.iterations.synthetic_graph_root_ids[iteration_row];
     let binding: String = input.analysis.statements.payload_texts[
         statement_index
     ];

@@ -86,12 +86,15 @@ func SelfMirLoopFlowRowsAppendRoutine(
     let state_count: Int = ArrayLength(rows.states.stable_indices);
     ArrayPush(routine_starts, ArrayLength(loop_node_ids));
     let routine_count: Int = 0;
-    let i: Int = 0;
-    while i < SemanticAstStatementCount(statements) {
+    let statement_range: SemanticAstLocalBindingFunctionRange =
+        SemanticAstStatementRangeForFunction(
+            statements, function_node_id
+        );
+    let i: Int = statement_range.start;
+    while i < statement_range.end {
         let kind: Int = statements.kind_tags[i];
-        if statements.function_node_ids[i] == function_node_id &&
-            (kind == TypedAstKindWhileStmtTag() ||
-             kind == TypedAstKindForStmtTag()) {
+        if kind == TypedAstKindWhileStmtTag() ||
+            kind == TypedAstKindForStmtTag() {
             ArrayPush(loop_node_ids, statements.node_ids[i]);
             if kind == TypedAstKindForStmtTag() {
                 ArrayPush(kinds, 1);

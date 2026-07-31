@@ -13,14 +13,12 @@ import "../compiler/machine_layer_declaration_consumer.pgy";
 import "../semantic/ast_statement_fact_owner.pgy";
 import "../semantic/ast_statement_type_query_owner.pgy";
 import "../semantic/ast_generic_specialization_query_owner.pgy";
-
 func SelfMirAppendRoutine(
     facts: SelfMirProgramFacts,
     analysis: SemanticAstArtifactAnalysis,
     ref input: SelfMirRoutineInput,
     signature_index: Int,
     build: SelfMirRoutineBuild,
-    iteration_types: SemanticAstIterationTypeFacts,
     initializer_types: SemanticAstInitializerTypeFacts
 ) -> SelfMirProgramFacts {
     let function_node_id: Int =
@@ -155,31 +153,50 @@ func SelfMirAppendRoutine(
         local_i = local_i + 1;
     }
     ArrayPush(iteration_starts, ArrayLength(iteration_node_ids));
-    let iteration_count: Int = 0;
-    let iteration_i: Int = 0;
-    while iteration_i < SemanticAstIterationTypeCount(iteration_types) {
-        let statement_index: Option<Int> = SemanticAstStatementIndexForNode(
-            analysis.statements, iteration_types.node_ids[iteration_i]
+    let statement_range: SemanticAstLocalBindingFunctionRange =
+        SemanticAstStatementRangeForFunction(
+            analysis.statements, function_node_id
         );
-        if IsSome(statement_index) &&
-            analysis.statements.function_node_ids[UnwrapOption(statement_index)] ==
-                function_node_id {
-            ArrayPush(iteration_node_ids, iteration_types.node_ids[iteration_i]);
+    if !statement_range.ok {
+        return SelfMirProgramFactsError(
+            facts, "mir_iteration_function_range_invalid",
+            "MIR iteration facts require a function-owned statement range"
+        );
+    }
+    let iteration_count: Int = 0;
+    let statement_i: Int = statement_range.start;
+    while statement_i < statement_range.end {
+        if analysis.statements.kind_tags[statement_i] ==
+            TypedAstKindForStmtTag() {
+            let iteration_row_opt: Option<Int> =
+                SelfMirIterationRowForNodeFromReadyRows(
+                    input.iterations, analysis.statements.node_ids[statement_i]
+                );
+            if !IsSome(iteration_row_opt) {
+                return SelfMirProgramFactsError(
+                    facts, "mir_iteration_type_fact_missing",
+                    "MIR for-loop statement requires one iteration type row"
+                );
+            }
+            let iteration_row: Int = UnwrapOption(iteration_row_opt);
+            ArrayPush(
+                iteration_node_ids, input.iterations.node_ids[iteration_row]
+            );
             ArrayPush(
                 iteration_binding_types,
-                iteration_types.binding_type_names[iteration_i]
+                input.iterations.binding_type_names[iteration_row]
             );
             ArrayPush(
                 iteration_iterable_types,
-                iteration_types.iterable_type_names[iteration_i]
+                input.iterations.iterable_type_names[iteration_row]
             );
             ArrayPush(
                 iteration_collection_hoists,
-                iteration_types.collection_hoists[iteration_i]
+                input.iterations.collection_hoists[iteration_row]
             );
             iteration_count = iteration_count + 1;
         }
-        iteration_i = iteration_i + 1;
+        statement_i = statement_i + 1;
     }
     ArrayPush(iteration_counts, iteration_count);
     return SelfMirProgramFacts(
@@ -425,14 +442,24 @@ func SelfMirProgramFactsFromReadyArtifactObserved(
         domain_facts.domain_topology,
         domain_facts.domain_runtime_assignments, generic_rows,
         facts.parallel_captures, facts.routines, facts.cfg);
+    let initializer_rows: SelfMirInitializerRows =
+        SelfMirInitializerRowsFromSemantic(initializer_types);
+    let iteration_rows: SelfMirIterationRows =
+        SelfMirIterationRowsFromSemantic(iteration_types);
+    let assignment_rows: SelfMirAssignmentRows =
+        SelfMirAssignmentRowsFromSemantic(assignment_types);
     let input: SelfMirRoutineInput = SelfMirRoutineInput(
         artifact, analysis,
-        SelfMirInitializerRowsFromSemantic(initializer_types),
-        SelfMirIterationRowsFromSemantic(iteration_types),
-        SelfMirAssignmentRowsFromSemantic(assignment_types),
+        initializer_rows, iteration_rows, assignment_rows,
         statement_types,
         machine_declaration
     );
+    if !SelfMirRoutineInputRowsReady(input) {
+        return SelfMirProgramFactsError(
+            facts, "mir_routine_input_invalid",
+            "MIR routine input rows must be validated once before lowering"
+        );
+    }
     SelfMirArtifactPressureStage(observe_pressure, "routine-lowering:start");
     let i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(analysis.signatures) {
@@ -462,7 +489,7 @@ func SelfMirProgramFactsFromReadyArtifactObserved(
         }
         facts = SelfMirAppendRoutine(
             facts, analysis, input, i, build,
-            iteration_types, initializer_types
+            initializer_types
         );
         SelfMirArtifactRoutinePressureStage(
             observe_pressure, "routine", i, "done"

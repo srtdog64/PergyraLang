@@ -38,9 +38,7 @@ func SelfMirRoutineLocalInventoryFromInput(
 ) -> SelfMirRoutineLocalInventory {
     let names: Array<String> = [];
     let types: Array<String> = [];
-    if function_node_id < 0 || !input.analysis.local_bindings.ok ||
-        !SelfMirInitializerRowsReady(input.initializers) ||
-        !SelfMirIterationRowsReady(input.iterations) {
+    if function_node_id < 0 || !input.analysis.local_bindings.ok {
         return SelfMirRoutineLocalInventoryError(
             "MIR source-local inventory input is invalid", names, types
         );
@@ -55,33 +53,43 @@ func SelfMirRoutineLocalInventoryFromInput(
         );
     }
 
+    let statement_range: SemanticAstLocalBindingFunctionRange =
+        SemanticAstStatementRangeForFunction(
+            input.analysis.statements, function_node_id
+        );
+    if !statement_range.ok {
+        return SelfMirRoutineLocalInventoryError(
+            "MIR source-local statement range is invalid", names, types
+        );
+    }
     let iteration_rows: Array<Int> = [];
     let prior_iteration_node: Int = -1;
-    let i: Int = 0;
-    while i < ArrayLength(input.iterations.node_ids) {
-        let node_id: Int = input.iterations.node_ids[i];
-        let statement_opt: Option<Int> = SemanticAstStatementIndexForNode(
-            input.analysis.statements, node_id
-        );
-        if !IsSome(statement_opt) {
-            return SelfMirRoutineLocalInventoryError(
-                "MIR source-local iteration statement is missing",
-                names, types
-            );
-        }
-        let statement_index: Int = UnwrapOption(statement_opt);
-        if input.analysis.statements.function_node_ids[statement_index] ==
-            function_node_id {
+    let statement_i: Int = statement_range.start;
+    while statement_i < statement_range.end {
+        if input.analysis.statements.kind_tags[statement_i] ==
+            TypedAstKindForStmtTag() {
+            let node_id: Int =
+                input.analysis.statements.node_ids[statement_i];
+            let iteration_row_opt: Option<Int> =
+                SelfMirIterationRowForNodeFromReadyRows(
+                    input.iterations, node_id
+                );
+            if !IsSome(iteration_row_opt) {
+                return SelfMirRoutineLocalInventoryError(
+                    "MIR source-local iteration row is missing",
+                    names, types
+                );
+            }
             if node_id <= prior_iteration_node {
                 return SelfMirRoutineLocalInventoryError(
                     "MIR source-local iteration order is invalid",
                     names, types
                 );
             }
-            ArrayPush(iteration_rows, i);
+            ArrayPush(iteration_rows, UnwrapOption(iteration_row_opt));
             prior_iteration_node = node_id;
         }
-        i = i + 1;
+        statement_i = statement_i + 1;
     }
 
     let local_i: Int = local_range.start;
@@ -147,7 +155,7 @@ func SelfMirRoutineLocalInventoryFromInput(
                     input.analysis.local_bindings, local_node
                 );
             let initializer_range: SemanticAstLocalBindingFunctionRange =
-                SelfMirInitializerRangeForNode(
+                SelfMirInitializerRangeForNodeFromReadyRows(
                     input.initializers, local_node
                 );
             if !binding_range.ok || !initializer_range.ok ||

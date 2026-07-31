@@ -217,6 +217,38 @@ func SemanticAstStatementIndexForNode(
     return None;
 }
 
+func SemanticAstStatementRangeForFunction(
+    facts: SemanticAstStatementFacts,
+    function_node_id: Int
+) -> SemanticAstLocalBindingFunctionRange {
+    let count: Int = SemanticAstStatementCount(facts);
+    if !facts.ok || function_node_id < 0 ||
+        ArrayLength(facts.function_node_ids) != count {
+        return SemanticAstLocalBindingFunctionRange(false, 0, 0);
+    }
+    let low: Int = 0;
+    let high: Int = count;
+    while low < high {
+        let middle: Int = low + ((high - low) / 2);
+        if facts.function_node_ids[middle] < function_node_id {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    let start: Int = low;
+    high = count;
+    while low < high {
+        let middle2: Int = low + ((high - low) / 2);
+        if facts.function_node_ids[middle2] <= function_node_id {
+            low = middle2 + 1;
+        } else {
+            high = middle2;
+        }
+    }
+    return SemanticAstLocalBindingFunctionRange(true, start, low);
+}
+
 func SemanticAstStatementFactsMatchArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -272,12 +304,18 @@ func SemanticAstStatementFactsContractReady() -> Bool {
     let last_index: Option<Int> = SemanticAstStatementIndexForNode(
         facts, facts.node_ids[6]
     );
+    let function_range: SemanticAstLocalBindingFunctionRange =
+        SemanticAstStatementRangeForFunction(
+            facts, signatures.function_node_ids[0]
+        );
     return SemanticAstStatementFactsMatchArtifact(
         artifact, signatures, facts
     ) &&
         IsSome(first_index) && UnwrapOption(first_index) == 0 &&
         IsSome(middle_index) && UnwrapOption(middle_index) == 3 &&
         IsSome(last_index) && UnwrapOption(last_index) == 6 &&
+        function_range.ok && function_range.start == 0 &&
+        function_range.end == 7 &&
         !IsSome(SemanticAstStatementIndexForNode(facts, 0)) &&
         !IsSome(SemanticAstStatementIndexForNode(facts, -1)) &&
         !IsSome(SemanticAstStatementIndexForNode(facts, artifact.count)) &&

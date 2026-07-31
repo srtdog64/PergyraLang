@@ -15,7 +15,9 @@ func SelfMirLowerDestructureFromArtifact(
             input.analysis.local_bindings, node_id
         );
     let initializer_range: SemanticAstLocalBindingFunctionRange =
-        SelfMirInitializerRangeForNode(input.initializers, node_id);
+        SelfMirInitializerRangeForNodeFromReadyRows(
+            input.initializers, node_id
+        );
     if !local_range.ok || !initializer_range.ok ||
         local_range.end - local_range.start !=
             initializer_range.end - initializer_range.start {

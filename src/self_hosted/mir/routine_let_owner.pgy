@@ -17,7 +17,7 @@ func SelfMirLowerLetFromArtifact(
             build, "MIR let is missing semantic local facts"
         );
     }
-    let initializer_index: Option<Int> = SelfMirInitializerIndexForNode(
+    let initializer_index: Option<Int> = SelfMirInitializerIndexForNodeFromReadyRows(
         input.initializers, node_id
     );
     if !IsSome(initializer_index) {

@@ -3,6 +3,7 @@ param(
     [string]$Command = "mingw32-make",
     [string[]]$Arguments = @("dev-compiler"),
     [int]$LimitMB = 3072,
+    [int]$AttentionPercent = 80,
     [int]$IntervalMs = 500,
     [int]$TimeoutSec = 0,
     [int]$OutputDrainTimeoutMs = 5000,
@@ -13,6 +14,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 $invariantCulture = [Globalization.CultureInfo]::InvariantCulture
+
+if ($AttentionPercent -lt 1 -or $AttentionPercent -gt 99) {
+    throw "AttentionPercent must be between 1 and 99"
+}
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
@@ -518,6 +523,10 @@ if ($timedOut) {
 }
 
 $elapsedMs = [int]((Get-Date) - $started).TotalMilliseconds
+$peakWorkingSetGiB = [math]::Round($peakWorkingSet / 1024.0, 3)
+$peakPrivateGiB = [math]::Round($peakPrivate / 1024.0, 3)
+$attentionLimitMB = $LimitMB * ($AttentionPercent / 100.0)
+$attentionRequired = $peakPrivate -ge $attentionLimitMB
 $summary = [ordered]@{
     schema = "pgy.build-pressure.v2"
     label = $Label
@@ -526,10 +535,15 @@ $summary = [ordered]@{
     interval_ms = $IntervalMs
     peak_working_set_mb = [math]::Round($peakWorkingSet, 1)
     peak_private_mb = [math]::Round($peakPrivate, 1)
+    peak_working_set_gib = $peakWorkingSetGiB
+    peak_private_gib = $peakPrivateGiB
     peak_processes = $peakProcessCount
     top_private_process = $peakName
     top_private_mb = [math]::Round($peakTopPrivate, 1)
     limit_mb = $LimitMB
+    attention_percent = $AttentionPercent
+    attention_limit_gib = [math]::Round($attentionLimitMB / 1024.0, 3)
+    attention_required = $attentionRequired
     stop_on_limit = [bool]$StopOnLimit
     limit_exceeded = $limitExceeded
     detached_compiler_worker_tracking = $trackDetachedCompilerWorkers
@@ -546,12 +560,16 @@ $summary = [ordered]@{
 }
 $summary | ConvertTo-Json -Depth 4 | Set-Content -Encoding ASCII -Path $summaryPath
 
-Write-Output ("[build-pressure] label={0} exit={1} elapsed_ms={2} peak_working_set_mb={3:N1} peak_private_mb={4:N1} peak_processes={5} top_private={6}:{7:N1} samples={8} summary={9}" -f `
-    $Label, $exitCode, $elapsedMs, $peakWorkingSet, $peakPrivate, `
-    $peakProcessCount, $peakName, $peakTopPrivate, $samplePath, $summaryPath)
+Write-Output ("[build-pressure] label={0} exit={1} elapsed_ms={2} peak_working_set_gib={3:N3} peak_private_gib={4:N3} attention_required={5} summary={6}" -f `
+    $Label, $exitCode, $elapsedMs, $peakWorkingSetGiB, $peakPrivateGiB, `
+    $attentionRequired, $summaryPath)
 
 if ($timedOut) {
     [Console]::Error.WriteLine(("[build-pressure] timed out after {0}s" -f $TimeoutSec))
+}
+
+if ($attentionRequired -and -not $limitExceeded) {
+    [Console]::Error.WriteLine(("[build-pressure] peak crossed the {0}% attention threshold ({1:N3} GiB)" -f $AttentionPercent, ($attentionLimitMB / 1024.0)))
 }
 
 if ($limitExceeded) {

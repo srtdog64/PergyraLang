@@ -9,13 +9,20 @@
   -> SelfMirProgramFactsFromReadyArtifactObserved` 하나다. 설치 경로와 full
   bootstrap이 이 owner graph를 공유하며, 다음 목표는 실제 C 우회 제거로
   이어지는 실행 rung이다.
-- 최근 full integration은 3,072 MiB 제한 아래 `mir-facts:start`에 도달했고
-  2,534,272 ms 뒤 정책 중단됐다. Peak private 2,284.8 MB이므로 현재 증거는
-  20 GB memory regression이 아니라 MIR fact 생산의 CPU/incomplete blocker다.
+- 한 번만 검증하는 input row와 함수 범위 fact를 적용한 30분 full integration은
+  중단 지점이 routine 588에서 776으로 전진했다. Peak private는 2.228 GiB이며
+  결과는 여전히 CPU/incomplete다. 5분 seed-only MIR shard는 routine 303까지
+  진행했고 peak private는 1.561 GiB였다.
+- Program graph를 routine마다 값 복사한 실험은 cutoff를 303에서 267로
+  악화시켜 되돌렸다. 다음 경계는 graph를 program이 한 번 소유하고 instruction은
+  root/range handle만 갖는 구조이며 routine-local snapshot은 금지한다.
+- 메모리는 pressure owner가 종료 시 기록한 최대 GiB만 읽는다. 하드 상한은
+  3 GiB, 주의선은 80%인 2.4 GiB다. 주의선 아래에서는 메모리를 최적화
+  작업으로 열지 않는다.
 - MIR owner의 pressure-observed 경로를 iteration/generic/domain/routine/intent/
-  canonical-ID 단계로 나눴다. 다음 bounded run에서 마지막 start/done pair가
-  지목한 owner만 최적화한다. 측정 전에 general cache/query engine을 만들거나
-  timeout·memory cap을 올리는 것은 금지한다.
+  canonical-ID 단계로 나눴다. 다음 vertical slice는 expression graph를 program
+  경계가 한 번 소유하게 하고 instruction의 root/range handle만 병합한다.
+  5분 shard가 개선되기 전에는 30분 integration을 다시 돌리지 않는다.
 - Insere/Zeno와 다른 외부 프로젝트 검토는 완료된 provenance archive다.
   사용자가 명시적으로 다시 열지 않는 한 self-host resume context, TODO,
   `SUBSTITUTING` 진척으로 취급하지 않는다.

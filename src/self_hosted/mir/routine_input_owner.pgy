@@ -39,6 +39,22 @@ struct SelfMirRoutineInput {
     machine_declaration: SelfHostMachineLayerDeclaration;
 }
 
+func SelfMirSortedNodeRowLowerBound(
+    node_ids: Array<Int>, node_id: Int
+) -> Int {
+    let low: Int = 0;
+    let high: Int = ArrayLength(node_ids);
+    while low < high {
+        let middle: Int = low + ((high - low) / 2);
+        if node_ids[middle] < node_id {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    return low;
+}
+
 func SelfMirAssignmentRowsFromSemantic(
     facts: SemanticAstAssignmentTypeFacts
 ) -> SelfMirAssignmentRows {
@@ -68,16 +84,21 @@ func SelfMirAssignmentRowsReady(rows: SelfMirAssignmentRows) -> Bool {
     return true;
 }
 
+func SelfMirAssignmentRowForNodeFromReadyRows(
+    rows: SelfMirAssignmentRows, node_id: Int
+) -> Option<Int> {
+    let row: Int = SelfMirSortedNodeRowLowerBound(rows.node_ids, node_id);
+    if row < ArrayLength(rows.node_ids) && rows.node_ids[row] == node_id {
+        return Some(row);
+    }
+    return None;
+}
+
 func SelfMirAssignmentRowForNode(
     rows: SelfMirAssignmentRows, node_id: Int
 ) -> Option<Int> {
     if !SelfMirAssignmentRowsReady(rows) { return None; }
-    let i: Int = 0;
-    while i < ArrayLength(rows.node_ids) {
-        if rows.node_ids[i] == node_id { return Some(i); }
-        i = i + 1;
-    }
-    return None;
+    return SelfMirAssignmentRowForNodeFromReadyRows(rows, node_id);
 }
 
 func SelfMirInitializerRowsFromSemantic(
@@ -129,17 +150,11 @@ func SelfMirInitializerRowsReady(rows: SelfMirInitializerRows) -> Bool {
     return true;
 }
 
-func SelfMirInitializerRangeForNode(
+func SelfMirInitializerRangeForNodeFromReadyRows(
     rows: SelfMirInitializerRows,
     node_id: Int
 ) -> SemanticAstLocalBindingFunctionRange {
-    if !SelfMirInitializerRowsReady(rows) {
-        return SemanticAstLocalBindingFunctionRange(false, 0, 0);
-    }
-    let start: Int = 0;
-    while start < ArrayLength(rows.node_ids) && rows.node_ids[start] < node_id {
-        start = start + 1;
-    }
+    let start: Int = SelfMirSortedNodeRowLowerBound(rows.node_ids, node_id);
     let end: Int = start;
     while end < ArrayLength(rows.node_ids) && rows.node_ids[end] == node_id {
         end = end + 1;
@@ -148,17 +163,33 @@ func SelfMirInitializerRangeForNode(
     return SemanticAstLocalBindingFunctionRange(has_range, start, end);
 }
 
+func SelfMirInitializerRangeForNode(
+    rows: SelfMirInitializerRows,
+    node_id: Int
+) -> SemanticAstLocalBindingFunctionRange {
+    if !SelfMirInitializerRowsReady(rows) {
+        return SemanticAstLocalBindingFunctionRange(false, 0, 0);
+    }
+    return SelfMirInitializerRangeForNodeFromReadyRows(rows, node_id);
+}
+
+func SelfMirInitializerIndexForNodeFromReadyRows(
+    rows: SelfMirInitializerRows,
+    node_id: Int
+) -> Option<Int> {
+    let row: Int = SelfMirSortedNodeRowLowerBound(rows.node_ids, node_id);
+    if row < ArrayLength(rows.node_ids) && rows.node_ids[row] == node_id {
+        return Some(row);
+    }
+    return None;
+}
+
 func SelfMirInitializerIndexForNode(
     rows: SelfMirInitializerRows,
     node_id: Int
 ) -> Option<Int> {
     if !SelfMirInitializerRowsReady(rows) { return None; }
-    let i: Int = 0;
-    while i < ArrayLength(rows.node_ids) {
-        if rows.node_ids[i] == node_id { return Some(i); }
-        i = i + 1;
-    }
-    return None;
+    return SelfMirInitializerIndexForNodeFromReadyRows(rows, node_id);
 }
 
 func SelfMirIterationRowsFromSemantic(
@@ -196,14 +227,28 @@ func SelfMirIterationRowsReady(rows: SelfMirIterationRows) -> Bool {
               rows.synthetic_graph_root_ids[i] != -1)) {
             return false;
         }
-        let prior: Int = 0;
-        while prior < i {
-            if rows.node_ids[prior] == rows.node_ids[i] { return false; }
-            prior = prior + 1;
+        if i > 0 && rows.node_ids[i] <= rows.node_ids[i - 1] {
+            return false;
         }
         i = i + 1;
     }
     return true;
+}
+
+func SelfMirIterationRowForNodeFromReadyRows(
+    rows: SelfMirIterationRows, node_id: Int
+) -> Option<Int> {
+    let row: Int = SelfMirSortedNodeRowLowerBound(rows.node_ids, node_id);
+    if row < ArrayLength(rows.node_ids) && rows.node_ids[row] == node_id {
+        return Some(row);
+    }
+    return None;
+}
+
+func SelfMirRoutineInputRowsReady(ref input: SelfMirRoutineInput) -> Bool {
+    return SelfMirInitializerRowsReady(input.initializers) &&
+        SelfMirIterationRowsReady(input.iterations) &&
+        SelfMirAssignmentRowsReady(input.assignments);
 }
 
 func SelfMirNodeDescendsFrom(

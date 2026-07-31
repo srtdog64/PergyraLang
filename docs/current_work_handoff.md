@@ -11,8 +11,8 @@ owner, and the named executable gate.
 - Resume scope: read this card, verify the named owner and gate, then continue
   this one executable rung. Sections below `Historical checkpoint archive` are
   lookup evidence only and must not be treated as parallel work queues.
-- Verified predecessor: `dc258cd683a99d0f6f509a7bdeb218eaf8eb13ec` on
-  `main`, pushed to `origin/main`. This note cannot name its own containing
+- Verified dirty baseline: `4780098cb1892085c3d0ca3a9c858b2043686ef4` on
+  `main`, equal to `origin/main`. This note cannot name its own containing
   refocus commit; verify the exact HEAD and dirty state with Git.
 - Active production entrypoint:
   `driver_bootstrap_main.pgy -> PgyCompilerWorld.source_mir ->
@@ -22,10 +22,19 @@ owner, and the named executable gate.
 - Active fact owner:
   `src/self_hosted/mir/artifact_lower_owner.pgy`. Last orchestration consumer:
   `src/self_hosted/compiler/driver_rung2_owner.pgy`.
-- Active falsifier: the latest full integration reached `mir-facts:start` and
-  was policy-stopped after 2,534,272 ms at 2,284.8 MB peak private. This remains
-  a CPU/incomplete result under the unchanged 3,072 MiB limit, not a semantic
-  PASS and not a 20 GB process.
+- Active falsifier: after one-time input-row validation and function-scoped
+  statement ranges, the 30-minute full integration advanced from routine 588
+  to routine 776. It remained incomplete at 2.228 GiB peak private. The focused
+  five-minute seed-only MIR shard reached routine 303 at 1.561 GiB peak
+  private; its slowest completed routines are the large AST-text projection
+  functions `TypedAstTextKindOf` and `CodegenAstTextPayloadFor`.
+  A routine-local program-graph snapshot experiment regressed that cutoff from
+  303 to 267 at 1.562 GiB and was reverted. It is negative evidence against
+  copying the program graph into each routine merely to avoid equality checks.
+- Memory observation policy: the pressure owner records the process-tree peak
+  internally. Read only its final `peak_private_gib` and
+  `attention_required` summary. The hard limit is 3 GiB and the attention
+  threshold is 80% (2.4 GiB); below it, memory is not an optimization owner.
 - Forbidden fallback: increase the timeout or memory cap, add a general query
   engine/cache before one exact repeated operation is measured, rebuild facts
   from AST text, multiply one program target by inventory rows, or resume
@@ -54,19 +63,23 @@ owner, and the named executable gate.
   typed Pergyra path `REACHABLE`. It does not delete the active source-to-MIR
   C bypass and is not `SUBSTITUTING`.
 - Observed green for the current dirty set: shell syntax and diff hygiene,
-  full `tests/self_hosted_component_contract_smoke.sh`, focused
-  `world.pgy` codegen completeness 1/1, focused duplicate-target completeness
-  2/2, observed root parser success, and monitored typed world codegen success.
-  The full 685-source matrix and pressure bootstrap are not implied.
+  build-pressure contract, full `tests/self_hosted_component_contract_smoke.sh`,
+  and self-host codegen seed fixed point. The StringSplit fixture compiled and
+  ran with expected output; C and LLVM fixture stdout each matched before the
+  existing unrelated role-receiver parity failure.
+- The full 685-source matrix is not implied. The five-minute pressure shard is
+  an intentional timeout/cutoff measurement, not a semantic PASS.
 - CI watch: run `30562668988` failed codegen completeness on `world.pgy`
   because semantic and codegen used different program graphs. That exact local
   falsifier now passes. A post-push run is still required; the old red run is
   not reclassified as green.
-- Next gate: keep the source-to-MIR rung. Run the build-pressure contract and
-  one bounded pressure-owned bootstrap, use the last `mir-facts:*` phase pair
-  to name the next repeated operation, then replace the reached C-owned bypass.
-  Do not open a general query engine, broad architecture work, or another
-  SoT-only queue meanwhile.
+- Next gate: keep the source-to-MIR rung. Move the immutable semantic expression
+  graph to one program-owned MIR boundary while instruction rows retain only
+  root/range handles. The vertical slice must remove both per-instruction graph
+  equality and per-routine graph storage; a routine-local value snapshot is the
+  falsifying case. Reuse the component/seed gates and five-minute MIR shard.
+  Do not rerun a 30-minute integration or inspect memory samples before the
+  focused cutoff improves, and do not open a general cache/query engine.
 
 ## Historical checkpoint archive — inactive unless explicitly referenced
 
