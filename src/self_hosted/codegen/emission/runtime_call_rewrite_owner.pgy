@@ -39,7 +39,9 @@ func RuntimeCallCName(source_name: String) -> Option<String> {
     if source_name == "StringLength" { return Some(StringRuntimeCStringLengthFn()); }
     if source_name == "StringContains" { return Some(StringRuntimeCStringContainsFn()); }
     if source_name == "StringIndexOf" { return Some(StringRuntimeCStringIndexOfFn()); }
-    if source_name == "Split" { return Some(StringRuntimeCSplitFn()); }
+    if source_name == "Split" || source_name == "StringSplit" {
+        return Some(StringRuntimeCSplitFn());
+    }
     if source_name == "ToInt" { return Some(StringRuntimeCToIntFn()); }
     if source_name == "StringTrim" { return Some(StringRuntimeCStringTrimFn()); }
     if source_name == "StringReplace" { return Some(StringRuntimeCStringReplaceFn()); }

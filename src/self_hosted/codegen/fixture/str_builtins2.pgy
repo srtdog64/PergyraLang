@@ -11,4 +11,7 @@ func Main() -> Void {
     Log(ToString(n + 1));
     let empty: Array<String> = Split("x", ",");
     Log(ToString(ArrayLength(empty)));
+    let explicit: Array<String> = StringSplit("left,right", ",");
+    Log(ToString(ArrayLength(explicit)));
+    Log(explicit[0]);
 }

@@ -389,7 +389,7 @@ func ExprKind(expr: String, env: CodegenTypeEnv) -> String {
     if StartsWith(e, "Join(") {
         return "String";
     }
-    if StartsWith(e, "Split(") {
+    if StartsWith(e, "Split(") || StartsWith(e, "StringSplit(") {
         return "ArrayString";
     }
     if StartsWith(e, "ArraySort(") {

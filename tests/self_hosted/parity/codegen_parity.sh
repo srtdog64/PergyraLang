@@ -434,7 +434,8 @@ run_tool_fixture() {
         fi
 
         # 2. gcc the emitted C and run it.
-        if ! "$CC" "$c_file" -o "$self_exe" 2>"$ABS_BUILD/${base}_${backend}_cc.log"; then
+        if ! "$CC" "$c_file" -I"$ROOT_DIR/src/runtime" -o "$self_exe" \
+            2>"$ABS_BUILD/${base}_${backend}_cc.log"; then
             echo "[self-host-parity:codegen] backend=$backend $base: emitted C failed to compile" >&2
             cat "$ABS_BUILD/${base}_${backend}_cc.log" >&2
             echo "--- emitted C ---" >&2
