@@ -1,6 +1,6 @@
 # Include Cleanup Status
 
-Last updated: 2026-07-15
+Last updated: 2026-07-31
 
 This note records the current state of the beta include-cleanup track. It is a
 progress ledger, not a new language surface.
@@ -28,18 +28,25 @@ progress ledger, not a new language surface.
   `make backend-inc-size-test-smoke` all pass. Stale references in the parallel
   proof doc and semantic owner comments were updated to the current `.cases.h`
   / owner-TU structure.
-- Owner-size policy is now stricter than the historical `.inc` cleanup target:
-  600 LOC is the default split-review threshold for any production `.c` or
-  private owner `.h`; 1,000 LOC is only the hard stop / temporary risk line.
-  A production owner above 600 LOC must either be split in the current sprint
-  or be listed here with a named follow-up owner seam. New owners should aim
-  below 600 LOC unless the file is a compact table, generated ABI surface, or a
-  deliberately single-entry orchestration layer with no mixed responsibility.
-- Architecture judgement update: 600 LOC is a review signal, not a mechanical
-  split command. Splits must be by responsibility and source-of-truth seam.
-  If the owner still has one coherent responsibility, keep it as one owner and
-  improve its internal structure. Do not create new `_helpers` buckets just to
-  satisfy a line-count target.
+- Owner size is now a hard two-level ratchet, not a review-only signal.
+  Production C/H owners and production self-hosted Pergyra owners stop at 699
+  LOC; semantic and named MIR type/declaration owners stop at 599 LOC.
+  Self-host diagnostic/tool entrypoints have a separate 999 LOC hard cap.
+  These bounds deliberately prevent a 2,000--3,000 LOC owner from becoming a
+  precedent that later agents copy. A split must still follow a real
+  responsibility or source-of-truth seam; line-count pressure does not license
+  arbitrary fragments.
+- `helper` is reserved for minimal stateless, policy-free utility code. It
+  may not own a semantic/backend decision, state or stage transition, registry,
+  cache, fallback, ownership choice, or dispatch. Existing production paths
+  whose basename contains `helper` are frozen by the shrink-only
+  `tests/fixtures/legacy_production_helper_paths.txt` inventory. They may be
+  removed or renamed into responsibility-named owners, but a new helper path
+  fails `test_inc_size_smoke.sh`.
+- The nominal-constructor fact owner crossed the semantic cap at exactly 600
+  LOC. Artifact consistency and its contract fixture now live in
+  `ast_nominal_constructor_artifact_match_owner.pgy`; the fact producer stays
+  below the 599 LOC ceiling.
 - The final pass-through and leaf helper shims were renamed to named private
   owner headers, including `pgy_runtime_inline_core.h`,
   `transpiler_base_a_emitters.h`, `transpiler_base_b_emitters.h`,

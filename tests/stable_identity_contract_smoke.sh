@@ -20,7 +20,7 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 
 AST_IDENTITY="$ROOT_DIR/src/parser/ast_identity.c"
 AST_API="$ROOT_DIR/src/parser/ast_api.h"
-PARSER="$ROOT_DIR/src/parser/parser.c"
+PARSER_PROGRAM="$ROOT_DIR/src/parser/parser_program.c"
 IMPORT_RESOLVER="$ROOT_DIR/src/compiler/import_resolver.c"
 FIXTURE="$ROOT_DIR/tests/cases/stable_identity_import_merge/main.pgy"
 EMITTED_C="$WORK_DIR/stable_identity.c"
@@ -38,11 +38,11 @@ require_text "$AST_API" "bool ast_assign_stable_ids(ASTNode* root);"
 require_text "$AST_IDENTITY" "uint64_t next_id;"
 require_text "$AST_IDENTITY" "next_id->next_id > UINT32_MAX"
 require_text "$AST_IDENTITY" "return !next_id.exhausted;"
-require_text "$PARSER" "if (!ast_assign_stable_ids(program))"
+require_text "$PARSER_PROGRAM" "if (!ast_assign_stable_ids(program))"
 require_text "$IMPORT_RESOLVER" "if (program != NULL && !ast_assign_stable_ids(program))"
 require_text "$IMPORT_RESOLVER" "syntax node identity space exhausted after import merge"
 
-if grep -Fq "(void)ast_assign_stable_ids" "$PARSER" "$IMPORT_RESOLVER"; then
+if grep -Fq "(void)ast_assign_stable_ids" "$PARSER_PROGRAM" "$IMPORT_RESOLVER"; then
     echo "[stable-identity] stable identity failure is ignored" >&2
     exit 1
 fi

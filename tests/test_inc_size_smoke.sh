@@ -4,6 +4,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LIMIT="${TEST_CASE_INCLUDE_MAX_LINES:-699}"
 PRODUCTION_LIMIT="${PRODUCTION_OWNER_MAX_LINES:-699}"
+SELF_HOSTED_OWNER_LIMIT="${SELF_HOSTED_OWNER_MAX_LINES:-699}"
+SELF_HOSTED_TOOL_LIMIT="${SELF_HOSTED_TOOL_MAX_LINES:-999}"
+LEGACY_HELPER_PATHS="$ROOT_DIR/tests/fixtures/legacy_production_helper_paths.txt"
 HELPER_LIMIT="${HELPER_OWNER_MAX_LINES:-500}"
 
 grep -Fq "Helper-layer escalation rule" "$ROOT_DIR/TODO.md"
@@ -214,6 +217,39 @@ if [[ -n "$production_violations" ]]; then
     exit 1
 fi
 
+self_hosted_owner_violations="$(
+    cd "$ROOT_DIR"
+    find src/self_hosted -type f -name '*.pgy' \
+        ! -path '*/fixture/*' \
+        ! -path '*/fixtures/*' \
+        ! -path '*/expected/*' \
+        ! -path 'src/self_hosted/tools/*' \
+        -print0 \
+        | xargs -0 wc -l \
+        | awk -v limit="$SELF_HOSTED_OWNER_LIMIT" \
+            '$2 != "total" && $1 > limit { print }'
+)"
+
+if [[ -n "$self_hosted_owner_violations" ]]; then
+    echo "self-hosted production owner size violations; limit is ${SELF_HOSTED_OWNER_LIMIT} LOC:" >&2
+    echo "$self_hosted_owner_violations" >&2
+    exit 1
+fi
+
+self_hosted_tool_violations="$(
+    cd "$ROOT_DIR"
+    find src/self_hosted/tools -type f -name '*.pgy' -print0 \
+        | xargs -0 wc -l \
+        | awk -v limit="$SELF_HOSTED_TOOL_LIMIT" \
+            '$2 != "total" && $1 > limit { print }'
+)"
+
+if [[ -n "$self_hosted_tool_violations" ]]; then
+    echo "self-hosted tool owner size violations; limit is ${SELF_HOSTED_TOOL_LIMIT} LOC:" >&2
+    echo "$self_hosted_tool_violations" >&2
+    exit 1
+fi
+
 semantic_owner_violations="$(
     cd "$ROOT_DIR"
     {
@@ -273,6 +309,33 @@ if [[ -n "$type_system_owner_violations" ]]; then
     exit 1
 fi
 
+if [[ ! -f "$LEGACY_HELPER_PATHS" ]]; then
+    echo "missing shrink-only legacy helper inventory: $LEGACY_HELPER_PATHS" >&2
+    exit 1
+fi
+
+new_helper_paths="$(
+    cd "$ROOT_DIR"
+    while IFS= read -r rel; do
+        if ! grep -Fxq "$rel" "$LEGACY_HELPER_PATHS"; then
+            echo "$rel"
+        fi
+    done < <(
+        find src -type f \
+            \( -name '*helper*.c' -o -name '*helper*.h' -o \
+               -name '*helper*.pgy' \) \
+            ! -path 'src/tests/*' \
+            ! -name 'test_*.c' \
+            -print | sort
+    )
+)"
+
+if [[ -n "$new_helper_paths" ]]; then
+    echo "new generic helper paths are forbidden; name the responsibility owner:" >&2
+    echo "$new_helper_paths" >&2
+    exit 1
+fi
+
 helper_violations="$(
     cd "$ROOT_DIR"
     find src -type f \( -name '*helper*.c' -o -name '*helper*.h' \) \
@@ -290,4 +353,4 @@ if [[ -n "$helper_violations" ]]; then
     exit 1
 fi
 
-echo "[test-inc-size] src has no .inc files or _IMPLEMENTATION header blocks; frontend/semantic/compiler/codegen headers stay body-free except the named LLVM macro exception; production owners <= ${PRODUCTION_LIMIT} LOC hard cap; semantic and MIR type/declaration owners <= 599 LOC; helper owners <= ${HELPER_LIMIT} LOC; helper growth is a layer-escalation signal; src/tests .cases.h files <= ${LIMIT} LOC"
+echo "[test-inc-size] production C/H and Pergyra owners <= ${PRODUCTION_LIMIT}/${SELF_HOSTED_OWNER_LIMIT} LOC hard caps; semantic and MIR type/declaration owners <= 599 LOC; tools <= ${SELF_HOSTED_TOOL_LIMIT} LOC; legacy helper paths are shrink-only and <= ${HELPER_LIMIT} LOC; src/tests .cases.h files <= ${LIMIT} LOC"

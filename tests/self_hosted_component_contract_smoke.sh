@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
-# Gates compiler-stage self-host substitute contracts.
+# Structural source inventory and removed-path residue ratchet only.
 #
-# Heavy parity scripts prove behavior. This smoke proves the self-hosted
-# compiler-stage surface itself is wired correctly: each active stage has an
-# intent-verification pair, a Makefile target, and fixture/expected files that
-# are actually listed by its parity harness.
+# Executable parity and focused negative gates prove behavior. Do not grow this
+# file with source-text claims about runtime correctness.
 
 set -euo pipefail
 
@@ -997,7 +995,7 @@ require_text "tests/self_hosted/parity/completeness_ledger.sh" \
 require_text "tests/self_hosted/parity/completeness_ledger.sh" \
     'program_target="$(program_check_target_for "$src")"'
 require_text "tests/self_hosted/parity/completeness_ledger.sh" \
-    'declare -A PROGRAM_TARGET_RESULTS=()'
+    'PROGRAM_TARGET_KEYS=()'
 require_text "tests/self_hosted/parity/completeness_ledger.sh" \
     'run_program_target_check_once() {'
 require_text "tests/self_hosted/parity/completeness_ledger.sh" \
@@ -1220,6 +1218,7 @@ require_file "src/self_hosted/semantic/ast_signature_fact_owner.pgy"
 require_file "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy"
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "TypedAstKindAbilityDeclTag()"
 require_file "src/self_hosted/semantic/ast_intent_signature_fact_owner.pgy"
+require_file "src/self_hosted/semantic/ast_nominal_constructor_artifact_match_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_intent_signature_fact_owner.pgy" 320
 require_text "src/self_hosted/semantic/ast_intent_signature_fact_owner.pgy" \
     "TypedAstKindIntentDeclTag()"
@@ -4092,12 +4091,14 @@ require_max_lines "src/self_hosted/semantic/ast_signature_artifact_match_owner.p
 require_text "src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy" "func SemanticAstFunctionSignatureFactsMatchArtifact"
 require_file "src/self_hosted/semantic/ast_signature_contract_owner.pgy"
 require_text "src/self_hosted/semantic/ast_signature_contract_owner.pgy" "func SemanticAstFunctionSignatureFactsContractReady"
-require_max_lines "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" 600
+require_max_lines "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" 599
 require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "struct SemanticAstNominalConstructorFacts"
 require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "func SemanticAstNominalConstructorFactsFromArtifact"
-require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "func SemanticAstNominalConstructorFactsMatchArtifact"
-require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "func SemanticAstNominalConstructorFactsContractReady"
+require_text "src/self_hosted/semantic/ast_nominal_constructor_artifact_match_owner.pgy" "func SemanticAstNominalConstructorFactsMatchArtifact"
+require_text "src/self_hosted/semantic/ast_nominal_constructor_artifact_match_owner.pgy" "func SemanticAstNominalConstructorFactsContractReady"
 reject_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "SeedNominalConstructors("
+reject_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "func SemanticAstNominalConstructorFactsMatchArtifact"
+reject_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "func SemanticAstNominalConstructorFactsContractReady"
 reject_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "LoadSemanticSource"
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "struct SemanticAstLocalBindingFacts"
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "func SemanticAstLocalBindingFactsFromArtifact"
@@ -14098,4 +14099,4 @@ while IFS= read -r expected; do
     require_file "src/self_hosted/codegen/fixture/${base}.pgy"
 done < <(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | sort)
 
-echo "[self-host-component-contract] compiler-stage contracts ok"
+echo "[self-host-component-contract] structural source inventory and removed-path ratchets ok; executable parity owns behavior"

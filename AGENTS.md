@@ -61,12 +61,14 @@ cosmetic reshuffling.
 
 ## Do Not Add These Anti-Patterns
 
-- Do not add unnecessary helper functions. A helper must name a real owner
-  responsibility, isolate a repeated contract, or remove a source-of-truth
-  seam. A one-off wrapper that only hides local logic is debt.
-- Do not create generic `*_helpers` buckets when a layer is getting too large.
-  If a helper owner grows, split by responsibility and name the new owner after
-  the responsibility.
+- Keep `helper` narrowly literal: a helper may contain only minimal stateless,
+  policy-free utility code with no semantic or backend decision, state/stage
+  transition, registry, cache, fallback, ownership choice, or dispatch. Code
+  that owns any such responsibility is an owner and must be named for it.
+- Do not add unnecessary helper functions or new generic `*_helper*` buckets.
+  A one-off wrapper that only hides local logic is debt. Existing legacy helper
+  paths are a shrink-only inventory: they may be renamed into responsibility-
+  named owners or removed, but must not justify another helper bucket.
 - Do not add empty `try` / `catch` blocks, silent catch-all handlers, or
   "ignore and continue" error paths. Use `Result`, a structured diagnostic, an
   explicit invariant, or a documented panic boundary.
@@ -115,6 +117,9 @@ cosmetic reshuffling.
 - Treat a test as a falsifier of a named ownership claim, not as the objective
   function. A green row cannot excuse dual authority, an undeleted fallback,
   or repeated reconstruction of an admitted artifact.
+- `tests/self_hosted_component_contract_smoke.sh` is only a structural source
+  inventory and old-path residue ratchet. Do not add behavioral correctness
+  claims to it; executable parity and focused negative gates own those claims.
 - Count completeness and performance work by semantic execution target. When
   multiple inventory rows project to one import-composed program, execute that
   program once per stage/run, record unique checks and reuses, and attribute

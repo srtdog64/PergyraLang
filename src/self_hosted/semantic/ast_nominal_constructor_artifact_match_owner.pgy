@@ -1,0 +1,87 @@
+// Artifact-consistency verdict for nominal constructor facts.
+import "ast_nominal_constructor_fact_owner.pgy";
+
+func SemanticAstNominalConstructorFactsMatchArtifact(
+    artifact: AstTreeArtifact, facts: SemanticAstNominalConstructorFacts
+) -> Bool {
+    let rebuilt: SemanticAstNominalConstructorFacts = SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let count: Int = SemanticAstNominalConstructorCount(facts);
+    if !SemanticAstNominalConstructorRowsReady(facts) || !rebuilt.ok ||
+        facts.artifact_node_count != artifact.count ||
+        SemanticAstNominalConstructorCount(rebuilt) != count ||
+        ArrayLength(facts.names) != count ||
+        ArrayLength(facts.return_type_names) != count ||
+        ArrayLength(facts.param_starts) != count ||
+        ArrayLength(facts.param_counts) != count ||
+        ArrayLength(facts.role_slot_starts) != count ||
+        ArrayLength(facts.role_slot_counts) != count ||
+        ArrayLength(facts.field_source_syntax_ids) !=
+            ArrayLength(rebuilt.field_source_syntax_ids) ||
+        ArrayLength(facts.field_names) != ArrayLength(rebuilt.field_names) ||
+        ArrayLength(facts.field_kinds) != ArrayLength(rebuilt.field_kinds) ||
+        ArrayLength(facts.param_type_names) !=
+            ArrayLength(rebuilt.param_type_names) ||
+        ArrayLength(facts.role_slot_names) !=
+            ArrayLength(rebuilt.role_slot_names) ||
+        ArrayLength(facts.role_slot_type_names) !=
+            ArrayLength(rebuilt.role_slot_type_names) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if facts.node_ids[i] != rebuilt.node_ids[i] ||
+            facts.nominal_kinds[i] != rebuilt.nominal_kinds[i] ||
+            facts.names[i] != rebuilt.names[i] ||
+            facts.return_type_names[i] != rebuilt.return_type_names[i] ||
+            facts.param_starts[i] != rebuilt.param_starts[i] ||
+            facts.param_counts[i] != rebuilt.param_counts[i] ||
+            facts.role_slot_starts[i] != rebuilt.role_slot_starts[i] ||
+            facts.role_slot_counts[i] != rebuilt.role_slot_counts[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    let p: Int = 0;
+    while p < ArrayLength(facts.param_type_names) {
+        if facts.field_source_syntax_ids[p] !=
+                rebuilt.field_source_syntax_ids[p] ||
+            facts.field_names[p] != rebuilt.field_names[p] ||
+            facts.field_kinds[p] != rebuilt.field_kinds[p] ||
+            facts.param_type_names[p] != rebuilt.param_type_names[p] {
+            return false;
+        }
+        p = p + 1;
+    }
+    p = 0;
+    while p < ArrayLength(facts.role_slot_type_names) {
+        if facts.role_slot_names[p] != rebuilt.role_slot_names[p] ||
+            facts.role_slot_type_names[p] != rebuilt.role_slot_type_names[p] {
+            return false;
+        }
+        p = p + 1;
+    }
+    return true;
+}
+
+func SemanticAstNominalConstructorFactsContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Class: Box\n    Fields:\n      value: String\n      count: Int\n    Methods:\n      Function: Get\n        Parameters:\n          self\n        Returns: String\n        Body:\n          Block:\n            Return: self.value\n");
+    let facts: SemanticAstNominalConstructorFacts = SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let first: Option<String> = SemanticAstNominalConstructorParamTypeAt(facts, 0, 0);
+    let second: Option<String> = SemanticAstNominalConstructorParamTypeAt(facts, 0, 1);
+    let first_name: Option<String> = SemanticAstNominalConstructorFieldNameAt(facts, 0, 0);
+    let first_kind: Option<String> = SemanticAstNominalConstructorFieldKindAt(facts, 0, 0);
+    let first_source_id: Option<Int> = SemanticAstNominalConstructorFieldSourceSyntaxIdAt(facts, 0, 0);
+    let second_source_id: Option<Int> = SemanticAstNominalConstructorFieldSourceSyntaxIdAt(facts, 0, 1);
+    return SemanticAstNominalConstructorFactsMatchArtifact(artifact, facts) &&
+        SemanticAstNominalConstructorCount(facts) == 1 &&
+        facts.nominal_kinds[0] == "class" && facts.names[0] == "Box" &&
+        facts.return_type_names[0] == "Box" &&
+        facts.param_counts[0] == 2 && IsSome(first) && IsSome(second) &&
+        IsSome(first_name) && UnwrapOption(first_name) == "value" &&
+        IsSome(first_kind) && UnwrapOption(first_kind) == NominalFieldKindField() &&
+        IsSome(first_source_id) && IsSome(second_source_id) &&
+        UnwrapOption(first_source_id) > 0 &&
+        UnwrapOption(first_source_id) != UnwrapOption(second_source_id) &&
+        UnwrapOption(first) == "String" && UnwrapOption(second) == "Int";
+}

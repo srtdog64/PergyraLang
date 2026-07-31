@@ -1,0 +1,41 @@
+// Declared-context projection for source-text expression typing.
+
+import "expr_type_owner.pgy";
+import "expression_normalization_owner.pgy";
+import "delimited_range_fact_owner.pgy";
+import "builtin_signature_owner.pgy";
+import "callable_resolution_owner.pgy";
+
+func ExprTypeInDeclaredContext(
+    expr: String,
+    declared_type: String,
+    names: Array<String>,
+    types: Array<String>,
+    func_names: Array<String>,
+    func_rets: Array<String>
+) -> String {
+    let actual_type: String = ExprType(
+        expr, names, types, func_names, func_rets
+    );
+    if actual_type != "List<Unknown>" &&
+        actual_type != "Queue<Unknown>" &&
+        actual_type != "Set<Unknown>" {
+        return actual_type;
+    }
+    let text: String = SemanticStripOuterParens(expr);
+    let n: Int = StringLength(text);
+    if n == 0 || CharAt(text, n - 1) != ")" { return actual_type; }
+    let paren: Int = StringIndexOf(text, "(");
+    if paren <= 0 { return actual_type; }
+    let callee: String = SemanticTrimSourceRangeReuse(text, 0, paren);
+    if !SemanticCallableSourceNameValid(callee) { return actual_type; }
+    let args_src: String = Substring(text, paren + 1, n - paren - 2);
+    let arguments: SemanticDelimitedRangeFacts =
+        SemanticNestedCommaRangeFactsFromSource(args_src);
+    let contextual: Option<String> = SemanticContextualBuiltinReturnTypeOpt(
+        callee, SemanticDelimitedNonEmptyRangeCount(arguments),
+        Some(declared_type)
+    );
+    if IsSome(contextual) { return UnwrapOption(contextual); }
+    return actual_type;
+}

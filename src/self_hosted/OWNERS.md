@@ -203,6 +203,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy` --
   duplicate-rejecting read-only nominal declaration lookup over the canonical
   constructor fact rows.
+- `src/self_hosted/semantic/ast_nominal_constructor_artifact_match_owner.pgy`
+  -- reverse artifact-consistency verdict and contract fixture for canonical
+  nominal constructor rows; it imports the fact producer and never becomes a
+  second producer.
 - `src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy` --
   semantic distinction between caller-supplied nominal constructor arguments
   and domain storage fields that require a topology/runtime materializer.
@@ -537,6 +541,10 @@ inventory must not become a second fact-family owner registry.
   string/parenthesis-aware top-level operator-position fact consumed by typing
   and logical/binary diagnostics.
 - `src/self_hosted/semantic/expr_type_owner.pgy` -- expression type facts.
+- `src/self_hosted/semantic/expression_declared_context_type_owner.pgy` --
+  source-text declared-context projection for zero-argument collection
+  constructors; builtin identity/type compatibility stays owned by
+  `SemanticContextualBuiltinReturnTypeOpt`.
 - `src/self_hosted/semantic/wrapper_type_owner.pgy` -- canonical
   Option/Result/Box type-shape and payload projection policy shared by legacy
   and graph lanes; nested Box payloads require a balanced outer wrapper.

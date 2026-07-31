@@ -14,9 +14,30 @@ func SemanticContextualBuiltinReturnTypeFromGraph(
     if !call.ok { return None; }
     let target: Option<String> =
         SemanticExpressionGraphCallTargetName(graph, call.call_node);
-    if !IsSome(target) { return None; }
+    if IsSome(target) && UnwrapOption(target) != "" {
+        return SemanticContextualBuiltinReturnTypeOpt(
+            UnwrapOption(target), ArrayLength(call.argument_nodes),
+            declared_type
+        );
+    }
+    // Contextual collection typing runs before target binding has necessarily
+    // populated the call overlay. Only a direct leaf callee may supply the
+    // builtin spelling at this boundary; member and computed callees fail
+    // closed instead of becoming a general name-resolution fallback.
+    let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, call.callee_node
+    );
+    if !IsSome(callee_kind) ||
+        UnwrapOption(callee_kind) != AstExpressionNodeLeaf() {
+        return None;
+    }
+    let callee_name: Option<String> = SemanticExpressionGraphNodeText(
+        graph, call.callee_node
+    );
+    if !IsSome(callee_name) || UnwrapOption(callee_name) == "" { return None; }
     return SemanticContextualBuiltinReturnTypeOpt(
-        UnwrapOption(target), ArrayLength(call.argument_nodes), declared_type
+        UnwrapOption(callee_name), ArrayLength(call.argument_nodes),
+        declared_type
     );
 }
 

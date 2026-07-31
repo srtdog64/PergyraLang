@@ -393,7 +393,8 @@ run_codegen_check() {
     fi
     return 1
 }
-declare -A PROGRAM_TARGET_RESULTS=()
+PROGRAM_TARGET_KEYS=()
+PROGRAM_TARGET_CODES=()
 PROGRAM_TARGET_CHECKS=0
 PROGRAM_TARGET_REUSES=0
 
@@ -404,11 +405,15 @@ run_program_target_check_once() {
     local check_src="$4"
     local memo_key="${stage}|${check_src}"
     local rc
+    local memo_index=0
 
-    if [[ -n "${PROGRAM_TARGET_RESULTS[$memo_key]+set}" ]]; then
-        PROGRAM_TARGET_REUSES=$((PROGRAM_TARGET_REUSES + 1))
-        return "${PROGRAM_TARGET_RESULTS[$memo_key]}"
-    fi
+    while (( memo_index < ${#PROGRAM_TARGET_KEYS[@]} )); do
+        if [[ "${PROGRAM_TARGET_KEYS[$memo_index]}" == "$memo_key" ]]; then
+            PROGRAM_TARGET_REUSES=$((PROGRAM_TARGET_REUSES + 1))
+            return "${PROGRAM_TARGET_CODES[$memo_index]}"
+        fi
+        memo_index=$((memo_index + 1))
+    done
     PROGRAM_TARGET_CHECKS=$((PROGRAM_TARGET_CHECKS + 1))
     if [[ "$stage" == "codegen" ]]; then
         run_codegen_check_cached "$src" "$check_src" && rc=0 || rc="$?"
@@ -416,7 +421,8 @@ run_program_target_check_once() {
         run_source_check_cached "$stage" "$bin" "$src" "$check_src" &&
             rc=0 || rc="$?"
     fi
-    PROGRAM_TARGET_RESULTS["$memo_key"]="$rc"
+    PROGRAM_TARGET_KEYS[${#PROGRAM_TARGET_KEYS[@]}]="$memo_key"
+    PROGRAM_TARGET_CODES[${#PROGRAM_TARGET_CODES[@]}]="$rc"
     return "$rc"
 }
 
@@ -579,7 +585,9 @@ verify_program_target_execution_contract() {
     local key
     local expected_rows=0
     local expected_unique=0
-    declare -A expected_targets=()
+    local expected_index
+    local expected_seen
+    local expected_targets=()
 
     for stage in "${STAGES[@]}"; do
         if [[ "$stage" != "semantic" && "$stage" != "codegen" ]]; then
@@ -589,8 +597,17 @@ verify_program_target_execution_contract() {
             check_src="$(program_check_target_for "$src")"
             key="${stage}|${check_src}"
             expected_rows=$((expected_rows + 1))
-            if [[ -z "${expected_targets[$key]+set}" ]]; then
-                expected_targets["$key"]=1
+            expected_seen=0
+            expected_index=0
+            while (( expected_index < ${#expected_targets[@]} )); do
+                if [[ "${expected_targets[$expected_index]}" == "$key" ]]; then
+                    expected_seen=1
+                    break
+                fi
+                expected_index=$((expected_index + 1))
+            done
+            if (( expected_seen == 0 )); then
+                expected_targets[${#expected_targets[@]}]="$key"
                 expected_unique=$((expected_unique + 1))
             fi
         done

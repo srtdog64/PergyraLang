@@ -1776,7 +1776,7 @@ grep -Fq "ast_decl_methods_contain_identifier_call" "$ROOT_DIR/src/parser/ast_an
 grep -Fq "ast_uses_intent_observability_surface" "$ROOT_DIR/src/parser/ast_analysis.c"
 grep -Fq "ast_identity.c" "$ROOT_DIR/Makefile"
 grep -Fq "uint32_t    stable_id;" "$ROOT_DIR/src/parser/ast.h"
-grep -Fq "ast_assign_stable_ids(program)" "$ROOT_DIR/src/parser/parser.c"
+grep -Fq "ast_assign_stable_ids(program)" "$ROOT_DIR/src/parser/parser_program.c"
 grep -Fq "uint32_t         source_stable_id;" "$ROOT_DIR/src/compiler/mir_types.h"
 grep -Fq "mir_instruction_source_stable_id" "$ROOT_DIR/src/compiler/mir_source_provenance.c"
 grep -Fq "ast_node_stable_id(match_case)" "$ROOT_DIR/src/codegen/llvm_stmt_match.c"

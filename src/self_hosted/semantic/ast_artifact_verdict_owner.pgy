@@ -4,6 +4,7 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "diagnostic_owner.pgy";
 import "ast_signature_artifact_match_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_nominal_constructor_artifact_match_owner.pgy";
 import "ast_zone_authority_fact_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "ast_assignment_fact_owner.pgy";

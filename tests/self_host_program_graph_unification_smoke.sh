@@ -111,8 +111,10 @@ require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
     "topology: AstExpressionArena;"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
     "SemanticExpressionGraphArenaFromTopology("
-require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
-    "rows.arena, texts, call_target_kinds, call_target_names, place_kinds"
+semantic_graph_compact="$(tr -d '[:space:]' < \
+    "$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy")"
+[[ "$semantic_graph_compact" == *"SemanticExpressionGraphArenaFromTopology(rows.arena,texts,call_target_kinds,call_target_names,call_return_type_names,place_kinds)"* ]] ||
+    fail "semantic expression graph no longer preserves topology plus typed overlays"
 for forbidden_copy in \
     "ArrayPush(kinds, rows.arena.node_kinds[i]);" \
     "ArrayPush(left_children, rows.arena.left_children[i]);" \

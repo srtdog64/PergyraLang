@@ -3,6 +3,7 @@
 import "text_scan_owner.pgy";
 import "diagnostic_owner.pgy";
 import "env_owner.pgy";
+import "expression_declared_context_type_owner.pgy";
 import "expr_type_owner.pgy";
 import "expr_validation_owner.pgy";
 import "call_check_owner.pgy";
@@ -70,7 +71,9 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
             if StringLength(let_binop_error) > 0 {
                 return let_binop_error;
             }
-            let actual_type: String = ExprType(let_expr, names, types, func_names, func_rets);
+            let actual_type: String = ExprTypeInDeclaredContext(
+                let_expr, declared_type, names, types, func_names, func_rets
+            );
             if declared_type != "Unknown" {
                 if actual_type != "Unknown" {
                     if !ExpressionAssignableTo(declared_type, actual_type, let_expr) {

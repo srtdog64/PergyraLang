@@ -11,8 +11,8 @@ owner, and the named executable gate.
 - Resume scope: read this card, verify the named owner and gate, then continue
   this one executable rung. Sections below `Historical checkpoint archive` are
   lookup evidence only and must not be treated as parallel work queues.
-- Verified predecessor: `527f7e17fac57b6373824daffa60841cd120d391` on
-  `main`, equal to `origin/main` before this documentation change. This note
+- Verified predecessor: `c498d7c75e34b04184ec81c421f72773f9557342` on
+  `main`, equal to `origin/main` before this repair set. This note
   cannot name its own containing refocus commit; verify the exact state with Git.
 - Active production entrypoint:
   `driver_bootstrap_main.pgy -> PgyCompilerWorld.source_mir ->
@@ -41,6 +41,27 @@ owner, and the named executable gate.
   them. An implementation and test that share one interpretation are not
   independent evidence, and a material goal/negative-gate change requires a
   separate history rather than an implementation-side weakening.
+- Current CI repair scope is bounded support for this same executable rung, not
+  a new architecture track. Completed run `30622652339` exposed one real
+  self-host semantic defect (`SetNew() -> Set<Unknown>` despite a declared
+  `Set<String>`), one Bash 3.2 portability defect (associative arrays in the
+  completeness execution memo), two stale source-text ratchets, and the
+  nominal-constructor fact owner at 600 LOC. The full bootstrap job was
+  cancelled at its one-hour boundary; this repair does not reclassify it as a
+  semantic failure or a pass.
+- Contextual collection typing remains owned by
+  `SemanticContextualBuiltinReturnTypeOpt`. Both the source checker and typed
+  graph consumer now project direct `ListNew/QueueNew/SetNew` calls through
+  that owner and fail closed for member/computed callees. A freshly compiled C
+  semantic checker accepts
+  `src/self_hosted/parser/program_parse_owner.pgy`; the prior exact
+  `let_type_mismatch expected Set<String> actual Set<Unknown>` is closed.
+- Owner size is a hard double ratchet: production C/H and self-hosted Pergyra
+  owners stop at 699 LOC, semantic/type-system owners at 599 LOC, and
+  self-hosted tools at 999 LOC. Existing `helper` basenames are a shrink-only
+  inventory; new helpers are forbidden and policy/state/dispatch code must move
+  to a responsibility-named owner. The 600-line nominal constructor owner was
+  split at its artifact-consistency responsibility without raising a cap.
 - Forbidden fallback: increase the timeout or memory cap, add a general query
   engine/cache before one exact repeated operation is measured, rebuild facts
   from AST text, multiply one program target by inventory rows, or resume
@@ -68,17 +89,22 @@ owner, and the named executable gate.
 - Evidence grade: this closes a CI/program-identity prerequisite and makes the
   typed Pergyra path `REACHABLE`. It does not delete the active source-to-MIR
   C bypass and is not `SUBSTITUTING`.
-- Observed green for the current dirty set: shell syntax and diff hygiene,
-  build-pressure contract, full `tests/self_hosted_component_contract_smoke.sh`,
-  and self-host codegen seed fixed point. The StringSplit fixture compiled and
-  ran with expected output; C and LLVM fixture stdout each matched before the
-  existing unrelated role-receiver parity failure.
+- Observed green for the current dirty set: shell syntax and diff hygiene;
+  hard LOC/helper inventory; unified program-graph owner; freshly compiled C
+  semantic checker on the formerly failing parser owner; stable-ID import
+  merge plus overflow/duplicate negatives; the full structural component
+  ratchet; and the performance contract (757 ms measured C compile under its
+  60-second ceiling).
+- `tests/build_source_inventory_smoke.sh` could not run end-to-end on this
+  Windows checkout because no `make` executable is installed. Its Bash-4-only
+  source scan was reproduced directly and found no parity-script violation;
+  macOS/Linux CI remains the authoritative portability execution.
 - The full 685-source matrix is not implied. The five-minute pressure shard is
   an intentional timeout/cutoff measurement, not a semantic PASS.
-- CI watch: run `30562668988` failed codegen completeness on `world.pgy`
-  because semantic and codegen used different program graphs. That exact local
-  falsifier now passes. A post-push run is still required; the old red run is
-  not reclassified as green.
+- CI watch: completed run `30622652339` is the red predecessor described
+  above. Its formal proofs, sanitizers, TSan, all 20 C/LLVM backend shards, and
+  self-host codegen fixed point were green. A post-push run is still required;
+  the old red/cancelled jobs are not reclassified as green.
 - Next gate: keep the source-to-MIR rung. Move the immutable semantic expression
   graph to one program-owned MIR boundary while instruction rows retain only
   root/range handles. The vertical slice must remove both per-instruction graph
