@@ -31,7 +31,7 @@ if [[ "$BUILD_DIR" != /* && ! "$BUILD_DIR" =~ ^[A-Za-z]: ]]; then
 fi
 SOURCE_MANIFEST="$BUILD_DIR/sources.txt"
 STAGE_MANIFEST="$BUILD_DIR/stages.txt"
-SEMANTIC_TARGET_MANIFEST="$BUILD_DIR/semantic_targets.txt"
+PROGRAM_TARGET_MANIFEST="$BUILD_DIR/program_targets.txt"
 BASELINE_MANIFEST="$BUILD_DIR/baseline.txt"
 LEX_PARSE_BASELINE_MANIFEST="$BUILD_DIR/lex_parse_baseline.txt"
 LEX_PARSE_SEMANTIC_BASELINE_MANIFEST="$BUILD_DIR/lex_parse_semantic_baseline.txt"
@@ -61,7 +61,7 @@ read_manifest() {
 
 read_manifest "self-host-completeness-sources" "$SOURCE_MANIFEST"
 read_manifest "self-host-completeness-stages" "$STAGE_MANIFEST"
-read_manifest "self-host-completeness-semantic-targets" "$SEMANTIC_TARGET_MANIFEST"
+read_manifest "self-host-completeness-program-targets" "$PROGRAM_TARGET_MANIFEST"
 read_manifest "self-host-completeness-baseline" "$BASELINE_MANIFEST"
 read_manifest "self-host-completeness-lex-parse-baseline" "$LEX_PARSE_BASELINE_MANIFEST"
 read_manifest "self-host-completeness-lex-parse-semantic-baseline" "$LEX_PARSE_SEMANTIC_BASELINE_MANIFEST"
@@ -331,12 +331,6 @@ if stage_selected semantic; then
     SEMANTIC_BIN="$(compile_tool semantic "$(semantic_tool_source_path)" semantic)"
 fi
 if stage_selected codegen; then
-    # Codegen completeness consumes one source-unit AST per inventory row.
-    # Whole import-graph behavior belongs to parser/driver parity; expanding
-    # it again for every owner would make this ledger O(source x graph).
-    if [[ -z "$PARSER_BIN" ]]; then
-        PARSER_BIN="$(compile_tool parser "$(parser_tool_source_path)" parser)"
-    fi
     CODEGEN_BIN="$(compile_tool codegen "$(codegen_tool_source_path)" codegen)"
 fi
 
@@ -364,10 +358,10 @@ run_source_check() {
     return 1
 }
 
-semantic_check_target_for() {
+program_check_target_for() {
     local src="$1"
     local target
-    target="$(awk -F '\t' -v src="$src" '$1 == src { print $2; exit }' "$SEMANTIC_TARGET_MANIFEST")"
+    target="$(awk -F '\t' -v src="$src" '$1 == src { print $2; exit }' "$PROGRAM_TARGET_MANIFEST")"
     if [[ -z "$target" ]]; then
         printf '%s\n' "$src"
         return
@@ -377,29 +371,13 @@ semantic_check_target_for() {
 
 run_codegen_check() {
     local src="$1"
+    local check_src="${2:-$src}"
     local safe="${src//[^A-Za-z0-9_]/_}"
-    local ast_abs="$BUILD_DIR/ast/${safe}.ast.txt"
-    local ast_rel="${ast_abs#"$ROOT_DIR/"}"
-    local ast_err="$BUILD_DIR/ast/${safe}.err"
     local out="$BUILD_DIR/codegen_${safe}.out"
     local err="$BUILD_DIR/codegen_${safe}.err"
 
-    mkdir -p "$BUILD_DIR/ast"
     (cd "$ROOT_DIR" && pgy_run_with_timeout \
-        "$CHECK_TIMEOUT_SEC" "$ast_abs" "$ast_err" \
-        "$PARSER_BIN" --source-unit-ast "$src")
-    local ast_rc="$?"
-    if [[ "$ast_rc" -eq 0 ]]; then
-        :
-    else
-        if [[ "$ast_rc" -eq "$TIMEOUT_EXIT_CODE" ]]; then
-            echo "[self-host-completeness] ast export timed out after ${CHECK_TIMEOUT_SEC}s: $src" >&2
-            return 2
-        fi
-        return 1
-    fi
-    (cd "$ROOT_DIR" && pgy_run_with_timeout \
-        "$CHECK_TIMEOUT_SEC" "$out" "$err" "$CODEGEN_BIN" --check "$ast_rel")
+        "$CHECK_TIMEOUT_SEC" "$out" "$err" "$CODEGEN_BIN" --check-source "$check_src")
     local codegen_rc="$?"
     if [[ "$codegen_rc" -eq 0 ]]; then
         :
@@ -414,6 +392,32 @@ run_codegen_check() {
         return 0
     fi
     return 1
+}
+declare -A PROGRAM_TARGET_RESULTS=()
+PROGRAM_TARGET_CHECKS=0
+PROGRAM_TARGET_REUSES=0
+
+run_program_target_check_once() {
+    local stage="$1"
+    local bin="$2"
+    local src="$3"
+    local check_src="$4"
+    local memo_key="${stage}|${check_src}"
+    local rc
+
+    if [[ -n "${PROGRAM_TARGET_RESULTS[$memo_key]+set}" ]]; then
+        PROGRAM_TARGET_REUSES=$((PROGRAM_TARGET_REUSES + 1))
+        return "${PROGRAM_TARGET_RESULTS[$memo_key]}"
+    fi
+    PROGRAM_TARGET_CHECKS=$((PROGRAM_TARGET_CHECKS + 1))
+    if [[ "$stage" == "codegen" ]]; then
+        run_codegen_check_cached "$src" "$check_src" && rc=0 || rc="$?"
+    else
+        run_source_check_cached "$stage" "$bin" "$src" "$check_src" &&
+            rc=0 || rc="$?"
+    fi
+    PROGRAM_TARGET_RESULTS["$memo_key"]="$rc"
+    return "$rc"
 }
 
 count_stage() {
@@ -460,9 +464,9 @@ count_stage() {
                 fi
                 ;;
             semantic)
-                local semantic_target
-                semantic_target="$(semantic_check_target_for "$src")"
-                if run_source_check_cached semantic "$SEMANTIC_BIN" "$src" "$semantic_target"; then
+                local program_target
+                program_target="$(program_check_target_for "$src")"
+                if run_program_target_check_once semantic "$SEMANTIC_BIN" "$src" "$program_target"; then
                     pass=$((pass + 1))
                     printf '%s\n' "$src" >>"$pass_manifest"
                 else
@@ -475,7 +479,9 @@ count_stage() {
                 fi
                 ;;
             codegen)
-                if run_codegen_check_cached "$src"; then
+                local program_target
+                program_target="$(program_check_target_for "$src")"
+                if run_program_target_check_once codegen "$CODEGEN_BIN" "$src" "$program_target"; then
                     pass=$((pass + 1))
                     printf '%s\n' "$src" >>"$pass_manifest"
                 else
@@ -526,7 +532,7 @@ run_source_check_cached() {
         run_source_check "$stage" "$bin" "$src" "$check_src"
         return "$?"
     fi
-    key="${CACHE_SCHEMA}|source-set=${SOURCE_SET_FINGERPRINT}|stage=${stage}|source-path=${src}|check-target=${check_src}|tool-executable=$(sha256_file "$bin")|producer-executable=none"
+    key="${CACHE_SCHEMA}|source-set=${SOURCE_SET_FINGERPRINT}|stage=${stage}|check-target=${check_src}|tool-executable=$(sha256_file "$bin")|producer-executable=none"
     if cache_hit "$key"; then
         CACHE_HITS=$((CACHE_HITS + 1))
         return 0
@@ -543,20 +549,21 @@ run_source_check_cached() {
 
 run_codegen_check_cached() {
     local src="$1"
+    local check_src="${2:-$src}"
     local key
     local rc
 
     if ! cache_available; then
-        run_codegen_check "$src"
+        run_codegen_check "$src" "$check_src"
         return "$?"
     fi
-    key="${CACHE_SCHEMA}|source-set=${SOURCE_SET_FINGERPRINT}|stage=codegen|source-path=${src}|check-target=${src}|tool-executable=$(sha256_file "$CODEGEN_BIN")|producer-executable=$(sha256_file "$PARSER_BIN")"
+    key="${CACHE_SCHEMA}|source-set=${SOURCE_SET_FINGERPRINT}|stage=codegen|check-target=${check_src}|tool-executable=$(sha256_file "$CODEGEN_BIN")|producer-executable=embedded-parser"
     if cache_hit "$key"; then
         CACHE_HITS=$((CACHE_HITS + 1))
         return 0
     fi
     CACHE_MISSES=$((CACHE_MISSES + 1))
-    if run_codegen_check "$src"; then
+    if run_codegen_check "$src" "$check_src"; then
         cache_record_pass "$key"
         return 0
     else
@@ -565,11 +572,43 @@ run_codegen_check_cached() {
     fi
 }
 
+verify_program_target_execution_contract() {
+    local stage
+    local src
+    local check_src
+    local key
+    local expected_rows=0
+    local expected_unique=0
+    declare -A expected_targets=()
+
+    for stage in "${STAGES[@]}"; do
+        if [[ "$stage" != "semantic" && "$stage" != "codegen" ]]; then
+            continue
+        fi
+        for src in "${SOURCES[@]}"; do
+            check_src="$(program_check_target_for "$src")"
+            key="${stage}|${check_src}"
+            expected_rows=$((expected_rows + 1))
+            if [[ -z "${expected_targets[$key]+set}" ]]; then
+                expected_targets["$key"]=1
+                expected_unique=$((expected_unique + 1))
+            fi
+        done
+    done
+    if (( PROGRAM_TARGET_CHECKS != expected_unique )) ||
+        (( PROGRAM_TARGET_CHECKS + PROGRAM_TARGET_REUSES != expected_rows )); then
+        echo "[self-host-completeness] program-target execution contract failed: checks=$PROGRAM_TARGET_CHECKS reuses=$PROGRAM_TARGET_REUSES expected_unique=$expected_unique expected_rows=$expected_rows" >&2
+        exit 1
+    fi
+    echo "[self-host-completeness] program-targets: checks=$PROGRAM_TARGET_CHECKS reuses=$PROGRAM_TARGET_REUSES rows=$expected_rows"
+}
+
 LEDGER="$BUILD_DIR/ledger.tsv"
 : >"$LEDGER"
 for stage in "${STAGES[@]}"; do
     count_stage "$stage"
 done
+verify_program_target_execution_contract
 
 stage_pass() {
     local stage="$1"

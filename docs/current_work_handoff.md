@@ -11,50 +11,62 @@ owner, and the named executable gate.
 - Resume scope: read this card, verify the named owner and gate, then continue
   this one executable rung. Sections below `Historical checkpoint archive` are
   lookup evidence only and must not be treated as parallel work queues.
-- Verified predecessor: `c883e75ff42c36a51afc43c3e4af6c23857b34ea` on
+- Verified predecessor: `dc258cd683a99d0f6f509a7bdeb218eaf8eb13ec` on
   `main`, pushed to `origin/main`. This note cannot name its own containing
   refocus commit; verify the exact HEAD and dirty state with Git.
-- Production entrypoint: `driver_bootstrap_main.pgy -> PgyCompilerWorld.source_mir
-  -> DriverSourceMirExecution -> DriverRung2MirProjectionFromAdmittedAnalysisObserved
-  -> SelfMirProgramFactsFromReadyArtifactObserved`.
+- Active production entrypoint:
+  `driver_bootstrap_main.pgy -> PgyCompilerWorld.source_mir ->
+  DriverSourceMirExecution ->
+  DriverRung2MirProjectionFromAdmittedAnalysisObserved ->
+  SelfMirProgramFactsFromReadyArtifactObserved`.
+- Active fact owner:
+  `src/self_hosted/mir/artifact_lower_owner.pgy`. Last orchestration consumer:
+  `src/self_hosted/compiler/driver_rung2_owner.pgy`.
 - Active falsifier: the latest full integration reached `mir-facts:start` and
-  was policy-stopped after 2,534,272 ms at 2,284.8 MB peak private. This is a
-  CPU/incomplete result under the unchanged 3,072 MiB limit, not a 20 GB memory
-  reproduction and not a semantic PASS.
-- Fact owner: `src/self_hosted/mir/artifact_lower_owner.pgy`. Last orchestration
-  consumer: `src/self_hosted/compiler/driver_rung2_owner.pgy`. The pressure-
-  observed path now distinguishes iteration validation, generic projection,
-  domain projection, each routine/intent, and canonical-ID materialization.
+  was policy-stopped after 2,534,272 ms at 2,284.8 MB peak private. This remains
+  a CPU/incomplete result under the unchanged 3,072 MiB limit, not a semantic
+  PASS and not a 20 GB process.
 - Forbidden fallback: increase the timeout or memory cap, add a general query
   engine/cache before one exact repeated operation is measured, rebuild facts
-  from AST text, or resume Insere/Zeno/library research as if it were the active
-  compiler rung.
-- Next gate: run `tests/build_pressure_contract_smoke.sh`, focused component and
-  semantic gates, then one bounded pressure-owned full bootstrap. Use the last
-  emitted `mir-facts:*` start/done pair as the next optimization owner. Only a
-  Pergyra path that deletes a real C-owned compiler bypass may be recorded as
-  `SUBSTITUTING`.
-- Observed green for this change: build-pressure contract plus a live synthetic
-  stage capture (`observed_stage_count=1` and exact `last_observed_stage`),
-  self-host component contract, semantic-environment lifetime/no-direct-bypass
-  gate, fresh C semantic checker enum contract and the original failing source,
-  exhaustive C and LLVM self-application over 684/684 real sources per backend,
-  native `test-parser`,
-  imported-intent composition positive/negative, semantic declaration identity,
-  production-owner size, scaffold, and zone-authority semantic-to-DIR no-rescan
-  gates. The pressure-owned full bootstrap and remaining CI matrix are not
-  implied by these focused passes.
-- CI watch: GitHub Actions run `30557474963` is the current post-`c883e75f`
-  matrix. It exposed five shared contract drifts rather than platform-specific
-  failures: `outcome_enum` was mistaken for an enum declaration; three positive
-  parser fixtures omitted `Guard`/`Actor`; composed declaration hints preempted
-  the semantic duplicate-identity owner; `parser.c` crossed the 699-line owner
-  cap; and `zone_authority_fact_probe` lacked its scaffold manifest. The scanner
-  now rejects identifier suffixes, fixtures declare their types, equal-kind
-  duplicates reach the semantic checker while conflicting role evidence still
-  fails in composition, program assembly owns `parser_program.c`, and the probe
-  declares its executable parity contract. Focused gates above pass. A post-fix
-  CI run is still required; the old red run is not reclassified as green.
+  from AST text, multiply one program target by inventory rows, or resume
+  Insere/Zeno/library research as if it were the active compiler rung.
+- Closed prerequisite in the current dirty set: completeness semantic and
+  codegen rows share one import-composed program target. Codegen
+  `--check-source` owns parse, typed semantic analysis, admission, and shape
+  checking over one `AstTreeArtifact`; external `--source-unit-ast` and
+  text-inventory reconstruction are forbidden.
+- Objective card: make one completeness row mean one semantic program.
+  `CompilerCompletenessProgramCheckTarget` owns ledger projection;
+  `AstTreeArtifact` plus `SemanticAstArtifactAnalysis` own codegen input;
+  `CheckCUnitFromSemanticArtifact` is the last consumer. The negative ratchet
+  rejects per-row target execution, per-append whole-graph validation, and
+  source-unit/text bridges.
+- Falsifying evidence: `world.pgy` codegen passes 1/1. The two rows
+  `expr_postfix_owner.pgy` and `expr_precedence_owner.pgy` map to
+  `expr_owner.pgy` and pass 2/2 with one unique check and one explicit reuse.
+- Observed performance: root parse fell from a greater-than-304-second
+  policy-stop to 11.7 seconds. Typed world codegen fell from 101.1 seconds to
+  11.9 seconds. The monitored final codegen run completed in 10.614 seconds at
+  552.6 MB peak private / 504.8 MB peak working set. Separate stale parser
+  diagnostics at about 627.4 MB and 414.7 MB explain overlapping desktop
+  pressure; no single 20 GB compiler process was observed.
+- Evidence grade: this closes a CI/program-identity prerequisite and makes the
+  typed Pergyra path `REACHABLE`. It does not delete the active source-to-MIR
+  C bypass and is not `SUBSTITUTING`.
+- Observed green for the current dirty set: shell syntax and diff hygiene,
+  full `tests/self_hosted_component_contract_smoke.sh`, focused
+  `world.pgy` codegen completeness 1/1, focused duplicate-target completeness
+  2/2, observed root parser success, and monitored typed world codegen success.
+  The full 685-source matrix and pressure bootstrap are not implied.
+- CI watch: run `30562668988` failed codegen completeness on `world.pgy`
+  because semantic and codegen used different program graphs. That exact local
+  falsifier now passes. A post-push run is still required; the old red run is
+  not reclassified as green.
+- Next gate: keep the source-to-MIR rung. Run the build-pressure contract and
+  one bounded pressure-owned bootstrap, use the last `mir-facts:*` phase pair
+  to name the next repeated operation, then replace the reached C-owned bypass.
+  Do not open a general query engine, broad architecture work, or another
+  SoT-only queue meanwhile.
 
 ## Historical checkpoint archive — inactive unless explicitly referenced
 

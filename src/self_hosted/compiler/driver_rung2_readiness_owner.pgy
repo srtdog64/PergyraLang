@@ -3,6 +3,7 @@
 // This contract names every fact producer required before the executable
 // source/MIR convergence driver may consume an artifact.
 
+import "../parser/expression_graph_contract_owner.pgy";
 import "../parser/expression_set_literal_contract_owner.pgy";
 import "../semantic/ast_initializer_type_contract_owner.pgy";
 import "../semantic/ast_body_type_bundle_contract_owner.pgy";

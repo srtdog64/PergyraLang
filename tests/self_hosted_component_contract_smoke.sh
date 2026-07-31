@@ -990,8 +990,34 @@ require_text \
     "ParseProgramBuildWithImportPolicy(args[1], false).tree_text"
 require_text "src/self_hosted/parser/run_owner.pgy" "ParseRootProgram(source_path)"
 require_text "src/self_hosted/parser/run_owner.pgy" 'args[0] == "--source-unit-ast"'
+reject_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    '--source-unit-ast'
 require_text "tests/self_hosted/parity/completeness_ledger.sh" \
-    '"$PARSER_BIN" --source-unit-ast "$src"'
+    '"$CODEGEN_BIN" --check-source "$check_src"'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    'program_target="$(program_check_target_for "$src")"'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    'declare -A PROGRAM_TARGET_RESULTS=()'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    'run_program_target_check_once() {'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    'local memo_key="${stage}|${check_src}"'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    'run_program_target_check_once semantic "$SEMANTIC_BIN" "$src" "$program_target"'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    'run_program_target_check_once codegen "$CODEGEN_BIN" "$src" "$program_target"'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    'PROGRAM_TARGET_CHECKS=$((PROGRAM_TARGET_CHECKS + 1))'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    'PROGRAM_TARGET_REUSES=$((PROGRAM_TARGET_REUSES + 1))'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    'verify_program_target_execution_contract() {'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    'PROGRAM_TARGET_CHECKS + PROGRAM_TARGET_REUSES != expected_rows'
+reject_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    '|source-path=${src}|stage=semantic|'
+reject_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    '|source-path=${src}|stage=codegen|'
 require_file "src/self_hosted/parser/generic_parameter_list_owner.pgy"
 require_text "src/self_hosted/parser/generic_parameter_list_owner.pgy" \
     "func ParseGenericParameterListText("
@@ -3980,7 +4006,7 @@ require_text "src/self_hosted/parser/expression_graph_owner.pgy" \
     'import "expression_scalar_fact_owner.pgy";'
 reject_text "src/self_hosted/parser/expression_graph_owner.pgy" "struct ParserExpressionFact"
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionGraphsAppend"
-require_text "src/self_hosted/parser/expression_graph_owner.pgy" "!AstExpressionGraphRowsReady(malformed)"
+require_text "src/self_hosted/parser/expression_graph_contract_owner.pgy" "!AstExpressionGraphRowsReady(malformed)"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "func ParseExprFact"
 require_text "src/self_hosted/parser/program_parse_owner.pgy" "struct ParserProgramBuild"
 require_text "src/self_hosted/parser/program_parse_owner.pgy" "func ParseRootProgramBuild"
@@ -4532,6 +4558,68 @@ reject_text "src/self_hosted/parser/cursor_owner.pgy" \
 require_text "src/parser/ast_print_misc.c" \
     'ast_number_is_float(node) ? "%g" : "%.0f"'
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "ParserExpressionGraphContractReady()"
+require_file "src/self_hosted/parser/expression_graph_contract_owner.pgy"
+require_max_lines "src/self_hosted/parser/expression_graph_contract_owner.pgy" 180
+require_text "src/self_hosted/parser/expression_graph_contract_owner.pgy" \
+    "func ParserExpressionGraphContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
+    'import "../parser/expression_graph_contract_owner.pgy";'
+reject_text "src/self_hosted/parser/expression_graph_owner.pgy" "ContractReady()"
+require_text "src/self_hosted/parser/expression_graph_owner.pgy" \
+    "func ParserExpressionGraphRowsAppendShapeReady("
+reject_function_text "src/self_hosted/parser/expression_graph_owner.pgy" \
+    "func ParserExpressionGraphsAppend(" \
+    "AstExpressionArenaReady("
+reject_function_text "src/self_hosted/parser/expression_graph_owner.pgy" \
+    "func ParserExpressionGraphsAppendRows(" \
+    "AstExpressionGraphRowsReady("
+reject_function_text "src/self_hosted/parser/expression_graph_owner.pgy" \
+    "func ParserExpressionGraphsAppendRows(" \
+    "AstExpressionArenaReady("
+require_text "src/self_hosted/parser/program_parse_owner.pgy" \
+    "if !AstExpressionGraphRowsReady(composed_rows) {"
+require_text "src/self_hosted/parser/expression_graph_owner.pgy" \
+    "func ParserExpressionGraphsAppendInto("
+require_text "src/self_hosted/parser/expression_graph_owner.pgy" \
+    "func ParserExpressionGraphsAppendRowsInto("
+require_text "src/self_hosted/parser/expression_graph_owner.pgy" \
+    "ArraySet(target_box, 0, AstExpressionGraphRowsEmpty());"
+require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
+    "func ParseDeclsInto("
+require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
+    "out_blocks: Array<String>"
+reject_function_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
+    "func ParseDeclsInto(" \
+    "ParseDecls("
+require_text "src/self_hosted/parser/program_parse_owner.pgy" \
+    "let import_paths: Set<String> = SetNew();"
+require_text "src/self_hosted/parser/source_path_owner.pgy" \
+    "func ParserImportGraphSeen(paths: Set<String>, path: String)"
+require_text "src/self_hosted/parser/source_path_owner.pgy" \
+    "return SetHas(paths, path);"
+require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
+    "SetAdd(import_paths, imp_path);"
+require_text "src/self_hosted/parser/intent_parameter_resolution_owner.pgy" \
+    'let lines: Array<String> = StringSplit(tree_text, "\n");'
+reject_function_text \
+    "src/self_hosted/parser/intent_parameter_resolution_owner.pgy" \
+    "func ParserIntentParameterRowsResolve(" \
+    "ParserCharAt("
+reject_function_text \
+    "src/self_hosted/parser/intent_parameter_resolution_owner.pgy" \
+    "func ParserIntentParameterRowsResolve(" \
+    "SourceByteAt("
+require_text "src/self_hosted/hir/ast_destructure_graph_owner.pgy" \
+    "func AstDestructureGraphViewForOrdinalFromReadyRows("
+require_text "src/self_hosted/hir/ast_destructure_graph_owner.pgy" \
+    "func AstDestructureGraphCountFromReadyRows("
+reject_function_text "src/self_hosted/hir/ast_destructure_graph_owner.pgy" \
+    "func AstTreeArtifactBindDestructurePayloads(" \
+    "AstDestructureGraphViewForOrdinal("
+require_text "src/self_hosted/parser/run_owner.pgy" \
+    'args[0] == "--check-root"'
+require_text "src/self_hosted/parser/run_owner.pgy" \
+    "ParseObservedRootProgramBuild(args[1])"
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     'if !ParserExpressionInterpolationGraphContractReady() {'
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
@@ -4736,6 +4824,17 @@ require_text "src/self_hosted/semantic/ast_expression_call_target_contract_owner
     '"Other_Get"'
 require_text "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" \
     "derived_member.name != \"Box_Get\""
+require_text "src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy" \
+    "if facts.node_ids[node_id] != node_id { return None; }"
+reject_function_text "src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy" "func SemanticAstKindSurfaceIndexForNode(" "while "
+require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "let low: Int = 0;"
+reject_function_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "func SemanticAstFunctionSignatureIndexForNode(" "let i: Int = 0;"
+require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "let low: Int = 0;"
+reject_function_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "func SemanticAstNominalConstructorIndexForNode(" "let i: Int = 0;"
+require_text "src/self_hosted/semantic/ast_role_fact_owner.pgy" "let low: Int = 0;"
+reject_function_text "src/self_hosted/semantic/ast_role_fact_owner.pgy" "func SemanticAstRoleIndexForNode(" "let i: Int = 0;"
+require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "let low: Int = 0;"
+reject_function_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumIndexForNode(" "let i: Int = 0;"
 require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
     "SemanticCallableIndex("
 require_text "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
@@ -7175,11 +7274,11 @@ require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExp
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionCall("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionCallArgument("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionNamedSingleCallArgument("
-require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionNamedSingleCallArgumentContractReady("
+require_text "src/self_hosted/parser/expression_graph_contract_owner.pgy" "func ParserExpressionNamedSingleCallArgumentContractReady("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionNamedCallArgumentAt("
-require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionNamedCallArgumentAtContractReady("
+require_text "src/self_hosted/parser/expression_graph_contract_owner.pgy" "func ParserExpressionNamedCallArgumentAtContractReady("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionDirectCallCalleeName("
-require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionDirectCallCalleeContractReady("
+require_text "src/self_hosted/parser/expression_graph_contract_owner.pgy" "func ParserExpressionDirectCallCalleeContractReady("
 require_text "src/self_hosted/parser/expr_primary_owner.pgy" "base_fact = ParserExpressionFloatLiteral(base);"
 require_text "src/self_hosted/parser/expr_primary_owner.pgy" "base_fact = ParserExpressionIntegerLiteral(base);"
 require_text "src/self_hosted/parser/expr_primary_owner.pgy" "base_fact = ParserExpressionLongLiteral(base);"
@@ -7192,6 +7291,12 @@ require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
     'import "../../compiler/driver_pipeline_owner.pgy";'
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
     'args[0] == "--source"'
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
+    'args[0] == "--check-source"'
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
+    "SemanticAstArtifactAnalyzeTyped(source_artifact, false)"
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
+    "CheckCUnitFromSemanticArtifact("
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
     "CompileSourceToAstArtifact(args[1])"
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
@@ -7469,6 +7574,12 @@ reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "TypedAstArenaAt
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "TypedAstArenaValueText(arena, i)"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "TypedAstArenaAuxValueText(arena, i)"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstArenaContains"
+require_text "src/self_hosted/codegen/text/text_owner.pgy" \
+    'let lines: Array<String> = StringSplit(tree_text, "\n");'
+reject_function_text "src/self_hosted/codegen/text/text_owner.pgy" \
+    "func RejectUnsupportedCodegenBuiltins(" "NextNewline("
+reject_function_text "src/self_hosted/codegen/text/text_owner.pgy" \
+    "func RejectUnsupportedCodegenBuiltins(" "Substring(tree_text"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "StringIndexOf(nodes[i].text"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "StringIndexOf(nodes[i].payload"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "StringIndexOf(nodes[i].aux_payload"
@@ -7485,11 +7596,28 @@ reject_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "AstTreeArtifact
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "GenerateCUnit(tree_text, true)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CheckCUnit(tree_text: String, require_entrypoint: Bool)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" 'import "../runtime_abi/host_io_runtime_owner.pgy";'
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "RejectUnsupportedCodegenBuiltins(tree_text)"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextNodeInventory(tree_text, nodes, node_count_box)"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenTypedAstBridgeReady(nodes, count)"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "RejectUnsupportedCodegenBuiltins(artifact.tree_text)"
+reject_function_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "func CheckCUnitFromSemanticArtifact(" "CodegenAstTextNodeInventory("
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" \
+    "func CodegenSemanticStatementKindForNode("
+require_text "src/self_hosted/codegen/emission/program_statement_shape_owner.pgy" \
+    "CodegenSemanticStatementKindForNode(statements, idx)"
+require_text "src/self_hosted/codegen/emission/program_statement_shape_owner.pgy" \
+    "func CodegenStatementShapeLeafKind("
+reject_function_text "src/self_hosted/codegen/emission/program_statement_shape_owner.pgy" \
+    "func CheckStmtList(" "CodegenSemanticStatementIs(statements, idx"
+reject_function_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "func CheckCUnitFromSemanticArtifact(" "CodegenAstTextNode"
+require_text "src/self_hosted/codegen/emission/program_statement_shape_owner.pgy" \
+    "CodegenAstArenaProvenanceOrDie(arena, idx)"
+reject_text "src/self_hosted/codegen/emission/program_statement_shape_owner.pgy" "CodegenAstTextProvenance("
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let arena: AstArena = artifact.arena;"
+reject_function_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "func CheckCUnitFromSemanticArtifact(" "CodegenTypedAstBridgeReady("
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" 'import "../input/ast_arena_codegen_view_owner.pgy";'
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count)"
+reject_function_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "func CheckCUnitFromSemanticArtifact(" "CodegenAstTextTypedArenaFromNodes("
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstArenaIndentOrDie(arena, UnwrapOption(first_fn))"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstArenaIsDescendantOf(arena, cur[0], owner_node)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstArenaIsDescendantOf(arena, cur[0], role_owner_node)"
@@ -9868,10 +9996,10 @@ reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" ',"kind":"me
 
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" 'source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"semantic-parity-paths"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"self-host-completeness-semantic-targets"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"self-host-completeness-program-targets"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" 'SELF_TARGET_ROWS=()'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" 'SEMANTIC_TARGET_MANIFEST'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" 'PROGRAM_TARGET_MANIFEST'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
     'if path == "src/self_hosted/semantic/result_call_type_owner.pgy" {'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
@@ -11001,7 +11129,7 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarne
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeSuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriExtendedSuiteName()"
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" "pgy_selfhost_read_test_harness_manifest"
-require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "CompilerCompletenessSemanticTargetsSuiteName"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "CompilerCompletenessProgramTargetsSuiteName"
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(0) == "source_path"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(1) == "expected_diagnostic"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(2) == "expected_air_json"'
@@ -11746,7 +11874,9 @@ reject_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" 'impact
 require_text "tests/self_hosted/parity/completeness_ledger.sh" 'CACHE_SCHEMA="pgy.selfhost.completeness-cache.v1"'
 require_text "tests/self_hosted/parity/completeness_ledger.sh" "PGY_SELFHOST_COMPLETENESS_CACHE"
 require_text "tests/self_hosted/parity/completeness_ledger.sh" 'BUILD_DIR="$ROOT_DIR/$BUILD_DIR"'
-require_text "tests/self_hosted/parity/completeness_ledger.sh" 'local ast_abs="$BUILD_DIR/ast/${safe}.ast.txt"'
+reject_text "tests/self_hosted/parity/completeness_ledger.sh" 'local ast_abs="$BUILD_DIR/ast/${safe}.ast.txt"'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    'check-target=${check_src}'
 require_text "tests/self_hosted/parity/completeness_ledger.sh" "source_set_fingerprint"
 require_text "tests/self_hosted/parity/completeness_ledger.sh" 'tool_key="${CACHE_SCHEMA}|tool-build'
 require_text "tests/self_hosted/parity/completeness_ledger.sh" "compiler-executable="

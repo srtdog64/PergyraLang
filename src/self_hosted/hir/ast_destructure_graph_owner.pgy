@@ -12,11 +12,11 @@ struct AstDestructureGraphView {
     initializer_root: Int;
 }
 
-func AstDestructureGraphViewForOrdinal(
+func AstDestructureGraphViewForOrdinalFromReadyRows(
     ref rows: AstExpressionGraphRows,
     ordinal: Int
 ) -> AstDestructureGraphView {
-    if !AstExpressionGraphRowsReady(rows) || ordinal < 0 {
+    if ordinal < 0 {
         return AstDestructureGraphView(false, 0, 0);
     }
     let seen: Int = 0;
@@ -43,10 +43,19 @@ func AstDestructureGraphViewForOrdinal(
     return AstDestructureGraphView(false, 0, 0);
 }
 
-func AstDestructureGraphCount(
+func AstDestructureGraphViewForOrdinal(
+    ref rows: AstExpressionGraphRows,
+    ordinal: Int
+) -> AstDestructureGraphView {
+    if !AstExpressionGraphRowsReady(rows) {
+        return AstDestructureGraphView(false, 0, 0);
+    }
+    return AstDestructureGraphViewForOrdinalFromReadyRows(rows, ordinal);
+}
+
+func AstDestructureGraphCountFromReadyRows(
     ref rows: AstExpressionGraphRows
 ) -> Option<Int> {
-    if !AstExpressionGraphRowsReady(rows) { return None; }
     let count: Int = 0;
     let i: Int = 0;
     while i < ArrayLength(rows.roots) {
@@ -64,6 +73,15 @@ func AstDestructureGraphCount(
         i = i + 2;
     }
     return Some(count);
+}
+
+func AstDestructureGraphCount(
+    ref rows: AstExpressionGraphRows
+) -> Option<Int> {
+    if !AstExpressionGraphRowsReady(rows) {
+        return None;
+    }
+    return AstDestructureGraphCountFromReadyRows(rows);
 }
 
 func AstDestructurePatternBindingNames(
@@ -107,6 +125,20 @@ func AstTreeArtifactBindDestructurePayloads(
     artifact: AstTreeArtifact
 ) -> AstTreeArtifact {
     let arena: AstArena = artifact.arena;
+    if !AstExpressionGraphRowsReady(artifact.expression_graphs) {
+        let invalid_rows0: AstExpressionGraphRows = AstExpressionGraphRows(
+            false, artifact.expression_graphs.root_owner_kinds,
+            artifact.expression_graphs.root_lanes,
+            artifact.expression_graphs.roots,
+            artifact.expression_graphs.arena
+        );
+        return AstTreeArtifact(
+            artifact.tree_text, artifact.arena, artifact.count,
+            invalid_rows0, AstTreeArtifactIdentityDigest(
+                artifact.tree_text, artifact.count, invalid_rows0
+            )
+        );
+    }
     let atoms: Array<Int> = arena.atoms;
     let has_atoms: Array<Int> = arena.has_atoms;
     let values: Array<Int> = arena.values;
@@ -122,7 +154,7 @@ func AstTreeArtifactBindDestructurePayloads(
             continue;
         }
         let view: AstDestructureGraphView =
-            AstDestructureGraphViewForOrdinal(
+            AstDestructureGraphViewForOrdinalFromReadyRows(
                 artifact.expression_graphs, ordinal
             );
         if !view.ok {
@@ -154,7 +186,7 @@ func AstTreeArtifactBindDestructurePayloads(
         ordinal = ordinal + 1;
         node_id = node_id + 1;
     }
-    let graph_count: Option<Int> = AstDestructureGraphCount(
+    let graph_count: Option<Int> = AstDestructureGraphCountFromReadyRows(
         artifact.expression_graphs
     );
     if !IsSome(graph_count) || UnwrapOption(graph_count) != ordinal {

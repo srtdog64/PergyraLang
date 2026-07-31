@@ -471,37 +471,37 @@ func ParseIntentDecl(
                 step_out = AppendLine(step_out, Concat("      Expect: ", s_expect));
             }
             if StringLength(s_on) > 0 {
-                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppend(
-                    expression_graphs[0], TypedAstKindIntentStepOnTag(),
+                ParserExpressionGraphsAppendInto(
+                    expression_graphs, TypedAstKindIntentStepOnTag(),
                     AstExpressionLaneAtom(), s_on_fact
-                ));
+                );
             }
             compensate_i = 0;
             while compensate_i < ArrayLength(s_compensate_facts) {
-                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppend(
-                    expression_graphs[0],
+                ParserExpressionGraphsAppendInto(
+                    expression_graphs,
                     TypedAstKindIntentStepCompensateTag(),
                     AstExpressionLaneAtom(), s_compensate_facts[compensate_i]
-                ));
+                );
                 compensate_i = compensate_i + 1;
             }
             if StringLength(s_guard) > 0 {
-                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppend(
-                    expression_graphs[0], TypedAstKindIntentStepGuardTag(),
+                ParserExpressionGraphsAppendInto(
+                    expression_graphs, TypedAstKindIntentStepGuardTag(),
                     AstExpressionLaneAtom(), s_guard_fact
-                ));
+                );
             }
             if StringLength(s_post) > 0 {
-                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppend(
-                    expression_graphs[0], TypedAstKindIntentStepPostTag(),
+                ParserExpressionGraphsAppendInto(
+                    expression_graphs, TypedAstKindIntentStepPostTag(),
                     AstExpressionLaneAtom(), s_post_fact
-                ));
+                );
             }
             if StringLength(s_expect) > 0 {
-                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppend(
-                    expression_graphs[0], TypedAstKindIntentStepExpectTag(),
+                ParserExpressionGraphsAppendInto(
+                    expression_graphs, TypedAstKindIntentStepExpectTag(),
                     AstExpressionLaneAtom(), s_expect_fact
-                ));
+                );
             }
             step_blocks = AppendLine(step_blocks, step_out);
             if intent_return_type != "" &&
@@ -552,10 +552,10 @@ func ParseIntentDecl(
                 terminal_success_steps[terminal_i],
                 Concat(" => ", terminal_success_texts[terminal_i]))
         ));
-        ArraySet(expression_graphs, 0, ParserExpressionGraphsAppend(
-            expression_graphs[0], TypedAstKindIntentTerminalSuccessTag(),
+        ParserExpressionGraphsAppendInto(
+            expression_graphs, TypedAstKindIntentTerminalSuccessTag(),
             AstExpressionLaneAtom(), terminal_success_facts[terminal_i]
-        ));
+        );
         terminal_i = terminal_i + 1;
     }
     terminal_i = 0;
@@ -565,10 +565,10 @@ func ParseIntentDecl(
                 terminal_failure_steps[terminal_i],
                 Concat(" => ", terminal_failure_texts[terminal_i]))
         ));
-        ArraySet(expression_graphs, 0, ParserExpressionGraphsAppend(
-            expression_graphs[0], TypedAstKindIntentTerminalFailureTag(),
+        ParserExpressionGraphsAppendInto(
+            expression_graphs, TypedAstKindIntentTerminalFailureTag(),
             AstExpressionLaneAtom(), terminal_failure_facts[terminal_i]
-        ));
+        );
         terminal_i = terminal_i + 1;
     }
     ArraySet(cursor_out, 0, i); return out;

@@ -564,7 +564,7 @@ func Main() -> Void {
     }
     if args[0] == CompilerCompletenessSourcesSuiteName() { EmitCompilerCompletenessSourceInventory(); return; }
     if args[0] == CompilerCompletenessStagesSuiteName() { EmitCompilerCompletenessStages(); return; }
-    if args[0] == CompilerCompletenessSemanticTargetsSuiteName() { EmitCompilerCompletenessSemanticTargets(); return; }
+    if args[0] == CompilerCompletenessProgramTargetsSuiteName() { EmitCompilerCompletenessProgramTargets(); return; }
     if args[0] == CompilerCompletenessBaselineSuiteName() {
         EmitCompilerCompletenessBaseline();
         return;

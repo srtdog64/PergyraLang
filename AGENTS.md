@@ -112,6 +112,21 @@ cosmetic reshuffling.
 - Count progress only when a Pergyra implementation replaces a real C-owned
   compiler path. Owner files, tests, documents, and LOC are supporting evidence,
   not substitution progress by themselves.
+- Treat a test as a falsifier of a named ownership claim, not as the objective
+  function. A green row cannot excuse dual authority, an undeleted fallback,
+  or repeated reconstruction of an admitted artifact.
+- Count completeness and performance work by semantic execution target. When
+  multiple inventory rows project to one import-composed program, execute that
+  program once per stage/run, record unique checks and reuses, and attribute
+  the result back to the rows. Validate a cumulative graph once at its owner
+  boundary.
+- Before delegating parallel work, fix the objective card, owner boundaries,
+  independent edit scopes, and one integration gate. Do not use agent count,
+  token volume, fixture count, or generated files as progress evidence, and do
+  not open parallel implementation tracks on the active executable rung.
+- If wall time, memory, or artifact count grows faster than the semantic input,
+  stop expansion and identify the repeated owned operation before adding a
+  cache, shard, worker, timeout, or memory allowance.
 - Budget the edit loop: 60 seconds for static owner gates, 5 minutes for focused
   parity, and 30 minutes for an integration shard. Full matrices belong at
   scheduled or merge boundaries.

@@ -263,11 +263,18 @@ func SemanticAstEnumIndexForNode(
     node_id: Int
 ) -> Option<Int> {
     if !facts.ok { return None; }
-    let i: Int = 0;
-    while i < SemanticAstEnumCount(facts) {
-        if facts.node_ids[i] == node_id { return Some(i); }
-        i = i + 1;
+    let count: Int = SemanticAstEnumCount(facts);
+    let low: Int = 0;
+    let high: Int = count;
+    while low < high {
+        let middle: Int = low + ((high - low) / 2);
+        if facts.node_ids[middle] < node_id {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
     }
+    if low < count && facts.node_ids[low] == node_id { return Some(low); }
     return None;
 }
 

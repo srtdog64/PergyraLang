@@ -1,6 +1,5 @@
 // Program-level C assembly owner for self-host C emission.
 import "../text/text_owner.pgy";
-import "../../hir/ast_text_inventory_owner.pgy";
 import "../../semantic/ast_artifact_verdict_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/ast_usage_owner.pgy";
@@ -38,7 +37,7 @@ import "program_statement_shape_owner.pgy";
 import "intent_emit_owner.pgy";
 import "intent_execution_plan_emit_owner.pgy";
 import "../runtime_abi/spawn_runtime_owner.pgy";
-func CheckFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
+func CheckFunction(count: Int, arena: AstArena,
                    signatures: SemanticAstFunctionSignatureFacts,
                    local_bindings: SemanticAstLocalBindingFacts,
                    assignments: SemanticAstAssignmentFacts,
@@ -77,43 +76,41 @@ func CheckFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
     CodegenAstArenaExpectBody(arena, count, cur);
     CodegenAstArenaExpectBlock(arena, count, cur);
     return CheckStmtList(
-        nodes, count, arena, local_bindings, assignments, statements,
+        count, arena, local_bindings, assignments, statements,
         f_indent + 6, cur
     );
 }
-func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
-    RejectUnsupportedCodegenBuiltins(tree_text);
-    let nodes: Array<CodegenAstTextNode> = [];
-    let node_count_box: Array<Int> = [0];
-    CodegenAstTextNodeInventory(tree_text, nodes, node_count_box);
-    let count: Int = node_count_box[0];
-    if !CodegenTypedAstBridgeReady(nodes, count) {
-        Die("codegen AST text bridge failed typed AST arena contract");
-    }
-    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
-    let expression_graphs: AstExpressionGraphRows =
-        AstExpressionGraphRowsEmpty();
-    let artifact: AstTreeArtifact = AstTreeArtifact(
-        tree_text, arena, count, expression_graphs,
-        AstTreeArtifactIdentityDigest(tree_text, count, expression_graphs)
-    );
-    let semantic_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(
-            artifact, require_entrypoint
-        );
+func CheckCUnitFromSemanticArtifact(
+    artifact: AstTreeArtifact,
+    semantic_analysis: SemanticAstArtifactAnalysis,
+    require_entrypoint: Bool
+) -> Bool {
     if !semantic_analysis.verdict.ok {
         Die(semantic_analysis.verdict.diagnostic_message);
     }
+    if !SemanticAstArtifactAdmissionReady(
+        artifact, semantic_analysis, require_entrypoint
+    ) {
+        Die("codegen semantic admission receipt is missing or stale");
+    }
+    Log("Phase: codegen-check:surface:start");
+    RejectUnsupportedCodegenBuiltins(artifact.tree_text);
+    Log("Phase: codegen-check:surface:done");
+    let count: Int = artifact.count;
+    let arena: AstArena = artifact.arena;
     let main_scan: Int = 0;
+    Log("Phase: codegen-check:event-scan:start");
     while main_scan < count {
         if CodegenSemanticKindIs(
             semantic_analysis.kind_surfaces, main_scan,
             TypedAstKindEventDeclTag()
         ) {
-            Die(Concat("event declarations are not supported (no handler/dispatch model): ", CodegenAstTextProvenance(nodes[main_scan])));
+            Die(Concat("event declarations are not supported (no handler/dispatch model): ", CodegenAstArenaProvenanceOrDie(arena, main_scan)));
         }
         main_scan = main_scan + 1;
     }
+    Log("Phase: codegen-check:event-scan:done");
+    Log("Phase: codegen-check:shape:start");
     let cur: Array<Int> = [0];
     let saw_function: Bool = false;
     while cur[0] < count {
@@ -141,7 +138,7 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
                 ) {
                     let method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     CheckFunction(
-                        nodes, count, arena, semantic_analysis.signatures,
+                        count, arena, semantic_analysis.signatures,
                         semantic_analysis.local_bindings,
                         semantic_analysis.assignments,
                         semantic_analysis.statements,
@@ -161,7 +158,7 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
                 ) {
                     let role_method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     CheckFunction(
-                        nodes, count, arena, semantic_analysis.signatures,
+                        count, arena, semantic_analysis.signatures,
                         semantic_analysis.local_bindings,
                         semantic_analysis.assignments,
                         semantic_analysis.statements,
@@ -178,12 +175,12 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
             semantic_analysis.kind_surfaces, cur[0],
             TypedAstKindEventDeclTag()
         ) {
-            Die(Concat("event declarations are not supported (no handler/dispatch model): ", CodegenAstTextProvenance(nodes[cur[0]])));
+            Die(Concat("event declarations are not supported (no handler/dispatch model): ", CodegenAstArenaProvenanceOrDie(arena, cur[0])));
         } else if CodegenSemanticFunctionIs(
             semantic_analysis.signatures, cur[0]
         ) {
             CheckFunction(
-                nodes, count, arena, semantic_analysis.signatures,
+                count, arena, semantic_analysis.signatures,
                 semantic_analysis.local_bindings,
                 semantic_analysis.assignments,
                 semantic_analysis.statements,
@@ -194,12 +191,17 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
             ArraySet(cur, 0, cur[0] + 1);
         }
     }
-    if require_entrypoint && !saw_function {
-        Die("no function found in AST");
-    }
+    Log("Phase: codegen-check:shape:done");
+    if require_entrypoint && !saw_function { Die("no function found in AST"); }
     return true;
 }
-// Ready core for an analysis admitted by the semantic owner.  The semantic
+func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(tree_text);
+    return CheckCUnitFromSemanticArtifact(
+        artifact, SemanticAstArtifactAnalyzeCompactBridge(artifact, require_entrypoint), require_entrypoint
+    );
+}
+// Ready core for an analysis admitted by the semantic owner. The semantic
 // fact-family arrays are immutable in this call graph.  Keep this core free of
 // whole-artifact reconstruction: the fixed-size artifact identity is checked
 // here, while checked compatibility entrypoints remain above.

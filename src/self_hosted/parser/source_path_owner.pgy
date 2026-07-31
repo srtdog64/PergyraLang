@@ -17,13 +17,6 @@ func ParserReadImportedSource(import_path: String) -> String {
     return Concat(ReadFile(import_path), "\n// __imported__\n");
 }
 
-func ParserImportGraphSeen(paths: Array<String>, path: String) -> Bool {
-    let i: Int = 0;
-    while i < ArrayLength(paths) {
-        if paths[i] == path {
-            return true;
-        }
-        i = i + 1;
-    }
-    return false;
+func ParserImportGraphSeen(paths: Set<String>, path: String) -> Bool {
+    return SetHas(paths, path);
 }

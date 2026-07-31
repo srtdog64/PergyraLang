@@ -106,6 +106,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/expression_graph_owner.pgy` -- parser-owned
   expression node/edge construction, verified subtree extraction, and
   statement-lane root accumulation.
+- `src/self_hosted/parser/expression_graph_contract_owner.pgy` -- executable
+  falsifying fixtures for parser expression graph construction; it owns no
+  production graph facts.
 - `src/self_hosted/parser/expression_set_literal_graph_owner.pgy` -- distinct
   Set-literal graph construction and ordered element edges.
 - `src/self_hosted/parser/expression_set_literal_contract_owner.pgy` --

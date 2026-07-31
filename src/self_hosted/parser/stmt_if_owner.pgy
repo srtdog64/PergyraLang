@@ -84,12 +84,9 @@ func ParseIfStmt(
     ArraySet(cursor_out, 0, i);
     let condition: ParserExpressionFact = ParseExprFact(content, i, cursor_out);
     if !condition.ok { Exit(1); }
-    ArraySet(
-        expression_graphs, 0,
-        ParserExpressionGraphsAppend(
-            expression_graphs[0], TypedAstKindIfStmtTag(),
-            AstExpressionLaneAtom(), condition
-        )
+    ParserExpressionGraphsAppendInto(
+        expression_graphs, TypedAstKindIfStmtTag(),
+        AstExpressionLaneAtom(), condition
     );
     let cond: String = condition.text;
     i = cursor_out[0];

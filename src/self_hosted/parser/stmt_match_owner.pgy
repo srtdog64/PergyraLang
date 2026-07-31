@@ -26,12 +26,9 @@ func ParseMatchStmt(
         content, i, cursor_out
     );
     if !scrutinee.ok { Exit(1); }
-    ArraySet(
-        expression_graphs, 0,
-        ParserExpressionGraphsAppend(
-            expression_graphs[0], TypedAstKindMatchStmtTag(),
-            AstExpressionLaneAtom(), scrutinee
-        )
+    ParserExpressionGraphsAppendInto(
+        expression_graphs, TypedAstKindMatchStmtTag(),
+        AstExpressionLaneAtom(), scrutinee
     );
     let scrut: String = scrutinee.text;
     i = cursor_out[0];

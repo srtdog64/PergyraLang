@@ -21,7 +21,7 @@ import "decl_nominal_owner.pgy";
 // (e.g. `Math_` for `namespace Math { ... }`, `Outer_Inner_` for nested
 // namespaces). When `until_brace` is true, parsing stops at `}` (used
 // by the namespace branch); otherwise it stops at EOF.
-func ParseDecls(
+func ParseDeclsInto(
     content: String,
     start: Int,
     inout cursor_out: Array<Int>,
@@ -32,21 +32,14 @@ func ParseDecls(
     follow_imports: Bool,
     within_zone: String,
     inout involve_types: Array<String>,
-    inout import_paths: Array<String>,
-    inout expression_graphs: Array<AstExpressionGraphRows>
-) -> String {
+    inout import_paths: Set<String>,
+    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout script_graphs: Array<AstExpressionGraphRows>,
+    inout out_blocks: Array<String>,
+    inout script_blocks: Array<String>
+) -> Void {
     let i: Int = start;
     let n: Int = StringLength(content);
-    let out: TextBuilder = TextBuilderNew(4096);
-    let out_has_line: Bool = false;
-    let script_body: TextBuilder = TextBuilderNew(512);
-    let script_has_line: Bool = false;
-    let out_graphs: Array<AstExpressionGraphRows> = [
-        AstExpressionGraphRowsEmpty()
-    ];
-    let script_graphs: Array<AstExpressionGraphRows> = [
-        AstExpressionGraphRowsEmpty()
-    ];
     let active_within_zone: String = within_zone;
     let collect_script: Bool = !until_brace && !force_export && StringLength(name_prefix) == 0 && StringLength(active_within_zone) == 0;
 
@@ -67,23 +60,11 @@ func ParseDecls(
             if ParserCharAt(content, i) == "}" {
                 i = i + 1;
                 ArraySet(cursor_out, 0, i);
-                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppendRows(
-                    expression_graphs[0], out_graphs[0]
-                ));
-                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppendRows(
-                    expression_graphs[0], script_graphs[0]
-                ));
                 break;
             }
         } else {
             if i >= n {
                 ArraySet(cursor_out, 0, i);
-                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppendRows(
-                    expression_graphs[0], out_graphs[0]
-                ));
-                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppendRows(
-                    expression_graphs[0], script_graphs[0]
-                ));
                 break;
             }
         }
@@ -115,26 +96,16 @@ func ParseDecls(
                 if ParserImportGraphSeen(import_paths, imp_path) {
                     continue;
                 }
-                ArrayPush(import_paths, imp_path);
+                SetAdd(import_paths, imp_path);
                 let imp_content: String = ParserReadImportedSource(imp_path);
                 let imp_dir: String = SelfHostPath.Dirname(imp_path);
                 let imp_cursor: Array<Int> = [0];
-                let imp_graphs: Array<AstExpressionGraphRows> = [
-                    AstExpressionGraphRowsEmpty()
-                ];
-                let imp_inner: String = ParseDecls(
+                ParseDeclsInto(
                     imp_content, 0, imp_cursor, name_prefix, false, imp_dir,
                     true, true, active_within_zone, involve_types,
-                    import_paths, imp_graphs
+                    import_paths, expression_graphs, script_graphs,
+                    out_blocks, script_blocks
                 );
-                if StringLength(imp_inner) > 0 {
-                    if out_has_line { TextBuilderAppend(out, "\n"); }
-                    TextBuilderAppend(out, imp_inner);
-                    out_has_line = true;
-                    ArraySet(out_graphs, 0, ParserExpressionGraphsAppendRows(
-                        out_graphs[0], imp_graphs[0]
-                    ));
-                }
             }
             continue;
         }
@@ -157,23 +128,13 @@ func ParseDecls(
             }
             let new_prefix: String = Concat(name_prefix, Concat(ns_name, "_"));
             ArraySet(cursor_out, 0, i);
-            let inner_graphs: Array<AstExpressionGraphRows> = [
-                AstExpressionGraphRowsEmpty()
-            ];
-            let inner: String = ParseDecls(
+            ParseDeclsInto(
                 content, i, cursor_out, new_prefix, true, source_dir,
                 force_export, follow_imports, active_within_zone,
-                involve_types, import_paths, inner_graphs
+                involve_types, import_paths, expression_graphs, script_graphs,
+                out_blocks, script_blocks
             );
             i = cursor_out[0];
-            if StringLength(inner) > 0 {
-                if out_has_line { TextBuilderAppend(out, "\n"); }
-                TextBuilderAppend(out, inner);
-                out_has_line = true;
-                ArraySet(out_graphs, 0, ParserExpressionGraphsAppendRows(
-                    out_graphs[0], inner_graphs[0]
-                ));
-            }
             continue;
         }
 
@@ -193,23 +154,13 @@ func ParseDecls(
                 Exit(1);
             }
             ArraySet(cursor_out, 0, i);
-            let inner_graphs: Array<AstExpressionGraphRows> = [
-                AstExpressionGraphRowsEmpty()
-            ];
-            let inner: String = ParseDecls(
+            ParseDeclsInto(
                 content, i, cursor_out, name_prefix, true, source_dir,
                 force_export, follow_imports, wz_name, involve_types,
-                import_paths, inner_graphs
+                import_paths, expression_graphs, script_graphs,
+                out_blocks, script_blocks
             );
             i = cursor_out[0];
-            if StringLength(inner) > 0 {
-                if out_has_line { TextBuilderAppend(out, "\n"); }
-                TextBuilderAppend(out, inner);
-                out_has_line = true;
-                ArraySet(out_graphs, 0, ParserExpressionGraphsAppendRows(
-                    out_graphs[0], inner_graphs[0]
-                ));
-            }
             continue;
         }
 
@@ -252,32 +203,26 @@ func ParseDecls(
         if MatchLanguageWord(content, i, LanguageWordId.WordType) {
             let type_block: String = ParseTypeDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            if out_has_line { TextBuilderAppend(out, "\n"); }
-            TextBuilderAppend(out, type_block);
-            out_has_line = true;
+            ArrayPush(out_blocks, type_block);
             continue;
         }
 
         if MatchLanguageWord(content, i, LanguageWordId.WordAbility) {
             let ability_block: String = ParseAbilityDecl(
-                content, i, cursor_out, decl_prefix, out_graphs
+                content, i, cursor_out, decl_prefix, expression_graphs
             );
             i = cursor_out[0];
-            if out_has_line { TextBuilderAppend(out, "\n"); }
-            TextBuilderAppend(out, ability_block);
-            out_has_line = true;
+            ArrayPush(out_blocks, ability_block);
             continue;
         }
 
         if MatchLanguageWord(content, i, LanguageWordId.WordZone) {
             let zone_block: String = ParseZoneDecl(
                 content, i, cursor_out, decl_prefix, involve_types,
-                out_graphs
+                expression_graphs
             );
             i = cursor_out[0];
-            if out_has_line { TextBuilderAppend(out, "\n"); }
-            TextBuilderAppend(out, zone_block);
-            out_has_line = true;
+            ArrayPush(out_blocks, zone_block);
             continue;
         }
 
@@ -285,9 +230,7 @@ func ParseDecls(
         if MatchLanguageWord(content, i, LanguageWordId.WordEffect) {
             let effect_block: String = ParseEffectDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            if out_has_line { TextBuilderAppend(out, "\n"); }
-            TextBuilderAppend(out, effect_block);
-            out_has_line = true;
+            ArrayPush(out_blocks, effect_block);
             continue;
         }
 
@@ -295,9 +238,7 @@ func ParseDecls(
         if MatchLanguageWord(content, i, LanguageWordId.WordRelation) {
             let relation_block: String = ParseRelationDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            if out_has_line { TextBuilderAppend(out, "\n"); }
-            TextBuilderAppend(out, relation_block);
-            out_has_line = true;
+            ArrayPush(out_blocks, relation_block);
             continue;
         }
 
@@ -305,24 +246,20 @@ func ParseDecls(
         if MatchLanguageWord(content, i, LanguageWordId.WordRole) {
             let role_block: String = ParseRoleDecl(
                 content, i, cursor_out, decl_prefix, active_within_zone,
-                out_graphs
+                expression_graphs
             );
             i = cursor_out[0];
-            if out_has_line { TextBuilderAppend(out, "\n"); }
-            TextBuilderAppend(out, role_block);
-            out_has_line = true;
+            ArrayPush(out_blocks, role_block);
             continue;
         }
 
 
         if MatchLanguageWord(content, i, LanguageWordId.WordIntent) {
             let intent_block: String = ParseIntentDecl(
-                content, i, cursor_out, decl_prefix, out_graphs
+                content, i, cursor_out, decl_prefix, expression_graphs
             );
             i = cursor_out[0];
-            if out_has_line { TextBuilderAppend(out, "\n"); }
-            TextBuilderAppend(out, intent_block);
-            out_has_line = true;
+            ArrayPush(out_blocks, intent_block);
             continue;
         }
 
@@ -331,12 +268,10 @@ func ParseDecls(
             let nominal_block: String = ParseNominalDecl(
                 content, i, cursor_out, decl_prefix, is_export,
                 active_within_zone,
-                involve_types, out_graphs
+                involve_types, expression_graphs
             );
             i = cursor_out[0];
-            if out_has_line { TextBuilderAppend(out, "\n"); }
-            TextBuilderAppend(out, nominal_block);
-            out_has_line = true;
+            ArrayPush(out_blocks, nominal_block);
             continue;
         }
 
@@ -344,18 +279,14 @@ func ParseDecls(
         if MatchLanguageWord(content, i, LanguageWordId.WordEvent) {
             let event_block: String = ParseEventDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            if out_has_line { TextBuilderAppend(out, "\n"); }
-            TextBuilderAppend(out, event_block);
-            out_has_line = true;
+            ArrayPush(out_blocks, event_block);
             continue;
         }
 
         if MatchLanguageWord(content, i, LanguageWordId.WordEnum) {
             let enum_block: String = ParseEnumDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            if out_has_line { TextBuilderAppend(out, "\n"); }
-            TextBuilderAppend(out, enum_block);
-            out_has_line = true;
+            ArrayPush(out_blocks, enum_block);
             continue;
         }
 
@@ -371,12 +302,10 @@ func ParseDecls(
             ArraySet(cursor_out, 0, i);
             let fn_block: String = ParseFunction(
                 content, i, cursor_out, decl_prefix, effective_export, 2,
-                "func", "Function: ", false, active_within_zone, out_graphs
+                "func", "Function: ", false, active_within_zone, expression_graphs
             );
             i = cursor_out[0];
-            if out_has_line { TextBuilderAppend(out, "\n"); }
-            TextBuilderAppend(out, fn_block);
-            out_has_line = true;
+            ArrayPush(out_blocks, fn_block);
             continue;
         }
 
@@ -399,23 +328,58 @@ func ParseDecls(
         );
         i = cursor_out[0];
         if collect_script {
-            if script_has_line { TextBuilderAppend(script_body, "\n"); }
-            TextBuilderAppend(script_body, stmt_block);
-            script_has_line = true;
-            ArraySet(script_graphs, 0, ParserExpressionGraphsAppendRows(
-                script_graphs[0], statement_graphs[0]
-            ));
+            ArrayPush(script_blocks, stmt_block);
+            ParserExpressionGraphsAppendRowsInto(script_graphs, statement_graphs[0]);
         } else {
-            if out_has_line { TextBuilderAppend(out, "\n"); }
-            TextBuilderAppend(out, stmt_block);
-            out_has_line = true;
-            ArraySet(out_graphs, 0, ParserExpressionGraphsAppendRows(
-                out_graphs[0], statement_graphs[0]
-            ));
+            ArrayPush(out_blocks, stmt_block);
+            ParserExpressionGraphsAppendRowsInto(expression_graphs, statement_graphs[0]);
         }
+    }
+    return;
+}
+
+func ParseDecls(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>,
+    name_prefix: String,
+    until_brace: Bool,
+    source_dir: String,
+    force_export: Bool,
+    follow_imports: Bool,
+    within_zone: String,
+    inout involve_types: Array<String>,
+    inout import_paths: Set<String>,
+    inout expression_graphs: Array<AstExpressionGraphRows>
+) -> String {
+    let out_blocks: Array<String> = [];
+    let script_blocks: Array<String> = [];
+    let script_graphs: Array<AstExpressionGraphRows> = [
+        AstExpressionGraphRowsEmpty()
+    ];
+    ParseDeclsInto(
+        content, start, cursor_out, name_prefix, until_brace, source_dir,
+        force_export, follow_imports, within_zone, involve_types,
+        import_paths, expression_graphs, script_graphs,
+        out_blocks, script_blocks
+    );
+    ParserExpressionGraphsAppendRowsInto(expression_graphs, script_graphs[0]);
+    let out: TextBuilder = TextBuilderNew(4096);
+    let block_index: Int = 0;
+    while block_index < ArrayLength(out_blocks) {
+        if block_index > 0 { TextBuilderAppend(out, "\n"); }
+        TextBuilderAppend(out, out_blocks[block_index]);
+        block_index = block_index + 1;
     }
     let output_allocator: Allocator = AllocatorResult();
     let output_text: String = TextBuilderFinish(out, output_allocator);
+    let script_body: TextBuilder = TextBuilderNew(512);
+    block_index = 0;
+    while block_index < ArrayLength(script_blocks) {
+        if block_index > 0 { TextBuilderAppend(script_body, "\n"); }
+        TextBuilderAppend(script_body, script_blocks[block_index]);
+        block_index = block_index + 1;
+    }
     let script_allocator: Allocator = AllocatorResult();
     let script_text: String = TextBuilderFinish(
         script_body, script_allocator

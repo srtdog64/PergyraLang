@@ -21,14 +21,17 @@ func ParserProgramGraphFail(reason: String) -> Void {
     Exit(1);
 }
 
-func ParseProgramBuildWithImportPolicy(
+func ParseProgramBuildWithImportPolicyObserved(
     source_path: String,
-    follow_imports: Bool
+    follow_imports: Bool,
+    observe_phases: Bool
 ) -> ParserProgramBuild {
     if !FileExists(source_path) {
         Exit(1);
     }
+    if observe_phases { Log("Phase: source-read:start"); }
     let content: String = ReadFile(source_path);
+    if observe_phases { Log("Phase: source-read:done"); }
 
     let cursor: Array<Int> = [0];
     let i: Int = SkipWhitespaceAndComments(content, 0);
@@ -36,17 +39,21 @@ func ParseProgramBuildWithImportPolicy(
 
     let src_dir: String = SelfHostPath.Dirname(source_path);
     let involve_types: Array<String> = [];
-    let import_paths: Array<String> = [source_path];
+    let import_paths: Set<String> = SetNew();
+    SetAdd(import_paths, source_path);
     let expression_graphs: Array<AstExpressionGraphRows> = [
         AstExpressionGraphRowsEmpty()
     ];
+    if observe_phases { Log("Phase: declaration-composition:start"); }
     let decls: String = ParseDecls(
         content, i, cursor, "", false, src_dir, false, follow_imports, "",
         involve_types, import_paths, expression_graphs
     );
+    if observe_phases { Log("Phase: declaration-composition:done"); }
     if !ParserIntentParameterResolutionContractReady() {
         ParserProgramGraphFail("intent parameter resolution contract drifted");
     }
+    if observe_phases { Log("Phase: intent-resolution:start"); }
     let resolved_intents: ParserIntentParameterResolution =
         ParserIntentParameterRowsResolve(decls, involve_types);
     if !resolved_intents.ok {
@@ -55,12 +62,15 @@ func ParseProgramBuildWithImportPolicy(
         );
     }
     decls = resolved_intents.tree_text;
+    if observe_phases { Log("Phase: intent-resolution:done"); }
     let composed_rows: AstExpressionGraphRows = expression_graphs[0];
+    if observe_phases { Log("Phase: expression-graph-admission:start"); }
     if !AstExpressionGraphRowsReady(composed_rows) {
         ParserProgramGraphFail(
             "import composition produced invalid expression graph rows"
         );
     }
+    if observe_phases { Log("Phase: expression-graph-admission:done"); }
     if StringLength(decls) == 0 {
         let empty_program: String = "Program:";
         return ParserProgramBuild(
@@ -73,8 +83,21 @@ func ParseProgramBuildWithImportPolicy(
     );
 }
 
+func ParseProgramBuildWithImportPolicy(
+    source_path: String,
+    follow_imports: Bool
+) -> ParserProgramBuild {
+    return ParseProgramBuildWithImportPolicyObserved(
+        source_path, follow_imports, false
+    );
+}
+
 func ParseRootProgramBuild(source_path: String) -> ParserProgramBuild {
     return ParseProgramBuildWithImportPolicy(source_path, true);
+}
+
+func ParseObservedRootProgramBuild(source_path: String) -> ParserProgramBuild {
+    return ParseProgramBuildWithImportPolicyObserved(source_path, true, true);
 }
 
 func ParseRootProgram(source_path: String) -> String {

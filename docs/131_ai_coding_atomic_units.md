@@ -1,6 +1,6 @@
 # AI Coding Atomic Units
 
-Last updated: 2026-07-10
+Last updated: 2026-07-31
 
 Anti-hype rule:
 
@@ -220,6 +220,80 @@ Non-goal: redesign expression typing in this patch.
 
 The strong form changes the AI's effective objective from "produce the most
 likely compiler refactor" to "satisfy this repository-specific contract."
+
+## 3.2. Do Not Run Pergyra As A Software Factory
+
+An agent that is rewarded only for the nearest green test has no built-in
+penalty for duplicate authority, repeated whole-program work, compatibility
+fallbacks, or a graph that no production entrypoint consumes. More tokens,
+agents, fixtures, documents, and generated files can make that failure mode
+look productive while the executable architecture gets worse.
+
+For this repository, a test is a falsifier of a named ownership claim. It is
+not the objective function and its row count is not progress. Before
+implementation, fix one vertical slice:
+
+```text
+production entrypoint
+-> direct C bypass to delete
+-> existing Pergyra fact owner
+-> last orchestration consumer
+-> focused positive/parity/negative gate
+-> installed-driver evidence
+```
+
+The time saved by generated implementation and rework belongs first to
+planning and alignment. Spend it on the objective card, call graph, evidence
+lifetime, materialization budget, and falsifying fixture before opening more
+implementation fronts.
+
+The operating rules are:
+
+1. Keep one active executable self-host rung. Documentation, registries,
+   fixtures, and owner files support that rung; they do not independently
+   count as replacement.
+2. A green test cannot excuse a second source of truth, an old fallback, or
+   repeated reconstruction of an already admitted artifact.
+3. Count work at the semantic execution target. If several inventory rows map
+   to one import-composed program graph, validate that target once and project
+   the result back to the rows.
+4. Validate a complete graph once at its owner boundary. Consumers carry the
+   admitted fact or receipt; they do not rescan, recopy, or revalidate the
+   cumulative graph.
+5. Parallel agents are allowed only for bounded, independent evidence tasks
+   after the owner, edit boundary, and integration gate are fixed. The primary
+   task still owns reconciliation. Agent count and token use are not progress.
+6. Stop expanding the factory when memory, wall time, or file count grows
+   faster than the semantic input. Name the repeated operation and its owner
+   before adding a cache, shard, timeout, worker, or memory allowance.
+7. Do not open an unrelated query engine, library adoption track, architecture
+   rewrite, or cosmetic folder split while an executable rung is open.
+
+Every material run records at least:
+
+```text
+revision and dirty state
+semantic input/target identity
+number of attributed rows
+number of unique executions and reuses
+elapsed time and process-scoped peak memory
+last reached owner phase
+result: PASS, FAIL, TIMEOUT, or POLICY-STOP
+```
+
+This is the control loop:
+
+```text
+align objective
+-> implement one owner-directed delta
+-> run the narrow falsifier
+-> inspect cost and ownership
+-> delete the bypass
+-> broaden only at the integration boundary
+```
+
+If a run cannot name the bypass it replaces or the fact owner it exercises,
+it is diagnostic exploration, not self-host progress.
 
 ## 4. Agent Pipeline Implication
 

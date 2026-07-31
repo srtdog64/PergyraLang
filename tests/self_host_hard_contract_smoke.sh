@@ -650,7 +650,7 @@ require_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_
     "RewriteSemanticDirectCall" "StringRuntimeCBoolToStringFn()"
 require_function_text \
     "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
-    "SemanticAstAnalysisResolveCallTargetsFromBody" \
+    "SemanticAstAnalysisResolveCallTargetsFromAdmittedBody" \
     "SemanticAstBodyExpressionEnvironmentSeed("
 require_function_text \
     "src/self_hosted/semantic/ast_body_expression_environment_owner.pgy" \

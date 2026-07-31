@@ -24,8 +24,8 @@ func CompilerCompletenessStagesSuiteName() -> String {
     return "self-host-completeness-stages";
 }
 
-func CompilerCompletenessSemanticTargetsSuiteName() -> String {
-    return "self-host-completeness-semantic-targets";
+func CompilerCompletenessProgramTargetsSuiteName() -> String {
+    return "self-host-completeness-program-targets";
 }
 
 func CompilerCompletenessBaselineSuiteName() -> String {
@@ -202,7 +202,7 @@ func EmitCompilerCompletenessStages() -> Void {
     }
 }
 
-func CompilerCompletenessSemanticCheckTarget(path: String) -> CompilerCompletenessCheckTarget {
+func CompilerCompletenessProgramCheckTarget(path: String) -> CompilerCompletenessCheckTarget {
     if path == "src/self_hosted/parser/expr_postfix_owner.pgy" {
         return CompilerCompletenessCheckTarget("src/self_hosted/parser/expr_owner.pgy");
     }
@@ -254,12 +254,12 @@ func CompilerCompletenessSemanticCheckTarget(path: String) -> CompilerCompletene
     return CompilerCompletenessCheckTarget(path);
 }
 
-func EmitCompilerCompletenessSemanticTargets() -> Void {
+func EmitCompilerCompletenessProgramTargets() -> Void {
     let rows: Array<String> = CompilerCompletenessSourceInventory();
     let i: Int = 0;
     while i < ArrayLength(rows) {
         let path: String = rows[i];
-        let target: CompilerCompletenessCheckTarget = CompilerCompletenessSemanticCheckTarget(path);
+        let target: CompilerCompletenessCheckTarget = CompilerCompletenessProgramCheckTarget(path);
         Log(Concat(path, Concat("\t", target.path)));
         i = i + 1;
     }
@@ -330,7 +330,7 @@ func CompilerCompletenessLedgerReady() -> Bool {
         CompilerCompletenessStageKnown("codegen") &&
         StringLength(CompilerCompletenessLedgerSchema()) > 0 &&
         StringLength(CompilerCompletenessSourceRoot()) > 0 &&
-        StringLength(CompilerCompletenessSemanticTargetsSuiteName()) > 0 &&
+        StringLength(CompilerCompletenessProgramTargetsSuiteName()) > 0 &&
         StringLength(CompilerCompletenessLexParseBaselineSuiteName()) > 0 &&
         StringLength(CompilerCompletenessLexParseSemanticBaselineSuiteName()) > 0 &&
         StringLength(CompilerCompletenessFullPipelineBaselineSuiteName()) > 0 &&

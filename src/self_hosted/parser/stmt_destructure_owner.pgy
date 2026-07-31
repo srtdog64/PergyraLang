@@ -57,19 +57,13 @@ func ParseDestructureLetStmt(
         index = index + 1;
     }
     if !pattern.ok { Exit(1); }
-    ArraySet(
-        expression_graphs, 0,
-        ParserExpressionGraphsAppend(
-            expression_graphs[0], TypedAstKindDestructureStmtTag(),
-            AstExpressionLaneAtom(), pattern
-        )
+    ParserExpressionGraphsAppendInto(
+        expression_graphs, TypedAstKindDestructureStmtTag(),
+        AstExpressionLaneAtom(), pattern
     );
-    ArraySet(
-        expression_graphs, 0,
-        ParserExpressionGraphsAppend(
-            expression_graphs[0], TypedAstKindDestructureStmtTag(),
-            AstExpressionLaneValue(), initializer
-        )
+    ParserExpressionGraphsAppendInto(
+        expression_graphs, TypedAstKindDestructureStmtTag(),
+        AstExpressionLaneValue(), initializer
     );
     ArraySet(cursor_out, 0, i);
     return Concat(IndentStr(stmt_indent), "AST node type 6");

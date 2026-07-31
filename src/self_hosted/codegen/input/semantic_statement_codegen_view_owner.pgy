@@ -30,16 +30,26 @@ func CodegenSemanticStatementTypeFactsReady(
     return true;
 }
 
+func CodegenSemanticStatementKindForNode(
+    facts: SemanticAstStatementFacts,
+    node_id: Int
+) -> Option<Int> {
+    let index_opt: Option<Int> = SemanticAstStatementIndexForNode(
+        facts, node_id
+    );
+    if !IsSome(index_opt) { return None; }
+    return Some(facts.kind_tags[UnwrapOption(index_opt)]);
+}
+
 func CodegenSemanticStatementIs(
     facts: SemanticAstStatementFacts,
     node_id: Int,
     expected_kind: Int
 ) -> Bool {
-    let index_opt: Option<Int> = SemanticAstStatementIndexForNode(
+    let kind_opt: Option<Int> = CodegenSemanticStatementKindForNode(
         facts, node_id
     );
-    return IsSome(index_opt) &&
-        facts.kind_tags[UnwrapOption(index_opt)] == expected_kind;
+    return IsSome(kind_opt) && UnwrapOption(kind_opt) == expected_kind;
 }
 
 func CodegenSemanticStatementIndexOrDie(

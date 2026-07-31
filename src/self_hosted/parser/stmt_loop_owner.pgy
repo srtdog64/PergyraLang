@@ -13,12 +13,9 @@ func ParseWhileStmt(
     ArraySet(cursor_out, 0, i);
     let condition: ParserExpressionFact = ParseExprFact(content, i, cursor_out);
     if !condition.ok { Exit(1); }
-    ArraySet(
-        expression_graphs, 0,
-        ParserExpressionGraphsAppend(
-            expression_graphs[0], TypedAstKindWhileStmtTag(),
-            AstExpressionLaneAtom(), condition
-        )
+    ParserExpressionGraphsAppendInto(
+        expression_graphs, TypedAstKindWhileStmtTag(),
+        AstExpressionLaneAtom(), condition
     );
     let cond: String = condition.text;
     i = cursor_out[0];
@@ -45,12 +42,9 @@ func ParseLoopStmt(
 ) -> String {
     let i: Int = after_head;
     let out: String = Concat(IndentStr(stmt_indent), "While: true");
-    ArraySet(
-        expression_graphs, 0,
-        ParserExpressionGraphsAppend(
-            expression_graphs[0], TypedAstKindWhileStmtTag(),
-            AstExpressionLaneAtom(), ParserExpressionLeaf("true")
-        )
+    ParserExpressionGraphsAppendInto(
+        expression_graphs, TypedAstKindWhileStmtTag(),
+        AstExpressionLaneAtom(), ParserExpressionLeaf("true")
     );
     out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
     ArraySet(cursor_out, 0, i);
@@ -92,12 +86,9 @@ func ParseForStmt(
     );
     if !lower_fact.ok { Exit(1); }
     let lower: String = lower_fact.text;
-    ArraySet(
-        expression_graphs, 0,
-        ParserExpressionGraphsAppend(
-            expression_graphs[0], TypedAstKindForStmtTag(),
-            AstExpressionLaneValue(), lower_fact
-        )
+    ParserExpressionGraphsAppendInto(
+        expression_graphs, TypedAstKindForStmtTag(),
+        AstExpressionLaneValue(), lower_fact
     );
     i = cursor_out[0];
     let range_text: String = "";
@@ -110,12 +101,9 @@ func ParseForStmt(
         );
         if !upper_fact.ok { Exit(1); }
         let upper: String = upper_fact.text;
-        ArraySet(
-            expression_graphs, 0,
-            ParserExpressionGraphsAppend(
-                expression_graphs[0], TypedAstKindForStmtTag(),
-                AstExpressionLaneAuxiliary(), upper_fact
-            )
+        ParserExpressionGraphsAppendInto(
+            expression_graphs, TypedAstKindForStmtTag(),
+            AstExpressionLaneAuxiliary(), upper_fact
         );
         i = cursor_out[0];
         range_text = Concat(lower, Concat("..", upper));

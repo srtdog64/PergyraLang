@@ -230,14 +230,21 @@ The Makefile keeps the fast and heavy paths separate:
   reported as a measured failure count, not as a successful skip. Fixture and
   expected-output directories, including prefixed negative or role fixture
   directories, are test harness inputs and never production inventory. The
-  current parser and codegen checks consume one source-unit parse per inventory row.
-  They validate import syntax but do not materialize the complete transitive
-  import graph again for every owner. Whole import-graph behavior remains a
-  load-bearing responsibility of parser parity and driver/bootstrap parity.
-  The codegen stage consumes that source-unit AST from the self-host parser,
-  not C-oracle `pgy --ast`. The `full_pipeline` number is still a stage-check
-  intersection, not a claim that typed self-semantic facts already feed codegen
-  end to end.
+  lexer and parser checks retain source-row attribution. Semantic and codegen
+  rows derive an import-composed program target from
+  `CompilerCompletenessProgramCheckTarget`. One target is executed at most
+  once per stage and ledger run, even when the persistent cache is disabled;
+  its pass/fail result is then attributed to every inventory row mapped to
+  that target. The harness fails if unique checks plus explicit reuses do not
+  equal the selected semantic/codegen rows. This prevents file inventory from
+  multiplying whole-program work.
+  The codegen `--check-source` entrypoint owns source-to-artifact parsing,
+  typed semantic analysis, semantic admission, and C-subset shape checking in
+  one process. It does not consume a C-oracle AST, an externally exported
+  source-unit AST, or a reconstructed text-node inventory. Whole import-graph
+  behavior remains load-bearing in parser, semantic/codegen program checks,
+  and driver/bootstrap parity. The `full_pipeline` number remains a
+  stage-check intersection, not installed-driver `SUBSTITUTING` evidence.
 - For focused local validation, `PGY_SELFHOST_COMPLETENESS_STAGES` may name one
   or more stages such as `parser` or `semantic,codegen`. Focused mode compiles
   and checks only those stage owners and enforces only their stage minima. It
@@ -263,10 +270,12 @@ The Makefile keeps the fast and heavy paths separate:
 - `PGY_SELFHOST_COMPLETENESS_CACHE=0` disables the local completeness cache.
   The default rung0 cache reuses only stage-tool builds and verified pass
   artifacts keyed by `pgy.selfhost.completeness-cache.v1`, the full production
-  source-set fingerprint, tool source/compiler fingerprints, stage, source
-  path, check target, tool executable, and producer executable. This cache
-  reduces repeated proof-run cost; it is not a narrower proof and does not
-  replace the unfiltered completeness ledger.
+  source-set fingerprint, tool source/compiler fingerprints, stage, semantic
+  check target, tool executable, and producer identity. Lexer/parser targets
+  equal their source paths; semantic/codegen targets name the composed program
+  root and deliberately omit an inventory-row cache identity. This cache
+  reduces repeated proof-run cost; it does not own the within-run once-only
+  rule and does not replace the unfiltered completeness ledger.
 - A caller-supplied `PGY_BIN` is a prebuilt compiler artifact contract. The
   `self-host-completeness-smoke` Make target must not rebuild `$(PGY)`, switch
   `LLVM_ENABLED`, or invalidate the shared object directory when that artifact

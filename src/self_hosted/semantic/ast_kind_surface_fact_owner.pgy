@@ -40,13 +40,13 @@ func SemanticAstKindSurfaceIndexForNode(
     facts: SemanticAstKindSurfaceFacts,
     node_id: Int
 ) -> Option<Int> {
-    if !facts.ok { return None; }
-    let i: Int = 0;
-    while i < SemanticAstKindSurfaceCount(facts) {
-        if facts.node_ids[i] == node_id { return Some(i); }
-        i = i + 1;
+    let count: Int = SemanticAstKindSurfaceCount(facts);
+    if !facts.ok || node_id < 0 || node_id >= count {
+        return None;
     }
-    return None;
+    // This owner emits one row per syntax node in exact NodeId order.
+    if facts.node_ids[node_id] != node_id { return None; }
+    return Some(node_id);
 }
 
 func SemanticAstKindSurfaceIs(

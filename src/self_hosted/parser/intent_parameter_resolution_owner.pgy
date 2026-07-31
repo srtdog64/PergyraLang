@@ -31,13 +31,16 @@ func ParserIntentParameterResolvedLine(
     let marker: String = "IntentBinding: ";
     let marker_index: Int = StringIndexOf(line, marker);
     if marker_index < 0 { return Some(line); }
+    let line_length: Int = StringLength(line);
     let indent_index: Int = 0;
     while indent_index < marker_index {
-        let c: String = ParserCharAt(line, indent_index);
+        let c: Int = SourceByteAt(line, line_length, indent_index);
         // The integrated parser parses this owner's own contract strings.
         // A marker inside a Literal row is source text, not an unresolved
         // parameter node, so only an indentation-anchored label is eligible.
-        if c != " " && c != "\t" { return Some(line); }
+        if c != SourceByteOf(" ") && c != SourceByteOf("\t") {
+            return Some(line);
+        }
         indent_index = indent_index + 1;
     }
     let payload: String = Substring(
@@ -69,27 +72,22 @@ func ParserIntentParameterRowsResolve(
 ) -> ParserIntentParameterResolution {
     let n: Int = StringLength(tree_text);
     let out: TextBuilder = TextBuilderNew(n + 1);
-    let line_start: Int = 0;
+    let lines: Array<String> = StringSplit(tree_text, "\n");
+    let line_index: Int = 0;
     let valid: Bool = true;
-    while line_start < n && valid {
-        let line_end: Int = line_start;
-        while line_end < n && ParserCharAt(tree_text, line_end) != "\n" {
-            line_end = line_end + 1;
-        }
-        let line: String = Substring(
-            tree_text, line_start, line_end - line_start
-        );
+    while line_index < ArrayLength(lines) && valid {
         let resolved: Option<String> =
-            ParserIntentParameterResolvedLine(line, participant_types);
+            ParserIntentParameterResolvedLine(
+                lines[line_index], participant_types
+            );
         if !IsSome(resolved) {
             valid = false;
         } else {
             TextBuilderAppend(out, UnwrapOption(resolved));
-            if line_end < n {
+            if line_index + 1 < ArrayLength(lines) {
                 TextBuilderAppend(out, "\n");
-                line_end = line_end + 1;
             }
-            line_start = line_end;
+            line_index = line_index + 1;
         }
     }
     let result_allocator: Allocator = AllocatorResult();

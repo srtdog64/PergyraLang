@@ -34,7 +34,7 @@ fi
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/semantic_selfcheck}"
 RUN_ID="${PGY_SELFHOST_RUN_ID:-$$}"
 HARNESS_PATHS_FILE="$BUILD_DIR/semantic_harness_paths.txt"
-SEMANTIC_TARGET_MANIFEST="$BUILD_DIR/semantic_targets.txt"
+PROGRAM_TARGET_MANIFEST="$BUILD_DIR/program_targets.txt"
 CHECK_TIMEOUT_SEC="${PGY_SELFHOST_SELFCHECK_TIMEOUT_SEC:-60}"
 TIMEOUT_EXIT_CODE=124
 mkdir -p "$BUILD_DIR"
@@ -50,7 +50,7 @@ read_manifest() {
 }
 
 read_manifest "semantic-parity-paths" "$HARNESS_PATHS_FILE"
-read_manifest "self-host-completeness-semantic-targets" "$SEMANTIC_TARGET_MANIFEST"
+read_manifest "self-host-completeness-program-targets" "$PROGRAM_TARGET_MANIFEST"
 
 harness_paths=()
 while IFS= read -r line; do
@@ -74,7 +74,7 @@ SELF_TARGET_ROWS=()
 while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     SELF_TARGET_ROWS+=("$line")
-done < "$SEMANTIC_TARGET_MANIFEST"
+done < "$PROGRAM_TARGET_MANIFEST"
 
 self_source_count="${#SELF_TARGET_ROWS[@]}"
 if [[ "$self_source_count" -eq 0 ]]; then

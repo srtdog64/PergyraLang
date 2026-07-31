@@ -260,12 +260,9 @@ func ParseOneStmt(
             content, i, cursor_out
         );
         if !value_fact.ok { Exit(1); }
-        ArraySet(
-            expression_graphs, 0,
-            ParserExpressionGraphsAppend(
-                expression_graphs[0], TypedAstKindValueReturnStmtTag(),
-                AstExpressionLaneAtom(), value_fact
-            )
+        ParserExpressionGraphsAppendInto(
+            expression_graphs, TypedAstKindValueReturnStmtTag(),
+            AstExpressionLaneAtom(), value_fact
         );
         let val_text: String = value_fact.text;
         i = cursor_out[0];
@@ -320,12 +317,9 @@ func ParseOneStmt(
             content, i, cursor_out
         );
         if !value_fact.ok { Exit(1); }
-        ArraySet(
-            expression_graphs, 0,
-            ParserExpressionGraphsAppend(
-                expression_graphs[0], TypedAstKindLetStmtTag(),
-                AstExpressionLaneValue(), value_fact
-            )
+        ParserExpressionGraphsAppendInto(
+            expression_graphs, TypedAstKindLetStmtTag(),
+            AstExpressionLaneValue(), value_fact
         );
         let val_text: String = value_fact.text;
         i = cursor_out[0];
@@ -414,19 +408,13 @@ func ParseOneStmt(
             content, i, cursor_out
         );
         if !rhs_fact.ok { Exit(1); }
-        ArraySet(
-            expression_graphs, 0,
-            ParserExpressionGraphsAppend(
-                expression_graphs[0], TypedAstKindAssignStmtTag(),
-                AstExpressionLaneAtom(), lhs_fact
-            )
+        ParserExpressionGraphsAppendInto(
+            expression_graphs, TypedAstKindAssignStmtTag(),
+            AstExpressionLaneAtom(), lhs_fact
         );
-        ArraySet(
-            expression_graphs, 0,
-            ParserExpressionGraphsAppend(
-                expression_graphs[0], TypedAstKindAssignStmtTag(),
-                AstExpressionLaneValue(), rhs_fact
-            )
+        ParserExpressionGraphsAppendInto(
+            expression_graphs, TypedAstKindAssignStmtTag(),
+            AstExpressionLaneValue(), rhs_fact
         );
         let rhs: String = rhs_fact.text;
         i = cursor_out[0];
@@ -451,24 +439,18 @@ func ParseOneStmt(
             let log_argument: ParserExpressionFact =
                 ParserExpressionNamedSingleCallArgument(expr_fact, "Log");
             if log_argument.ok {
-                ArraySet(
-                    expression_graphs, 0,
-                    ParserExpressionGraphsAppend(
-                        expression_graphs[0], owner_kind,
-                        AstExpressionLaneAtom(), log_argument
-                    )
+                ParserExpressionGraphsAppendInto(
+                    expression_graphs, owner_kind,
+                    AstExpressionLaneAtom(), log_argument
                 );
             }
         } else if owner_kind == TypedAstKindExitStmtTag() {
             let exit_argument: ParserExpressionFact =
                 ParserExpressionNamedSingleCallArgument(expr_fact, "Exit");
             if !exit_argument.ok { Exit(1); }
-            ArraySet(
-                expression_graphs, 0,
-                ParserExpressionGraphsAppend(
-                    expression_graphs[0], owner_kind,
-                    AstExpressionLaneAtom(), exit_argument
-                )
+            ParserExpressionGraphsAppendInto(
+                expression_graphs, owner_kind,
+                AstExpressionLaneAtom(), exit_argument
             );
         } else if owner_kind == TypedAstKindArrayPopStmtTag() ||
             owner_kind == TypedAstKindArrayPushStmtTag() ||
@@ -480,12 +462,9 @@ func ParseOneStmt(
                 )
             );
         } else if owner_kind == TypedAstKindBareCallStmtTag() {
-            ArraySet(
-                expression_graphs, 0,
-                ParserExpressionGraphsAppend(
-                    expression_graphs[0], owner_kind,
-                    AstExpressionLaneAtom(), expr_fact
-                )
+            ParserExpressionGraphsAppendInto(
+                expression_graphs, owner_kind,
+                AstExpressionLaneAtom(), expr_fact
             );
         }
     }

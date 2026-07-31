@@ -1,6 +1,6 @@
 # Build Troubleshooting
 
-마지막 업데이트: 2026-07-30
+마지막 업데이트: 2026-07-31
 
 빌드/회귀 도중 자주 마주치는 문제와 대응. **항상 `mingw32-make rebuild`를 먼저 시도**하면 절반은 풀린다.
 
@@ -1408,6 +1408,62 @@ lost its sole `MirIntentExecutionPlanReady` call, whether a consumer restored
 started reparsing graph subtrees. Validate once at the owner boundary, carry
 the receipt, and join later consumers by exact routine/block/instruction and
 declaration identities.
+
+#### 2026-07-31 completeness program graph and repeated source scans
+
+GitHub Actions run `30562668988` exposed a graph-identity defect rather than
+an unsupported language feature. Semantic completeness checked the
+import-composed program rooted at `src/self_hosted/compiler/world.pgy`, while
+codegen consumed an externally exported source-unit AST with imports disabled.
+The same ledger row therefore meant two different programs. The codegen
+`--check-source` path now performs root parsing, typed semantic analysis,
+semantic admission, and codegen shape checking over one `AstTreeArtifact`.
+The external source-unit AST and text-node inventory bridge are no longer part
+of this completeness path.
+
+Three repeated-work defects were measured on that exact program:
+
+- parser declaration/import composition repeatedly finished and concatenated
+  recursive text blocks, expression rows were fully validated after each
+  append, and intent binding resolution repeatedly scanned the multi-megabyte
+  tree by character;
+- codegen rebuilt a text-node inventory after typed semantic analysis and
+  repeatedly searched sparse fact arrays for each syntax node;
+- `RejectUnsupportedCodegenBuiltins` used a newline scan whose inner
+  `StringLength(tree_text)` revisited the full roughly 5 MB artifact for
+  every line.
+
+The fixes keep one shared import-composition accumulator, use an import
+`Set<String>`, perform only O(1) append-shape checks until the final
+expression-graph owner admission, split the intent and codegen surface text
+once by newline, consume the admitted typed arena directly, and use dense or
+ordered NodeId lookup where the producer already guarantees that invariant.
+No general cache or query engine was added.
+
+Executable measurements on the same workstation:
+
+| Check | Before | After |
+|---|---:|---:|
+| observed root parse | policy-stopped after more than 304 s | 11.7 s |
+| typed world codegen check | 101.1 s initially; 74-77 s after partial indexing | 11.9 s |
+| monitored final codegen process | not applicable | 10.614 s, 552.6 MB peak private, 504.8 MB peak working set |
+
+Two stale diagnostic parser processes were also still alive at about 627.4 MB
+and 414.7 MB private memory. They were stopped after their exact command/path
+ownership was verified. A concurrent focused codegen process was about 545 MB.
+This explains a large desktop total without establishing a 20 GB compiler
+process. A future high-memory report must first separate one process peak,
+descendant process-tree peak, and overlapping stale runs.
+
+Completeness attribution now follows program identity. If several inventory
+sources map to the same composed program target, semantic/codegen execute that
+target once per stage and run, then reuse the result for each row even when
+`PGY_SELFHOST_COMPLETENESS_CACHE=0`. The focused falsifier mapped
+`expr_postfix_owner.pgy` and `expr_precedence_owner.pgy` to
+`expr_owner.pgy`: the ledger reported 2/2 row passes, one unique check, and
+one reuse. Treat a return to two target executions, per-append whole-graph
+validation, or an exported AST/text reconstruction as a performance and SoT
+regression.
 
 v58 (`195d9b64`) closes one concrete repetition. Loop-summary projection used
 to call branch selection twice for every block and scalar capture twice for

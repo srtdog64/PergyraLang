@@ -1,0 +1,131 @@
+// Executable contracts for parser-owned expression graph construction.
+//
+// Production graph construction remains cohesive in expression_graph_owner.
+// This owner holds only falsifying fixtures consumed by driver readiness.
+
+import "expr_precedence_owner.pgy";
+
+func ParserExpressionDirectCallCalleeContractReady() -> Bool {
+    let cursor: Array<Int> = [0];
+    let source: String = "Mutate(value)";
+    let call: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let callee: Option<String> = ParserExpressionDirectCallCalleeName(call);
+    return call.ok && cursor[0] == StringLength(source) &&
+        IsSome(callee) && UnwrapOption(callee) == "Mutate";
+}
+
+func ParserExpressionArrayLiteralGraphContractReady() -> Bool {
+    let source: String = "[1 + 2, Double(4)]";
+    let cursor: Array<Int> = [0];
+    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    if !fact.ok || cursor[0] != StringLength(source) ||
+        fact.arena.node_kinds[fact.root] !=
+            AstExpressionNodeArrayElement() {
+        return false;
+    }
+    let previous: Int = fact.arena.left_children[fact.root];
+    let second: Int = fact.arena.right_children[fact.root];
+    if fact.arena.node_kinds[previous] !=
+            AstExpressionNodeArrayElement() ||
+        fact.arena.node_kinds[second] !=
+            AstExpressionNodeCallArgument() {
+        return false;
+    }
+    let empty: Int = fact.arena.left_children[previous];
+    let first: Int = fact.arena.right_children[previous];
+    return fact.arena.node_kinds[empty] ==
+            AstExpressionNodeArrayLiteral() &&
+        fact.arena.node_kinds[first] == AstExpressionNodeAdd();
+}
+
+func ParserExpressionStructLiteralGraphContractReady() -> Bool {
+    let source: String =
+        "Pair { left: 1 + 2, right: Next(3) }";
+    let canonical: String =
+        "Pair { left: (1 + 2), right: Next(3) }";
+    let cursor: Array<Int> = [0];
+    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    if !fact.ok || cursor[0] != StringLength(source) ||
+        fact.arena.node_kinds[fact.root] !=
+            AstExpressionNodeStructField() || fact.text != canonical ||
+        fact.arena.node_texts[fact.root] != canonical {
+        return false;
+    }
+    let previous: Int = fact.arena.left_children[fact.root];
+    let right_binding: Int = fact.arena.right_children[fact.root];
+    if fact.arena.node_kinds[previous] !=
+            AstExpressionNodeStructField() ||
+        fact.arena.node_kinds[right_binding] !=
+            AstExpressionNodeStructFieldBinding() {
+        return false;
+    }
+    let literal: Int = fact.arena.left_children[previous];
+    let left_binding: Int = fact.arena.right_children[previous];
+    let type_node: Int = fact.arena.left_children[literal];
+    let left_name: Int = fact.arena.left_children[left_binding];
+    let left_value: Int = fact.arena.right_children[left_binding];
+    let right_name: Int = fact.arena.left_children[right_binding];
+    let right_value: Int = fact.arena.right_children[right_binding];
+    return fact.arena.node_kinds[literal] ==
+            AstExpressionNodeStructLiteral() &&
+        fact.arena.node_texts[type_node] == "Pair" &&
+        fact.arena.node_kinds[left_name] ==
+            AstExpressionNodeStructFieldName() &&
+        fact.arena.node_texts[left_name] == "left" &&
+        fact.arena.node_kinds[left_value] == AstExpressionNodeAdd() &&
+        fact.arena.node_texts[right_name] == "right" &&
+        fact.arena.node_kinds[right_value] ==
+            AstExpressionNodeCallArgument();
+}
+
+func ParserExpressionNamedSingleCallArgumentContractReady() -> Bool {
+    let cursor: Array<Int> = [0];
+    let source: String = "Log(ToString(20 + 22))";
+    let call: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let argument: ParserExpressionFact =
+        ParserExpressionNamedSingleCallArgument(call, "Log");
+    return call.ok && argument.ok &&
+        cursor[0] == StringLength(source) &&
+        argument.text == "ToString((20 + 22))" &&
+        argument.arena.node_kinds[argument.root] ==
+            AstExpressionNodeCallArgument();
+}
+
+func ParserExpressionNamedCallArgumentAtContractReady() -> Bool {
+    let cursor: Array<Int> = [0];
+    let source: String = "ArrayPush(nodes, Node(2, \"Let\"))";
+    let call: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let argument: ParserExpressionFact =
+        ParserExpressionNamedCallArgumentAt(call, "ArrayPush", 1);
+    return call.ok && argument.ok &&
+        cursor[0] == StringLength(source) &&
+        argument.text == "Node(2, \"Let\")" &&
+        argument.arena.node_kinds[argument.root] ==
+            AstExpressionNodeCallArgument();
+}
+
+func ParserExpressionGraphContractReady() -> Bool {
+    let left: ParserExpressionFact = ParserExpressionLeaf("a");
+    let right: ParserExpressionFact = ParserExpressionLeaf("b");
+    let fact: ParserExpressionFact = ParserExpressionBinary(
+        AstExpressionNodeLogicalAnd(), "(a && b)", left, right
+    );
+    let rows: AstExpressionGraphRows = ParserExpressionGraphsAppend(
+        AstExpressionGraphRowsEmpty(), TypedAstKindIfStmtTag(),
+        AstExpressionLaneAtom(), fact
+    );
+    let malformed: AstExpressionGraphRows = AstExpressionGraphRows(
+        true, [TypedAstKindIfStmtTag()], [AstExpressionLaneAtom()], [2],
+        AstExpressionArena(
+            [
+                AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+                AstExpressionNodeLogicalAnd(), AstExpressionNodeLeaf()
+            ],
+            ["a", "b", "(a && b)", "unreachable"],
+            [0, 0, 0, 0],
+            [0, 0, 1, 0]
+        )
+    );
+    return fact.ok && fact.root == 2 && AstExpressionGraphRowsReady(rows) &&
+        !AstExpressionGraphRowsReady(malformed);
+}

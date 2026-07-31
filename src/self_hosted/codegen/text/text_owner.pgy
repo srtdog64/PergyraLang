@@ -85,15 +85,14 @@ func TrySurfaceAllowedLine(line: String) -> Bool {
 }
 
 func RejectUnsupportedCodegenBuiltins(tree_text: String) -> Void {
-    let total: Int = StringLength(tree_text);
-    let pos: Int = 0;
-    while pos < total {
-        let nl: Int = NextNewline(tree_text, pos);
-        let line: String = Substring(tree_text, pos, nl - pos);
+    let lines: Array<String> = StringSplit(tree_text, "\n");
+    let line_index: Int = 0;
+    while line_index < ArrayLength(lines) {
+        let line: String = lines[line_index];
         if ContainsOutsideStrings(line, "(?") && !TrySurfaceAllowedLine(line) {
             Die("unsupported try expression in self-host codegen subset");
         }
-        pos = nl + 1;
+        line_index = line_index + 1;
     }
 }
 
