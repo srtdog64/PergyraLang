@@ -195,7 +195,7 @@ not own status, decisions, or completion claims.
 | [`127_compiler_speed_engineering.md`](127_compiler_speed_engineering.md) | Compile-speed / engineering discipline borrowed from D (DMD/LDC/GDC); measurement plan and anti-hype constraints |
 | [`129_tex_semantics_lessons.md`](129_tex_semantics_lessons.md) | TeX-derived contract lessons for scanner boundaries, delayed effects, planner-only parameters, probe-order semantics, token identity, recovery artifacts, and reviewable semantic fixtures |
 | [`130_c_backend_owner_migration_map.md`](130_c_backend_owner_migration_map.md) | C backend owner migration map and guardrails for avoiding mechanical helper/header churn |
-| [`131_ai_coding_atomic_units.md`](131_ai_coding_atomic_units.md) | AI-coding discipline: explicit objective functions, verifiable intent atoms, pattern-context units, and specification gradients |
+| [`131_ai_coding_atomic_units.md`](131_ai_coding_atomic_units.md) | AI-coding discipline: objective functions, verifiable intent atoms, epistemic impedance mismatch, risk-scaled gate trust, and verification graphs |
 | [`134_language_surface_hygiene.md`](134_language_surface_hygiene.md) | Language surface hygiene: keep orthogonal terms, close alias/fallback source-of-truth seams |
 | [`149_external_review_2026_07.md`](149_external_review_2026_07.md) | External technical review judgment: accepted signals, rejected claims, and board routing |
 | [`165_external_review_2026_07c.md`](165_external_review_2026_07c.md) | External review #4 judgment: intent/evidence compiler thesis, SEA P0 routing, freshness rules, and non-overclaiming rules |

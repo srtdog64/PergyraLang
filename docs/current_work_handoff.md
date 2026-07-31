@@ -11,9 +11,9 @@ owner, and the named executable gate.
 - Resume scope: read this card, verify the named owner and gate, then continue
   this one executable rung. Sections below `Historical checkpoint archive` are
   lookup evidence only and must not be treated as parallel work queues.
-- Verified dirty baseline: `4780098cb1892085c3d0ca3a9c858b2043686ef4` on
-  `main`, equal to `origin/main`. This note cannot name its own containing
-  refocus commit; verify the exact HEAD and dirty state with Git.
+- Verified predecessor: `527f7e17fac57b6373824daffa60841cd120d391` on
+  `main`, equal to `origin/main` before this documentation change. This note
+  cannot name its own containing refocus commit; verify the exact state with Git.
 - Active production entrypoint:
   `driver_bootstrap_main.pgy -> PgyCompilerWorld.source_mir ->
   DriverSourceMirExecution ->
@@ -35,6 +35,12 @@ owner, and the named executable gate.
   internally. Read only its final `peak_private_gib` and
   `attention_required` summary. The hard limit is 3 GiB and the attention
   threshold is 80% (2.4 GiB); below it, memory is not an optimization owner.
+- Gate trust policy: follow `docs/131_ai_coding_atomic_units.md` sections 3.3
+  and 3.4. Gate density follows risk and blast radius, not generated code or
+  test count. The current rung already has sufficient focused gates; reuse
+  them. An implementation and test that share one interpretation are not
+  independent evidence, and a material goal/negative-gate change requires a
+  separate history rather than an implementation-side weakening.
 - Forbidden fallback: increase the timeout or memory cap, add a general query
   engine/cache before one exact repeated operation is measured, rebuild facts
   from AST text, multiply one program target by inventory rows, or resume

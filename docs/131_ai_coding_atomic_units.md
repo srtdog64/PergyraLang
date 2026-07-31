@@ -295,6 +295,160 @@ align objective
 If a run cannot name the bypass it replaces or the fact owner it exercises,
 it is diagnostic exploration, not self-host progress.
 
+## 3.3. Trust Moves From Code Volume To Verification Structure
+
+When an agent can generate a patch in thirty minutes that takes a human three
+days to reconstruct line by line, the nominal generation speed is not the
+engineering speed. The cost has merely moved from implementation to
+verification. Traditional review assumes that a reviewer can recover the
+author's model from the code at roughly the rate the code is produced. That
+assumption stops holding once generation outruns human comprehension.
+
+The trust sequence therefore changes:
+
+```text
+traditional programming
+understand the implementation
+-> decide that the implementation is correct
+
+agent-assisted programming
+state permitted and forbidden outcomes
+-> identify the authority and blast-radius boundaries
+-> obtain evidence from bounded gates
+-> trust only the claims covered by that evidence
+```
+
+This does not mean "stop reading code and trust tests." It means replacing
+uniform, line-by-line understanding with **selective understanding plus
+mechanical verification**. A human must still understand the objective, the
+fact owner, authority changes, irreversible effects, failure propagation, and
+the boundary at which another component begins trusting the result. Routine
+local implementation can receive shallower review when independent evidence
+covers it and the change is cheaply reversible.
+
+The persistent mismatch behind this change is:
+
+> **Epistemic impedance mismatch**: the gap between how a human maintains a
+> project model and how an AI generates a locally plausible implementation
+> from bounded context.
+
+Humans usually reason from purpose, responsibility, forbidden states, failure
+radius, and long-term direction. A model produces a concrete arrangement from
+the prompt, visible context, learned conventions, and existing gates. The
+output can be locally correct while encoding a different module boundary or
+failure model from the one the human believes exists. Better prompting reduces
+this mismatch but does not eliminate it; the mismatch must be managed through
+explicit owners, objective cards, falsifiers, evidence scope, and bounded
+rollback.
+
+The central rule is:
+
+> **When AI-generated code volume exceeds human understanding speed,
+> programming becomes less about trusting code and more about designing and
+> trusting verification gates.**
+
+The trusted object is not one green gate. It is the whole verification
+structure:
+
+- the gate is independent enough not to repeat the implementation's mistake;
+- its verification scope is explicit, and trust never exceeds the claim it
+  actually checks;
+- changes to the goal or gate have a separate history from implementation;
+- a failure keeps its blast radius inside a named boundary;
+- a checkpoint identifies what can be restored without guessing.
+
+An agent that writes both an implementation and its approving test may copy
+one misunderstanding into both:
+
+```text
+misread requirement
+├─ plausible but wrong implementation
+└─ test that approves the same wrong interpretation
+```
+
+Therefore, evidence independence is a design property, not a claim that two
+files exist. Independence may come from an existing oracle, a separately owned
+semantic invariant, cross-backend parity, generated adversarial inputs, a
+stable protocol specification, or human review of the high-risk boundary. If
+implementation and gate share the same unstated assumption, the gate is useful
+regression coverage but not independent confirmation of the requirement.
+
+Gate density follows risk rather than generated LOC:
+
+| Risk shape | Typical evidence |
+|---|---|
+| Local, reversible, immediately visible failure | compile, type, lint, focused unit test |
+| Shared fact owner, integration seam, latent semantic or performance failure | parity, integration, property test, bounded performance evidence, architecture ratchet |
+| Authority, privacy, money, memory safety, ABI, destructive or wide-radius change | explicit invariant, adversarial/fuzz or model evidence, independent gate owner, human boundary review, staged rollout or rollback checkpoint |
+
+Do not add every item in a row mechanically. Choose the smallest set that can
+falsify the material claim and contain its failure. Gate count, test count, and
+coverage percentage are not substitutes for independence or scope.
+
+## 3.4. Chat Is Transport; The Verification Graph Owns Work State
+
+Chat is a chronological transport:
+
+```text
+request -> response -> patch -> error -> correction -> next request
+```
+
+A real project is a dependency and verification graph. Chronological text does
+not make confirmed invariants, rejected approaches, claim scope, gate changes,
+or rollback points stable first-class objects. At sufficient scale the human
+stops directing the project and starts reconstructing project state from chat
+history. That reconstruction cost is itself an agentic-development bottleneck.
+
+The durable work model should connect at least these node types:
+
+```text
+Goal
+Constraint
+Artifact
+Agent Task
+Evidence
+Negative Gate
+Human Approval
+Checkpoint
+Rollback
+```
+
+Useful edges include `implements`, `constrained-by`, `produces`, `checks`,
+`falsifies`, `approves`, `depends-on`, and `restores`. The important state
+is not an agent's hidden reasoning. It is:
+
+- what changed;
+- which claim the change is meant to satisfy;
+- which evidence was observed at which revision and semantic input;
+- what remains unverified;
+- which forbidden result the negative gate excludes;
+- how far failure propagates and which checkpoint bounds recovery.
+
+An implementation agent may change the path used to reach a goal. It may not
+silently weaken the goal, edit its own negative gate to obtain green status,
+or promote partial evidence into a broader claim. A material gate change is a
+separate reviewed artifact with a reason, scope delta, and history. Failure
+invalidates dependent claims; it does not erase unrelated green evidence or
+invite a whole-project rewrite.
+
+Pergyra already represents this model with repository artifacts even though it
+does not yet provide a dedicated canvas UI:
+
+| Verification-graph object | Current repository representation |
+|---|---|
+| Goal and constraint | objective card, owner contract, active handoff card |
+| Artifact | source diff, generated owner artifact, protocol/ABI row |
+| Evidence | observed test result, diagnostic, parity output, pressure summary |
+| Negative gate | executable old-path or missing-fact rejection |
+| Human approval | explicit authorization for a risk/authority boundary |
+| Checkpoint and rollback | exact Git revision, dirty state, rejected experiment record |
+
+A future canvas should expose this graph directly rather than render chat cards
+on a larger surface. That is a research direction, not a claim about the
+current implementation. Until then, owner registries, executable gates, Git,
+and the top active handoff card are the durable state; chat is navigation and
+coordination only.
+
 ## 4. Agent Pipeline Implication
 
 AI agents should not be large monolithic "do everything" workers. They should
@@ -364,6 +518,10 @@ Recommended terms:
 - **Pattern-Context Unit** — reusable named pattern with applicability context.
 - **Specification Gradient** — staged movement from vague intent to verified
   contract.
+- **Epistemic Impedance Mismatch** — the persistent gap between the human
+  project model and an AI-generated implementation model.
+- **Verification Graph** — the durable graph of goals, constraints, artifacts,
+  evidence, gates, approvals, checkpoints, and rollback edges.
 
 If a shorter public phrase is needed:
 
