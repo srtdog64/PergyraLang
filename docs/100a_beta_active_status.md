@@ -39,6 +39,15 @@ fail before artifact creation. AIR cannot reopen match JSON, and a selected ABI
 projection carries only its chosen backend mapping. This is `SUBSTITUTING`
 inside the production direct-MIR mode.
 
+Direct LLVM Array update (2026-08-01): the bounded runtime-free local
+`Array<Int>` literal/reassignment fixture now uses one typed expression-graph
+owner, one target-neutral plan, and one selected ABI projection to emit exact C
+and textual LLVM executables. Both print `3` and `10`; LLVM has no Pergyra
+runtime reference. Element kind, index kind, length target, stale SSA use, ABI
+offset, source type, and unsupported static index mutations fail before
+artifact publication. The same plan owns both backend projections; scalar or
+hello dispatch cannot be retried after Array classification.
+
 Installed LLVM substitution update (2026-08-01): plain public LLVM binary
 requests now use the sibling fixed-point driver for exactly one source-to-MIR
 production and one direct LLVM projection. `clang -x ir` is the only final host
@@ -46,10 +55,12 @@ boundary; native semantic/AIR/libLLVM and implicit runtime-object fallback are
 closed. Missing, unsupported, producer/projector, malformed-IR, and unresolved-
 runtime cases fail without publishing a new or stale binary. Native code does
 not scan LLVM text to infer runtime policy. This is executable `SUBSTITUTING`
-evidence for the sealed runtime-free Option frontier, not for general or
-runtime-bearing LLVM programs. The next active falsifier is
-`array_literal_assignment.pgy`, which currently reaches source-to-MIR and then
-fails closed at the self-host LLVM projector.
+evidence for the sealed runtime-free Option and local `Array<Int>` frontiers,
+not for general, heap-backed, runtime-bearing, or arbitrary multi-routine LLVM
+programs. The next active falsifier is `array_return_literal.pgy`: its two-
+routine source-to-MIR artifact is admitted, but direct LLVM fails closed because
+dispatch still defaults to routine row zero instead of consuming the owned
+entrypoint/call/return graph.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:

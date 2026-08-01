@@ -2,42 +2,54 @@
 
 마지막 업데이트: 2026-08-01
 
-## 활성 우선순위 — public LLVM의 다음 Array aggregate 경계
+## 활성 우선순위 — 첫 multi-routine LLVM 프로그램 graph 합성
 
-- 실행 체크포인트는 `35dd13a7`이다. Public C artifact/compile/run과 sealed
-  runtime-free Option LLVM compile/run은 installed `pgy-self-driver`가 소유하고
-  native semantic/AIR/codegen/libLLVM fallback은 닫혀 있다.
-- 첫 aggregate falsifier인 `option_match.pgy`는 7-block AIR certificate, typed
-  match index, reconstructible `Option<Int>` ABI receipt, target-bound plan을
-  거쳐 C/LLVM에서 정확히 `42\n42\n`를 출력한다. Pattern, binding type, SSA use,
-  successor, tag, offset, layout ID의 일곱 변조와 repaired-digest 내부 변조가
-  artifact 전에 실패한다.
-- Match JSON은 routine-local typed owner만 한 번 읽고 AIR가 재개방하지 않는다.
-  ABI receipt는 size/alignment/offset/field size를 유지해 canonical layout ID를
-  다시 검증하며 선택되지 않은 backend mapping은 target projection에 없다.
-- 최신 fixed point는 91,484,937-byte MIR에서 gen2/gen3 C 5,661,265 bytes,
-  SHA-256 `B30B28CE978582764B168B1238C5EB5D2CF2AA6CDB8EB25FB0AF346C01ADB4FF`
-  로 byte-equal이다. Source-to-MIR 49.516초/2.059 GiB, gen2 103.733초/
-  2.844 GiB, gen3 106.105초/2.852 GiB, host C compile 54.138초/0.758 GiB다.
-- Prototype streaming만으로는 완료 실행이 3.077 GiB였다. 모든 JSON consumer가
-  typed facts를 만든 뒤에도 남아 있던 약 91 MiB file-backed MIR buffer를 C emission
-  전에 release해 cap 아래로 내렸다. Borrowed text API는 caller-owned input을
-  release하지 않는다.
-- Public LLVM은 source-to-MIR와 direct LLVM을 각각 정확히 한 번 실행하고
-  `clang -x ir`만 마지막 host boundary로 쓴다. Missing/unsupported/producer/
-  projector/malformed/unresolved-runtime 실패는 native fallback 없이 종료하고,
-  미리 심은 stale binary도 남기지 않는다. LLVM text를 스캔해 runtime 정책을
-  추측하던 경로는 제거하고 negative gate로 재도입을 막았다.
-- 증거 등급은 target별이다. Public selector는 installed self-host로 치환됐지만
-  실행 `SUBSTITUTING` 증거는 sealed runtime-free Option frontier까지다. Runtime-
-  bearing LLVM, 아직 지원하지 않는 aggregate, package/dump/check/repl,
-  compiler-purpose intent는 open이다.
-- 다음 단일 rung은 `array_literal_assignment.pgy`의 `Array<Int>` literal/length/
-  index LLVM projection이다. 현재 public path는 source-to-MIR 뒤 self-host LLVM
-  projector code 1로 fail closed한다. 기존 public C 실행을 oracle로 삼고, 먼저
-  projector가 요구하는 정확한 typed fact를 찾아 한 owner에서 닫는다.
-- Query engine, broad library adoption, Insere/Zeno provenance, unrelated SoT 정리는
-  이 실행 rung의 blocker가 아니며 현재 TODO로 재개하지 않는다.
+- 실행 체크포인트는 `76867abd`다. Public C artifact/compile/run과 sealed
+  runtime-free Option 및 local `Array<Int>` LLVM compile/run은 installed
+  `pgy-self-driver`가 소유한다. Native semantic/AIR/codegen/libLLVM fallback은
+  닫혀 있다.
+- `array_literal_assignment.pgy`는 source-to-MIR 한 번, typed expression graph,
+  target-neutral Array plan, 선택된 ABI projection과 C/LLVM emitter를 거쳐 두
+  backend 모두 정확히 `3\n10\n`을 출력한다. LLVM artifact의 `@pgy_` runtime
+  reference는 0이다.
+- Array owner는 literal spine, assignment target, `ArrayLength`, index/add graph와
+  local/result identity, element vector, latest SSA use, canonical layout, target
+  capability를 한 plan으로 봉인한다. Instruction kind/source type은
+  `MirProgramRoutineIndex`가 소유하며 display용 blank scalar field를 권위로 쓰지
+  않는다.
+- Element kind, index kind, length target, stale SSA use, ABI offset, source type,
+  unsupported static index의 일곱 변조는 artifact 전에 실패한다. 같은 MIR을 C와
+  LLVM이 각각 한 번 소비하고 focused hash는
+  `9D056A3A9D9063207B9CD3A871E81E60684C0637A3CC4AA870E06952499C618F`다.
+- Public LLVM installed gate도 Array program으로 승격했고 정확히 `3\n10\n`을
+  실행한다. Exactly-once, stale-output, missing/malformed/failure negative와
+  no-native-fallback은 유지한다. `clang -x ir`만 마지막 host boundary다.
+- MSYS bootstrap의 import-composed source 입력은 repo-relative로 고쳤다. 기존
+  absolute spelling은 native compiler의 source authority check에서 거부됐으며,
+  output path와 cache identity는 별도 owner로 계속 명시한다. Structural ratchet이
+  absolute source invocation의 재도입을 막는다.
+- Refreshed codegen seed-only는 410.451초, peak working/private 2.705/2.841 GiB로
+  완주했다. 2.4 GiB attention은 넘지만 3 GiB hard stop 아래다. Intermediate
+  driver build는 98.359초, 1.579/1.684 GiB였고 이후 작은 rebuild는 계측하지
+  않았으므로 그 수치를 최종 binary peak로 확장하지 않는다.
+- Installed driver는 3,528,807 bytes, SHA-256
+  `D3CDA2D90E2018F453DCA8ACE7B374F21E5B62EF7F4DFCB281282D1F86D2BE52`다.
+  Refreshed gen2 seed는 2,257,728 bytes,
+  `BD6D3E074885CCA4C8308F873A212A04DDF4DD22E1C7244E22963B041ADCF28D`다.
+  현재 seed capability는 확인했지만 이번 checkpoint에서 gen2==gen3는 다시
+  실행하지 않았으므로 이전 fixed-point 기록을 최신 결과로 재사용하지 않는다.
+- 다음 단일 rung은 `array_return_literal.pgy`다. `Build() -> Array<Int>`와 이를
+  호출하는 `Main` 두 routine이 있으며 기대 출력은 `4\n3\n`이다. Installed
+  source-to-MIR는 한 번 성공해 6,267-byte MIR
+  `8AFFE11FE23F78554980FCCAA62E1DE8F024F679EC496702736FC0C47669D6DD`를 만들었지만
+  direct LLVM은 artifact 전에 fail closed한다.
+- 실제 blocker는 Array emission이 아니라 `admitted.routines[0]`와 첫 routine의
+  shape를 기본값으로 쓰는 dispatch다. `MirProgramRoutineIndex`의 entrypoint,
+  routine identity, declaration, typed call/return fact를 한 multi-routine plan이
+  소비하고, `Build` return을 row-order 복원 없이 `Main`에 전달해야 한다.
+- Source-name guess, first-routine default, C-only call reconstruction의 LLVM 복제,
+  scalar/hello retry, native re-entry, broad query engine은 금지한다. Query engine,
+  Insere/Zeno provenance, unrelated SoT 정리는 현재 blocker가 아니다.
 
 ## 이전 source-to-MIR checkpoint — 비활성 역사 자료
 
@@ -105,7 +117,7 @@
 
 이 절 아래의 모든 날짜별 checkpoint는 과거 증거와 회귀 falsifier를
 보존한다. 활성 TODO 또는 재개 후보가 아니며, 다음 작업은 위의
-`self-host source-to-MIR bootstrap`에서만 선택한다.
+`multi-routine LLVM 프로그램 graph 합성`에서만 선택한다.
 
 ## Historical — 2026-07-30 exhaustive self-host CI and executable-rung closure checkpoint
 

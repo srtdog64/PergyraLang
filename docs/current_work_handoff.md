@@ -6,83 +6,90 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — extend installed LLVM beyond the sealed Option slice
+## Active self-host context — compose the first multi-routine LLVM program graph
 
-- Executable checkpoint: `35dd13a7` on `main`. The installed public C artifact,
-  compile/link, and `--run` envelopes remain `SUBSTITUTING`. Plain public LLVM
-  binary requests now route only through the sibling fixed-point driver; the
-  sealed runtime-free Option compile/run envelope is also `SUBSTITUTING`.
-- Closed aggregate frontier: `src/self_hosted/mir_lower/fixture/option_match.pgy`
-  now travels through source-to-MIR once, one routine-local typed match index,
-  one AIR seven-block certificate, one reconstructible `Option<Int>` ABI fact,
-  one target-capability-bound plan, and one selected C or LLVM projection. Both
-  host executables print exactly `42\n42\n`.
-- The focused gate rejects seven pre-artifact mutations: pattern variant,
-  binding type, extra SSA use, CFG successor, primary tag, value-field offset,
-  and layout ID. Plan issuance also executes repaired-digest negatives for the
-  certificate, canonical ABI identity, target capability fingerprint, and
-  enclosing plan.
-- Match JSON authority is closed at
-  `routine_instruction_match_fact_owner.pgy`; AIR cannot reopen instruction
-  JSON. ABI admission parses the required row once, the compact receipt keeps
-  size/alignment/offset/field-size facts and reconstructs the canonical layout
-  ID, and the unselected backend mapping is absent from the target-bound ABI
-  projection.
-- Current fixed point uses a 91,484,937-byte MIR with SHA-256
-  `B5CDDBD6B5777FD86C45875D4DC7815D9693EC19E409575F752676F4A3840F06`.
-  Gen2/gen3 C are both 5,661,265 bytes with SHA-256
-  `B30B28CE978582764B168B1238C5EB5D2CF2AA6CDB8EB25FB0AF346C01ADB4FF`
-  and are byte-equal. Source-to-MIR was 49.516 seconds/2.059 GiB; gen2 was
-  103.733 seconds/2.844 GiB; gen3 was 106.105 seconds/2.852 GiB. Host release C
-  compilation was 54.138 seconds/0.758 GiB.
-- The installed `bin/pgy-self-driver.exe` is the verified 3,520,814-byte gen2
-  executable with SHA-256
-  `958A0D74751D2A8036E5ABF138B4D5B3386050E7B1A75EA8385C44FF04226B69`.
-  Its hash equals the fixed-point candidate; the public installed-C gate is
-  green.
-- Memory cause is now precise. Streaming prototypes removed the retained
-  all-prototype array but did not by itself close the cap: a completed run still
-  sampled 3.077 GiB. File-backed MIR admission retained the roughly 91 MiB raw
-  JSON after every JSON-indexed consumer had already projected typed facts.
-  Releasing that owned buffer before C emission brought the same class of run
-  below 3 GiB. Borrowed text APIs do not release caller-owned input. Do not
-  restore an all-prototype array or extend the raw input lifetime.
-- Public LLVM producer and projector counts are each exactly one. `clang -x ir`
-  is the last host consumer and receives no AST, MIR, AIR, libLLVM, or runtime
-  object. Missing driver, unsupported options, producer/projector failure,
-  malformed LLVM, and an unresolved Pergyra runtime call all fail without a
-  native fallback. A seeded stale output is removed before those failures.
-  Runtime policy is not inferred by scanning LLVM text; the component and
-  focused gates reject restoration of that scan.
-- Evidence grade remains target-specific. The public selector is structurally
-  substituted, but executable LLVM substitution is proven only for the sealed
-  runtime-free Option frontier. Runtime-bearing programs, unsupported direct-
-  MIR aggregates, package/dump/check/repl paths, and a canonical compiler-
-  purpose intent remain open. This is not whole-compiler self-host completion.
-- Active objective: close the next public LLVM aggregate frontier with
-  `src/self_hosted/mir_lower/fixture/array_literal_assignment.pgy`. The current
-  installed path reaches source-to-MIR and then fails closed in the self-host
-  LLVM projector with code 1; it does not fall back to native LLVM.
-- Fact owner: the existing typed array literal/index/length MIR facts and
-  `direct_mir_backend_projection_owner.pgy`. Last legitimate orchestration
-  consumer is the selected direct-LLVM emitter; `clang -x ir` remains only the
+- Executable checkpoint: `76867abd` on `main`. Installed public C artifact,
+  compile/link, and `--run` remain `SUBSTITUTING`. Plain public LLVM binary
+  requests route only through the sibling Pergyra-built driver. The sealed
+  runtime-free Option and local `Array<Int>` compile/run envelopes are now both
+  executable `SUBSTITUTING` slices.
+- Closed Array frontier:
+  `src/self_hosted/mir_lower/fixture/array_literal_assignment.pgy` travels
+  through source-to-MIR exactly once, one typed expression-graph owner, one
+  target-neutral array plan, one selected ABI projection, and one C or LLVM
+  emitter. Both executables print exactly `3\n10\n`; the LLVM artifact has zero
+  `@pgy_` runtime references.
+- `direct_mir_array_int_graph_fact_owner.pgy` owns the literal spine,
+  assignment target, `ArrayLength`, indexing, and addition graphs.
+  `direct_mir_array_int_plan_owner.pgy` owns local/result identities, element
+  vectors, latest SSA uses, canonical layout facts, target capability, and the
+  plan digest. The plan consumes instruction kind/source type from
+  `MirProgramRoutineIndex`; blank scalar-capture display fields are not semantic
+  authority.
+- One plan drives both backends. The runtime-free representation is one
+  stack-backed fixed aggregate with pointer, length, capacity, and owner fields;
+  the selected ABI projection alone maps it to C or LLVM. Dispatch classifies
+  the Array slice before the scalar slice and cannot retry scalar/hello after an
+  Array rejection.
+- The focused gate rejects seven pre-artifact mutations: element kind, index
+  kind, length target, stale SSA use, ABI offset, source type, and unsupported
+  static index. Source-to-MIR executes once, the same MIR is projected once per
+  backend, output is exact, and the admitted MIR hash remains
+  `9D056A3A9D9063207B9CD3A871E81E60684C0637A3CC4AA870E06952499C618F`.
+- The installed public LLVM gate now uses the Array program, observes exact
+  `3\n10\n`, and keeps exactly-once, stale-output, missing-driver, malformed-
+  artifact, and no-native-fallback negatives. `clang -x ir` remains only the
   host compile/link boundary.
-- Forbidden fallback: native `driver_run_pipeline`, AIR/libLLVM re-entry after
-  projector rejection, C-specific array reconstruction copied into LLVM,
-  scanning LLVM text to invent a runtime profile, attaching a runtime without
-  an owner fact, or weakening the installed selector to recover compatibility.
-- Next falsifier: the public installed C path provides the existing execution
-  oracle for `array_literal_assignment.pgy`; the public installed LLVM path must
-  consume one produced MIR and one direct projection, execute with the same
-  output, and reject malformed element/index/length facts before artifact
-  publication. First identify the projector's exact missing typed fact; do not
-  add a general runtime/cache/query track.
-- Latest green: sealed current-source fixed point; focused Option C/LLVM parity
-  and seven mutations; repaired-digest owner negatives; installed public C
-  boundary; installed public runtime-free LLVM compile/run and exactly-once/
-  stale-output/failure negatives; native incremental build; hard self-host
-  contract; full component and removed-path ratchet; diff check. The full CI
-  matrix and Coq adequacy suite were not run.
+- Bootstrap source inputs are repository-relative. MSYS absolute spellings had
+  caused the native compiler's absolute-source authority check to reject the
+  import-composed driver before code generation. Output paths and cache
+  identities remain explicit; component ratchets reject restoration of the old
+  absolute source invocation.
+- The refreshed Pergyra-built codegen seed completed in 410.451 seconds at
+  2.705 GiB peak working set and 2.841 GiB peak private. This is above the
+  2.4 GiB attention threshold but below the 3 GiB hard stop. An intermediate
+  current-rung driver build completed in 98.359 seconds at 1.579/1.684 GiB
+  working/private; later small rebuilds were not pressure-measured and must not
+  inherit that number.
+- Installed `bin/pgy-self-driver.exe` is 3,528,807 bytes with SHA-256
+  `D3CDA2D90E2018F453DCA8ACE7B374F21E5B62EF7F4DFCB281282D1F86D2BE52`.
+  Refreshed `.tmp/self_hosted/codegen/bootstrap/gen2.exe` is 2,257,728 bytes
+  with SHA-256
+  `BD6D3E074885CCA4C8308F873A212A04DDF4DD22E1C7244E22963B041ADCF28D`.
+  The refreshed seed is current-source capable, but gen2==gen3 was not rerun at
+  this checkpoint; retain the previous fixed-point result only as historical
+  evidence.
+- Evidence remains target-specific. General arrays, heap/runtime-bearing LLVM,
+  package/dump/check/repl, arbitrary multi-routine calls, and a canonical
+  compiler-purpose intent remain open. This is not whole-compiler self-host
+  completion.
+- Active objective: compile and execute
+  `src/self_hosted/codegen/fixture/array_return_literal.pgy`, whose `Build`
+  routine returns `Array<Int>` and whose `Main` routine prints `4\n3\n`.
+  Installed source-to-MIR succeeds exactly once, producing a 6,267-byte,
+  two-routine MIR with SHA-256
+  `8AFFE11FE23F78554980FCCAA62E1DE8F024F679EC496702736FC0C47669D6DD`;
+  direct LLVM currently fails closed before artifact publication.
+- Fact owner: `MirProgramRoutineIndex` routine names, identities, declarations,
+  and typed call/return facts. Last legitimate consumer is one target-neutral
+  multi-routine plan/emitter; `clang -x ir` remains only the host boundary.
+  The direct bypass to delete is hard-coded `admitted.routines[0]` and first-
+  routine block/instruction shape dispatch, which currently misclassifies the
+  single-instruction `Build` return as the hello slice.
+- Forbidden fallback: source-name guessing, a first-routine default, copying a
+  C-only call/return reconstruction into LLVM, native semantic/AIR/libLLVM
+  re-entry, runtime inference from LLVM text, or scalar/hello retry after the
+  multi-routine graph is classified.
+- Next falsifier: the same produced MIR must feed C and LLVM once, select `Main`
+  by the owned entrypoint/routine identity, carry the `Build` return into the
+  caller without row-order reconstruction, execute exact `4\n3\n`, and reject a
+  mutated entrypoint, call target, or return use before artifact publication.
+  Do not build a general query engine.
+- Latest green: Array C/LLVM focused parity plus seven mutations; installed
+  public Array LLVM compile/run and exactly-once/stale/failure negatives; hard
+  self-host contract; full component and removed-path ratchet; diff check. The
+  full CI matrix, Coq adequacy suite, and refreshed codegen gen2==gen3 fixed
+  point were not run.
 - Memory policy remains one execution per changed semantic target, followed by
   the final summary only. Hard stop is 3 GiB and attention begins at 2.4 GiB;
   attention is recorded but does not redirect the active rung.
@@ -90,7 +97,7 @@ owner, and the named executable gate.
 ## Historical checkpoint archive — inactive evidence
 
 The former source-to-MIR timeout card begins below. It was correct for its
-checkpoint but is superseded by `35dd13a7`; it must not be resumed as the active
+checkpoint but is superseded by `76867abd`; it must not be resumed as the active
 P0. External reviews that observed `614cb5d5` likewise describe historical
 evidence, not the current compiler state.
 

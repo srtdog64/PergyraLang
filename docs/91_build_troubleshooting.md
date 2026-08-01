@@ -3940,3 +3940,27 @@ merge-boundary 증거이지 사용자 normal build의 반복 단계가 아니다
 샘플마다 최적화 신호로 삼지 않고 semantic target당 한 번 실행한 final max만
 기록한다. Attention은 2.4 GiB, hard stop은 3 GiB이며 threshold를 넘기지 않은 같은
 target을 계측 확인만으로 반복하지 않는다.
+
+### MSYS bootstrap에서 import-composed source만 절대 경로로 거부되는 경우
+
+2026-08-01 current codegen seed를 갱신할 때 bootstrap script가
+`D:/PergyraLang/src/self_hosted/...` 절대 source path를 native `pgy`에 넘겨
+import composition 전에 실패했다. Output artifact의 절대 경로 허용과 source 입력의
+authority는 서로 다른 계약이다. `PGY_IO_ALLOW_ABSOLUTE` 또는 launcher 권한을 넓혀
+source check를 우회하지 않는다.
+
+수정은 codegen, LLVM leg, parser-tool build의 **source input만** repository-relative로
+전달하는 것이다. Output path와 cache identity는 기존 explicit owner를 유지한다.
+Component contract는 bootstrap owner에 절대 source invocation이 다시 들어오면
+실패해야 한다.
+
+수정 후 current-source capable gen2 seed는 410.451초에 exit 0이었고 process-tree
+peak working/private는 2.705/2.841 GiB였다. 이는 2.4 GiB attention 대상이지만 3 GiB
+hard stop은 넘지 않는다. 이 seed-only 성공은 current gen2==gen3 fixed point를
+의미하지 않는다. 고정점 gate를 실제로 다시 실행하지 않았다면 이전 세대의
+byte-equality를 최신 증거로 기록하지 않는다.
+
+같은 rung의 intermediate driver build는 98.359초, peak working/private
+1.579/1.684 GiB였다. 이후 작은 rebuild를 계측하지 않았다면 이 값을 최종 installed
+binary의 정확한 peak라고 보고하지 않는다. 최종 artifact hash/size와 resource
+measurement의 증거 범위를 따로 기록한다.
