@@ -346,7 +346,7 @@ compare_artifact_with_owner() {
 
 # gen0: oracle-built tool
 echo "[self-host-bootstrap] building oracle tool (gen0)..."
-(cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$TOOL_SOURCE")" \
+(cd "$ROOT_DIR" && "$PGY" "${TOOL_SOURCE#"$ROOT_DIR"/}" \
     --backend=c -o "$(pgy_path_for_compiler "$PGY" "$B/gen0.exe")" >/dev/null)
 compile_parser_ast_producer
 
@@ -424,7 +424,7 @@ for row in "${BOOTSTRAP_COMPONENT_ROWS[@]}"; do
         cat "$B/${comp}_cc.log" >&2
         exit 1
     fi
-    (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$csrc")" --backend=c \
+    (cd "$ROOT_DIR" && "$PGY" "${csrc#"$ROOT_DIR"/}" --backend=c \
         -o "$(pgy_path_for_compiler "$PGY" "$B/${comp}_oracle.exe")" >/dev/null 2>&1)
     via="$(run_native_stdout "${comp}_via_run" "$B/${comp}_via_codegen.exe" "$SAMPLE_SRC")"
     orc="$(run_native_stdout "${comp}_oracle_run" "$B/${comp}_oracle.exe" "$SAMPLE_SRC")"
@@ -459,7 +459,7 @@ for row in "${BOOTSTRAP_TOOL_ROWS[@]}"; do
         echo "[self-host-bootstrap] tool $name: codegen-emitted C failed to compile" >&2
         cat "$B/tool_${name}_cc.log" >&2; exit 1
     fi
-    (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$tsrc")" --backend=c \
+    (cd "$ROOT_DIR" && "$PGY" "${tsrc#"$ROOT_DIR"/}" --backend=c \
         -o "$(pgy_path_for_compiler "$PGY" "$B/tool_${name}_oracle.exe")" >/dev/null 2>&1)
     set +e
     via="$(run_native_stdout "tool_${name}_self_run" "$B/tool_${name}_self.exe")"
@@ -496,12 +496,12 @@ if [[ -f "$MIR_LOWER_SOURCE" ]]; then
         cat "$B/mir_lower_cc.log" >&2
         exit 1
     fi
-    (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$MIR_LOWER_SOURCE")" --backend=c \
+    (cd "$ROOT_DIR" && "$PGY" "${MIR_LOWER_SOURCE#"$ROOT_DIR"/}" --backend=c \
         -o "$(pgy_path_for_compiler "$PGY" "$B/mir_lower_oracle.exe")" >/dev/null 2>&1)
     for mir_base in "${BOOTSTRAP_MIR_FIXTURES[@]}"; do
         mir_json_rel="$B_REL/mir_${mir_base}.json"
         (cd "$ROOT_DIR" && "$PGY" --mir-json \
-            "$(pgy_path_for_compiler "$PGY" "$MIR_FIXTURE_DIR/${mir_base}.pgy")" \
+            "${MIR_FIXTURE_DIR#"$ROOT_DIR"/}/${mir_base}.pgy" \
             2>/dev/null | tr -d '\r' > "$mir_json_rel")
         mir_via="$(run_native_stdout "mir_${mir_base}_self_run" "$B/mir_lower_self.exe" "$mir_json_rel")"
         mir_orc="$(run_native_stdout "mir_${mir_base}_oracle_run" "$B/mir_lower_oracle.exe" "$mir_json_rel")"
@@ -531,7 +531,7 @@ if [[ -f "$FUZZ_SOURCE" ]]; then
         cat "$B/fuzz_generator_cc.log" >&2
         exit 1
     fi
-    (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$FUZZ_SOURCE")" --backend=c \
+    (cd "$ROOT_DIR" && "$PGY" "${FUZZ_SOURCE#"$ROOT_DIR"/}" --backend=c \
         -o "$(pgy_path_for_compiler "$PGY" "$B/fuzz_generator_oracle.exe")" >/dev/null 2>&1)
     rm -rf "$B/fuzz_codegen_corpus" "$B/fuzz_oracle_corpus"
     mkdir -p "$B/fuzz_codegen_corpus" "$B/fuzz_oracle_corpus"

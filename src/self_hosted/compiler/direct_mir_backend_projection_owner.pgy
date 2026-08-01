@@ -5,6 +5,9 @@ import "target_projection_fact_owner.pgy";
 import "direct_mir_scalar_graph_admission_owner.pgy";
 import "direct_mir_cfg_plan_owner.pgy";
 import "direct_mir_backend_emission_owner.pgy";
+import "direct_mir_array_int_plan_owner.pgy";
+import "direct_mir_array_int_abi_projection_owner.pgy";
+import "direct_mir_array_int_emission_owner.pgy";
 import "direct_mir_option_match_cfg_plan_owner.pgy";
 import "direct_mir_option_match_cfg_emission_owner.pgy";
 import "direct_mir_option_match_abi_projection_owner.pgy";
@@ -49,23 +52,41 @@ func CompileAdmittedDirectMirForTarget(
         let formatted_print: CompilerRuntimeCallAbiFact =
             CompilerRuntimeCallAbiFormattedPrintFact();
         if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
-            Die("direct MIR scalar runtime ABI owner is incomplete");
+            Die("direct MIR one-block runtime ABI owner is incomplete");
         }
         let line_format: String = StringRuntimeCIntLineFormat();
-        let int_c_type: String = CompilerAbiLayoutIntCValueType();
-        let scalar: DirectMirScalarBlockProjection =
-            DirectMirScalarBlockProjectionFromAdmitted(admitted);
-        if !scalar.valid || !formatted_print.ok {
-            Die("direct MIR backend projection rejected unsupported scalar facts");
-        }
-        if is_llvm {
-            payload = DirectMirScalarEmitLlvm(
-                scalar, formatted_print, line_format
-            );
+        if DirectMirArrayIntPlanCandidate(admitted) {
+            let plan: DirectMirArrayIntPlan =
+                DirectMirArrayIntPlanFromAdmitted(admitted);
+            let abi_projection: DirectMirArrayIntAbiProjection =
+                DirectMirArrayIntAbiProjectionFromPlan(
+                    plan, target_projection
+                );
+            if is_llvm {
+                payload = DirectMirArrayIntEmitLlvm(
+                    plan, abi_projection, formatted_print, line_format
+                );
+            } else {
+                payload = DirectMirArrayIntEmitC(
+                    plan, abi_projection, formatted_print, line_format
+                );
+            }
         } else {
-            payload = DirectMirScalarEmitC(
-                scalar, formatted_print, line_format, int_c_type
-            );
+            let int_c_type: String = CompilerAbiLayoutIntCValueType();
+            let scalar: DirectMirScalarBlockProjection =
+                DirectMirScalarBlockProjectionFromAdmitted(admitted);
+            if !scalar.valid || !formatted_print.ok {
+                Die("direct MIR backend projection rejected unsupported scalar facts");
+            }
+            if is_llvm {
+                payload = DirectMirScalarEmitLlvm(
+                    scalar, formatted_print, line_format
+                );
+            } else {
+                payload = DirectMirScalarEmitC(
+                    scalar, formatted_print, line_format, int_c_type
+                );
+            }
         }
     } else if block_count == 7 {
         let formatted_print: CompilerRuntimeCallAbiFact =

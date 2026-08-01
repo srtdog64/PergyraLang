@@ -13689,6 +13689,34 @@ require_text \
 require_file "tests/self_hosted/parity/one_mir_option_match_projection.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_option_match_projection.sh" 200
+require_file "src/self_hosted/compiler/direct_mir_array_int_graph_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_int_graph_fact_owner.pgy" 220
+require_file "src/self_hosted/compiler/direct_mir_array_int_plan_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_int_plan_owner.pgy" 450
+require_file \
+    "src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy" 160
+require_file "src/self_hosted/compiler/direct_mir_array_int_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_int_emission_owner.pgy" 320
+require_file "tests/self_hosted/parity/one_mir_array_int_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_array_int_projection.sh" 210
+require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    "DirectMirArrayIntPlanCandidate(admitted)"
+require_text "src/self_hosted/compiler/direct_mir_array_int_plan_owner.pgy" \
+    "admitted.routines.instruction_expressions"
+require_text "src/self_hosted/compiler/direct_mir_array_int_plan_owner.pgy" \
+    "admitted.routines.instruction_kinds"
+require_text "src/self_hosted/compiler/direct_mir_array_int_plan_owner.pgy" \
+    "DirectMirArrayIntPlanMutationRejected("
+reject_text "src/self_hosted/compiler/direct_mir_array_int_emission_owner.pgy" \
+    "@pgy_"
+require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
+    "src/self_hosted/mir_lower/fixture/array_literal_assignment.pgy"
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240
@@ -14651,6 +14679,18 @@ require_text "Makefile" "clean-local-artifacts: clean clean-scratch clean-local-
 require_text "tests/self_hosted/parity/README.md" "make build-resource-report"
 require_text "tests/self_hosted/parity/README.md" "make clean-local-artifacts"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "compile_c_artifact_with_bounded_log"
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" \
+    '${TOOL_SOURCE#"$ROOT_DIR"/}'
+reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" \
+    'pgy_path_for_compiler "$PGY" "$TOOL_SOURCE"'
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" \
+    'manifest_source_rel="${manifest_source#"$ROOT_DIR"/}"'
+reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" \
+    'pgy_path_for_compiler "$PGY" "$manifest_source"'
+require_text "tests/self_hosted/parity/parser_tool_build_leg.sh" \
+    'source_rel="${source#"$ROOT_DIR"/}"'
+reject_text "tests/self_hosted/parity/parser_tool_build_leg.sh" \
+    'pgy_path_for_compiler "$PGY" "$source"'
 require_text "tests/self_hosted/parity/codegen_bootstrap_compile_leg.sh" "PGY_SELFHOST_CC_LOG_LIMIT_BYTES"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" 'removes the ignored `.tmp` scratch zone'
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "single evidence log into a multi-hundred-megabyte artifact"

@@ -36,11 +36,13 @@ pgy_selfhost_compile_parser_tool() {
     local shared_bin="$cache_dir/main_${backend}.exe"
     local stamp="$cache_dir/main_${backend}.build.key"
     local compiler_exec
+    local source_rel
     local source_set
     local build_key
 
     mkdir -p "$cache_dir" "$(dirname "$output")" "$(dirname "$compile_log")"
     compiler_exec="$(pgy_path_for_bash_tool "$PGY")"
+    source_rel="${source#"$ROOT_DIR"/}"
     if command -v sha256sum >/dev/null 2>&1; then
         source_set="$(parser_tool_source_set_fingerprint "$cache_dir")"
         build_key="$PARSER_TOOL_CACHE_SCHEMA|backend=$backend|source-set=$source_set|source=${source#"$ROOT_DIR"/}|source-hash=$(parser_tool_sha256_file "$source")|compiler-executable=$(parser_tool_sha256_file "$PGY")"
@@ -57,7 +59,7 @@ pgy_selfhost_compile_parser_tool() {
     fi
 
     if ! (cd "$ROOT_DIR" && "$compiler_exec" \
-        "$(pgy_path_for_compiler "$PGY" "$source")" \
+        "$source_rel" \
         --backend="$backend" \
         -o "$(pgy_path_for_compiler "$PGY" "$shared_bin")" \
         >"$compile_log" 2>&1); then

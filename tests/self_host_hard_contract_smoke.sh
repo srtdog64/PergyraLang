@@ -375,6 +375,18 @@ require_text "src/pgy_driver.c" \
 require_text "Makefile" "self-host-default-llvm-replacement-test-smoke:"
 require_text "Makefile" \
     "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh"
+require_text "Makefile" "self-host-one-mir-array-int-projection-test-smoke:"
+require_text "Makefile" \
+    "tests/self_hosted/parity/one_mir_array_int_projection.sh"
+require_file "tests/self_hosted/parity/one_mir_array_int_projection.sh"
+require_text "tests/self_hosted/parity/one_mir_array_int_projection.sh" \
+    'printf '\''3\n10\n'\'''
+require_text "tests/self_hosted/parity/one_mir_array_int_projection.sh" \
+    'DirectMirArrayIntPlanMutationRejected'
+require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
+    'src/self_hosted/mir_lower/fixture/array_literal_assignment.pgy'
+require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
+    'printf '\''3\n10\n'\'''
 require_text "src/compiler/llvm_runner.c" \
     "compiler_compile_link_self_host_llvm_artifact("
 require_text "src/compiler/self_host_llvm_driver.c" \

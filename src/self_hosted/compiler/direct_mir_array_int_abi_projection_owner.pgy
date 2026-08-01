@@ -1,0 +1,114 @@
+// Target-bound type mapping for one verified local Array<Int> plan.
+// Only the selected backend fields are populated, so neither emitter can
+// infer the other backend's layout spelling.
+
+import "direct_mir_array_int_plan_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+struct DirectMirArrayIntAbiProjection {
+    let valid: Bool;
+    let target_projection: String;
+    let target_capability_fingerprint: Int;
+    let c_element_type: String;
+    let c_length_type: String;
+    let c_print_type: String;
+    let c_array_type: String;
+    let llvm_element_type: String;
+    let llvm_length_type: String;
+    let llvm_print_type: String;
+    let llvm_aggregate_type: String;
+    let llvm_print_extension: String;
+    let data_index: Int;
+    let length_index: Int;
+    let capacity_index: Int;
+    let allocator_index: Int;
+}
+
+func DirectMirArrayIntAbiProjectionReadyFor(
+    ref projection: DirectMirArrayIntAbiProjection,
+    expected_target: String
+) -> Bool {
+    if !projection.valid ||
+        !CompilerTargetProjectionKnown(expected_target) ||
+        projection.target_projection != expected_target ||
+        projection.target_capability_fingerprint !=
+            CompilerTargetCapabilityFingerprint() {
+        return false;
+    }
+    if expected_target == CompilerTargetCpuCProjection() {
+        return projection.c_element_type == "int32_t" &&
+            projection.c_length_type == "int64_t" &&
+            projection.c_print_type == CompilerAbiLayoutIntCValueType() &&
+            projection.c_array_type ==
+                CompilerAbiLayoutArrayIntCValueType() &&
+            projection.llvm_element_type == "" &&
+            projection.llvm_length_type == "" &&
+            projection.llvm_print_type == "" &&
+            projection.llvm_aggregate_type == "" &&
+            projection.llvm_print_extension == "" &&
+            projection.data_index == 0 - 1 &&
+            projection.length_index == 0 - 1 &&
+            projection.capacity_index == 0 - 1 &&
+            projection.allocator_index == 0 - 1;
+    }
+    return expected_target == CompilerTargetCpuLlvmProjection() &&
+        projection.c_element_type == "" &&
+        projection.c_length_type == "" &&
+        projection.c_print_type == "" &&
+        projection.c_array_type == "" &&
+        projection.llvm_element_type == "i32" &&
+        projection.llvm_length_type == "i64" &&
+        projection.llvm_print_type == "i64" &&
+        projection.llvm_aggregate_type == "{ ptr, i64, i64, ptr }" &&
+        projection.llvm_print_extension == "sext" &&
+        projection.data_index == 0 && projection.length_index == 1 &&
+        projection.capacity_index == 2 && projection.allocator_index == 3;
+}
+
+func DirectMirArrayIntAbiProjectionFromPlan(
+    ref plan: DirectMirArrayIntPlan,
+    target: CompilerTargetProjectionFact
+) -> DirectMirArrayIntAbiProjection {
+    let is_c: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuCProjection()
+    );
+    let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuLlvmProjection()
+    );
+    if !DirectMirArrayIntPlanReady(plan) || (!is_c && !is_llvm) ||
+        plan.data_offset % 8 != 0 || plan.length_offset % 8 != 0 ||
+        plan.capacity_offset % 8 != 0 || plan.allocator_offset % 8 != 0 {
+        Die("direct MIR Array<Int> ABI has no target projection");
+    }
+    let projection: DirectMirArrayIntAbiProjection =
+        DirectMirArrayIntAbiProjection(
+            true, target.projection,
+            target.target_capability_fingerprint,
+            "", "", "", "", "", "", "", "", "",
+            0 - 1, 0 - 1, 0 - 1, 0 - 1
+        );
+    if is_c {
+        projection = DirectMirArrayIntAbiProjection(
+            true, target.projection,
+            target.target_capability_fingerprint,
+            "int32_t", "int64_t", CompilerAbiLayoutIntCValueType(),
+            CompilerAbiLayoutArrayIntCValueType(),
+            "", "", "", "", "", 0 - 1, 0 - 1, 0 - 1, 0 - 1
+        );
+    } else {
+        projection = DirectMirArrayIntAbiProjection(
+            true, target.projection,
+            target.target_capability_fingerprint,
+            "", "", "", "", "i32", "i64", "i64",
+            "{ ptr, i64, i64, ptr }", "sext",
+            plan.data_offset / 8, plan.length_offset / 8,
+            plan.capacity_offset / 8, plan.allocator_offset / 8
+        );
+    }
+    if !DirectMirArrayIntAbiProjectionReadyFor(
+        projection, target.projection
+    ) {
+        Die("direct MIR Array<Int> ABI target mapping is invalid");
+    }
+    return projection;
+}

@@ -1845,6 +1845,22 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_option_match_cfg_emission_owner.pgy` --
   last C/LLVM text consumers for the fixed Option match plan. Neither emitter
   reads MIR JSON, reconstructs AIR, nor links Pergyra runtime symbols.
+- `src/self_hosted/compiler/direct_mir_array_int_graph_fact_owner.pgy` -- exact
+  typed expression-graph owner for the bounded local `Array<Int>` literal,
+  reassignment target, length call, and index/add topology. It consumes the
+  program-lifetime expression index and never reopens the MIR document root.
+- `src/self_hosted/compiler/direct_mir_array_int_plan_owner.pgy` -- one target-
+  neutral runtime-free aggregate plan over typed routine identity, latest SSA
+  uses, graph facts, and the admitted canonical `Array<Int>` ABI row. Repaired-
+  digest target, length, index, and layout mutations fail during issuance.
+- `src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy` --
+  selected C or LLVM mapping for the verified array plan. The unselected
+  backend spelling is absent, and physical field indices derive from the
+  admitted offsets.
+- `src/self_hosted/compiler/direct_mir_array_int_emission_owner.pgy` -- final C
+  and textual LLVM consumers of the same fixed array plan. The bounded slice
+  materializes stack-backed storage and links no Pergyra runtime symbol; it is
+  not authority for general or runtime-bearing arrays.
 - `src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy` -- normalized
   closed action facts for the same single CFG plan: literal-log arms or typed
   Int assignment arms with a predecessor-resolved merge phi and Log use. It is

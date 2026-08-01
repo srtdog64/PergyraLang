@@ -1,0 +1,263 @@
+// Runtime-free C and LLVM emission from one verified Array<Int> plan.
+// The fixed aggregate is admitted by the plan and target ABI projection;
+// emission never reconstructs source or MIR policy.
+
+import "direct_mir_array_int_abi_projection_owner.pgy";
+import "direct_mir_llvm_text_format_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirArrayIntCElementList(values: Array<Int>) -> String {
+    let output: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(values) {
+        if row > 0 { output = Concat(output, ", "); }
+        output = Concat(output, ToString(values[row]));
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirArrayIntEmitC(
+    ref plan: DirectMirArrayIntPlan,
+    ref abi: DirectMirArrayIntAbiProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirArrayIntPlanReady(plan) ||
+        !DirectMirArrayIntAbiProjectionReadyFor(
+            abi, CompilerTargetCpuCProjection()
+        ) || !formatted_print.ok ||
+        formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" {
+        Die("direct MIR Array<Int> C projection facts are invalid");
+    }
+    let initial_count: Int = ArrayLength(plan.initial_elements);
+    let assigned_count: Int = ArrayLength(plan.assigned_elements);
+    let output: String = "#include <stdint.h>\n#include <stddef.h>\n#include <stdio.h>\n\n";
+    output = Concat(output, "typedef struct {\n    ");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " *data;\n    ");
+    output = Concat(output, abi.c_length_type);
+    output = Concat(output, " length;\n    ");
+    output = Concat(output, abi.c_length_type);
+    output = Concat(output, " capacity;\n    void *allocator;\n} ");
+    output = Concat(output, abi.c_array_type);
+    output = Concat(output, ";\n\nint main(void) {\n    ");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " pgy_array_initial_storage[");
+    output = Concat(output, ToString(initial_count));
+    output = Concat(output, "] = {");
+    output = Concat(
+        output, DirectMirArrayIntCElementList(plan.initial_elements)
+    );
+    output = Concat(output, "};\n    ");
+    output = Concat(output, abi.c_array_type);
+    output = Concat(output, " pgy_local = {pgy_array_initial_storage, ");
+    output = Concat(output, ToString(initial_count));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(initial_count));
+    output = Concat(output, ", NULL};\n    ");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " pgy_array_assigned_storage[");
+    output = Concat(output, ToString(assigned_count));
+    output = Concat(output, "] = {");
+    output = Concat(
+        output, DirectMirArrayIntCElementList(plan.assigned_elements)
+    );
+    output = Concat(output, "};\n    pgy_local = (");
+    output = Concat(output, abi.c_array_type);
+    output = Concat(output, "){pgy_array_assigned_storage, ");
+    output = Concat(output, ToString(plan.declared_length));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(assigned_count));
+    output = Concat(output, ", NULL};\n    ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (");
+    output = Concat(output, abi.c_print_type);
+    output = Concat(output, ")pgy_local.length);\n    ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (");
+    output = Concat(output, abi.c_print_type);
+    output = Concat(output, ")(pgy_local.data[");
+    output = Concat(output, ToString(plan.left_index));
+    output = Concat(output, "] + pgy_local.data[");
+    output = Concat(output, ToString(plan.right_index));
+    output = Concat(output, "]));\n    return 0;\n}\n");
+    return output;
+}
+
+func DirectMirArrayIntEmitLlvmValue(
+    prefix: String, values: Array<Int>,
+    ref abi: DirectMirArrayIntAbiProjection
+) -> String {
+    let count: Int = ArrayLength(values);
+    if prefix == "" || count <= 0 ||
+        !DirectMirArrayIntAbiProjectionReadyFor(
+            abi, CompilerTargetCpuLlvmProjection()
+        ) {
+        Die("direct MIR Array<Int> LLVM value facts are invalid");
+    }
+    let output: String = "  %pgy.array.";
+    output = Concat(output, prefix);
+    output = Concat(output, ".storage = alloca [");
+    output = Concat(output, ToString(count));
+    output = Concat(output, " x ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, "], align 4\n");
+    let row: Int = 0;
+    while row < count {
+        output = Concat(output, "  %pgy.array.");
+        output = Concat(output, prefix);
+        output = Concat(output, ".slot.");
+        output = Concat(output, ToString(row));
+        output = Concat(output, " = getelementptr inbounds [");
+        output = Concat(output, ToString(count));
+        output = Concat(output, " x ");
+        output = Concat(output, abi.llvm_element_type);
+        output = Concat(output, "], ptr %pgy.array.");
+        output = Concat(output, prefix);
+        output = Concat(output, ".storage, i64 0, i64 ");
+        output = Concat(output, ToString(row));
+        output = Concat(output, "\n  store ");
+        output = Concat(output, abi.llvm_element_type);
+        output = Concat(output, " ");
+        output = Concat(output, ToString(values[row]));
+        output = Concat(output, ", ptr %pgy.array.");
+        output = Concat(output, prefix);
+        output = Concat(output, ".slot.");
+        output = Concat(output, ToString(row));
+        output = Concat(output, ", align 4\n");
+        row = row + 1;
+    }
+    output = Concat(output, "  %pgy.array.");
+    output = Concat(output, prefix);
+    output = Concat(output, ".data = getelementptr inbounds [");
+    output = Concat(output, ToString(count));
+    output = Concat(output, " x ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, "], ptr %pgy.array.");
+    output = Concat(output, prefix);
+    output = Concat(output, ".storage, i64 0, i64 0\n");
+    output = Concat(output, "  %pgy.array.");
+    output = Concat(output, prefix);
+    output = Concat(output, ".0 = insertvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " poison, ptr %pgy.array.");
+    output = Concat(output, prefix);
+    output = Concat(output, ".data, ");
+    output = Concat(output, ToString(abi.data_index));
+    output = Concat(output, "\n  %pgy.array.");
+    output = Concat(output, prefix);
+    output = Concat(output, ".1 = insertvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %pgy.array.");
+    output = Concat(output, prefix);
+    output = Concat(output, ".0, i64 ");
+    output = Concat(output, ToString(count));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(abi.length_index));
+    output = Concat(output, "\n  %pgy.array.");
+    output = Concat(output, prefix);
+    output = Concat(output, ".2 = insertvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %pgy.array.");
+    output = Concat(output, prefix);
+    output = Concat(output, ".1, i64 ");
+    output = Concat(output, ToString(count));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(abi.capacity_index));
+    output = Concat(output, "\n  %pgy.array.");
+    output = Concat(output, prefix);
+    output = Concat(output, ".3 = insertvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %pgy.array.");
+    output = Concat(output, prefix);
+    output = Concat(output, ".2, ptr null, ");
+    output = Concat(output, ToString(abi.allocator_index));
+    output = Concat(output, "\n");
+    return output;
+}
+
+func DirectMirArrayIntEmitLlvm(
+    ref plan: DirectMirArrayIntPlan,
+    ref abi: DirectMirArrayIntAbiProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirArrayIntPlanReady(plan) ||
+        !DirectMirArrayIntAbiProjectionReadyFor(
+            abi, CompilerTargetCpuLlvmProjection()
+        ) || !formatted_print.ok ||
+        formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" {
+        Die("direct MIR Array<Int> LLVM projection facts are invalid");
+    }
+    let format_payload: String =
+        DirectMirScalarLlvmFormatPayload(line_format);
+    let format_size: Int =
+        DirectMirScalarLlvmFormatByteCount(line_format);
+    let output: String = "@.pgy.int.line.format = private unnamed_addr constant [";
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, format_payload);
+    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n\ndefine i32 @main() {\nentry:\n");
+    output = Concat(output, DirectMirArrayIntEmitLlvmValue(
+        "initial", plan.initial_elements, abi
+    ));
+    output = Concat(output, DirectMirArrayIntEmitLlvmValue(
+        "assigned", plan.assigned_elements, abi
+    ));
+    output = Concat(output, "  %pgy.array.length = extractvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(
+        output, " %pgy.array.assigned.3, "
+    );
+    output = Concat(output, ToString(abi.length_index));
+    output = Concat(output, "\n  %pgy.log.length = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(
+        output, "(ptr @.pgy.int.line.format, i64 %pgy.array.length)\n"
+    );
+    output = Concat(output, "  %pgy.array.data = extractvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %pgy.array.assigned.3, ");
+    output = Concat(output, ToString(abi.data_index));
+    output = Concat(output, "\n  %pgy.array.left.ptr = getelementptr inbounds ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, ", ptr %pgy.array.data, i64 ");
+    output = Concat(output, ToString(plan.left_index));
+    output = Concat(output, "\n  %pgy.array.left = load ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, ", ptr %pgy.array.left.ptr, align 4\n");
+    output = Concat(output, "  %pgy.array.right.ptr = getelementptr inbounds ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, ", ptr %pgy.array.data, i64 ");
+    output = Concat(output, ToString(plan.right_index));
+    output = Concat(output, "\n  %pgy.array.right = load ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, ", ptr %pgy.array.right.ptr, align 4\n");
+    output = Concat(output, "  %pgy.array.sum = add ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %pgy.array.left, %pgy.array.right\n");
+    output = Concat(output, "  %pgy.array.sum.print = ");
+    output = Concat(output, abi.llvm_print_extension);
+    output = Concat(output, " ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %pgy.array.sum to ");
+    output = Concat(output, abi.llvm_print_type);
+    output = Concat(output, "\n  %pgy.log.sum = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(
+        output,
+        "(ptr @.pgy.int.line.format, i64 %pgy.array.sum.print)\n  ret i32 0\n}\n"
+    );
+    return output;
+}

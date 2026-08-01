@@ -98,6 +98,7 @@ pgy_selfhost_compile_test_harness_manifest() {
     local label="$1"
     local build_dir="$2"
     local manifest_source
+    local manifest_source_rel
     local manifest_bin
     local compile_log
 
@@ -108,11 +109,12 @@ pgy_selfhost_compile_test_harness_manifest() {
     esac
 
     manifest_source="$(pgy_selfhost_test_harness_manifest_source "$label")"
+    manifest_source_rel="${manifest_source#"$ROOT_DIR"/}"
     manifest_bin="$(pgy_selfhost_test_harness_manifest_bin "$build_dir")"
     mkdir -p "$build_dir"
 
     compile_log="$build_dir/test_harness_manifest_$$.compile.log"
-    if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$manifest_source")" \
+    if ! (cd "$ROOT_DIR" && "$PGY" "$manifest_source_rel" \
         --backend=c -o "$(pgy_path_for_compiler "$PGY" "$manifest_bin")" \
         >"$compile_log" 2>&1); then
         echo "[$label] test harness manifest failed to build" >&2
@@ -182,6 +184,7 @@ pgy_selfhost_compile_backend_output_comparator() {
     local label="$1"
     local build_dir="$2"
     local comparator_source="${3:-}"
+    local comparator_source_rel
     local comparator_bin
     local compile_log
 
@@ -194,12 +197,13 @@ pgy_selfhost_compile_backend_output_comparator() {
     if [[ -z "$comparator_source" ]]; then
         comparator_source="$(pgy_selfhost_backend_output_comparator_source "$label" "$build_dir")"
     fi
+    comparator_source_rel="${comparator_source#"$ROOT_DIR"/}"
 
     comparator_bin="$(pgy_selfhost_backend_output_comparator_bin "$build_dir")"
     mkdir -p "$build_dir"
 
     compile_log="$build_dir/backend_output_comparator_$$.compile.log"
-    if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$comparator_source")" \
+    if ! (cd "$ROOT_DIR" && "$PGY" "$comparator_source_rel" \
         --backend=c -o "$(pgy_path_for_compiler "$PGY" "$comparator_bin")" \
         >"$compile_log" 2>&1); then
         echo "[$label] backend output comparator failed to build" >&2
