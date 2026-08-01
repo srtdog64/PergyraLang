@@ -15,5 +15,9 @@ int c_runner_execute(const DriverFlags *flags,
                      const CompilerIRBundle *bundle,
                      const PgyAirVerification *air,
                      CompilerBackendTimings *backend_timings);
+int c_runner_execute_installed_self_host_c(
+                     const char *launcher_path,
+                     const DriverFlags *flags,
+                     CompilerBackendTimings *backend_timings);
 
 #endif /* PGY_C_RUNNER_H */

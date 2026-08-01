@@ -3412,6 +3412,10 @@ self-host-default-c-emit-replacement-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh
 
+self-host-default-c-compile-replacement-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh
+
 execution-lane-policy-test-smoke:
 	"$(BASH)" tests/execution_lane_policy_smoke.sh
 

@@ -7052,11 +7052,16 @@ reject_text "src/self_hosted/parser/stmt_match_owner.pgy" \
 require_text "src/self_hosted/parser/program_parse_owner.pgy" \
     "PARSER GRAPH ERROR: "
 require_max_lines "src/compiler/self_host_driver.c" 200
+require_max_lines "src/pgy_driver.c" 320
+require_max_lines "src/compiler/c_runner.c" 380
+require_max_lines "src/compiler/compiler.c" 560
 require_text "src/pgy_driver.c" 'strcmp(argv[1], "--self-driver") == 0'
 require_text "src/pgy_driver.c" "driver_run_self_host_command"
-require_text "src/pgy_driver.c" "driver_self_host_c_emit_request_supported"
+require_text "src/pgy_driver.c" "driver_self_host_c_artifact_request_supported"
 require_text "src/pgy_driver.c" "if (flags.emit_c_only) {"
 require_text "src/pgy_driver.c" "driver_run_self_host_c_emit_artifact("
+require_text "src/pgy_driver.c" "driver_plain_c_compile_target_requested("
+require_text "src/pgy_driver.c" "c_runner_execute_installed_self_host_c("
 require_text "src/pgy_driver.c" \
     "--emit-c options are outside the installed self-host driver contract"
 require_text "src/compiler/self_host_driver.c" 'getenv("PGY_SELF_DRIVER_BIN")'
@@ -7108,6 +7113,20 @@ require_text \
 require_text \
     "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh" \
     '"$PGY" "$SOURCE" --emit-c --runtime=none'
+require_file \
+    "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" 120
+require_file "tests/self_hosted/fixtures/counting_self_host_c_driver.c"
+require_max_lines "tests/self_hosted/fixtures/counting_self_host_c_driver.c" 40
+require_text "Makefile" \
+    'self-host-default-c-compile-replacement-test-smoke: $(PGY) self-host-compiler'
+require_text \
+    "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
+    "installed self-host driver was not invoked exactly once"
+require_text \
+    "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
+    "compiler_compile_link_self_host_c_artifact("
 require_text "tests/self_host_live_replacement_smoke.sh" '"$PGY" --self-driver "$positive"'
 require_text "tests/self_host_live_replacement_smoke.sh" '"$PGY" --self-driver --mir-json'
 require_text "tests/self_host_live_replacement_smoke.sh" "integrated MIR run output differs from C oracle"

@@ -6,6 +6,10 @@
 int driver_run_self_host_command(const char *launcher_path,
                                  int argc,
                                  char *argv[]);
+int driver_materialize_self_host_c_artifact(const char *launcher_path,
+                                            const char *source_path,
+                                            const char *output_path,
+                                            bool verbose);
 int driver_run_self_host_c_emit_artifact(const char *launcher_path,
                                          const char *source_path,
                                          const char *output_path,

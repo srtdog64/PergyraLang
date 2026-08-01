@@ -72,6 +72,13 @@ CompilerResult *compiler_build_native(const CompilerIRBundle *bundle,
                                       const char *output_binary_path,
                                       bool verbose,
                                       PgyOptProfile opt_profile);
+/* Compile and link an already-admitted self-host C artifact. This boundary
+ * does not synthesize or claim a native verified-projection-plan identity. */
+CompilerResult *compiler_compile_link_self_host_c_artifact(
+                                      const char *input_c_path,
+                                      const char *output_binary_path,
+                                      bool verbose,
+                                      PgyOptProfile opt_profile);
 int             compiler_run_binary(const char *binary_path, bool verbose);
 void            compiler_result_destroy(CompilerResult *result);
 

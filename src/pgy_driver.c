@@ -14,6 +14,7 @@
 #include "compiler/pkg.h"
 #include "compiler/debugger.h"
 #include "compiler/self_host_driver.h"
+#include "compiler/c_runner.h"
 
 typedef enum
 {
@@ -181,7 +182,31 @@ parse_args(int argc, char *argv[])
 }
 
 static bool
-driver_self_host_c_emit_request_supported(const DriverFlags *flags)
+driver_plain_c_compile_target_requested(const DriverFlags *flags)
+{
+    return flags != NULL
+        && flags->backend == BACKEND_C
+        && !flags->emit_c_only
+        && !flags->emit_llvm_ir
+        && !flags->do_run
+        && !flags->dump_tokens
+        && !flags->dump_ast
+        && !flags->dump_capability_manifest
+        && !flags->dump_dir
+        && !flags->dump_rir
+        && !flags->dump_rir_json
+        && !flags->dump_machine_manifest_json
+        && !flags->dump_air
+        && !flags->dump_air_json
+        && !flags->dump_mir
+        && !flags->dump_mir_json
+        && !flags->dump_hir
+        && !flags->check_only
+        && !flags->repl;
+}
+
+static bool
+driver_self_host_c_artifact_request_supported(const DriverFlags *flags)
 {
     return flags != NULL
         && flags->backend == BACKEND_C
@@ -254,13 +279,22 @@ main(int argc, char *argv[])
     if (flags.repl)
         return repl_run();
     if (flags.emit_c_only) {
-        if (!driver_self_host_c_emit_request_supported(&flags)) {
+        if (!driver_self_host_c_artifact_request_supported(&flags)) {
             fprintf(stderr,
                     "pgy: --emit-c options are outside the installed self-host driver contract\n");
             return 1;
         }
         return driver_run_self_host_c_emit_artifact(
             argv[0], flags.source_path, flags.output_path, flags.verbose);
+    }
+    if (driver_plain_c_compile_target_requested(&flags)) {
+        if (!driver_self_host_c_artifact_request_supported(&flags)) {
+            fprintf(stderr,
+                    "pgy: C compile options are outside the installed self-host driver contract\n");
+            return 1;
+        }
+        return c_runner_execute_installed_self_host_c(
+            argv[0], &flags, NULL);
     }
     return driver_run_pipeline(&flags);
 }

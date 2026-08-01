@@ -104,15 +104,55 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
 }
 
 int
+driver_materialize_self_host_c_artifact(const char *launcher_path,
+                                        const char *source_path,
+                                        const char *output_path,
+                                        bool verbose)
+{
+    const char *child_argv[4];
+    char *binary;
+    int rc;
+
+    if (source_path == NULL || source_path[0] == '\0') {
+        fprintf(stderr, "pgy: self-host C emission requires a source path\n");
+        return 1;
+    }
+    if (output_path == NULL || output_path[0] == '\0') {
+        fprintf(stderr, "pgy: self-host C materialization requires an output path\n");
+        return 1;
+    }
+
+    binary = self_host_driver_binary(launcher_path);
+    if (binary == NULL || !path_file_exists(binary)) {
+        fprintf(stderr,
+                "pgy: self-host driver is unavailable; run 'make self-host-compiler' or set PGY_SELF_DRIVER_BIN\n");
+        free(binary);
+        return 1;
+    }
+
+    child_argv[0] = binary;
+    child_argv[1] = source_path;
+    child_argv[2] = output_path;
+    child_argv[3] = NULL;
+    rc = pgy_exec_argv(child_argv, verbose);
+    if (rc == 0 && !path_file_exists(output_path)) {
+        fprintf(stderr,
+                "pgy: self-host driver reported success without a C artifact\n");
+        rc = 1;
+    }
+
+    free(binary);
+    return rc;
+}
+
+int
 driver_run_self_host_c_emit_artifact(const char *launcher_path,
                                      const char *source_path,
                                      const char *output_path,
                                      bool verbose)
 {
-    const char *child_argv[4];
     const char *effective_output = output_path;
     char *derived_output = NULL;
-    char *binary;
     int rc;
 
     if (source_path == NULL || source_path[0] == '\0') {
@@ -128,29 +168,11 @@ driver_run_self_host_c_emit_artifact(const char *launcher_path,
         return 1;
     }
 
-    binary = self_host_driver_binary(launcher_path);
-    if (binary == NULL || !path_file_exists(binary)) {
-        fprintf(stderr,
-                "pgy: self-host driver is unavailable; run 'make self-host-compiler' or set PGY_SELF_DRIVER_BIN\n");
-        free(binary);
-        free(derived_output);
-        return 1;
-    }
-
-    child_argv[0] = binary;
-    child_argv[1] = source_path;
-    child_argv[2] = effective_output;
-    child_argv[3] = NULL;
-    rc = pgy_exec_argv(child_argv, verbose);
-    if (rc == 0 && !path_file_exists(effective_output)) {
-        fprintf(stderr,
-                "pgy: self-host driver reported success without a C artifact\n");
-        rc = 1;
-    }
+    rc = driver_materialize_self_host_c_artifact(
+        launcher_path, source_path, effective_output, verbose);
     if (rc == 0)
         printf("pgy: wrote %s\n", effective_output);
 
-    free(binary);
     free(derived_output);
     return rc;
 }
