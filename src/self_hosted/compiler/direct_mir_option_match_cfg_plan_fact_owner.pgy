@@ -1,0 +1,97 @@
+// Fixed-size target-neutral plan for one certified Option<Int> match CFG.
+
+import "artifact_zone_owner.pgy";
+import "direct_mir_option_match_abi_fact_owner.pgy";
+import "target_capability_owner.pgy";
+import "../air/mir_option_match_cfg_certificate_fact_owner.pgy";
+
+struct DirectMirOptionMatchCfgPlan {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let plan_digest: Int;
+    let target_capability_schema: String;
+    let target_capability_fingerprint: Int;
+    let certificate: DirectMirOptionMatchCfgCertificateFact;
+    let abi: DirectMirOptionMatchAbiFact;
+}
+
+func DirectMirOptionMatchCfgPlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-option-match-cfg-plan.v3";
+}
+
+func DirectMirOptionMatchCfgPlanIdentityDigest(
+    ref plan: DirectMirOptionMatchCfgPlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(71L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
+    hash = DirectMirCfgHashInt(
+        hash, plan.target_capability_fingerprint
+    );
+    hash = DirectMirCfgHashInt(hash, plan.certificate.digest);
+    hash = DirectMirCfgHashInt(hash, plan.abi.digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirOptionMatchCfgPlanWithDigest(
+    plan: DirectMirOptionMatchCfgPlan,
+    digest: Int
+) -> DirectMirOptionMatchCfgPlan {
+    return DirectMirOptionMatchCfgPlan(
+        plan.valid, plan.schema, plan.revision, digest,
+        plan.target_capability_schema,
+        plan.target_capability_fingerprint, plan.certificate, plan.abi
+    );
+}
+
+func DirectMirOptionMatchCfgPlanWithTargetFingerprint(
+    plan: DirectMirOptionMatchCfgPlan,
+    fingerprint: Int
+) -> DirectMirOptionMatchCfgPlan {
+    return DirectMirOptionMatchCfgPlan(
+        plan.valid, plan.schema, plan.revision, plan.plan_digest,
+        plan.target_capability_schema, fingerprint,
+        plan.certificate, plan.abi
+    );
+}
+
+func DirectMirOptionMatchCfgPlanWithCertificate(
+    plan: DirectMirOptionMatchCfgPlan,
+    certificate: DirectMirOptionMatchCfgCertificateFact
+) -> DirectMirOptionMatchCfgPlan {
+    return DirectMirOptionMatchCfgPlan(
+        plan.valid, plan.schema, plan.revision, plan.plan_digest,
+        plan.target_capability_schema,
+        plan.target_capability_fingerprint, certificate, plan.abi
+    );
+}
+
+func DirectMirOptionMatchCfgPlanWithAbi(
+    plan: DirectMirOptionMatchCfgPlan,
+    abi: DirectMirOptionMatchAbiFact
+) -> DirectMirOptionMatchCfgPlan {
+    return DirectMirOptionMatchCfgPlan(
+        plan.valid, plan.schema, plan.revision, plan.plan_digest,
+        plan.target_capability_schema,
+        plan.target_capability_fingerprint, plan.certificate, abi
+    );
+}
+
+func DirectMirOptionMatchCfgPlanReady(
+    ref plan: DirectMirOptionMatchCfgPlan
+) -> Bool {
+    return plan.valid &&
+        plan.schema == DirectMirOptionMatchCfgPlanSchema() &&
+        plan.revision == CompilerArtifactPlanRevision() &&
+        plan.target_capability_schema == CompilerTargetCapabilitySchema() &&
+        plan.target_capability_fingerprint != 0 &&
+        plan.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        plan.plan_digest != 0 &&
+        plan.plan_digest == DirectMirOptionMatchCfgPlanIdentityDigest(plan) &&
+        DirectMirOptionMatchCfgCertificateFactReady(plan.certificate) &&
+        DirectMirOptionMatchAbiFactReady(plan.abi) &&
+        plan.certificate.abi_layout_id == plan.abi.layout_id;
+}

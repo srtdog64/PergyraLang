@@ -1,0 +1,43 @@
+// Required static ABI admission which returns the exact row used by a later
+// plan. The row is parsed once; validation and consumers share this capture.
+
+import "abi_layout_fact_owner.pgy";
+
+func MirCapturedRequiredAbiLayoutRowAdmission(
+    json: String,
+    captured_type_name: String,
+    captured_type_value_ready: Bool,
+    type_start: Int,
+    type_end: Int,
+    id_start: Int,
+    id_end: Int,
+    required_start: Int,
+    required_end: Int,
+    layout_start: Int,
+    layout_end: Int
+) -> Option<MirAbiLayoutRowCapture> {
+    if !captured_type_value_ready || captured_type_name == "" ||
+        type_start < 0 || type_end <= type_start ||
+        id_start < 0 || id_end <= id_start ||
+        required_start < 0 || required_end <= required_start ||
+        layout_start < 0 || layout_end <= layout_start ||
+        required_start + 4 != required_end || !SubEqualsWithLen(
+            json, required_end, required_start, 4, "true"
+        ) || JsonCharCodeAt(json, layout_end, layout_start) !=
+            JsonAsciiCode("{") {
+        return None;
+    }
+    let id_text: String = Substring(json, id_start, id_end - id_start);
+    if id_text == "" || ToString(ToInt(id_text)) != id_text ||
+        ToInt(id_text) <= 0 {
+        return None;
+    }
+    let row: MirAbiLayoutRowCapture = MirAbiLayoutRowCaptureWithin(
+        json, layout_start, layout_end
+    );
+    if !row.valid || row.type_name != captured_type_name ||
+        MirAbiLayoutIdFromCapture(row) != ToInt(id_text) {
+        return None;
+    }
+    return Some(row);
+}

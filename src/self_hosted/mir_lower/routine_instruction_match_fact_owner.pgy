@@ -1,0 +1,127 @@
+// Routine-local typed match facts captured once from admitted instruction spans.
+// Scalar columns keep the index inside the current self-host ABI subset while
+// AIR/certificate owners consume reconstructed typed rows, never raw MIR JSON.
+
+import "match_json_fact_owner.pgy";
+import "program_routine_index_owner.pgy";
+
+struct MirRoutineInstructionMatchFacts {
+    let valid: Bool;
+    let global_start: Int;
+    let row_valid: Array<Bool>;
+    let pattern_counts: Array<Int>;
+    let patterns: Array<String>;
+    let variants: Array<String>;
+    let binding_counts: Array<Int>;
+    let bindings: Array<String>;
+    let binding_type_counts: Array<Int>;
+    let binding_types: Array<String>;
+}
+
+func BuildMirRoutineInstructionMatchFacts(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int
+) -> MirRoutineInstructionMatchFacts {
+    let row_valid: Array<Bool> = [];
+    let pattern_counts: Array<Int> = [];
+    let patterns: Array<String> = [];
+    let variants: Array<String> = [];
+    let binding_counts: Array<Int> = [];
+    let bindings: Array<String> = [];
+    let binding_type_counts: Array<Int> = [];
+    let binding_types: Array<String> = [];
+    let valid: Bool = MirProgramRoutineIndexRowReady(routines, routine_row);
+    let global_start: Int = 0 - 1;
+    let block_start: Int = 0;
+    let block_count: Int = 0;
+    if valid {
+        block_start = routines.routine_block_starts[routine_row];
+        block_count = routines.routine_block_counts[routine_row];
+    }
+    let block_offset: Int = 0;
+    while valid && block_offset < block_count {
+        let global_block: Int = block_start + block_offset;
+        if global_block < 0 || global_block >= ArrayLength(
+                routines.block_instruction_starts
+            ) || global_block >= ArrayLength(
+                routines.block_instruction_counts
+            ) {
+            valid = false;
+            continue;
+        }
+        let instruction_start: Int =
+            routines.block_instruction_starts[global_block];
+        let instruction_count: Int =
+            routines.block_instruction_counts[global_block];
+        if instruction_start < 0 || instruction_count < 0 ||
+            instruction_start + instruction_count > ArrayLength(
+                routines.instruction_starts
+            ) || instruction_start + instruction_count > ArrayLength(
+                routines.instruction_ends
+            ) {
+            valid = false;
+            continue;
+        }
+        if global_start < 0 { global_start = instruction_start; }
+        let instruction_offset: Int = 0;
+        while instruction_offset < instruction_count {
+            let global_row: Int = instruction_start + instruction_offset;
+            let table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+                routines.source_json,
+                routines.instruction_starts[global_row],
+                routines.instruction_ends[global_row]
+            );
+            let capture: MirMatchInstructionCapture =
+                MirMatchInstructionCaptureFromTable(table);
+            if !capture.valid { valid = false; }
+            ArrayPush(row_valid, capture.valid);
+            ArrayPush(pattern_counts, capture.pattern_count);
+            ArrayPush(patterns, capture.pattern);
+            ArrayPush(variants, capture.variant);
+            ArrayPush(binding_counts, capture.binding_count);
+            ArrayPush(bindings, capture.binding);
+            ArrayPush(binding_type_counts, capture.binding_type_count);
+            ArrayPush(binding_types, capture.binding_type);
+            instruction_offset = instruction_offset + 1;
+        }
+        block_offset = block_offset + 1;
+    }
+    return MirRoutineInstructionMatchFacts(
+        valid, global_start, row_valid, pattern_counts, patterns, variants,
+        binding_counts, bindings, binding_type_counts, binding_types
+    );
+}
+
+func MirRoutineInstructionMatchFactsReady(
+    ref facts: MirRoutineInstructionMatchFacts,
+    expected_instruction_count: Int
+) -> Bool {
+    let count: Int = ArrayLength(facts.row_valid);
+    return facts.valid && expected_instruction_count >= 0 &&
+        expected_instruction_count == count &&
+        count == ArrayLength(facts.pattern_counts) &&
+        count == ArrayLength(facts.patterns) &&
+        count == ArrayLength(facts.variants) &&
+        count == ArrayLength(facts.binding_counts) &&
+        count == ArrayLength(facts.bindings) &&
+        count == ArrayLength(facts.binding_type_counts) &&
+        count == ArrayLength(facts.binding_types) &&
+        (count == 0 || facts.global_start >= 0);
+}
+
+func MirRoutineInstructionMatchAtGlobal(
+    ref facts: MirRoutineInstructionMatchFacts,
+    global_row: Int
+) -> MirMatchInstructionCapture {
+    let row: Int = global_row - facts.global_start;
+    if !facts.valid || facts.global_start < 0 || row < 0 ||
+        row >= ArrayLength(facts.row_valid) {
+        return MirMatchInstructionCapture(false, 0, "", "", 0, "", 0, "");
+    }
+    return MirMatchInstructionCapture(
+        facts.row_valid[row], facts.pattern_counts[row],
+        facts.patterns[row], facts.variants[row],
+        facts.binding_counts[row], facts.bindings[row],
+        facts.binding_type_counts[row], facts.binding_types[row]
+    );
+}

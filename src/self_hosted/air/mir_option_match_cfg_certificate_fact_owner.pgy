@@ -1,0 +1,226 @@
+// AIR certificate for the bounded seven-block Option match CFG. Topology,
+// instruction inventory, exact SSA uses, typed matches, and graph evidence are
+// checked at issuance; only backend-relevant semantic values survive.
+
+import "mir_cfg_identity_owner.pgy";
+import "mir_option_match_graph_fact_owner.pgy";
+import "../mir_lower/abi_layout_admission_fact_owner.pgy";
+import "../mir_lower/mir_json_input_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_instruction_match_fact_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+
+struct DirectMirOptionMatchCfgCertificateFact {
+    let valid: Bool;
+    let digest: Int;
+    let mir_digest: Int;
+    let cfg_digest: Int;
+    let abi_layout_id: Int;
+    let some_value: String;
+    let none_value: String;
+}
+
+func DirectMirOptionMatchCfgCertificateFactDigest(
+    ref fact: DirectMirOptionMatchCfgCertificateFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(89L, fact.mir_digest);
+    hash = DirectMirCfgHashInt(hash, fact.cfg_digest);
+    hash = DirectMirCfgHashInt(hash, fact.abi_layout_id);
+    hash = DirectMirCfgHashString(hash, fact.some_value);
+    hash = DirectMirCfgHashString(hash, fact.none_value);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirOptionMatchCfgCertificateFactWithDigest(
+    fact: DirectMirOptionMatchCfgCertificateFact,
+    digest: Int
+) -> DirectMirOptionMatchCfgCertificateFact {
+    return DirectMirOptionMatchCfgCertificateFact(
+        fact.valid, digest, fact.mir_digest, fact.cfg_digest,
+        fact.abi_layout_id, fact.some_value, fact.none_value
+    );
+}
+
+func DirectMirOptionMatchCfgCertificateFactWithSomeValue(
+    fact: DirectMirOptionMatchCfgCertificateFact,
+    some_value: String
+) -> DirectMirOptionMatchCfgCertificateFact {
+    return DirectMirOptionMatchCfgCertificateFact(
+        fact.valid, fact.digest, fact.mir_digest, fact.cfg_digest,
+        fact.abi_layout_id, some_value, fact.none_value
+    );
+}
+
+func DirectMirOptionMatchCfgCertificateFactReady(
+    ref fact: DirectMirOptionMatchCfgCertificateFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirOptionMatchCfgCertificateFactDigest(fact) &&
+        fact.mir_digest != 0 && fact.cfg_digest != 0 &&
+        fact.abi_layout_id > 0 && fact.some_value != "" &&
+        ToString(ToInt(fact.some_value)) == fact.some_value &&
+        fact.none_value != "" &&
+        ToString(ToInt(fact.none_value)) == fact.none_value;
+}
+
+func DirectMirOptionMatchTopologyReady(
+    ref index: MirRoutineFactIndex
+) -> Bool {
+    let expected_true: Array<Int> = [1, 2, 3, 6, 5, 6, 0 - 1];
+    let expected_false: Array<Int> = [2, 0 - 1, 4, 0 - 1, 6, 0 - 1, 0 - 1];
+    let expected_counts: Array<Int> = [2, 1, 1, 1, 1, 1, 0];
+    if !index.valid || ArrayLength(index.block_starts) != 7 ||
+        ArrayLength(index.block_reachable) != 7 ||
+        ArrayLength(index.block_succ_true) != 7 ||
+        ArrayLength(index.block_succ_false) != 7 ||
+        ArrayLength(index.block_instruction_counts) != 7 {
+        return false;
+    }
+    let block: Int = 0;
+    while block < 7 {
+        if !index.block_reachable[block] ||
+            index.block_succ_true[block] != expected_true[block] ||
+            index.block_succ_false[block] != expected_false[block] ||
+            index.block_instruction_counts[block] != expected_counts[block] {
+            return false;
+        }
+        block = block + 1;
+    }
+    return true;
+}
+
+func DirectMirOptionMatchScalarInventoryReady(
+    ref routines: MirProgramRoutineIndex,
+    ref index: MirRoutineFactIndex,
+    rows: Array<Int>,
+    local_name: String,
+    local_result_name: String
+) -> Bool {
+    let expected_kinds: Array<String> = [
+        "def", "branch", "stmt", "branch", "stmt", "branch", "stmt"
+    ];
+    let expected_sources: Array<String> = [
+        "AST_LET_DECL", "AST_CALL", "AST_CALL", "AST_MATCH_CASE",
+        "AST_CALL", "AST_MATCH_CASE", "AST_CALL"
+    ];
+    if ArrayLength(rows) != 7 { return false; }
+    let row: Int = 0;
+    while row < 7 {
+        let scalar: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, rows[row]
+            );
+        let expected_name: String = "stmt";
+        let expected_arg0: String = "Log";
+        if row == 0 { expected_name = "ssa-def"; expected_arg0 = local_name; }
+        if row == 1 || row == 3 || row == 5 {
+            expected_name = "branch";
+            expected_arg0 = "";
+        }
+        if rows[row] < 0 || !scalar.valid ||
+            routines.instruction_kinds[rows[row]] != expected_kinds[row] ||
+            routines.instruction_source_types[rows[row]] !=
+                expected_sources[row] || scalar.name != expected_name ||
+            scalar.arg0 != expected_arg0 || scalar.arg1 != "" ||
+            scalar.slot_anchor != "" ||
+            (row == 0 && (scalar.result != local_result_name ||
+                scalar.abi_type_name == "")) ||
+            (row != 0 && (scalar.result != "" ||
+                scalar.abi_type_name != "")) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirOptionMatchCfgCertificateFactFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref uses: MirRoutineInstructionUseFacts,
+    ref matches: MirRoutineInstructionMatchFacts,
+    abi_layout_id: Int
+) -> DirectMirOptionMatchCfgCertificateFact {
+    if !DirectMirOptionMatchTopologyReady(index) || abi_layout_id <= 0 ||
+        !MirRoutineInstructionUseFactsReady(
+            uses, ArrayLength(index.instruction_facts.starts)
+        ) || !MirRoutineInstructionMatchFactsReady(
+            matches, ArrayLength(index.instruction_facts.starts)
+        ) || ArrayLength(index.source_local_names) != 2 ||
+        ArrayLength(index.source_local_types) != 2 {
+        Die("direct MIR Option match typed owner inventory is invalid");
+    }
+    let rows: Array<Int> = [];
+    ArrayPush(rows, MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, 0, 0, 0));
+    ArrayPush(rows, MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, 0, 0, 1));
+    let block: Int = 1;
+    while block < 6 {
+        ArrayPush(rows, MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, 0, block, 0));
+        block = block + 1;
+    }
+    let local_name: String = index.source_local_names[0];
+    let binding_name: String = index.source_local_names[1];
+    let def: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, rows[0]
+        );
+    if !DirectMirOptionMatchScalarInventoryReady(
+        admitted.routines, index, rows, local_name, def.result
+    ) || index.source_local_types[0] != def.abi_type_name {
+        Die("direct MIR Option match scalar or local inventory is invalid");
+    }
+    let some: MirMatchInstructionCapture =
+        MirRoutineInstructionMatchAtGlobal(matches, rows[3]);
+    let none: MirMatchInstructionCapture =
+        MirRoutineInstructionMatchAtGlobal(matches, rows[5]);
+    let expected_pattern: String = Concat(
+        Concat("Some(", binding_name), ")"
+    );
+    if !some.valid || some.variant != "Some" || some.pattern_count != 1 ||
+        some.pattern != expected_pattern || some.binding_count != 1 ||
+        some.binding != binding_name || some.binding_type_count != 1 ||
+        some.binding_type != index.source_local_types[1] || !none.valid ||
+        none.variant != "None" || none.pattern_count != 1 ||
+        none.pattern != "None" ||
+        none.binding_count != 0 || none.binding_type_count != 0 {
+        Die("direct MIR Option match typed pattern facts are invalid");
+    }
+    let row: Int = 0;
+    while row < 7 {
+        let match_fact: MirMatchInstructionCapture =
+            MirRoutineInstructionMatchAtGlobal(matches, rows[row]);
+        let use_count: Int = 0;
+        if row == 1 || row == 2 || row == 3 || row == 5 { use_count = 1; }
+        if !match_fact.valid || ((row != 3 && row != 5) &&
+            (match_fact.variant != "" || match_fact.pattern_count != 0 ||
+                match_fact.binding_count != 0 ||
+                match_fact.binding_type_count != 0)) ||
+            MirRoutineInstructionUseCountAtGlobal(uses, rows[row]) !=
+                use_count || (use_count == 1 &&
+            (!IsSome(MirRoutineInstructionUseAtGlobal(uses, rows[row], 0)) ||
+                UnwrapOption(MirRoutineInstructionUseAtGlobal(
+                    uses, rows[row], 0)) != def.result)) {
+            Die("direct MIR Option match residue or exact use is invalid");
+        }
+        row = row + 1;
+    }
+    let values: Array<String> = DirectMirOptionMatchGraphValuesFromIndex(
+        admitted.routines, rows, local_name, binding_name
+    );
+    if ArrayLength(values) != 2 {
+        Die("direct MIR Option match expression graph facts are invalid");
+    }
+    let fact: DirectMirOptionMatchCfgCertificateFact =
+        DirectMirOptionMatchCfgCertificateFact(
+            true, 0, DirectMirCfgMirDigest(admitted.routines.source_json),
+            DirectMirCfgDigestFromIndex(index), abi_layout_id,
+            values[0], values[1]
+        );
+    return DirectMirOptionMatchCfgCertificateFactWithDigest(
+        fact, DirectMirOptionMatchCfgCertificateFactDigest(fact)
+    );
+}

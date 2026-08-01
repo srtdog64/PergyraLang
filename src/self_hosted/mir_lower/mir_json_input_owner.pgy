@@ -97,6 +97,16 @@ func MirJsonReadMachineAdmittedInput(
     );
 }
 
+// File-backed MIR admission owns the ReadFile buffer until every JSON-indexed
+// consumer has projected a typed fact.  Retire that one compiler-scale buffer
+// before backend emission; callers of the borrowed text API must not use this
+// owner because their source string has a different lifetime.
+func MirJsonOwnedInputRelease(own json: String) -> Void {
+    if json == "" { return; }
+    let owned_input: Array<String> = [json];
+    ArrayDropOwnedStrings(owned_input);
+}
+
 func MirJsonReadInputObserved(
     path: String,
     declaration: SelfHostMachineLayerDeclaration,

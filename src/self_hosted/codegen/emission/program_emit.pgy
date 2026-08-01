@@ -31,6 +31,7 @@ import "../../compiler/machine_layer_runtime_binding_owner.pgy";
 import "../../compiler/runtime_call_abi_structured_fact_owner.pgy";
 import "type_declaration_emit_owner.pgy";
 import "program_function_definition_block_owner.pgy";
+import "function_prototype_block_owner.pgy";
 import "role_dispatch_emit_owner.pgy";
 import "result_runtime_emit_owner.pgy";
 import "program_statement_shape_owner.pgy";
@@ -347,7 +348,7 @@ func GenerateCUnitFromReadySemanticFacts(
         base_env, machine_startup, uses_args, domain_runtime, observe_pressure
     );
     // Forward declarations come from a GenerateC-scope pre-pass.
-    let proto_block: String = CollectProtos(
+    let proto_block: String = CodegenFunctionPrototypeBlock(
         signatures, semantic_analysis.roles, receiver_facts,
         base_env, specializations
     );

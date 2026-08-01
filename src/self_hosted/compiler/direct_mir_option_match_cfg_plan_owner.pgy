@@ -1,0 +1,79 @@
+// Certified target-neutral plan for the bounded Option<Int> match CFG.
+
+import "direct_mir_scalar_graph_admission_owner.pgy";
+import "direct_mir_option_match_abi_capture_owner.pgy";
+import "direct_mir_option_match_cfg_plan_fact_owner.pgy";
+import "direct_mir_option_match_cfg_plan_mutation_owner.pgy";
+import "../mir_lower/abi_layout_admission_fact_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_instruction_match_fact_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+
+func DirectMirOptionMatchCfgPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirOptionMatchCfgPlan {
+    if !DirectMirCfgProgramEnvelopeReady(admitted) ||
+        admitted.routines.routine_block_counts[0] != 7 {
+        Die("direct MIR Option match program envelope is invalid");
+    }
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, 0
+    );
+    if !index.valid || ArrayLength(index.source_local_types) != 2 ||
+        index.source_local_types[1] != CompilerAbiLayoutIntTypeName() {
+        Die("direct MIR Option match routine fact owner is invalid");
+    }
+    let uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, 0);
+    let matches: MirRoutineInstructionMatchFacts =
+        BuildMirRoutineInstructionMatchFacts(admitted.routines, 0);
+    let def_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, 0, 0, 0
+    );
+    if def_row < 0 {
+        Die("direct MIR Option match definition routing is invalid");
+    }
+    let def: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, def_row
+        );
+    let admitted_abi: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            admitted.routines.source_json, def.abi_type_name,
+            def.abi_type_value_ready, def.abi_type_start, def.abi_type_end,
+            def.abi_layout_id_start, def.abi_layout_id_end,
+            def.abi_layout_required_start, def.abi_layout_required_end,
+            def.abi_layout_start, def.abi_layout_end
+        );
+    if !IsSome(admitted_abi) {
+        Die("direct MIR Option match ABI admission is invalid");
+    }
+    let abi: DirectMirOptionMatchAbiFact =
+        DirectMirOptionMatchAbiFactFromCapture(UnwrapOption(admitted_abi));
+    let certificate: DirectMirOptionMatchCfgCertificateFact =
+        DirectMirOptionMatchCfgCertificateFactFromOwners(
+            admitted, index, uses, matches, abi.layout_id
+        );
+    if !DirectMirOptionMatchCfgCertificateFactReady(certificate) ||
+        !DirectMirOptionMatchAbiFactReady(abi) {
+        Die("direct MIR Option match certificate or ABI identity is invalid");
+    }
+    let plan: DirectMirOptionMatchCfgPlan = DirectMirOptionMatchCfgPlan(
+        true, DirectMirOptionMatchCfgPlanSchema(),
+        CompilerArtifactPlanRevision(), 0,
+        CompilerTargetCapabilitySchema(),
+        CompilerTargetCapabilityFingerprint(), certificate, abi
+    );
+    let verified: DirectMirOptionMatchCfgPlan =
+        DirectMirOptionMatchCfgPlanWithDigest(
+            plan, DirectMirOptionMatchCfgPlanIdentityDigest(plan)
+        );
+    let verified_for_negative: DirectMirOptionMatchCfgPlan = verified;
+    if !DirectMirOptionMatchCfgPlanReady(verified) ||
+        !DirectMirOptionMatchCfgPlanMutationRejected(
+            verified_for_negative
+        ) {
+        Die("direct MIR Option match plan identity is invalid");
+    }
+    return verified;
+}

@@ -2500,15 +2500,22 @@ reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolPro
 reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolProjectionAt(1) == "llvm_symbol"'
 reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolProjectionAt(2) == "self_hosted_symbol"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCQualifiedName"
-reject_function_text "src/self_hosted/codegen/emission/function_emit.pgy" \
-    "func CollectProtos(" "let rows: Array<String> = [];"
-require_function_text "src/self_hosted/codegen/emission/function_emit.pgy" \
-    "func CollectProtos(" "TextBuilderAppend(output, owned_proto[0]);"
+require_file "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy"
+reject_function_text \
+    "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" \
+    "func CodegenFunctionPrototypeBlock(" "let rows: Array<String> = [];"
+require_function_text \
+    "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" \
+    "func CodegenFunctionPrototypeBlock(" 'TextBuilderAppend(output, ");\n");'
+reject_text "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" \
+    "CodegenFunctionValueBindingFactFor("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_arena_codegen_view_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunction(count: Int, arena: AstArena,"
 require_file "src/self_hosted/codegen/emission/function_global_env_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/function_global_env_owner.pgy" 280
 require_max_lines "src/self_hosted/codegen/emission/function_emit.pgy" 500
+require_max_lines \
+    "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" 240
 require_max_lines "src/self_hosted/codegen/emission/program_emit.pgy" 650
 require_max_lines "src/self_hosted/codegen/emission/program_function_definition_block_owner.pgy" 180
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
@@ -8156,7 +8163,8 @@ reject_text "src/codegen/transpiler_type_decl_schedule.c" \
     "enum_aggregate_payload"
 reject_text "src/codegen/transpiler_type_decl_schedule.c" \
     "PairValue"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectProtos(signatures: SemanticAstFunctionSignatureFacts"
+require_text "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" \
+    "func CodegenFunctionPrototypeBlock("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunction(count: Int"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"const ", Concat(c_param_type'
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func TypeEnvAppendReadonlyRefBinding"
@@ -8259,8 +8267,8 @@ reject_text "src/self_hosted/codegen/emission/function_global_env_owner.pgy" \
 reject_text "src/self_hosted/codegen/emission/function_global_env_owner.pgy" \
     "CodegenAstTextParamModeName("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionParamNameOrDie("
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionParamTypeOrDie("
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionReturnTypeOrDie("
+require_text "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" "CodegenSemanticFunctionParamTypeOrDie("
+require_text "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" "CodegenSemanticFunctionReturnTypeOrDie("
 if [[ -f "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy" ]]; then
     fail "retired codegen-owned function signature owner returned"
 fi
@@ -8278,7 +8286,7 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let p_mode: In
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeOrDie(arena, j, owner)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "rtype = CodegenAstArenaTypeNameOrDie(arena, j)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsReturns(arena, cur[0])"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "SemanticAstFunctionSignatureCount(signatures)"
+require_text "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" "SemanticAstFunctionSignatureCount(signatures)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsParameters(arena, j)"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaNominalNameOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaRoleNameOrDie"
@@ -8331,7 +8339,7 @@ require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" '"=enum:payl
 require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" 'ename, Concat(".", Concat('
 reject_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" 'Concat(env_box[0], Concat(part, Concat("=e:"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionParamNameOrDie("
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionParamTypeOrDie("
+require_text "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" "CodegenSemanticFunctionParamTypeOrDie("
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeNameOrDie(arena, j, owner)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     "CompilerSymbolCQualifiedName(owner_name, name)"
@@ -13532,6 +13540,9 @@ require_text "Makefile" \
 require_make_target_text \
     "self-host-one-mir-dual-backend-projection-test-smoke" \
     "tests/self_hosted/parity/one_mir_dual_backend_projection.sh"
+require_make_target_text \
+    "self-host-one-mir-option-match-projection-test-smoke" \
+    "tests/self_hosted/parity/one_mir_option_match_projection.sh"
 require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
     '"--mir-json-backend=$target"'
 require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
@@ -13562,6 +13573,67 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy" 400
+require_file "src/self_hosted/air/mir_option_match_cfg_certificate_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/air/mir_option_match_cfg_certificate_fact_owner.pgy" 260
+require_file "src/self_hosted/air/mir_option_match_graph_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/air/mir_option_match_graph_fact_owner.pgy" 120
+require_file "src/self_hosted/compiler/direct_mir_option_match_abi_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_option_match_abi_fact_owner.pgy" 140
+require_file \
+    "src/self_hosted/compiler/direct_mir_option_match_abi_capture_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_option_match_abi_capture_owner.pgy" 60
+require_file \
+    "src/self_hosted/compiler/direct_mir_option_match_abi_projection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_option_match_abi_projection_owner.pgy" 120
+require_file \
+    "src/self_hosted/compiler/direct_mir_option_match_cfg_plan_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_option_match_cfg_plan_fact_owner.pgy" 110
+require_file "src/self_hosted/compiler/direct_mir_option_match_cfg_plan_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_option_match_cfg_plan_owner.pgy" 120
+require_file \
+    "src/self_hosted/compiler/direct_mir_option_match_cfg_plan_mutation_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_option_match_cfg_plan_mutation_owner.pgy" 70
+require_file \
+    "src/self_hosted/compiler/direct_mir_option_match_cfg_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_option_match_cfg_emission_owner.pgy" 220
+require_file "src/self_hosted/mir_lower/abi_layout_admission_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/abi_layout_admission_fact_owner.pgy" 80
+require_max_lines "src/self_hosted/mir_lower/match_json_fact_owner.pgy" 180
+require_file \
+    "src/self_hosted/mir_lower/routine_instruction_match_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/routine_instruction_match_fact_owner.pgy" 140
+reject_text \
+    "src/self_hosted/air/mir_option_match_cfg_certificate_fact_owner.pgy" \
+    "JsonObjectFactTableFromBounds("
+reject_text \
+    "src/self_hosted/air/mir_option_match_cfg_certificate_fact_owner.pgy" \
+    "MirMatchInstructionCaptureFromTable("
+require_text \
+    "src/self_hosted/air/mir_option_match_cfg_certificate_fact_owner.pgy" \
+    "MirRoutineInstructionMatchAtGlobal("
+require_text \
+    "src/self_hosted/compiler/direct_mir_option_match_abi_fact_owner.pgy" \
+    "DirectMirOptionMatchAbiCanonicalLayoutId(fact)"
+require_text \
+    "src/self_hosted/compiler/direct_mir_option_match_cfg_plan_fact_owner.pgy" \
+    "CompilerTargetCapabilityFingerprint()"
+require_text \
+    "src/self_hosted/compiler/direct_mir_option_match_cfg_plan_owner.pgy" \
+    "DirectMirOptionMatchCfgPlanMutationRejected("
+require_file "tests/self_hosted/parity/one_mir_option_match_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_option_match_projection.sh" 200
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240

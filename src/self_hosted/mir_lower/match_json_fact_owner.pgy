@@ -104,3 +104,58 @@ func MirMatchBindingTypeAt(
     if binding_type == "" || binding_type == "Unknown" { return None; }
     return Some(binding_type);
 }
+
+struct MirMatchInstructionCapture {
+    let valid: Bool;
+    let pattern_count: Int;
+    let pattern: String;
+    let variant: String;
+    let binding_count: Int;
+    let binding: String;
+    let binding_type_count: Int;
+    let binding_type: String;
+}
+
+func MirMatchInstructionCaptureFromTable(
+    ref instruction: JsonObjectFactTable
+) -> MirMatchInstructionCapture {
+    let patterns: Option<Int> = MirMatchPatternCount(instruction);
+    let bindings: Option<Int> = MirMatchBindingCount(instruction);
+    let binding_types: Option<Int> = MirMatchBindingTypeCount(instruction);
+    let variant: Option<String> = MirMatchVariant(instruction);
+    if !IsSome(patterns) || !IsSome(bindings) ||
+        !IsSome(binding_types) || UnwrapOption(patterns) > 1 ||
+        UnwrapOption(bindings) > 1 || UnwrapOption(binding_types) > 1 {
+        return MirMatchInstructionCapture(
+            false, 0, "", "", 0, "", 0, ""
+        );
+    }
+    let pattern: String = "";
+    let binding: String = "";
+    let binding_type: String = "";
+    if UnwrapOption(patterns) == 1 {
+        let value: Option<String> = MirMatchPatternAt(instruction, 0);
+        if !IsSome(value) { return MirMatchInstructionCapture(
+            false, 0, "", "", 0, "", 0, ""); }
+        pattern = UnwrapOption(value);
+    }
+    if UnwrapOption(bindings) == 1 {
+        let value: Option<String> = MirMatchBindingAt(instruction, 0);
+        if !IsSome(value) { return MirMatchInstructionCapture(
+            false, 0, "", "", 0, "", 0, ""); }
+        binding = UnwrapOption(value);
+    }
+    if UnwrapOption(binding_types) == 1 {
+        let value: Option<String> = MirMatchBindingTypeAt(instruction, 0);
+        if !IsSome(value) { return MirMatchInstructionCapture(
+            false, 0, "", "", 0, "", 0, ""); }
+        binding_type = UnwrapOption(value);
+    }
+    let variant_value: String = "";
+    if IsSome(variant) { variant_value = UnwrapOption(variant); }
+    return MirMatchInstructionCapture(
+        true, UnwrapOption(patterns), pattern, variant_value,
+        UnwrapOption(bindings), binding, UnwrapOption(binding_types),
+        binding_type
+    );
+}

@@ -1,0 +1,166 @@
+// C and LLVM consumers for one sealed Option<Int> match plan.
+
+import "direct_mir_option_match_cfg_plan_fact_owner.pgy";
+import "direct_mir_option_match_abi_projection_owner.pgy";
+import "direct_mir_llvm_text_format_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirOptionMatchCfgEmitC(
+    ref plan: DirectMirOptionMatchCfgPlan,
+    ref projection: DirectMirOptionMatchAbiProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirOptionMatchCfgPlanReady(plan) ||
+        !DirectMirOptionMatchAbiProjectionReadyFor(
+            projection, CompilerTargetCpuCProjection()
+        ) ||
+        !formatted_print.ok || formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" {
+        Die("direct MIR Option match C plan or runtime ABI is invalid");
+    }
+    let output: String = "#include <stdint.h>\n#include <stdio.h>\n\n";
+    output = Concat(output, "typedef struct { ");
+    output = Concat(output, projection.c_tag_type);
+    output = Concat(output, " ");
+    output = Concat(output, plan.abi.tag_name);
+    output = Concat(output, "; ");
+    output = Concat(output, projection.c_value_type);
+    output = Concat(output, " ");
+    output = Concat(output, plan.abi.value_name);
+    output = Concat(output, "; } pgy_direct_option_int;\n\n");
+    output = Concat(output, "int main(void) {\n    pgy_direct_option_int option = { ");
+    output = Concat(output, plan.abi.some_tag);
+    output = Concat(output, ", ");
+    output = Concat(output, plan.certificate.some_value);
+    output = Concat(output, " };\n    if (option.");
+    output = Concat(output, plan.abi.tag_name);
+    output = Concat(output, " == ");
+    output = Concat(output, plan.abi.some_tag);
+    output = Concat(output, ") {\n        ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (");
+    output = Concat(output, projection.c_print_type);
+    output = Concat(output, ")option.");
+    output = Concat(output, plan.abi.value_name);
+    output = Concat(output, ");\n    }\n    if (option.");
+    output = Concat(output, plan.abi.tag_name);
+    output = Concat(output, " == ");
+    output = Concat(output, plan.abi.some_tag);
+    output = Concat(output, ") {\n        ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (");
+    output = Concat(output, projection.c_print_type);
+    output = Concat(output, ")option.");
+    output = Concat(output, plan.abi.value_name);
+    output = Concat(output, ");\n    } else if (option.");
+    output = Concat(output, plan.abi.tag_name);
+    output = Concat(output, " == ");
+    output = Concat(output, plan.abi.none_tag);
+    output = Concat(output, ") {\n        ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (");
+    output = Concat(output, projection.c_print_type);
+    output = Concat(output, ")");
+    output = Concat(output, plan.certificate.none_value);
+    output = Concat(output, ");\n    } else {\n        return 1;\n    }\n    return 0;\n}\n");
+    return output;
+}
+
+func DirectMirOptionMatchCfgEmitLlvm(
+    ref plan: DirectMirOptionMatchCfgPlan,
+    ref projection: DirectMirOptionMatchAbiProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirOptionMatchCfgPlanReady(plan) ||
+        !DirectMirOptionMatchAbiProjectionReadyFor(
+            projection, CompilerTargetCpuLlvmProjection()
+        ) ||
+        !formatted_print.ok || formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" {
+        Die("direct MIR Option match LLVM plan or runtime ABI is invalid");
+    }
+    let aggregate: String = projection.llvm_aggregate_type;
+    let value_type: String = projection.llvm_value_type;
+    let print_type: String = projection.llvm_print_type;
+    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
+    let output: String = "@.pgy.option.int.line = private unnamed_addr constant [";
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, DirectMirScalarLlvmFormatPayload(line_format));
+    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n\ndefine i32 @main() {\nentry:\n  %option.tag = insertvalue ");
+    output = Concat(output, aggregate);
+    output = Concat(output, " poison, ");
+    output = Concat(output, projection.llvm_tag_type);
+    output = Concat(output, " ");
+    output = Concat(output, plan.abi.some_tag);
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(projection.tag_index));
+    output = Concat(output, "\n  %option = insertvalue ");
+    output = Concat(output, aggregate);
+    output = Concat(output, " %option.tag, ");
+    output = Concat(output, value_type);
+    output = Concat(output, " ");
+    output = Concat(output, plan.certificate.some_value);
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(projection.value_index));
+    output = Concat(output, "\n  %tag = extractvalue ");
+    output = Concat(output, aggregate);
+    output = Concat(output, " %option, ");
+    output = Concat(output, ToString(projection.tag_index));
+    output = Concat(output, "\n  %is.some = icmp eq ");
+    output = Concat(output, projection.llvm_tag_type);
+    output = Concat(output, " %tag, ");
+    output = Concat(output, plan.abi.some_tag);
+    output = Concat(output, "\n  br i1 %is.some, label %if.some, label %match.head\n\nif.some:\n  %if.value = extractvalue ");
+    output = Concat(output, aggregate);
+    output = Concat(output, " %option, ");
+    output = Concat(output, ToString(projection.value_index));
+    output = Concat(output, "\n  %if.value.wide = ");
+    output = Concat(output, projection.llvm_print_extension);
+    output = Concat(output, " ");
+    output = Concat(output, value_type);
+    output = Concat(output, " %if.value to ");
+    output = Concat(output, print_type);
+    output = Concat(output, "\n  %if.logged = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.option.int.line, ");
+    output = Concat(output, print_type);
+    output = Concat(output, " %if.value.wide)\n  br label %match.head\n\nmatch.head:\n  br i1 %is.some, label %match.some, label %match.none.check\n\nmatch.some:\n  %match.value = extractvalue ");
+    output = Concat(output, aggregate);
+    output = Concat(output, " %option, ");
+    output = Concat(output, ToString(projection.value_index));
+    output = Concat(output, "\n  %match.value.wide = ");
+    output = Concat(output, projection.llvm_print_extension);
+    output = Concat(output, " ");
+    output = Concat(output, value_type);
+    output = Concat(output, " %match.value to ");
+    output = Concat(output, print_type);
+    output = Concat(output, "\n  %some.logged = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.option.int.line, ");
+    output = Concat(output, print_type);
+    output = Concat(output, " %match.value.wide)\n  br label %exit\n\nmatch.none.check:\n  %is.none = icmp eq ");
+    output = Concat(output, projection.llvm_tag_type);
+    output = Concat(output, " %tag, ");
+    output = Concat(output, plan.abi.none_tag);
+    output = Concat(output, "\n  br i1 %is.none, label %match.none, label %invalid\n\nmatch.none:\n  %none.logged = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.option.int.line, ");
+    output = Concat(output, print_type);
+    output = Concat(output, " ");
+    output = Concat(output, plan.certificate.none_value);
+    output = Concat(output, ")\n  br label %exit\n\ninvalid:\n  ret i32 1\n\nexit:\n  ret i32 0\n}\n");
+    return output;
+}

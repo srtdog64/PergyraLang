@@ -1,0 +1,102 @@
+// Target-bound type mapping for one fully admitted Option<Int> ABI fact.
+// Only the selected backend fields are populated; the other backend cannot
+// consume this receipt.
+
+import "direct_mir_option_match_abi_fact_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+struct DirectMirOptionMatchAbiProjection {
+    let valid: Bool;
+    let target_projection: String;
+    let target_capability_fingerprint: Int;
+    let c_tag_type: String;
+    let c_value_type: String;
+    let c_print_type: String;
+    let llvm_tag_type: String;
+    let llvm_value_type: String;
+    let llvm_print_type: String;
+    let llvm_aggregate_type: String;
+    let llvm_print_extension: String;
+    let tag_index: Int;
+    let value_index: Int;
+}
+
+func DirectMirOptionMatchAbiProjectionReadyFor(
+    ref projection: DirectMirOptionMatchAbiProjection,
+    expected_target: String
+) -> Bool {
+    if !projection.valid ||
+        !CompilerTargetProjectionKnown(expected_target) ||
+        projection.target_projection != expected_target ||
+        projection.target_capability_fingerprint !=
+            CompilerTargetCapabilityFingerprint() {
+        return false;
+    }
+    if expected_target == CompilerTargetCpuCProjection() {
+        return projection.c_tag_type == "int32_t" &&
+            projection.c_value_type == "int32_t" &&
+            projection.c_print_type == CompilerAbiLayoutIntCValueType() &&
+            projection.llvm_tag_type == "" &&
+            projection.llvm_value_type == "" &&
+            projection.llvm_print_type == "" &&
+            projection.llvm_aggregate_type == "" &&
+            projection.llvm_print_extension == "" &&
+            projection.tag_index == 0 - 1 &&
+            projection.value_index == 0 - 1;
+    }
+    return expected_target == CompilerTargetCpuLlvmProjection() &&
+        projection.c_tag_type == "" && projection.c_value_type == "" &&
+        projection.c_print_type == "" &&
+        projection.llvm_tag_type == "i32" &&
+        projection.llvm_value_type == "i32" &&
+        projection.llvm_print_type == "i64" &&
+        projection.llvm_aggregate_type == "{ i32, i32 }" &&
+        projection.llvm_print_extension == "sext" &&
+        projection.tag_index == 0 && projection.value_index == 1;
+}
+
+func DirectMirOptionMatchAbiProjectionFromFact(
+    ref abi: DirectMirOptionMatchAbiFact,
+    target: CompilerTargetProjectionFact
+) -> DirectMirOptionMatchAbiProjection {
+    let is_c: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuCProjection()
+    );
+    let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuLlvmProjection()
+    );
+    if !DirectMirOptionMatchAbiFactReady(abi) || (!is_c && !is_llvm) ||
+        abi.tag_offset % abi.tag_size != 0 ||
+        abi.value_offset % abi.value_size != 0 {
+        Die("direct MIR Option match ABI has no target projection");
+    }
+    let projection: DirectMirOptionMatchAbiProjection =
+        DirectMirOptionMatchAbiProjection(
+            true, target.projection,
+            target.target_capability_fingerprint,
+            "", "", "", "", "", "", "", "", 0 - 1, 0 - 1
+        );
+    if is_c {
+        projection = DirectMirOptionMatchAbiProjection(
+            true, target.projection,
+            target.target_capability_fingerprint,
+            abi.inner_c_type, abi.inner_c_type,
+            CompilerAbiLayoutIntCValueType(),
+            "", "", "", "", "", 0 - 1, 0 - 1
+        );
+    } else {
+        projection = DirectMirOptionMatchAbiProjection(
+            true, target.projection,
+            target.target_capability_fingerprint,
+            "", "", "", "i32", "i32", "i64", "{ i32, i32 }",
+            "sext", abi.tag_offset / abi.tag_size,
+            abi.value_offset / abi.value_size
+        );
+    }
+    if !DirectMirOptionMatchAbiProjectionReadyFor(
+        projection, target.projection
+    ) {
+        Die("direct MIR Option match ABI target mapping is invalid");
+    }
+    return projection;
+}

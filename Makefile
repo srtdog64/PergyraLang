@@ -3149,7 +3149,10 @@ self-host-one-mir-dual-backend-projection-test-smoke: self-host-driver-bootstrap
 self-host-one-mir-cfg-air-plan-projection-test-smoke: self-host-one-mir-dual-backend-projection-test-smoke
 	PGY_SELFHOST_CFG_SKIP_SCALAR_GATE=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh
 
-.PHONY: self-host-one-mir-dual-backend-projection-test-smoke self-host-one-mir-cfg-air-plan-projection-test-smoke self-host-driver-source-mir-execution-action-test-smoke
+self-host-one-mir-option-match-projection-test-smoke: self-host-driver-bootstrap-test-smoke
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_option_match_projection.sh
+
+.PHONY: self-host-one-mir-dual-backend-projection-test-smoke self-host-one-mir-cfg-air-plan-projection-test-smoke self-host-one-mir-option-match-projection-test-smoke self-host-driver-source-mir-execution-action-test-smoke
 
 self-host-driver-bootstrap-full-test-smoke: self-host-codegen-bootstrap-seed-test-smoke
 	@if command -v powershell >/dev/null 2>&1; then \

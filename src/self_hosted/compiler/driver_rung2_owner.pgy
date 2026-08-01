@@ -302,9 +302,16 @@ func CanonicalizeOracleMirJsonBridge(
 func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     target_projection: CompilerTargetProjectionFact,
-    observe_pressure: Bool
+    observe_pressure: Bool,
+    retire_owned_source_json: Bool
 ) -> CompilerEmissionArtifact {
     let json: String = admitted.routines.source_json;
+    let machine_declaration: SelfHostMachineLayerDeclaration =
+        admitted.machine_declaration;
+    let topology_receipt: MirDomainTopologyGraphPlanConsumptionReceipt =
+        MirDomainTopologyGraphPlanConsumptionFromAdmitted(admitted);
+    let topology_plan: MirDomainTopologyGraphPlan =
+        admitted.domain_topology_plan;
     DriverRung2PressureStage(
         observe_pressure, "consumer:mir-to-ast:start"
     );
@@ -410,16 +417,23 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
         routine_identity_epoch.source_syntax_ids, observe_pressure);
     DriverRung2PressureStage(observe_pressure, "consumer:codegen-view:done");
     let codegen_body_types: CodegenSemanticBodyTypeFacts = codegen_view.body_types;
+    if retire_owned_source_json {
+        MirJsonOwnedInputRelease(json);
+        DriverRung2PressureStage(
+            observe_pressure, "consumer:owned-input:released"
+        );
+    }
     DriverRung2PressureStage(
         observe_pressure, "consumer:c-emission:start"
     );
     let emission: CompilerEmissionArtifact = CompilerEmissionArtifact(
         "emitted-c",
-        MirDomainTopologyGraphPlanAttachAdmittedToC(
-            admitted, GenerateCFromVerifiedSemanticArtifact(
+        MirDomainTopologyGraphPlanAttachToC(
+            topology_receipt, topology_plan,
+            GenerateCFromVerifiedSemanticArtifact(
                 artifact, codegen_analysis, codegen_body_types, codegen_view.receivers,
                 codegen_view.domain_runtime, codegen_view.intent_execution,
-                admitted.machine_declaration, target_projection,
+                machine_declaration, target_projection,
                 observe_pressure
             )
         ),
@@ -456,7 +470,7 @@ func CompileMirJsonTextToCForTargetVerifiedObserved(
     let admitted: MirMachineLayerAdmittedJsonInput =
         UnwrapOption(admitted_opt);
     return CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
-        admitted, target_projection, observe_pressure
+        admitted, target_projection, observe_pressure, false
     );
 }
 
@@ -472,14 +486,16 @@ func CompileMirJsonTextToCForTargetVerified(
 
 func CompileMachineAdmittedMirJsonToCVerifiedObserved(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    observe_pressure: Bool
+    observe_pressure: Bool,
+    retire_owned_source_json: Bool
 ) -> CompilerEmissionArtifact {
     return CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
         admitted,
         CompilerTargetProjectionFactFromOwner(
             CompilerTargetCpuCProjection()
         ),
-        observe_pressure
+        observe_pressure,
+        retire_owned_source_json
     );
 }
 
@@ -514,7 +530,7 @@ func CompileMirJsonToCVerified(
             mir_json_path, machine_declaration
         );
     return CompileMachineAdmittedMirJsonToCVerifiedObserved(
-        admitted, false
+        admitted, false, true
     );
 }
 
@@ -529,6 +545,6 @@ func CompileMirJsonToCVerifiedObserved(
         );
     DriverRung2PressureStage(true, "consumer:input:done");
     return CompileMachineAdmittedMirJsonToCVerifiedObserved(
-        admitted, true
+        admitted, true, true
     );
 }

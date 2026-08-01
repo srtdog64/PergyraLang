@@ -950,7 +950,17 @@ inventory must not become a second fact-family owner registry.
   LoopFlowSummary and stable-indexed entry/exit state fact parsing.
 - `src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy` -- MIR fact
   graph payload contract facts.
-- `src/self_hosted/mir_lower/mir_json_input_owner.pgy` -- MIR JSON input boundary.
+- `src/self_hosted/mir_lower/mir_json_input_owner.pgy` -- MIR JSON input
+  boundary and the file-backed input-buffer lifetime owner. Borrowed text APIs
+  retain caller ownership; file-backed compilation retires the one raw JSON
+  buffer only after every JSON-indexed consumer has projected typed facts.
+- `src/self_hosted/mir_lower/abi_layout_admission_fact_owner.pgy` -- bounded
+  required-layout row admission from instruction-owned spans. It parses the
+  exact row once and returns the capture consumed by the Option match plan.
+- `src/self_hosted/mir_lower/routine_instruction_match_fact_owner.pgy` --
+  routine-local typed match index. It opens each instruction span once and
+  owns pattern, variant, binding, and binding-type captures consumed by AIR;
+  certificate and backend owners may not reopen those JSON spans.
 - `src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy` -- pure CFG distance,
   blocked-reachability, structural-merge, and dominator-edge queries used by
   the routine fact index.
@@ -1280,8 +1290,12 @@ inventory must not become a second fact-family owner registry.
   kind, C name, and environment rows, plus implicit owner-field C binding rows
   derived from semantic locals and MIR-carried nominal declaration facts.
 - `src/self_hosted/codegen/emission/function_emit.pgy` -- function definition
-  and prototype emission. Program-scale prototypes stream into one builder and
-  release each completed row; an array retaining every prototype is forbidden.
+  emission and function-local environment lifetime.
+- `src/self_hosted/codegen/emission/function_prototype_block_owner.pgy` --
+  program-scale prototype traversal and streaming emission into one builder.
+  It consumes symbol and ABI owners directly; recursive parameter-prefix
+  concatenation and construction of unused function binding-environment rows
+  are forbidden.
 - `src/self_hosted/codegen/emission/function_global_env_owner.pgy` -- one-pass
   serialization of admitted builtin, runtime, source, specialization, and
   callable-receiver and intent rows into the immutable global codegen
@@ -1781,6 +1795,36 @@ inventory must not become a second fact-family owner registry.
   v6 plan identity/readiness contract binding AIR/MIR/CFG/phi/nested/while/
   range/loop-break digests, target capability, topology, and normalized shape
   before emission.
+- `src/self_hosted/air/mir_option_match_graph_fact_owner.pgy` -- exact persisted
+  graph shapes for the Option constructor, `IsSome`, `UnwrapOption`, match
+  subject, and both Log lanes.
+- `src/self_hosted/air/mir_option_match_cfg_certificate_fact_owner.pgy` --
+  target-neutral seven-block Option match certificate. It binds exact CFG
+  successors, typed pattern/binding capture, SSA-use cardinality, graph shapes,
+  and the admitted ABI layout identity to one MIR/CFG digest.
+- `src/self_hosted/compiler/direct_mir_option_match_abi_fact_owner.pgy` --
+  compact verified Option<Int> ABI receipt carrying every physical field needed
+  to reconstruct and recheck the canonical layout identity; it owns no target
+  spelling.
+- `src/self_hosted/compiler/direct_mir_option_match_abi_capture_owner.pgy` --
+  one-way projection from the admitted canonical ABI row to the compact ABI
+  receipt. Unsupported physical shapes fail before plan issuance.
+- `src/self_hosted/compiler/direct_mir_option_match_abi_projection_owner.pgy`
+  -- target-bound C or LLVM storage, aggregate, extension, and field-index
+  projection from the verified ABI receipt. The unselected backend mapping is
+  absent and cannot consume the receipt.
+- `src/self_hosted/compiler/direct_mir_option_match_cfg_plan_fact_owner.pgy`
+  -- fixed target-neutral Option match plan identity binding the AIR certificate
+  and ABI receipt.
+- `src/self_hosted/compiler/direct_mir_option_match_cfg_plan_owner.pgy` -- one
+  admitted-plan issuer over the typed routine/use/match/ABI owners; it contains
+  no backend emission or general compiler fallback.
+- `src/self_hosted/compiler/direct_mir_option_match_cfg_plan_mutation_owner.pgy`
+  -- repaired-digest negatives for certificate, canonical ABI identity, target
+  capability binding, and enclosing plan identity.
+- `src/self_hosted/compiler/direct_mir_option_match_cfg_emission_owner.pgy` --
+  last C/LLVM text consumers for the fixed Option match plan. Neither emitter
+  reads MIR JSON, reconstructs AIR, nor links Pergyra runtime symbols.
 - `src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy` -- normalized
   closed action facts for the same single CFG plan: literal-log arms or typed
   Int assignment arms with a predecessor-resolved merge phi and Log use. It is
@@ -1840,7 +1884,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/driver_rung2_owner.pgy` -- hard artifact-body
   semantic source/MIR-to-C owner; joins initializer, iteration, assignment,
   expression-use, call, return, and condition evidence after source and MIR
-  JSON inputs converge on one `AstTreeArtifact` verifier.
+  JSON inputs converge on one `AstTreeArtifact` verifier. For file-backed MIR,
+  it snapshots the topology receipt and machine declaration, completes the
+  typed codegen view, then retires the raw JSON input before C emission.
 - `src/self_hosted/compiler/driver_rung2_intent_consumer_owner.pgy` -- one
   admitted typed-intent plan tree projection and exact post-semantic expression
   occurrence remap boundary for the DRV-2 consumer.

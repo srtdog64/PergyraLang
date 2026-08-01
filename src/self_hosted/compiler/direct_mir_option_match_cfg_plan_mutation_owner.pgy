@@ -1,0 +1,54 @@
+// Repaired-digest negatives for the Option-match certificate, ABI receipt,
+// target capability binding, and enclosing plan.
+
+import "direct_mir_option_match_cfg_plan_fact_owner.pgy";
+
+func DirectMirOptionMatchCfgPlanMutationRejected(
+    own plan: DirectMirOptionMatchCfgPlan
+) -> Bool {
+    let bad_digest: DirectMirOptionMatchCfgPlan =
+        DirectMirOptionMatchCfgPlanWithDigest(
+            plan, plan.plan_digest + 1
+        );
+    let bad_target: DirectMirOptionMatchCfgPlan =
+        DirectMirOptionMatchCfgPlanWithTargetFingerprint(
+            plan, plan.target_capability_fingerprint + 1
+        );
+    bad_target = DirectMirOptionMatchCfgPlanWithDigest(
+        bad_target, DirectMirOptionMatchCfgPlanIdentityDigest(bad_target)
+    );
+
+    let bad_certificate: DirectMirOptionMatchCfgCertificateFact =
+        DirectMirOptionMatchCfgCertificateFactWithSomeValue(
+            plan.certificate, "mutated"
+        );
+    bad_certificate = DirectMirOptionMatchCfgCertificateFactWithDigest(
+        bad_certificate,
+        DirectMirOptionMatchCfgCertificateFactDigest(bad_certificate)
+    );
+    let bad_certificate_plan: DirectMirOptionMatchCfgPlan =
+        DirectMirOptionMatchCfgPlanWithCertificate(plan, bad_certificate);
+    bad_certificate_plan = DirectMirOptionMatchCfgPlanWithDigest(
+        bad_certificate_plan,
+        DirectMirOptionMatchCfgPlanIdentityDigest(bad_certificate_plan)
+    );
+
+    let bad_abi: DirectMirOptionMatchAbiFact =
+        DirectMirOptionMatchAbiFactWithLayoutId(
+            plan.abi, plan.abi.layout_id + 1
+        );
+    bad_abi = DirectMirOptionMatchAbiFactWithDigest(
+        bad_abi, DirectMirOptionMatchAbiFactDigest(bad_abi)
+    );
+    let bad_abi_plan: DirectMirOptionMatchCfgPlan =
+        DirectMirOptionMatchCfgPlanWithAbi(plan, bad_abi);
+    bad_abi_plan = DirectMirOptionMatchCfgPlanWithDigest(
+        bad_abi_plan,
+        DirectMirOptionMatchCfgPlanIdentityDigest(bad_abi_plan)
+    );
+
+    return !DirectMirOptionMatchCfgPlanReady(bad_digest) &&
+        !DirectMirOptionMatchCfgPlanReady(bad_target) &&
+        !DirectMirOptionMatchCfgPlanReady(bad_certificate_plan) &&
+        !DirectMirOptionMatchCfgPlanReady(bad_abi_plan);
+}

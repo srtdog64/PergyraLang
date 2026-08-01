@@ -1,0 +1,103 @@
+// Persisted expression-graph evidence for the bounded Option match CFG.
+
+import "../mir_lower/expression_graph_sequence_owner.pgy";
+import "../mir_lower/program_routine_index_owner.pgy";
+
+func DirectMirOptionMatchGraphAt(
+    ref routines: MirProgramRoutineIndex,
+    global_row: Int
+) -> MirExpressionGraphSequence {
+    let expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            routines.instruction_expressions, global_row
+        );
+    return MirExpressionGraphSequenceAppend(
+        MirExpressionGraphSequenceEmpty(),
+        MirProgramInstructionExpressionGraphTable(
+            routines.source_json, expression, 0
+        )
+    );
+}
+
+func DirectMirOptionMatchGraphShapeReady(
+    ref graph: MirExpressionGraphSequence,
+    node_count: Int,
+    root_kind: Int,
+    root_text: String,
+    direct_target: String
+) -> Bool {
+    if !graph.ok || graph.ready_node_count != node_count ||
+        ArrayLength(graph.roots) != 1 ||
+        graph.roots[0] != node_count - 1 ||
+        ArrayLength(graph.arena.topology.node_kinds) != node_count ||
+        ArrayLength(graph.arena.node_texts) != node_count ||
+        ArrayLength(graph.arena.call_target_kinds) != node_count ||
+        ArrayLength(graph.arena.call_target_names) != node_count ||
+        graph.arena.topology.node_kinds[node_count - 1] != root_kind ||
+        graph.arena.node_texts[node_count - 1] != root_text {
+        return false;
+    }
+    if direct_target == "" {
+        return node_count == 1 &&
+            graph.arena.call_target_kinds[0] == SemanticCallTargetNone() &&
+            graph.arena.call_target_names[0] == "";
+    }
+    return node_count == 4 &&
+        graph.arena.topology.node_kinds[1] == AstExpressionNodeCall() &&
+        graph.arena.call_target_kinds[1] == SemanticCallTargetDirect() &&
+        graph.arena.call_target_names[1] == direct_target;
+}
+
+func DirectMirOptionMatchGraphValuesFromIndex(
+    ref routines: MirProgramRoutineIndex,
+    rows: Array<Int>,
+    local_name: String,
+    binding_name: String
+) -> Array<String> {
+    let invalid: Array<String> = [];
+    if ArrayLength(rows) != 7 || local_name == "" || binding_name == "" {
+        return invalid;
+    }
+    let def: MirExpressionGraphSequence =
+        DirectMirOptionMatchGraphAt(routines, rows[0]);
+    let branch: MirExpressionGraphSequence =
+        DirectMirOptionMatchGraphAt(routines, rows[1]);
+    let unwrap: MirExpressionGraphSequence =
+        DirectMirOptionMatchGraphAt(routines, rows[2]);
+    let some_match: MirExpressionGraphSequence =
+        DirectMirOptionMatchGraphAt(routines, rows[3]);
+    let some_log: MirExpressionGraphSequence =
+        DirectMirOptionMatchGraphAt(routines, rows[4]);
+    let none_match: MirExpressionGraphSequence =
+        DirectMirOptionMatchGraphAt(routines, rows[5]);
+    let none_log: MirExpressionGraphSequence =
+        DirectMirOptionMatchGraphAt(routines, rows[6]);
+    if !def.ok || ArrayLength(def.arena.node_texts) != 4 ||
+        def.arena.topology.node_kinds[2] != AstExpressionNodeIntegerLiteral() {
+        return invalid;
+    }
+    let some_value: String = def.arena.node_texts[2];
+    let none_value: String = "0";
+    if some_value == "" || ToString(ToInt(some_value)) != some_value ||
+        !DirectMirOptionMatchGraphShapeReady(def, 4,
+            AstExpressionNodeCallArgument(),
+            Concat(Concat("Some(", some_value), ")"), "Some") ||
+        !DirectMirOptionMatchGraphShapeReady(branch, 4,
+            AstExpressionNodeCallArgument(),
+            Concat(Concat("IsSome(", local_name), ")"), "IsSome") ||
+        !DirectMirOptionMatchGraphShapeReady(unwrap, 4,
+            AstExpressionNodeCallArgument(),
+            Concat(Concat("UnwrapOption(", local_name), ")"),
+            "UnwrapOption") ||
+        !DirectMirOptionMatchGraphShapeReady(some_match, 1,
+            AstExpressionNodeLeaf(), local_name, "") ||
+        !DirectMirOptionMatchGraphShapeReady(some_log, 1,
+            AstExpressionNodeLeaf(), binding_name, "") ||
+        !DirectMirOptionMatchGraphShapeReady(none_match, 1,
+            AstExpressionNodeLeaf(), local_name, "") ||
+        !DirectMirOptionMatchGraphShapeReady(none_log, 1,
+            AstExpressionNodeIntegerLiteral(), none_value, "") {
+        return invalid;
+    }
+    return [some_value, none_value];
+}

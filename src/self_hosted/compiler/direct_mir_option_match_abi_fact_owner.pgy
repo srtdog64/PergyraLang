@@ -1,0 +1,129 @@
+// Target-neutral Option<Int> ABI receipt. Every physical field needed to
+// reconstruct the canonical layout identity survives admission; emitters may
+// project it, but cannot re-invent aggregate shape or field positions.
+
+import "abi_layout_row_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+import "../mir_lower/abi_layout_admission_fact_owner.pgy";
+
+struct DirectMirOptionMatchAbiFact {
+    let valid: Bool;
+    let digest: Int;
+    let layout_id: Int;
+    let type_name: String;
+    let size: Int;
+    let align: Int;
+    let tag_name: String;
+    let tag_offset: Int;
+    let tag_size: Int;
+    let tag_align: Int;
+    let value_name: String;
+    let value_offset: Int;
+    let value_size: Int;
+    let value_align: Int;
+    let runtime_fn: String;
+    let inner_c_type: String;
+    let representation: Int;
+    let discriminant: String;
+    let some_tag: String;
+    let none_tag: String;
+    let niche_none_pattern: String;
+}
+
+func DirectMirOptionMatchAbiCanonicalLayoutId(
+    ref fact: DirectMirOptionMatchAbiFact
+) -> Int {
+    let names: Array<String> = [fact.tag_name, fact.value_name];
+    let offsets: Array<String> = [
+        ToString(fact.tag_offset), ToString(fact.value_offset)
+    ];
+    let sizes: Array<String> = [
+        ToString(fact.tag_size), ToString(fact.value_size)
+    ];
+    let aligns: Array<String> = [
+        ToString(fact.tag_align), ToString(fact.value_align)
+    ];
+    let row: MirAbiLayoutRowCapture = MirAbiLayoutRowCapture(
+        fact.valid, fact.type_name, ToString(fact.size),
+        ToString(fact.align), names, offsets, sizes, aligns,
+        fact.runtime_fn, fact.inner_c_type, ToString(fact.representation),
+        fact.discriminant, fact.some_tag, fact.none_tag,
+        fact.niche_none_pattern
+    );
+    return MirAbiLayoutIdFromCapture(row);
+}
+
+func DirectMirOptionMatchAbiFactDigest(
+    ref fact: DirectMirOptionMatchAbiFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(97L, fact.layout_id);
+    hash = DirectMirCfgHashString(hash, fact.type_name);
+    hash = DirectMirCfgHashInt(hash, fact.size);
+    hash = DirectMirCfgHashInt(hash, fact.align);
+    hash = DirectMirCfgHashString(hash, fact.tag_name);
+    hash = DirectMirCfgHashInt(hash, fact.tag_offset);
+    hash = DirectMirCfgHashInt(hash, fact.tag_size);
+    hash = DirectMirCfgHashInt(hash, fact.tag_align);
+    hash = DirectMirCfgHashString(hash, fact.value_name);
+    hash = DirectMirCfgHashInt(hash, fact.value_offset);
+    hash = DirectMirCfgHashInt(hash, fact.value_size);
+    hash = DirectMirCfgHashInt(hash, fact.value_align);
+    hash = DirectMirCfgHashString(hash, fact.runtime_fn);
+    hash = DirectMirCfgHashString(hash, fact.inner_c_type);
+    hash = DirectMirCfgHashInt(hash, fact.representation);
+    hash = DirectMirCfgHashString(hash, fact.discriminant);
+    hash = DirectMirCfgHashString(hash, fact.some_tag);
+    hash = DirectMirCfgHashString(hash, fact.none_tag);
+    hash = DirectMirCfgHashString(hash, fact.niche_none_pattern);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirOptionMatchAbiFactWithDigest(
+    fact: DirectMirOptionMatchAbiFact,
+    digest: Int
+) -> DirectMirOptionMatchAbiFact {
+    return DirectMirOptionMatchAbiFact(
+        fact.valid, digest, fact.layout_id, fact.type_name,
+        fact.size, fact.align, fact.tag_name, fact.tag_offset,
+        fact.tag_size, fact.tag_align, fact.value_name,
+        fact.value_offset, fact.value_size, fact.value_align,
+        fact.runtime_fn, fact.inner_c_type, fact.representation,
+        fact.discriminant, fact.some_tag, fact.none_tag,
+        fact.niche_none_pattern
+    );
+}
+
+func DirectMirOptionMatchAbiFactWithLayoutId(
+    fact: DirectMirOptionMatchAbiFact,
+    layout_id: Int
+) -> DirectMirOptionMatchAbiFact {
+    return DirectMirOptionMatchAbiFact(
+        fact.valid, fact.digest, layout_id, fact.type_name,
+        fact.size, fact.align, fact.tag_name, fact.tag_offset,
+        fact.tag_size, fact.tag_align, fact.value_name,
+        fact.value_offset, fact.value_size, fact.value_align,
+        fact.runtime_fn, fact.inner_c_type, fact.representation,
+        fact.discriminant, fact.some_tag, fact.none_tag,
+        fact.niche_none_pattern
+    );
+}
+
+func DirectMirOptionMatchAbiFactReady(
+    ref fact: DirectMirOptionMatchAbiFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirOptionMatchAbiFactDigest(fact) &&
+        fact.layout_id > 0 &&
+        fact.layout_id == DirectMirOptionMatchAbiCanonicalLayoutId(fact) &&
+        fact.type_name == CompilerAbiLayoutOptionIntTypeName() &&
+        fact.size == 8 && fact.align == 4 &&
+        fact.tag_name == "tag" && fact.tag_offset == 0 &&
+        fact.tag_size == 4 && fact.tag_align == 4 &&
+        fact.value_name == "value" && fact.value_offset == 4 &&
+        fact.value_size == 4 && fact.value_align == 4 &&
+        fact.runtime_fn == "pgy_option_some_Int" &&
+        fact.inner_c_type == "int32_t" && fact.representation == 1 &&
+        fact.discriminant == "tag" && fact.some_tag == "0" &&
+        fact.none_tag == "1" && fact.niche_none_pattern == "";
+}
