@@ -1,12 +1,71 @@
 # Current Work Handoff
 
-Updated: 2026-08-01 (Asia/Seoul)
+Updated: 2026-08-02 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — carry the first Array parameter across a multi-routine graph
+## Active self-host context — carry the first named-struct parameter ABI
+
+- Executable checkpoint: `48c89486` on `main`, one commit ahead of
+  `origin/main` before this documentation update. The installed sibling driver
+  is 3,600,851 bytes with SHA-256
+  `00F2A1AE08474F43F3AEEE713D6B6C05CBBA077CABAA5BF6B346C35AC0CDD7E3`.
+  Its current-source DRV-2 rebuild completed in 95.4 seconds; memory was not
+  pressure-measured, so no earlier peak is attached to this binary.
+- Closed frontier: `array_literal_call_argument.pgy` now travels through one
+  self-host source-to-MIR production. The same 6,730-byte MIR, SHA-256
+  `255BC71F62F5FD9F905C761EA7347064BD399F958DB4473B305794E12B7D838E`,
+  drives real three-routine C and LLVM programs that both print exactly `11`.
+  Public installed C and LLVM compile/run use this fixture and remain
+  target-specific `SUBSTITUTING` paths, not whole-compiler replacement.
+- Native and self-host MIR now carry the same exact nine-field formal parameter
+  rows. Required `Array<Int>` ABI is a complete layout receipt with ID
+  `599770891`; scalar `Int` explicitly carries ID zero and a null row. One
+  `routine_param_json_projection_owner` feeds both string and streaming JSON
+  writers, so they cannot independently recreate the schema.
+- The target-neutral plan resolves `Main`, `SumPair`, and `Double` through typed
+  call-target and strict signature facts independent of routine row order. Main
+  owns fixed `int32_t` backing storage and passes the Array aggregate by value;
+  both emitters preserve the nested scalar call and Array consumer call.
+- Latest green: native/self parameter ABI parity, exact C/LLVM execution,
+  three-row cyclic permutation artifact equality, sixteen pre-artifact
+  negatives, installed public C and LLVM compile/run, the local Array and
+  Array-return regressions, hard substitution contract, and the full component
+  ratchet. Full CI, Coq adequacy, and current-source gen2==gen3 fixed point were
+  not rerun.
+- Active objective: compile and execute
+  `src/self_hosted/mir_lower/fixture/struct_literal_call_argument.pgy`. It has
+  `Vec2` and nested `Line` declarations plus `Twice`, `Width`, and `Main`, and
+  should print exactly `6` without flattening either call or the nominal value.
+- First observed failure: self-host source-to-MIR succeeds once and emits a
+  10,121-byte artifact with SHA-256
+  `D1BD06AE70919922A1951CAE56DF440F8A89E926E2A7FA23F2BA19E465495B41`,
+  but direct C fails closed in the three-routine Array envelope. The `Line`
+  formal parameter currently carries `abi_layout_id=0`,
+  `abi_layout_required=false`, and `abi_layout=null`; this missing nominal ABI
+  receipt is the next fact-owner seam.
+- Fact owner: stable nominal declaration identity plus an explicit physical
+  layout receipt for the `Line(Vec2, Vec2)` value parameter. Last legitimate
+  consumer is one target-neutral three-routine struct-argument plan feeding a
+  selected C or LLVM projection.
+- Forbidden fallback: deriving physical offsets independently in each backend,
+  treating `abi_layout_required=false` as permission to guess a value aggregate,
+  flattening `Width(Line{...})` or `Twice(1)` into constants, routine-name/row
+  special cases, native semantic/codegen re-entry, or retrying the Array plan
+  after a nominal-struct program is classified.
+- Next falsifier: native/self declaration and parameter-layout parity, the same
+  self-host MIR projected once per backend, exact `6`, routine permutation
+  stability, and pre-artifact rejection of nested field order/type/offset,
+  parameter ABI, direct-call edge, and lifetime mutations.
+- Memory policy remains one execution per changed semantic target followed by
+  the final maximum only. Attention begins at 2.4 GiB and the hard stop is
+  3 GiB; no threshold crossing was observed or inferred in this rung.
+
+## Historical checkpoint archive — inactive evidence
+
+### Previous first Array parameter checkpoint
 
 - Executable checkpoint: `f8e91764` on `main`, one commit ahead of
   `origin/main` before this documentation update. Installed public C and LLVM
@@ -71,8 +130,6 @@ owner, and the named executable gate.
 - Memory policy remains one execution per changed semantic target followed by
   the final maximum only. Attention begins at 2.4 GiB and the hard stop is
   3 GiB; a below-threshold run does not redirect the active rung.
-
-## Historical checkpoint archive — inactive evidence
 
 ### Previous first multi-routine Array-return checkpoint
 

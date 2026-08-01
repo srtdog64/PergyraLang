@@ -58,6 +58,15 @@ entrypoint/callee/signature, caller SSA, canonical ABI including repaired-ID
 field drift, straight-line CFG reachability/terminality, and forged Log scalar
 facts. Multi-routine rejection cannot retry any single-routine planner.
 
+Direct LLVM parameter update (2026-08-02):
+`array_literal_call_argument.pgy` now carries the complete `Array<Int>` ABI row
+on its formal parameter. Native and self-host producers agree on all nine
+parameter fields. One target-neutral three-routine plan preserves the real
+`Double` and `SumPair` calls, gives Main ownership of fixed backing storage,
+and passes the aggregate by value. C and LLVM both print `11`; cyclic routine
+order is artifact-equal and sixteen parameter/call/use/ABI/CFG mutations fail
+before publication. Installed public C and LLVM compile/run use this frontier.
+
 Installed LLVM substitution update (2026-08-01): plain public LLVM binary
 requests use the sibling Pergyra-built driver for exactly one source-to-MIR
 production and one direct LLVM projection. `clang -x ir` is the only final host
@@ -65,10 +74,12 @@ boundary; native semantic/AIR/libLLVM and implicit runtime-object fallback are
 closed. Missing, unsupported, producer/projector, malformed-IR, and unresolved-
 runtime cases fail without publishing a new or stale binary. This is executable
 `SUBSTITUTING` evidence for the sealed runtime-free Option, local `Array<Int>`,
-and the bounded two-routine `Array<Int>` return frontier. It is not evidence for
-general, heap-backed, runtime-bearing, or arbitrary multi-routine programs. The
-next falsifier is `array_literal_call_argument.pgy`, a three-routine fixed Array
-parameter-carriage graph expected to print `11`.
+the bounded two-routine Array return, and three-routine Array parameter
+frontiers. It is not evidence for general, heap-backed, runtime-bearing, or
+arbitrary multi-routine programs. The next falsifier is
+`struct_literal_call_argument.pgy`: its `Line` value parameter currently has no
+carried physical ABI receipt and must fail closed rather than invite backend
+layout guesses.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:

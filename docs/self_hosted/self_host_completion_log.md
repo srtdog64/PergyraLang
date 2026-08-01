@@ -6,6 +6,38 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-02 - Formal Array parameter ABI reaches installed C and LLVM
+
+- Closed `array_literal_call_argument.pgy` as the first bounded three-routine
+  direct-MIR parameter slice. One 6,730-byte self-host MIR drives real
+  `Double`, `SumPair`, and `Main` calls in C and LLVM; both executables print
+  exact `11`, and LLVM has no Pergyra runtime reference.
+- Native and self-host MIR producers now carry the same exact formal-parameter
+  schema. Required aggregate parameters include the complete ABI row and
+  content ID; scalar parameters explicitly carry ID zero and null layout.
+  Whole-string and streaming self-host JSON share one parameter projection
+  owner rather than duplicating the wire contract.
+- Added strict routine parameter/signature, expression graph, program identity,
+  target-neutral plan, and target-specific emission owners. Main owns fixed
+  `int32_t` backing storage and passes the admitted Array shell by value. No SSA
+  parameter or call result was invented where MIR owns only expression edges.
+- The focused gate compares native/self parameter receipts, proves a cyclic
+  routine permutation artifact-equal, and rejects sixteen parameter, ABI,
+  call-edge, use, instruction, reachability, and successor mutations before
+  output. Make, Linux CI, hard substitution, and component ratchets own it.
+- Refreshed the installed driver from current source in 95.4 seconds. The
+  3,600,851-byte binary has SHA-256
+  `00F2A1AE08474F43F3AEEE713D6B6C05CBBA077CABAA5BF6B346C35AC0CDD7E3`;
+  its memory peak is unknown because this build was intentionally not measured.
+- Public installed C and LLVM compile/run now execute this fixture as `11`.
+  Local Array and two-routine Array-return regressions, the hard contract, and
+  the full component ratchet remained green. Full CI, Coq, and current-source
+  gen2==gen3 fixed point were not rerun.
+- Next observed falsifier is `struct_literal_call_argument.pgy`, expected `6`.
+  Source-to-MIR succeeds, but its by-value `Line` parameter carries no physical
+  layout receipt. Nominal declaration/layout ownership must close that seam;
+  backend-local offset guesses and call flattening are forbidden.
+
 ## 2026-07-28 - Fallible action consumes both tobject outcome payloads
 
 - Replaced the direct-MIR action's `ok + stage` result struct with one tagged

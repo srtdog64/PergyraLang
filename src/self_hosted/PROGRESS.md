@@ -1,6 +1,36 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-08-01 installed C-emission replacement
+## Active self-host context — 2026-08-02 named-struct parameter ABI
+
+- Executable checkpoint `48c89486` closes the bounded three-routine
+  `array_literal_call_argument.pgy` slice. One 6,730-byte self-host MIR drives
+  real C and LLVM calls and exact output `11`; installed public C and LLVM
+  compile/run use the same sibling Pergyra-built driver.
+- Native and self-host producers carry identical nine-field formal parameter
+  rows. Required `Array<Int>` layout is a complete receipt, while scalar `Int`
+  explicitly carries no physical row. String and streaming MIR JSON share one
+  routine-parameter projection owner.
+- The target-neutral program/graph/plan owners are routine-order independent,
+  preserve `Double` and `SumPair` calls, give Main ownership of fixed backing
+  storage, and reject sixteen parameter/call/use/ABI/CFG mutations before
+  artifact publication.
+- Installed driver: 3,600,851 bytes, SHA-256
+  `00F2A1AE08474F43F3AEEE713D6B6C05CBBA077CABAA5BF6B346C35AC0CDD7E3`;
+  current-source DRV-2 rebuild 95.4 seconds, memory not measured.
+- The sole next executable rung is `struct_literal_call_argument.pgy`, expected
+  output `6`. Its first 10,121-byte self-host MIR succeeds, but `Line` is a
+  by-value aggregate parameter with no carried layout (`id=0`, required false,
+  null row), and direct C therefore fails closed. The next change must make the
+  nominal declaration/layout owner carry that receipt; backends may not guess
+  offsets or flatten the calls.
+- Latest green includes the new native/self ABI plus C/LLVM/16-negative gate,
+  installed C and LLVM paths, local/returned Array regressions, hard contract,
+  and full component ratchet. Full CI, Coq, and current-source fixed point were
+  not rerun.
+
+## Historical self-host ledger — inactive navigation evidence
+
+### Previous 2026-08-01 installed C-emission replacement
 
 - Executable checkpoint is `d12f8240`. Public pure-C artifact emission now
   selects the sibling Pergyra-built `pgy-self-driver` without an opt-in flag.
@@ -33,8 +63,6 @@
   adequacy gate could not run because no prover is installed. The normal install
   script is not current-green: its default codegen seed is stale and needs a
   real-call capability preflight. GitHub CI and the full matrix were not run.
-
-## Historical self-host ledger — inactive navigation evidence
 
 ### Previous 2026-07-31 source-to-MIR timeout checkpoint
 

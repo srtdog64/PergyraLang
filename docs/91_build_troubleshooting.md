@@ -3998,3 +3998,34 @@ codegen binary, composed AST, output identity, compiler profile을 fingerprint�
 2026-08-01의 최종 multi-routine Array-return DRV-2 갱신은 direct script에서 93.9초에
 완료됐다. 이 실행은 pressure owner로 계측하지 않았으므로 peak memory는 `Unknown`이며,
 이전 1.684 GiB나 2.841 GiB 수치를 상속하지 않는다.
+
+## Aggregate parameter가 C/LLVM에서 서로 다른 폭이나 layout으로 보이는 경우
+
+2026-08-02 첫 three-routine Array parameter 작업에서 일반 self-host C emitter의
+`long long` 표면과 direct-MIR lane의 `int32_t`가 함께 보여 32/64-bit ABI 충돌처럼
+보였다. 이때 일반 emitter 문자열이나 backend 관례를 ABI 권위로 사용하면 안 된다.
+Pergyra `Int`의 언어 ABI는 signed 32-bit이고, `Array<Int>`의 물리 경계는 MIR formal
+parameter가 운반하는 layout receipt가 소유한다. `i64`/`long long`은 이 direct lane에서
+printf 확장을 위한 최종 표현일 뿐 파라미터 ABI가 아니다.
+
+수정 원칙은 다음과 같다.
+
+- Native MIR, self-host 문자열 JSON, self-host streaming JSON이 동일한 parameter
+  row를 내보내야 한다: `name`, `type`, `carriage`, `resource`, `pass`,
+  `abi_type_name`, `abi_layout_id`, `abi_layout_required`, `abi_layout`.
+- Required aggregate는 complete row와 재계산 가능한 ID를 운반한다. Backend가
+  type spelling에서 offset/size/align을 복원하지 않는다.
+- Scalar처럼 row가 필요하지 않은 타입은 ID 0, required false, null layout을
+  명시한다. 반대로 by-value nominal aggregate가 이 상태라면 허용 신호가 아니라
+  아직 ABI owner가 닫히지 않은 증거다.
+- MIR에 parameter SSA/use가 없다면 만들어내지 않는다. 이 fixture의 call/result
+  identity는 typed expression graph edge와 exact callee signature가 소유한다.
+- String과 streaming JSON writer는
+  `routine_param_json_projection_owner.pgy` 하나를 공유한다. 파일 줄 수 cap을
+  올려 중복 직렬화를 유지하지 않는다.
+
+Focused 확인은 `one_mir_array_argument_projection.sh` 하나로 native/self parameter
+receipt parity, 같은 self-host MIR의 C/LLVM execution, routine permutation, repaired
+ABI ID와 missing ABI를 포함한 16 negatives를 실행한다. 일반 build 성능이나 메모리
+문제로 확대하지 말고, 다음 nominal aggregate가 `abi_layout_required=false`로 나오면
+그 nominal declaration/layout owner를 다음 falsifier로 기록한다.

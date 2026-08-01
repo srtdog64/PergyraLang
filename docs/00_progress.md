@@ -1,8 +1,40 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-08-01
+마지막 업데이트: 2026-08-02
 
-## 활성 우선순위 — 첫 multi-routine Array parameter carriage
+## 활성 우선순위 — 첫 named-struct parameter ABI carriage
+
+- 실행 체크포인트는 `48c89486`이다. `array_literal_call_argument.pgy`의
+  `Double`, `SumPair`, `Main`은 하나의 6,730-byte self-host MIR을 C와 LLVM이
+  소비해 모두 정확히 `11`을 출력한다. Public installed C/LLVM compile/run도
+  이 경로를 사용하며 target-specific `SUBSTITUTING`이다.
+- Native/self MIR의 formal parameter row는 이제 name/type/carriage/resource/pass와
+  ABI type/ID/required/layout의 아홉 필드가 일치한다. `Array<Int>`는 전체
+  32-byte layout receipt를 운반하고 backend는 이를 재구성하지 않는다.
+- Main이 fixed `int32_t` storage를 소유하고 Array aggregate를 value로 전달한다.
+  C와 LLVM 모두 `Double(4)`와 `SumPair(...)`의 실제 호출을 유지한다.
+- Focused gate는 native/self parameter ABI parity, routine-order cycle의 artifact
+  equality, exact `11`, 16개 pre-artifact negative를 검증한다. 기존 local Array와
+  Array-return, installed C/LLVM, hard contract, full component ratchet도 green이다.
+- 설치 드라이버는 3,600,851 bytes, SHA-256
+  `00F2A1AE08474F43F3AEEE713D6B6C05CBBA077CABAA5BF6B346C35AC0CDD7E3`다.
+  Current-source rebuild는 95.4초였고 메모리는 계측하지 않았다.
+- 다음 활성 fixture는 `struct_literal_call_argument.pgy`이며 예상 출력은 `6`이다.
+  첫 10,121-byte self-host MIR은 생성됐지만 `Line` value parameter가 아직
+  `abi_layout_id=0`, `abi_layout_required=false`, `abi_layout=null`이라 direct C가
+  fail-closed했다. 다음 owner는 nominal declaration identity와 nested struct의
+  명시적 physical ABI receipt를 결합해야 한다.
+- Backend별 offset 추측, false인 required flag를 aggregate fallback으로 해석,
+  call flattening, name/row special case, native 재진입, Array plan retry를 금지한다.
+  다음 falsifier는 native/self layout parity, 같은 MIR의 C/LLVM exact `6`, routine
+  permutation, nested field/offset/type와 call-edge/lifetime negative다.
+- Full CI, Coq adequacy, current-source gen2==gen3 fixed point는 이번 checkpoint에서
+  재실행하지 않았다. 메모리는 semantic target의 final maximum만 기록하며
+  2.4/3 GiB attention/hard-stop 정책을 유지한다.
+
+## 비활성 진행 기록 archive
+
+### 이전 첫 multi-routine Array parameter carriage
 
 - 실행 체크포인트는 `f8e91764`다. Installed public C/LLVM artifact·compile·run은
   Pergyra-built sibling driver가 소유하는 target-specific `SUBSTITUTING` 경로다.
@@ -46,8 +78,6 @@
   negative다. General query engine이나 dynamic Array로 범위를 넓히지 않는다.
 - 메모리는 semantic target당 마지막 maximum만 기록한다. 2.4 GiB attention과
   3 GiB hard stop을 유지하되 threshold 아래 실행을 최적화 이유로 삼지 않는다.
-
-## 비활성 진행 기록 archive
 
 ### 이전 첫 multi-routine Array-return checkpoint
 
