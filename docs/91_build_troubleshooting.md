@@ -3674,3 +3674,36 @@ r56은 같은 target을 더 오래 기다리며 row 40,960까지 도달했지만
 소비해 구간을 한 번만 복사한다. Unescaped JSON string과 검증된 number token은 이
 primitive를 사용하고, escape가 실제 존재할 때만 decode chunk 경로를 쓴다.
 C/LLVM string-window parity와 bounded JSON exact-bound parity가 이 경계를 검증한다.
+
+## builtin row 추가 후 bootstrap readiness가 실패하는 경우
+
+2026-08-01의 fresh bounded bootstrap은 새 Pergyra-built gen2와 self parser를
+정상 생성한 뒤 production sample 실행에서 다음처럼 fail-closed했다.
+
+```text
+CODEGEN ERROR: driver rung-2 semantic facts are not ready: builtin_signature
+```
+
+원인은 builtin 구현이나 backend symbol이 아니었다. `SemanticBuiltinSignatureRows`
+에는 `SubstringWithLen` row가 추가됐지만 같은 owner의 readiness가 base row 수를
+숫자 `124`로 다시 소유하고 있었다. Seed와 registry-prefix parity가 이미 정확한
+row projection을 검증하므로 이 숫자는 안전 ratchet이 아니라 stale 이중 SoT였다.
+
+해결 규칙은 다음과 같다.
+
+- builtin population과 순서는 `SemanticBuiltinSignatureRows`만 소유한다.
+- readiness는 owner에서 seed한 names/returns/params와 registry projection을
+  비교하며, 별도 숫자 row count를 두지 않는다.
+- `builtin_signature_registry_owner_parity.sh`는 numeric count mirror를 거부하고,
+  `SubstringWithLen` row가 정확히 하나인지 확인한 뒤 readiness probe를 C/LLVM으로
+  컴파일·실행해 artifact equality를 확인한다.
+- 첫 diagnostic 뒤 codegen seed를 무조건 다시 만들지 않는다. imported source
+  identity가 그대로면 기존 gen2/parser를 재사용해 reached production owner만
+  다시 검증한다. Make의 driver target은 seed target을 dependency로 가지므로,
+  재사용 검증에서는 build-dir을 명시하고 `driver_bootstrap.sh`를 직접 실행한다.
+
+수정 후 focused C/LLVM readiness gate는 17.2초에 통과했고, bounded production
+driver는 534.4초에 exit 0으로 sample C, MIR producer JSON, MIR consumer C가 native
+oracle과 byte-identical했다. 이 run의 긴 구간은 native oracle driver 컴파일이며
+약 0.967 GiB RSS로 관찰됐다. 이를 self-host 실행이나 3 GiB graph 회귀로 분류하지
+않는다.

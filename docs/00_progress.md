@@ -30,29 +30,36 @@
   -O3 -fwrapv -fno-strict-aliasing이다. PGY_SELFHOST_CC_PROFILE=test만
   명시적으로 -O0을 선택하며 고정점과 전수 테스트 시간은 일반 빌드 시간과
   분리해 기록한다.
-- 현재 graph 수정까지 포함한 bounded current-source seed 생성은 648.3초에
-  exit 0이었다. sample/MIR producer/consumer parity는 green이지만,
-  SubstringWithLen 이후 seed 재생성과 full current-source gen2==gen3는 아직
-  실행하지 않았다.
+- SubstringWithLen을 포함한 현재 codegen seed-only 생성은 400.6초에 exit 0이었다.
+  새 Pergyra-built gen2와 self parser가 생성됐다. 첫 bounded driver 실행은
+  builtin registry row 수를 별도 숫자 124로 복제한 readiness에서 fail-closed했다.
+  숫자 mirror를 제거하고 owner projection을 유일한 row-count 사실로 유지했으며,
+  새 C/LLVM readiness parity gate가 숫자 mirror 재도입과 SubstringWithLen row
+  누락/중복을 거부한다.
+- 수정 후 bounded production driver는 534.4초에 exit 0이었다. Pergyra-built
+  driver와 native oracle의 sample C, bounded MIR JSON, MIR-to-C artifact가 모두
+  byte-identical하다. 관찰된 약 0.967 GiB RSS와 긴 구간은 native oracle
+  재컴파일 비용이며, 3 GiB 누적 graph 재검증 결함의 재발이 아니다.
 - O0 Windows 경로는 ApplyPostfixFact의 중첩 lowering에서 큰 생성 C stack frame
   때문에 routine 397 부근에서 stack overflow가 난다. Release 경로는 완주하며,
   stack 상향은 test-profile 결함의 해법으로 인정하지 않는다.
 - 현재 증거 등급은 REACHABLE이다. bounded codegen gen2와 gen3 고정점은 있지만
   기본 배포 compiler의 전체 Pergyra 치환율은 아직 0퍼센트다.
-- 다음 falsifier는 SubstringWithLen을 포함한 Pergyra-built parser/codegen seed를
-  한 번 생성하고 bounded bootstrap parity를 확인하는 것이다. 그 seed가 green인
-  뒤에만 동일 full source-to-MIR target을 pressure owner 아래 정확히 한 번
-  실행하며, 완주하면 native oracle byte parity와 gen2==gen3로 진행한다.
+- 다음 falsifier는 현재 green seed를 다시 만들지 않고 동일 full source-to-MIR
+  target을 pressure owner 아래 정확히 한 번 실행하는 것이다. 완주하면 native
+  oracle byte parity를 확인하고 current-source gen2==gen3로 진행한다.
 - 메모리는 semantic target마다 한 번 실행한 뒤 최종 peak_private_gib와
   attention_required만 읽는다. 3 GiB hard stop과 2.4 GiB attention을 유지하며
   미완주 target을 timeout만 늘려 반복하지 않는다.
-- 최신 focused green은 native pgy 증분 build, SubstringWithLen C/LLVM parity,
+- 최신 focused green은 fresh Pergyra gen2/parser seed, bounded production-driver
+  sample/MIR producer/MIR consumer parity, builtin-signature readiness C/LLVM parity,
+  native pgy 증분 build, SubstringWithLen C/LLVM parity,
   bounded JSON C/LLVM exact-bound parity, runtime-call ABI C/LLVM artifact parity,
   expression-graph projection/persisted-read, MIR routine index, self-parser
   acceptance다. Structural component contract는 graph/JSON slice까지 green이며
   마지막 ABI 추가 후에는 shell syntax, line cap, owner acceptance만 확인했다.
-  Filtered self-host codegen은
-  tool build가 300초 안에 끝나지 않아 PASS가 아니다. Full matrix나
+  Filtered self-host codegen은 tool build가 300초 안에 끝나지 않아 PASS가
+  아니지만 fresh bounded seed가 실제 mapping을 소비했다. Full matrix나
   current-source fixed point PASS는 추론하지 않는다.
 - Insere와 Zeno 등 외부 프로젝트는 비활성 provenance다. 사용자가 명시적으로
   다시 열기 전에는 현재 self-host TODO나 진척으로 취급하지 않는다.

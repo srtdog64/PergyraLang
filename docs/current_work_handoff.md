@@ -11,7 +11,7 @@ owner, and the named executable gate.
 - Resume scope: read this card, verify the named owner and gate, then continue
   this one executable rung. Sections below `Historical checkpoint archive` are
   lookup evidence only and must not be treated as parallel work queues.
-- Verified checkpoint: 614cb5d5 on main, equal to origin/main before this dirty
+- Verified checkpoint: 8819acae on main, equal to origin/main before this dirty
   vertical slice. Verify exact HEAD and dirty state with Git before resuming.
 - Active production entrypoint: driver_bootstrap_main.pgy,
   PgyCompilerWorld.source_mir, DriverSourceMirExecution,
@@ -42,17 +42,35 @@ owner, and the named executable gate.
 - r56 reached row 40,960 and was intentionally stopped after about 1,131
   seconds because another longer wait would not add implementation progress.
   It is incomplete evidence and must not be reported as green.
-- The graph-adjusted bounded current-source seed build exited 0 in 648.3
-  seconds and its sample/MIR producer/consumer parity was green. It predates
-  the new SubstringWithLen slice. Full current-source gen2==gen3 remains open.
+- The current SubstringWithLen-aware codegen seed-only build exited 0 in 400.6
+  seconds. It produced a runnable Pergyra-built gen2 codegen and self parser in
+  `.tmp/self_hosted/codegen/bootstrap_8819acae_r2`. This replaces the older
+  pre-SubstringWithLen seed evidence. Full current-source gen2==gen3 remains
+  open.
 - SubstringWithLen now carries an existing length fact through runtime, native
   type/C/LLVM lowering, and self-host builtin signature. Unescaped bounded JSON
   strings and number tokens use one bounded copy instead of one allocation per
   character.
 - Runtime-call ABI row 245 records the self-host helper and C/LLVM manifest
-  parity is artifact-equal. A filtered str_builtins self-host codegen run did
-  not finish its tool build inside 300 seconds, so it is not a PASS; the next
-  bounded seed remains the executable falsifier for that mapping.
+  parity is artifact-equal. The fresh gen2 seed and bounded production driver
+  now execute that mapping; the earlier filtered str_builtins run still is not
+  a PASS because its tool build did not finish inside 300 seconds.
+- The first fresh bounded driver run reached the real readiness boundary and
+  failed closed with `builtin_signature`. `SemanticBuiltinSignatureRows` had
+  gained `SubstringWithLen`, while its readiness function separately mirrored
+  the base row count as numeric literal 124. The numeric mirror was removed;
+  seed/projection parity remains the owner-derived exact check. The new
+  `builtin_signature_registry_owner_parity.sh` rejects numeric count mirrors,
+  requires exactly one SubstringWithLen row, and executes the readiness probe
+  under C/LLVM artifact parity.
+- The repaired Pergyra-built bounded production driver exited 0 in 534.4
+  seconds. Self/oracle sample C is byte-identical at SHA-256
+  `0E32EC703F3B1237FC8C147BD8F395D89A53106D649F3E8F1AB4C608FC0FF25B`;
+  bounded MIR JSON is byte-identical at
+  `0C5E32D7E035F96C4F3EFCEFD569DA60EA8BEF98FFA3A11355DD3573C6F56739`;
+  the MIR consumer emitted the same C artifact. The long section was the native
+  oracle build, observed at about 0.967 GiB RSS, not repeated self-host graph
+  validation.
 - Emitted-C profile owner: emitted_c_runtime_header_owner.sh. The default
   self-host profile is release with -O3 -fwrapv -fno-strict-aliasing.
   PGY_SELFHOST_CC_PROFILE=test explicitly selects -O0 with the same semantic
@@ -65,7 +83,10 @@ owner, and the named executable gate.
   fixed point exists, but the released default compiler still has no whole-root
   Pergyra replacement. Source files, owners, and green structural gates alone
   do not change that percentage.
-- Latest focused green: native pgy incremental build, SubstringWithLen C/LLVM
+- Latest focused green: fresh SubstringWithLen-aware Pergyra gen2/parser seed,
+  repaired bounded production-driver sample/MIR producer/MIR consumer parity,
+  builtin-signature readiness C/LLVM parity, native pgy incremental build,
+  SubstringWithLen C/LLVM
   parity, bounded JSON exact-bound C/LLVM parity, expression-graph projection
   and persisted-read owner gates, MIR routine-index fixture, self-parser owner
   acceptance, source-MIR action negative gate, and the structural component
@@ -80,16 +101,17 @@ owner, and the named executable gate.
   materialization, default O0 self-host builds, a higher memory cap, repeated
   graph validation, per-character bounded-token strings, a general cache/query
   engine, timeout-only reruns, or unrelated library work.
-- Next falsifier: regenerate one Pergyra-built parser/codegen seed containing
-  SubstringWithLen and run only bounded bootstrap parity. If that seed is
-  green, execute the same full source-to-MIR target once under the pressure
-  owner and require native-oracle byte parity. Only a completed run may advance
-  to current-source gen2==gen3 evidence.
-- Do not infer the full matrix or fixed point from focused results. If the new
-  seed fails, its exact compile/parity diagnostic is the blocker. If the one
-  scheduled full consumer stays below memory attention but times out, profile
-  the reached JSON/graph owner; do not merely extend the timeout or reopen
-  already closed graph/streaming seams.
+- Next falsifier: execute the same full source-to-MIR target exactly once under
+  the pressure owner using the current green seed and require native-oracle
+  byte parity. Only a completed run may advance to current-source gen2==gen3
+  evidence. Do not regenerate the seed through the Make dependency before this
+  run; reuse the named current artifacts unless their imported source identity
+  changes.
+- Do not infer the full matrix or fixed point from focused results. If the one
+  scheduled full consumer fails, its exact compile/parity diagnostic is the
+  blocker. If it stays below memory attention but times out, profile the reached
+  JSON/graph owner; do not merely extend the timeout or reopen already closed
+  graph/streaming seams.
 
 ## Historical checkpoint archive — inactive unless explicitly referenced
 

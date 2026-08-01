@@ -317,7 +317,6 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
     if !SeedSemanticBuiltinSignatures(names, returns, params) ||
         !SemanticBuiltinSignatureProjectionPrefixReady(names, returns, params) ||
         !IntentObservabilityAbiReady() ||
-        ArrayLength(names) != 124 + IntentObservabilityAbiCount() ||
         ArrayLength(returns) != ArrayLength(names) ||
         ArrayLength(params) != ArrayLength(names) {
         return false;
