@@ -3964,3 +3964,37 @@ byte-equality를 최신 증거로 기록하지 않는다.
 1.579/1.684 GiB였다. 이후 작은 rebuild를 계측하지 않았다면 이 값을 최종 installed
 binary의 정확한 peak라고 보고하지 않는다. 최종 artifact hash/size와 resource
 measurement의 증거 범위를 따로 기록한다.
+
+## Self-host driver 수정마다 codegen seed가 다시 실행되는 경우
+
+`make self-host-compiler`는 단순한 증분 driver target이 아니다. 이 target은
+`self-host-codegen-bootstrap-seed-test-smoke`에 의존하고, 그 선행 target은 phony다.
+따라서 source import 하나를 고친 뒤 `make self-host-compiler`를 다시 호출하면 이미
+capability가 확인된 seed 단계까지 재실행할 수 있다. 이것은 권한 문제나 compiler가
+멈춘 증상이 아니라 Make dependency가 정의한 **bootstrap/test 경계**다.
+
+Clean tree와 CI에서 실행하는 focused gate는 재현 가능해야 하므로
+`self-host-one-mir-array-return-projection-test-smoke`처럼 `self-host-compiler`에
+의존한다. 반면 현재 parser/gen2 seed의 capability가 이미 이 checkpoint에서
+확인됐고 import-composed driver source만 바뀐 로컬 edit loop라면 다음 owner script를
+직접 한 번 실행해 DRV-2만 갱신할 수 있다.
+
+```sh
+PGY_SELF_DRIVER_BIN=/d/PergyraLang/bin/pgy-self-driver.exe \
+  tests/self_hosted/parity/self_host_compiler_build.sh
+```
+
+Windows에서는 Make가 선택한 MSYS bash 또는 로그인 MSYS shell을 사용한다. 빈
+Windows `PATH`를 상속한 `bash.exe`를 직접 띄우면 build 시작 전 `dirname: command not
+found`로 끝날 수 있다. 이 실패는 source parse/codegen 실행이나 artifact 변경 증거가
+아니다.
+
+직접 script 경로는 current seed를 무조건 신뢰하는 우회가 아니다. Script가 parser와
+codegen binary, composed AST, output identity, compiler profile을 fingerprint하고 smoke를
+통과한 뒤에만 설치한다. Seed capability가 바뀌었거나 clean/CI 증거가 필요하면 Make의
+전체 의존 경계를 사용한다. 어느 경로든 반복 seed 실행 시간이나 gate 수를 self-host
+치환 진척으로 세지 않는다.
+
+2026-08-01의 최종 multi-routine Array-return DRV-2 갱신은 direct script에서 93.9초에
+완료됐다. 이 실행은 pressure owner로 계측하지 않았으므로 peak memory는 `Unknown`이며,
+이전 1.684 GiB나 2.841 GiB 수치를 상속하지 않는다.

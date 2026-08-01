@@ -6,7 +6,75 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — compose the first multi-routine LLVM program graph
+## Active self-host context — carry the first Array parameter across a multi-routine graph
+
+- Executable checkpoint: `f8e91764` on `main`, one commit ahead of
+  `origin/main` before this documentation update. Installed public C and LLVM
+  artifact/compile/run remain target-specific `SUBSTITUTING` paths owned by the
+  Pergyra-built sibling driver; this is not whole-compiler replacement.
+- Closed multi-routine frontier:
+  `src/self_hosted/codegen/fixture/array_return_literal.pgy` travels through
+  source-to-MIR exactly once and the same 6,267-byte MIR feeds C and LLVM. A
+  real producer fills caller-owned fixed storage, returns the admitted
+  `Array<Int>` aggregate, and `Main` prints exactly `4\n3\n`. LLVM has zero
+  `@pgy_` runtime references.
+- `DirectMirArrayReturnProgramIdentity` owns exact-one `Main`, strict unique
+  routine name/kind/syntax-id/return fields, zero-parameter signatures, typed
+  direct-callee resolution, and semantic identity independent of routine row
+  order. Row coordinates remain routing receipts, not identity.
+- `DirectMirArrayReturnPlan` joins the producer literal, caller definition and
+  two exact SSA uses, reachable terminal straight-line blocks, blank Log scalar
+  fields, canonical ABI, target capability, and explicit
+  `caller_owned_fixed_array` lifetime. C and LLVM emitters cannot reopen MIR.
+- Local and returned arrays now consume one canonical captured `Array<Int>` ABI
+  predicate, including every field offset, size, and alignment. A forged field
+  shape with a correctly recomputed layout ID is rejected before artifact
+  publication.
+- Root dispatch reads routine cardinality before any row-zero shape. Once a
+  program enters the multi-routine owner it cannot retry hello, scalar, local
+  Array, Option, or CFG single-routine planners. Routine-order permutation is
+  artifact-equal.
+- The focused gate rejects thirteen independent mutations covering entrypoint,
+  graph-valid unresolved callee, producer instruction/signature including
+  missing and duplicate return fields, caller definition/use, ABI offset,
+  repaired-ID field size/alignment drift, unreachable/nonterminal blocks, and
+  forged Log result facts. It is wired into the LLVM-enabled self-host
+  preparation parity aggregate, not left as a standalone smoke.
+- Latest installed driver: 3,560,729 bytes, SHA-256
+  `350A39D1DA6800657B24A5423B104057B4CFE33787AEDFE0F0442131ABC03EF3`.
+  The final current-source DRV-2 rebuild completed in 93.9 seconds. It was not
+  pressure-measured, so no memory peak is inferred from earlier builds.
+- Latest green: Array-return focused C/LLVM parity and thirteen negatives;
+  local Array regression; installed public LLVM compile/run; hard self-host
+  contract; full component/removed-path ratchet; staged diff check. The full CI
+  matrix, Coq adequacy suite, and current-source gen2==gen3 fixed point were not
+  rerun.
+- Active objective: compile and execute
+  `src/self_hosted/mir_lower/fixture/array_literal_call_argument.pgy`. It has
+  three routines (`Double`, `SumPair`, `Main`), passes a fixed `Array<Int>`
+  literal into a typed parameter, nests a scalar call, and should print exactly
+  `11`. This next fixture is selected but not yet admitted as completed
+  evidence.
+- Fact owner: strict routine identity/signature facts, typed direct-call targets,
+  parameter carriage and Array ABI, caller/callee result-use identity, and the
+  nested expression graph. Last legitimate consumer is one target-neutral
+  multi-routine parameter plan feeding selected C or LLVM emission.
+- Forbidden fallback: routine-name or row-order special cases, flattening the
+  calls into constants, treating by-value Array carriage as an unowned raw
+  pointer, C-only parameter reconstruction copied into LLVM, native
+  semantic/AIR/libLLVM re-entry, or retrying the closed two-routine return plan
+  after the three-routine graph is classified.
+- Next falsifier: source-to-MIR once, the same MIR projected once per backend,
+  exact `11`, routine permutation stability, and pre-artifact rejection of
+  parameter type/carriage, call-target, argument-use, result-definition, and ABI
+  mutations. Do not build a general query engine or jump to dynamic arrays.
+- Memory policy remains one execution per changed semantic target followed by
+  the final maximum only. Attention begins at 2.4 GiB and the hard stop is
+  3 GiB; a below-threshold run does not redirect the active rung.
+
+## Historical checkpoint archive — inactive evidence
+
+### Previous first multi-routine Array-return checkpoint
 
 - Executable checkpoint: `76867abd` on `main`. Installed public C artifact,
   compile/link, and `--run` remain `SUBSTITUTING`. Plain public LLVM binary
@@ -93,8 +161,6 @@ owner, and the named executable gate.
 - Memory policy remains one execution per changed semantic target, followed by
   the final summary only. Hard stop is 3 GiB and attention begins at 2.4 GiB;
   attention is recorded but does not redirect the active rung.
-
-## Historical checkpoint archive — inactive evidence
 
 The former source-to-MIR timeout card begins below. It was correct for its
 checkpoint but is superseded by `76867abd`; it must not be resumed as the active

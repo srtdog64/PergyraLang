@@ -48,19 +48,27 @@ offset, source type, and unsupported static index mutations fail before
 artifact publication. The same plan owns both backend projections; scalar or
 hello dispatch cannot be retried after Array classification.
 
+Direct LLVM multi-routine update (2026-08-01):
+`array_return_literal.pgy` now uses a strict row-order-independent program
+identity, one target-neutral call/return/use/ABI/lifetime plan, and one selected
+C or LLVM mapping. The producer fills caller-owned fixed storage and the real
+producer/caller graph prints `4` then `3`; LLVM has no Pergyra runtime
+reference. A routine permutation is artifact-equal. Thirteen mutations cover
+entrypoint/callee/signature, caller SSA, canonical ABI including repaired-ID
+field drift, straight-line CFG reachability/terminality, and forged Log scalar
+facts. Multi-routine rejection cannot retry any single-routine planner.
+
 Installed LLVM substitution update (2026-08-01): plain public LLVM binary
-requests now use the sibling fixed-point driver for exactly one source-to-MIR
+requests use the sibling Pergyra-built driver for exactly one source-to-MIR
 production and one direct LLVM projection. `clang -x ir` is the only final host
 boundary; native semantic/AIR/libLLVM and implicit runtime-object fallback are
 closed. Missing, unsupported, producer/projector, malformed-IR, and unresolved-
-runtime cases fail without publishing a new or stale binary. Native code does
-not scan LLVM text to infer runtime policy. This is executable `SUBSTITUTING`
-evidence for the sealed runtime-free Option and local `Array<Int>` frontiers,
-not for general, heap-backed, runtime-bearing, or arbitrary multi-routine LLVM
-programs. The next active falsifier is `array_return_literal.pgy`: its two-
-routine source-to-MIR artifact is admitted, but direct LLVM fails closed because
-dispatch still defaults to routine row zero instead of consuming the owned
-entrypoint/call/return graph.
+runtime cases fail without publishing a new or stale binary. This is executable
+`SUBSTITUTING` evidence for the sealed runtime-free Option, local `Array<Int>`,
+and the bounded two-routine `Array<Int>` return frontier. It is not evidence for
+general, heap-backed, runtime-bearing, or arbitrary multi-routine programs. The
+next falsifier is `array_literal_call_argument.pgy`, a three-routine fixed Array
+parameter-carriage graph expected to print `11`.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:

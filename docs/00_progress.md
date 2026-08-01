@@ -2,7 +2,54 @@
 
 마지막 업데이트: 2026-08-01
 
-## 활성 우선순위 — 첫 multi-routine LLVM 프로그램 graph 합성
+## 활성 우선순위 — 첫 multi-routine Array parameter carriage
+
+- 실행 체크포인트는 `f8e91764`다. Installed public C/LLVM artifact·compile·run은
+  Pergyra-built sibling driver가 소유하는 target-specific `SUBSTITUTING` 경로다.
+  전체 compiler 치환 완료를 뜻하지는 않는다.
+- `array_return_literal.pgy`의 두 routine은 이제 source-to-MIR 한 번과 같은
+  6,267-byte MIR의 C/LLVM projection을 거쳐 정확히 `4\n3\n`을 출력한다.
+  Producer는 caller-owned fixed storage만 채우며 LLVM runtime reference는 0이다.
+- Program identity owner는 exact-one `Main`, unique header field, zero-parameter
+  signature, typed direct callee와 syntax identity를 row 순서와 무관하게 봉인한다.
+  Plan owner는 producer literal, caller definition/use, reachable terminal block,
+  blank Log scalar fact, target capability, ABI와 lifetime을 한 번 결합한다.
+- Local/returned Array plan은 하나의 canonical captured `Array<Int>` ABI owner를
+  공유한다. 모든 field offset/size/align을 확인하며, layout ID까지 올바르게
+  재계산한 잘못된 field shape도 artifact 전에 거부한다.
+- Multi-routine 분류는 어떤 row-zero shape read보다 먼저 일어나며 hello, scalar,
+  local Array, Option, CFG planner로 재시도하지 않는다. Routine-order swap은
+  C/LLVM artifact 모두 byte-equal이다.
+- Focused gate는 entrypoint, graph-valid unresolved callee, producer kind/return
+  누락·중복·변경, caller definition/use, ABI offset, repaired-ID field shape,
+  unreachable/nonterminal block, forged Log result의 13개 변조를 거부한다. 이
+  실행 gate는 LLVM self-host preparation parity aggregate에 연결됐다.
+- 최종 installed driver는 3,560,729 bytes, SHA-256
+  `350A39D1DA6800657B24A5423B104057B4CFE33787AEDFE0F0442131ABC03EF3`다.
+  Current-source DRV-2 rebuild는 93.9초였고 메모리는 계측하지 않았으므로 이전
+  peak를 이 binary에 붙이지 않는다.
+- 최신 green은 Array-return C/LLVM parity와 13 negatives, 기존 local Array,
+  installed LLVM, hard contract, full component ratchet이다. Full CI, Coq adequacy,
+  current-source gen2==gen3 fixed point는 이번 checkpoint에서 실행하지 않았다.
+- 다음 활성 fixture는
+  `src/self_hosted/mir_lower/fixture/array_literal_call_argument.pgy`다. `Double`,
+  `SumPair`, `Main` 세 routine이 fixed `Array<Int>` literal을 typed parameter로
+  전달하고 nested scalar call을 수행해 정확히 `11`을 출력해야 한다. 아직 완료
+  증거로 올리지 않는다.
+- 다음 owner는 strict routine/signature, typed call target, parameter carriage,
+  Array ABI, argument/result/use와 nested expression graph를 한 target-neutral
+  plan으로 결합해야 한다. Name/row special case, call flattening, unowned raw
+  pointer, C-only reconstruction, native re-entry, 이전 2-routine plan retry는
+  금지한다.
+- 다음 falsifier는 source-to-MIR 한 번, 동일 MIR의 C/LLVM projection, exact `11`,
+  routine permutation과 parameter type/carriage·call target·argument use·result·ABI
+  negative다. General query engine이나 dynamic Array로 범위를 넓히지 않는다.
+- 메모리는 semantic target당 마지막 maximum만 기록한다. 2.4 GiB attention과
+  3 GiB hard stop을 유지하되 threshold 아래 실행을 최적화 이유로 삼지 않는다.
+
+## 비활성 진행 기록 archive
+
+### 이전 첫 multi-routine Array-return checkpoint
 
 - 실행 체크포인트는 `76867abd`다. Public C artifact/compile/run과 sealed
   runtime-free Option 및 local `Array<Int>` LLVM compile/run은 installed
@@ -51,7 +98,7 @@
   scalar/hello retry, native re-entry, broad query engine은 금지한다. Query engine,
   Insere/Zeno provenance, unrelated SoT 정리는 현재 blocker가 아니다.
 
-## 이전 source-to-MIR checkpoint — 비활성 역사 자료
+### 이전 source-to-MIR checkpoint — 비활성 역사 자료
 
 - 활성 실행 경로는 driver_bootstrap_main.pgy, PgyCompilerWorld.source_mir,
   DriverSourceMirExecution, DriverRung2MirProjectionFromAdmittedAnalysisObserved,
@@ -113,7 +160,7 @@
 - Insere와 Zeno 등 외부 프로젝트는 비활성 provenance다. 사용자가 명시적으로
   다시 열기 전에는 현재 self-host TODO나 진척으로 취급하지 않는다.
 
-## 비활성 진행 기록 archive
+### 더 이전 진행 기록 archive
 
 이 절 아래의 모든 날짜별 checkpoint는 과거 증거와 회귀 falsifier를
 보존한다. 활성 TODO 또는 재개 후보가 아니며, 다음 작업은 위의
