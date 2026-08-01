@@ -1,0 +1,93 @@
+// Typed call/return expression-graph facts for the bounded two-routine
+// Array<Int> return program. This owner binds the direct producer identity and
+// the caller's single checked index without reopening source text.
+
+import "direct_mir_array_int_graph_fact_owner.pgy";
+
+func DirectMirArrayReturnProducerName(
+    ref sequence: MirExpressionGraphSequence
+) -> String {
+    if !sequence.ok || sequence.ready_node_count != 2 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 1 ||
+        ArrayLength(sequence.arena.topology.node_kinds) != 2 ||
+        ArrayLength(sequence.arena.topology.left_children) != 2 ||
+        ArrayLength(sequence.arena.topology.right_children) != 2 ||
+        ArrayLength(sequence.arena.node_texts) != 2 ||
+        ArrayLength(sequence.arena.call_target_kinds) != 2 ||
+        ArrayLength(sequence.arena.call_target_names) != 2 ||
+        sequence.arena.topology.node_kinds[0] !=
+            AstExpressionNodeLeaf() ||
+        sequence.arena.topology.node_kinds[1] !=
+            AstExpressionNodeCall() ||
+        sequence.arena.topology.left_children[1] != 0 ||
+        sequence.arena.call_target_kinds[0] !=
+            SemanticCallTargetNone() ||
+        sequence.arena.call_target_names[0] != "" ||
+        sequence.arena.call_target_kinds[1] !=
+            SemanticCallTargetDirect() ||
+        sequence.arena.call_target_names[1] == "" ||
+        sequence.arena.node_texts[0] !=
+            sequence.arena.call_target_names[1] {
+        Die("direct MIR Array<Int> return call graph is invalid");
+    }
+    return sequence.arena.call_target_names[1];
+}
+
+func DirectMirArrayReturnSingleIndex(
+    ref sequence: MirExpressionGraphSequence,
+    local_name: String
+) -> Int {
+    if !sequence.ok || sequence.ready_node_count != 6 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 5 ||
+        ArrayLength(sequence.arena.topology.node_kinds) != 6 ||
+        ArrayLength(sequence.arena.topology.left_children) != 6 ||
+        ArrayLength(sequence.arena.topology.right_children) != 6 ||
+        ArrayLength(sequence.arena.node_texts) != 6 ||
+        ArrayLength(sequence.arena.call_target_kinds) != 6 ||
+        ArrayLength(sequence.arena.call_target_names) != 6 ||
+        sequence.arena.topology.node_kinds[0] !=
+            AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[0] != "ToString" ||
+        sequence.arena.topology.node_kinds[1] !=
+            AstExpressionNodeCall() ||
+        sequence.arena.topology.left_children[1] != 0 ||
+        sequence.arena.call_target_kinds[1] !=
+            SemanticCallTargetDirect() ||
+        sequence.arena.call_target_names[1] != "ToString" ||
+        sequence.arena.topology.node_kinds[2] !=
+            AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[2] != local_name ||
+        sequence.arena.topology.node_kinds[3] !=
+            AstExpressionNodeIntegerLiteral() ||
+        sequence.arena.topology.node_kinds[4] !=
+            AstExpressionNodeIndex() ||
+        sequence.arena.topology.left_children[4] != 2 ||
+        sequence.arena.topology.right_children[4] != 3 ||
+        sequence.arena.topology.node_kinds[5] !=
+            AstExpressionNodeCallArgument() ||
+        sequence.arena.topology.left_children[5] != 1 ||
+        sequence.arena.topology.right_children[5] != 4 {
+        Die("direct MIR Array<Int> return index graph is invalid");
+    }
+    let row: Int = 0;
+    while row < 6 {
+        let direct_to_string: Bool = row == 1;
+        if direct_to_string {
+            if sequence.arena.call_target_kinds[row] !=
+                    SemanticCallTargetDirect() ||
+                sequence.arena.call_target_names[row] != "ToString" {
+                Die("direct MIR Array<Int> return index call target is invalid");
+            }
+        } else if sequence.arena.call_target_kinds[row] !=
+                SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[row] != "" {
+            Die("direct MIR Array<Int> return index has a stray call target");
+        }
+        row = row + 1;
+    }
+    let literal: String = sequence.arena.node_texts[3];
+    if literal == "" || ToString(ToInt(literal)) != literal {
+        Die("direct MIR Array<Int> return index is not canonical");
+    }
+    return ToInt(literal);
+}

@@ -1,0 +1,39 @@
+// Exclusive direct-MIR multi-routine projection. Once routine cardinality
+// enters this owner, rejection is final; single-routine shape dispatch cannot
+// reinterpret the program.
+
+import "direct_mir_array_return_emission_owner.pgy";
+
+func CompileAdmittedDirectMirMultiRoutineForTarget(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    target_projection: CompilerTargetProjectionFact
+) -> String {
+    let is_c: Bool = CompilerTargetProjectionFactReadyFor(
+        target_projection, CompilerTargetCpuCProjection()
+    );
+    let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
+        target_projection, CompilerTargetCpuLlvmProjection()
+    );
+    if (!is_c && !is_llvm) ||
+        !DirectMirArrayReturnProgramCandidate(admitted) {
+        Die("direct MIR multi-routine projection rejected the program graph");
+    }
+    let plan: DirectMirArrayReturnPlan =
+        DirectMirArrayReturnPlanFromAdmitted(admitted);
+    let abi: DirectMirArrayIntAbiProjection =
+        DirectMirArrayReturnAbiProjectionFromPlan(plan, target_projection);
+    let formatted_print: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFormattedPrintFact();
+    if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
+        Die("direct MIR Array<Int> return runtime ABI owner is incomplete");
+    }
+    let line_format: String = StringRuntimeCIntLineFormat();
+    if is_llvm {
+        return DirectMirArrayReturnEmitLlvm(
+            plan, abi, formatted_print, line_format
+        );
+    }
+    return DirectMirArrayReturnEmitC(
+        plan, abi, formatted_print, line_format
+    );
+}

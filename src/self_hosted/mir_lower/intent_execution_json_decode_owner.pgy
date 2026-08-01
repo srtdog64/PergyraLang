@@ -202,54 +202,15 @@ func MirIntentExecutionStringArrayAt(
 func MirIntentExecutionObjectFieldOccurrenceCount(
     json: String, start: Int, end: Int, field: String
 ) -> Int {
-    if start < 0 || end <= start ||
-        JsonCharCodeAt(json, end, start) != JsonAsciiCode("{") {
-        return 0;
-    }
-    let count: Int = 0;
-    let cursor: Int = start + 1;
-    while cursor < end {
-        cursor = JsonSkipWhitespaceWithin(json, cursor, end);
-        if cursor >= end ||
-            JsonCharCodeAt(json, end, cursor) == JsonAsciiCode("}") {
-            return count;
-        }
-        if JsonCharCodeAt(json, end, cursor) == JsonAsciiCode(",") {
-            cursor = cursor + 1;
-            continue;
-        }
-        if JsonCharCodeAt(json, end, cursor) != JsonAsciiCode("\"") {
-            return 0;
-        }
-        let key_end_opt: Option<Int> = JsonStringEndWithin(json, cursor, end);
-        if !IsSome(key_end_opt) { return 0; }
-        let key_end: Int = UnwrapOption(key_end_opt);
-        let matches: Bool = JsonObjectKeyEqualsWithin(
-            json, cursor, key_end, field
-        );
-        cursor = JsonSkipWhitespaceWithin(json, key_end, end);
-        if cursor >= end ||
-            JsonCharCodeAt(json, end, cursor) != JsonAsciiCode(":") {
-            return 0;
-        }
-        cursor = JsonSkipWhitespaceWithin(json, cursor + 1, end);
-        let value_end_opt: Option<Int> = JsonValueEndWithin(json, cursor, end);
-        if !IsSome(value_end_opt) { return 0; }
-        if matches { count = count + 1; }
-        cursor = UnwrapOption(value_end_opt);
-    }
-    return 0;
+    return MirObjectFieldOccurrenceCountAtBounds(
+        json, start, end, field
+    );
 }
 
 func MirIntentExecutionUniqueStringField(
     json: String, start: Int, end: Int, field: String
 ) -> MirIntentExecutionStringValue {
-    if MirIntentExecutionObjectFieldOccurrenceCount(
-        json, start, end, field
-    ) != 1 {
-        return MirIntentExecutionStringValue(false, "");
-    }
-    let value: Option<String> = JsonObjectStringFieldOptWithin(
+    let value: Option<String> = MirObjectUniqueStringFactAtBounds(
         json, start, end, field
     );
     if !IsSome(value) {

@@ -1,0 +1,239 @@
+// Row-order-independent identity for the bounded two-routine Array<Int>
+// return graph. It closes unique entrypoint, direct callee, strict signatures,
+// and stable syntax IDs before value/ABI planning.
+
+import "direct_mir_array_return_graph_fact_owner.pgy";
+import "direct_mir_scalar_graph_admission_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+import "../mir_lower/routine_inventory_owner.pgy";
+
+struct DirectMirArrayReturnProgramIdentity {
+    let valid: Bool;
+    let digest: Int;
+    let entrypoint_row: Int;
+    let entrypoint_name: String;
+    let entrypoint_syntax_id: Int;
+    let producer_row: Int;
+    let producer_name: String;
+    let producer_syntax_id: Int;
+}
+
+func DirectMirArrayReturnProgramIdentityDigest(
+    ref identity: DirectMirArrayReturnProgramIdentity
+) -> Int {
+    if !identity.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(107L, identity.entrypoint_name);
+    hash = DirectMirCfgHashInt(hash, identity.entrypoint_syntax_id);
+    hash = DirectMirCfgHashString(hash, identity.producer_name);
+    hash = DirectMirCfgHashInt(hash, identity.producer_syntax_id);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirArrayReturnProgramIdentityWithDigest(
+    identity: DirectMirArrayReturnProgramIdentity,
+    digest: Int
+) -> DirectMirArrayReturnProgramIdentity {
+    return DirectMirArrayReturnProgramIdentity(
+        identity.valid, digest, identity.entrypoint_row,
+        identity.entrypoint_name, identity.entrypoint_syntax_id,
+        identity.producer_row, identity.producer_name,
+        identity.producer_syntax_id
+    );
+}
+
+func DirectMirArrayReturnProgramIdentityReady(
+    ref identity: DirectMirArrayReturnProgramIdentity
+) -> Bool {
+    return identity.valid && identity.digest != 0 &&
+        identity.digest ==
+            DirectMirArrayReturnProgramIdentityDigest(identity) &&
+        identity.entrypoint_row >= 0 && identity.producer_row >= 0 &&
+        identity.entrypoint_row != identity.producer_row &&
+        identity.entrypoint_name == "Main" &&
+        identity.entrypoint_syntax_id > 0 &&
+        identity.producer_name != "" &&
+        identity.producer_name != identity.entrypoint_name &&
+        identity.producer_syntax_id > 0 &&
+        identity.producer_syntax_id != identity.entrypoint_syntax_id;
+}
+
+func DirectMirArrayReturnProgramCandidate(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    return MirProgramRoutineIndexCount(admitted.routines) == 2;
+}
+
+func DirectMirArrayReturnProgramEnvelopeReady(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    let generic_specializations: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(
+            admitted.document.root, "generic_method_specializations"
+        );
+    if !admitted.document.valid || admitted.domain_topology_plan.present ||
+        admitted.document.routines.json != admitted.routines.source_json ||
+        JsonObjectFactCount(admitted.document.root) != 5 ||
+        !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
+        JsonArrayObjectFactCount(admitted.document.declarations) != 0 ||
+        !JsonArrayObjectFactTableReady(
+            admitted.document.parallel_capture_boundaries
+        ) || JsonArrayObjectFactCount(
+            admitted.document.parallel_capture_boundaries
+        ) != 0 || !JsonArrayObjectFactTableReady(generic_specializations) ||
+        JsonArrayObjectFactCount(generic_specializations) != 0 ||
+        !MirProgramRoutineIndexStructureReady(admitted.routines) ||
+        !DirectMirArrayReturnProgramCandidate(admitted) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < 2 {
+        if admitted.routines.kinds[row] != "function" ||
+            admitted.routines.owners[row] != "" ||
+            admitted.routines.routine_block_counts[row] != 1 {
+            return false;
+        }
+        let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.ends[row]
+        );
+        if !JsonObjectFactTableReady(routine) ||
+            !DirectMirRoutineHasNoUnsupportedFacts(routine) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirArrayReturnRoutineSignatureReady(
+    ref routines: MirProgramRoutineIndex,
+    row: Int,
+    expected_return: String,
+    expected_instruction_count: Int
+) -> Bool {
+    if row < 0 || expected_return == "" || expected_instruction_count < 0 ||
+        !MirProgramRoutineIndexRowReady(routines, row) ||
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            routines, row, 0
+        ) != expected_instruction_count {
+        return false;
+    }
+    let unique_name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        routines.source_json, routines.starts[row], routines.ends[row],
+        "name"
+    );
+    let unique_kind: Option<String> = MirObjectUniqueStringFactAtBounds(
+        routines.source_json, routines.starts[row], routines.ends[row],
+        "kind"
+    );
+    let unique_syntax_id: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        routines.source_json, routines.starts[row], routines.ends[row],
+        "source_syntax_id"
+    );
+    let return_type: Option<String> = MirObjectUniqueStringFactAtBounds(
+        routines.source_json, routines.starts[row], routines.ends[row],
+        "return"
+    );
+    let generic_bounds: Array<Int> = [0, 0];
+    let param_bounds: Array<Int> = [0, 0];
+    if !IsSome(unique_name) || !IsSome(unique_kind) ||
+        !IsSome(unique_syntax_id) || !IsSome(return_type) ||
+        UnwrapOption(unique_name) != routines.names[row] ||
+        UnwrapOption(unique_kind) != routines.kinds[row] ||
+        UnwrapOption(unique_syntax_id) != routines.source_syntax_ids[row] ||
+        UnwrapOption(return_type) != expected_return ||
+        MirObjectFieldOccurrenceCountAtBounds(
+            routines.source_json, routines.starts[row], routines.ends[row],
+            "generics"
+        ) != 1 || MirObjectFieldOccurrenceCountAtBounds(
+            routines.source_json, routines.starts[row], routines.ends[row],
+            "params"
+        ) != 1 ||
+        !MirObjectArrayBoundsAtBounds(
+            routines.source_json, routines.starts[row], routines.ends[row],
+            "generics", generic_bounds
+        ) || !MirObjectArrayBoundsAtBounds(
+            routines.source_json, routines.starts[row], routines.ends[row],
+            "params", param_bounds
+        ) {
+        return false;
+    }
+    let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
+        routines.source_json, routines.starts[row], routines.ends[row]
+    );
+    return ArrayLength(header.generic_names) == 0 &&
+        ArrayLength(header.param_names) == 0;
+}
+
+func DirectMirArrayReturnProgramIdentityFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirArrayReturnProgramIdentity {
+    if !DirectMirArrayReturnProgramEnvelopeReady(admitted) {
+        Die("direct MIR Array<Int> return program envelope is invalid");
+    }
+    let main_row: Int = 0 - 1;
+    let row: Int = 0;
+    while row < 2 {
+        if admitted.routines.names[row] == "Main" {
+            if main_row >= 0 {
+                Die("direct MIR Array<Int> return entrypoint is duplicated");
+            }
+            main_row = row;
+        }
+        row = row + 1;
+    }
+    if main_row < 0 || !DirectMirArrayReturnRoutineSignatureReady(
+        admitted.routines, main_row, "Void", 3
+    ) {
+        Die("direct MIR Array<Int> return entrypoint identity is invalid");
+    }
+    let call_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, main_row, 0, 0
+    );
+    if call_global < 0 {
+        Die("direct MIR Array<Int> return call routing is invalid");
+    }
+    let call_expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions, call_global
+        );
+    let call_graph: MirExpressionGraphSequence =
+        DirectMirArrayIntGraphFromExpressionFact(
+            admitted.routines.source_json, call_expression, 0
+        );
+    let producer_name: String =
+        DirectMirArrayReturnProducerName(call_graph);
+    let producer_row: Int = 0 - 1;
+    row = 0;
+    while row < 2 {
+        if admitted.routines.names[row] == producer_name {
+            if producer_row >= 0 {
+                Die("direct MIR Array<Int> return producer is duplicated");
+            }
+            producer_row = row;
+        }
+        row = row + 1;
+    }
+    if producer_row < 0 || producer_row == main_row ||
+        !DirectMirArrayReturnRoutineSignatureReady(
+            admitted.routines, producer_row,
+            CompilerAbiLayoutArrayIntTypeName(), 1
+        ) {
+        Die("direct MIR Array<Int> return call target is unresolved");
+    }
+    let identity: DirectMirArrayReturnProgramIdentity =
+        DirectMirArrayReturnProgramIdentity(
+            true, 0, main_row, "Main",
+            ToInt(admitted.routines.source_syntax_ids[main_row]),
+            producer_row, producer_name,
+            ToInt(admitted.routines.source_syntax_ids[producer_row])
+        );
+    let verified: DirectMirArrayReturnProgramIdentity =
+        DirectMirArrayReturnProgramIdentityWithDigest(
+            identity, DirectMirArrayReturnProgramIdentityDigest(identity)
+        );
+    if !DirectMirArrayReturnProgramIdentityReady(verified) {
+        Die("direct MIR Array<Int> return program identity is invalid");
+    }
+    return verified;
+}

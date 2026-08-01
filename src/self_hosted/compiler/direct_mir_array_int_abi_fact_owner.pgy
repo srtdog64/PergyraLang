@@ -1,0 +1,31 @@
+// Canonical captured Array<Int> ABI fact shared by local-value and returned-
+// value direct-MIR plans. Backend projection may select a spelling only after
+// this complete target-neutral row has been admitted.
+
+import "abi_layout_row_owner.pgy";
+import "../mir_lower/abi_layout_admission_fact_owner.pgy";
+
+func DirectMirArrayIntCapturedAbiReady(
+    ref abi: MirAbiLayoutRowCapture
+) -> Bool {
+    return abi.valid &&
+        abi.type_name == CompilerAbiLayoutArrayIntTypeName() &&
+        abi.size_text == "32" && abi.align_text == "8" &&
+        ArrayLength(abi.field_names) == 4 &&
+        ArrayLength(abi.field_offsets) == 4 &&
+        ArrayLength(abi.field_sizes) == 4 &&
+        ArrayLength(abi.field_aligns) == 4 &&
+        abi.field_names[0] == "data" && abi.field_offsets[0] == "0" &&
+        abi.field_sizes[0] == "8" && abi.field_aligns[0] == "8" &&
+        abi.field_names[1] == "length" && abi.field_offsets[1] == "8" &&
+        abi.field_sizes[1] == "8" && abi.field_aligns[1] == "8" &&
+        abi.field_names[2] == "capacity" &&
+        abi.field_offsets[2] == "16" && abi.field_sizes[2] == "8" &&
+        abi.field_aligns[2] == "8" &&
+        abi.field_names[3] == "allocator" &&
+        abi.field_offsets[3] == "24" && abi.field_sizes[3] == "8" &&
+        abi.field_aligns[3] == "8" &&
+        abi.runtime_fn == "pgy_array_new_Int" &&
+        abi.inner_c_type == "int32_t" &&
+        abi.representation_text == "0";
+}

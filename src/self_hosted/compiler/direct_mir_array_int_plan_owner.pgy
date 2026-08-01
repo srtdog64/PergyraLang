@@ -3,10 +3,10 @@
 // typed values, indices, ABI facts, and target-capability identity.
 
 import "artifact_zone_owner.pgy";
+import "direct_mir_array_int_abi_fact_owner.pgy";
 import "direct_mir_array_int_graph_fact_owner.pgy";
 import "direct_mir_scalar_graph_admission_owner.pgy";
 import "target_capability_owner.pgy";
-import "../mir_lower/abi_layout_admission_fact_owner.pgy";
 import "../mir_lower/expression_graph_sequence_owner.pgy";
 import "../mir_lower/program_instruction_expression_index_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
@@ -320,20 +320,7 @@ func DirectMirArrayIntPlanFromAdmitted(
         Die("direct MIR Array<Int> ABI admission is invalid");
     }
     let abi: MirAbiLayoutRowCapture = UnwrapOption(abi_row_opt);
-    if abi.type_name != CompilerAbiLayoutArrayIntTypeName() ||
-        abi.size_text != "32" || abi.align_text != "8" ||
-        ArrayLength(abi.field_names) != 4 ||
-        ArrayLength(abi.field_offsets) != 4 ||
-        abi.field_names[0] != "data" || abi.field_offsets[0] != "0" ||
-        abi.field_sizes[0] != "8" || abi.field_aligns[0] != "8" ||
-        abi.field_names[1] != "length" || abi.field_offsets[1] != "8" ||
-        abi.field_sizes[1] != "8" || abi.field_aligns[1] != "8" ||
-        abi.field_names[2] != "capacity" || abi.field_offsets[2] != "16" ||
-        abi.field_sizes[2] != "8" || abi.field_aligns[2] != "8" ||
-        abi.field_names[3] != "allocator" || abi.field_offsets[3] != "24" ||
-        abi.field_sizes[3] != "8" || abi.field_aligns[3] != "8" ||
-        abi.runtime_fn != "pgy_array_new_Int" ||
-        abi.inner_c_type != "int32_t" || abi.representation_text != "0" {
+    if !DirectMirArrayIntCapturedAbiReady(abi) {
         Die("direct MIR Array<Int> ABI layout is unsupported or mutated");
     }
     let initial_graph: MirExpressionGraphSequence =

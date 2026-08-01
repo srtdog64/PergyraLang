@@ -1861,6 +1861,28 @@ inventory must not become a second fact-family owner registry.
   and textual LLVM consumers of the same fixed array plan. The bounded slice
   materializes stack-backed storage and links no Pergyra runtime symbol; it is
   not authority for general or runtime-bearing arrays.
+- `src/self_hosted/compiler/direct_mir_array_return_graph_fact_owner.pgy` --
+  typed direct-call and single-index expression facts for the bounded
+  two-routine `Array<Int>` return graph; source text and routine row order are
+  not call-target authority.
+- `src/self_hosted/compiler/direct_mir_array_int_abi_fact_owner.pgy` -- one
+  canonical captured `Array<Int>` ABI row predicate shared by local-value and
+  returned-value direct-MIR plans, including every field offset, size, and
+  alignment before target projection.
+- `src/self_hosted/compiler/direct_mir_array_return_program_identity_owner.pgy`
+  -- exact-one `Main`/producer identity and strict return-signature join. It
+  binds the typed direct call target to stable routine syntax IDs without the
+  legacy missing-return-to-`Void` default.
+- `src/self_hosted/compiler/direct_mir_array_return_plan_owner.pgy` -- one
+  target-neutral call/return/use/ABI/lifetime plan. The caller owns fixed
+  backing storage, the producer cannot return its dead frame, and repaired-
+  digest use/layout/target mutations fail before emission.
+- `src/self_hosted/compiler/direct_mir_array_return_emission_owner.pgy` --
+  final C/LLVM consumers for the same two-routine plan. Both materialize a real
+  producer call with caller-owned storage and no Pergyra runtime symbol.
+- `src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy` --
+  exclusive multi-routine direct-MIR projection boundary; rejection cannot
+  retry hello, scalar, single-routine Array, Option, or CFG dispatch.
 - `src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy` -- normalized
   closed action facts for the same single CFG plan: literal-log arms or typed
   Int assignment arms with a predecessor-resolved merge phi and Log use. It is

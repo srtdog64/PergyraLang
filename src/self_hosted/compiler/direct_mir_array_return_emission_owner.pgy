@@ -1,0 +1,215 @@
+// Runtime-free C and LLVM emission for one verified two-routine Array<Int>
+// return plan. The caller owns fixed backing storage; the producer only fills
+// that live storage and returns the admitted aggregate value.
+
+import "direct_mir_array_int_abi_projection_owner.pgy";
+import "direct_mir_array_int_emission_owner.pgy";
+
+func DirectMirArrayReturnEmitC(
+    ref plan: DirectMirArrayReturnPlan,
+    ref abi: DirectMirArrayIntAbiProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirArrayReturnPlanReady(plan) ||
+        !DirectMirArrayIntAbiProjectionReadyFor(
+            abi, CompilerTargetCpuCProjection()
+        ) || !formatted_print.ok || formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" ||
+        line_format == "" || plan.return_storage_carriage !=
+            DirectMirArrayReturnStorageCarriage() {
+        Die("direct MIR Array<Int> return C projection facts are invalid");
+    }
+    let count: Int = ArrayLength(plan.returned_elements);
+    let output: String =
+        "#include <stdint.h>\n#include <stddef.h>\n#include <stdio.h>\n\n";
+    output = Concat(output, "typedef struct {\n    ");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " *data;\n    ");
+    output = Concat(output, abi.c_length_type);
+    output = Concat(output, " length;\n    ");
+    output = Concat(output, abi.c_length_type);
+    output = Concat(output, " capacity;\n    void *allocator;\n} ");
+    output = Concat(output, abi.c_array_type);
+    output = Concat(output, ";\n\nstatic ");
+    output = Concat(output, abi.c_array_type);
+    output = Concat(output, " pgy_direct_array_return_producer(");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " *pgy_return_storage) {\n");
+    let row: Int = 0;
+    while row < count {
+        output = Concat(output, "    pgy_return_storage[");
+        output = Concat(output, ToString(row));
+        output = Concat(output, "] = ");
+        output = Concat(output, ToString(plan.returned_elements[row]));
+        output = Concat(output, ";\n");
+        row = row + 1;
+    }
+    output = Concat(output, "    return (");
+    output = Concat(output, abi.c_array_type);
+    output = Concat(output, "){pgy_return_storage, ");
+    output = Concat(output, ToString(count));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(count));
+    output = Concat(output, ", NULL};\n}\n\nint main(void) {\n    ");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " pgy_return_storage[");
+    output = Concat(output, ToString(count));
+    output = Concat(output, "];\n    ");
+    output = Concat(output, abi.c_array_type);
+    output = Concat(output, " pgy_local = pgy_direct_array_return_producer(");
+    output = Concat(output, "pgy_return_storage);\n    ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (");
+    output = Concat(output, abi.c_print_type);
+    output = Concat(output, ")pgy_local.length);\n    ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (");
+    output = Concat(output, abi.c_print_type);
+    output = Concat(output, ")pgy_local.data[");
+    output = Concat(output, ToString(plan.selected_index));
+    output = Concat(output, "]);\n    return 0;\n}\n");
+    return output;
+}
+
+func DirectMirArrayReturnLlvmProducer(
+    ref plan: DirectMirArrayReturnPlan,
+    ref abi: DirectMirArrayIntAbiProjection
+) -> String {
+    let count: Int = ArrayLength(plan.returned_elements);
+    let output: String = "define ";
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(
+        output,
+        " @pgy.direct.array.return.producer(ptr %pgy.return.storage) {\nentry:\n"
+    );
+    let row: Int = 0;
+    while row < count {
+        output = Concat(output, "  %pgy.return.slot.");
+        output = Concat(output, ToString(row));
+        output = Concat(output, " = getelementptr inbounds ");
+        output = Concat(output, abi.llvm_element_type);
+        output = Concat(output, ", ptr %pgy.return.storage, i64 ");
+        output = Concat(output, ToString(row));
+        output = Concat(output, "\n  store ");
+        output = Concat(output, abi.llvm_element_type);
+        output = Concat(output, " ");
+        output = Concat(output, ToString(plan.returned_elements[row]));
+        output = Concat(output, ", ptr %pgy.return.slot.");
+        output = Concat(output, ToString(row));
+        output = Concat(output, ", align 4\n");
+        row = row + 1;
+    }
+    output = Concat(output, "  %pgy.return.0 = insertvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " poison, ptr %pgy.return.storage, ");
+    output = Concat(output, ToString(abi.data_index));
+    output = Concat(output, "\n  %pgy.return.1 = insertvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %pgy.return.0, i64 ");
+    output = Concat(output, ToString(count));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(abi.length_index));
+    output = Concat(output, "\n  %pgy.return.2 = insertvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %pgy.return.1, i64 ");
+    output = Concat(output, ToString(count));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(abi.capacity_index));
+    output = Concat(output, "\n  %pgy.return.3 = insertvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %pgy.return.2, ptr null, ");
+    output = Concat(output, ToString(abi.allocator_index));
+    output = Concat(output, "\n  ret ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %pgy.return.3\n}\n\n");
+    return output;
+}
+
+func DirectMirArrayReturnEmitLlvm(
+    ref plan: DirectMirArrayReturnPlan,
+    ref abi: DirectMirArrayIntAbiProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirArrayReturnPlanReady(plan) ||
+        !DirectMirArrayIntAbiProjectionReadyFor(
+            abi, CompilerTargetCpuLlvmProjection()
+        ) || !formatted_print.ok || formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" ||
+        plan.return_storage_carriage !=
+            DirectMirArrayReturnStorageCarriage() {
+        Die("direct MIR Array<Int> return LLVM projection facts are invalid");
+    }
+    let count: Int = ArrayLength(plan.returned_elements);
+    let format_payload: String =
+        DirectMirScalarLlvmFormatPayload(line_format);
+    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
+    let output: String =
+        "@.pgy.int.line.format = private unnamed_addr constant [";
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, format_payload);
+    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n\n");
+    output = Concat(output, DirectMirArrayReturnLlvmProducer(plan, abi));
+    output = Concat(output, "define i32 @main() {\nentry:\n");
+    output = Concat(output, "  %pgy.return.storage = alloca [");
+    output = Concat(output, ToString(count));
+    output = Concat(output, " x ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, "], align 4\n  %pgy.return.data = getelementptr inbounds [");
+    output = Concat(output, ToString(count));
+    output = Concat(output, " x ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(
+        output,
+        "], ptr %pgy.return.storage, i64 0, i64 0\n  %pgy.local = call "
+    );
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(
+        output,
+        " @pgy.direct.array.return.producer(ptr %pgy.return.data)\n"
+    );
+    output = Concat(output, "  %pgy.local.length = extractvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %pgy.local, ");
+    output = Concat(output, ToString(abi.length_index));
+    output = Concat(output, "\n  %pgy.log.length = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(
+        output,
+        "(ptr @.pgy.int.line.format, i64 %pgy.local.length)\n"
+    );
+    output = Concat(output, "  %pgy.local.data = extractvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %pgy.local, ");
+    output = Concat(output, ToString(abi.data_index));
+    output = Concat(output, "\n  %pgy.local.index.ptr = getelementptr inbounds ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, ", ptr %pgy.local.data, i64 ");
+    output = Concat(output, ToString(plan.selected_index));
+    output = Concat(output, "\n  %pgy.local.index = load ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, ", ptr %pgy.local.index.ptr, align 4\n");
+    output = Concat(output, "  %pgy.local.index.print = ");
+    output = Concat(output, abi.llvm_print_extension);
+    output = Concat(output, " ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %pgy.local.index to ");
+    output = Concat(output, abi.llvm_print_type);
+    output = Concat(output, "\n  %pgy.log.index = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(
+        output,
+        "(ptr @.pgy.int.line.format, i64 %pgy.local.index.print)\n  ret i32 0\n}\n"
+    );
+    return output;
+}

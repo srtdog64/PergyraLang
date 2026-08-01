@@ -8,6 +8,7 @@ import "direct_mir_backend_emission_owner.pgy";
 import "direct_mir_array_int_plan_owner.pgy";
 import "direct_mir_array_int_abi_projection_owner.pgy";
 import "direct_mir_array_int_emission_owner.pgy";
+import "direct_mir_multi_routine_projection_owner.pgy";
 import "direct_mir_option_match_cfg_plan_owner.pgy";
 import "direct_mir_option_match_cfg_emission_owner.pgy";
 import "direct_mir_option_match_abi_projection_owner.pgy";
@@ -29,125 +30,134 @@ func CompileAdmittedDirectMirForTarget(
     if !is_c && !is_llvm {
         Die("direct MIR backend projection rejected the target fact");
     }
-    let block_count: Int = admitted.routines.routine_block_counts[0];
-    let instruction_count: Int =
-        MirProgramRoutineIndexBlockInstructionCountAt(
-            admitted.routines, 0, 0
-        );
     let kind: String = "emitted-c";
     if is_llvm { kind = "emitted_llvm"; }
     let payload: String = "";
-    if block_count == 1 && instruction_count == 1 {
-        let hello: DirectMirHelloProjection =
-            DirectMirHelloProjectionFromAdmitted(admitted);
-        if !hello.valid {
-            Die("direct MIR backend projection rejected unsupported or mutated hello facts");
-        }
-        if is_llvm {
-            payload = DirectMirHelloEmitLlvm(hello);
-        } else {
-            payload = DirectMirHelloEmitC(hello);
-        }
-    } else if block_count == 1 {
-        let formatted_print: CompilerRuntimeCallAbiFact =
-            CompilerRuntimeCallAbiFormattedPrintFact();
-        if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
-            Die("direct MIR one-block runtime ABI owner is incomplete");
-        }
-        let line_format: String = StringRuntimeCIntLineFormat();
-        if DirectMirArrayIntPlanCandidate(admitted) {
-            let plan: DirectMirArrayIntPlan =
-                DirectMirArrayIntPlanFromAdmitted(admitted);
-            let abi_projection: DirectMirArrayIntAbiProjection =
-                DirectMirArrayIntAbiProjectionFromPlan(
-                    plan, target_projection
-                );
+    let routine_count: Int = MirProgramRoutineIndexCount(admitted.routines);
+    if routine_count > 1 {
+        payload = CompileAdmittedDirectMirMultiRoutineForTarget(
+            admitted, target_projection
+        );
+    } else if routine_count == 1 {
+        let block_count: Int = admitted.routines.routine_block_counts[0];
+        let instruction_count: Int =
+            MirProgramRoutineIndexBlockInstructionCountAt(
+                admitted.routines, 0, 0
+            );
+        if block_count == 1 && instruction_count == 1 {
+            let hello: DirectMirHelloProjection =
+                DirectMirHelloProjectionFromAdmitted(admitted);
+            if !hello.valid {
+                Die("direct MIR backend projection rejected unsupported or mutated hello facts");
+            }
             if is_llvm {
-                payload = DirectMirArrayIntEmitLlvm(
+                payload = DirectMirHelloEmitLlvm(hello);
+            } else {
+                payload = DirectMirHelloEmitC(hello);
+            }
+        } else if block_count == 1 {
+            let formatted_print: CompilerRuntimeCallAbiFact =
+                CompilerRuntimeCallAbiFormattedPrintFact();
+            if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
+                Die("direct MIR one-block runtime ABI owner is incomplete");
+            }
+            let line_format: String = StringRuntimeCIntLineFormat();
+            if DirectMirArrayIntPlanCandidate(admitted) {
+                let plan: DirectMirArrayIntPlan =
+                    DirectMirArrayIntPlanFromAdmitted(admitted);
+                let abi_projection: DirectMirArrayIntAbiProjection =
+                    DirectMirArrayIntAbiProjectionFromPlan(
+                        plan, target_projection
+                    );
+                if is_llvm {
+                    payload = DirectMirArrayIntEmitLlvm(
+                        plan, abi_projection, formatted_print, line_format
+                    );
+                } else {
+                    payload = DirectMirArrayIntEmitC(
+                        plan, abi_projection, formatted_print, line_format
+                    );
+                }
+            } else {
+                let int_c_type: String = CompilerAbiLayoutIntCValueType();
+                let scalar: DirectMirScalarBlockProjection =
+                    DirectMirScalarBlockProjectionFromAdmitted(admitted);
+                if !scalar.valid || !formatted_print.ok {
+                    Die("direct MIR backend projection rejected unsupported scalar facts");
+                }
+                if is_llvm {
+                    payload = DirectMirScalarEmitLlvm(
+                        scalar, formatted_print, line_format
+                    );
+                } else {
+                    payload = DirectMirScalarEmitC(
+                        scalar, formatted_print, line_format, int_c_type
+                    );
+                }
+            }
+        } else if block_count == 7 {
+            let formatted_print: CompilerRuntimeCallAbiFact =
+                CompilerRuntimeCallAbiFormattedPrintFact();
+            if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
+                Die("direct MIR Option match runtime ABI owner is incomplete");
+            }
+            let plan: DirectMirOptionMatchCfgPlan =
+                DirectMirOptionMatchCfgPlanFromAdmitted(admitted);
+            if !DirectMirOptionMatchCfgPlanReady(plan) {
+                Die("direct MIR Option match verified plan identity is invalid before emission");
+            }
+            let abi_projection: DirectMirOptionMatchAbiProjection =
+                DirectMirOptionMatchAbiProjectionFromFact(
+                    plan.abi, target_projection
+                );
+            let line_format: String = StringRuntimeCIntLineFormat();
+            if is_llvm {
+                payload = DirectMirOptionMatchCfgEmitLlvm(
                     plan, abi_projection, formatted_print, line_format
                 );
             } else {
-                payload = DirectMirArrayIntEmitC(
+                payload = DirectMirOptionMatchCfgEmitC(
                     plan, abi_projection, formatted_print, line_format
                 );
             }
-        } else {
-            let int_c_type: String = CompilerAbiLayoutIntCValueType();
-            let scalar: DirectMirScalarBlockProjection =
-                DirectMirScalarBlockProjectionFromAdmitted(admitted);
-            if !scalar.valid || !formatted_print.ok {
-                Die("direct MIR backend projection rejected unsupported scalar facts");
-            }
-            if is_llvm {
-                payload = DirectMirScalarEmitLlvm(
-                    scalar, formatted_print, line_format
-                );
-            } else {
-                payload = DirectMirScalarEmitC(
-                    scalar, formatted_print, line_format, int_c_type
-                );
-            }
-        }
-    } else if block_count == 7 {
-        let formatted_print: CompilerRuntimeCallAbiFact =
-            CompilerRuntimeCallAbiFormattedPrintFact();
-        if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
-            Die("direct MIR Option match runtime ABI owner is incomplete");
-        }
-        let plan: DirectMirOptionMatchCfgPlan =
-            DirectMirOptionMatchCfgPlanFromAdmitted(admitted);
-        if !DirectMirOptionMatchCfgPlanReady(plan) {
-            Die("direct MIR Option match verified plan identity is invalid before emission");
-        }
-        let abi_projection: DirectMirOptionMatchAbiProjection =
-            DirectMirOptionMatchAbiProjectionFromFact(
-                plan.abi, target_projection
-            );
-        let line_format: String = StringRuntimeCIntLineFormat();
-        if is_llvm {
-            payload = DirectMirOptionMatchCfgEmitLlvm(
-                plan, abi_projection, formatted_print, line_format
-            );
-        } else {
-            payload = DirectMirOptionMatchCfgEmitC(
-                plan, abi_projection, formatted_print, line_format
-            );
-        }
-    } else if block_count == 3 || block_count == 4 || block_count == 5 ||
+        } else if block_count == 3 || block_count == 4 || block_count == 5 ||
             block_count == 6 {
-        let formatted_print: CompilerRuntimeCallAbiFact =
-            CompilerRuntimeCallAbiFormattedPrintFact();
-        if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
-            Die("direct MIR CFG runtime ABI owner is incomplete");
-        }
-        let plan: DirectMirCfgPlan =
-            DirectMirCfgPlanFromAdmitted(admitted);
-        if !DirectMirCfgPlanReady(plan) {
-            Die("direct MIR CFG verified plan identity is invalid before emission");
-        }
-        let line_format: String = StringRuntimeCStringLineFormat();
-        if DirectMirLoopCfgPlanFactReady(plan.loop_fact) ||
-            DirectMirRangeCfgPlanFactReady(plan.range_fact) ||
-            DirectMirBreakCfgPlanFactReady(plan.break_fact) ||
-            plan.shape.kind == DirectMirCfgPhiMergeShapeKind() {
-            line_format = StringRuntimeCIntLineFormat();
-        } else if plan.shape.kind != DirectMirCfgLiteralArmShapeKind() &&
-                plan.shape.kind !=
-                    DirectMirCfgNestedConditionalShapeKind() {
-            Die("direct MIR CFG projection shape has no runtime ABI format");
-        }
-        if is_llvm {
-            payload = DirectMirCfgEmitLlvm(
-                plan, formatted_print, line_format
-            );
+            let formatted_print: CompilerRuntimeCallAbiFact =
+                CompilerRuntimeCallAbiFormattedPrintFact();
+            if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
+                Die("direct MIR CFG runtime ABI owner is incomplete");
+            }
+            let plan: DirectMirCfgPlan =
+                DirectMirCfgPlanFromAdmitted(admitted);
+            if !DirectMirCfgPlanReady(plan) {
+                Die("direct MIR CFG verified plan identity is invalid before emission");
+            }
+            let line_format: String = StringRuntimeCStringLineFormat();
+            if DirectMirLoopCfgPlanFactReady(plan.loop_fact) ||
+                DirectMirRangeCfgPlanFactReady(plan.range_fact) ||
+                DirectMirBreakCfgPlanFactReady(plan.break_fact) ||
+                plan.shape.kind == DirectMirCfgPhiMergeShapeKind() {
+                line_format = StringRuntimeCIntLineFormat();
+            } else if plan.shape.kind != DirectMirCfgLiteralArmShapeKind() &&
+                    plan.shape.kind !=
+                        DirectMirCfgNestedConditionalShapeKind() {
+                Die("direct MIR CFG projection shape has no runtime ABI format");
+            }
+            if is_llvm {
+                payload = DirectMirCfgEmitLlvm(
+                    plan, formatted_print, line_format
+                );
+            } else {
+                payload = DirectMirCfgEmitC(
+                    plan, formatted_print, line_format,
+                    CompilerAbiLayoutIntCValueType()
+                );
+            }
         } else {
-            payload = DirectMirCfgEmitC(
-                plan, formatted_print, line_format,
-                CompilerAbiLayoutIntCValueType()
-            );
+            Die("direct MIR backend projection rejected unsupported CFG shape");
         }
     } else {
-        Die("direct MIR backend projection rejected unsupported CFG shape");
+        Die("direct MIR backend projection rejected missing routines");
     }
     if is_llvm {
         payload = MirDomainTopologyGraphPlanAttachAdmittedToLlvm(

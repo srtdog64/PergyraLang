@@ -13715,8 +13715,106 @@ require_text "src/self_hosted/compiler/direct_mir_array_int_plan_owner.pgy" \
     "DirectMirArrayIntPlanMutationRejected("
 reject_text "src/self_hosted/compiler/direct_mir_array_int_emission_owner.pgy" \
     "@pgy_"
+require_file \
+    "src/self_hosted/compiler/direct_mir_array_return_graph_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_return_graph_fact_owner.pgy" 120
+require_file \
+    "src/self_hosted/compiler/direct_mir_array_return_program_identity_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_return_program_identity_owner.pgy" 240
+require_file "src/self_hosted/compiler/direct_mir_array_return_plan_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_return_plan_owner.pgy" 380
+require_file \
+    "src/self_hosted/compiler/direct_mir_array_return_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_return_emission_owner.pgy" 240
+require_file \
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" 80
+require_file \
+    "src/self_hosted/compiler/direct_mir_array_int_abi_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_int_abi_fact_owner.pgy" 60
+require_file "tests/self_hosted/parity/one_mir_array_return_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_array_return_projection.sh" 220
+require_file "tests/self_hosted/parity/one_mir_array_return_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_array_return_mutations.py" 100
+require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    "if routine_count > 1 {"
+require_text \
+    "src/self_hosted/compiler/direct_mir_array_return_program_identity_owner.pgy" \
+    "MirObjectUniqueStringFactAtBounds("
+require_text "src/self_hosted/compiler/direct_mir_array_return_plan_owner.pgy" \
+    "MirRoutineFactIndexUniqueResultDefinition("
+require_text "src/self_hosted/compiler/direct_mir_array_return_plan_owner.pgy" \
+    "BuildMirRoutineInstructionUseFacts("
+require_text "src/self_hosted/compiler/direct_mir_array_return_plan_owner.pgy" \
+    "MirRoutineFactIndexBlockIsTerminal(main_index, 0)"
+require_text "src/self_hosted/compiler/direct_mir_array_return_plan_owner.pgy" \
+    "MirRoutineFactIndexBlockIsTerminal(producer_index, 0)"
+require_text "src/self_hosted/compiler/direct_mir_array_return_plan_owner.pgy" \
+    "DirectMirArrayReturnPlanMutationRejected("
+require_text "src/self_hosted/compiler/direct_mir_array_return_plan_owner.pgy" \
+    "caller_owned_fixed_array"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
+    "DirectMirHelloProjectionFromAdmitted"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
+    "DirectMirScalarBlockProjectionFromAdmitted"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
+    "DirectMirArrayIntPlanFromAdmitted"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
+    "DirectMirOptionMatchCfgPlanFromAdmitted"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
+    "DirectMirCfgPlanFromAdmitted"
+require_text \
+    "src/self_hosted/compiler/direct_mir_array_int_abi_fact_owner.pgy" \
+    "func DirectMirArrayIntCapturedAbiReady("
+require_text "src/self_hosted/compiler/direct_mir_array_int_plan_owner.pgy" \
+    "DirectMirArrayIntCapturedAbiReady(abi)"
+require_text "src/self_hosted/compiler/direct_mir_array_return_plan_owner.pgy" \
+    "DirectMirArrayIntCapturedAbiReady(abi)"
+reject_text "src/self_hosted/compiler/direct_mir_array_return_emission_owner.pgy" \
+    "@pgy_"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" \
+    "func MirObjectUniqueStringFactAtBounds("
+require_max_lines "src/self_hosted/mir_lower/json_fact_read.pgy" 450
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" \
+    "func MirObjectUniqueNumberFactAtBounds("
+require_text \
+    "src/self_hosted/mir_lower/intent_execution_json_decode_owner.pgy" \
+    "return MirObjectFieldOccurrenceCountAtBounds("
+require_text "tests/self_hosted/parity/one_mir_array_return_projection.sh" \
+    "routine-order-swap"
+require_text "tests/self_hosted/parity/one_mir_array_return_projection.sh" \
+    "stale-result-definition"
+require_text "tests/self_hosted/parity/one_mir_array_return_projection.sh" \
+    "stale-use"
+require_text "tests/self_hosted/parity/one_mir_array_return_projection.sh" \
+    "abi-field-shape-repaired-id"
+require_text "tests/self_hosted/parity/one_mir_array_return_projection.sh" \
+    "missing-producer-return"
+require_text "tests/self_hosted/parity/one_mir_array_return_projection.sh" \
+    "duplicate-producer-return"
+require_text "tests/self_hosted/parity/one_mir_array_return_projection.sh" \
+    "unreachable-main"
+require_text "tests/self_hosted/parity/one_mir_array_return_projection.sh" \
+    "producer-successor"
+require_text "tests/self_hosted/parity/one_mir_array_return_projection.sh" \
+    "forged-log-result"
+require_text "Makefile" "SELFHOST_ONE_MIR_ARRAY_RETURN_GATE ?="
+require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_RETURN_GATE)'
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
-    "src/self_hosted/mir_lower/fixture/array_literal_assignment.pgy"
+    "src/self_hosted/codegen/fixture/array_return_literal.pgy"
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240

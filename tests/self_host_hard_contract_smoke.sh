@@ -383,10 +383,25 @@ require_text "tests/self_hosted/parity/one_mir_array_int_projection.sh" \
     'printf '\''3\n10\n'\'''
 require_text "tests/self_hosted/parity/one_mir_array_int_projection.sh" \
     'DirectMirArrayIntPlanMutationRejected'
+require_text "Makefile" \
+    "self-host-one-mir-array-return-projection-test-smoke: self-host-compiler"
+require_text "Makefile" \
+    "tests/self_hosted/parity/one_mir_array_return_projection.sh"
+require_file "tests/self_hosted/parity/one_mir_array_return_projection.sh"
+require_file "tests/self_hosted/parity/one_mir_array_return_mutations.py"
+require_text "tests/self_hosted/parity/one_mir_array_return_projection.sh" \
+    'printf '\''4\n3\n'\'''
+require_text "tests/self_hosted/parity/one_mir_array_return_projection.sh" \
+    'routine-order-swap'
+require_text "src/self_hosted/compiler/direct_mir_array_return_plan_owner.pgy" \
+    'caller_owned_fixed_array'
+require_text "tests/self_hosted/parity/one_mir_array_return_projection.sh" \
+    'abi-field-shape-repaired-id'
+require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_RETURN_GATE)'
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
-    'src/self_hosted/mir_lower/fixture/array_literal_assignment.pgy'
+    'src/self_hosted/codegen/fixture/array_return_literal.pgy'
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
-    'printf '\''3\n10\n'\'''
+    'printf '\''4\n3\n'\'''
 require_text "src/compiler/llvm_runner.c" \
     "compiler_compile_link_self_host_llvm_artifact("
 require_text "src/compiler/self_host_llvm_driver.c" \
