@@ -209,6 +209,7 @@ func MirIntentRoutineStepTreeLines(
         }
         let receiver_binding_row: Int = 0 - 1;
         let receiver_match_count: Int = 0;
+        let action_syntax_id: String = "";
         let binding_scan: Int = 0;
         while binding_scan < ArrayLength(binding_projection.aliases) {
             if binding_projection.aliases[binding_scan] == eval_action.receiver_alias {
@@ -223,37 +224,53 @@ func MirIntentRoutineStepTreeLines(
             }
             binding_scan = binding_scan + 1;
         }
-        if receiver_match_count != 1 || receiver_binding_row < 0 ||
+        if eval_action.receiver_alias == "" {
+            action_syntax_id = MirIntentDirectTargetSyntaxId(
+                routines, eval_action.action_name
+            );
+            if typed_execution || outcome_count != 0 ||
+                action_syntax_id == "" || eval_action.action_name !=
+                    eval_action.call_target_name {
+                MirLowerFailClosed(
+                    "MIR intent direct target is not one legacy intent"
+                );
+            }
+        } else if receiver_match_count != 1 || receiver_binding_row < 0 ||
             binding_projection.kinds[receiver_binding_row] != "participant" {
             MirLowerFailClosed(
                 "MIR intent action receiver binding is invalid"
             );
-        }
-        let receiver_type: String = binding_projection.type_names[receiver_binding_row];
-        if !typed_execution && eval_action.call_target_name != Concat(
-            receiver_type, Concat("_", eval_action.action_name)
-        ) {
-            MirLowerFailClosed(
-                "MIR intent action call target identity is invalid"
+        } else {
+            let receiver_type: String =
+                binding_projection.type_names[receiver_binding_row];
+            let action_contract: MirIntentActionContractFact =
+                MirIntentActionContract(
+                    routines, receiver_type, eval_action.action_name
+                );
+            let canonical_target: String = Concat(
+                receiver_type, Concat("_", eval_action.action_name)
             );
+            let target_ready: Bool = eval_action.call_target_name ==
+                eval_action.action_name ||
+                eval_action.call_target_name == canonical_target;
+            if !target_ready || !action_contract.ok ||
+                (outcome_count == 1 && action_contract.return_type_name !=
+                    outcome_type_name) ||
+                (outcome_count == 1 && action_contract.action_syntax_id !=
+                    outcome_action_syntax_id) {
+                MirLowerFailClosed("MIR intent action contract is invalid");
+            }
+            action_syntax_id = action_contract.action_syntax_id;
         }
-        let action_contract: MirIntentActionContractFact =
-            MirIntentActionContract(
-                routines, receiver_type, eval_action.action_name
-            );
-        if !action_contract.ok ||
-            (outcome_count == 1 && action_contract.return_type_name !=
-                outcome_type_name) ||
-            (outcome_count == 1 && action_contract.action_syntax_id !=
-                outcome_action_syntax_id) {
+        if action_syntax_id == "" {
             MirLowerFailClosed(
-                "MIR intent action outcome contract is invalid"
+                "MIR intent callable syntax identity is missing"
             );
         }
         if typed_execution {
             typed_step_row = MirIntentExecutionStepRowForCarrier(
                 intent_execution_plan, routine_syntax_id, step_name,
-                ToInt(action_contract.action_syntax_id), outcome_name,
+                ToInt(action_syntax_id), outcome_name,
                 outcome_type_name
             );
             if typed_step_row < 0 ||

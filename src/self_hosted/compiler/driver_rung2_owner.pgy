@@ -173,30 +173,6 @@ func CompileArtifactAnalysisToMirJsonVerifiedObserved(
     return DriverRung2MirProjectionJson(projection, observe_pressure);
 }
 
-func CompileArtifactAnalysisToMirJsonFileVerifiedObserved(
-    artifact: AstTreeArtifact,
-    analysis: SemanticAstArtifactAnalysis,
-    machine_declaration: SelfHostMachineLayerDeclaration,
-    output_path: String,
-    observe_pressure: Bool
-) -> Void {
-    let projection: DriverRung2MirProjection =
-        DriverRung2MirProjectionFromAnalysisObserved(
-            artifact, analysis, machine_declaration, observe_pressure
-    );
-    DriverRung2PressureStage(observe_pressure, "json-write:start");
-    let commit: SelfMirArtifactCommitOutcome =
-        SelfMirProgramJsonWriteArtifactVerified(
-            projection.facts, output_path
-        );
-    if !SelfMirArtifactCommitOutcomeReady(commit) {
-        Log("self-host MIR JSON artifact projection failed closed");
-        Exit(1);
-    }
-    DriverRung2PressureStage(observe_pressure, "json-write:done");
-    DriverRung2MirProjectionRelease(projection);
-}
-
 func CompileArtifactAnalysisToMirJsonVerified(
     artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
@@ -349,8 +325,9 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
         observe_pressure, "consumer:expression-graph:start"
     );
     let graph: SemanticExpressionGraphFacts =
-        MirExpressionGraphFactsForArtifact(
-            admitted.routines, artifact, tree_emission.expression_order, admitted.intent_execution_plan
+        MirExpressionGraphFactsForArtifactObserved(
+            admitted.routines, artifact, tree_emission.expression_order,
+            admitted.intent_execution_plan, observe_pressure
         );
     if !graph.ok {
         Die("MIR instruction expression graph is missing or invalid");

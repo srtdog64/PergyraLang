@@ -216,7 +216,7 @@ func SelfMirAppendRoutine(
             iteration_binding_types, iteration_iterable_types,
             iteration_collection_hoists, destructure_type_facts, loop_flows
         ),
-        SelfMirAppendCfg(facts.cfg, build.cfg)
+        SelfMirAppendCfg(facts.cfg, build.cfg), facts.expression_graph
     );
 }
 
@@ -294,7 +294,7 @@ func SelfMirCanonicalInstructionIds(
                 instructions.match_facts, instructions.destructure_facts,
                 instructions.abi_type_names, instructions.runtime_call_abi
             )
-        )
+        ), facts.expression_graph
     );
 }
 
@@ -326,7 +326,7 @@ func SelfMirProgramDomainFactsFromReadyArtifact(
     artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis
 ) -> SelfMirProgramDomainProjection {
-    let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(artifact.count);
+    let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty( artifact.count, analysis.expression_surfaces.expression_graph);
     let enum_facts: SemanticAstEnumFacts = analysis.enums;
     if !enum_facts.ok {
         return SelfMirProgramDomainProjection(
@@ -378,7 +378,7 @@ func SelfMirProgramDomainFactsFromReadyArtifact(
             true, "", "", artifact.count, declarations,
             domain_topology, domain_runtime_assignments,
             facts.generic_specializations, facts.parallel_captures,
-            facts.routines, facts.cfg
+            facts.routines, facts.cfg, facts.expression_graph
         ),
         domain_graph
     );
@@ -395,7 +395,7 @@ func SelfMirProgramFactsFromReadyArtifactObserved(
     machine_declaration: SelfHostMachineLayerDeclaration,
     observe_pressure: Bool
 ) -> SelfMirProgramFacts {
-    let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(artifact.count);
+    let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty( artifact.count, analysis.expression_surfaces.expression_graph);
     SelfMirArtifactPressureStage(observe_pressure, "iteration-validation:start");
     let iteration_i: Int = 0;
     while iteration_i < SemanticAstIterationTypeCount(iteration_types) {
@@ -441,7 +441,7 @@ func SelfMirProgramFactsFromReadyArtifactObserved(
         true, "", "", artifact.count, declarations,
         domain_facts.domain_topology,
         domain_facts.domain_runtime_assignments, generic_rows,
-        facts.parallel_captures, facts.routines, facts.cfg);
+        facts.parallel_captures, facts.routines, facts.cfg, facts.expression_graph);
     let initializer_rows: SelfMirInitializerRows =
         SelfMirInitializerRowsFromSemantic(initializer_types);
     let iteration_rows: SelfMirIterationRows =
@@ -554,7 +554,7 @@ func SelfMirProgramFactsFromArtifact(
     generic_specializations: SemanticAstGenericSpecializationFacts,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> SelfMirProgramFacts {
-    let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(artifact.count);
+    let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty( artifact.count, analysis.expression_surfaces.expression_graph);
     if !SemanticAstArtifactAnalysisMatches(artifact, analysis, true) {
         return SelfMirProgramFactsError(
             facts, "mir_artifact_invalid",

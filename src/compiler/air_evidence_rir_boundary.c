@@ -10,6 +10,7 @@ air_append_rir_boundary_evidence(AIRProgram *air,
                                  AIRBoundaryNode *boundary,
                                  size_t boundary_index,
                                  const char *scope_name,
+                                 bool retain_intent_authority_provider,
                                  char **error_message)
 {
     if (air_boundary_has_summary_flag(boundary, AIR_EVIDENCE_RIR_BOUNDARY)) {
@@ -17,7 +18,8 @@ air_append_rir_boundary_evidence(AIRProgram *air,
          * even when a zone scope supplied the first structural boundary
          * fact.  Retain both named providers so the authority evidence stays
          * paired with the scope that owns the exact operation. */
-        if (!boundary->authority_from_action
+        if ((!boundary->authority_from_action
+             && !retain_intent_authority_provider)
             || air_boundary_has_evidence_kind_provider(
                    air, boundary_index, AIR_EVIDENCE_RIR_BOUNDARY,
                    scope_name)) {
@@ -237,6 +239,8 @@ air_collect_rir_scope_boundary_evidence(AIRProgram *air,
                                               boundary,
                                               i,
                                               scope_name,
+                                              scope->kind == RIR_SCOPE_INTENT
+                                                  && boundary->authority_required,
                                               error_message)) {
             return false;
         }

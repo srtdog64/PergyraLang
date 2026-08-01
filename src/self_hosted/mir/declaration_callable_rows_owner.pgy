@@ -1,0 +1,160 @@
+// Callable signature and action-contract rows for MIR declarations.
+
+import "program_fact_owner.pgy";
+import "../semantic/ast_artifact_verdict_owner.pgy";
+
+func SelfMirDeclarationSignatureIndexForNode(
+    signatures: SemanticAstFunctionSignatureFacts,
+    method_node_id: Int
+) -> Option<Int> {
+    return SemanticAstFunctionSignatureIndexForNode(signatures, method_node_id);
+}
+func SelfMirDeclarationRawReturnType(
+    artifact: AstTreeArtifact, method_node_id: Int
+) -> String {
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        artifact.arena, method_node_id, child_index
+    );
+    while IsSome(child) {
+        let child_id: Int = UnwrapOption(child);
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, child_id, TypedAstKindReturnsTag()
+        ) {
+            let type_name: Option<String> = TypedAstArenaTypeName(
+                artifact.arena, child_id
+            );
+            if IsSome(type_name) { return UnwrapOption(type_name); }
+            return "";
+        }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(
+            artifact.arena, method_node_id, child_index
+        );
+    }
+    return "";
+}
+func SelfMirDeclarationAppendMethodParams(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    method_node_id: Int,
+    inout method_param_starts: Array<Int>,
+    inout method_param_counts: Array<Int>,
+    inout method_param_names: Array<String>,
+    inout method_param_types: Array<String>
+) -> Bool {
+    let signature_index: Option<Int> =
+        SelfMirDeclarationSignatureIndexForNode(
+            signatures, method_node_id
+        );
+    if !IsSome(signature_index) { return false; }
+    let row: Int = UnwrapOption(signature_index);
+    let start: Int = ArrayLength(method_param_names);
+    let p: Int = 0;
+    while p < signatures.param_counts[row] {
+        let param_row: Int = signatures.param_starts[row] + p;
+        let param_node_id: Int = signatures.param_node_ids[param_row];
+        let raw_type: String = "";
+        let raw_type_opt: Option<String> = TypedAstArenaTypeName(
+            artifact.arena, param_node_id
+        );
+        if IsSome(raw_type_opt) { raw_type = UnwrapOption(raw_type_opt); }
+        ArrayPush(method_param_names, signatures.param_names[param_row]);
+        ArrayPush(method_param_types, raw_type);
+        p = p + 1;
+    }
+    ArrayPush(method_param_starts, start);
+    ArrayPush(method_param_counts, ArrayLength(method_param_names) - start);
+    return true;
+}
+func SelfMirDeclarationCopyStringRange(
+    source: Array<String>, start: Int, count: Int, inout target: Array<String>
+) -> Bool {
+    if start < 0 || count < 0 || start + count > ArrayLength(source) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        ArrayPush(target, source[start + i]);
+        i = i + 1;
+    }
+    return true;
+}
+func SelfMirDeclarationAppendMethodContract(
+    signatures: SemanticAstFunctionSignatureFacts,
+    signature_index: Int,
+    inout method_is_actions: Array<Int>,
+    inout method_requires_starts: Array<Int>,
+    inout method_requires_counts: Array<Int>,
+    inout method_requires_names: Array<String>,
+    inout method_within_zone_names: Array<String>,
+    inout method_causes_names: Array<String>,
+    inout method_authorized_by_starts: Array<Int>,
+    inout method_authorized_by_counts: Array<Int>,
+    inout method_authorized_by_names: Array<String>,
+    inout method_caps_present: Array<Int>,
+    inout method_cap_starts: Array<Int>,
+    inout method_cap_counts: Array<Int>,
+    inout method_cap_names: Array<String>,
+    inout method_effects_present: Array<Int>,
+    inout method_effect_starts: Array<Int>,
+    inout method_effect_counts: Array<Int>,
+    inout method_effect_names: Array<String>
+) -> Bool {
+    let facts: SemanticAstActionContractFacts = signatures.action_contracts;
+    if signature_index < 0 ||
+        signature_index >= ArrayLength(facts.callable_node_ids) {
+        return false;
+    }
+    let requires_start: Int = ArrayLength(method_requires_names);
+    let authority_start: Int = ArrayLength(method_authorized_by_names);
+    let cap_start: Int = ArrayLength(method_cap_names);
+    let effect_start: Int = ArrayLength(method_effect_names);
+    if !SelfMirDeclarationCopyStringRange(
+        facts.requires_names, facts.requires_starts[signature_index],
+        facts.requires_counts[signature_index], method_requires_names
+    ) || !SelfMirDeclarationCopyStringRange(
+        facts.authorized_by_names,
+        facts.authorized_by_starts[signature_index],
+        facts.authorized_by_counts[signature_index],
+        method_authorized_by_names
+    ) || !SelfMirDeclarationCopyStringRange(
+        facts.cap_names, facts.cap_starts[signature_index],
+        facts.cap_counts[signature_index], method_cap_names
+    ) || !SelfMirDeclarationCopyStringRange(
+        facts.effect_names, facts.effect_starts[signature_index],
+        facts.effect_counts[signature_index], method_effect_names
+    ) {
+        return false;
+    }
+    let is_action: Int = 0;
+    if facts.is_actions[signature_index] { is_action = 1; }
+    ArrayPush(method_is_actions, is_action);
+    ArrayPush(method_requires_starts, requires_start);
+    ArrayPush(
+        method_requires_counts,
+        ArrayLength(method_requires_names) - requires_start
+    );
+    ArrayPush(
+        method_within_zone_names, facts.within_zone_names[signature_index]
+    );
+    ArrayPush(method_causes_names, facts.causes_names[signature_index]);
+    ArrayPush(method_authorized_by_starts, authority_start);
+    ArrayPush(
+        method_authorized_by_counts,
+        ArrayLength(method_authorized_by_names) - authority_start
+    );
+    let caps_present: Int = 0;
+    if facts.caps_node_ids[signature_index] >= 0 { caps_present = 1; }
+    ArrayPush(method_caps_present, caps_present);
+    ArrayPush(method_cap_starts, cap_start);
+    ArrayPush(method_cap_counts, ArrayLength(method_cap_names) - cap_start);
+    let effects_present: Int = 0;
+    if facts.effects_node_ids[signature_index] >= 0 { effects_present = 1; }
+    ArrayPush(method_effects_present, effects_present);
+    ArrayPush(method_effect_starts, effect_start);
+    ArrayPush(
+        method_effect_counts, ArrayLength(method_effect_names) - effect_start
+    );
+    return true;
+}

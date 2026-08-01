@@ -137,7 +137,9 @@ func MirIntentExecutionGraphTargetProject(
         }
         node = node + 1;
     }
-    if matches != 1 { return MirExpressionGraphSequenceError(sequence); }
+    if matches != 1 || projection.canonical_name == "" {
+        return MirExpressionGraphSequenceError(sequence);
+    }
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopology(
             sequence.arena.topology, sequence.arena.node_texts,
@@ -145,7 +147,7 @@ func MirIntentExecutionGraphTargetProject(
             sequence.arena.call_return_type_names, sequence.arena.place_kinds
         );
     return MirExpressionGraphSequence(
-        SemanticExpressionGraphArenaReady(arena), sequence.ready_node_count,
+        true, sequence.ready_node_count,
         sequence.roots, arena
     );
 }

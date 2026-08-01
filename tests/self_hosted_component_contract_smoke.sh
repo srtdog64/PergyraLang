@@ -421,6 +421,8 @@ require_text \
     "func SemanticDomainProjectionTypeAssignable"
 require_text "src/self_hosted/mir/domain_runtime_assignment_fact_owner.pgy" \
     "SemanticDomainProjectionTypeAssignable("
+require_text "src/self_hosted/mir_lower/domain_runtime_assignment_fact_owner.pgy" \
+    "func MirDomainRuntimeAssignmentsRequiredForTopology("
 reject_text "src/self_hosted/mir/domain_runtime_assignment_fact_owner.pgy" \
     "func SelfMirDomainProjectionTypeAssignable"
 require_text "Makefile" "self-host-domain-runtime-assignment-test-smoke"
@@ -535,6 +537,10 @@ for bounded_fact_function in \
     reject_function_text "src/self_hosted/lib/json_fact_table.pgy" \
         "func $bounded_fact_function" "StringLength("
 done
+require_function_text "src/self_hosted/lib/json_fact_table.pgy" \
+    "func JsonValueKindAt" "JsonSkipWhitespaceWithin("
+reject_function_text "src/self_hosted/lib/json_fact_table.pgy" \
+    "func JsonValueKindAt" "JsonSkipWhitespace("
 require_text "src/self_hosted/lib/json_fact_table.pgy" \
     "JsonObjectFieldValueBoundsWithin("
 require_text "src/self_hosted/lib/json_fact_table.pgy" \
@@ -786,7 +792,7 @@ require_text "src/self_hosted/mir_lower/program_lower.pgy" 'let routines: MirPro
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     'NewMirAbiLayoutValidationSession()'
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
-    'routines, expression_order, abi_validation'
+    'routines, observe_pressure, expression_order, abi_validation'
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     'MirStructuredExpressionEmissionOrderReady(expression_order)'
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
@@ -875,6 +881,8 @@ require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "CodegenPari
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityFixtureCount() -> Int"
 reject_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityCodegenFixtureExpectedCount"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/mir_lower/fixture/let_log.pgy"'
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/mir_lower/fixture/intent_nested_direct.pgy"'
+require_file "src/self_hosted/mir_lower/fixture/intent_nested_direct.pgy"
 reject_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/codegen/fixture/write_file.pgy"'
 reject_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/codegen/fixture/args_probe.pgy"'
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"examples/binary_search.pgy"'
@@ -885,7 +893,9 @@ mir_clean_reject_count="$(grep -Ec '^base="unsupported_' "$PARITY_DIR/mir_json_p
     fail "mir_json_parity clean reject count drifted: $mir_clean_reject_count != 0"
 require_text "src/self_hosted/PROGRESS.md" "102 PASS / 0 gap plus 0 clean"
 require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "102 PASS / 0 gap plus 0 clean rejects"
-require_text "tests/self_hosted/parity/mir_json_parity.sh" '"kind":"role","name":"IntMath","for_type":"Int"'
+require_text "tests/self_hosted/parity/mir_json_parity.sh" '"kind":"role","name":"IntMath"'
+require_text "tests/self_hosted/parity/mir_json_parity.sh" '"name":"IntMath","source_syntax_id":9'
+require_text "tests/self_hosted/parity/mir_json_parity.sh" '"for_type":"Int","includes":[]'
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "Role: IntMath for Int"
 reject_text "tests/self_hosted/parity/mir_json_parity.sh" "unsupported MIR role declaration in self-host subset"
 reject_text "tests/self_hosted/parity/mir_json_parity.sh" '"kind":"unsupported","ast_type":"AST_ROLE_DECL"'
@@ -1062,7 +1072,7 @@ require_text "src/compiler/mir_json_dump_decl.c" \
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
     "func EmitDeclGenericParams("
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
-    'MirObjectStringFact('
+    'MirObjectStringFactAtBounds('
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
     '"default_type"'
 reject_text "src/self_hosted/mir_lower/decl_lower.pgy" \
@@ -1460,6 +1470,9 @@ require_text "src/self_hosted/mir_lower/intent_execution_graph_target_owner.pgy"
     'plan.steps.action_syntax_ids[step]'
 reject_text "src/self_hosted/mir_lower/intent_execution_graph_target_owner.pgy" \
     'Concat(routines.owners[callable_row], Concat("_", source_name))'
+reject_function_text "src/self_hosted/mir_lower/intent_execution_graph_target_owner.pgy" \
+    "func MirIntentExecutionGraphTargetProject(" \
+    "SemanticExpressionGraphArenaReady("
 for forbidden in MirIntentExecutionPlanReady MirIntentExecutionPlanDigest \
     JsonObjectFactTableFromBounds source_json; do
     reject_text "src/self_hosted/mir_lower/intent_execution_graph_target_owner.pgy" \
@@ -1474,6 +1487,16 @@ require_text \
 require_text \
     "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
     'import "intent_carrier_projection_owner.pgy";'
+require_text "src/self_hosted/mir_lower/intent_action_contract_owner.pgy" \
+    "func MirIntentDirectTargetSyntaxId"
+require_text "src/self_hosted/mir_lower/intent_action_contract_owner.pgy" \
+    "SemanticCallTargetDirect()"
+require_text "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
+    '"MIR intent direct target is not one legacy intent"'
+require_text "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
+    'let target_ready: Bool = eval_action.call_target_name =='
+require_text "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
+    'receiver_type, Concat("_", eval_action.action_name)'
 reject_text \
     "src/self_hosted/mir_lower/intent_execution_graph_mirror_owner.pgy" \
     "selected_text"
@@ -2982,6 +3005,7 @@ require_text "src/self_hosted/tools/machine_layer_mir_projection_probe/main.pgy"
 reject_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "func CompilerRuntimeCallAbiRow(domain: String"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CollectionRuntimeCNewFn(1)"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "StringRuntimeCSubstringFn()"
+require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "StringRuntimeCSubstringWithLenFn()"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "HostIORuntimeCExitFn()"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CompilerRuntimeCallAbiMaterialMirResourceRow"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CompilerRuntimeCallAbiNativeDeviceSubmitRowAt"
@@ -3003,9 +3027,10 @@ require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" 'impor
 require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" "func CompilerRuntimeCallAbiManifestRowAt"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" "CompilerRuntimeCallAbiConcreteRowCount()"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "schema=pgy.selfhost.runtime-call-abi-row.v2"
-require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=245"
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=246"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "243|checked-arithmetic|float-to-int|pgy_checked_f2i_i32_export|function|target_library|double_to_int"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "244|checked-arithmetic|float-to-long|pgy_checked_f2i_i64_export|function|target_library|double_to_long"
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "245|string|substring-with-len|pgy_substr_with_len|function|generated_runtime_helper|string_int_int_int_to_string"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "24|option-result|option-float.some|pgy_option_some_float|function|generated_runtime_helper|value_to_option"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "25|option-result|option-double.some|pgy_option_some_double|function|generated_runtime_helper|value_to_option"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "68|string|substring|pgy_substr|function|generated_runtime_helper|string_int_int_to_string"
@@ -4694,10 +4719,11 @@ require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
     "struct SelfMirExpressionGraphRows"
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
     "SemanticExpressionGraphSubtreeStart("
-require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
-    "graph: SemanticExpressionGraphFacts;"
-require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
-    "SemanticExpressionGraphFactsEqual(graph, view.graph)"
+require_file "src/self_hosted/mir/program_fact_owner.pgy"
+require_text "src/self_hosted/mir/program_fact_owner.pgy" \
+    "expression_graph: SemanticExpressionGraphFacts;"
+reject_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
+    "SemanticExpressionGraphFactsEqual("
 for retired_mir_graph_field in \
     "node_kinds: Array<Int>;" \
     "node_texts: Array<String>;" \
@@ -4892,8 +4918,43 @@ require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
     "let instruction_kinds: Array<String>;"
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
     "let instruction_machine_layer_starts: Array<Int>;"
+require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
+    "func MirRoutineInstructionScalarCaptureWithin("
+require_file "src/self_hosted/mir_lower/program_instruction_expression_index_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/program_instruction_expression_index_owner.pgy" 430
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir_lower/program_instruction_expression_index_owner.pgy"
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
-    "func MirProgramInstructionIdentityCaptureWithin("
+    "let instruction_expressions: MirProgramInstructionExpressionIndex;"
+require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "MirProgramInstructionExpressionRowsAppend("
+require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
+    "MirRoutineInstructionScalarCaptureWithin("
+reject_text \
+    "src/self_hosted/mir_lower/program_instruction_expression_index_owner.pgy" \
+    "let expr0s: Array<String>;"
+reject_text \
+    "src/self_hosted/mir_lower/program_instruction_expression_index_owner.pgy" \
+    "let expr1s: Array<String>;"
+require_text \
+    "src/self_hosted/mir_lower/program_instruction_expression_index_owner.pgy" \
+    "let text_bounds: Array<Int>;"
+require_text \
+    "src/self_hosted/mir_lower/program_instruction_expression_index_owner.pgy" \
+    "let routing_bounds: Array<Int>;"
+reject_text \
+    "src/self_hosted/mir_lower/program_instruction_expression_index_owner.pgy" \
+    "let names: Array<String>;"
+reject_text \
+    "src/self_hosted/mir_lower/program_instruction_expression_index_owner.pgy" \
+    "let arg0s: Array<String>;"
+require_file \
+    "src/self_hosted/mir_lower/program_instruction_routing_span_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/program_instruction_routing_span_owner.pgy" 80
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir_lower/program_instruction_routing_span_owner.pgy"
 require_file "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy"
 require_max_lines \
     "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" 320
@@ -4927,8 +4988,12 @@ require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pg
     "func MirRoutineInstructionFactBundleReady("
 require_text "src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy" \
     "instruction_start + instruction_count !="
-require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+reject_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
     "MirProgramInstructionIdentityCaptureWithin("
+reject_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "MirRoutineInstructionScalarCaptureWithin("
+require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "MirProgramInstructionExpressionCaptureWithin("
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
     "ref routines: JsonArrayObjectFactTable"
 reject_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
@@ -4940,6 +5005,8 @@ reject_function_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy"
     "func BuildMirProgramRoutineIndexFromTable(" '"source_type"'
 require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
     "duplicate_source_type"
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "program_instruction_routing_span_owner.pgy"
 require_file "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy"
 require_file "tests/self_hosted/parity/mir_program_routine_index_owner_smoke.sh"
 require_text "Makefile" \
@@ -5176,6 +5243,14 @@ reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "func EmitRegion(index: MirRoutineFactIndex,"
 reject_function_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
     "func MirProgramRoutineIndexRowReady(" "StringLength("
+reject_function_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "func MirProgramRoutineIndexRowReady(" \
+    "MirProgramRoutineSourceSyntaxIdentityUniqueExcept("
+reject_function_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "func MirProgramRoutineIndexRowReady(" \
+    "MirProgramRoutineOwnerDeclarationRow("
+require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "MirProgramRoutineReceiverIdentityRowReady("
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
     "index.source_length != StringLength(index.source_json)"
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
@@ -5199,13 +5274,27 @@ reject_function_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy"
 require_file "src/self_hosted/mir_lower/expression_graph_occurrence_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/expression_graph_occurrence_owner.pgy" 200
 require_text "src/self_hosted/mir_lower/expression_graph_occurrence_owner.pgy" \
-    'JsonObjectFactObjectTable('
+    'MirProgramInstructionExpressionGraphTable('
 require_text "src/self_hosted/mir_lower/expression_graph_occurrence_owner.pgy" \
-    'instruction, "expr0_graph"'
+    'MirInstructionExpressionRequiresExpr0Graph('
+require_file \
+    "src/self_hosted/mir_lower/expression_graph_indexed_instruction_policy_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/expression_graph_indexed_instruction_policy_owner.pgy" 100
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir_lower/expression_graph_indexed_instruction_policy_owner.pgy"
+reject_function_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    "func MirExpressionGraphFactsForArtifact(" \
+    "JsonObjectFactTableFromBounds("
+reject_function_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    "func MirExpressionGraphFactsForArtifact(" \
+    "JsonObjectFactStringFieldOpt("
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    "routines.instruction_expressions"
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
-    'node, "call_target_kind"'
+    'node.target_kind'
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
-    'node, "call_target_name"'
+    'node.target_name'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     "SemanticAstExpressionSurfaceRowsFromArtifact(artifact)"
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
@@ -5213,7 +5302,9 @@ require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "func MirExpressionGraphRangeReachable("
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
-    "SemanticExpressionGraphArenaFromRows("
+    "SemanticExpressionGraphArenaFromTopology("
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    "call_return_type_names"
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "ready_node_count: Int"
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
@@ -5226,12 +5317,18 @@ reject_function_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.
 reject_function_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "func MirExpressionGraphSequenceAppend(" \
     "SemanticExpressionGraphArenaReady("
+reject_function_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    "func MirExpressionGraphSequenceAppend(" \
+    "SemanticExpressionGraphArenaFromRows("
 reject_function_text "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy" \
     "func MirExpressionGraphSequenceAppendParserBridge(" \
     "SemanticExpressionGraphArenaUnclassified("
 reject_function_text "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy" \
     "func MirExpressionGraphSequenceAppendParserBridge(" \
     "SemanticExpressionGraphArenaReady("
+reject_function_text "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy" \
+    "func MirExpressionGraphSequenceAppendParserBridge(" \
+    "SemanticExpressionGraphArenaFromRows("
 reject_function_text "src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy" \
     "func MirExpressionGraphSequenceAppendIndexProjection(" \
     "SemanticExpressionGraphArenaUnclassified("
@@ -5604,6 +5701,16 @@ require_text "tests/self_hosted/parity/emitted_c_runtime_header_owner.sh" \
     "pgy_selfhost_emitted_c_uses_runtime_headers()"
 require_text "tests/self_hosted/parity/emitted_c_runtime_header_owner.sh" \
     'pgy_runtime(_[^"]*)?\.h'
+require_text tests/self_hosted/parity/emitted_c_runtime_header_owner.sh pgy_selfhost_select_emitted_c_compile_profile
+require_text tests/self_hosted/parity/emitted_c_runtime_header_owner.sh PGY_SELFHOST_CC_PROFILE:-release
+require_text tests/self_hosted/parity/emitted_c_runtime_header_owner.sh -O3
+require_text tests/self_hosted/parity/emitted_c_runtime_header_owner.sh -O0
+require_text tests/self_hosted/parity/emitted_c_runtime_header_owner.sh -fwrapv
+require_text tests/self_hosted/parity/emitted_c_runtime_header_owner.sh -fno-strict-aliasing
+require_text tests/self_hosted/parity/driver_bootstrap.sh pgy_selfhost_select_emitted_c_compile_profile
+require_text tests/self_hosted/parity/self_host_compiler_build.sh pgy_selfhost_select_emitted_c_compile_profile
+require_text tests/self_hosted/parity/codegen_bootstrap_compile_leg.sh pgy_selfhost_select_emitted_c_compile_profile
+require_text tests/self_hosted/parity/codegen_bootstrap.sh emitted_c_runtime_header_owner.sh
 require_file "tests/self_hosted/parity/driver_rung2_pipeline_step_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_pipeline_step_owner.sh" 120
 require_text "tests/self_hosted/parity/driver_rung2_pipeline_step_owner.sh" \
@@ -6553,9 +6660,9 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_file "src/self_hosted/mir/program_assignment_parameter_use_contract_owner.pgy"
 require_max_lines "src/self_hosted/mir/program_assignment_parameter_use_contract_owner.pgy" 100
 require_text "src/self_hosted/mir/program_assignment_parameter_use_contract_owner.pgy" \
-    'SelfMirAssignmentParameterZeroUseRows("inout_param")'
+    'SelfMirAssignmentParameterZeroUseCase("inout_param")'
 require_text "src/self_hosted/mir/program_assignment_parameter_use_contract_owner.pgy" \
-    'SelfMirAssignmentParameterZeroUseRows("local")'
+    'SelfMirAssignmentParameterZeroUseCase("local")'
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     'return "mir_assignment_parameter_zero_use";'
 require_file "tests/self_hosted/parity/driver_rung2_assignment_binding_mode_parity_owner.sh"
@@ -6618,9 +6725,9 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'RewriteExpr(coll, env)'
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'func SelfMirAssignmentTargetGraphReady('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'SelfMirInstructionUsesLocalVersion('
-require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_base_use)'
-require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_simple_target_graph)'
-require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_match)'
+require_text "src/self_hosted/mir/program_verify_owner.pgy" 'missing_base_use, target_graph.graph'
+require_text "src/self_hosted/mir/program_verify_owner.pgy" 'missing_simple_target_graph, simple_target_graph.graph'
+require_text "src/self_hosted/mir/program_verify_owner.pgy" 'missing_match, simple_target_graph.graph'
 require_file "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
     '"uses":["value.3","value.5","value.7","value.8"]'
@@ -6692,12 +6799,30 @@ require_file "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner
 require_text "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" \
     'ordinal >= binding_count'
 require_text "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" \
+    'MirProgramEnumVariantOwnerForName('
+reject_text "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" \
+    'MirEnumOwnerForVariant('
+reject_text "src/self_hosted/mir_lower/structured_condition_emission_owner.pgy" \
     'MirEnumOwnerForVariant('
 require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
     'SemanticAstEnumFacts'
 require_text "src/self_hosted/mir_lower/structured_condition_emission_owner.pgy" \
     'match enum variant declaration fact is missing'
 require_max_lines "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" 300
+require_file "src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy" 360
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy"
+require_text "src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy" \
+    "func MirExpressionGraphHeaderCaptureFromTable("
+require_text "src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy" \
+    "func MirExpressionGraphNodeCaptureWithin("
+require_text "tests/self_hosted/parity/mir_expression_graph_persisted_read_owner.sh" \
+    "--duplicate-node-field"
+require_text "tests/self_hosted/parity/mir_expression_graph_persisted_read_owner.sh" \
+    "--unknown-header-field"
+require_text "tests/self_hosted/parity/mir_expression_graph_persisted_read_owner.sh" \
+    "--unreachable-node"
 require_max_lines "src/self_hosted/mir_lower/expression_graph_match_owner.pgy" 220
 require_max_lines "src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy" 120
 require_max_lines "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" 220
@@ -7403,10 +7528,18 @@ require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'if kind == "string_literal" {'
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'if kind == "await" { return Some(AstExpressionNodeAwait()); }'
-require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+reject_function_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    "func MirExpressionGraphSequenceAppend(" \
     "JsonArrayNextObjectBounds("
-require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+reject_function_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    "func MirExpressionGraphSequenceAppend(" \
     "JsonObjectFactTableFromBounds("
+reject_function_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    "func MirExpressionGraphSequenceAppend(" \
+    "JsonObjectFactStringFieldOpt("
+reject_function_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    "func MirExpressionGraphSequenceAppend(" \
+    "JsonObjectFactNumberFieldOpt("
 reject_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "JsonArrayObjectFactCount(nodes)"
 reject_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
@@ -7817,6 +7950,10 @@ reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "ReplaceAllOutsi
 require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "func RuntimeCallCName("
 require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "func RewriteRuntimeCallsOutsideStrings("
 require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "StringRuntimeCStringLengthFn()"
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" \
+    'source_name == "SubstringWithLen"'
+require_text "src/self_hosted/codegen/fixture/str_builtins.pgy" \
+    'SubstringWithLen(s, n, 0, 4)'
 require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" \
     'source_name == "Split" || source_name == "StringSplit"'
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" \
@@ -8482,7 +8619,7 @@ require_text "src/self_hosted/mir_lower/expression_graph_instruction_policy_owne
 reject_text "src/self_hosted/mir_lower/structured_expression_emission_order_owner.pgy" \
     'scalar.arg0 == "" || scalar.arg0 == "Log"'
 require_text "src/self_hosted/mir_lower/expression_graph_occurrence_owner.pgy" \
-    '(!IsSome(arg0_opt) || UnwrapOption(arg0_opt) != "ArrayPop")'
+    'json, expression, 1, "ArrayPop"'
 require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     'node_id, UnwrapOption(graph_lane)'
 require_text "src/self_hosted/mir/routine_statement_owner.pgy" \
@@ -9382,6 +9519,8 @@ require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "fun
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "runtime_header_owns_bool_log"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCPrintBlock"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCStringCoreBlock"
+require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCSubstringWithLenFn"
+require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "pgy_substr_with_len"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCSplitBlock"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCStringJoinBlock"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringRuntimeCLogMaterializationBlock("
@@ -9692,10 +9831,10 @@ require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
     "let source_json: String;"
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
     "let source_length: Int;"
-require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
     "let expect_member: Bool = true;"
-require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
-    "if after_comma || !kind_seen"
+require_text "src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy" \
+    'if after_comma || !kind_seen || kind == "" ||'
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineObjectEnd("
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineSpanEnd("
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineNameEnd("
@@ -12038,6 +12177,8 @@ require_text "src/self_hosted/lib/json.pgy" \
     "func ReadJsonStringBounded("
 reject_function_text "src/self_hosted/lib/json.pgy" \
     "func ReadJsonStringBounded(" "Substring(json"
+require_function_text "src/self_hosted/lib/json.pgy" \
+    "func ReadJsonStringBounded(" "return SubstringWithLen(json, n"
 require_text "src/self_hosted/lib/json.pgy" \
     "ArrayPush(chunks, CharAtN("
 require_file "tests/self_hosted/fixtures/json_bounded_string_owner.pgy"
@@ -12047,6 +12188,12 @@ reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectFieldValueBoundsWithin(" "StringLength(json)"
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectStringFieldOptWithin(" "StringLength(json)"
+require_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonObjectNumberFieldOptWithin(" "SubstringWithLen("
+reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonObjectNumberFieldOptWithin(" "Substring("
+reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonObjectNumberFieldOptWithin(" "ArrayPush(chunks"
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectFieldValueBoundsWithin(" "let key: String"
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
@@ -12092,6 +12239,45 @@ reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "JsonD
 reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" 'import "../lib/json.pgy";'
 require_file "src/self_hosted/mir_lower/program_declaration_index_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/program_declaration_index_owner.pgy" 120
+require_file "src/self_hosted/mir_lower/program_enum_variant_index_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/program_enum_variant_index_owner.pgy" 140
+require_file "src/self_hosted/mir/declaration_callable_rows_owner.pgy"
+require_max_lines "src/self_hosted/mir/declaration_callable_rows_owner.pgy" 200
+require_max_lines "src/self_hosted/mir/declaration_rows_owner.pgy" 600
+require_file "src/self_hosted/mir/declaration_zone_authority_rows_owner.pgy"
+require_max_lines "src/self_hosted/mir/declaration_zone_authority_rows_owner.pgy" 180
+require_file "src/self_hosted/mir_lower/declaration_zone_authority_projection_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/declaration_zone_authority_projection_owner.pgy" 180
+require_text "src/self_hosted/mir/declaration_fact_owner.pgy" \
+    'zone_authorities: SelfMirDeclarationZoneAuthorityRows;'
+require_text "src/self_hosted/mir/declaration_rows_owner.pgy" \
+    'SelfMirDeclarationZoneAuthorityRowsFromFacts('
+require_text "src/self_hosted/mir/declaration_verify_owner.pgy" \
+    'SelfMirDeclarationZoneAuthorityRowsReady('
+require_text "src/self_hosted/mir/declaration_json_projection_owner.pgy" \
+    '"zone_authorities"'
+require_text "src/compiler/mir_json_dump_decl.c" \
+    'mir_json_emit_decl_zone_authorities(out, header);'
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
+    'EmitDeclZoneAuthorities('
+require_text "src/self_hosted/mir_lower/declaration_zone_authority_projection_owner.pgy" \
+    'zone declaration is missing authority fact inventory'
+require_text "src/self_hosted/mir_lower/declaration_zone_authority_projection_owner.pgy" \
+    'zone authority subject slot is not declared'
+require_text "tests/self_hosted/parity/mir_json_parity.sh" \
+    'missing-zone-authority'
+require_text "tests/self_hosted/parity/mir_json_parity.sh" \
+    'invalid-zone-authority-slot'
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/mir/declaration_zone_authority_rows_owner.pgy'
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/mir_lower/declaration_zone_authority_projection_owner.pgy'
+require_text "src/self_hosted/mir_lower/program_declaration_index_owner.pgy" \
+    "enum_variants = BuildMirProgramEnumVariantIndexFromDeclarationSpans("
+require_text "src/self_hosted/mir_lower/program_enum_variant_index_owner.pgy" \
+    "func MirProgramEnumVariantOwnerForName("
+reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" \
+    "func MirEnumOwnerForVariant("
 require_text "src/self_hosted/mir_lower/program_declaration_index_owner.pgy" \
     "struct MirProgramDeclarationIndex"
 require_text "src/self_hosted/mir_lower/program_declaration_index_owner.pgy" \
@@ -12107,15 +12293,27 @@ reject_text "src/self_hosted/mir_lower/program_declaration_index_owner.pgy" \
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
     'import "program_declaration_index_owner.pgy";'
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
-    "let declarations: MirProgramDeclarationIndex"
+    "MirProgramDeclarationIndexCount(routines.declarations)"
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
-    "BuildMirProgramDeclarationIndex(json)"
+    "routines.declarations.starts[row]"
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
-    "while row < MirProgramDeclarationIndexCount(declarations)"
+    "routines.declarations.ends[row]"
+reject_function_text "src/self_hosted/mir_lower/decl_lower.pgy" \
+    "func EmitStructDecls(" "BuildMirProgramDeclarationIndex("
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
-    "let kind: String = declarations.kinds[row]"
+    "while row < MirProgramDeclarationIndexCount(routines.declarations)"
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
+    "let kind: String = routines.declarations.kinds[row]"
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
     "if canonical_phase == phase"
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
+    "consumer:mir-to-ast:declaration:start:"
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
+    "consumer:mir-to-ast:declaration:done:"
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
+    "consumer:mir-to-ast:declaration-step:methods-start:"
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
+    "consumer:mir-to-ast:declaration-step:methods-done:"
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
     "MirObjectArrayBoundsAtBounds("
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" \
@@ -12124,6 +12322,24 @@ reject_function_text "src/self_hosted/mir_lower/decl_lower.pgy" \
     "func EmitDeclFields" "MirObjectArrayObjectBoundsAt("
 reject_function_text "src/self_hosted/mir_lower/decl_lower.pgy" \
     "func EmitDeclFields" "MirObjectStringFact("
+reject_text "src/self_hosted/mir_lower/decl_lower.pgy" \
+    "MirObjectArrayObjectBoundsAt("
+reject_text "src/self_hosted/mir_lower/decl_lower.pgy" \
+    "MirObjectStringFact("
+reject_text "src/self_hosted/mir_lower/decl_lower.pgy" \
+    "MirObjectNumberFact("
+reject_text "src/self_hosted/mir_lower/decl_lower.pgy" \
+    "MirObjectArrayBounds("
+reject_text "src/self_hosted/mir_lower/declaration_callable_lower_owner.pgy" \
+    "MirObjectArrayObjectBoundsAt("
+reject_text "src/self_hosted/mir_lower/declaration_callable_lower_owner.pgy" \
+    "MirObjectStringFact("
+reject_text "src/self_hosted/mir_lower/declaration_callable_lower_owner.pgy" \
+    "MirObjectNumberFact("
+reject_text "src/self_hosted/mir_lower/declaration_callable_lower_owner.pgy" \
+    "MirObjectFieldValueBounds("
+reject_text "src/self_hosted/mir_lower/declaration_callable_lower_owner.pgy" \
+    "MirObjectArrayBounds("
 reject_text "src/self_hosted/mir_lower/decl_lower.pgy" \
     "MirDeclObjectBoundsAt("
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" "cursor = field_bounds[1]"
@@ -12164,7 +12380,7 @@ require_text "src/self_hosted/mir_lower/program_lower.pgy" \
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     '"consumer:mir-to-ast:top-level-routines-detail:",'
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
-    "observe_pressure && total >= 128 && total <= 256"
+    "observe_pressure && total >= 128 && total <= 448"
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     "total % 8 == 0 && total % 64 != 0"
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
@@ -12183,6 +12399,26 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "consumer:mir-to-ast:focused-routine:fact-index:start"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "consumer:mir-to-ast:focused-routine:validation:done"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "consumer:mir-to-ast:focused-routine:validation:uses-built"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "consumer:mir-to-ast:focused-routine:validation:uses-ready"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "consumer:mir-to-ast:focused-routine:validation:phi-ready"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "consumer:mir-to-ast:focused-routine:validation:param-flow-ready"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "consumer:mir-to-ast:focused-routine:validation:resource-flow-ready"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "consumer:mir-to-ast:focused-routine:validation:loop-flow-ready"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    "consumer:mir-to-ast:focused-routine:validation:loop-projection-ready"
+require_text "src/self_hosted/mir_lower/routine_instruction_use_fact_owner.pgy" \
+    "MirObjectArrayStringFactsAtBounds("
+reject_function_text "src/self_hosted/mir_lower/routine_instruction_use_fact_owner.pgy" \
+    "func BuildMirRoutineInstructionUseFacts(" "JsonArrayStringCount("
+reject_function_text "src/self_hosted/mir_lower/routine_instruction_use_fact_owner.pgy" \
+    "func BuildMirRoutineInstructionUseFacts(" "JsonArrayStringAt("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "consumer:mir-to-ast:focused-routine:header:done"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
@@ -12204,7 +12440,9 @@ require_text "src/self_hosted/mir_lower/program_lower.pgy" \
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     "(total == 16 || total == 184 || total == 185 ||"
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
-    "total == 191 || total == 242)"
+    "total == 191 || total == 242 || total == 397 ||"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    "total == 403 || total == 430)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "DriverRung2IntentTreeEmissionOrDie("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
@@ -13234,7 +13472,7 @@ require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" \
     'public zone DriverSourceMirZone'
 require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" \
-    'SelfMirArtifactCommitPayload('
+    'SelfMirProgramJsonWriteArtifactVerified('
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'import "world.pgy";'
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
@@ -13498,9 +13736,9 @@ reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" \
     'BuildMirDocumentFactIndex('
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
-    'MirExpressionGraphPersistedShapeReady(graph)'
-require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
-    'JsonObjectFactCount(node) != 6'
+    'MirExpressionGraphHeaderCaptureFromTable(graph)'
+require_text "src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy" \
+    'member_count != 6'
 for forbidden_one_mir_bridge_term in \
     '../parser/' \
     '../semantic/' \

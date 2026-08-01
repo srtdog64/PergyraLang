@@ -1,0 +1,47 @@
+// Executable positive/negative proof for the one-pass persisted graph reader.
+
+import "../../mir_lower/expression_graph_sequence_owner.pgy";
+
+func PersistedGraphProbeJson(mode: String) -> String {
+    if mode == "--duplicate-node-field" {
+        return "{\"root\":0,\"nodes\":[{\"kind\":\"integer_literal\",\"text\":\"1\",\"text\":\"bad\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"left\":null,\"right\":null}]}";
+    }
+    if mode == "--unknown-header-field" {
+        return "{\"root\":0,\"nodes\":[{\"kind\":\"integer_literal\",\"text\":\"1\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"left\":null,\"right\":null}],\"other\":1}";
+    }
+    if mode == "--unreachable-node" {
+        return "{\"root\":0,\"nodes\":[{\"kind\":\"integer_literal\",\"text\":\"1\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"left\":null,\"right\":null},{\"kind\":\"integer_literal\",\"text\":\"2\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"left\":null,\"right\":null}]}";
+    }
+    return "{\"root\":2,\"nodes\":[{\"kind\":\"integer_literal\",\"text\":\"1\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"left\":null,\"right\":null},{\"kind\":\"integer_literal\",\"text\":\"2\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"left\":null,\"right\":null},{\"kind\":\"add\",\"text\":\"1 + 2\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"left\":0,\"right\":1}],\"digest\":7}";
+}
+
+func Main() -> Void with caps env {
+    let args: Array<String> = Args();
+    let mode: String = "";
+    if ArrayLength(args) > 0 { mode = args[0]; }
+    let graph: JsonObjectFactTable = JsonDocumentObjectFactTable(
+        PersistedGraphProbeJson(mode)
+    );
+    let sequence: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceAppend(
+            MirExpressionGraphSequenceEmpty(), graph
+        );
+    let negative: Bool = mode == "--duplicate-node-field" ||
+        mode == "--unknown-header-field" || mode == "--unreachable-node";
+    if negative {
+        if sequence.ok {
+            Log("malformed persisted graph was accepted");
+            Exit(1);
+        }
+        Log("persisted-graph-negative=closed");
+        return;
+    }
+    if !sequence.ok || sequence.ready_node_count != 3 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 2 ||
+        sequence.arena.node_texts[sequence.roots[0]] != "1 + 2" {
+        Log("valid persisted graph did not reconstruct exactly");
+        Exit(1);
+        return;
+    }
+    Log("persisted-graph-read=one-pass-exact");
+}

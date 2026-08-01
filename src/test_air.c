@@ -466,6 +466,9 @@ main(void)
     TEST("AIR synthesis collects all RIR authority evidence");
     EXPECT(test_air_collects_all_rir_authority_evidence());
 
+    TEST("AIR synthesis keeps local intent authority aliases");
+    EXPECT(test_air_collects_local_intent_authority_alias_evidence());
+
     TEST("AIR strict evidence rejects mismatched authority participant");
     EXPECT(test_air_rejects_mismatched_authority_evidence());
 

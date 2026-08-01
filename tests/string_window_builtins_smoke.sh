@@ -6,6 +6,7 @@
 #   - fused builtins: SubIndexOf, SubEquals, SubContains, SubStartsWith
 #   - length-fact fused builtins: SubIndexOfWithLen, SubEqualsWithLen,
 #     SubContainsWithLen, SubStartsWithLen
+#   - length-fact allocating copy: SubstringWithLen
 #   - O(1) char access: CharAtN
 #   - the StrView stdlib module (stdlib/strview.pgy)
 #
@@ -58,4 +59,4 @@ for backend in c llvm; do
     echo "[string-window] backend=$backend ok"
 done
 
-echo "[string-window] string-window builtins + StrView ok (Sub*/Sub*WithLen/CharAtN/StrView)"
+echo "[string-window] string-window builtins + StrView ok (SubstringWithLen/Sub*/Sub*WithLen/CharAtN/StrView)"

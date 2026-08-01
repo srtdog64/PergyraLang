@@ -590,7 +590,8 @@ func CanonicalMirIdentityEpochRebindProgramFacts(
         facts.artifact_node_count, declarations.declarations,
         topology, domain_runtime_assignments,
         facts.generic_specializations, facts.parallel_captures,
-        facts.routines, facts.cfg
+        facts.routines, facts.cfg,
+        facts.expression_graph
     );
     return CanonicalMirProgramIdentityEpoch(
         SelfMirProgramFactsReady(rebound), rebound

@@ -1,0 +1,47 @@
+// Allocation-free comparisons over borrowed MIR instruction routing strings.
+
+import "program_instruction_expression_index_owner.pgy";
+
+func MirProgramInstructionExpressionRoutingPresent(
+    ref fact: MirProgramInstructionExpressionFact,
+    slot: Int
+) -> Bool {
+    if !fact.valid || (slot != 0 && slot != 1) { return false; }
+    let start: Int = fact.name_start;
+    let end: Int = fact.name_end;
+    if slot == 1 { start = fact.arg0_start; end = fact.arg0_end; }
+    return start >= 0 && end > start + 2;
+}
+
+func MirProgramInstructionExpressionRoutingEquals(
+    json: String,
+    ref fact: MirProgramInstructionExpressionFact,
+    slot: Int,
+    expected: String
+) -> Bool {
+    if !fact.valid || (slot != 0 && slot != 1) { return false; }
+    if !MirProgramInstructionExpressionRoutingPresent(fact, slot) {
+        return expected == "";
+    }
+    let start: Int = fact.name_start;
+    let end: Int = fact.name_end;
+    if slot == 1 { start = fact.arg0_start; end = fact.arg0_end; }
+    let escaped: Bool = false;
+    let i: Int = start + 1;
+    while i < end - 1 {
+        if JsonCharCodeAt(json, end, i) == JsonAsciiCode("\\") {
+            escaped = true;
+        }
+        i = i + 1;
+    }
+    if !escaped {
+        let length: Int = end - start - 2;
+        return length == StringLength(expected) &&
+            SubEqualsWithLen(json, end, start + 1, length, expected);
+    }
+    let decoded_end: Array<Int> = [0];
+    let value: String = ReadJsonStringBounded(
+        json, start, end, decoded_end
+    );
+    return decoded_end[0] == end && value == expected;
+}

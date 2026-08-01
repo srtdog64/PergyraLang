@@ -3586,3 +3586,91 @@ contract의 canonical root는 `Call`이 아니라 `CallArgument`이며, 이전 �
 fixture로 유지하면 의미 회귀가 아니라 stale oracle failure가 된다. 이 네 문제는 각각
 component contract, build-source inventory, intent-step executable gate, MIR machine-layer
 gate로 분리해 재발을 막는다.
+
+## Full source-to-MIR completes computation but dies while publishing JSON
+
+2026-07-31 fixed-input evidence separates three costs that were previously
+reported as one heavy self-host build.
+
+- Native pgy translated driver_bootstrap_main.pgy to release C in 399.2 s.
+- GCC compiled that generated unit with -O3 -fwrapv -fno-strict-aliasing in
+  75.9 s.
+- The pre-fix release executable completed every routine, all intents,
+  canonical IDs, and JSON construction, but the pressure owner stopped it at
+  3.098 GiB private while publishing an approximately 86 MB payload.
+- The updated artifact action streamed verified SelfMirProgramFacts through
+  SelfMirProgramJsonWriteArtifactVerified. The same target exited 0 in
+  83.364 s at 1.525 GiB peak private and 1.404 GiB working set.
+
+The cause was dual materialization at the final boundary, not LLVM and not the
+number of tests. Artifact mode first built one whole SelfMirProgramJson string
+and then passed it to SelfMirArtifactCommitPayload. The transaction write
+temporarily retained the complete MIR graph plus the complete payload and its
+publication state. Stdout mode still has a real payload boundary; file mode
+does not.
+
+The earlier scaling defect was separate but cumulative: every instruction row
+stored or compared the full semantic expression graph. SelfMirProgramFacts now
+owns that graph once and instruction rows carry only root and bounded-range
+handles. Reintroducing a graph field, whole-graph equality, or routine-local
+program-graph snapshots is a regression even when byte output matches.
+
+Measurement policy:
+
+- Execute one semantic program target once per stage or run.
+- Read peak_private_gib and attention_required only from the final pressure
+  summary. Do not tail or optimize against every live sample.
+- Keep the 3 GiB hard stop and 2.4 GiB attention threshold fixed.
+- A run below attention is not a memory optimization owner.
+- Do not classify test matrices or gen2/gen3 fixed-point duration as ordinary
+  compile latency.
+
+Build profile policy:
+
+- release is the default self-host emitted-C profile and uses
+  -O3 -fwrapv -fno-strict-aliasing.
+- PGY_SELFHOST_CC_PROFILE=test is an explicit debugging profile and uses -O0
+  with the same semantic flags.
+- The O0 Windows build currently exposes a distinct stack defect: nested
+  ApplyPostfixFact lowering reaches routine 397 and overflows through generated
+  lowering frames measured in tens of KiB. Raising the process stack is not a
+  fix, and the O0 failure must not be used as the release performance number.
+
+Current evidence artifacts are under .tmp/source_mir_stream. The authoritative
+summary is pressure/source-mir-stream-release.summary.json. Temporary artifacts
+are evidence only and are not semantic owners.
+
+## 누적 expression graph를 매 row마다 다시 검증해 3 GiB에 도달하는 경우
+
+2026-08-01의 90,304,012-byte 고정 MIR consumer에서 메모리 hard stop의 직접 원인은
+graph 크기 자체가 아니었다. `SemanticExpressionGraphArenaFromRows`가 새 row를
+추가할 때마다 지금까지의 모든 node에서 `call_return_type_names`를 다시 만들었고,
+target projection도 각 occurrence마다 전체 누적 arena의
+`SemanticExpressionGraphArenaReady`를 다시 실행했다.
+
+수정 전 r54는 graph row 4,096/8,192/12,288을 각각 88.353/169.139/277.636초에
+통과한 뒤 311.431초에 private 3.009 GiB hard stop에 도달했다. 수정 후 r55는
+900초 timeout 동안 row 28,672까지 진행했으며 peak private 0.965 GiB,
+working set 0.904 GiB였다. 약 68%의 private 감소는 반복 누적 재구성 결함이
+닫혔다는 증거지만, timeout run은 full consumer PASS가 아니다.
+
+해법은 cache나 메모리 한도 상향이 아니다.
+
+- sequence/parser bridge는 이전 `call_return_type_names` vector를 이어받고
+  새 node의 빈 fact 한 개만 append한다.
+- target projection은 이미 입증된 local identity만 검사한다.
+- 최종 `expression_graph_fact_owner.pgy`가 완성된 arena를 정확히 한 번 Ready한다.
+- append에서 `ArenaFromRows`, target projection에서 `ArenaReady`를 다시 쓰면
+  component negative ratchet이 실패한다.
+
+r56은 같은 target을 더 오래 기다리며 row 40,960까지 도달했지만 약 1,131초에
+의도적으로 중단했다. 이것을 green이나 bootstrap 진척으로 기록하지 않는다.
+동일 미완주 실행의 timeout만 늘리는 것은 코드 진행이 아니다. reached owner를
+수정한 뒤에만 semantic target을 다시 한 번 실행한다.
+
+남은 bounded JSON 비용도 같은 원칙을 따른다. 기존 `Substring`은 구간이 작아도
+전체 source에 `strlen`을 실행하고, 문자별 `CharAtN` 조립은 byte마다 heap string을
+만든다. `SubstringWithLen(source, source_len, start, len)`은 이미 봉인된 길이를
+소비해 구간을 한 번만 복사한다. Unescaped JSON string과 검증된 number token은 이
+primitive를 사용하고, escape가 실제 존재할 때만 decode chunk 경로를 쓴다.
+C/LLVM string-window parity와 bounded JSON exact-bound parity가 이 경계를 검증한다.

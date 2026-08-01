@@ -202,6 +202,81 @@ test_air_collects_all_rir_authority_evidence(void)
 }
 
 static bool
+test_air_collects_local_intent_authority_alias_evidence(void)
+{
+    DIRNode nodes[] = {
+        { .id = 1, .kind = DIR_NODE_INTENT, .name = "PlanTarget", .ast = NULL },
+    };
+    const char *authorized_by[] = { "target_planner" };
+    const char *required_abilities[] = { "TargetProjectionPlanning" };
+    DIRIntentStep steps[] = {
+        {
+            .index = 0,
+            .name = "project",
+            .where_type_name = "TargetCapabilityZone",
+            .authorized_by = authorized_by,
+            .authorized_by_count = 1,
+            .required_abilities = required_abilities,
+            .required_ability_count = 1,
+        },
+    };
+    DIRIntentInfo intents[] = {
+        { .node_id = 1, .steps = steps, .step_count = 1 },
+    };
+    DIRProgram dir = {
+        .nodes = nodes,
+        .node_count = 1,
+        .intents = intents,
+        .intent_count = 1,
+    };
+    RIROp ops[] = {
+        {
+            .kind = RIR_OP_AUTHORIZE,
+            .subject = "target_planner",
+            .arg0 = "project",
+            .arg1 = "TargetCapabilityZone",
+        },
+    };
+    RIRFact zone_facts[] = {
+        {
+            .kind = RIR_FACT_AUTHORITY,
+            .name = "planner",
+            .resource_kind = RIR_RESOURCE_AUTHORITY_HANDLE,
+            .state = RIR_STATE_AUTHORIZED,
+        },
+    };
+    RIRScope scopes[] = {
+        {
+            .kind = RIR_SCOPE_ZONE,
+            .name = "TargetCapabilityZone",
+            .facts = zone_facts,
+            .fact_count = 1,
+        },
+        {
+            .kind = RIR_SCOPE_INTENT,
+            .name = "PlanTarget",
+            .ops = ops,
+            .op_count = 1,
+        },
+    };
+    RIRProgram rir = {
+        .scopes = scopes,
+        .scope_count = 2,
+    };
+    char *error = NULL;
+    AIRProgram *air = air_synthesize(NULL, &dir, &rir, &error);
+    bool ok = air != NULL
+        && air->drift_count == 0
+        && air->rir_authority_evidence_count == 1
+        && air->boundaries[0].has_rir_authority_evidence
+        && strcmp(air->boundaries[0].rir_authority_evidence_name,
+                  "target_planner") == 0;
+    air_destroy(air);
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_rejects_mismatched_authority_evidence(void)
 {
     DIRNode nodes[] = {

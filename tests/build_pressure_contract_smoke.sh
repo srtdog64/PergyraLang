@@ -7,6 +7,7 @@ DRIVER_PARITY="$ROOT_DIR/tests/self_hosted/parity/driver_rung2_body_parity.sh"
 DRIVER_MAIN="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
 SOURCE_MIR_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_execution_owner.pgy"
 DRIVER_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/driver_bootstrap.sh"
+DRIVER_PRESSURE_SHARD="$ROOT_DIR/tests/self_hosted/parity/driver_full_mir_seed_pressure_shard.sh"
 
 require() {
     grep -Fq -- "$1" "$PROBE" || {
@@ -61,6 +62,9 @@ require '$env:MAKELEVEL = $null'
 require 'New-Object System.Diagnostics.ProcessStartInfo'
 require 'EnvironmentVariables["PGY_BUILD_PRESSURE_ACTIVE"] = "1"'
 require 'StartedAt $started'
+require '$rootCreatedAt = [datetime]$byId[$RootPid].CreationDate'
+require '[Math]::Abs(($rootCreatedAt - $StartedAt).TotalSeconds) -gt 5'
+require 'reused PID must not adopt an unrelated process tree'
 require 'cc1|cc1plus|lto1|lto-wrapper|collect2|ld'
 require 'pgy|pgy-self-driver|parser_ast_producer|gen[0-9]+'
 require 'driver_(oracle|seed|gen[0-9]+|c|llvm)'
@@ -110,7 +114,7 @@ grep -Fq 'args[3] != "--pressure-owned-full-fixpoint"' "$DRIVER_MAIN" \
     || { echo "[build-pressure-contract] full driver binary pressure token drifted" >&2; exit 1; }
 grep -Fq 'SourceMirPressureObserved' "$DRIVER_MAIN" \
     || { echo "[build-pressure-contract] Main does not request pressure observation" >&2; exit 1; }
-grep -Fq 'CompileSourceToMirJsonPressureObserved(' "$SOURCE_MIR_EXECUTION" \
+grep -Fq 'DriverSourceMirProjectionFromAdmittedRequest(' "$SOURCE_MIR_EXECUTION" \
     || { echo "[build-pressure-contract] source-MIR action lacks stage observation" >&2; exit 1; }
 grep -Fq '[driver-pressure-stage]' "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy" \
     || { echo "[build-pressure-contract] full driver pressure stages are not observable" >&2; exit 1; }
@@ -129,6 +133,10 @@ grep -Fq '[semantic-initializer-stage]' "$ROOT_DIR/src/self_hosted/semantic/ast_
     || { echo "[build-pressure-contract] initializer pressure stages are not observable" >&2; exit 1; }
 grep -Fq '"--pressure-owned-full-fixpoint"' "$DRIVER_BOOTSTRAP" \
     || { echo "[build-pressure-contract] full driver runner lacks the pressure-owned token" >&2; exit 1; }
+grep -Fq 'focused output must remain under repository root' "$DRIVER_PRESSURE_SHARD" \
+    || { echo "[build-pressure-contract] focused pressure output can escape the repository" >&2; exit 1; }
+grep -Fq '"$OUTPUT_REL"' "$DRIVER_PRESSURE_SHARD" \
+    || { echo "[build-pressure-contract] focused pressure shard can pass an absolute artifact path" >&2; exit 1; }
 grep -Fq '*"/Git/"*"/bash.exe")' "$DRIVER_PARITY" \
     || { echo "[build-pressure-contract] full DRV-2 matrix lacks the Git Bash orphan guard" >&2; exit 1; }
 grep -Fq 'full matrix requires MSYS2 bash' "$DRIVER_PARITY" \

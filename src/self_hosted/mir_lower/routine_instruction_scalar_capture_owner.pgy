@@ -26,6 +26,16 @@ struct MirRoutineInstructionScalarCapture {
     let abi_layout_required_end: Int;
     let abi_layout_start: Int;
     let abi_layout_end: Int;
+    let expr0_graph_start: Int;
+    let expr0_graph_end: Int;
+    let expr1_graph_start: Int;
+    let expr1_graph_end: Int;
+    let kind: String;
+    let source_type: String;
+    let machine_contact_start: Int;
+    let machine_contact_end: Int;
+    let machine_layer_start: Int;
+    let machine_layer_end: Int;
 }
 
 func InvalidMirRoutineInstructionScalarCapture(
@@ -33,7 +43,9 @@ func InvalidMirRoutineInstructionScalarCapture(
     return MirRoutineInstructionScalarCapture(
         false, "", "", "", "", "", "", "", "", false, "",
         0 - 1, 0 - 1, 0 - 1, 0 - 1,
-        0 - 1, 0 - 1, 0 - 1, 0 - 1
+        0 - 1, 0 - 1, 0 - 1, 0 - 1,
+        0 - 1, 0 - 1, 0 - 1, 0 - 1,
+        "", "", 0 - 1, 0 - 1, 0 - 1, 0 - 1
     );
 }
 
@@ -74,13 +86,35 @@ func MirRoutineInstructionScalarCaptureWithin(
     let abi_layout_start: Int = 0 - 1;
     let abi_layout_end: Int = 0 - 1;
     let abi_layout_seen: Bool = false;
+    let expr0_graph_start: Int = 0 - 1;
+    let expr0_graph_end: Int = 0 - 1;
+    let expr0_graph_seen: Bool = false;
+    let expr1_graph_start: Int = 0 - 1;
+    let expr1_graph_end: Int = 0 - 1;
+    let expr1_graph_seen: Bool = false;
+    let kind: String = "";
+    let source_type: String = "";
+    let kind_seen: Bool = false;
+    let source_type_seen: Bool = false;
+    let machine_contact_start: Int = 0 - 1;
+    let machine_contact_end: Int = 0 - 1;
+    let machine_contact_seen: Bool = false;
+    let machine_layer_start: Int = 0 - 1;
+    let machine_layer_end: Int = 0 - 1;
+    let machine_layer_seen: Bool = false;
     let abi_fields_unique: Bool = true;
+    let expect_member: Bool = true;
+    let after_comma: Bool = false;
     let i: Int = start + 1;
     while i < end {
         i = JsonSkipWhitespaceWithin(json, i, end);
         if i >= end { return InvalidMirRoutineInstructionScalarCapture(); }
         let c: Int = JsonCharCodeAt(json, end, i);
         if c == JsonAsciiCode("}") {
+            if after_comma || !kind_seen || kind == "" ||
+                !source_type_seen {
+                return InvalidMirRoutineInstructionScalarCapture();
+            }
             if !abi_fields_unique {
                 abi_type_start = 0 - 1;
                 abi_type_end = 0 - 1;
@@ -98,10 +132,20 @@ func MirRoutineInstructionScalarCaptureWithin(
                 abi_type_start, abi_type_end,
                 abi_layout_id_start, abi_layout_id_end,
                 abi_layout_required_start, abi_layout_required_end,
-                abi_layout_start, abi_layout_end
+                abi_layout_start, abi_layout_end,
+                expr0_graph_start, expr0_graph_end,
+                expr1_graph_start, expr1_graph_end,
+                kind, source_type,
+                machine_contact_start, machine_contact_end,
+                machine_layer_start, machine_layer_end
             );
         }
-        if c == JsonAsciiCode(",") {
+        if !expect_member {
+            if c != JsonAsciiCode(",") {
+                return InvalidMirRoutineInstructionScalarCapture();
+            }
+            expect_member = true;
+            after_comma = true;
             i = i + 1;
             continue;
         }
@@ -135,6 +179,11 @@ func MirRoutineInstructionScalarCaptureWithin(
             JsonObjectKeyEqualsWithin(json, i, key_end, "arg0");
         let is_arg1: Bool = (key_has_escape || raw_key_length == 4) &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "arg1");
+        let is_kind: Bool = (key_has_escape || raw_key_length == 4) &&
+            JsonObjectKeyEqualsWithin(json, i, key_end, "kind");
+        let is_source_type: Bool =
+            (key_has_escape || raw_key_length == 11) &&
+            JsonObjectKeyEqualsWithin(json, i, key_end, "source_type");
         let is_slot_anchor: Bool =
             (key_has_escape || raw_key_length == 11) &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "slot_anchor");
@@ -144,6 +193,20 @@ func MirRoutineInstructionScalarCaptureWithin(
         let is_match_variant: Bool =
             (key_has_escape || raw_key_length == 13) &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "match_variant");
+        let is_expr0_graph: Bool =
+            (key_has_escape || raw_key_length == 11) &&
+            JsonObjectKeyEqualsWithin(json, i, key_end, "expr0_graph");
+        let is_expr1_graph: Bool =
+            (key_has_escape || raw_key_length == 11) &&
+            JsonObjectKeyEqualsWithin(json, i, key_end, "expr1_graph");
+        let is_machine_contact: Bool =
+            (key_has_escape || raw_key_length == 20) &&
+            JsonObjectKeyEqualsWithin(
+                json, i, key_end, "machine_contact_kind"
+            );
+        let is_machine_layer: Bool =
+            (key_has_escape || raw_key_length == 13) &&
+            JsonObjectKeyEqualsWithin(json, i, key_end, "machine_layer");
         let is_abi_layout_id: Bool =
             (key_has_escape || raw_key_length == 13) &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "abi_layout_id");
@@ -167,14 +230,16 @@ func MirRoutineInstructionScalarCaptureWithin(
         let value_end: Int = UnwrapOption(value_end_opt);
         let selected_string: Bool = is_name || is_result || is_expr0 ||
             is_expr1 || is_arg0 || is_arg1 || is_slot_anchor ||
-            is_match_variant;
+            is_match_variant || is_kind || is_source_type;
         if selected_string {
             if (is_name && name_seen) || (is_result && result_seen) ||
                 (is_expr0 && expr0_seen) ||
                 (is_expr1 && expr1_seen) || (is_arg0 && arg0_seen) ||
                 (is_arg1 && arg1_seen) ||
                 (is_slot_anchor && slot_anchor_seen) ||
-                (is_match_variant && match_variant_seen) {
+                (is_match_variant && match_variant_seen) ||
+                (is_kind && kind_seen) ||
+                (is_source_type && source_type_seen) {
                 return InvalidMirRoutineInstructionScalarCapture();
             }
             let value: String = "";
@@ -198,6 +263,11 @@ func MirRoutineInstructionScalarCaptureWithin(
             if is_match_variant {
                 match_variant = value;
                 match_variant_seen = true;
+            }
+            if is_kind { kind = value; kind_seen = true; }
+            if is_source_type {
+                source_type = value;
+                source_type_seen = true;
             }
         } else if is_abi_type {
             if abi_type_seen {
@@ -243,8 +313,47 @@ func MirRoutineInstructionScalarCaptureWithin(
                 abi_layout_end = value_end;
                 abi_layout_seen = true;
             }
+        } else if is_expr0_graph || is_expr1_graph {
+            if (is_expr0_graph && expr0_graph_seen) ||
+                (is_expr1_graph && expr1_graph_seen) {
+                return InvalidMirRoutineInstructionScalarCapture();
+            }
+            let graph_start: Int = 0 - 1;
+            let graph_end: Int = 0 - 1;
+            let graph_kind: String = JsonValueKindAt(json, i, value_end);
+            if graph_kind == "object" {
+                graph_start = i;
+                graph_end = value_end;
+            } else if graph_kind != "null" {
+                return InvalidMirRoutineInstructionScalarCapture();
+            }
+            if is_expr0_graph {
+                expr0_graph_start = graph_start;
+                expr0_graph_end = graph_end;
+                expr0_graph_seen = true;
+            } else {
+                expr1_graph_start = graph_start;
+                expr1_graph_end = graph_end;
+                expr1_graph_seen = true;
+            }
+        } else if is_machine_contact || is_machine_layer {
+            if (is_machine_contact && machine_contact_seen) ||
+                (is_machine_layer && machine_layer_seen) {
+                return InvalidMirRoutineInstructionScalarCapture();
+            }
+            if is_machine_contact {
+                machine_contact_start = i;
+                machine_contact_end = value_end;
+                machine_contact_seen = true;
+            } else {
+                machine_layer_start = i;
+                machine_layer_end = value_end;
+                machine_layer_seen = true;
+            }
         }
         i = value_end;
+        expect_member = false;
+        after_comma = false;
     }
     return InvalidMirRoutineInstructionScalarCapture();
 }

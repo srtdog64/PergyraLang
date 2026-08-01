@@ -121,6 +121,9 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
             ArrayLength(rows.role_impl_method_starts) ||
         ArrayLength(rows.role_impl_ability_names) !=
             ArrayLength(rows.role_impl_method_counts) ||
+        !SelfMirDeclarationZoneAuthorityRowsReady(
+            rows.zone_authorities, rows.names, rows.nominal_kinds
+        ) ||
         !SelfMirEnumDeclarationPayloadRowsReady(rows) {
         return false;
     }
@@ -179,6 +182,27 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
             (rows.nominal_kinds[i] == "relation" &&
                 subject_slot_count != 2) {
             return false;
+        }
+        let authority_i: Int = 0;
+        while authority_i <
+            rows.zone_authorities.declaration_counts[i] {
+            let authority_row: Int =
+                rows.zone_authorities.declaration_starts[i] + authority_i;
+            let slot_matches: Int = 0;
+            let authority_field_i: Int = 0;
+            while authority_field_i < rows.field_counts[i] {
+                let authority_field_row: Int =
+                    field_cursor + authority_field_i;
+                if rows.field_kinds[authority_field_row] ==
+                        NominalFieldKindSubjectSlot() &&
+                    rows.field_names[authority_field_row] ==
+                        rows.zone_authorities.subject_slot_names[authority_row] {
+                    slot_matches = slot_matches + 1;
+                }
+                authority_field_i = authority_field_i + 1;
+            }
+            if slot_matches != 1 { return false; }
+            authority_i = authority_i + 1;
         }
         field_cursor = field_cursor + rows.field_counts[i];
         method_cursor = method_cursor + rows.method_counts[i];

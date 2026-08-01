@@ -9,6 +9,7 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "StringIndexOf^Int^String|String",
         "ArrayLength^Int^Unknown",
         "Substring^String^String|Int|Int",
+        "SubstringWithLen^String^String|Int|Int|Int",
         "Concat^String^String|String",
         "ReadFile^String^String",
         "ReadStdin^String^Int",

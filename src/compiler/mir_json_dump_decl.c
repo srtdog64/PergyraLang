@@ -133,6 +133,35 @@ mir_json_emit_decl_role_slots(FILE *out, const MIRDeclHeader *header)
 }
 
 static void
+mir_json_emit_decl_zone_authorities(FILE *out, const MIRDeclHeader *header)
+{
+    size_t count = mir_decl_header_zone_authority_count(header);
+
+    fputs(",\"zone_authorities\":[", out);
+    for (size_t i = 0; i < count; i++) {
+        const MIRDeclZoneAuthority *authority =
+            mir_decl_header_zone_authority(header, i);
+        size_t ability_count =
+            mir_decl_zone_authority_required_ability_count(authority);
+        if (i > 0)
+            fputc(',', out);
+        fputs("{\"subject_slot\":", out);
+        mir_json_emit_str_or_null(
+            out, mir_decl_zone_authority_subject_slot_name(authority));
+        fputs(",\"requires\":[", out);
+        for (size_t a = 0; a < ability_count; a++) {
+            if (a > 0)
+                fputc(',', out);
+            mir_json_emit_ability_ref(
+                out,
+                mir_decl_zone_authority_required_ability_ref(authority, a));
+        }
+        fputs("]}", out);
+    }
+    fputc(']', out);
+}
+
+static void
 mir_json_emit_decl_generic_params(FILE *out, const MIRDeclHeader *header)
 {
     size_t count = mir_decl_header_generic_param_count(header);
@@ -398,6 +427,8 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
                 mir_decl_header_source_syntax_id(header));
         mir_json_emit_decl_generic_params(out, header);
         mir_json_emit_decl_fields(out, header);
+        if (ast_type == AST_ZONE_DECL)
+            mir_json_emit_decl_zone_authorities(out, header);
         if (ast_type == AST_PARTY_DECL)
             mir_json_emit_decl_role_slots(out, header);
         if (!is_struct_decl)

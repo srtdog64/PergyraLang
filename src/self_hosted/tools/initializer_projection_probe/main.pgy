@@ -260,10 +260,10 @@ func ProbeMirCarriesCallTarget(
         facts.cfg.instructions.expr0_graphs
     ) {
         let kind_opt: Option<Int> = SemanticExpressionGraphCallTargetKind(
-            facts.cfg.instructions.expr0_graphs.graph, i
+            facts.expression_graph, i
         );
         let name_opt: Option<String> = SemanticExpressionGraphCallTargetName(
-            facts.cfg.instructions.expr0_graphs.graph, i
+            facts.expression_graph, i
         );
         if IsSome(kind_opt) && IsSome(name_opt) &&
             UnwrapOption(kind_opt) == expected_kind &&

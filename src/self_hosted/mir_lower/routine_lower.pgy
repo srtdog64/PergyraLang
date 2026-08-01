@@ -409,6 +409,7 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
     if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:fact-index:done"); }
     let use_facts: MirRoutineInstructionUseFacts =
         BuildMirRoutineInstructionUseFacts(routines, routine_row);
+    if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:validation:uses-built"); }
     if !MirRoutineInstructionUseFactsReady(
         use_facts, ArrayLength(index.instruction_facts.starts)
     ) {
@@ -416,6 +417,7 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
             "MIR instruction use facts are missing or inconsistent: ", routine
         ));
     }
+    if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:validation:uses-ready"); }
     if !MirRoutinePhiFactsReady(
         index, routines, use_facts, routine_row
     ) {
@@ -423,30 +425,35 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
             "MIR phi facts are missing or inconsistent: ", routine
         ));
     }
+    if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:validation:phi-ready"); }
     if !MirRoutineFactIndexFunctionParamFlowFactsValid(index) {
         MirLowerFailClosed(Concat(
             "routine function parameter flow summary facts are incomplete: ",
             routine
         ));
     }
+    if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:validation:param-flow-ready"); }
     if !MirRoutineFactIndexResourceFlowFactsValid(index) {
         MirLowerFailClosed(Concat(
             "routine ResourceFlowUniverse facts are incomplete: ",
             routine
         ));
     }
+    if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:validation:resource-flow-ready"); }
     if !MirRoutineFactIndexLoopFlowFactsValid(index) {
         MirLowerFailClosed(Concat(
             "routine LoopFlowSummary facts are incomplete: ",
             routine
         ));
     }
+    if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:validation:loop-flow-ready"); }
     if !LoopFlowSummaryProjectionReady(index, routines, routine_row) {
         MirLowerFailClosed(Concat(
             "routine LoopFlowSummary facts do not match CFG loop projection: ",
             routine
         ));
     }
+    if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:validation:loop-projection-ready"); }
     if observe_fact_index { Log("[driver-pressure-stage] consumer:mir-to-ast:first-top-level-routine-validation:done"); }
     if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:validation:done"); }
     let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(

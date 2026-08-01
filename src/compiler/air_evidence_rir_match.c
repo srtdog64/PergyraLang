@@ -171,6 +171,26 @@ air_rir_scope_provides_boundary_evidence(const RIRScope *scope,
         return false;
     }
 
+    /* A local authorization may use an intent participant alias that differs
+     * from the zone subject-slot name. Admit the intent scope only when its
+     * exact step owns an Authorize op for a declared boundary participant. */
+    if (scope != NULL && boundary != NULL
+        && scope->kind == RIR_SCOPE_INTENT
+        && boundary->kind == AIR_BOUNDARY_ZONE
+        && boundary->authority_required
+        && air_boundary_required_ability_count(boundary) > 0
+        && air_name_matches(scope->name, boundary->owner_name)) {
+        for (size_t i = 0; i < rir_scope_op_count(scope); i++) {
+            const RIROp *op = rir_scope_op_at(scope, i);
+            if (op != NULL
+                && op->kind == RIR_OP_AUTHORIZE
+                && air_boundary_declares_authority_name(boundary, op->subject)
+                && air_rir_op_matches_boundary_ast(op, boundary)) {
+                return true;
+            }
+        }
+    }
+
     if (!air_rir_scope_matches_boundary(scope, boundary))
         return false;
     if (boundary->kind != AIR_BOUNDARY_WORLD)

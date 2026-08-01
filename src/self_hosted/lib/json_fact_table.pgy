@@ -33,7 +33,7 @@ func EmptyJsonArrayObjectFactTable() -> JsonArrayObjectFactTable {
 }
 
 func JsonValueKindAt(json: String, start: Int, end: Int) -> String {
-    let i: Int = JsonSkipWhitespace(json, start, end);
+    let i: Int = JsonSkipWhitespaceWithin(json, start, end);
     if i >= end {
         return "invalid";
     }

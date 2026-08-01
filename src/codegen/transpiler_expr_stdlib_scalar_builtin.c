@@ -44,6 +44,7 @@ typedef enum {
     TRANSPILER_SCALAR_OP_STRING_LENGTH,
     TRANSPILER_SCALAR_OP_STRING_TRIM,
     TRANSPILER_SCALAR_OP_SUBSTRING,
+    TRANSPILER_SCALAR_OP_SUBSTRING_WITH_LEN,
     TRANSPILER_SCALAR_OP_SUB_INDEX_OF,
     TRANSPILER_SCALAR_OP_SUB_INDEX_OF_WITH_LEN,
     TRANSPILER_SCALAR_OP_SUB_EQUALS,
@@ -105,6 +106,7 @@ static const TranspilerScalarSpec kTranspilerScalarSpecs[] = {
     {"SubStartsWith", 3, TRANSPILER_SCALAR_OP_SUB_STARTS_WITH},
     {"SubStartsWithLen", 4, TRANSPILER_SCALAR_OP_SUB_STARTS_WITH_LEN},
     {"Substring", 3, TRANSPILER_SCALAR_OP_SUBSTRING},
+    {"SubstringWithLen", 4, TRANSPILER_SCALAR_OP_SUBSTRING_WITH_LEN},
     {"ToFloat", 1, TRANSPILER_SCALAR_OP_TO_FLOAT},
     {"ToInt", 1, TRANSPILER_SCALAR_OP_TO_INT},
     {"ToLower", 1, TRANSPILER_SCALAR_OP_LOWER},
@@ -363,6 +365,30 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         }
         char *result = strdup_fmt("Substring(%s, %s, %s)", s, start, len);
         free(s); free(start); free(len);
+        return result;
+    }
+    if (op == TRANSPILER_SCALAR_OP_SUBSTRING_WITH_LEN) {
+        ASTNode *a3 = ast_call_argument(call, 3);
+        char *s = transpiler_scalar_emit_arg(ctx, a0, fn, "source");
+        char *slen = s != NULL
+            ? transpiler_scalar_emit_arg(ctx, a1, fn, "source length")
+            : NULL;
+        char *start = slen != NULL
+            ? transpiler_scalar_emit_arg(ctx, a2, fn, "start")
+            : NULL;
+        char *len = start != NULL
+            ? transpiler_scalar_emit_arg(ctx, a3, fn, "length")
+            : NULL;
+        if (s == NULL || slen == NULL || start == NULL || len == NULL) {
+            free(s);
+            free(slen);
+            free(start);
+            free(len);
+            return NULL;
+        }
+        char *result = strdup_fmt("SubstringWithLen(%s, %s, %s, %s)",
+                                  s, slen, start, len);
+        free(s); free(slen); free(start); free(len);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_CHAR_AT_N) {

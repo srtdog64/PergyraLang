@@ -37,7 +37,7 @@ func EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved(
         NewMirAbiLayoutValidationSession();
     let chunks: Array<String> = [
         "Program:\n", EmitStructDecls(
-            routines, expression_order, abi_validation
+            routines, observe_pressure, expression_order, abi_validation
         )
     ];
     MirProgramLowerPressureStage(
@@ -59,7 +59,8 @@ func EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved(
         } else if kind == "function" || StringLength(owner) == 0 {
             let observe_focused_routine: Bool = observe_pressure &&
                 (total == 16 || total == 184 || total == 185 ||
-                 total == 191 || total == 242);
+                 total == 191 || total == 242 || total == 397 ||
+                 total == 403 || total == 430);
             if observe_focused_routine {
                 MirProgramLowerPressureStage(
                     true, Concat(
@@ -92,11 +93,10 @@ func EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved(
                     )
                 );
             }
-            // The full-driver pressure rung currently accumulates its first
-            // unresolved CPU interval between 128 and 256. Keep the detailed
-            // cursor with the document-order assembly owner, and expose it
+            // Keep the detailed cursor around the reached parser-routine
+            // interval with the document-order assembly owner. It is exposed
             // only in the explicit observation lane.
-            if observe_pressure && total >= 128 && total <= 256 &&
+            if observe_pressure && total >= 128 && total <= 448 &&
                 total % 8 == 0 && total % 64 != 0 {
                 MirProgramLowerPressureStage(
                     true, Concat(

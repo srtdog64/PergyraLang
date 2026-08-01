@@ -17,7 +17,9 @@ compile_c_artifact_with_bounded_log() {
     # cannot build gen1 on Linux even though the compiler's own path builds the
     # same C fine. A bootstrap harness that compiles emitted C differently from
     # the compiler is not testing the same artifact.
+    pgy_selfhost_select_emitted_c_compile_profile
     local -a cc_flags=(-std=c11)
+    cc_flags+=(${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[@]})
     case "$(uname -s 2>/dev/null)" in
         Linux|*BSD|SunOS)
             cc_flags+=(-D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_DEFAULT_SOURCE -pthread)

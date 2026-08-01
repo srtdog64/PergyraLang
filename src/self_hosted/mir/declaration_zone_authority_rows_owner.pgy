@@ -1,0 +1,145 @@
+// MIR declaration-owned zone authority rows.
+//
+// The semantic zone-authority owner supplies the explicit source facts. This
+// owner only aligns those facts with the declaration inventory so JSON and
+// later MIR consumers never have to recover authority from action text.
+
+import "../semantic/ast_zone_authority_fact_owner.pgy";
+
+struct SelfMirDeclarationZoneAuthorityRows {
+    declaration_starts: Array<Int>;
+    declaration_counts: Array<Int>;
+    subject_slot_names: Array<String>;
+    required_ability_starts: Array<Int>;
+    required_ability_counts: Array<Int>;
+    required_ability_names: Array<String>;
+}
+
+func SelfMirDeclarationZoneAuthorityRowsEmpty(
+) -> SelfMirDeclarationZoneAuthorityRows {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return SelfMirDeclarationZoneAuthorityRows(
+        ints, ints, strings, ints, ints, strings
+    );
+}
+
+func SelfMirDeclarationZoneAuthorityRowsFromFacts(
+    ref facts: SemanticAstZoneAuthorityFacts,
+    declaration_names: Array<String>,
+    declaration_nominal_kinds: Array<String>
+) -> SelfMirDeclarationZoneAuthorityRows {
+    if !facts.ok || ArrayLength(declaration_names) !=
+        ArrayLength(declaration_nominal_kinds) {
+        return SelfMirDeclarationZoneAuthorityRowsEmpty();
+    }
+    let starts: Array<Int> = [];
+    let counts: Array<Int> = [];
+    let slots: Array<String> = [];
+    let ability_starts: Array<Int> = [];
+    let ability_counts: Array<Int> = [];
+    let abilities: Array<String> = [];
+    let matched: Int = 0;
+    let declaration: Int = 0;
+    while declaration < ArrayLength(declaration_names) {
+        let start: Int = ArrayLength(slots);
+        let fact: Int = 0;
+        while fact < ArrayLength(facts.authority_node_ids) {
+            if facts.owner_zone_names[fact] == declaration_names[declaration] {
+                if declaration_nominal_kinds[declaration] != "zone" {
+                    return SelfMirDeclarationZoneAuthorityRowsEmpty();
+                }
+                ArrayPush(slots, facts.subject_slot_names[fact]);
+                ArrayPush(ability_starts, ArrayLength(abilities));
+                let ability_i: Int = 0;
+                while ability_i < facts.required_ability_counts[fact] {
+                    ArrayPush(
+                        abilities,
+                        facts.required_ability_names[
+                            facts.required_ability_starts[fact] + ability_i
+                        ]
+                    );
+                    ability_i = ability_i + 1;
+                }
+                ArrayPush(ability_counts, facts.required_ability_counts[fact]);
+                matched = matched + 1;
+            }
+            fact = fact + 1;
+        }
+        ArrayPush(starts, start);
+        ArrayPush(counts, ArrayLength(slots) - start);
+        declaration = declaration + 1;
+    }
+    if matched != ArrayLength(facts.authority_node_ids) {
+        return SelfMirDeclarationZoneAuthorityRowsEmpty();
+    }
+    return SelfMirDeclarationZoneAuthorityRows(
+        starts, counts, slots, ability_starts, ability_counts, abilities
+    );
+}
+
+func SelfMirDeclarationZoneAuthorityRowsReady(
+    ref rows: SelfMirDeclarationZoneAuthorityRows,
+    declaration_names: Array<String>,
+    declaration_nominal_kinds: Array<String>
+) -> Bool {
+    let declaration_count: Int = ArrayLength(declaration_names);
+    if ArrayLength(declaration_nominal_kinds) != declaration_count ||
+        ArrayLength(rows.declaration_starts) != declaration_count ||
+        ArrayLength(rows.declaration_counts) != declaration_count ||
+        ArrayLength(rows.subject_slot_names) !=
+            ArrayLength(rows.required_ability_starts) ||
+        ArrayLength(rows.subject_slot_names) !=
+            ArrayLength(rows.required_ability_counts) {
+        return false;
+    }
+    let authority_cursor: Int = 0;
+    let ability_cursor: Int = 0;
+    let declaration: Int = 0;
+    while declaration < declaration_count {
+        let count: Int = rows.declaration_counts[declaration];
+        if rows.declaration_starts[declaration] != authority_cursor ||
+            count < 0 ||
+            (declaration_nominal_kinds[declaration] != "zone" && count != 0) {
+            return false;
+        }
+        let authority_i: Int = 0;
+        while authority_i < count {
+            let row: Int = authority_cursor + authority_i;
+            if rows.subject_slot_names[row] == "" ||
+                rows.required_ability_starts[row] != ability_cursor ||
+                rows.required_ability_counts[row] < 0 {
+                return false;
+            }
+            let prior: Int = authority_cursor;
+            while prior < row {
+                if rows.subject_slot_names[prior] ==
+                    rows.subject_slot_names[row] { return false; }
+                prior = prior + 1;
+            }
+            let ability_i: Int = 0;
+            while ability_i < rows.required_ability_counts[row] {
+                let ability_row: Int = ability_cursor + ability_i;
+                if ability_row >= ArrayLength(rows.required_ability_names) ||
+                    rows.required_ability_names[ability_row] == "" {
+                    return false;
+                }
+                let prior_ability: Int = ability_cursor;
+                while prior_ability < ability_row {
+                    if rows.required_ability_names[prior_ability] ==
+                        rows.required_ability_names[ability_row] {
+                        return false;
+                    }
+                    prior_ability = prior_ability + 1;
+                }
+                ability_i = ability_i + 1;
+            }
+            ability_cursor = ability_cursor + rows.required_ability_counts[row];
+            authority_i = authority_i + 1;
+        }
+        authority_cursor = authority_cursor + count;
+        declaration = declaration + 1;
+    }
+    return authority_cursor == ArrayLength(rows.subject_slot_names) &&
+        ability_cursor == ArrayLength(rows.required_ability_names);
+}

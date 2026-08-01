@@ -322,6 +322,17 @@ function Get-ProcessTreeRows {
         $byParent[$parent].Add([int]$p.ProcessId)
     }
 
+    # The measured root can exit between HasExited and the CIM snapshot. A
+    # reused PID must not adopt an unrelated process tree (for example vmmem)
+    # and turn that host-wide memory into this build's peak or kill target.
+    if (-not $byId.ContainsKey($RootPid)) {
+        return @()
+    }
+    $rootCreatedAt = [datetime]$byId[$RootPid].CreationDate
+    if ([Math]::Abs(($rootCreatedAt - $StartedAt).TotalSeconds) -gt 5) {
+        return @()
+    }
+
     $result = New-Object System.Collections.Generic.List[object]
     $resultIds = New-Object System.Collections.Generic.HashSet[int]
     $queue = New-Object System.Collections.Generic.Queue[int]

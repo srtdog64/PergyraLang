@@ -8,6 +8,7 @@ import "json_fact_read.pgy";
 import "match_binding_render_owner.pgy";
 import "routine_fact_index_owner.pgy";
 import "structured_expression_emission_order_owner.pgy";
+import "program_enum_variant_index_owner.pgy";
 
 func BlockCondWithExpressionOrder(ref index: MirRoutineFactIndex,
     ref routines: MirProgramRoutineIndex, routine_row: Int,
@@ -67,7 +68,9 @@ func BlockCondWithExpressionOrder(ref index: MirRoutineFactIndex,
         }
         let variant_name: String = variant;
         if variant_name == "" { variant_name = pattern; }
-        let enum_owner: String = MirEnumOwnerForVariant(json, variant_name);
+        let enum_owner: String = MirProgramEnumVariantOwnerForName(
+            routines.declarations.enum_variants, variant_name
+        );
         if StringLength(enum_owner) > 0 {
             return Concat(match_subject, Concat(" == ", Concat(enum_owner, Concat(".", variant_name))));
         }

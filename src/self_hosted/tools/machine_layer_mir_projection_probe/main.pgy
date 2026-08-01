@@ -11,41 +11,57 @@ import "../../mir/instruction_scalar_mutation_owner.pgy";
 import "../../semantic/ast_expression_graph_build_owner.pgy";
 import "../../compiler/machine_layer_declaration_consumer.pgy";
 
-func MachineProbeCallGraph(
-    target_name: String,
-    expression: String
-) -> SemanticExpressionGraphView {
+struct MachineProbeProgramGraph {
+    graph: SemanticExpressionGraphFacts;
+    root_ids: Array<Int>;
+}
+
+func MachineProbeProgramExpressionGraph() -> MachineProbeProgramGraph {
     let kinds: Array<Int> = [];
     let texts: Array<String> = [];
     let left_children: Array<Int> = [];
     let right_children: Array<Int> = [];
     let target_kinds: Array<Int> = [];
     let target_names: Array<String> = [];
-    let built: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
-            kinds, texts, left_children, right_children,
-            target_kinds, target_names, expression
-        );
-    if !built.ok || built.root_id < 0 ||
-        kinds[built.root_id] != AstExpressionNodeCall() {
-        Log(Concat("machine probe graph build failed: ", expression));
-        Exit(1);
+    let root_ids: Array<Int> = [];
+    let has_roots: Array<Bool> = [];
+    let call_target_names: Array<String> = [
+        "ClaimDeviceSlot", "DeviceRead", "DeviceWrite",
+        "ReleaseDeviceSlot", "SubmitDeviceRead"
+    ];
+    let i: Int = 0;
+    while i < ArrayLength(call_target_names) {
+        let built: SemanticExpressionGraphBuild =
+            SemanticExpressionGraphBuildCompactBridgeFromText(
+                kinds, texts, left_children, right_children,
+                target_kinds, target_names, "ClaimDeviceSlot()"
+            );
+        if !built.ok || built.root_id < 0 ||
+            kinds[built.root_id] != AstExpressionNodeCall() {
+            Log("machine probe program graph build failed");
+            Exit(1);
+        }
+        ArraySet(target_kinds, built.root_id, SemanticCallTargetDirect());
+        ArraySet(target_names, built.root_id, call_target_names[i]);
+        ArrayPush(root_ids, built.root_id);
+        ArrayPush(has_roots, true);
+        i = i + 1;
     }
-    ArraySet(target_kinds, built.root_id, SemanticCallTargetDirect());
-    ArraySet(target_names, built.root_id, target_name);
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaUnclassified(
-        kinds, texts, left_children, right_children,
-        target_kinds, target_names
-    );
+            kinds, texts, left_children, right_children,
+            target_kinds, target_names
+        );
     let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
-        true, [built.root_id], [true], arena
+        true, root_ids, has_roots, arena
     );
-    if !SemanticExpressionGraphFactsReady(graph, 1) {
-        Log(Concat("machine probe graph facts failed: ", expression));
+    if !SemanticExpressionGraphFactsReady(
+        graph, ArrayLength(call_target_names)
+    ) {
+        Log("machine probe program graph facts failed");
         Exit(1);
     }
-    return SemanticExpressionGraphView(true, built.root_id, graph);
+    return MachineProbeProgramGraph(graph, root_ids);
 }
 
 func MachineProbeGraphWithoutTarget() -> SemanticExpressionGraphView {
@@ -84,7 +100,7 @@ func MachineProbeAddCall(
     source_type: String,
     abi_type_name: String,
     uses: Array<String>,
-    target_name: String,
+    graph_view: SemanticExpressionGraphView,
     declaration: SelfHostMachineLayerDeclaration
 ) -> SelfMirCfgRows {
     let added: SelfMirCfgRows = SelfMirCfgAddInstruction(
@@ -92,7 +108,7 @@ func MachineProbeAddCall(
         source_type, uses
     );
     let projected: SelfMirCfgRows = SelfMirCfgAttachLastExpr0Graph(
-        added, MachineProbeCallGraph(target_name, expression), declaration
+        added, graph_view, declaration
     );
     let typed: SelfMirCfgRows = SelfMirCfgAttachLastAbiTypeName(
         projected, abi_type_name
@@ -117,33 +133,49 @@ func MachineProbeAddCall(
 func MachineProbeFacts(
     declaration: SelfHostMachineLayerDeclaration
 ) -> SelfMirProgramFacts {
+    let program_graph: MachineProbeProgramGraph =
+        MachineProbeProgramExpressionGraph();
     let cfg0: SelfMirCfgRows = SelfMirCfgAddBlock(SelfMirCfgRowsEmpty());
     let no_uses: Array<String> = [];
     let no_ints: Array<Int> = [];
     let cfg1: SelfMirCfgRows = MachineProbeAddCall(
         cfg0, 0, "def", "ssa-def", "dev.1", "dev", "",
         "ClaimDeviceSlot()", "AST_LET_DECL", "DeviceSlot<Int>", no_uses,
-        "ClaimDeviceSlot",
+        SemanticExpressionGraphView(
+            true, program_graph.root_ids[0], program_graph.graph
+        ),
         declaration
     );
     let cfg2: SelfMirCfgRows = MachineProbeAddCall(
         cfg1, 1, "def", "ssa-def", "current.1", "current", "",
-        "ClaimDeviceSlot()", "AST_LET_DECL", "Int", ["dev.1"], "DeviceRead",
+        "ClaimDeviceSlot()", "AST_LET_DECL", "Int", ["dev.1"],
+        SemanticExpressionGraphView(
+            true, program_graph.root_ids[1], program_graph.graph
+        ),
         declaration
     );
     let cfg3: SelfMirCfgRows = MachineProbeAddCall(
         cfg2, 2, "stmt", "stmt", "", "DeviceWrite", "current",
         "ClaimDeviceSlot()", "AST_CALL", "", ["dev.1", "current.1"],
-        "DeviceWrite", declaration
+        SemanticExpressionGraphView(
+            true, program_graph.root_ids[2], program_graph.graph
+        ),
+        declaration
     );
     let cfg4: SelfMirCfgRows = MachineProbeAddCall(
         cfg3, 3, "stmt", "stmt", "", "ReleaseDeviceSlot", "",
-        "ClaimDeviceSlot()", "AST_CALL", "", ["dev.1"], "ReleaseDeviceSlot",
+        "ClaimDeviceSlot()", "AST_CALL", "", ["dev.1"],
+        SemanticExpressionGraphView(
+            true, program_graph.root_ids[3], program_graph.graph
+        ),
         declaration
     );
     let cfg5: SelfMirCfgRows = MachineProbeAddCall(
         cfg4, 4, "stmt", "stmt", "", "SubmitDeviceRead", "",
-        "ClaimDeviceSlot()", "AST_CALL", "", ["dev.1"], "SubmitDeviceRead",
+        "ClaimDeviceSlot()", "AST_CALL", "", ["dev.1"],
+        SemanticExpressionGraphView(
+            true, program_graph.root_ids[4], program_graph.graph
+        ),
         declaration
     );
     let routines: SelfMirRoutineRows = SelfMirRoutineRows(
@@ -163,7 +195,7 @@ func MachineProbeFacts(
         SelfMirDomainRuntimeAssignmentFactsEmpty(true, false),
         SelfMirGenericSpecializationRowsEmpty(),
         SelfMirParallelCaptureRowsEmpty(),
-        routines, cfg5
+        routines, cfg5, program_graph.graph
     );
 }
 

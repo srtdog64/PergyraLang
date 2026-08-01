@@ -100,18 +100,31 @@ func ReadJsonStringBounded(
     inout end: Array<Int>
 ) -> String {
     let n: Int = limit;
-    let i: Int = open + 1;
-    let chunks: Array<String> = [];
-    while i < n {
-        let c: Int = JsonCharCodeAt(json, n, i);
+    let close: Int = open + 1;
+    let escaped: Bool = false;
+    while close < n {
+        let c: Int = JsonCharCodeAt(json, n, close);
         if c == JsonAsciiCode("\"") {
-            ArraySet(end, 0, i + 1);
-            return StringJoin(chunks, "");
+            ArraySet(end, 0, close + 1);
+            if !escaped {
+                return SubstringWithLen(json, n, open + 1, close - open - 1);
+            }
+            break;
         }
         if c == JsonAsciiCode("\\") {
-            if i + 1 >= n {
-                return "";
-            }
+            escaped = true;
+            if close + 1 >= n { return ""; }
+            close = close + 2;
+        } else {
+            close = close + 1;
+        }
+    }
+    if close >= n { return ""; }
+    let i: Int = open + 1;
+    let chunks: Array<String> = [];
+    while i < close {
+        let c: Int = JsonCharCodeAt(json, n, i);
+        if c == JsonAsciiCode("\\") {
             let e: Int = JsonCharCodeAt(json, n, i + 1);
             if e == JsonAsciiCode("n") {
                 ArrayPush(chunks, "\n");
@@ -127,12 +140,9 @@ func ReadJsonStringBounded(
                 ArrayPush(chunks, CharAtN(json, n, i + 1));
             }
             i = i + 2;
-        } else {
-            ArrayPush(chunks, CharAtN(json, n, i));
-            i = i + 1;
-        }
+        } else { ArrayPush(chunks, CharAtN(json, n, i)); i = i + 1; }
     }
-    return "";
+    return StringJoin(chunks, "");
 }
 
 func ReadJsonString(json: String, open: Int, inout end: Array<Int>) -> String {

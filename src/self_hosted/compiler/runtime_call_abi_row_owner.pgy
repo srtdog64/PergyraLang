@@ -183,6 +183,7 @@ func CompilerRuntimeCallAbiStringCallShape(operation: String) -> String {
     }
     if operation == "sub-index-of-with-len" { return "string_int_string_int_to_int"; }
     if operation == "substring" { return "string_int_int_to_string"; }
+    if operation == "substring-with-len" { return "string_int_int_int_to_string"; }
     if operation == "join" { return "array_string_string_to_string"; }
     if operation == "to-string" { return "value_to_string"; }
     return "string_runtime_call";
@@ -250,7 +251,7 @@ func CompilerRuntimeCallAbiRow(input: CompilerRuntimeCallAbiRowInput) -> String 
 }
 
 func CompilerRuntimeCallAbiConcreteRowCount() -> Int {
-    return 245;
+    return 246;
 }
 
 func CompilerRuntimeCallAbiNativeScalarTypeAt(index: Int) -> String {
@@ -459,6 +460,7 @@ func CompilerRuntimeCallAbiStringRowAt(index: Int) -> String {
     if index == 21 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "substring", StringRuntimeCSubstringFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     if index == 22 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "join", StringRuntimeCStringJoinFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     if index == 23 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "to-string", StringRuntimeCToStringFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 24 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "substring-with-len", StringRuntimeCSubstringWithLenFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     return "";
 }
 
@@ -510,6 +512,7 @@ func CompilerRuntimeCallAbiRowAt(index: Int) -> String {
     if index >= 231 && index < 237 { return CompilerRuntimeCallAbiNativeDeviceSubmitRowAt(index - 231); }
     if index >= 237 && index < 243 { return CompilerRuntimeCallAbiTextBuilderRowAt(index - 237); }
     if index >= 243 && index < 245 { return CompilerRuntimeCallAbiCheckedArithmeticRowAt(index - 243); }
+    if index == 245 { return CompilerRuntimeCallAbiStringRowAt(24); }
     return "";
 }
 

@@ -141,6 +141,8 @@ llvm_declare_runtime_core_builtins(LLVMGenCtx *ctx)
               { ctx->type_i8ptr, ctx->type_i8ptr, ctx->type_i8ptr }, 3 },
             { "Substring", ctx->type_i8ptr,
               { ctx->type_i8ptr, ctx->type_i32, ctx->type_i32 }, 3 },
+            { "SubstringWithLen", ctx->type_i8ptr,
+              { ctx->type_i8ptr, ctx->type_i32, ctx->type_i32, ctx->type_i32 }, 4 },
             { "CharAtN", ctx->type_i8ptr,
               { ctx->type_i8ptr, ctx->type_i32, ctx->type_i32 }, 3 },
             { "CharCode", ctx->type_i32,

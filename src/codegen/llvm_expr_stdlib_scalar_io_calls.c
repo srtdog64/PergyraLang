@@ -158,6 +158,7 @@ llvm_stdlib_string_file_runtime_call_lookup(const char *callee_name)
         { "SubStartsWith", "stdlib string", "SubStartsWith", 3 },
         { "SubStartsWithLen", "stdlib string", "SubStartsWithLen", 4 },
         { "Substring", "stdlib string", "Substring", 3 },
+        { "SubstringWithLen", "stdlib string", "SubstringWithLen", 4 },
         { "Tan", "stdlib scalar", "Tan", 1 },
         { "ToFloat", "stdlib scalar", "ToFloat", 1 },
         { "ToInt", "stdlib scalar", "ToInt", 1 },

@@ -35,9 +35,14 @@ DRIVER_SOURCE_REL="${paths[8]}"
 [[ -f "$ROOT_DIR/$DRIVER_SOURCE_REL" ]] ||
     fail "missing driver source from manifest: $DRIVER_SOURCE_REL"
 
+case "$OUTPUT" in
+    "$ROOT_DIR"/*) OUTPUT_REL="${OUTPUT#"$ROOT_DIR"/}" ;;
+    *) fail "focused output must remain under repository root: $OUTPUT" ;;
+esac
+
 cd "$ROOT_DIR"
 "$DRIVER_SEED" \
     --emit-mir-json-verified \
     "$DRIVER_SOURCE_REL" \
-    "$OUTPUT" \
+    "$OUTPUT_REL" \
     --pressure-owned-full-fixpoint

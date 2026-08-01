@@ -8,6 +8,7 @@ import "json_fact_read.pgy";
 
 func MirExpressionGraphSequenceAppendMatchOccurrence(
     sequence: MirExpressionGraphSequence,
+    ref enum_variants: MirProgramEnumVariantIndex,
     instruction: JsonObjectFactTable,
     subject_graph: JsonObjectFactTable,
     lane: Int,
@@ -53,7 +54,8 @@ func MirExpressionGraphSequenceAppendMatchOccurrence(
         );
     }
     return MirExpressionGraphSequenceAppendTaggedEnumMatchOccurrence(
-        sequence, instruction, subject_graph, UnwrapOption(match_value),
+        sequence, enum_variants, instruction, subject_graph,
+        UnwrapOption(match_value),
         UnwrapOption(pattern_opt), variant_opt, UnwrapOption(binding_count),
         lane, ordinal
     );

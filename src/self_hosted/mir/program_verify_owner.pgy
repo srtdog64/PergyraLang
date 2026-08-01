@@ -35,19 +35,19 @@ func SelfMirInstructionUsesLocalVersion(
 }
 
 func SelfMirAssignmentTargetGraphBaseText(
-    ref rows: SelfMirExpressionGraphRows,
+    ref graph: SemanticExpressionGraphFacts,
     root: Int
 ) -> Option<String> {
     let cursor: Int = root;
     let traversed: Int = 0;
     while cursor >= 0 &&
-        cursor < SelfMirExpressionGraphNodeCount(rows) &&
-        traversed < SelfMirExpressionGraphNodeCount(rows) {
+        cursor < SelfMirExpressionGraphNodeCount(graph) &&
+        traversed < SelfMirExpressionGraphNodeCount(graph) {
         let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
-            rows.graph, cursor
+            graph, cursor
         );
         let text_opt: Option<String> = SemanticExpressionGraphNodeText(
-            rows.graph, cursor
+            graph, cursor
         );
         if !IsSome(kind_opt) || !IsSome(text_opt) { return None; }
         let kind: Int = UnwrapOption(kind_opt);
@@ -59,7 +59,7 @@ func SelfMirAssignmentTargetGraphBaseText(
             return None;
         }
         let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
-            rows.graph, cursor
+            graph, cursor
         );
         if !IsSome(left_opt) { return None; }
         cursor = UnwrapOption(left_opt);
@@ -70,6 +70,7 @@ func SelfMirAssignmentTargetGraphBaseText(
 
 func SelfMirAssignmentTargetGraphValidationError(
     rows: SelfMirInstructionRows,
+    ref graph: SemanticExpressionGraphFacts,
     instruction_index: Int
 ) -> String {
     if rows.source_types[instruction_index] != "AST_ASSIGNMENT" {
@@ -89,10 +90,10 @@ func SelfMirAssignmentTargetGraphValidationError(
     }
     let root: Int = rows.expr1_graphs.roots[instruction_index];
     let root_kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
-        rows.expr1_graphs.graph, root
+        graph, root
     );
     let root_text_opt: Option<String> = SemanticExpressionGraphNodeText(
-        rows.expr1_graphs.graph, root
+        graph, root
     );
     if !IsSome(root_kind_opt) || !IsSome(root_text_opt) {
         return "target graph root handle is invalid";
@@ -128,7 +129,7 @@ func SelfMirAssignmentTargetGraphValidationError(
         );
     }
     let graph_base: Option<String> = SelfMirAssignmentTargetGraphBaseText(
-        rows.expr1_graphs, root
+        graph, root
     );
     if !IsSome(graph_base) || UnwrapOption(graph_base) != base_name {
         let graph_base_text: String = "<missing>";
@@ -152,26 +153,28 @@ func SelfMirAssignmentTargetGraphValidationError(
 
 func SelfMirAssignmentTargetGraphReady(
     rows: SelfMirInstructionRows,
+    ref graph: SemanticExpressionGraphFacts,
     instruction_index: Int
 ) -> Bool {
     return SelfMirAssignmentTargetGraphValidationError(
-        rows, instruction_index
+        rows, graph, instruction_index
     ) == "";
 }
 
-func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
-    return SelfMirInstructionRowsValidationError(rows) == "";
+func SelfMirInstructionRowsReady(
+    rows: SelfMirInstructionRows,
+    ref graph: SemanticExpressionGraphFacts
+) -> Bool {
+    return SelfMirInstructionRowsValidationError(rows, graph) == "";
 }
 
 func SelfMirAssignmentTargetGraphContractReady() -> Bool {
     let no_uses: Array<String> = [];
-    let value_graph: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRowsFromLegacy(
+    let value_graph: SelfMirExpressionGraphContractFixture = SelfMirExpressionGraphContractFixtureFromLegacy(
             [1], [0], [0], [1], [AstExpressionNodeLeaf()], ["values[j]"],
             [0], [0], [SemanticCallTargetNone()], [""]
         );
-    let target_graph: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRowsFromLegacy(
+    let target_graph: SelfMirExpressionGraphContractFixture = SelfMirExpressionGraphContractFixtureFromLegacy(
             [1], [2], [0], [3],
             [AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
              AstExpressionNodeIndex()],
@@ -179,23 +182,19 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
             [SemanticCallTargetNone(), SemanticCallTargetNone(),
             SemanticCallTargetNone()], ["", "", ""]
         );
-    let simple_value_graph: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRowsFromLegacy(
+    let simple_value_graph: SelfMirExpressionGraphContractFixture = SelfMirExpressionGraphContractFixtureFromLegacy(
             [1], [0], [0], [1], [AstExpressionNodeLeaf()], ["1"],
             [0], [0], [SemanticCallTargetNone()], [""]
         );
-    let simple_target_graph: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRowsFromLegacy(
+    let simple_target_graph: SelfMirExpressionGraphContractFixture = SelfMirExpressionGraphContractFixtureFromLegacy(
             [1], [0], [0], [1], [AstExpressionNodeLeaf()], ["x"],
             [0], [0], [SemanticCallTargetNone()], [""]
         );
     let no_match_facts: SelfMirMatchFactRows = SelfMirMatchFactRowsEmpty();
     let no_destructure_facts: SelfMirDestructureFactRows = SelfMirDestructureFactRowsEmpty();
     let no_abi_type_names: Array<String> = [""];
-    let no_runtime_call_abi: SelfMirRuntimeCallAbiRows =
-        SelfMirRuntimeCallAbiRowsForInstructionCount(1);
-    let member_target_graph: SelfMirExpressionGraphRows =
-        SelfMirExpressionGraphRowsFromLegacy(
+    let no_runtime_call_abi: SelfMirRuntimeCallAbiRows = SelfMirRuntimeCallAbiRowsForInstructionCount(1);
+    let member_target_graph: SelfMirExpressionGraphContractFixture = SelfMirExpressionGraphContractFixtureFromLegacy(
             [1], [2], [0], [3],
             [AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
              AstExpressionNodeMemberAccess()],
@@ -208,7 +207,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [3],
         ["values.1", "i.1", "j.1"],
-        value_graph, target_graph, no_match_facts, no_destructure_facts,
+        value_graph.rows, target_graph.rows, no_match_facts, no_destructure_facts,
         no_abi_type_names, no_runtime_call_abi
     );
     let valid_simple: SelfMirInstructionRows = SelfMirInstructionRows(
@@ -216,14 +215,14 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         ["1"], ["x"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [0], no_uses,
-        simple_value_graph, simple_target_graph, no_match_facts,
+        simple_value_graph.rows, simple_target_graph.rows, no_match_facts,
         no_destructure_facts, no_abi_type_names, no_runtime_call_abi
     );
     let valid_member: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["base.2"], ["base"], [""], [""],
         ["1"], ["base.text"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
-        [0], [1], ["base.1"], simple_value_graph, member_target_graph,
+        [0], [1], ["base.1"], simple_value_graph.rows, member_target_graph.rows,
         no_match_facts, no_destructure_facts, no_abi_type_names,
         no_runtime_call_abi
     );
@@ -231,14 +230,14 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""], [""],
         ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [2],
-        ["i.1", "j.1"], value_graph, target_graph, no_match_facts,
+        ["i.1", "j.1"], value_graph.rows, target_graph.rows, no_match_facts,
         no_destructure_facts, no_abi_type_names, no_runtime_call_abi
     );
     let missing_target_graph: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""], [""],
         ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [3],
-        ["values.1", "i.1", "j.1"], value_graph,
+        ["values.1", "i.1", "j.1"], value_graph.rows,
         SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
         no_destructure_facts, no_abi_type_names, no_runtime_call_abi
     );
@@ -247,7 +246,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
             [0], ["def"], ["ssa-def"], ["base.2"], ["base"], [""], [""],
             ["1"], ["base.text"], ["AST_ASSIGNMENT"],
             [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
-            [0], [0], no_uses, simple_value_graph, member_target_graph,
+            [0], [0], no_uses, simple_value_graph.rows, member_target_graph.rows,
             no_match_facts, no_destructure_facts, no_abi_type_names,
             no_runtime_call_abi
         );
@@ -257,7 +256,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
             ["1"], ["x"], ["AST_ASSIGNMENT"],
             [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
             [0], [0], no_uses,
-            simple_value_graph,
+            simple_value_graph.rows,
             SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
             no_destructure_facts, no_abi_type_names, no_runtime_call_abi
         );
@@ -272,7 +271,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [0], ["branch"], ["branch"], [""], [""], [""], [""],
         ["x"], [""], ["AST_MATCH_CASE"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
-        [0], [1], ["x.1"], simple_target_graph,
+        [0], [1], ["x.1"], simple_target_graph.rows,
         SelfMirExpressionGraphRowsForInstructionCount(1), scalar_match_facts,
         no_destructure_facts, no_abi_type_names, no_runtime_call_abi
     );
@@ -280,7 +279,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [0], ["branch"], ["branch"], [""], [""], [""], [""],
         ["x"], [""], ["AST_MATCH_CASE"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
-        [0], [1], ["x.1"], simple_target_graph,
+        [0], [1], ["x.1"], simple_target_graph.rows,
         SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
         no_destructure_facts, no_abi_type_names, no_runtime_call_abi
     );
@@ -292,7 +291,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [0], ["destructure"], ["destructure"], [""], [""], [""], [""],
         ["Split(csv, \",\")"], [""], ["AST_LET_DESTRUCTURE"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
-        [0], [0], no_uses, value_graph,
+        [0], [0], no_uses, value_graph.rows,
         SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
         destructure_facts, no_abi_type_names, no_runtime_call_abi
     );
@@ -300,21 +299,21 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [0], ["destructure"], ["destructure"], [""], [""], [""], [""],
         ["Split(csv, \",\")"], [""], ["AST_LET_DESTRUCTURE"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
-        [0], [0], no_uses, value_graph,
+        [0], [0], no_uses, value_graph.rows,
         SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
         no_destructure_facts, no_abi_type_names, no_runtime_call_abi
     );
-    return SelfMirInstructionRowsReady(valid) &&
-        SelfMirInstructionRowsReady(valid_simple) &&
-        SelfMirInstructionRowsReady(valid_member) &&
-        SelfMirInstructionRowsReady(valid_match) &&
-        SelfMirInstructionRowsReady(valid_destructure) &&
-        !SelfMirInstructionRowsReady(missing_base_use) &&
-        !SelfMirInstructionRowsReady(missing_member_base_use) &&
-        !SelfMirInstructionRowsReady(missing_target_graph) &&
-        !SelfMirInstructionRowsReady(missing_simple_target_graph) &&
-        !SelfMirInstructionRowsReady(missing_match) &&
-        !SelfMirInstructionRowsReady(missing_destructure);
+    return SelfMirInstructionRowsReady(valid, target_graph.graph) &&
+        SelfMirInstructionRowsReady(valid_simple, simple_target_graph.graph) &&
+        SelfMirInstructionRowsReady(valid_member, member_target_graph.graph) &&
+        SelfMirInstructionRowsReady(valid_match, simple_target_graph.graph) &&
+        SelfMirInstructionRowsReady(valid_destructure, value_graph.graph) &&
+        !SelfMirInstructionRowsReady(missing_base_use, target_graph.graph) &&
+        !SelfMirInstructionRowsReady(missing_member_base_use, member_target_graph.graph) &&
+        !SelfMirInstructionRowsReady(missing_target_graph, target_graph.graph) &&
+        !SelfMirInstructionRowsReady(missing_simple_target_graph, simple_target_graph.graph) &&
+        !SelfMirInstructionRowsReady(missing_match, simple_target_graph.graph) &&
+        !SelfMirInstructionRowsReady(missing_destructure, value_graph.graph);
 }
 
 func SelfMirBlockRowsValidationError(
@@ -560,10 +559,11 @@ func SelfMirProgramFactsValidationError(facts: SelfMirProgramFacts) -> String {
     if !SelfMirParallelCaptureRowsReady(facts.parallel_captures) {
         return "MIR parallel capture rows are invalid";
     }
-    if !SelfMirInstructionRowsReady(facts.cfg.instructions) {
+    if !SelfMirInstructionRowsReady(facts.cfg.instructions, facts.expression_graph) {
         return Concat(
             "MIR instruction rows are invalid: ",
-            SelfMirInstructionRowsValidationError(facts.cfg.instructions)
+            SelfMirInstructionRowsValidationError(
+                facts.cfg.instructions, facts.expression_graph)
         );
     }
     if !SelfMirBlockRowsReady(

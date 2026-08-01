@@ -13,21 +13,22 @@ import "driver_rung2_execution_owner.pgy";
 import "driver_source_mir_execution_owner.pgy";
 subject SourceUnit {
     let path: String;
-    action Read(self, paths: StagePathManifest) -> Bool {
+    action Read(self, paths: StagePathManifest) -> Bool
+        requires SourceReading within SourceIntakeZone authorized by self {
         return CompilerStagePathManifestReady();
     }
 }
-
 subject LexerStage {
     let name: String;
-    action Scan(self) -> Bool {
+    action Scan(self) -> Bool
+        requires TokenScanning within TokenStreamZone authorized by self {
         return CompilerTokenStreamFactReady();
     }
 }
-
 subject ParserStage {
     let name: String;
-    action BuildAst(self) -> Bool {
+    action BuildAst(self) -> Bool
+        requires AstConstruction within AstTreeZone authorized by self {
         return CompilerAstTreeFactReady();
     }
 }
@@ -44,7 +45,8 @@ subject SemanticStage {
 
 subject MirLowerStage {
     let name: String;
-    action Lower(self) -> Bool {
+    action Lower(self) -> Bool
+        requires MirFactLowering within MirFactGraphZone authorized by self {
         return CompilerMirFactGraphReady();
     }
 }
@@ -64,7 +66,8 @@ subject ProgramEmitter {
 
 subject TargetProjectionPlanner {
     let name: String;
-    action Plan(self) -> Bool {
+    action Plan(self) -> Bool
+        requires TargetProjectionPlanning within TargetCapabilityZone authorized by self {
         return CompilerTargetCapabilityEnvelopeReady();
     }
 }
@@ -72,13 +75,15 @@ subject TargetProjectionPlanner {
 subject CompatibilityEvolutionOwner {
     let name: String;
 
-    action Own(self) -> Bool { return CompilerCompatibilityEvolutionReady(); }
+    action Own(self) -> Bool
+        requires CompatibilityFactOwnership within CompatibilityEvolutionZone authorized by self { return CompilerCompatibilityEvolutionReady(); }
 }
 
 subject AirEvidenceOwner {
     let name: String;
 
-    action Verify(self) -> Bool { return CompilerAirEvidenceEnvelopeReady(); }
+    action Verify(self) -> Bool
+        requires AirEvidenceProving within AirEvidenceZone authorized by self { return CompilerAirEvidenceEnvelopeReady(); }
 }
 
 subject SandboxCapabilityOwner {
@@ -90,25 +95,29 @@ subject SandboxCapabilityOwner {
 subject SymbolTableOwner {
     let name: String;
 
-    action Own(self) -> Bool { return CompilerSymbolTableReady(); }
+    action Own(self) -> Bool
+        requires SymbolFactOwnership within SymbolFactTableZone authorized by self { return CompilerSymbolTableReady(); }
 }
 
 subject AbiRowProjector {
     let name: String;
 
-    action Project(self) -> Bool { return CompilerAbiLayoutRowsReady(); }
+    action Project(self) -> Bool
+        requires AbiRowProjection within AbiRowProjectionZone authorized by self { return CompilerAbiLayoutRowsReady(); }
 }
 
 subject ArtifactSink {
     let name: String;
 
-    action Collect(self) -> Bool { return CompilerArtifactZoneReady(); }
+    action Collect(self) -> Bool
+        requires ArtifactCollection within ArtifactZone authorized by self { return CompilerArtifactZoneReady(); }
 }
 
 subject TestHarnessRunner {
     let name: String;
 
-    action Prepare(self) -> Bool { return CompilerTestHarnessReady(); }
+    action Prepare(self) -> Bool
+        requires TestHarnessPreparation within TestHarnessZone authorized by self { return CompilerTestHarnessReady(); }
 }
 
 subject SubprocessRunner {
@@ -174,18 +183,18 @@ zone SourceIntakeZone {
     subject slot source: SourceUnit
     object slot paths: StagePathManifest
     object slot imports: SourceBatch
+    authority source requires SourceReading
 }
-
 zone TokenStreamZone {
     subject slot lexer: LexerStage
     object slot tokens: TokenStream
+    authority lexer requires TokenScanning
 }
-
 zone AstTreeZone {
     subject slot parser: ParserStage
     object slot ast: AstTree
+    authority parser requires AstConstruction
 }
-
 zone SemanticVerdictZone {
     subject slot checker: SemanticStage
     object slot verdict: SemanticVerdict
@@ -195,8 +204,8 @@ zone SemanticVerdictZone {
 zone MirFactGraphZone {
     subject slot lowerer: MirLowerStage
     object slot mir: MirFactGraph
+    authority lowerer requires MirFactLowering
 }
-
 zone TypeEnvZone {
     object slot bindings: TypeEnvironment
 }
@@ -208,18 +217,18 @@ zone AbiLayoutZone {
 zone TargetCapabilityZone {
     subject slot planner: TargetProjectionPlanner
     object slot envelope: TargetCapabilityEnvelope
+    authority planner requires TargetProjectionPlanning
 }
-
 zone CompatibilityEvolutionZone {
     subject slot owner: CompatibilityEvolutionOwner
     object slot facts: CompatibilityEvolutionFacts
+    authority owner requires CompatibilityFactOwnership
 }
-
 zone AirEvidenceZone {
     subject slot owner: AirEvidenceOwner
     object slot facts: AirEvidenceFacts
+    authority owner requires AirEvidenceProving
 }
-
 zone SandboxCapabilityZone {
     subject slot owner: SandboxCapabilityOwner
     object slot facts: SandboxCapabilityFacts
@@ -228,13 +237,13 @@ zone SandboxCapabilityZone {
 zone SymbolFactTableZone {
     subject slot owner: SymbolTableOwner
     object slot symbols: SymbolFactTable
+    authority owner requires SymbolFactOwnership
 }
-
 zone AbiRowProjectionZone {
     subject slot projector: AbiRowProjector
     object slot rows: AbiLayoutRows
+    authority projector requires AbiRowProjection
 }
-
 zone EmissionZone {
     subject slot emitter: ProgramEmitter
     object slot c_output: EmittedC
@@ -244,13 +253,13 @@ zone EmissionZone {
 zone ArtifactZone {
     subject slot sink: ArtifactSink
     object slot evidence: ArtifactEvidence
+    authority sink requires ArtifactCollection
 }
-
 zone TestHarnessZone {
     subject slot runner: TestHarnessRunner
     object slot facts: TestHarnessFacts
+    authority runner requires TestHarnessPreparation
 }
-
 zone SubprocessRunnerZone {
     subject slot runner: SubprocessRunner
     object slot envelope: SubprocessCapabilityEnvelope
@@ -325,7 +334,6 @@ intent LexSource(tokens: TokenStreamZone, lexer: LexerStage) {
     exclusive;
 
     step Scan {
-        where: TokenStreamZone;
         using: tokens;
         on: lexer.Scan();
         expect: true;
@@ -339,7 +347,6 @@ intent ParseTokens(ast: AstTreeZone, parser: ParserStage) {
     exclusive;
 
     step BuildAst {
-        where: AstTreeZone;
         using: ast;
         on: parser.BuildAst();
         expect: true;
@@ -539,6 +546,7 @@ intent CompilePergyraProgram(
         where: SourceIntakeZone;
         using: intake;
         who: source;
+        authorized by: source;
         on: FrontendPipeline(intake, tokens, ast, paths, source, lexer, parser);
         expect: true;
     }
@@ -556,6 +564,8 @@ intent CompilePergyraProgram(
         where: AirEvidenceZone;
         using: air_evidence_zone;
         who: evidence_owner;
+        requires: AirEvidenceProving;
+        authorized by: evidence_owner;
         on: ProveHardSelfHostEvidence(
             air_evidence_zone, compatibility_zone, symbol_zone, abi_row_zone,
             artifact_zone, harness_zone, subprocess_zone, evidence_owner,

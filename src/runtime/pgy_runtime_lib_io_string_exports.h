@@ -381,6 +381,22 @@ char *Substring(const char *s, int32_t start, int32_t len)
     buf[len] = '\0';
     return buf;
 }
+char *SubstringWithLen(const char *s, int32_t source_len,
+                       int32_t start, int32_t len)
+{
+    char *buf;
+    if (s == NULL || source_len < 0 || start < 0 || start >= source_len ||
+        len <= 0)
+        return pgy_runtime_lib_strdup("");
+    if (len > source_len - start)
+        len = source_len - start;
+    buf = (char *)malloc((size_t)len + 1);
+    if (buf == NULL)
+        return pgy_runtime_lib_strdup("");
+    memcpy(buf, s + start, (size_t)len);
+    buf[len] = '\0';
+    return buf;
+}
 /* Allocation-free StringIndexOf(Substring(s, start, len), needle): index of
  * `needle` within s[start .. start+len) relative to `start`, or -1. */
 int32_t SubIndexOf(const char *s, int32_t start, int32_t len, const char *needle)

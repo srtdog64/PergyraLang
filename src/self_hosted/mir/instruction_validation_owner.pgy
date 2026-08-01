@@ -75,7 +75,8 @@ func SelfMirIntentCarrierInstruction(
 }
 
 func SelfMirInstructionRowsValidationError(
-    rows: SelfMirInstructionRows
+    rows: SelfMirInstructionRows,
+    ref expression_graph: SemanticExpressionGraphFacts
 ) -> String {
     let count: Int = ArrayLength(rows.ids);
     if ArrayLength(rows.kinds) != count { return "kind row count differs"; }
@@ -133,10 +134,12 @@ func SelfMirInstructionRowsValidationError(
     if ArrayLength(rows.use_counts) != count {
         return "use-count row count differs";
     }
-    if !SelfMirExpressionGraphRowsReady(rows.expr0_graphs, count) {
+    if !SelfMirExpressionGraphRowsReady(
+        rows.expr0_graphs, expression_graph, count) {
         return "expr0 graph rows are invalid";
     }
-    if !SelfMirExpressionGraphRowsReady(rows.expr1_graphs, count) {
+    if !SelfMirExpressionGraphRowsReady(
+        rows.expr1_graphs, expression_graph, count) {
         return "expr1 graph rows are invalid";
     }
     let match_error: String = SelfMirMatchFactRowsValidationError(
@@ -269,12 +272,14 @@ func SelfMirInstructionRowsValidationError(
              rows.expr1s[i] == "") {
             return Concat(row_prefix, " loop initializer is incomplete");
         }
-        if !SelfMirAssignmentTargetGraphReady(rows, i) {
+        if !SelfMirAssignmentTargetGraphReady(
+            rows, expression_graph, i) {
             return Concat(
                 row_prefix,
                 Concat(
                     " assignment target graph is invalid: ",
-                    SelfMirAssignmentTargetGraphValidationError(rows, i)
+                    SelfMirAssignmentTargetGraphValidationError(
+                        rows, expression_graph, i)
                 )
             );
         }

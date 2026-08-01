@@ -78,6 +78,7 @@ func RuntimeCallCName(source_name: String) -> Option<String> {
     if source_name == "SubIndexOfWithLen" { return Some(StringRuntimeCSubIndexOfWithLenFn()); }
     if source_name == "SubStartsWithLen" { return Some(StringRuntimeCSubStartsWithLenFn()); }
     if source_name == "Substring" { return Some(StringRuntimeCSubstringFn()); }
+    if source_name == "SubstringWithLen" { return Some(StringRuntimeCSubstringWithLenFn()); }
     if source_name == "StringJoin" { return Some(StringRuntimeCStringJoinFn()); }
     if source_name == "Join" { return Some(StringRuntimeCStringJoinFn()); }
     if source_name == "ArraySort" { return Some(CollectionRuntimeCIntSortFn()); }

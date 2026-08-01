@@ -45,6 +45,19 @@ pgy_selfhost_verify_driver_rung2_domain_graph_producer() {
         echo "[self-host-parity:driver-rung2] $backend self DIR census did not reproduce the native anchor" >&2
         return 1
     }
+    local empty_topology_c="$BUILD_DIR/empty_topology_${backend}.c"
+    local empty_topology_err="$BUILD_DIR/empty_topology_${backend}.err"
+    local self_mir_rel="${self_mir_json#$ROOT_DIR/}"
+    if ! (cd "$ROOT_DIR" && "$driver_bin" --mir-json "$self_mir_rel" \
+            >"$empty_topology_c" 2>"$empty_topology_err"); then
+        cat "$empty_topology_c" "$empty_topology_err" >&2
+        echo "[self-host-parity:driver-rung2] $backend empty topology MIR was rejected" >&2
+        return 1
+    fi
+    [[ -s "$empty_topology_c" ]] || {
+        echo "[self-host-parity:driver-rung2] $backend empty topology MIR emitted no C" >&2
+        return 1
+    }
 
     local optional_source="tests/self_hosted/fixtures/driver_execution_action_abi_probe.pgy"
     local optional_self="$BUILD_DIR/optional_authority_${backend}.self.mir.json"

@@ -70,7 +70,9 @@ func MirDomainRuntimeAdmitDocumentWithTopologyAndDeclarations(
         MirDomainRuntimeAssignmentFactsFromDocumentWithDeclarations(
             document, domain_topology, declarations
         );
-    if (MirDomainTopologyRequiredForDocument(document) &&
+    let runtime_assignments_required: Bool =
+        MirDomainRuntimeAssignmentsRequiredForTopology(domain_topology);
+    if (runtime_assignments_required &&
             (!domain_runtime_assignments.present ||
              !domain_runtime_assignments.valid)) ||
         (domain_runtime_assignments.present &&
@@ -83,7 +85,7 @@ func MirDomainRuntimeAdmitDocumentWithTopologyAndDeclarations(
         );
     if !MirDomainRuntimePlanReady(domain_runtime_plan) ||
         domain_runtime_plan.present != domain_runtime_assignments.present ||
-        domain_runtime_plan.present != domain_topology.present ||
+        (runtime_assignments_required && !domain_runtime_plan.present) ||
         (domain_runtime_plan.present &&
             domain_runtime_plan.domain_graph_id !=
                 domain_topology.domain_graph_id) {

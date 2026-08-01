@@ -53,13 +53,29 @@ func MirIntentActionGraphFromInstruction(
     }
     if sequence.arena.topology.node_kinds[call_node] !=
             AstExpressionNodeCall() ||
-        sequence.arena.call_target_kinds[call_node] !=
-            SemanticCallTargetMember() ||
         sequence.arena.call_target_names[call_node] == "" {
         return MirIntentActionGraphFact(false, "", "", "");
     }
     let member_node: Int =
         sequence.arena.topology.left_children[call_node];
+    if sequence.arena.call_target_kinds[call_node] ==
+        SemanticCallTargetDirect() {
+        if sequence.arena.topology.node_kinds[member_node] !=
+                AstExpressionNodeLeaf() ||
+            sequence.arena.node_texts[member_node] !=
+                sequence.arena.call_target_names[call_node] ||
+            !IsIdentifier(sequence.arena.node_texts[member_node]) {
+            return MirIntentActionGraphFact(false, "", "", "");
+        }
+        return MirIntentActionGraphFact(
+            true, "", sequence.arena.node_texts[member_node],
+            sequence.arena.call_target_names[call_node]
+        );
+    }
+    if sequence.arena.call_target_kinds[call_node] !=
+        SemanticCallTargetMember() {
+        return MirIntentActionGraphFact(false, "", "", "");
+    }
     if sequence.arena.topology.node_kinds[member_node] !=
         AstExpressionNodeMemberAccess() {
         return MirIntentActionGraphFact(false, "", "", "");
@@ -83,6 +99,27 @@ func MirIntentActionGraphFromInstruction(
         true, receiver_alias, action_name,
         sequence.arena.call_target_names[call_node]
     );
+}
+
+func MirIntentDirectTargetSyntaxId(
+    ref routines: MirProgramRoutineIndex,
+    name: String
+) -> String {
+    let count: Int = 0;
+    let syntax_id: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(routines.names) {
+        if routines.kinds[row] == "intent" && routines.names[row] == name {
+            count = count + 1;
+            syntax_id = routines.source_syntax_ids[row];
+        }
+        row = row + 1;
+    }
+    if count != 1 || syntax_id == "" || ToInt(syntax_id) <= 0 ||
+        ToString(ToInt(syntax_id)) != syntax_id {
+        return "";
+    }
+    return syntax_id;
 }
 
 func MirIntentActionContract(

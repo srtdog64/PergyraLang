@@ -180,6 +180,22 @@ stdlib_scalar_check_string_substring(ASTNode *expr, const char *name,
     return TYPE_STRING;
 }
 
+static Type *
+stdlib_scalar_check_string_substring_with_len(ASTNode *expr, const char *name,
+                                              SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 4, name, ctx))
+        return TYPE_UNKNOWN;
+    stdlib_scalar_require_string_arg(expr, 0, ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 1), ctx),
+        TYPE_INT, ast_call_argument(expr, 1), ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 2), ctx),
+        TYPE_INT, ast_call_argument(expr, 2), ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 3), ctx),
+        TYPE_INT, ast_call_argument(expr, 3), ctx);
+    return TYPE_STRING;
+}
+
 /* SubEquals(s: String, start: Int, len: Int, other: String) -> Bool --
  * allocation-free Substring(s, start, len) == other. */
 static Type *
@@ -492,6 +508,7 @@ static const StdlibScalarSpec stdlib_scalar_specs[] = {
     { "SubStartsWith", stdlib_scalar_check_string_sub_starts_with },
     { "SubStartsWithLen", stdlib_scalar_check_string_sub_starts_with_len },
     { "Substring", stdlib_scalar_check_string_substring },
+    { "SubstringWithLen", stdlib_scalar_check_string_substring_with_len },
     { "Tan", stdlib_scalar_check_math_unary_float },
     { "ToFloat", stdlib_scalar_check_to_float },
     { "ToInt", stdlib_scalar_check_to_int },

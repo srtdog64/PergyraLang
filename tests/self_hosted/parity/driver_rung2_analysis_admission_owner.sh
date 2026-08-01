@@ -58,13 +58,13 @@ reject_in_function DriverRung2MirProjectionFromAdmittedAnalysisObserved \
     'VerifyArtifactAnalysisForDriverRung2Observed('
 
 for raw_consumer in \
-    CompileArtifactAnalysisToMirJsonVerifiedObserved \
-    CompileArtifactAnalysisToMirJsonFileVerifiedObserved; do
+    CompileArtifactAnalysisToMirJsonVerifiedObserved; do
     require_in_function "$raw_consumer" \
         'DriverRung2MirProjectionFromAnalysisObserved('
     reject_in_function "$raw_consumer" \
         'DriverRung2MirProjectionFromAdmittedAnalysisObserved('
 done
+reject_in_function CompileArtifactAnalysisToMirJsonFileVerifiedObserved CompileArtifactAnalysisToMirJsonFileVerifiedObserved
 
 for fresh_consumer in \
     CompileArtifactToMirJsonVerified \

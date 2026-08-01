@@ -1,6 +1,7 @@
 // Flat MIR declaration rows shared by producer, verifier, JSON, and lowering.
 
 import "../semantic/callable_receiver_carriage_policy_owner.pgy";
+import "declaration_zone_authority_rows_owner.pgy";
 
 struct SelfMirDeclarationRows {
     kinds: Array<String>;
@@ -60,6 +61,7 @@ struct SelfMirDeclarationRows {
     role_impl_ability_names: Array<String>;
     role_impl_method_starts: Array<Int>;
     role_impl_method_counts: Array<Int>;
+    zone_authorities: SelfMirDeclarationZoneAuthorityRows;
 }
 func SelfMirDeclarationRowsEmpty() -> SelfMirDeclarationRows {
     let ints: Array<Int> = [];
@@ -75,7 +77,8 @@ func SelfMirDeclarationRowsEmpty() -> SelfMirDeclarationRows {
         ints, ints, strings, strings, strings,
         ints, ints, strings, strings,
         ints, ints, strings, strings, ints,
-        ints, ints, strings, ints, ints
+        ints, ints, strings, ints, ints,
+        SelfMirDeclarationZoneAuthorityRowsEmpty()
     );
 }
 

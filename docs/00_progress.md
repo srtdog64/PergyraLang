@@ -1,46 +1,61 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-07-31
+마지막 업데이트: 2026-08-01
 
 ## 활성 우선순위 — self-host source-to-MIR bootstrap 하나만
 
-- 현재 작업 그래프는 `driver_bootstrap_main.pgy -> PgyCompilerWorld.source_mir
-  -> DriverSourceMirExecution -> DriverRung2MirProjectionFromAdmittedAnalysisObserved
-  -> SelfMirProgramFactsFromReadyArtifactObserved` 하나다. 설치 경로와 full
-  bootstrap이 이 owner graph를 공유하며, 다음 목표는 실제 C 우회 제거로
-  이어지는 실행 rung이다.
-- 한 번만 검증하는 input row와 함수 범위 fact를 적용한 30분 full integration은
-  중단 지점이 routine 588에서 776으로 전진했다. Peak private는 2.228 GiB이며
-  결과는 여전히 CPU/incomplete다. 5분 seed-only MIR shard는 routine 303까지
-  진행했고 peak private는 1.561 GiB였다.
-- Program graph를 routine마다 값 복사한 실험은 cutoff를 303에서 267로
-  악화시켜 되돌렸다. 다음 경계는 graph를 program이 한 번 소유하고 instruction은
-  root/range handle만 갖는 구조이며 routine-local snapshot은 금지한다.
-- 메모리는 pressure owner가 종료 시 기록한 최대 GiB만 읽는다. 하드 상한은
-  3 GiB, 주의선은 80%인 2.4 GiB다. 주의선 아래에서는 메모리를 최적화
-  작업으로 열지 않는다.
-- MIR owner의 pressure-observed 경로를 iteration/generic/domain/routine/intent/
-  canonical-ID 단계로 나눴다. 다음 vertical slice는 expression graph를 program
-  경계가 한 번 소유하게 하고 instruction의 root/range handle만 병합한다.
-  5분 shard가 개선되기 전에는 30분 integration을 다시 돌리지 않는다.
-- Insere/Zeno와 다른 외부 프로젝트 검토는 완료된 provenance archive다.
-  사용자가 명시적으로 다시 열지 않는 한 self-host resume context, TODO,
-  `SUBSTITUTING` 진척으로 취급하지 않는다.
-- Post-`c883e75f` CI의 공유 contract drift 다섯 개도 active self-host 범위에서
-  닫았다.
-  `outcome_enum`의 suffix를 enum 선언으로 오인하던 scanner에 leading identifier
-  boundary와 negative contract를 추가했고, strict intent composition과 충돌하던
-  parser fixture 세 개는 `Guard`/`Actor`를 실제로 선언한다. 동일 종류
-  중복 선언은 semantic identity owner까지 전달하되 충돌하는 role evidence는
-  composition에서 fail closed한다. Program 조립은 `parser_program.c`로 분리했고
-  zone-authority probe에 필수 parity manifest를 복구했다. Fresh C self-host
-  semantic checker의 enum contract와 exact 실패 source, native `test-parser`, semantic
-  declaration identity, owner-size/scaffold, zone-authority, build-pressure, self-host
-  component/lifetime, imported-intent composition gate가 PASS했다. Fresh C/LLVM
-  checker는 각 backend에서 실제 production source 684/684를 전부 수용했다.
-  Pressure summary의 stage
-  count와 last-stage runtime capture도 확인했다. 새 CI 전까지 이전 run의 red
-  결론은 그대로 유지하며 full bootstrap PASS를 추론하지 않는다.
+- 활성 실행 경로는 driver_bootstrap_main.pgy, PgyCompilerWorld.source_mir,
+  DriverSourceMirExecution, DriverRung2MirProjectionFromAdmittedAnalysisObserved,
+  SelfMirProgramFactsFromReadyArtifactObserved 하나다.
+- SelfMirProgramFacts가 immutable semantic expression graph를 한 번 소유하고,
+  instruction row는 root와 bounded range handle만 보유한다. Program instruction
+  index는 routing/text/graph의 borrowed bounds를 소유하며 graph target을 다시
+  문자열로 복원하지 않는다.
+- 누적 expression graph append는 이전 call-return type vector를 그대로 이어받아
+  새 node 한 개만 추가한다. append/target projection에서 전체 arena를 다시 만들거나
+  Ready를 반복하는 경로는 ratchet이 거부하고, 최종 fact owner만 한 번 검증한다.
+- artifact 모드는 전체 MIR JSON 문자열을 만들지 않고 검증된 program facts를
+  SelfMirProgramJsonWriteArtifactVerified로 원자적 스트리밍한다. stdout 모드만
+  실제 payload 경계이므로 문자열 materialization을 유지한다.
+- 고정 90,304,012-byte MIR consumer에서 수정 전 r54는 graph row 12,288 이후
+  311.431초에 private 3.009 GiB hard stop에 도달했다. 누적 graph 재구성을 제거한
+  r55는 900초 timeout 동안 private 0.965 GiB, working set 0.904 GiB였고
+  row 28,672까지 진행했다. 메모리 결함은 닫혔지만 완주 증거는 아니다.
+- r56은 같은 결과를 더 오래 기다리는 것이 구현 진척을 막는다고 판단해
+  row 40,960 이후 중단했다. timeout 연장이나 반복 실행을 진척으로 세지 않는다.
+- 길이가 이미 봉인된 문자열 구간은 새 SubstringWithLen builtin이 한 번 복사한다.
+  C/LLVM runtime, native type/codegen, self-host signature가 같은 surface를 소유하며,
+  bounded JSON의 unescaped string과 number token은 문자별 heap string을 만들지 않는다.
+- 일반 self-host emitted-C 빌드는 release가 기본이다. 플래그는
+  -O3 -fwrapv -fno-strict-aliasing이다. PGY_SELFHOST_CC_PROFILE=test만
+  명시적으로 -O0을 선택하며 고정점과 전수 테스트 시간은 일반 빌드 시간과
+  분리해 기록한다.
+- 현재 graph 수정까지 포함한 bounded current-source seed 생성은 648.3초에
+  exit 0이었다. sample/MIR producer/consumer parity는 green이지만,
+  SubstringWithLen 이후 seed 재생성과 full current-source gen2==gen3는 아직
+  실행하지 않았다.
+- O0 Windows 경로는 ApplyPostfixFact의 중첩 lowering에서 큰 생성 C stack frame
+  때문에 routine 397 부근에서 stack overflow가 난다. Release 경로는 완주하며,
+  stack 상향은 test-profile 결함의 해법으로 인정하지 않는다.
+- 현재 증거 등급은 REACHABLE이다. bounded codegen gen2와 gen3 고정점은 있지만
+  기본 배포 compiler의 전체 Pergyra 치환율은 아직 0퍼센트다.
+- 다음 falsifier는 SubstringWithLen을 포함한 Pergyra-built parser/codegen seed를
+  한 번 생성하고 bounded bootstrap parity를 확인하는 것이다. 그 seed가 green인
+  뒤에만 동일 full source-to-MIR target을 pressure owner 아래 정확히 한 번
+  실행하며, 완주하면 native oracle byte parity와 gen2==gen3로 진행한다.
+- 메모리는 semantic target마다 한 번 실행한 뒤 최종 peak_private_gib와
+  attention_required만 읽는다. 3 GiB hard stop과 2.4 GiB attention을 유지하며
+  미완주 target을 timeout만 늘려 반복하지 않는다.
+- 최신 focused green은 native pgy 증분 build, SubstringWithLen C/LLVM parity,
+  bounded JSON C/LLVM exact-bound parity, runtime-call ABI C/LLVM artifact parity,
+  expression-graph projection/persisted-read, MIR routine index, self-parser
+  acceptance다. Structural component contract는 graph/JSON slice까지 green이며
+  마지막 ABI 추가 후에는 shell syntax, line cap, owner acceptance만 확인했다.
+  Filtered self-host codegen은
+  tool build가 300초 안에 끝나지 않아 PASS가 아니다. Full matrix나
+  current-source fixed point PASS는 추론하지 않는다.
+- Insere와 Zeno 등 외부 프로젝트는 비활성 provenance다. 사용자가 명시적으로
+  다시 열기 전에는 현재 self-host TODO나 진척으로 취급하지 않는다.
 
 ## 비활성 진행 기록 archive
 

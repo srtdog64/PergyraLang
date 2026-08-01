@@ -3,11 +3,66 @@
 // Declares WHO may act at the compiler world's sensitive boundaries, as
 // declared abilities satisfied through roles. world.pgy consumes these via
 // zone `authority <slot> requires <Ability>` annotations and intent step
-// `requires:` / `authorized by:` clauses. Skeleton scope: the four boundaries
-// where a wrong actor is a real hazard -- semantic verdict, C emission,
-// subprocess planning, parity judgement. The marker funcs are the ability
-// surface contract; they become load-bearing when stage actors start
-// publishing provenance rows.
+// `requires:` / `authorized by:` clauses. Every executable intent step names
+// an authority carrier. The abilities below make that carrier a checked
+// compiler responsibility rather than an untyped alias: roles satisfy the
+// capability and zones admit the matching subject slot. The marker funcs
+// become load-bearing as stage actors publish provenance rows.
+
+ability SourceReading {
+    fields path: String;
+    func AuthorityMark() -> String;
+}
+
+ability TokenScanning {
+    fields name: String;
+    func AuthorityMark() -> String;
+}
+
+ability AstConstruction {
+    fields name: String;
+    func AuthorityMark() -> String;
+}
+
+ability MirFactLowering {
+    fields name: String;
+    func AuthorityMark() -> String;
+}
+
+ability TargetProjectionPlanning {
+    fields name: String;
+    func AuthorityMark() -> String;
+}
+
+ability AirEvidenceProving {
+    fields name: String;
+    func AuthorityMark() -> String;
+}
+
+ability CompatibilityFactOwnership {
+    fields name: String;
+    func AuthorityMark() -> String;
+}
+
+ability SymbolFactOwnership {
+    fields name: String;
+    func AuthorityMark() -> String;
+}
+
+ability AbiRowProjection {
+    fields name: String;
+    func AuthorityMark() -> String;
+}
+
+ability ArtifactCollection {
+    fields name: String;
+    func AuthorityMark() -> String;
+}
+
+ability TestHarnessPreparation {
+    fields name: String;
+    func AuthorityMark() -> String;
+}
 
 ability FactProving {
     fields name: String;
@@ -27,6 +82,72 @@ ability SubprocessDiscipline {
 ability ParityJudging {
     fields c_backend: String;
     func AuthorityMark() -> String;
+}
+
+role SourceAuthority for SourceUnit {
+    impl ability SourceReading {
+        func AuthorityMark() -> String { return "source-read"; }
+    }
+}
+
+role LexerAuthority for LexerStage {
+    impl ability TokenScanning {
+        func AuthorityMark() -> String { return "token-scan"; }
+    }
+}
+
+role ParserAuthority for ParserStage {
+    impl ability AstConstruction {
+        func AuthorityMark() -> String { return "ast-construction"; }
+    }
+}
+
+role MirLowerAuthority for MirLowerStage {
+    impl ability MirFactLowering {
+        func AuthorityMark() -> String { return "mir-fact-lowering"; }
+    }
+}
+
+role TargetPlannerAuthority for TargetProjectionPlanner {
+    impl ability TargetProjectionPlanning {
+        func AuthorityMark() -> String { return "target-projection"; }
+    }
+}
+
+role AirEvidenceAuthority for AirEvidenceOwner {
+    impl ability AirEvidenceProving {
+        func AuthorityMark() -> String { return "air-evidence"; }
+    }
+}
+
+role CompatibilityAuthority for CompatibilityEvolutionOwner {
+    impl ability CompatibilityFactOwnership {
+        func AuthorityMark() -> String { return "compatibility-facts"; }
+    }
+}
+
+role SymbolFactAuthority for SymbolTableOwner {
+    impl ability SymbolFactOwnership {
+        func AuthorityMark() -> String { return "symbol-facts"; }
+    }
+}
+
+role AbiRowAuthority for AbiRowProjector {
+    impl ability AbiRowProjection {
+        func AuthorityMark() -> String { return "abi-row-projection"; }
+    }
+}
+
+role ArtifactAuthority for ArtifactSink {
+    impl ability ArtifactCollection {
+        func AuthorityMark() -> String { return "artifact-collection"; }
+    }
+}
+
+role HarnessAuthority for TestHarnessRunner {
+    impl ability TestHarnessPreparation {
+        func AuthorityMark() -> String { return "test-harness"; }
+    }
 }
 
 role SemanticAuthority for SemanticStage {

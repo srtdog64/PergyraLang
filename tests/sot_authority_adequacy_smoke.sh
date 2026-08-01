@@ -77,8 +77,7 @@ reject_text() {
 check_array_graph_owner_copy() {
     local path="$1"
     grep -Fq -- "func ParserExpressionArrayLiteral(" "$path" &&
-    grep -Fq -- "func ParserExpressionArrayElement(" "$path" &&
-    grep -Fq -- "func ParserExpressionArrayLiteralGraphContractReady()" "$path"
+    grep -Fq -- "func ParserExpressionArrayElement(" "$path"
 }
 
 check_array_consumer_copy() {
@@ -239,6 +238,8 @@ require_file "$TYPE_SURFACE_OWNER"
 require_file "$KIND_SURFACE_OWNER"
 require_file "$SIGNATURE_OWNER"
 require_file "$ARRAY_GRAPH_OWNER"
+require_file src/self_hosted/parser/expression_graph_contract_owner.pgy
+require_text src/self_hosted/parser/expression_graph_contract_owner.pgy ParserExpressionArrayLiteralGraphContractReady
 require_file "$ARRAY_CONSUMER"
 require_file "$TRY_CONSUMER"
 require_file "$COLLECTION_CONSUMER"

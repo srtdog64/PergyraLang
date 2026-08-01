@@ -31,6 +31,7 @@ command -v "$CC_BIN" >/dev/null 2>&1 || fail "C compiler is required"
 
 FIXTURE_REL="tests/cases/backend_compare/zone_layer_projection_runtime/main.pgy"
 FIXTURE="$ROOT_DIR/$FIXTURE_REL"
+EMPTY_TOPOLOGY_FIXTURE_REL="tests/self_hosted/fixtures/domain_runtime_zone_sync_zero.pgy"
 BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/domain_runtime_assignment_execution"
 DRIVER="$BUILD_DIR/driver_rung2.exe"
 SELF_MIR="$BUILD_DIR/self.mir.json"
@@ -39,6 +40,8 @@ SELF_C="$BUILD_DIR/self.mir.c"
 DIRECT_C="$BUILD_DIR/self.direct.c"
 SELF_EXE="$BUILD_DIR/self.exe"
 DIRECT_EXE="$BUILD_DIR/self.direct.exe"
+EMPTY_TOPOLOGY_MIR="$BUILD_DIR/empty-topology.mir.json"
+EMPTY_TOPOLOGY_C="$BUILD_DIR/empty-topology.c"
 mkdir -p "$BUILD_DIR"
 
 if [[ -n "${PGY_SELFHOST_PREBUILT_DRIVER:-}" ]]; then
@@ -51,6 +54,22 @@ else
         >"$BUILD_DIR/driver.compile.log" 2>&1) \
         || { cat "$BUILD_DIR/driver.compile.log" >&2; fail "driver build failed"; }
 fi
+
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$EMPTY_TOPOLOGY_FIXTURE_REL" >"$EMPTY_TOPOLOGY_MIR" \
+    2>"$BUILD_DIR/empty-topology.mir.err") \
+    || { cat "$BUILD_DIR/empty-topology.mir.err" >&2; fail "empty topology MIR production failed"; }
+grep -Eq '"domain_topology":\{"domain_graph_id":[1-9][0-9]*,"rows":\[\]\}' \
+    "$EMPTY_TOPOLOGY_MIR" \
+    || fail "empty topology identity is missing"
+if grep -Fq '"domain_runtime_assignments":' "$EMPTY_TOPOLOGY_MIR"; then
+    fail "empty topology invented a runtime assignment namespace"
+fi
+(cd "$ROOT_DIR" && "$DRIVER" --mir-json \
+    "${EMPTY_TOPOLOGY_MIR#$ROOT_DIR/}" >"$EMPTY_TOPOLOGY_C" \
+    2>"$BUILD_DIR/empty-topology.c.err") \
+    || { cat "$EMPTY_TOPOLOGY_C" "$BUILD_DIR/empty-topology.c.err" >&2; fail "empty topology MIR was rejected"; }
+[[ -s "$EMPTY_TOPOLOGY_C" ]] || fail "empty topology MIR emitted no C"
 
 for term in \
     'struct MirDomainRuntimeAssignmentFacts' \

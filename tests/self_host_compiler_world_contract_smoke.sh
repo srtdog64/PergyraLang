@@ -1249,6 +1249,28 @@ ast_out="$tmp_dir/world.ast.txt"
 (cd "$ROOT_DIR" && "$pgy_bin" --ast \
     "$(pgy_path_for_compiler "$pgy_bin" "$ROOT_DIR/${PGY_SELFHOST_COMPILER_WORLD_PATH}")") >"$ast_out"
 
+awk '
+    function close_step() {
+        if (in_step && authorized_count != 1) bad = 1
+        in_step = 0
+        authorized_count = 0
+    }
+    /^[[:space:]]+IntentStep:/ {
+        close_step()
+        in_step = 1
+        next
+    }
+    in_step && /^[[:space:]]+AuthorizedBy:/ {
+        authorized_count++
+        next
+    }
+    /^[[:space:]]+Intent(Success|Failure):/ { close_step() }
+    END {
+        close_step()
+        if (bad) exit 1
+    }
+' "$ast_out" || fail "compiler world intent step lacks one explicit authority fact"
+
 grep -Fq "World: PgyCompilerWorld" "$ast_out" ||
     fail "compiler world AST missing PgyCompilerWorld"
 grep -Fq "Intent: CompilePergyraProgram" "$ast_out" ||

@@ -56,6 +56,12 @@ func MirDomainRuntimeProjectionAssignmentCount(
     return ArrayLength(facts.projection_members.explicit_maps);
 }
 
+func MirDomainRuntimeAssignmentsRequiredForTopology(
+    ref topology: MirDomainTopologyFacts
+) -> Bool {
+    return topology.present && ArrayLength(topology.kinds) > 0;
+}
+
 func MirDomainRuntimeProjectionTopologyRowAt(
     ref facts: MirDomainRuntimeAssignmentFacts, row: Int
 ) -> Int {

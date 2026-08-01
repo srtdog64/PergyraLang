@@ -2,35 +2,50 @@
 
 import "program_verify_owner.pgy";
 
-func SelfMirAssignmentParameterZeroUseRows(mode: String) -> SelfMirInstructionRows {
+struct SelfMirAssignmentParameterZeroUseContractCase {
+    rows: SelfMirInstructionRows;
+    graph: SemanticExpressionGraphFacts;
+}
+
+func SelfMirAssignmentParameterZeroUseCase(
+    mode: String
+) -> SelfMirAssignmentParameterZeroUseContractCase {
     let no_uses: Array<String> = [];
-    let target_graph: SelfMirExpressionGraphRows = SelfMirExpressionGraphRowsFromLegacy(
-        [1], [2], [0], [3],
-        [AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
-         AstExpressionNodeIndex()],
-        ["arr", "i", "arr[i]"], [0, 0, 0], [0, 0, 1],
-        [SemanticCallTargetNone(), SemanticCallTargetNone(),
-         SemanticCallTargetNone()], ["", "", ""]
-    );
-    let value_graph: SelfMirExpressionGraphRows = SelfMirExpressionGraphRowsFromLegacy(
-        [1], [0], [0], [1], [AstExpressionNodeLeaf()], ["other"],
-        [0], [0], [SemanticCallTargetNone()], [""]
-    );
-    return SelfMirInstructionRows(
+    let target_graph: SelfMirExpressionGraphContractFixture =
+        SelfMirExpressionGraphContractFixtureFromLegacy(
+            [1], [2], [0], [3],
+            [AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+             AstExpressionNodeIndex()],
+            ["arr", "i", "arr[i]"], [0, 0, 0], [0, 0, 1],
+            [SemanticCallTargetNone(), SemanticCallTargetNone(),
+             SemanticCallTargetNone()], ["", "", ""]
+        );
+    let value_graph: SelfMirExpressionGraphContractFixture =
+        SelfMirExpressionGraphContractFixtureFromLegacy(
+            [1], [0], [0], [1], [AstExpressionNodeLeaf()], ["other"],
+            [0], [0], [SemanticCallTargetNone()], [""]
+        );
+    let rows: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["arr.1"], ["arr"], [mode], [""],
         ["other"], ["arr[i]"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
-        [0], [0], no_uses, value_graph, target_graph,
+        [0], [0], no_uses, value_graph.rows, target_graph.rows,
         SelfMirMatchFactRowsEmpty(), SelfMirDestructureFactRowsEmpty(),
         [""],
         SelfMirRuntimeCallAbiRowsForInstructionCount(1)
     );
+    return SelfMirAssignmentParameterZeroUseContractCase(
+        rows, target_graph.graph);
 }
 
 func SelfMirAssignmentParameterZeroUseContractReady() -> Bool {
+    let inout_case: SelfMirAssignmentParameterZeroUseContractCase =
+        SelfMirAssignmentParameterZeroUseCase("inout_param");
+    let local_case: SelfMirAssignmentParameterZeroUseContractCase =
+        SelfMirAssignmentParameterZeroUseCase("local");
     return SelfMirInstructionRowsReady(
-        SelfMirAssignmentParameterZeroUseRows("inout_param")
+        inout_case.rows, inout_case.graph
     ) && !SelfMirInstructionRowsReady(
-        SelfMirAssignmentParameterZeroUseRows("local")
+        local_case.rows, local_case.graph
     );
 }

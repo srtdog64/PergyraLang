@@ -4,7 +4,6 @@
 // them only with end-exclusive bounds carried from the JSON structure owner.
 
 import "json.pgy";
-
 func JsonObjectKeyEqualsWithin(
     json: String,
     key_open: Int,
@@ -213,7 +212,9 @@ func JsonObjectNumberFieldOptWithin(
         i = i + 1;
     }
     if i == bounds[0] { return None; }
-    return Some(Substring(json, bounds[0], i - bounds[0]));
+    return Some(SubstringWithLen(
+        json, n, bounds[0], bounds[1] - bounds[0]
+    ));
 }
 
 func JsonObjectBoolFieldEqualsWithin(

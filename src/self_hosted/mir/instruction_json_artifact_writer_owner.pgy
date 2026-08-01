@@ -21,6 +21,7 @@ func SelfMirJsonOptionalStringWriteFile(
 
 func SelfMirJsonExpressionGraphWriteFile(
     rows: SelfMirExpressionGraphRows,
+    ref graph: SemanticExpressionGraphFacts,
     instruction_index: Int,
     output: Int
 ) -> Bool {
@@ -42,15 +43,15 @@ func SelfMirJsonExpressionGraphWriteFile(
     while i < count {
         let node: Int = start + i;
         let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
-            rows.graph, node
+            graph, node
         );
         let text_opt: Option<String> = SemanticExpressionGraphNodeText(
-            rows.graph, node
+            graph, node
         );
         let call_target_kind_opt: Option<Int> =
-            SemanticExpressionGraphCallTargetKind(rows.graph, node);
+            SemanticExpressionGraphCallTargetKind(graph, node);
         let call_target_name_opt: Option<String> =
-            SemanticExpressionGraphCallTargetName(rows.graph, node);
+            SemanticExpressionGraphCallTargetName(graph, node);
         if !IsSome(kind_opt) || !IsSome(text_opt) ||
             !IsSome(call_target_kind_opt) || !IsSome(call_target_name_opt) {
             return false;
@@ -62,14 +63,14 @@ func SelfMirJsonExpressionGraphWriteFile(
         let right: Int = -1;
         if arity == 1 || arity == 2 {
             let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
-                rows.graph, node
+                graph, node
             );
             if !IsSome(left_opt) { return false; }
             left = UnwrapOption(left_opt) - start;
         }
         if arity == 2 {
             let right_opt: Option<Int> = SemanticExpressionGraphRightChild(
-                rows.graph, node
+                graph, node
             );
             if !IsSome(right_opt) { return false; }
             right = UnwrapOption(right_opt) - start;
@@ -399,7 +400,7 @@ func SelfMirJsonInstructionWriteFile(
     ) { return false; }
     CompilerArtifactWrite(output, ",\"expr0_graph\":");
     if !SelfMirJsonExpressionGraphWriteFile(
-        rows.expr0_graphs, instruction_index, output
+        rows.expr0_graphs, facts.expression_graph, instruction_index, output
     ) { return false; }
     CompilerArtifactWrite(output, ",\"expr1\":");
     if !SelfMirJsonOptionalStringWriteFile(
@@ -407,7 +408,7 @@ func SelfMirJsonInstructionWriteFile(
     ) { return false; }
     CompilerArtifactWrite(output, ",\"expr1_graph\":");
     if !SelfMirJsonExpressionGraphWriteFile(
-        rows.expr1_graphs, instruction_index, output
+        rows.expr1_graphs, facts.expression_graph, instruction_index, output
     ) { return false; }
     CompilerArtifactWrite(output, ",\"source_type\":");
     if !SelfMirJsonOptionalStringWriteFile(

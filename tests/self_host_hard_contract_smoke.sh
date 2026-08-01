@@ -510,9 +510,9 @@ require_file "src/self_hosted/mir/instruction_validation_owner.pgy"
 require_text "src/self_hosted/mir/program_verify_owner.pgy" \
     "SelfMirAssignmentTargetGraphValidationError"
 require_text "src/self_hosted/mir/program_verify_owner.pgy" \
-    "SelfMirInstructionRowsReady(valid_member)"
+    "valid_member, member_target_graph.graph"
 require_text "src/self_hosted/mir/program_verify_owner.pgy" \
-    "!SelfMirInstructionRowsReady(missing_member_base_use)"
+    "missing_member_base_use, member_target_graph.graph"
 target_attach_count="$(grep -Fc -- \
     "SelfMirRoutineAttachLastSecondaryExpressionGraph(" \
     "$ROOT_DIR/src/self_hosted/mir/routine_assignment_owner.pgy")"

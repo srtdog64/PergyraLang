@@ -3,6 +3,7 @@
 import "../lib/json_fact_table.pgy";
 import "../semantic/ast_expression_surface_fact_owner.pgy";
 import "expression_graph_persisted_shape_owner.pgy";
+import "expression_graph_persisted_read_owner.pgy";
 struct MirExpressionGraphSequence {
     ok: Bool;
     ready_node_count: Int;
@@ -120,22 +121,12 @@ func MirExpressionGraphSequenceAppend(
     sequence: MirExpressionGraphSequence,
     graph: JsonObjectFactTable
 ) -> MirExpressionGraphSequence {
-    if !sequence.ok || !JsonObjectFactTableReady(graph) ||
-        !MirExpressionGraphPersistedShapeReady(graph) {
+    let header: MirExpressionGraphHeaderCapture =
+        MirExpressionGraphHeaderCaptureFromTable(graph);
+    if !sequence.ok || !header.valid {
         return MirExpressionGraphSequenceError(sequence);
     }
-    let root_opt: Option<String> = JsonObjectFactNumberFieldOpt(
-        graph, "root"
-    );
-    let nodes: JsonArrayObjectFactTable =
-        JsonObjectFactArrayObjectTable(graph, "nodes");
-    if !IsSome(root_opt) || !JsonArrayObjectFactTableReady(nodes) {
-        return MirExpressionGraphSequenceError(sequence);
-    }
-    let local_root: Int = ToInt(UnwrapOption(root_opt));
-    if local_root < 0 || ToString(local_root) != UnwrapOption(root_opt) {
-        return MirExpressionGraphSequenceError(sequence);
-    }
+    let local_root: Int = header.root;
     let kinds: Array<Int> = sequence.arena.topology.node_kinds;
     let texts: Array<String> = sequence.arena.node_texts;
     let left_children: Array<Int> = sequence.arena.topology.left_children;
@@ -143,6 +134,8 @@ func MirExpressionGraphSequenceAppend(
     let call_target_kinds: Array<Int> =
         sequence.arena.call_target_kinds;
     let call_target_names: Array<String> = sequence.arena.call_target_names;
+    let call_return_type_names: Array<String> =
+        sequence.arena.call_return_type_names;
     let place_kinds: Array<Int> = sequence.arena.place_kinds;
     let offset: Int = ArrayLength(kinds);
     if sequence.ready_node_count != offset ||
@@ -150,56 +143,58 @@ func MirExpressionGraphSequenceAppend(
         ArrayLength(right_children) != offset ||
         ArrayLength(call_target_kinds) != offset ||
         ArrayLength(call_target_names) != offset ||
+        ArrayLength(call_return_type_names) != offset ||
         ArrayLength(place_kinds) != offset {
         return MirExpressionGraphSequenceError(sequence);
     }
     let i: Int = 0;
-    let cursor: Int = nodes.start + 1;
-    let node_bounds: Array<Int> = [0, 0];
-    while JsonArrayNextObjectBounds(nodes.json, cursor, nodes.end, node_bounds) {
-        let node: JsonObjectFactTable = JsonObjectFactTableFromBounds(nodes.json, node_bounds[0], node_bounds[1]);
-        if !JsonObjectFactTableReady(node) ||
-            JsonObjectFactCount(node) != 6 {
+    let cursor: Int = header.nodes_start + 1;
+    while cursor < header.nodes_end {
+        cursor = JsonSkipWhitespaceWithin(
+            graph.json, cursor, header.nodes_end
+        );
+        if cursor >= header.nodes_end {
             return MirExpressionGraphSequenceError(sequence);
         }
-        let kind_text: Option<String> = JsonObjectFactStringFieldOpt(
-            node, "kind"
+        let cursor_char: Int = JsonCharCodeAt(
+            graph.json, header.nodes_end, cursor
         );
-        let text: Option<String> = JsonObjectFactStringFieldOpt(node, "text");
-        let target_kind_text: Option<String> = JsonObjectFactStringFieldOpt(
-            node, "call_target_kind"
-        );
-        let target_name: Option<String> = JsonObjectFactStringFieldOpt(
-            node, "call_target_name"
-        );
-        if !IsSome(kind_text) || !IsSome(text) || UnwrapOption(text) == "" ||
-            !IsSome(target_kind_text) || !IsSome(target_name) {
+        if cursor_char == JsonAsciiCode("]") { break; }
+        if cursor_char == JsonAsciiCode(",") {
+            cursor = cursor + 1;
+            continue;
+        }
+        let node: MirExpressionGraphNodeCapture =
+            MirExpressionGraphNodeCaptureWithin(
+                graph.json, cursor, header.nodes_end
+            );
+        if !node.valid || node.text == "" {
             return MirExpressionGraphSequenceError(sequence);
         }
         let kind_opt: Option<Int> = MirExpressionGraphKindCode(
-            UnwrapOption(kind_text)
+            node.kind
         );
         if !IsSome(kind_opt) {
             return MirExpressionGraphSequenceError(sequence);
         }
         let target_kind_opt: Option<Int> = MirExpressionCallTargetKindCode(
-            UnwrapOption(target_kind_text)
+            node.target_kind
         );
         if !IsSome(target_kind_opt) {
             return MirExpressionGraphSequenceError(sequence);
         }
         let target_kind: Int = UnwrapOption(target_kind_opt);
         if (target_kind == SemanticCallTargetNone() &&
-                UnwrapOption(target_name) != "") ||
+                node.target_name != "") ||
             ((target_kind == SemanticCallTargetDirect() ||
                 target_kind == SemanticCallTargetNamespace() ||
                 target_kind == SemanticCallTargetMember()) &&
-                (UnwrapOption(target_name) == "" ||
+                (node.target_name == "" ||
                     UnwrapOption(kind_opt) != AstExpressionNodeCall())) {
             return MirExpressionGraphSequenceError(sequence);
         }
         let kind: Int = UnwrapOption(kind_opt);
-        let node_text: String = UnwrapOption(text);
+        let node_text: String = node.text;
         if (kind == AstExpressionNodeLongLiteral() &&
                 !AstExpressionLongLiteralPayloadReady(node_text)) ||
             (kind == AstExpressionNodeBoolLiteral() &&
@@ -210,33 +205,27 @@ func MirExpressionGraphSequenceAppend(
         }
         let left: Int = 0;
         let right: Int = 0;
-        let left_opt: Option<String> = JsonObjectFactNumberFieldOpt(
-            node, "left"
-        );
-        let right_opt: Option<String> = JsonObjectFactNumberFieldOpt(
-            node, "right"
-        );
         let arity: Int = AstExpressionNodeArity(kind);
         if arity == 0 {
-            if IsSome(left_opt) || IsSome(right_opt) {
+            if node.has_left || node.has_right {
                 return MirExpressionGraphSequenceError(sequence);
             }
         } else if arity == 1 {
-            if !IsSome(left_opt) || IsSome(right_opt) {
+            if !node.has_left || node.has_right {
                 return MirExpressionGraphSequenceError(sequence);
             }
-            let local_left: Int = ToInt(UnwrapOption(left_opt));
+            let local_left: Int = node.left;
             if local_left < 0 || local_left >= i {
                 return MirExpressionGraphSequenceError(sequence);
             }
             left = offset + local_left;
             right = 0;
         } else {
-            if !IsSome(left_opt) || !IsSome(right_opt) {
+            if !node.has_left || !node.has_right {
                 return MirExpressionGraphSequenceError(sequence);
             }
-            let local_left: Int = ToInt(UnwrapOption(left_opt));
-            let local_right: Int = ToInt(UnwrapOption(right_opt));
+            let local_left: Int = node.left;
+            let local_right: Int = node.right;
             if local_left < 0 || local_right < 0 ||
                 local_left >= i || local_right >= i {
                 return MirExpressionGraphSequenceError(sequence);
@@ -273,10 +262,11 @@ func MirExpressionGraphSequenceAppend(
         ArrayPush(left_children, left);
         ArrayPush(right_children, right);
         ArrayPush(call_target_kinds, target_kind);
-        ArrayPush(call_target_names, UnwrapOption(target_name));
+        ArrayPush(call_target_names, node.target_name);
+        ArrayPush(call_return_type_names, "");
         ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());
         i = i + 1;
-        cursor = node_bounds[1];
+        cursor = node.end;
     }
     let count: Int = i;
     if count == 0 || local_root >= count {
@@ -285,10 +275,13 @@ func MirExpressionGraphSequenceAppend(
     let roots: Array<Int> = sequence.roots;
     ArrayPush(roots, offset + local_root);
     let arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArenaFromRows(
-        kinds, texts, left_children, right_children,
-        call_target_kinds, call_target_names, place_kinds
-    );
+        SemanticExpressionGraphArenaFromTopology(
+            AstExpressionArena(
+                kinds, texts, left_children, right_children
+            ),
+            texts, call_target_kinds, call_target_names,
+            call_return_type_names, place_kinds
+        );
     if !MirExpressionGraphRangeReachable(
             arena, offset, count, offset + local_root
         ) {

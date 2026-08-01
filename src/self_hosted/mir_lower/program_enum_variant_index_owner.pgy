@@ -1,0 +1,101 @@
+// Program-owned payload-free enum variant identity index.
+//
+// Declaration admission captures each variant once.  Match consumers query
+// these rows instead of rebuilding the declaration graph from the JSON root.
+
+import "json_fact_read.pgy";
+
+struct MirProgramEnumVariantIndex {
+    let valid: Bool;
+    let names: Array<String>;
+    let owners: Array<String>;
+}
+
+func EmptyMirProgramEnumVariantIndex() -> MirProgramEnumVariantIndex {
+    let names: Array<String> = [];
+    let owners: Array<String> = [];
+    return MirProgramEnumVariantIndex(false, names, owners);
+}
+
+func MirProgramEnumVariantArrayCursorAtEnd(
+    json: String, cursor: Int, array_end: Int
+) -> Bool {
+    let i: Int = JsonSkipWhitespace(json, cursor, array_end);
+    return i < array_end &&
+        JsonCharCodeAt(json, StringLength(json), i) == JsonAsciiCode("]");
+}
+
+func BuildMirProgramEnumVariantIndexFromDeclarationSpans(
+    json: String,
+    declaration_starts: Array<Int>,
+    declaration_ends: Array<Int>,
+    declaration_kinds: Array<String>,
+    declaration_names: Array<String>
+) -> MirProgramEnumVariantIndex {
+    let names: Array<String> = [];
+    let owners: Array<String> = [];
+    let declaration_count: Int = ArrayLength(declaration_starts);
+    if ArrayLength(declaration_ends) != declaration_count ||
+        ArrayLength(declaration_kinds) != declaration_count ||
+        ArrayLength(declaration_names) != declaration_count {
+        return MirProgramEnumVariantIndex(false, names, owners);
+    }
+    let valid: Bool = true;
+    let declaration_row: Int = 0;
+    while declaration_row < declaration_count {
+        if declaration_kinds[declaration_row] == "enum" {
+            let variants: Array<Int> = [0, 0];
+            if !MirObjectArrayBoundsAtBounds(
+                json, declaration_starts[declaration_row],
+                declaration_ends[declaration_row], "variants", variants
+            ) || declaration_names[declaration_row] == "" {
+                valid = false;
+            } else {
+                let cursor: Int = variants[0] + 1;
+                let variant: Array<Int> = [0, 0];
+                while JsonArrayNextObjectBounds(
+                    json, cursor, variants[1], variant
+                ) {
+                    let name: String = MirObjectStringFactAtBounds(
+                        json, variant[0], variant[1], "name"
+                    );
+                    if name == "" { valid = false; }
+                    ArrayPush(names, name);
+                    ArrayPush(owners, declaration_names[declaration_row]);
+                    cursor = variant[1];
+                }
+                if !MirProgramEnumVariantArrayCursorAtEnd(
+                    json, cursor, variants[1]
+                ) { valid = false; }
+            }
+        }
+        declaration_row = declaration_row + 1;
+    }
+    return MirProgramEnumVariantIndex(
+        valid && ArrayLength(names) == ArrayLength(owners), names, owners
+    );
+}
+
+func MirProgramEnumVariantOwnerForName(
+    ref index: MirProgramEnumVariantIndex, variant: String
+) -> String {
+    if !index.valid || variant == "" ||
+        ArrayLength(index.names) != ArrayLength(index.owners) {
+        return "";
+    }
+    let owner: String = "";
+    let ambiguous: Bool = false;
+    let row: Int = 0;
+    while row < ArrayLength(index.names) {
+        if index.names[row] == variant {
+            if owner == "" {
+                owner = index.owners[row];
+            } else if owner != index.owners[row] {
+                ambiguous = true;
+            }
+        }
+        row = row + 1;
+    }
+    if ambiguous { return ""; }
+    return owner;
+}

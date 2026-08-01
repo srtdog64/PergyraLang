@@ -1,0 +1,67 @@
+ability SourceReading {
+    fields path: String;
+    func AuthorityMark() -> String;
+}
+
+object StagePathManifest {
+    root: String;
+}
+
+subject SourceUnit {
+    let path: String;
+
+    action Read(self, paths: StagePathManifest) -> Bool
+        requires SourceReading
+        within SourceIntakeZone
+        authorized by self {
+        return paths.root != "";
+    }
+}
+
+role SourceAuthority for SourceUnit {
+    impl ability SourceReading {
+        func AuthorityMark() -> String { return "source-read"; }
+    }
+}
+
+zone SourceIntakeZone {
+    subject slot source: SourceUnit
+    authority source requires SourceReading
+}
+
+world NestedIntentWorld {
+    zone intake: SourceIntakeZone
+}
+
+intent IntakeSource(
+    intake: SourceIntakeZone,
+    source: SourceUnit,
+    paths: StagePathManifest
+) {
+    step ReadRoot {
+        using: intake;
+        who: source;
+        on: source.Read(paths);
+        expect: true;
+    }
+}
+
+intent FrontendPipeline(
+    intake: SourceIntakeZone,
+    source: SourceUnit,
+    paths: StagePathManifest
+) {
+    step Intake {
+        where: SourceIntakeZone;
+        using: intake;
+        who: source;
+        requires: SourceReading;
+        authorized by: source;
+        on: IntakeSource(intake, source, paths);
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+    Log("nested-intent-direct-ok");
+}

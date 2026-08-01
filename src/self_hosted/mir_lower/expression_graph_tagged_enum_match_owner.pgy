@@ -2,10 +2,11 @@
 
 import "expression_graph_sequence_owner.pgy";
 import "match_json_fact_owner.pgy";
-import "json_fact_read.pgy";
+import "program_enum_variant_index_owner.pgy";
 
 func MirExpressionGraphSequenceAppendTaggedEnumMatchOccurrence(
     sequence: MirExpressionGraphSequence,
+    ref enum_variants: MirProgramEnumVariantIndex,
     instruction: JsonObjectFactTable,
     subject_graph: JsonObjectFactTable,
     match_value: String,
@@ -58,8 +59,8 @@ func MirExpressionGraphSequenceAppendTaggedEnumMatchOccurrence(
             ArrayPush(target_names, "");
             ArrayPush(places, SemanticExpressionPlaceUnknown());
         } else {
-            let enum_owner: String = MirEnumOwnerForVariant(
-                instruction.json, variant_name
+            let enum_owner: String = MirProgramEnumVariantOwnerForName(
+                enum_variants, variant_name
             );
             if enum_owner == "" {
                 return MirExpressionGraphSequenceError(appended);

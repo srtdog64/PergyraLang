@@ -241,18 +241,18 @@ pressure observation for the semantic-repointed snapshot recorded:
 - initializer row `5214` complete and row `5215` started, with no MIR or JSON
   artifact.
 
-Therefore the removed semantic topology copy was real duplication, but it was
-not the dominant retained set. The active falsifier remains whole-program
-semantic fact lifetime: scope analysis per routine (or another owner-proved
-streaming unit), compare against the native 120 MB golden MIR artifact, and
-release routine facts after their last semantic/MIR consumer.
+The semantic topology and MIR structural copies are now both removed.
+SelfMirProgramFacts owns one immutable semantic expression graph, while
+instruction rows carry only root and bounded-range handles. A routine-local
+program-graph snapshot was measured and rejected because it reduced the
+five-minute cutoff from routine 303 to 267 without lowering the 1.562 GiB peak.
 
-The MIR structural copy has since been removed: MIR now carries instruction
-root/range handles over the same program-owned semantic graph. The pressure
-numbers above were recorded before that final transition and must not be quoted
-as the peak of the one-owner snapshot. A new pressure observation requires an
-exclusive build window; concurrent compiler processes invalidate process-tree
-attribution.
+The next reached allocation was the artifact payload, not routine facts. The
+pre-stream release run completed all MIR and JSON work but crossed 3 GiB while
+committing an approximately 86 MB string. Streaming the verified program facts
+completed the same target in 83.364 seconds at 1.525 GiB peak private.
+Therefore routine-local reclamation is no longer the active rung below the
+2.4 GiB attention threshold; Pergyra-built seed parity is next.
 
 ## Why routine extraction alone is not the memory fix
 
@@ -269,23 +269,23 @@ initializer-row body into another routine would not by itself reclaim memory:
   semantic routines do not emit an automatic cleanup block for those temporary
   strings and arrays.
 
-Consequently a helper-call boundary merely moves the allocations unless its
-escape and last-consumer facts authorize reclamation. The next executable
-memory rung is owner-proved cleanup or region allocation for non-escaping
-semantic temporaries, with output ordering and the native 120 MB MIR golden
-preserved across C and LLVM. It must not introduce an ambient "current region"
-fallback, guess ownership from syntax, or raise the 3 GiB limit. The existing
-region plan remains deliberately narrow: only certified allocation sites may
-select a region; an unowned or missing site stays on the established heap path.
+Consequently a helper-call boundary merely moves allocations unless escape and
+last-consumer facts authorize reclamation. The current release stream result is
+below the 2.4 GiB attention threshold, so a general cleanup or region system is
+deferred until another fixed input crosses that threshold at a named owner.
+Do not introduce an ambient current-region fallback, guess ownership from
+syntax, or raise the 3 GiB limit to hide a future recurrence.
 
-The handle bridge also has a separate performance falsifier. Until a real
-`CompilationRevisionId`/graph identity exists,
-`SemanticExpressionGraphFactsEqual` performs a whole-graph equality preflight
-when another MIR handle set is attached or appended. This is
-correctness-first foreign-graph rejection, not the final identity protocol.
-The next identity rung must replace repeated comparison with an owner-issued,
-revision-scoped handle and a stale/foreign negative fixture; a weak hash or
-first/last-node comparison is not acceptable.
+The handle bridge no longer performs a whole-graph equality preflight.
+SemanticExpressionGraphFactsEqual and the graph field on instruction rows were
+deleted; the program owner supplies one graph and MIR rows supply only handles.
+This removes the measured repeated comparison and copy pressure.
+
+A real CompilationRevisionId or graph identity is still open. Current accessors
+reject missing and out-of-range handles, but cannot distinguish every stale or
+foreign in-range handle. A future reached identity seam must use an owner-issued
+revision-scoped identity and a stale or foreign negative fixture; a weak hash
+or first and last node comparison is not acceptable.
 
 Two operational results are deliberately not used as compiler evidence. A
 narrow MSYS2 `PATH` hid `powershell`, causing the Make fallback to run the full

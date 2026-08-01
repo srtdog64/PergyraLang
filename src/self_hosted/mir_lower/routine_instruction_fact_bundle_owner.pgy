@@ -235,6 +235,8 @@ func MirRoutineInstructionFactBundleAtGlobal(
         facts.abi_layout_bounds[abi_row + 4],
         facts.abi_layout_bounds[abi_row + 5],
         facts.abi_layout_bounds[abi_row + 6],
-        facts.abi_layout_bounds[abi_row + 7]
+        facts.abi_layout_bounds[abi_row + 7],
+        0 - 1, 0 - 1, 0 - 1, 0 - 1,
+        "", "", 0 - 1, 0 - 1, 0 - 1, 0 - 1
     );
 }

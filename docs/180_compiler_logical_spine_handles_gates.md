@@ -272,9 +272,9 @@ Migration order:
    arrays are deleted. Normalize text and call/place facts remain overlays;
    missing rows fail closed, and revision-scoped `ExpressionNodeId` is open.
 4. **LANDED:** MIR carries only instruction/root/origin handles over the
-   program-owned semantic graph. JSON, validation, and assignment checks use
-   typed semantic accessors; graph mismatch and missing/foreign handles fail
-   closed. The copied MIR node rows are deleted.
+   program-owned semantic graph in SelfMirProgramFacts. JSON, validation, and
+   assignment checks use typed semantic accessors. Missing and out-of-range
+   handles fail closed; revision-scoped foreign-handle identity remains open, and copied graph rows are deleted.
 5. Repoint AIR and emission consumers to typed handles/projections, then retire
    the HIR compatibility owner if no legitimate consumer remains.
 6. Run the pressure-owned full-driver fixed point and the unfiltered 280-row
@@ -291,18 +291,15 @@ part of the same Make/dashboard target. It rejects raw topology reads, missing
 typed semantic handle reads, copied MIR topology, and expression-text
 recovery.
 
-The first official pressure observation after the semantic topology repoint
-remains red. A semantic-repointed snapshot completed codegen bootstrap and the
-bounded seed/oracle parity, then the full driver stopped during initializer row
-5,215. The pressure owner recorded 2,531.5 MB peak working set, 3,076.7 MB peak
-private memory, and `driver_oracle.exe` at 3,065.9 MB private before enforcing
-the 3 GiB limit. Removing the semantic kind/child copy is therefore a real
-storage substitution but not the dominant full-driver lifetime closure. That
-measurement predates the final MIR handle transition, so it is not evidence of
-the one-owner snapshot's peak. The next exclusive pressure observation must
-measure this snapshot; the primary falsifier remains routine-scoped semantic
-fact lifetime and owner-proved reclamation of non-escaping compiler
-temporaries.
+The 2026-07-31 fixed-input release observation closes the storage/publication
+falsifier for this rung. A pre-stream artifact run completed all MIR facts and
+JSON construction but crossed the unchanged 3 GiB stop at 3.098 GiB private
+while committing an approximately 86 MB materialized payload. After program
+graph ownership and artifact streaming, the same source-to-MIR target exited 0
+in 83.364 seconds at 1.525 GiB peak private and 1.404 GiB working set.
+This proves the native-built release execution boundary only. The next
+falsifier is a driver rebuilt through the Pergyra parser/codegen seed, with
+byte parity against the native-built oracle before gen2/gen3 continuation.
 
 ## 3. Layer Contract
 

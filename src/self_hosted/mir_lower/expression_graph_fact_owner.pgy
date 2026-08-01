@@ -3,19 +3,32 @@
 import "../semantic/ast_expression_surface_fact_owner.pgy";
 import "../semantic/ast_expression_call_target_fact_owner.pgy";
 import "program_routine_index_owner.pgy";
+import "program_instruction_routing_span_owner.pgy";
 import "structured_expression_emission_order_owner.pgy";
 import "expression_graph_occurrence_owner.pgy";
 import "expression_graph_parser_bridge_owner.pgy";
 import "intent_execution_graph_target_owner.pgy";
 
-func MirExpressionGraphFactsForArtifact(
+func MirExpressionGraphFactPressureStage(
+    enabled: Bool,
+    stage: String
+) -> Void {
+    if enabled {
+        Log(Concat("[driver-pressure-stage] ", stage));
+    }
+}
+
+func MirExpressionGraphFactsForArtifactObserved(
     ref routines: MirProgramRoutineIndex,
     artifact: AstTreeArtifact,
     ref order: MirStructuredExpressionEmissionOrder,
-    ref intent_execution_plan: MirIntentExecutionPlan
+    ref intent_execution_plan: MirIntentExecutionPlan,
+    observe_pressure: Bool
 ) -> SemanticExpressionGraphFacts {
     let surfaces: SemanticAstExpressionSurfaceFacts =
         SemanticAstExpressionSurfaceRowsFromArtifact(artifact);
+    MirExpressionGraphFactPressureStage(observe_pressure,
+        "consumer:expression-graph:surfaces:done");
     let sequence: MirExpressionGraphSequence =
         MirExpressionGraphSequenceEmpty();
     let roots: Array<Int> = [];
@@ -39,14 +52,20 @@ func MirExpressionGraphFactsForArtifact(
         if covered_row < 0 || covered_row >= instruction_count {
             valid = false;
         } else {
-            let covered_instruction: JsonObjectFactTable =
-                JsonObjectFactTableFromBounds(
-                    routines.source_json,
-                    routines.instruction_starts[covered_row],
-                    routines.instruction_ends[covered_row]
+            let covered_expression: MirProgramInstructionExpressionFact =
+                MirProgramInstructionExpressionIndexAt(
+                    routines.instruction_expressions, covered_row
                 );
-            if !MirInstructionRequiresExpr0Graph(covered_instruction) ||
-                MirInstructionRequiresExpr1Graph(covered_instruction) {
+            if !MirInstructionExpressionRequiresExpr0Graph(
+                    routines.source_json,
+                    routines.instruction_kinds[covered_row],
+                    routines.instruction_source_types[covered_row],
+                    covered_expression
+                ) || MirInstructionExpressionRequiresExpr1Graph(
+                    routines.source_json, routines.instruction_kinds[covered_row],
+                    routines.instruction_source_types[covered_row],
+                    covered_expression
+                ) {
                 valid = false;
             } else {
                 ArraySet(expr0_seen, covered_row, true);
@@ -54,6 +73,8 @@ func MirExpressionGraphFactsForArtifact(
         }
         covered_i = covered_i + 1;
     }
+    MirExpressionGraphFactPressureStage(observe_pressure,
+        "consumer:expression-graph:covered:done");
     let i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(surfaces) {
         let node_id: Int = surfaces.node_ids[i];
@@ -99,8 +120,18 @@ func MirExpressionGraphFactsForArtifact(
                         global_row >= instruction_count {
                         occurrence_valid = false;
                     } else {
+                        let expression:
+                            MirProgramInstructionExpressionFact =
+                            MirProgramInstructionExpressionIndexAt(
+                                routines.instruction_expressions, global_row
+                            );
+                        let kind: String =
+                            routines.instruction_kinds[global_row];
+                        let source: String =
+                            routines.instruction_source_types[global_row];
                         let instruction: JsonObjectFactTable =
-                            JsonObjectFactTableFromBounds(
+                            JsonObjectFactTable(
+                                expression.valid,
                                 routines.source_json,
                                 routines.instruction_starts[global_row],
                                 routines.instruction_ends[global_row]
@@ -114,7 +145,8 @@ func MirExpressionGraphFactsForArtifact(
                         let graph_slot: Int = MirExpressionGraphSlotNone();
                         if producer_only {
                             if !MirExpressionGraphProducerOnlyOccurrenceAllowed(
-                                    instruction, lane, ordinal
+                                    routines.source_json, kind, source,
+                                    expression, lane, ordinal
                                 ) {
                                 occurrence_valid = false;
                             } else {
@@ -125,22 +157,21 @@ func MirExpressionGraphFactsForArtifact(
                             }
                         } else {
                             graph_slot = MirExpressionGraphOccurrenceGraphSlot(
-                                instruction, lane, ordinal
+                                routines.source_json, kind, source,
+                                expression, lane, ordinal
                             );
                             sequence = MirExpressionGraphSequenceAppendOccurrence(
-                                sequence, instruction, lane, ordinal
+                                sequence, routines.declarations.enum_variants,
+                                instruction, expression, kind, source,
+                                lane, ordinal
                             );
                             let target_projection:
                                 MirIntentExecutionGraphTargetProjection =
                                     MirIntentExecutionGraphTargetProjection(
                                         true, false, "", ""
                                     );
-                            let instruction_name: Option<String> =
-                                JsonObjectFactStringFieldOpt(
-                                    instruction, "name"
-                                );
-                            if IsSome(instruction_name) &&
-                                UnwrapOption(instruction_name) == "IntentEval" {
+                            if MirProgramInstructionExpressionRoutingEquals(
+                                routines.source_json, expression, 0, "IntentEval") {
                                 target_projection =
                                     MirIntentExecutionGraphTargetForInstruction(
                                         routines, intent_execution_plan,
@@ -184,42 +215,48 @@ func MirExpressionGraphFactsForArtifact(
             lane = lane + 1;
         }
         i = i + 1;
+        if observe_pressure && i % 4096 == 0 {
+            MirExpressionGraphFactPressureStage(true, Concat(
+                "consumer:expression-graph:surface-row:", ToString(i)));
+        }
     }
+    MirExpressionGraphFactPressureStage(observe_pressure,
+        "consumer:expression-graph:sequence:done");
     if order_i != order_count || !sequence.ok ||
         !SemanticExpressionGraphArenaReady(sequence.arena) {
         valid = false;
     }
     let coverage_i: Int = 0;
     while coverage_i < instruction_count {
-        let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            routines.source_json, routines.instruction_starts[coverage_i],
-            routines.instruction_ends[coverage_i]
+        let expression: MirProgramInstructionExpressionFact =
+            MirProgramInstructionExpressionIndexAt(
+                routines.instruction_expressions, coverage_i
+            );
+        let kind: String = routines.instruction_kinds[coverage_i];
+        let source: String = routines.instruction_source_types[coverage_i];
+        let expr0_required: Bool = MirInstructionExpressionRequiresExpr0Graph(
+            routines.source_json, kind, source, expression
         );
-        let kind: Option<String> = JsonObjectFactStringFieldOpt(
-            instruction, "kind"
-        );
-        let source: Option<String> = JsonObjectFactStringFieldOpt(
-            instruction, "source_type"
-        );
-        let expr0: Option<String> = JsonObjectFactStringFieldOpt(
-            instruction, "expr0"
+        let expr1_required: Bool = MirInstructionExpressionRequiresExpr1Graph(
+            routines.source_json, kind, source, expression
         );
         let special_expr0_required: Bool =
-            (IsSome(source) &&
-                UnwrapOption(source) == "AST_MATCH_CASE") ||
-            (IsSome(kind) && UnwrapOption(kind) == "destructure" &&
-                IsSome(expr0) &&
-                MirDestructureNeedsTemp(UnwrapOption(expr0)));
-        if (MirInstructionRequiresExpr0Graph(instruction) ||
-                special_expr0_required) && !expr0_seen[coverage_i] {
+            source == "AST_MATCH_CASE" ||
+            (kind == "destructure" &&
+             MirProgramInstructionExpressionTextPresent(expression, 0) &&
+             MirDestructureNeedsTemp(MirProgramInstructionExpressionText(
+                 routines.source_json, expression, 0)));
+        if (expr0_required || special_expr0_required) &&
+            !expr0_seen[coverage_i] {
             valid = false;
         }
-        if MirInstructionRequiresExpr1Graph(instruction) &&
-            !expr1_seen[coverage_i] {
+        if expr1_required && !expr1_seen[coverage_i] {
             valid = false;
         }
         coverage_i = coverage_i + 1;
     }
+    MirExpressionGraphFactPressureStage(observe_pressure,
+        "consumer:expression-graph:coverage:done");
     let facts: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
         valid, roots, has_roots, sequence.arena
     );
@@ -229,4 +266,15 @@ func MirExpressionGraphFactsForArtifact(
         );
     }
     return facts;
+}
+
+func MirExpressionGraphFactsForArtifact(
+    ref routines: MirProgramRoutineIndex,
+    artifact: AstTreeArtifact,
+    ref order: MirStructuredExpressionEmissionOrder,
+    ref intent_execution_plan: MirIntentExecutionPlan
+) -> SemanticExpressionGraphFacts {
+    return MirExpressionGraphFactsForArtifactObserved(
+        routines, artifact, order, intent_execution_plan, false
+    );
 }

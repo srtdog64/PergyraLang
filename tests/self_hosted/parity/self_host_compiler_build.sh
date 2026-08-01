@@ -128,7 +128,9 @@ fi
 
 tmp_output="${OUTPUT}.tmp"
 rm -f "$tmp_output"
+pgy_selfhost_select_emitted_c_compile_profile || fail self-host-emitted-c-profile-invalid
 compile_command=("$CC" -x c -std=c11)
+compile_command+=(${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[@]})
 if pgy_selfhost_emitted_c_uses_runtime_headers "$C_FILE"; then
     compile_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
 fi

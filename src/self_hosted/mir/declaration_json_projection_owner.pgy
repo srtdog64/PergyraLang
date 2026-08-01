@@ -173,6 +173,46 @@ func SelfMirJsonDeclarationRoleSlots(
     return JsonEmitArray(slots);
 }
 
+func SelfMirJsonDeclarationZoneAuthorities(
+    rows: SelfMirDeclarationRows,
+    declaration_index: Int
+) -> String {
+    let authorities: Array<String> = [];
+    let authority_i: Int = 0;
+    while authority_i <
+        rows.zone_authorities.declaration_counts[declaration_index] {
+        let authority_row: Int =
+            rows.zone_authorities.declaration_starts[declaration_index] +
+            authority_i;
+        let required: Array<String> = [];
+        let ability_i: Int = 0;
+        while ability_i <
+            rows.zone_authorities.required_ability_counts[authority_row] {
+            let ability_row: Int =
+                rows.zone_authorities.required_ability_starts[authority_row] +
+                ability_i;
+            let actuals: Array<String> = [];
+            ArrayPush(required, JsonEmitObject([
+                JsonEmitFieldString(
+                    "base",
+                    rows.zone_authorities.required_ability_names[ability_row]
+                ),
+                JsonEmitFieldRaw("actuals", JsonEmitArray(actuals))
+            ]));
+            ability_i = ability_i + 1;
+        }
+        ArrayPush(authorities, JsonEmitObject([
+            JsonEmitFieldString(
+                "subject_slot",
+                rows.zone_authorities.subject_slot_names[authority_row]
+            ),
+            JsonEmitFieldRaw("requires", JsonEmitArray(required))
+        ]));
+        authority_i = authority_i + 1;
+    }
+    return JsonEmitArray(authorities);
+}
+
 func SelfMirJsonDeclarationRoleImpls(
     rows: SelfMirDeclarationRows,
     declaration_index: Int
@@ -279,9 +319,15 @@ func SelfMirJsonDeclaration(
             "nominal_kind", rows.nominal_kinds[declaration_index]
         ),
         JsonEmitFieldString("name", rows.names[declaration_index]),
-        JsonEmitFieldRaw("fields", JsonEmitArray(fields_rows)),
-        JsonEmitFieldRaw("methods", JsonEmitArray(methods))
+        JsonEmitFieldRaw("fields", JsonEmitArray(fields_rows))
     ];
+    if rows.nominal_kinds[declaration_index] == "zone" {
+        ArrayPush(fields, JsonEmitFieldRaw(
+            "zone_authorities",
+            SelfMirJsonDeclarationZoneAuthorities(rows, declaration_index)
+        ));
+    }
+    ArrayPush(fields, JsonEmitFieldRaw("methods", JsonEmitArray(methods)));
     if rows.generic_counts[declaration_index] > 0 {
         ArrayPush(fields, JsonEmitFieldRaw(
             "generic_params",

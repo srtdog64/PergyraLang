@@ -459,6 +459,7 @@ func SelfMirAppendIntentRoutine(
         facts.ok, facts.diagnostic_code, facts.diagnostic_message,
         facts.artifact_node_count, facts.declarations, facts.domain_topology,
         facts.domain_runtime_assignments, facts.generic_specializations,
-        facts.parallel_captures, appended, SelfMirAppendCfg(facts.cfg, build.cfg)
+        facts.parallel_captures, appended, SelfMirAppendCfg(facts.cfg, build.cfg),
+        facts.expression_graph
     );
 }

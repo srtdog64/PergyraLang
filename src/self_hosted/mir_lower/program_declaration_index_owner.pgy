@@ -6,6 +6,7 @@
 
 import "json_fact_read.pgy";
 import "program_declaration_field_identity_index_owner.pgy";
+import "program_enum_variant_index_owner.pgy";
 
 struct MirProgramDeclarationIndex {
     let valid: Bool;
@@ -15,6 +16,7 @@ struct MirProgramDeclarationIndex {
     let nominal_kinds: Array<String>;
     let names: Array<String>;
     let field_identities: MirProgramDeclarationFieldIdentityIndex;
+    let enum_variants: MirProgramEnumVariantIndex;
 }
 
 func MirProgramDeclarationIndexCursorAtEnd(
@@ -37,10 +39,13 @@ func BuildMirProgramDeclarationIndex(
     let names: Array<String> = [];
     let field_identities: MirProgramDeclarationFieldIdentityIndex =
         EmptyMirProgramDeclarationFieldIdentityIndex();
+    let enum_variants: MirProgramEnumVariantIndex =
+        EmptyMirProgramEnumVariantIndex();
     let array_bounds: Array<Int> = [0, 0];
     if !MirDeclArrayBounds(json, array_bounds) {
         return MirProgramDeclarationIndex(
-            false, starts, ends, kinds, nominal_kinds, names, field_identities
+            false, starts, ends, kinds, nominal_kinds, names, field_identities,
+            enum_variants
         );
     }
 
@@ -72,8 +77,12 @@ func BuildMirProgramDeclarationIndex(
         BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans(
             json, starts, ends, names, kinds, nominal_kinds
         );
+    enum_variants = BuildMirProgramEnumVariantIndexFromDeclarationSpans(
+        json, starts, ends, kinds, names
+    );
     return MirProgramDeclarationIndex(
-        valid, starts, ends, kinds, nominal_kinds, names, field_identities
+        valid && enum_variants.valid, starts, ends, kinds, nominal_kinds,
+        names, field_identities, enum_variants
     );
 }
 

@@ -323,6 +323,38 @@ for fixture_entry in "${FIXTURES[@]}"; do
         echo "[self-host-parity:mir-json] $base: MIR JSON is missing explicit expression/source-local facts" >&2
         exit 1
     fi
+    if [[ "$base" == "intent_nested_direct" ]]; then
+        authority_json='"zone_authorities":[{"subject_slot":"source","requires":[{"base":"SourceReading","actuals":[]}]}]'
+        if ! grep -Fq "$authority_json" "$mj"; then
+            echo "[self-host-parity:mir-json] intent_nested_direct: MIR lost zone authority facts" >&2
+            exit 1
+        fi
+        missing_authority="$B/${base}.missing-zone-authority.mirjson"
+        invalid_authority="$B/${base}.invalid-zone-authority-slot.mirjson"
+        sed 's/,"zone_authorities":\[{"subject_slot":"source","requires":\[{"base":"SourceReading","actuals":\[\]}\]}\]//' \
+            "$mj" >"$missing_authority"
+        sed 's/"subject_slot":"source"/"subject_slot":"missing"/' \
+            "$mj" >"$invalid_authority"
+        for mutation in missing-zone-authority invalid-zone-authority-slot; do
+            mutation_input="$B/${base}.${mutation}.mirjson"
+            mutation_out="$B/${base}.${mutation}.out"
+            mutation_err="$B/${base}.${mutation}.err"
+            if (cd "$ROOT_DIR" && "$B/mir_lower.exe" \
+                    "${mutation_input#$ROOT_DIR/}" \
+                    >"$mutation_out" 2>"$mutation_err"); then
+                echo "[self-host-parity:mir-json] intent_nested_direct: $mutation mutation was accepted" >&2
+                exit 1
+            fi
+            grep -Fq 'zone declaration is missing authority fact inventory' \
+                "$mutation_out" "$mutation_err" || \
+            grep -Fq 'zone authority subject slot is not declared' \
+                "$mutation_out" "$mutation_err" || {
+                echo "[self-host-parity:mir-json] intent_nested_direct: $mutation diagnostic drifted" >&2
+                cat "$mutation_out" "$mutation_err" >&2
+                exit 1
+            }
+        done
+    fi
     if [[ "$base" == "forloop" ]]; then
         for required in \
             '"source_type":"AST_FOR_LOOP"' \
@@ -495,6 +527,19 @@ for fixture_entry in "${FIXTURES[@]}"; do
             exit 1
         fi
     fi
+    if [[ "$base" == "intent_nested_direct" ]]; then
+        for required in \
+            'Zone: SourceIntakeZone' \
+            'Authority: source' \
+            'Requires: SourceReading' \
+            'Intent: IntakeSource' \
+            'Intent: FrontendPipeline'; do
+            if ! grep -Fq "$required" "$reast"; then
+                echo "[self-host-parity:mir-json] intent_nested_direct: reconstructed authority fact is missing: $required" >&2
+                exit 1
+            fi
+        done
+    fi
     if [[ "$base" == "enum_multi_payload" ]]; then
         for required in \
             '"name":"Point","param_count":0,"param_types":[]' \
@@ -532,7 +577,9 @@ for fixture_entry in "${FIXTURES[@]}"; do
     fi
     if [[ "$base" == "role_operator_dispatch" ]]; then
         for required in \
-            '"kind":"role","name":"IntMath","for_type":"Int"' \
+            '"kind":"role","name":"IntMath"' \
+            '"name":"IntMath","source_syntax_id":9' \
+            '"for_type":"Int","includes":[]' \
             '"impls":[{"ability":{"base":"Arithmetic","actuals":[]},"method_start":0,"method_count":1}]' \
             '"methods":[{"name":"Add","return":"Int","callable_kind":"function"' \
             '"params":[{"name":"self","type":null},{"name":"rhs","type":"Int"}]'; do

@@ -18,6 +18,7 @@ intent FrontendPipeline(
         where: SourceIntakeZone;
         using: intake;
         who: source;
+        authorized by: source;
         on: IntakeSource(intake, source, paths);
         expect: true;
     }
@@ -26,6 +27,7 @@ intent FrontendPipeline(
         where: TokenStreamZone;
         using: tokens;
         who: lexer;
+        authorized by: lexer;
         on: LexSource(tokens, lexer);
         expect: true;
     }
@@ -34,6 +36,7 @@ intent FrontendPipeline(
         where: AstTreeZone;
         using: ast;
         who: parser;
+        authorized by: parser;
         on: ParseTokens(ast, parser);
         expect: true;
     }
@@ -52,13 +55,18 @@ intent MiddleEndPipeline(
 
     step Check {
         using: semantic_zone;
+        who: checker;
+        requires: FactProving;
+        authorized by: checker;
         on: CheckProgramSemantics(semantic_zone, checker);
         expect: true;
     }
 
     step Lower {
-        where: MirFactGraphZone;
         using: lower_zone;
+        who: lowerer;
+        requires: MirFactLowering;
+        authorized by: lowerer;
         on: LowerProgramFacts(lower_zone, lowerer);
         expect: true;
     }
@@ -81,12 +89,17 @@ intent BackendPipeline(
         where: TargetCapabilityZone;
         using: target_capability;
         who: target_planner;
+        requires: TargetProjectionPlanning;
+        authorized by: target_planner;
         on: PlanTargetProjection(target_capability, target_planner);
         expect: true;
     }
 
     step Emit {
         using: emit_zone;
+        who: emitter;
+        requires: ArtifactEmission;
+        authorized by: emitter;
         on: EmitProgramArtifact(emit_zone, types, abi_layout, target_capability, emitter);
         expect: true;
     }

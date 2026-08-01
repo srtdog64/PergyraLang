@@ -110,6 +110,7 @@ struct SelfMirProgramFacts {
     parallel_captures: SelfMirParallelCaptureRows;
     routines: SelfMirRoutineRows;
     cfg: SelfMirCfgRows;
+    expression_graph: SemanticExpressionGraphFacts;
 }
 
 func SelfMirParamCarriageName(abi_kind: Int) -> String {
@@ -179,7 +180,10 @@ func SelfMirRoutineRowsEmpty() -> SelfMirRoutineRows {
     );
 }
 
-func SelfMirProgramFactsEmpty(artifact_node_count: Int) -> SelfMirProgramFacts {
+func SelfMirProgramFactsEmpty(
+    artifact_node_count: Int,
+    expression_graph: SemanticExpressionGraphFacts
+) -> SelfMirProgramFacts {
     return SelfMirProgramFacts(
         true, "", "", artifact_node_count,
         SelfMirDeclarationRowsEmpty(),
@@ -188,7 +192,8 @@ func SelfMirProgramFactsEmpty(artifact_node_count: Int) -> SelfMirProgramFacts {
         SelfMirGenericSpecializationRowsEmpty(),
         SelfMirParallelCaptureRowsEmpty(),
         SelfMirRoutineRowsEmpty(),
-        SelfMirCfgRowsEmpty()
+        SelfMirCfgRowsEmpty(),
+        expression_graph
     );
 }
 
@@ -202,7 +207,8 @@ func SelfMirProgramFactsError(
         facts.declarations, facts.domain_topology,
         facts.domain_runtime_assignments,
         facts.generic_specializations,
-        facts.parallel_captures, facts.routines, facts.cfg
+        facts.parallel_captures, facts.routines, facts.cfg,
+        facts.expression_graph
     );
 }
 
@@ -215,7 +221,8 @@ func SelfMirProgramFactsWithDomainTopology(
         facts.artifact_node_count, facts.declarations, domain_topology,
         facts.domain_runtime_assignments,
         facts.generic_specializations, facts.parallel_captures,
-        facts.routines, facts.cfg
+        facts.routines, facts.cfg,
+        facts.expression_graph
     );
 }
 

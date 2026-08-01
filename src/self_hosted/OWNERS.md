@@ -612,7 +612,14 @@ inventory must not become a second fact-family owner registry.
   instruction, source-local, use-row, and assembled program ownership.
 - `src/self_hosted/mir/declaration_fact_owner.pgy` -- flat declaration,
   generic parameter, method parameter, party role-slot, and role implementation
-  row ownership shared by producer, verifier, JSON, and MIR lowering.
+  row ownership shared by producer, verifier, JSON, and MIR lowering; explicit
+  zone authority rows remain a responsibility-named nested owner.
+- `src/self_hosted/mir/declaration_callable_rows_owner.pgy` -- callable
+  parameter, return, and action-contract declaration row projection. It owns
+  no nominal or zone policy.
+- `src/self_hosted/mir/declaration_zone_authority_rows_owner.pgy` -- aligns the
+  semantic owner's explicit zone subject-slot and required-ability facts with
+  one MIR declaration inventory; it never infers authority from actions.
 - `src/self_hosted/mir/declaration_verify_owner.pgy` -- structural range and
   parallel-row verification for MIR declarations, including generic, method,
   role-slot, and role-implementation inventories.
@@ -773,6 +780,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/decl_lower.pgy` -- declaration reconstruction,
   including MIR-carried generic parameter constraints and default types; it
   never guesses a missing declaration default.
+- `src/self_hosted/mir_lower/declaration_zone_authority_projection_owner.pgy`
+  -- fail-closed `zone_authorities` schema validation and canonical AST-row
+  projection from the MIR declaration owner, including exact subject-slot
+  membership. Action contracts are not an authority fallback.
 - `src/self_hosted/mir_lower/declaration_method_contract_fact_owner.pgy` --
   single bounded `pgy.mir.v1` method-contract read, validation, and canonical
   AST-row projection for explicit `function`/`action` identity.
@@ -786,6 +797,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy` --
   persisted MIR expression-graph slot requirements by instruction shape; this
   policy does not own or duplicate the program graph.
+- `src/self_hosted/mir_lower/expression_graph_indexed_instruction_policy_owner.pgy`
+  -- the same slot policy over borrowed program-index expression facts. It
+  decodes text only for the rare policies that require actual contents.
 - `src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy` --
   bounded parser-owned reconstruction of producer-only collection receiver
   roots during MIR graph reconsumption; it is not a codegen fallback authority.
@@ -806,8 +820,10 @@ inventory must not become a second fact-family owner registry.
   fail-closed MIR direct/member generic row decoder and final codegen-view
   projection; semantic rows are verifier evidence, not emitted-symbol input.
 - `src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy` -- bounded
-  one-pass MIR JSON graph decoding, exact graph/node schema validation, and
-  ordered graph-sequence construction.
+  ordered graph-sequence construction over exact persisted graph captures.
+- `src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy` --
+  one-pass persisted graph-header and node-field capture. It validates the
+  exact schema while forbidding field-by-field JSON object rescans.
 - `src/self_hosted/mir_lower/expression_graph_persisted_shape_owner.pgy` --
   exact legacy/sealed persisted graph object shape and canonical digest-presence
   validation without consumer-side graph re-hashing.
@@ -944,8 +960,12 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/program_declaration_index_owner.pgy` -- one
   document-order declaration identity/span inventory shared across canonical
   declaration-family projection phases; it composes the field identity index
-  from those already-discovered spans rather than reopening the declaration
-  array.
+  and enum variant index from those already-discovered spans rather than
+  reopening the declaration array.
+- `src/self_hosted/mir_lower/program_enum_variant_index_owner.pgy` -- one
+  program-owned enum variant/name identity index built during declaration
+  admission; condition and expression-graph consumers query it and never
+  reconstruct the declaration graph from the JSON root.
 - `src/self_hosted/mir_lower/program_declaration_field_identity_index_owner.pgy`
   -- one flattened owner/name/source-ID/field-kind identity index built from
   program declaration spans; topology consumers must use its exact join and
@@ -1009,15 +1029,23 @@ inventory must not become a second fact-family owner registry.
   identity; consumers cannot reopen kind/source/machine fields.
 - `src/self_hosted/mir_lower/program_routine_index_owner.pgy` -- one admitted
   document-order routine/block/instruction structure view, including
-  instruction identity and raw machine spans, shared by machine admission,
-  declaration lookup, and routine reconstruction.
+  short instruction routing facts, borrowed expression/expression-graph spans,
+  and raw machine spans, shared by machine admission, declaration lookup,
+  routine reconstruction, and final graph reconstruction. It must not retain
+  materialized program-wide render expressions.
+- `src/self_hosted/mir_lower/program_instruction_expression_index_owner.pgy` --
+  program-lifetime aligned borrowed routing, expression, and graph spans. Long
+  text and optional routing values are never materialized into program-global
+  string arrays.
+- `src/self_hosted/mir_lower/program_instruction_routing_span_owner.pgy` --
+  allocation-free literal comparison over borrowed `name`/`arg0` spans,
+  with bounded decoding only for an actually escaped routing value.
 - `src/self_hosted/mir_lower/program_routine_receiver_identity_owner.pgy` --
   exact routine source-ID uniqueness, declaration-owner join, and receiver
   carriage admission shared by routine index construction and validation.
 - `src/self_hosted/mir_lower/routine_instruction_fact_bundle_owner.pgy` -- one
-  routine-local pass over admitted instruction spans that captures result and
-  render scalars plus raw ABI value bounds without mixing local facts into the
-  program-global index.
+  routine-local aligned view that decodes the result/render scalars and raw ABI
+  value bounds needed by reconstruction exactly once for that routine.
 - `src/self_hosted/mir_lower/routine_instruction_use_fact_owner.pgy` -- one
   routine-local flattened view of admitted instruction `uses` arrays. It keeps
   use identity shared across backend consumers and rejects missing arrays or
@@ -1026,9 +1054,10 @@ inventory must not become a second fact-family owner registry.
   unique routine-local SSA result definition identity and its global/block/
   instruction coordinates, derived from the admitted instruction bundle.
 - `src/self_hosted/mir_lower/routine_instruction_scalar_capture_owner.pgy` --
-  one bounded instruction-object walk that captures instruction name,
-  routine-local render strings, and ABI value spans; ABI syntax and semantic
-  validation remain with `abi_layout_fact_owner.pgy`.
+  one bounded instruction-object walk that captures structural identity,
+  machine spans, instruction name/render strings, ABI value spans, and
+  expression-graph object spans; ABI syntax and semantic validation remain
+  with `abi_layout_fact_owner.pgy`.
 - `src/self_hosted/mir_lower/run_owner.pgy` -- MIR-lower CLI run boundary and
   manifest mode selection.
 - `src/self_hosted/mir_lower/routine_fact_index_owner.pgy` -- per-routine

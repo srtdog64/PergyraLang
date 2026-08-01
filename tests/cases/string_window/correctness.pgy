@@ -8,6 +8,8 @@ func Main() -> Void {
     let fails: Int = 0;
     let i: Int = 0;
     while i < 40 {
+        if SubstringWithLen(s, n, i, 8) != Substring(s, i, 8) { fails = fails + 1; }
+
         // SubIndexOf == StringIndexOf(Substring(...))
         if SubIndexOf(s, i, 8, "o") != StringIndexOf(Substring(s, i, 8), "o") { fails = fails + 1; }
         if SubIndexOfWithLen(s, n, i, 8, "o") != SubIndexOf(s, i, 8, "o") { fails = fails + 1; }
@@ -42,6 +44,9 @@ func Main() -> Void {
     if SubStartsWith(s, 0, "") != true { fails = fails + 1; }
     if SubStartsWithLen(s, n, 0, "") != true { fails = fails + 1; }
     if SubStartsWithLen(s, n, 1000, "") { fails = fails + 1; }
+    if SubstringWithLen(s, n, 1000, 4) != "" { fails = fails + 1; }
+    if SubstringWithLen(s, n, 0 - 1, 4) != "" { fails = fails + 1; }
+    if SubstringWithLen(s, n, n - 3, 99) != Substring(s, n - 3, 99) { fails = fails + 1; }
     if CharAtN(s, n, 0 - 1) != "" { fails = fails + 1; }
     if CharAtN(s, n, 9999) != "" { fails = fails + 1; }
     if ViewLength(SubView(s, 4, 5)) != 5 { fails = fails + 1; }

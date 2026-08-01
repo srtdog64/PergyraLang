@@ -1,0 +1,84 @@
+// Program-index policy for persisted MIR expression-graph slots.
+
+import "program_instruction_expression_index_owner.pgy";
+import "program_instruction_routing_span_owner.pgy";
+
+func MirInstructionExpressionRequiresExpr0Graph(
+    json: String,
+    kind: String,
+    source: String,
+    ref expression: MirProgramInstructionExpressionFact
+) -> Bool {
+    if !expression.valid || kind == "" ||
+        !MirProgramInstructionExpressionRoutingPresent(expression, 0) ||
+        source == "" ||
+        !MirProgramInstructionExpressionTextPresent(expression, 0) {
+        return false;
+    }
+    if source == "AST_DEFER_STMT" {
+        return (MirProgramInstructionExpressionRoutingEquals(
+                    json, expression, 1, "Log") ||
+                MirProgramInstructionExpressionRoutingEquals(
+                    json, expression, 1, "Call")) &&
+            MirProgramInstructionExpressionText(json, expression, 0) ==
+                "{...}";
+    }
+    if kind == "assign" && source == "AST_ASSIGNMENT" {
+        return MirProgramInstructionExpressionTextPresent(expression, 1);
+    }
+    if source == "AST_FOR_LOOP" {
+        if kind == "loop-init" { return true; }
+        return kind == "branch" &&
+            MirProgramInstructionExpressionTextPresent(expression, 1) &&
+            !MirProgramInstructionExpressionTextsEqual(json, expression);
+    }
+    if kind == "branch" &&
+        MirProgramInstructionExpressionRoutingEquals(
+            json, expression, 0, "branch") &&
+        !MirProgramInstructionExpressionRoutingPresent(expression, 1) &&
+        source != "AST_MATCH_CASE" {
+        return true;
+    }
+    if kind == "def" &&
+        (source == "AST_LET_DECL" || source == "AST_ASSIGNMENT") {
+        return true;
+    }
+    if kind == "stmt" &&
+        (MirProgramInstructionExpressionRoutingEquals(
+             json, expression, 0, "IntentCheck") ||
+         (MirProgramInstructionExpressionRoutingEquals(
+              json, expression, 0, "IntentEval") &&
+          (MirProgramInstructionExpressionRoutingEquals(
+               json, expression, 1, "on") ||
+           MirProgramInstructionExpressionRoutingEquals(
+               json, expression, 1, "compensate")))) {
+        return true;
+    }
+    if kind == "stmt" && source == "AST_CALL" {
+        return !MirProgramInstructionExpressionRoutingEquals(
+            json, expression, 1, "ArrayPop");
+    }
+    return kind == "return" && source != "AST_RETURN_VOID";
+}
+
+func MirInstructionExpressionRequiresExpr1Graph(
+    json: String,
+    kind: String,
+    source: String,
+    ref expression: MirProgramInstructionExpressionFact
+) -> Bool {
+    if !expression.valid || kind == "" || source == "" ||
+        !MirProgramInstructionExpressionTextPresent(expression, 0) ||
+        !MirProgramInstructionExpressionTextPresent(expression, 1) {
+        return false;
+    }
+    if kind == "stmt" && source == "AST_CALL" &&
+        MirProgramInstructionExpressionRoutingEquals(
+            json, expression, 1, "ArraySet") {
+        return true;
+    }
+    if source != "AST_ASSIGNMENT" { return false; }
+    if kind == "assign" { return true; }
+    return kind == "def" &&
+        MirProgramInstructionExpressionRoutingPresent(expression, 1);
+}

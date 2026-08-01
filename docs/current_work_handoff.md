@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-07-31 (Asia/Seoul)
+Updated: 2026-08-01 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -11,107 +11,85 @@ owner, and the named executable gate.
 - Resume scope: read this card, verify the named owner and gate, then continue
   this one executable rung. Sections below `Historical checkpoint archive` are
   lookup evidence only and must not be treated as parallel work queues.
-- Verified predecessor: `c498d7c75e34b04184ec81c421f72773f9557342` on
-  `main`, equal to `origin/main` before this repair set. This note
-  cannot name its own containing refocus commit; verify the exact state with Git.
-- Active production entrypoint:
-  `driver_bootstrap_main.pgy -> PgyCompilerWorld.source_mir ->
-  DriverSourceMirExecution ->
-  DriverRung2MirProjectionFromAdmittedAnalysisObserved ->
-  SelfMirProgramFactsFromReadyArtifactObserved`.
-- Active fact owner:
-  `src/self_hosted/mir/artifact_lower_owner.pgy`. Last orchestration consumer:
-  `src/self_hosted/compiler/driver_rung2_owner.pgy`.
-- Active falsifier: after one-time input-row validation and function-scoped
-  statement ranges, the 30-minute full integration advanced from routine 588
-  to routine 776. It remained incomplete at 2.228 GiB peak private. The focused
-  five-minute seed-only MIR shard reached routine 303 at 1.561 GiB peak
-  private; its slowest completed routines are the large AST-text projection
-  functions `TypedAstTextKindOf` and `CodegenAstTextPayloadFor`.
-  A routine-local program-graph snapshot experiment regressed that cutoff from
-  303 to 267 at 1.562 GiB and was reverted. It is negative evidence against
-  copying the program graph into each routine merely to avoid equality checks.
-- Memory observation policy: the pressure owner records the process-tree peak
-  internally. Read only its final `peak_private_gib` and
-  `attention_required` summary. The hard limit is 3 GiB and the attention
-  threshold is 80% (2.4 GiB); below it, memory is not an optimization owner.
-- Gate trust policy: follow `docs/131_ai_coding_atomic_units.md` sections 3.3
-  and 3.4. Gate density follows risk and blast radius, not generated code or
-  test count. The current rung already has sufficient focused gates; reuse
-  them. An implementation and test that share one interpretation are not
-  independent evidence, and a material goal/negative-gate change requires a
-  separate history rather than an implementation-side weakening.
-- Current CI repair scope is bounded support for this same executable rung, not
-  a new architecture track. Completed run `30622652339` exposed one real
-  self-host semantic defect (`SetNew() -> Set<Unknown>` despite a declared
-  `Set<String>`), one Bash 3.2 portability defect (associative arrays in the
-  completeness execution memo), two stale source-text ratchets, and the
-  nominal-constructor fact owner at 600 LOC. The full bootstrap job was
-  cancelled at its one-hour boundary; this repair does not reclassify it as a
-  semantic failure or a pass.
-- Contextual collection typing remains owned by
-  `SemanticContextualBuiltinReturnTypeOpt`. Both the source checker and typed
-  graph consumer now project direct `ListNew/QueueNew/SetNew` calls through
-  that owner and fail closed for member/computed callees. A freshly compiled C
-  semantic checker accepts
-  `src/self_hosted/parser/program_parse_owner.pgy`; the prior exact
-  `let_type_mismatch expected Set<String> actual Set<Unknown>` is closed.
-- Owner size is a hard double ratchet: production C/H and self-hosted Pergyra
-  owners stop at 699 LOC, semantic/type-system owners at 599 LOC, and
-  self-hosted tools at 999 LOC. Existing `helper` basenames are a shrink-only
-  inventory; new helpers are forbidden and policy/state/dispatch code must move
-  to a responsibility-named owner. The 600-line nominal constructor owner was
-  split at its artifact-consistency responsibility without raising a cap.
-- Forbidden fallback: increase the timeout or memory cap, add a general query
-  engine/cache before one exact repeated operation is measured, rebuild facts
-  from AST text, multiply one program target by inventory rows, or resume
-  Insere/Zeno/library research as if it were the active compiler rung.
-- Closed prerequisite in the current dirty set: completeness semantic and
-  codegen rows share one import-composed program target. Codegen
-  `--check-source` owns parse, typed semantic analysis, admission, and shape
-  checking over one `AstTreeArtifact`; external `--source-unit-ast` and
-  text-inventory reconstruction are forbidden.
-- Objective card: make one completeness row mean one semantic program.
-  `CompilerCompletenessProgramCheckTarget` owns ledger projection;
-  `AstTreeArtifact` plus `SemanticAstArtifactAnalysis` own codegen input;
-  `CheckCUnitFromSemanticArtifact` is the last consumer. The negative ratchet
-  rejects per-row target execution, per-append whole-graph validation, and
-  source-unit/text bridges.
-- Falsifying evidence: `world.pgy` codegen passes 1/1. The two rows
-  `expr_postfix_owner.pgy` and `expr_precedence_owner.pgy` map to
-  `expr_owner.pgy` and pass 2/2 with one unique check and one explicit reuse.
-- Observed performance: root parse fell from a greater-than-304-second
-  policy-stop to 11.7 seconds. Typed world codegen fell from 101.1 seconds to
-  11.9 seconds. The monitored final codegen run completed in 10.614 seconds at
-  552.6 MB peak private / 504.8 MB peak working set. Separate stale parser
-  diagnostics at about 627.4 MB and 414.7 MB explain overlapping desktop
-  pressure; no single 20 GB compiler process was observed.
-- Evidence grade: this closes a CI/program-identity prerequisite and makes the
-  typed Pergyra path `REACHABLE`. It does not delete the active source-to-MIR
-  C bypass and is not `SUBSTITUTING`.
-- Observed green for the current dirty set: shell syntax and diff hygiene;
-  hard LOC/helper inventory; unified program-graph owner; freshly compiled C
-  semantic checker on the formerly failing parser owner; stable-ID import
-  merge plus overflow/duplicate negatives; the full structural component
-  ratchet; and the performance contract (757 ms measured C compile under its
-  60-second ceiling).
-- `tests/build_source_inventory_smoke.sh` could not run end-to-end on this
-  Windows checkout because no `make` executable is installed. Its Bash-4-only
-  source scan was reproduced directly and found no parity-script violation;
-  macOS/Linux CI remains the authoritative portability execution.
-- The full 685-source matrix is not implied. The five-minute pressure shard is
-  an intentional timeout/cutoff measurement, not a semantic PASS.
-- CI watch: completed run `30622652339` is the red predecessor described
-  above. Its formal proofs, sanitizers, TSan, all 20 C/LLVM backend shards, and
-  self-host codegen fixed point were green. A post-push run is still required;
-  the old red/cancelled jobs are not reclassified as green.
-- Next gate: keep the source-to-MIR rung. Move the immutable semantic expression
-  graph to one program-owned MIR boundary while instruction rows retain only
-  root/range handles. The vertical slice must remove both per-instruction graph
-  equality and per-routine graph storage; a routine-local value snapshot is the
-  falsifying case. Reuse the component/seed gates and five-minute MIR shard.
-  Do not rerun a 30-minute integration or inspect memory samples before the
-  focused cutoff improves, and do not open a general cache/query engine.
+- Verified checkpoint: 614cb5d5 on main, equal to origin/main before this dirty
+  vertical slice. Verify exact HEAD and dirty state with Git before resuming.
+- Active production entrypoint: driver_bootstrap_main.pgy,
+  PgyCompilerWorld.source_mir, DriverSourceMirExecution,
+  DriverRung2MirProjectionFromAdmittedAnalysisObserved, then
+  SelfMirProgramFactsFromReadyArtifactObserved.
+- Closed fact seams: SelfMirProgramFacts owns one immutable semantic expression
+  graph. Instruction rows carry root/bounded range handles, and the program
+  instruction index owns borrowed routing/text/graph bounds. Per-instruction
+  whole-graph storage, graph text reconstruction, and
+  SemanticExpressionGraphFactsEqual are forbidden.
+- Closed cumulative-graph seam: sequence append and parser bridge carry the
+  prior call-return vector and append only the new node fact. Target projection
+  does not re-run whole-arena Ready. The final expression-graph fact owner
+  validates the cumulative arena exactly once.
+- Closed publication seam: stdout mode may materialize one MIR JSON payload,
+  but artifact mode consumes verified SelfMirProgramFacts through
+  SelfMirProgramJsonWriteArtifactVerified. SelfMirArtifactCommitPayload is
+  forbidden in the source-MIR artifact action.
+- Fixed-input release evidence: the prior artifact path completed semantic MIR
+  work but crossed the 3 GiB stop at 3.098 GiB private after materializing an
+  86 MB payload. The streaming path completed in 83.364 seconds at 1.525 GiB
+  peak private and 1.404 GiB working set with attention_required=false.
+- Current 90,304,012-byte MIR consumer evidence: r54 reached graph row 12,288
+  and the 3.009 GiB hard stop at 311.431 seconds. After eliminating cumulative
+  graph reconstruction, r55 reached row 28,672 during a 900-second timeout at
+  only 0.965 GiB peak private and 0.904 GiB working set. This closes the memory
+  defect, not the completion/throughput defect.
+- r56 reached row 40,960 and was intentionally stopped after about 1,131
+  seconds because another longer wait would not add implementation progress.
+  It is incomplete evidence and must not be reported as green.
+- The graph-adjusted bounded current-source seed build exited 0 in 648.3
+  seconds and its sample/MIR producer/consumer parity was green. It predates
+  the new SubstringWithLen slice. Full current-source gen2==gen3 remains open.
+- SubstringWithLen now carries an existing length fact through runtime, native
+  type/C/LLVM lowering, and self-host builtin signature. Unescaped bounded JSON
+  strings and number tokens use one bounded copy instead of one allocation per
+  character.
+- Runtime-call ABI row 245 records the self-host helper and C/LLVM manifest
+  parity is artifact-equal. A filtered str_builtins self-host codegen run did
+  not finish its tool build inside 300 seconds, so it is not a PASS; the next
+  bounded seed remains the executable falsifier for that mapping.
+- Emitted-C profile owner: emitted_c_runtime_header_owner.sh. The default
+  self-host profile is release with -O3 -fwrapv -fno-strict-aliasing.
+  PGY_SELFHOST_CC_PROFILE=test explicitly selects -O0 with the same semantic
+  flags for debugging; O0 is not the normal-build benchmark.
+- Open test-profile defect: the O0 generated driver reaches routine 397 and
+  overflows the Windows stack in nested ApplyPostfixFact lowering because
+  generated lowering frames are tens of KiB. Release mode completes that
+  computation; do not hide the O0 defect by increasing the process stack.
+- Evidence grade remains REACHABLE, not SUBSTITUTING. The bounded codegen
+  fixed point exists, but the released default compiler still has no whole-root
+  Pergyra replacement. Source files, owners, and green structural gates alone
+  do not change that percentage.
+- Latest focused green: native pgy incremental build, SubstringWithLen C/LLVM
+  parity, bounded JSON exact-bound C/LLVM parity, expression-graph projection
+  and persisted-read owner gates, MIR routine-index fixture, self-parser owner
+  acceptance, source-MIR action negative gate, and the structural component
+  contract through the graph/JSON slice. After the final self-host ABI addition,
+  runtime ABI parity, shell syntax, line caps, and owner acceptance are green;
+  the full component contract was not rerun. No full matrix is implied.
+- Memory policy: execute one semantic target once, then read only the final
+  peak_private_gib and attention_required summary. The hard stop remains 3 GiB
+  and attention starts at 2.4 GiB. Do not poll live samples or optimize memory
+  below that threshold without another reached owner.
+- Forbidden fallback: graph copies, whole-graph equality, artifact payload
+  materialization, default O0 self-host builds, a higher memory cap, repeated
+  graph validation, per-character bounded-token strings, a general cache/query
+  engine, timeout-only reruns, or unrelated library work.
+- Next falsifier: regenerate one Pergyra-built parser/codegen seed containing
+  SubstringWithLen and run only bounded bootstrap parity. If that seed is
+  green, execute the same full source-to-MIR target once under the pressure
+  owner and require native-oracle byte parity. Only a completed run may advance
+  to current-source gen2==gen3 evidence.
+- Do not infer the full matrix or fixed point from focused results. If the new
+  seed fails, its exact compile/parity diagnostic is the blocker. If the one
+  scheduled full consumer stays below memory attention but times out, profile
+  the reached JSON/graph owner; do not merely extend the timeout or reopen
+  already closed graph/streaming seams.
 
 ## Historical checkpoint archive — inactive unless explicitly referenced
 

@@ -1,0 +1,319 @@
+// One-pass persisted MIR expression-graph reader.
+//
+// The admitted instruction span already owns JSON object boundaries. This
+// reader validates the exact persisted graph and node shapes while capturing
+// their fields in one pass, instead of rescanning every object once per field.
+
+import "../lib/json_fact_table.pgy";
+
+struct MirExpressionGraphHeaderCapture {
+    let valid: Bool;
+    let root: Int;
+    let nodes_start: Int;
+    let nodes_end: Int;
+}
+
+func InvalidMirExpressionGraphHeaderCapture(
+) -> MirExpressionGraphHeaderCapture {
+    return MirExpressionGraphHeaderCapture(false, 0, 0 - 1, 0 - 1);
+}
+
+func MirExpressionGraphHeaderCaptureFromTable(
+    ref graph: JsonObjectFactTable
+) -> MirExpressionGraphHeaderCapture {
+    if !JsonObjectFactTableReady(graph) ||
+        JsonCharCodeAt(graph.json, graph.end, graph.start) !=
+            JsonAsciiCode("{") {
+        return InvalidMirExpressionGraphHeaderCapture();
+    }
+    let root: Int = 0;
+    let nodes_start: Int = 0 - 1;
+    let nodes_end: Int = 0 - 1;
+    let root_seen: Bool = false;
+    let nodes_seen: Bool = false;
+    let digest_seen: Bool = false;
+    let member_count: Int = 0;
+    let expect_member: Bool = true;
+    let after_comma: Bool = false;
+    let i: Int = graph.start + 1;
+    while i < graph.end {
+        i = JsonSkipWhitespaceWithin(graph.json, i, graph.end);
+        if i >= graph.end {
+            return InvalidMirExpressionGraphHeaderCapture();
+        }
+        let c: Int = JsonCharCodeAt(graph.json, graph.end, i);
+        if c == JsonAsciiCode("}") {
+            if after_comma || !root_seen || !nodes_seen ||
+                (member_count != 2 && member_count != 3) ||
+                (member_count == 3 && !digest_seen) {
+                return InvalidMirExpressionGraphHeaderCapture();
+            }
+            return MirExpressionGraphHeaderCapture(
+                true, root, nodes_start, nodes_end
+            );
+        }
+        if !expect_member {
+            if c != JsonAsciiCode(",") {
+                return InvalidMirExpressionGraphHeaderCapture();
+            }
+            expect_member = true;
+            after_comma = true;
+            i = i + 1;
+            continue;
+        }
+        if c != JsonAsciiCode("\"") {
+            return InvalidMirExpressionGraphHeaderCapture();
+        }
+        let key_end_opt: Option<Int> = JsonStringEndWithin(
+            graph.json, i, graph.end
+        );
+        if !IsSome(key_end_opt) {
+            return InvalidMirExpressionGraphHeaderCapture();
+        }
+        let key_end: Int = UnwrapOption(key_end_opt);
+        let is_root: Bool = JsonObjectKeyEqualsWithin(
+            graph.json, i, key_end, "root"
+        );
+        let is_nodes: Bool = JsonObjectKeyEqualsWithin(
+            graph.json, i, key_end, "nodes"
+        );
+        let is_digest: Bool = JsonObjectKeyEqualsWithin(
+            graph.json, i, key_end, "digest"
+        );
+        if !is_root && !is_nodes && !is_digest {
+            return InvalidMirExpressionGraphHeaderCapture();
+        }
+        i = JsonSkipWhitespaceWithin(graph.json, key_end, graph.end);
+        if i >= graph.end ||
+            JsonCharCodeAt(graph.json, graph.end, i) != JsonAsciiCode(":") {
+            return InvalidMirExpressionGraphHeaderCapture();
+        }
+        i = JsonSkipWhitespaceWithin(graph.json, i + 1, graph.end);
+        let value_end_opt: Option<Int> = JsonValueEndWithin(
+            graph.json, i, graph.end
+        );
+        if !IsSome(value_end_opt) {
+            return InvalidMirExpressionGraphHeaderCapture();
+        }
+        let value_end: Int = UnwrapOption(value_end_opt);
+        if is_root {
+            if root_seen || JsonValueKindAt(graph.json, i, value_end) !=
+                    "number" {
+                return InvalidMirExpressionGraphHeaderCapture();
+            }
+            let root_text: String = JsonScalarToken(
+                graph.json, i, value_end
+            );
+            root = ToInt(root_text);
+            if root < 0 || ToString(root) != root_text {
+                return InvalidMirExpressionGraphHeaderCapture();
+            }
+            root_seen = true;
+        } else if is_nodes {
+            if nodes_seen || JsonValueKindAt(graph.json, i, value_end) !=
+                    "array" {
+                return InvalidMirExpressionGraphHeaderCapture();
+            }
+            nodes_start = i;
+            nodes_end = value_end;
+            nodes_seen = true;
+        } else {
+            if digest_seen || JsonValueKindAt(graph.json, i, value_end) !=
+                    "number" {
+                return InvalidMirExpressionGraphHeaderCapture();
+            }
+            let digest_text: String = JsonScalarToken(
+                graph.json, i, value_end
+            );
+            let digest: Int = ToInt(digest_text);
+            if digest <= 0 || ToString(digest) != digest_text {
+                return InvalidMirExpressionGraphHeaderCapture();
+            }
+            digest_seen = true;
+        }
+        member_count = member_count + 1;
+        i = value_end;
+        expect_member = false;
+        after_comma = false;
+    }
+    return InvalidMirExpressionGraphHeaderCapture();
+}
+
+struct MirExpressionGraphNodeCapture {
+    let valid: Bool;
+    let end: Int;
+    let kind: String;
+    let text: String;
+    let target_kind: String;
+    let target_name: String;
+    let has_left: Bool;
+    let left: Int;
+    let has_right: Bool;
+    let right: Int;
+}
+
+func InvalidMirExpressionGraphNodeCapture(
+) -> MirExpressionGraphNodeCapture {
+    return MirExpressionGraphNodeCapture(
+        false, 0 - 1, "", "", "", "", false, 0, false, 0
+    );
+}
+
+func MirExpressionGraphNodeCaptureWithin(
+    json: String, start: Int, array_end: Int
+) -> MirExpressionGraphNodeCapture {
+    if start < 0 || start >= array_end ||
+        JsonCharCodeAt(json, array_end, start) != JsonAsciiCode("{") {
+        return InvalidMirExpressionGraphNodeCapture();
+    }
+    let kind: String = "";
+    let text: String = "";
+    let target_kind: String = "";
+    let target_name: String = "";
+    let has_left: Bool = false;
+    let left: Int = 0;
+    let has_right: Bool = false;
+    let right: Int = 0;
+    let kind_seen: Bool = false;
+    let text_seen: Bool = false;
+    let target_kind_seen: Bool = false;
+    let target_name_seen: Bool = false;
+    let left_seen: Bool = false;
+    let right_seen: Bool = false;
+    let member_count: Int = 0;
+    let expect_member: Bool = true;
+    let after_comma: Bool = false;
+    let i: Int = start + 1;
+    while i < array_end {
+        i = JsonSkipWhitespaceWithin(json, i, array_end);
+        if i >= array_end {
+            return InvalidMirExpressionGraphNodeCapture();
+        }
+        let c: Int = JsonCharCodeAt(json, array_end, i);
+        if c == JsonAsciiCode("}") {
+            if after_comma || member_count != 6 || !kind_seen ||
+                !text_seen || !target_kind_seen || !target_name_seen ||
+                !left_seen || !right_seen {
+                return InvalidMirExpressionGraphNodeCapture();
+            }
+            return MirExpressionGraphNodeCapture(
+                true, i + 1, kind, text, target_kind, target_name,
+                has_left, left, has_right, right
+            );
+        }
+        if !expect_member {
+            if c != JsonAsciiCode(",") {
+                return InvalidMirExpressionGraphNodeCapture();
+            }
+            expect_member = true;
+            after_comma = true;
+            i = i + 1;
+            continue;
+        }
+        if c != JsonAsciiCode("\"") {
+            return InvalidMirExpressionGraphNodeCapture();
+        }
+        let key_end_opt: Option<Int> = JsonStringEndWithin(
+            json, i, array_end
+        );
+        if !IsSome(key_end_opt) {
+            return InvalidMirExpressionGraphNodeCapture();
+        }
+        let key_end: Int = UnwrapOption(key_end_opt);
+        let is_kind: Bool = JsonObjectKeyEqualsWithin(
+            json, i, key_end, "kind"
+        );
+        let is_text: Bool = JsonObjectKeyEqualsWithin(
+            json, i, key_end, "text"
+        );
+        let is_target_kind: Bool = JsonObjectKeyEqualsWithin(
+            json, i, key_end, "call_target_kind"
+        );
+        let is_target_name: Bool = JsonObjectKeyEqualsWithin(
+            json, i, key_end, "call_target_name"
+        );
+        let is_left: Bool = JsonObjectKeyEqualsWithin(
+            json, i, key_end, "left"
+        );
+        let is_right: Bool = JsonObjectKeyEqualsWithin(
+            json, i, key_end, "right"
+        );
+        if !is_kind && !is_text && !is_target_kind &&
+            !is_target_name && !is_left && !is_right {
+            return InvalidMirExpressionGraphNodeCapture();
+        }
+        i = JsonSkipWhitespaceWithin(json, key_end, array_end);
+        if i >= array_end ||
+            JsonCharCodeAt(json, array_end, i) != JsonAsciiCode(":") {
+            return InvalidMirExpressionGraphNodeCapture();
+        }
+        i = JsonSkipWhitespaceWithin(json, i + 1, array_end);
+        let value_end_opt: Option<Int> = JsonValueEndWithin(
+            json, i, array_end
+        );
+        if !IsSome(value_end_opt) {
+            return InvalidMirExpressionGraphNodeCapture();
+        }
+        let value_end: Int = UnwrapOption(value_end_opt);
+        if is_kind || is_text || is_target_kind || is_target_name {
+            if JsonValueKindAt(json, i, value_end) != "string" ||
+                (is_kind && kind_seen) || (is_text && text_seen) ||
+                (is_target_kind && target_kind_seen) ||
+                (is_target_name && target_name_seen) {
+                return InvalidMirExpressionGraphNodeCapture();
+            }
+            let decoded_end: Array<Int> = [0];
+            let value: String = ReadJsonStringBounded(
+                json, i, value_end, decoded_end
+            );
+            if decoded_end[0] != value_end {
+                return InvalidMirExpressionGraphNodeCapture();
+            }
+            if is_kind { kind = value; kind_seen = true; }
+            if is_text { text = value; text_seen = true; }
+            if is_target_kind {
+                target_kind = value;
+                target_kind_seen = true;
+            }
+            if is_target_name {
+                target_name = value;
+                target_name_seen = true;
+            }
+        } else {
+            if (is_left && left_seen) || (is_right && right_seen) {
+                return InvalidMirExpressionGraphNodeCapture();
+            }
+            let value_kind: String = JsonValueKindAt(
+                json, i, value_end
+            );
+            let present: Bool = false;
+            let child: Int = 0;
+            if value_kind == "number" {
+                let child_text: String = JsonScalarToken(
+                    json, i, value_end
+                );
+                child = ToInt(child_text);
+                if child < 0 || ToString(child) != child_text {
+                    return InvalidMirExpressionGraphNodeCapture();
+                }
+                present = true;
+            } else if value_kind != "null" {
+                return InvalidMirExpressionGraphNodeCapture();
+            }
+            if is_left {
+                has_left = present;
+                left = child;
+                left_seen = true;
+            } else {
+                has_right = present;
+                right = child;
+                right_seen = true;
+            }
+        }
+        member_count = member_count + 1;
+        i = value_end;
+        expect_member = false;
+        after_comma = false;
+    }
+    return InvalidMirExpressionGraphNodeCapture();
+}

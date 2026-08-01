@@ -13,7 +13,37 @@
 #define PGY_RUNTIME_STRING_WINDOW_INLINE_H
 
 #include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+
+/* Copy s[start..start+len) without rediscovering the source length. This is
+ * the allocating counterpart to the Sub*WithLen read-only window builtins. */
+PGY_RT_DECL char *
+SubstringWithLen(const char *s, int32_t source_len, int32_t start, int32_t len)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{
+    char *r;
+
+    if (s == NULL || source_len < 0 || start < 0 || start >= source_len ||
+        len <= 0) {
+        r = (char *)malloc(1);
+        if (r != NULL)
+            r[0] = '\0';
+        return r;
+    }
+    if (len > source_len - start)
+        len = source_len - start;
+    r = (char *)malloc((size_t)len + 1);
+    if (r == NULL)
+        return r;
+    memcpy(r, s + start, (size_t)len);
+    r[len] = '\0';
+    return r;
+}
+#else
+;
+#endif
 
 /* The 1-char string s[i..i+1) in O(1) (caller passes the length; no strlen).
  * Out-of-range yields "". Allocates the 1-char result; self-contained. */

@@ -138,6 +138,7 @@ pgy_builtin_entries(size_t *count)
         { "SubStartsWith", "Bool", PGY_BUILTIN_FLAG_NONE },
         { "SubStartsWithLen", "Bool", PGY_BUILTIN_FLAG_NONE },
         { "Substring", "String", PGY_BUILTIN_FLAG_NONE },
+        { "SubstringWithLen", "String", PGY_BUILTIN_FLAG_NONE },
         { "Tan", "Float", PGY_BUILTIN_FLAG_NONE },
         { "TextBuilderAppend", "Void", PGY_BUILTIN_FLAG_NONE },
         { "TextBuilderDrop", "Void", PGY_BUILTIN_FLAG_NONE },

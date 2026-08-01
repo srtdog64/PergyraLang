@@ -1,6 +1,7 @@
 // Executable contract for the flattened MIR program routine structure index.
 
 import "../../../src/self_hosted/mir_lower/program_routine_index_owner.pgy";
+import "../../../src/self_hosted/mir_lower/program_instruction_routing_span_owner.pgy";
 import "../../../src/self_hosted/mir_lower/routine_instruction_view_owner.pgy";
 import "../../../src/self_hosted/mir_lower/routine_fact_index_owner.pgy";
 import "../../../src/self_hosted/mir_lower/abi_layout_fact_owner.pgy";
@@ -287,7 +288,8 @@ func Main() -> Void {
             index.instruction_machine_contact_starts,
             index.instruction_machine_contact_ends,
             index.instruction_machine_layer_starts,
-            index.instruction_machine_layer_ends
+            index.instruction_machine_layer_ends,
+            index.instruction_expressions
         );
     let zero_block_gap_names: Array<String> = [];
     let zero_block_gap_types: Array<String> = [];
@@ -722,19 +724,20 @@ func Main() -> Void {
     }
 
     let same_length_non_target_row: String =
-        "{\"other\":{},\"expr0\":\"kept\"}";
+        "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"other\":{},\"expr0\":\"kept\"}";
     let same_length_non_target: MirRoutineInstructionScalarCapture =
         MirRoutineInstructionScalarCaptureWithin(
             same_length_non_target_row, 0,
             StringLength(same_length_non_target_row)
         );
-    let escaped_target_row: String = "{\"\\expr0\":\"escaped\"}";
+    let escaped_target_row: String =
+        "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"\\expr0\":\"escaped\"}";
     let escaped_target: MirRoutineInstructionScalarCapture =
         MirRoutineInstructionScalarCaptureWithin(
             escaped_target_row, 0, StringLength(escaped_target_row)
         );
     let plain_escaped_duplicate_row: String =
-        "{\"expr0\":\"plain\",\"\\expr0\":\"escaped\"}";
+        "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"expr0\":\"plain\",\"\\expr0\":\"escaped\"}";
     let plain_escaped_duplicate: MirRoutineInstructionScalarCapture =
         MirRoutineInstructionScalarCaptureWithin(
             plain_escaped_duplicate_row, 0,
