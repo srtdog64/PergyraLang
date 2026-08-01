@@ -3707,3 +3707,55 @@ driver는 534.4초에 exit 0으로 sample C, MIR producer JSON, MIR consumer C�
 oracle과 byte-identical했다. 이 run의 긴 구간은 native oracle driver 컴파일이며
 약 0.967 GiB RSS로 관찰됐다. 이를 self-host 실행이나 3 GiB graph 회귀로 분류하지
 않는다.
+
+## 현재 소스 fixed point와 3 GiB 근접 MIR consumer를 구분하는 법
+
+2026-08-01의 `46eef938`은 이전의 30분 미완주 상태를 폐쇄했다. 현재 compiler
+source를 Pergyra-built driver로 처리한 결과는 다음과 같다.
+
+| 단계 | 결과 | 시간 | peak private |
+|---|---:|---:|---:|
+| current source -> MIR | 90,347,259 bytes, `A5062BEE...BD54` | 57.715초 | 1.990 GiB |
+| current MIR -> gen2 C | 5,589,506 bytes, `BBB42686...6D3` | 95.336초 | 2.986 GiB |
+| same MIR -> gen3 C | gen2와 byte-equal | 98.520초 | 2.943 GiB |
+
+source-to-MIR는 attention threshold 아래에서 끝난다. MIR-to-C는 3 GiB hard cap
+아래에서 완주하지만 2.4 GiB attention threshold는 넘는다. 따라서 현재 판정은
+`CPU 미완주`가 아니라 `고정점 완주, consumer memory 후속 관찰 필요`다.
+
+이번에 닫힌 반복 작업은 다음과 같다.
+
+- body-type bundle 전체 readiness를 verify와 codegen에서 두 번 실행하던 경로를
+  한 번의 admission receipt로 바꿨다.
+- builtin group마다 전체 expression surface를 다시 훑고, cast와 spawn마다
+  expression graph를 별도로 훑던 경로를 surface 1회 + graph 1회로 바꿨다.
+- 각 callee 비교마다 `Concat(callee, "(")` needle을 만들지 않고 byte 경계를
+  직접 비교한다.
+- nominal마다 전체 global environment prefix를 다시 붙이지 않고 선택 batch의
+  row만 모아 한 번 붙인다.
+- 모든 function C definition 문자열을 배열에 끝까지 보존하지 않고
+  `program_function_definition_block_owner`가 builder에 복사한 뒤 해당 definition
+  epoch을 즉시 해제한다.
+- 함수 종료 뒤에도 살아 있던 body, local environment, defer/copyout/signature
+  조립 문자열은 마지막 consumer 뒤 한 owned epoch으로 해제한다.
+
+pressure marker의 마지막 줄만 병목으로 단정하지 않는다. marker는 마지막으로
+도달한 소유자를 말하고, peak sample은 그 이후의 type declaration, runtime usage,
+definition assembly 같은 다른 단계에서 발생할 수 있다. 최종 summary의 peak와
+stage CSV를 시간으로 대조한 뒤 소유자를 정한다.
+
+다음 두 가지 잘못된 진단을 피한다.
+
+1. 오래된 MIR을 새 generator가 처리하다 timeout 난 결과는 현재 gen2 성능이
+   아니다. generator source가 바뀌면 먼저 현재 source MIR을 한 번 만들고, 같은
+   MIR을 gen2와 gen3가 소비하게 해야 한다.
+2. gen2==gen3 전체 테스트 시간은 일반 작은 프로그램 빌드 시간이 아니다.
+   hello oracle은 별도로 artifact equality를 확인한다. 기본 배포 driver가
+   self-host 경로로 치환되기 전에는 native `pgy` 시간과 self-host 고정점 시간을
+   섞어 제품 컴파일 성능이라고 보고하지 않는다.
+
+실패한 최적화도 보존한다. statement traversal 안에서 교체된 local environment
+문자열을 즉시 해제하면 peak가 약 2.669 GiB까지 낮아졌지만
+`semantic leaf binding fact is missing: c`로 실패했다. 현재 statement view가 이전
+row를 빌려 쓰므로 이는 use-after-owner-release에 해당한다. 이 실험은 완전히
+되돌렸고, borrow owner를 먼저 바꾸지 않는 한 재도입하지 않는다.

@@ -6,7 +6,75 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — source-to-MIR full bootstrap
+## Active self-host context — install the current-source fixed point
+
+- Executable checkpoint: `46eef938` on `main`. This revision is the current
+  Pergyra-built driver/codegen fixed-point implementation; verify the branch and
+  dirty state before resuming because the documentation commit follows it.
+- Closed executable rung: `driver_bootstrap_main.pgy` now completes the current
+  import-composed compiler source through source-to-MIR and MIR-to-C, and its
+  generated driver reproduces the same C artifact on the next generation.
+- Current-source source-to-MIR evidence: 90,347,259-byte MIR, SHA-256
+  `A5062BEE9909457E605D5809D6FD902FF74FCA9A4EFDBE3FE2F2541ABE44BD54`,
+  exit 0 in 57.715 seconds, 1.990 GiB peak private, and no 2.4 GiB attention
+  signal. The same parsed source identity produced the same hash before the
+  final static-gate cleanup.
+- Current-MIR fixed point: gen2 and gen3 C are both 5,589,506 bytes with
+  SHA-256
+  `BBB426860655205995CFD4B161D081843CE0CBFD1CA439733A0494A4200826D3`.
+  Gen2 completed in 95.336 seconds at 2.986 GiB peak private; gen3 completed in
+  98.520 seconds at 2.943 GiB. The artifacts are byte-equal.
+- Small normal-compile oracle remains exact: hello C SHA-256
+  `0E32EC703F3B1237FC8C147BD8F395D89A53106D649F3E8F1AB4C608FC0FF25B`.
+  The 95–99 second numbers are full compiler-scale MIR consumption during the
+  fixed-point test, not ordinary small-program latency.
+- Closed repetition seams: body-type admission is validated once and carried by
+  a receipt; expression usage scans the surface and graph once; global type
+  values are indexed once; global callable rows and function-definition output
+  use one owned builder; emitted function epochs are released at their final
+  consumer. Per-nominal global-environment concatenation and retained arrays of
+  all emitted definitions are forbidden.
+- Rejected experiment: freeing replaced local environment epochs inside
+  statement traversal reduced pressure but produced
+  `semantic leaf binding fact is missing: c`. Statement environment views
+  still borrow those rows, so the experiment was fully reverted. Only
+  function-terminal owned epochs may be released in this checkpoint.
+- Evidence grade: the bounded `driver_bootstrap_main` compiler slice is
+  `SUBSTITUTING` and at a gen2==gen3 fixed point. The released/default `pgy`
+  selection is still C-owned and remains 0% replacement. Do not promote the
+  bounded result into a whole-product self-host claim.
+- Latest green: current-source pressure run, gen2/gen3 byte equality, hello
+  oracle, persisted expression-graph execution parity, hard substitution
+  contract, build-pressure contract, shell syntax, and the full structural
+  component/removed-path ratchet. No GitHub CI or full matrix is implied.
+- Active objective: install and select the Pergyra-built fixed-point driver on
+  the real default compiler path, then delete the direct native-C bypass.
+  Priority is semantic/artifact parity, installed-driver evidence, bypass
+  deletion, and a negative gate—in that order.
+- Fact owner: the current-source MIR artifact plus the fixed-point driver
+  generated at `46eef938`. Last legitimate consumer: the installed/default
+  driver selection boundary. Forbidden fallback: silently invoking the native
+  C compiler when the Pergyra driver is missing, mixing an old MIR artifact
+  with a new generator, or retaining both paths behind success fallback.
+- Next falsifier: stage the gen2 fixed-point driver as the installed candidate,
+  compile the hello oracle through that exact entrypoint, require artifact
+  parity, and record every child executable. A native compiler invocation or
+  fallback is a failure; only after this passes may the default selector move
+  and its old bypass be deleted.
+- Memory policy remains unchanged: execute each semantic target once and read
+  only the final pressure summary. Hard stop is 3 GiB and attention starts at
+  2.4 GiB. The completed full MIR consumer still exceeds attention, so memory
+  remains a bounded follow-up after installed-driver substitution—not a reason
+  to reopen repeated timeout-only optimization loops.
+
+## Historical checkpoint archive — inactive evidence
+
+The former source-to-MIR timeout card begins below. It was correct for its
+checkpoint but is superseded by `46eef938`; it must not be resumed as the active
+P0. External reviews that observed `614cb5d5` likewise describe historical
+evidence, not the current compiler state.
+
+### Previous source-to-MIR full-bootstrap checkpoint
 
 - Resume scope: read this card, verify the named owner and gate, then continue
   this one executable rung. Sections below `Historical checkpoint archive` are
@@ -113,7 +181,7 @@ owner, and the named executable gate.
   JSON/graph owner; do not merely extend the timeout or reopen already closed
   graph/streaming seams.
 
-## Historical checkpoint archive — inactive unless explicitly referenced
+### Earlier historical checkpoints — inactive unless explicitly referenced
 
 The remaining sections preserve exact revisions and prior falsifiers. They are
 lookup evidence, not an ordered TODO list. Do not resume Insere/Zeno, an older

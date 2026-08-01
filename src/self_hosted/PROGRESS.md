@@ -1,6 +1,43 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-07-31
+## Active self-host context — 2026-08-01 current-source fixed point
+
+- Executable checkpoint is `46eef938`. The bounded production bootstrap entry
+  `driver_bootstrap_main.pgy` now completes current source-to-MIR and current
+  MIR-to-C, and its generated driver reaches a byte-identical gen2==gen3 fixed
+  point.
+- Current source-to-MIR: 90,347,259 bytes, SHA-256
+  `A5062BEE9909457E605D5809D6FD902FF74FCA9A4EFDBE3FE2F2541ABE44BD54`,
+  57.715 seconds, 1.990 GiB peak private, attention false.
+- Current gen2/gen3 C: 5,589,506 bytes, SHA-256
+  `BBB426860655205995CFD4B161D081843CE0CBFD1CA439733A0494A4200826D3`,
+  byte-equal. Gen2 was 95.336 seconds/2.986 GiB; gen3 was 98.520
+  seconds/2.943 GiB. These are full fixed-point stages, not small-program build
+  latency.
+- The closed hot path validates body-type readiness once through an admission
+  receipt, performs one expression-usage surface/graph pass, indexes global
+  type values once, builds global callable rows once, streams definition
+  output through a responsibility-named owner, and releases only proven
+  function-terminal epochs.
+- Immediate local-environment epoch release is falsified: it reduced pressure
+  but failed with `semantic leaf binding fact is missing: c` because statement
+  views still borrowed the prior rows. That experiment was reverted and must
+  not be revived without changing the borrowing owner.
+- Classification is deliberately split: the bounded bootstrap compiler slice
+  is `SUBSTITUTING`; the released/default `pgy` remains C-owned and 0% replaced.
+- The sole next executable rung is installed/default-driver substitution:
+  stage the current gen2 driver, compile the hello oracle through that exact
+  entrypoint while recording child executables, require parity, then delete the
+  direct native-C bypass and add its negative gate. No cache/query-engine,
+  language-surface, Insere, or Zeno track is active.
+- Green evidence includes current-source pressure completion, gen2/gen3 byte
+  equality, hello parity, persisted graph parity, hard/build-pressure contracts,
+  shell syntax, and the full structural component ratchet. GitHub CI and the
+  full matrix were not run.
+
+## Historical self-host ledger — inactive navigation evidence
+
+### Previous 2026-07-31 source-to-MIR timeout checkpoint
 
 - Resume authority is the top card in `docs/current_work_handoff.md`; this file
   is implementation history, not an independent TODO queue.
@@ -33,7 +70,7 @@
   provenance unless the user explicitly reopens them. They do not supersede the
   production entrypoint above and do not count as `SUBSTITUTING` progress.
 
-## Historical self-host ledger — inactive navigation evidence
+### Earlier historical self-host checkpoints
 
 2026-07-27 v72 replaces the bounded single-header while CFG slice. One
 unchanged 4,692-byte `whileloop.pgy` `pgy.mir.v1` artifact has SHA-256

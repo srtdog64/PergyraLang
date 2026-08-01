@@ -2,7 +2,33 @@
 
 마지막 업데이트: 2026-08-01
 
-## 활성 우선순위 — self-host source-to-MIR bootstrap 하나만
+## 활성 우선순위 — 현재 고정점 드라이버를 기본 경로로 치환
+
+- 실행 체크포인트는 `46eef938`이다. Pergyra로 빌드된
+  `driver_bootstrap_main.pgy`가 현재 전체 compiler source를 MIR로 완주하고,
+  그 MIR에서 만든 gen2 driver가 같은 C를 gen3에서 바이트 동일하게
+  재생산한다.
+- source-to-MIR는 57.715초, peak private 1.990 GiB로 완주했다. 결과는
+  90,347,259 bytes이고 SHA-256은
+  `A5062BEE9909457E605D5809D6FD902FF74FCA9A4EFDBE3FE2F2541ABE44BD54`다.
+- gen2와 gen3 C는 모두 5,589,506 bytes이며 SHA-256
+  `BBB426860655205995CFD4B161D081843CE0CBFD1CA439733A0494A4200826D3`로
+  동일하다. 각 단계는 95.336초/2.986 GiB와 98.520초/2.943 GiB였다.
+  이것은 전체 compiler-scale 고정점 테스트 비용이며 일반 작은 프로그램
+  컴파일 시간으로 해석하지 않는다.
+- body-type admission receipt, expression usage one-pass, global type-value
+  index, global callable TextBuilder, function-definition streaming, 마지막
+  consumer의 function epoch release가 반복 전수 검증과 prefix 보존을 닫았다.
+- bounded bootstrap slice는 `SUBSTITUTING`이다. 하지만 사용자가 실행하는
+  기본 `pgy` 선택은 아직 C 구현을 소유하므로 released replacement는 0%다.
+- 다음 단일 rung은 current gen2 driver를 실제 installed/default 후보로
+  staging하고, hello를 그 entrypoint로 컴파일하면서 child executable을
+  기록해 native C fallback이 없음을 입증한 뒤 기존 bypass를 삭제하는 것이다.
+- 첨부 architecture review의 30분/routine-776 P0는 관찰 당시에는 맞았지만
+  `46eef938`에서 폐쇄됐다. 그 리뷰의 query engine, routine partition,
+  language expansion 제안은 현재 TODO가 아니다.
+
+## 이전 source-to-MIR checkpoint — 비활성 역사 자료
 
 - 활성 실행 경로는 driver_bootstrap_main.pgy, PgyCompilerWorld.source_mir,
   DriverSourceMirExecution, DriverRung2MirProjectionFromAdmittedAnalysisObserved,
