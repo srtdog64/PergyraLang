@@ -149,7 +149,9 @@ grep -Fq -- 'with caps io_read, io_write {' "$CLI_OWNER" &&
     fail "installed stdout CLI regained io_write authority"
 require_text "$RUNG2_MAIN" 'func Main() -> Void with caps env, io_read {'
 require_text "$RUNG2_MAIN" 'import "driver_rung2_cli_owner.pgy";'
-require_text "$BUILD_OWNER" 'DRIVER_SOURCE="src/self_hosted/compiler/driver_rung2_main.pgy"'
+require_text "$BUILD_OWNER" 'DRIVER_SOURCE="src/self_hosted/compiler/driver_bootstrap_main.pgy"'
+grep -Fq -- 'DRIVER_SOURCE="src/self_hosted/compiler/driver_rung2_main.pgy"' "$BUILD_OWNER" &&
+    fail "installed build returned to the test-only DRV-2 entrypoint"
 require_text "$BUILD_OWNER" 'OUTPUT="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"'
 require_text "$NATIVE_LAUNCHER" 'path_join_dup(directory, "pgy-self-driver")'
 retired_file_helpers="$(

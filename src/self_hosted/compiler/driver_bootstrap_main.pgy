@@ -5,6 +5,7 @@
 
 import "driver_rung2_owner.pgy";
 import "compiler_world_direct_mir_owner.pgy";
+import "driver_rung2_cli_owner.pgy";
 
 func Main() -> Void with caps env, io_read, io_write {
     let args: Array<String> = Args();
@@ -104,5 +105,8 @@ func Main() -> Void with caps env, io_read, io_write {
         }
         return;
     }
-    Die("bootstrap driver requires source/output or MIR mode/input/output");
+    // The installed compiler and the fixed-point runner are one composition
+    // root. Artifact modes above own production writes; the explicit
+    // stdout/manifest compatibility surface reuses the same DRV-2 owners.
+    RunDriverRung2FromArgs(args);
 }

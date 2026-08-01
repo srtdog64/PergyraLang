@@ -1804,8 +1804,10 @@ $(PGY): $(FRONTEND_OBJECTS) $(DRIVER_OBJ) | $(BIN_DIR)
 	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
 
+ifneq ($(abspath $(PGY)),$(abspath $(REPO_BIN_DIR)/pgy$(EXEEXT)))
 $(REPO_BIN_DIR)/pgy$(EXEEXT): $(PGY) | $(REPO_BIN_DIR)
-	@if [ "$(abspath $<)" != "$(abspath $@)" ]; then cp -f "$<" "$@"; fi
+	@cp -f "$<" "$@"
+endif
 
 ifneq ($(EXEEXT),.exe)
 # Always keep bin/pgy.exe in sync with the canonical $(PGY) build, even on
@@ -1813,8 +1815,10 @@ ifneq ($(EXEEXT),.exe)
 # Without this, PowerShell-launched commands silently use a stale .exe and the
 # semantic/codegen behavior diverges from the freshly built binary. Listed as
 # dev pain point #1 in memory: project_dev_pain_points.md.
+ifneq ($(abspath $(PGY)),$(abspath $(REPO_BIN_DIR)/pgy.exe))
 $(REPO_BIN_DIR)/pgy.exe: $(PGY) | $(REPO_BIN_DIR)
-	@if [ "$(abspath $<)" != "$(abspath $@)" ]; then cp -f "$<" "$@"; fi
+	@cp -f "$<" "$@"
+endif
 endif
 
 # Lexer smoke-test (original main.c)
@@ -1907,8 +1911,10 @@ $(PGY_LSP): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJE
 	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(THREAD_LINK_LIB))
 
+ifneq ($(abspath $(PGY_LSP)),$(abspath $(REPO_BIN_DIR)/pgy-lsp$(EXEEXT)))
 $(REPO_BIN_DIR)/pgy-lsp$(EXEEXT): $(PGY_LSP) | $(REPO_BIN_DIR)
-	@if [ "$(abspath $<)" != "$(abspath $@)" ]; then cp -f "$<" "$@"; fi
+	@cp -f "$<" "$@"
+endif
 
 # -----------------------------------------------------------------
 # Compilation rules
@@ -1951,8 +1957,10 @@ $(BIN_DIR):
 	$(call pgy_mkdir_p,$(BIN_DIR))
 	$(call pgy_touch_ref,Makefile,$(BIN_DIR))
 
+ifneq ($(abspath $(BIN_DIR)),$(abspath $(REPO_BIN_DIR)))
 $(REPO_BIN_DIR):
 	$(call pgy_mkdir_p,$(REPO_BIN_DIR))
+endif
 
 # -----------------------------------------------------------------
 # Test execution targets
@@ -3399,6 +3407,10 @@ self-host-progress-metric-test-smoke:
 
 self-host-live-replacement-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" "$(BASH)" tests/self_host_live_replacement_smoke.sh
+
+self-host-default-c-emit-replacement-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh
 
 execution-lane-policy-test-smoke:
 	"$(BASH)" tests/execution_lane_policy_smoke.sh

@@ -25,7 +25,7 @@ CODEGEN_BUILD="${PGY_SELFHOST_CODEGEN_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/code
 BUILD_DIR="${PGY_SELFHOST_COMPILER_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/compiler/bootstrap}"
 PARSER_BIN="${PGY_SELFHOST_PARSER_SEED:-$CODEGEN_BUILD/parser_ast_producer.exe}"
 CODEGEN_BIN="${PGY_SELFHOST_CODEGEN_SEED:-$CODEGEN_BUILD/gen2.exe}"
-DRIVER_SOURCE="src/self_hosted/compiler/driver_rung2_main.pgy"
+DRIVER_SOURCE="src/self_hosted/compiler/driver_bootstrap_main.pgy"
 OUTPUT="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"
 AST_FILE="$BUILD_DIR/driver.ast.txt"
 C_FILE="$BUILD_DIR/driver.c"
@@ -141,9 +141,10 @@ if ! "${compile_command[@]}" >"$BUILD_DIR/driver.compile.log" 2>&1; then
 fi
 mv -f "$tmp_output" "$OUTPUT"
 
+smoke_rel="${SMOKE_OUT#"$ROOT_DIR"/}"
+rm -f "$SMOKE_OUT"
 if ! (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" "$OUTPUT" \
-    src/self_hosted/semantic/fixture/valid_call_int.pgy \
-    --emit-c-verified >"$SMOKE_OUT"); then
+    src/self_hosted/semantic/fixture/valid_call_int.pgy "$smoke_rel"); then
     fail "Pergyra-built DRV-2 failed its bounded source smoke"
 fi
 [[ -s "$SMOKE_OUT" ]] || fail "Pergyra-built DRV-2 emitted no smoke artifact"

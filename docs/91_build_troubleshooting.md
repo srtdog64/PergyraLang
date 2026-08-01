@@ -3759,3 +3759,33 @@ stage CSV를 시간으로 대조한 뒤 소유자를 정한다.
 `semantic leaf binding fact is missing: c`로 실패했다. 현재 statement view가 이전
 row를 빌려 쓰므로 이는 use-after-owner-release에 해당한다. 이 실험은 완전히
 되돌렸고, borrow owner를 먼저 바꾸지 않는 한 재도입하지 않는다.
+
+## Windows 기본 `BIN_DIR=bin`에서 실행 파일이 객체 파일로 바뀌는 경우
+
+2026-08-01에 `PROJECT_ROOT=D:/PergyraLang BUILD_DIR=... BIN_DIR=bin compiler`를
+직접 실행했을 때 make는 성공 종료했지만 다음 경고를 냈고, `bin/pgy.exe`는
+`MZ` 실행 파일이 아니라 3,291-byte COFF 객체가 됐다.
+
+```text
+overriding recipe for target '.../bin/pgy.exe'
+Circular .../bin/pgy.exe <- .../bin/pgy.exe dependency dropped
+```
+
+원인은 Windows의 `EXEEXT=.exe`에서 canonical `$(PGY)`와 repo-copy target
+`$(REPO_BIN_DIR)/pgy$(EXEEXT)`가 같은 경로인데도 두 번째 copy rule을 선언한
+것이다. recipe 내부의 경로 비교는 너무 늦다. make가 이미 같은 target의 recipe와
+자기 의존성을 병합했기 때문이다.
+
+수정 규칙은 recipe가 아니라 선언 자체를 `abspath` 불일치 조건으로 감싸는 것이다.
+같은 조건을 `pgy-lsp`와 중복 `REPO_BIN_DIR` directory rule에도 적용한다. 복구할 때는
+별도 `BIN_DIR`에 먼저 링크하고 `MZ` header와 크기를 확인한 뒤 `bin`에 설치한다.
+make exit 0만으로 실행 파일 건전성을 주장하지 않는다. 기본 경로 최종 확인은
+`default_c_emit_installed_self_host_owner.sh`가 sibling `pgy-self-driver`를 환경변수
+없이 선택하고 hello artifact/실행 parity를 통과해야 한다.
+
+같은 세션의 self-host 설치 후보는 114.600초에 정상 생성됐지만 pressure wrapper를
+`RootProcessTreeOnly`로 실행하자 MSYS가 분리한 codegen 자식을 추적하지 못했다.
+summary의 `detached_compiler_worker_tracking=false`, compile sample 0, peak private
+0.008 GiB는 유효한 compiler peak가 아니다. 수치가 지나치게 작을 때도 그대로
+성능 개선으로 기록하지 말고, process coverage를 먼저 확인한다. 이미 완주한 semantic
+target을 이 계측 실수만으로 반복하지 않는다.

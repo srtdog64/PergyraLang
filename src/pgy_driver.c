@@ -180,6 +180,33 @@ parse_args(int argc, char *argv[])
     return f;
 }
 
+static bool
+driver_self_host_c_emit_request_supported(const DriverFlags *flags)
+{
+    return flags != NULL
+        && flags->backend == BACKEND_C
+        && !flags->emit_llvm_ir
+        && !flags->do_run
+        && !flags->dump_tokens
+        && !flags->dump_ast
+        && !flags->dump_capability_manifest
+        && !flags->dump_dir
+        && !flags->dump_rir
+        && !flags->dump_rir_json
+        && !flags->dump_machine_manifest_json
+        && !flags->dump_air
+        && !flags->dump_air_json
+        && !flags->dump_mir
+        && !flags->dump_mir_json
+        && !flags->dump_hir
+        && !flags->check_only
+        && !flags->repl
+        && !flags->emit_debug_lines
+        && flags->diag_format == DIAG_FORMAT_TEXT
+        && flags->runtime_mode == RUNTIME_DEFAULT
+        && flags->machine_layer_physical_manifest == NULL;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -226,5 +253,14 @@ main(int argc, char *argv[])
     DriverFlags flags = parse_args(argc, argv);
     if (flags.repl)
         return repl_run();
+    if (flags.emit_c_only) {
+        if (!driver_self_host_c_emit_request_supported(&flags)) {
+            fprintf(stderr,
+                    "pgy: --emit-c options are outside the installed self-host driver contract\n");
+            return 1;
+        }
+        return driver_run_self_host_c_emit_artifact(
+            argv[0], flags.source_path, flags.output_path, flags.verbose);
+    }
     return driver_run_pipeline(&flags);
 }

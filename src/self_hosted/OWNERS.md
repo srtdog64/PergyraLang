@@ -1720,11 +1720,13 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/driver_pipeline_owner.pgy` -- executable
   source-to-AST-to-C pipeline shared by the user-facing driver and bootstrap;
   this is the single owner of parser/codegen composition.
-- `src/self_hosted/compiler/driver_bootstrap_main.pgy` -- minimal runnable
-  source/MIR/output-file boundary used by bounded producer parity and the
-  integrated seed/oracle parity proof. The full stage2/stage3 consumer fixed
-  point is an explicit gate; pipeline ownership remains in
-  `driver_rung2_owner.pgy`.
+- `src/self_hosted/compiler/driver_bootstrap_main.pgy` -- installed compiler
+  composition root and source/MIR/output-file boundary used by producer parity
+  and the integrated seed/oracle fixed point. Its two-argument source/output
+  mode owns the public `pgy --emit-c` artifact after the native selector admits
+  the supported C-emission envelope. Pipeline ownership remains in
+  `driver_rung2_owner.pgy`; test fixture manifests are excluded from this
+  import graph.
 - `src/self_hosted/compiler/driver_rung2_execution_owner.pgy` -- reachable
   identity-bearing action boundary for the direct-MIR rung. It owns request-
   to-target admission, exact emitted-artifact acceptance, output write, and
@@ -1849,11 +1851,13 @@ inventory must not become a second fact-family owner registry.
   Numeric equality, offsets, declaration order, and name-only fallback are
   forbidden.
 - `src/self_hosted/compiler/driver_rung2_cli_owner.pgy` -- DRV-2 command-line
-  mode selection and argument routing; consumes compiler-stage operations but
-  owns no semantic or MIR facts.
+  production mode selection and argument routing shared by the installed and
+  standalone entrypoints; consumes compiler-stage operations but owns no
+  semantic or MIR facts and imports no test fixture manifest.
 - `src/self_hosted/compiler/driver_rung2_main.pgy` -- DRV-2 runnable hard
-  semantic entrypoint; CLI ownership remains in `driver_rung2_cli_owner.pgy`
-  and compiler-stage ownership remains in `driver_rung2_owner.pgy`.
+  semantic test entrypoint and fixture-manifest boundary; production CLI
+  ownership remains in `driver_rung2_cli_owner.pgy` and compiler-stage
+  ownership remains in `driver_rung2_owner.pgy`.
 - `src/self_hosted/compiler/authority_owner.pgy` -- authority contracts
   (abilities + roles) for the sensitive compiler-world boundaries: semantic
   verdict, C emission, subprocess planning, and parity judgement.

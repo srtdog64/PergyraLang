@@ -1,8 +1,18 @@
 // DRV-2 artifact-body semantic driver entrypoint.
 
 import "driver_rung2_cli_owner.pgy";
+import "driver_rung2_mir_manifest_owner.pgy";
+import "driver_rung2_semantic_fixture_manifest_owner.pgy";
 
 func Main() -> Void with caps env, io_read {
     let run_args: Array<String> = Args();
+    if ArrayLength(run_args) > 0 && run_args[0] == "--fixture-manifest" {
+        EmitDriverRung2FixtureManifest();
+        return;
+    }
+    if ArrayLength(run_args) > 0 && run_args[0] == "--mir-fixture-manifest" {
+        EmitDriverRung2MirFixtureManifest();
+        return;
+    }
     RunDriverRung2FromArgs(run_args);
 }

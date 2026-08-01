@@ -4628,7 +4628,9 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     'import "driver_rung2_readiness_owner.pgy";'
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     'import "driver_rung2_semantic_fixture_manifest_owner.pgy";'
-require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_main.pgy" \
+    'import "driver_rung2_semantic_fixture_manifest_owner.pgy";'
+reject_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" \
     'import "driver_rung2_semantic_fixture_manifest_owner.pgy";'
 reject_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(" \
@@ -7005,7 +7007,17 @@ require_max_lines "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 100
 require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" "func RunDriverRung2FromArgs"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func RunDriverRung2FromArgs"
 require_text "src/self_hosted/compiler/driver_rung2_main.pgy" 'import "driver_rung2_cli_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_rung2_main.pgy" \
+    'import "driver_rung2_mir_manifest_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_rung2_main.pgy" \
+    'import "driver_rung2_semantic_fixture_manifest_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_rung2_main.pgy" \
+    'args[0] == "--fixture-manifest"'
+require_text "src/self_hosted/compiler/driver_rung2_main.pgy" \
+    'args[0] == "--mir-fixture-manifest"'
 require_text "src/self_hosted/compiler/driver_rung2_main.pgy" "RunDriverRung2FromArgs(run_args)"
+reject_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" \
+    'import "driver_rung2_mir_manifest_owner.pgy";'
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CheckProgram("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "LoadSemanticSource"
@@ -7036,8 +7048,15 @@ require_text "src/self_hosted/parser/program_parse_owner.pgy" \
 require_max_lines "src/compiler/self_host_driver.c" 200
 require_text "src/pgy_driver.c" 'strcmp(argv[1], "--self-driver") == 0'
 require_text "src/pgy_driver.c" "driver_run_self_host_command"
+require_text "src/pgy_driver.c" "driver_self_host_c_emit_request_supported"
+require_text "src/pgy_driver.c" "if (flags.emit_c_only) {"
+require_text "src/pgy_driver.c" "driver_run_self_host_c_emit_artifact("
+require_text "src/pgy_driver.c" \
+    "--emit-c options are outside the installed self-host driver contract"
 require_text "src/compiler/self_host_driver.c" 'getenv("PGY_SELF_DRIVER_BIN")'
 require_text "src/compiler/self_host_driver.c" 'path_join_dup(directory, "pgy-self-driver")'
+require_text "src/compiler/self_host_driver.c" \
+    "driver_run_self_host_c_emit_artifact("
 require_text "src/compiler/self_host_driver.c" 'child_argv[child_argc++] = "--emit-c-verified"'
 require_text "src/compiler/self_host_driver.c" 'mir_json_mode = strcmp(argv[0], "--mir-json") == 0'
 require_text "src/compiler/self_host_driver.c" 'mir_producer_mode = strcmp(argv[0], "--emit-mir-json-verified") == 0'
@@ -7052,10 +7071,37 @@ require_text "Makefile" "self-host-compiler:"
 require_text "Makefile" "self-host-compiler: self-host-codegen-bootstrap-seed-test-smoke"
 reject_text "Makefile" '$(call pgy_run_native,"$(PGY)" src/self_hosted/compiler/driver_rung2_main.pgy'
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'DRIVER_SOURCE="src/self_hosted/compiler/driver_bootstrap_main.pgy"'
+reject_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'DRIVER_SOURCE="src/self_hosted/compiler/driver_rung2_main.pgy"'
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    'import "driver_rung2_cli_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    "RunDriverRung2FromArgs(args);"
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL"'
 reject_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'export MSYS2_ARG_CONV_EXCL="*"'
 require_text "Makefile" "self-host-live-replacement-test-smoke: self-host-compiler"
+require_file \
+    "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh" 100
+require_text "Makefile" \
+    'self-host-default-c-emit-replacement-test-smoke: $(PGY) self-host-compiler'
+require_text "Makefile" \
+    'ifneq ($(abspath $(PGY)),$(abspath $(REPO_BIN_DIR)/pgy$(EXEEXT)))'
+require_text "Makefile" \
+    'ifneq ($(abspath $(BIN_DIR)),$(abspath $(REPO_BIN_DIR)))'
+require_text \
+    "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh" \
+    'PGY_SELF_DRIVER_BIN="$WORK_DIR/missing-driver"'
+require_text \
+    "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh" \
+    "missing installed driver silently used the native C path"
+require_text \
+    "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh" \
+    '"$PGY" "$SOURCE" --emit-c --runtime=none'
 require_text "tests/self_host_live_replacement_smoke.sh" '"$PGY" --self-driver "$positive"'
 require_text "tests/self_host_live_replacement_smoke.sh" '"$PGY" --self-driver --mir-json'
 require_text "tests/self_host_live_replacement_smoke.sh" "integrated MIR run output differs from C oracle"

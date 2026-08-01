@@ -351,6 +351,17 @@ require_text "Makefile" "tests/self_hosted/parity/self_host_compiler_build.sh"
 require_text "Makefile" 'PGY_SELFHOST_CC="$(CC)"'
 forbid_text "Makefile" '$(call pgy_run_native,"$(PGY)" src/self_hosted/compiler/driver_rung2_main.pgy'
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'DRIVER_SOURCE="src/self_hosted/compiler/driver_bootstrap_main.pgy"'
+forbid_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'DRIVER_SOURCE="src/self_hosted/compiler/driver_rung2_main.pgy"'
+require_text "src/pgy_driver.c" "if (flags.emit_c_only) {"
+require_text "src/pgy_driver.c" "driver_run_self_host_c_emit_artifact("
+require_text "Makefile" "self-host-default-c-emit-replacement-test-smoke:"
+require_text "Makefile" \
+    "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh"
+require_text "Makefile" \
+    'ifneq ($(abspath $(PGY)),$(abspath $(REPO_BIN_DIR)/pgy$(EXEEXT)))'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'CODEGEN_BIN="${PGY_SELFHOST_CODEGEN_SEED:-$CODEGEN_BUILD/gen2.exe}"'
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'PARSER_BIN="${PGY_SELFHOST_PARSER_SEED:-$CODEGEN_BUILD/parser_ast_producer.exe}"'
