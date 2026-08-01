@@ -37,10 +37,19 @@ plan to emit exact C and textual LLVM executables. Both print `42` twice;
 seven MIR mutations plus repaired-digest certificate/ABI/target/plan negatives
 fail before artifact creation. AIR cannot reopen match JSON, and a selected ABI
 projection carries only its chosen backend mapping. This is `SUBSTITUTING`
-inside the production direct-MIR mode, not evidence that the released general
-LLVM selector or runtime-bearing LLVM programs are replaced. The next active
-rung is the public runtime-free LLVM binary envelope with exactly-one producer
-and projector calls and `clang -x ir` as the final host boundary.
+inside the production direct-MIR mode.
+
+Installed LLVM substitution update (2026-08-01): plain public LLVM binary
+requests now use the sibling fixed-point driver for exactly one source-to-MIR
+production and one direct LLVM projection. `clang -x ir` is the only final host
+boundary; native semantic/AIR/libLLVM and implicit runtime-object fallback are
+closed. Missing, unsupported, producer/projector, malformed-IR, and unresolved-
+runtime cases fail without publishing a new or stale binary. Native code does
+not scan LLVM text to infer runtime policy. This is executable `SUBSTITUTING`
+evidence for the sealed runtime-free Option frontier, not for general or
+runtime-bearing LLVM programs. The next active falsifier is
+`array_literal_assignment.pgy`, which currently reaches source-to-MIR and then
+fails closed at the self-host LLVM projector.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:

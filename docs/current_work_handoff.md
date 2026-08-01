@@ -6,11 +6,12 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — promote the sealed direct-LLVM slice
+## Active self-host context — extend installed LLVM beyond the sealed Option slice
 
-- Executable checkpoint: `74cbf946` on `main`. The installed public C artifact,
-  compile/link, and `--run` envelopes remain `SUBSTITUTING`; missing or
-  unsupported requests fail before native semantic/codegen fallback.
+- Executable checkpoint: `35dd13a7` on `main`. The installed public C artifact,
+  compile/link, and `--run` envelopes remain `SUBSTITUTING`. Plain public LLVM
+  binary requests now route only through the sibling fixed-point driver; the
+  sealed runtime-free Option compile/run envelope is also `SUBSTITUTING`.
 - Closed aggregate frontier: `src/self_hosted/mir_lower/fixture/option_match.pgy`
   now travels through source-to-MIR once, one routine-local typed match index,
   one AIR seven-block certificate, one reconstructible `Option<Int>` ABI fact,
@@ -46,34 +47,42 @@ owner, and the named executable gate.
   Releasing that owned buffer before C emission brought the same class of run
   below 3 GiB. Borrowed text APIs do not release caller-owned input. Do not
   restore an all-prototype array or extend the raw input lifetime.
-- Evidence grade remains target-specific. The bounded direct-MIR aggregate C/
-  LLVM slice and public C envelope are `SUBSTITUTING`. The released public LLVM
-  selector, runtime-bearing LLVM programs, package/dump/check/repl paths, and a
-  canonical compiler-purpose intent remain open. This is not whole-compiler
-  self-host completion.
-- Active objective: route the public LLVM binary envelope through the installed
-  driver for the already sealed runtime-free frontier. Priority is source-to-MIR
-  exactly once, direct LLVM exactly once, `clang -x ir` as the last host
-  consumer, exact execution parity, then deletion of native semantic/AIR/
-  libLLVM re-entry for that envelope.
-- Fact owner: `PublishSourceMirArtifactThroughPgyCompilerWorld`,
-  `EmitDirectMirThroughPgyCompilerWorld`, the Option certificate/plan/ABI
-  owners, and the target projection fact. Last legitimate consumer is the
-  textual LLVM host compile/link boundary. No runtime object is admitted while
-  the artifact has no explicit runtime profile and contains no `@pgy_*` use.
+- Public LLVM producer and projector counts are each exactly one. `clang -x ir`
+  is the last host consumer and receives no AST, MIR, AIR, libLLVM, or runtime
+  object. Missing driver, unsupported options, producer/projector failure,
+  malformed LLVM, and an unresolved Pergyra runtime call all fail without a
+  native fallback. A seeded stale output is removed before those failures.
+  Runtime policy is not inferred by scanning LLVM text; the component and
+  focused gates reject restoration of that scan.
+- Evidence grade remains target-specific. The public selector is structurally
+  substituted, but executable LLVM substitution is proven only for the sealed
+  runtime-free Option frontier. Runtime-bearing programs, unsupported direct-
+  MIR aggregates, package/dump/check/repl paths, and a canonical compiler-
+  purpose intent remain open. This is not whole-compiler self-host completion.
+- Active objective: close the next public LLVM aggregate frontier with
+  `src/self_hosted/mir_lower/fixture/array_literal_assignment.pgy`. The current
+  installed path reaches source-to-MIR and then fails closed in the self-host
+  LLVM projector with code 1; it does not fall back to native LLVM.
+- Fact owner: the existing typed array literal/index/length MIR facts and
+  `direct_mir_backend_projection_owner.pgy`. Last legitimate orchestration
+  consumer is the selected direct-LLVM emitter; `clang -x ir` remains only the
+  host compile/link boundary.
 - Forbidden fallback: native `driver_run_pipeline`, AIR/libLLVM re-entry after
-  rejection, scanning LLVM text to invent runtime policy, attaching the native
-  runtime by default, dual target mappings in one selected receipt, or claiming
-  general LLVM substitution from the bounded aggregate frontier.
-- Next falsifier: public `--backend=llvm` compile/run of the Option fixture with
-  a counting sibling-driver shim. Producer and backend counts must each be one;
-  malformed LLVM, missing driver, unsupported options, or any unexpected
-  `@pgy_*` reference must leave no binary and must not invoke the native path.
+  projector rejection, C-specific array reconstruction copied into LLVM,
+  scanning LLVM text to invent a runtime profile, attaching a runtime without
+  an owner fact, or weakening the installed selector to recover compatibility.
+- Next falsifier: the public installed C path provides the existing execution
+  oracle for `array_literal_assignment.pgy`; the public installed LLVM path must
+  consume one produced MIR and one direct projection, execute with the same
+  output, and reject malformed element/index/length facts before artifact
+  publication. First identify the projector's exact missing typed fact; do not
+  add a general runtime/cache/query track.
 - Latest green: sealed current-source fixed point; focused Option C/LLVM parity
   and seven mutations; repaired-digest owner negatives; installed public C
-  boundary; hard self-host contract; single Gate SoT; full component and
-  removed-path ratchet; shell syntax and diff check. The full CI matrix and Coq
-  adequacy suite were not run.
+  boundary; installed public runtime-free LLVM compile/run and exactly-once/
+  stale-output/failure negatives; native incremental build; hard self-host
+  contract; full component and removed-path ratchet; diff check. The full CI
+  matrix and Coq adequacy suite were not run.
 - Memory policy remains one execution per changed semantic target, followed by
   the final summary only. Hard stop is 3 GiB and attention begins at 2.4 GiB;
   attention is recorded but does not redirect the active rung.
@@ -81,7 +90,7 @@ owner, and the named executable gate.
 ## Historical checkpoint archive — inactive evidence
 
 The former source-to-MIR timeout card begins below. It was correct for its
-checkpoint but is superseded by `74cbf946`; it must not be resumed as the active
+checkpoint but is superseded by `35dd13a7`; it must not be resumed as the active
 P0. External reviews that observed `614cb5d5` likewise describe historical
 evidence, not the current compiler state.
 

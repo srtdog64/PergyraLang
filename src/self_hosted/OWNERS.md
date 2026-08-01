@@ -1758,8 +1758,9 @@ inventory must not become a second fact-family owner registry.
   runners. It owns path allocation and cleanup, not semantic or backend facts.
 - `src/compiler/self_host_llvm_driver.c` -- installed self-host LLVM materializer
   boundary. It invokes exactly one verified source-to-MIR producer and one
-  direct-MIR LLVM projector, then rejects runtime references until a runtime
-  profile is explicitly admitted.
+  direct-MIR LLVM projector. It does not inspect LLVM text to infer runtime
+  policy or attach a runtime object; unresolved requirements fail at the final
+  clang boundary until a typed runtime profile is explicitly admitted.
 - `src/compiler/compiler_self_host_artifact.c` -- final host compiler boundary
   for admitted self-host C and runtime-free textual LLVM artifacts. It accepts
   no AST, MIR, AIR, libLLVM, or runtime-owner input and cannot claim projection

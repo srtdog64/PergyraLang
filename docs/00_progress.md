@@ -2,10 +2,11 @@
 
 마지막 업데이트: 2026-08-01
 
-## 활성 우선순위 — sealed direct LLVM slice를 public 경로로 승격
+## 활성 우선순위 — public LLVM의 다음 Array aggregate 경계
 
-- 실행 체크포인트는 `74cbf946`이다. Public C artifact/compile/run은 installed
-  `pgy-self-driver`가 소유하고 native semantic/codegen fallback은 닫혀 있다.
+- 실행 체크포인트는 `35dd13a7`이다. Public C artifact/compile/run과 sealed
+  runtime-free Option LLVM compile/run은 installed `pgy-self-driver`가 소유하고
+  native semantic/AIR/codegen/libLLVM fallback은 닫혀 있다.
 - 첫 aggregate falsifier인 `option_match.pgy`는 7-block AIR certificate, typed
   match index, reconstructible `Option<Int>` ABI receipt, target-bound plan을
   거쳐 C/LLVM에서 정확히 `42\n42\n`를 출력한다. Pattern, binding type, SSA use,
@@ -22,13 +23,19 @@
   typed facts를 만든 뒤에도 남아 있던 약 91 MiB file-backed MIR buffer를 C emission
   전에 release해 cap 아래로 내렸다. Borrowed text API는 caller-owned input을
   release하지 않는다.
-- 증거 등급은 target별이다. Bounded direct-MIR aggregate C/LLVM와 public C는
-  `SUBSTITUTING`; released public LLVM과 runtime-bearing LLVM, package/dump/check/
-  repl, compiler-purpose intent는 아직 open이다.
-- 다음 단일 rung은 public `--backend=llvm`의 sealed runtime-free envelope다.
-  Installed driver가 source-to-MIR와 direct LLVM을 각각 정확히 한 번 수행하고,
-  `clang -x ir`만 마지막 host boundary가 된다. 실패 시 native AIR/libLLVM으로
-  돌아가면 안 되며 unexpected `@pgy_*`는 runtime profile이 생기기 전 거부한다.
+- Public LLVM은 source-to-MIR와 direct LLVM을 각각 정확히 한 번 실행하고
+  `clang -x ir`만 마지막 host boundary로 쓴다. Missing/unsupported/producer/
+  projector/malformed/unresolved-runtime 실패는 native fallback 없이 종료하고,
+  미리 심은 stale binary도 남기지 않는다. LLVM text를 스캔해 runtime 정책을
+  추측하던 경로는 제거하고 negative gate로 재도입을 막았다.
+- 증거 등급은 target별이다. Public selector는 installed self-host로 치환됐지만
+  실행 `SUBSTITUTING` 증거는 sealed runtime-free Option frontier까지다. Runtime-
+  bearing LLVM, 아직 지원하지 않는 aggregate, package/dump/check/repl,
+  compiler-purpose intent는 open이다.
+- 다음 단일 rung은 `array_literal_assignment.pgy`의 `Array<Int>` literal/length/
+  index LLVM projection이다. 현재 public path는 source-to-MIR 뒤 self-host LLVM
+  projector code 1로 fail closed한다. 기존 public C 실행을 oracle로 삼고, 먼저
+  projector가 요구하는 정확한 typed fact를 찾아 한 owner에서 닫는다.
 - Query engine, broad library adoption, Insere/Zeno provenance, unrelated SoT 정리는
   이 실행 rung의 blocker가 아니며 현재 TODO로 재개하지 않는다.
 

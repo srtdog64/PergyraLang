@@ -864,14 +864,31 @@ SoT seam은 `selfhost.intent_declaration_rows`에 typed transition authority를 
   default와 released LLVM, package, dump/check/repl은 아직 open이다. 이 폐쇄는
   `subject/action/intent`의 production-root 등급을 올리지 않는다.
 
-다음 LLVM rung은 hello reachability를 public replacement로 바로 승격하지 않는다.
-현재 direct-MIR LLVM emitter는 bounded scalar/CFG surface이며 runtime profile과
-intent-observability/target receipt를 artifact에 운반하지 않는다. 첫 non-hello
-runtime 또는 aggregate fixture에서 source-to-MIR와 MIR-to-LLVM을 각각 한 번만
-실행하고 C target과 실행 parity를 증명해야 한다. Text LLVM을 소비하는 `clang -x
-ir`는 합법적인 host boundary지만, native AIR/libLLVM 재진입, LLVM text scan으로
-runtime 정책 추론, always-observable runtime 추측은 금지한다. Unexpected `@pgy_*`
-reference나 missing profile fact는 released binary 전에 fail closed해야 한다.
+## 완료된 installed runtime-free LLVM substitution
+
+2026-08-01의 public LLVM rung은 다음 경계까지 닫혔다.
+
+- Production entrypoint: plain `pgy source.pgy --backend=llvm -o output`과 같은
+  binary target의 `--run`이다.
+- Installed driver는 source-to-MIR producer와 `--mir-json-backend=llvm`
+  projector를 각각 정확히 한 번 실행한다. Native launcher는 private artifact
+  lifetime, `clang -x ir` host compile/link, optional execution만 소유한다.
+- Native `driver_run_pipeline`, AIR/libLLVM, implicit runtime object fallback은
+  없다. LLVM text를 스캔해 runtime policy를 발명하지도 않는다. Runtime symbol
+  requirement는 추후 typed profile owner가 있어야만 admit할 수 있다.
+- Missing/unsupported/producer/projector/malformed/unresolved-runtime negative는
+  모두 fail closed한다. Gate가 일부러 만든 stale output도 실행 시작 시 제거되며
+  실패 뒤 binary가 남지 않는다.
+- Grade: public selector의 direct bypass는 삭제됐지만 executable
+  `SUBSTITUTING` 증거는 sealed runtime-free `Option<Int>` frontier까지다. General
+  aggregate와 runtime-bearing LLVM을 완료했다고 주장하지 않는다.
+
+다음 LLVM rung은 `array_literal_assignment.pgy`다. 현재 installed production
+path는 source-to-MIR을 통과한 뒤 self-host LLVM projector code 1로 거부되며 native
+LLVM으로 돌아가지 않는다. 기존 installed C 실행을 oracle로 삼아 `Array<Int>`
+literal, length, index에 필요한 typed MIR fact와 마지막 direct-LLVM consumer를
+한 owner seam에서 닫는다. C emitter의 배열 reconstruction 복사, LLVM text 기반
+runtime 추론, implicit runtime attachment, general cache/query engine은 금지한다.
 
 ## 세션 메모리와 handoff 규칙
 
