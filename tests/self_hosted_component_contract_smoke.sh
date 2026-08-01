@@ -13835,7 +13835,7 @@ require_file \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_array_argument_emission_owner.pgy" 265
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" 75
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" 90
 require_file "tests/self_hosted/parity/one_mir_array_argument_projection.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_array_argument_projection.sh" 220
@@ -13879,9 +13879,9 @@ require_max_lines \
 require_text "src/self_hosted/mir/routine_param_json_projection_owner.pgy" \
     'JsonEmitFieldBool("abi_layout_required"'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" \
-    'SelfMirJsonRoutineParam(rows, row)'
+    'SelfMirJsonRoutineParam(facts.declarations, rows, row)'
 require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
-    'SelfMirJsonRoutineParam(rows, param_row)'
+    'SelfMirJsonRoutineParam(facts.declarations, rows, param_row)'
 require_text "tests/self_hosted/parity/one_mir_array_argument_projection.sh" \
     "routine-order-cycle"
 require_text "tests/self_hosted/parity/one_mir_array_argument_projection.sh" \
@@ -13895,7 +13895,64 @@ require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE)'
 require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-array-argument-projection-test-smoke"
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
-    "src/self_hosted/mir_lower/fixture/array_literal_call_argument.pgy"
+    "src/self_hosted/mir_lower/fixture/struct_literal_call_argument.pgy"
+require_file "src/self_hosted/mir/nominal_abi_layout_fact_owner.pgy"
+require_max_lines "src/self_hosted/mir/nominal_abi_layout_fact_owner.pgy" 245
+require_file \
+    "src/self_hosted/mir/nominal_abi_layout_json_projection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir/nominal_abi_layout_json_projection_owner.pgy" 70
+require_file \
+    "src/self_hosted/compiler/direct_mir_nominal_declaration_abi_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_nominal_declaration_abi_fact_owner.pgy" 220
+require_file \
+    "src/self_hosted/compiler/direct_mir_struct_argument_graph_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_struct_argument_graph_fact_owner.pgy" 260
+require_file \
+    "src/self_hosted/compiler/direct_mir_struct_argument_program_admission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_struct_argument_program_admission_owner.pgy" 95
+require_file \
+    "src/self_hosted/compiler/direct_mir_struct_argument_program_identity_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_struct_argument_program_identity_owner.pgy" 230
+require_file \
+    "src/self_hosted/compiler/direct_mir_struct_argument_plan_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_struct_argument_plan_owner.pgy" 215
+require_file \
+    "src/self_hosted/compiler/direct_mir_struct_argument_c_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_struct_argument_c_emission_owner.pgy" 165
+require_file \
+    "src/self_hosted/compiler/direct_mir_struct_argument_llvm_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_struct_argument_llvm_emission_owner.pgy" 110
+require_file "tests/self_hosted/parity/one_mir_struct_argument_projection.sh"
+require_file "tests/self_hosted/parity/one_mir_struct_argument_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_struct_argument_projection.sh" 150
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_struct_argument_mutations.py" 165
+require_text \
+    "src/self_hosted/compiler/direct_mir_struct_argument_plan_owner.pgy" \
+    "DirectMirStructArgumentPlanMutationRejected("
+require_text \
+    "src/self_hosted/compiler/direct_mir_struct_argument_plan_owner.pgy" \
+    "caller_owned_nested_value_by_value"
+require_text \
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
+    "DirectMirStructArgumentProgramCandidate(admitted)"
+require_text "tests/self_hosted/parity/one_mir_struct_argument_projection.sh" \
+    "routine-declaration-order-cycle"
+require_text "tests/self_hosted/parity/one_mir_struct_argument_projection.sh" \
+    "repaired-line-layout-offset"
+require_text "Makefile" "SELFHOST_ONE_MIR_STRUCT_ARGUMENT_GATE ?="
+require_text "Makefile" '$(SELFHOST_ONE_MIR_STRUCT_ARGUMENT_GATE)'
+require_text ".github/workflows/ci.yml" \
+    "self-host-one-mir-struct-argument-projection-test-smoke"
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240

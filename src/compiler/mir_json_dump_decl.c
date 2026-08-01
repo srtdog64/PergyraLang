@@ -7,6 +7,7 @@
 #include "mir_decl_headers.h"
 #include "mir_json_dump_decl.h"
 #include "mir_json_dump_internal.h"
+#include "mir_nominal_abi_layout.h"
 
 #include <stdio.h>
 
@@ -427,6 +428,15 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
                 mir_decl_header_source_syntax_id(header));
         mir_json_emit_decl_generic_params(out, header);
         mir_json_emit_decl_fields(out, header);
+        if (is_struct_decl) {
+            const MIRTypeLayout *layout = mir_decl_header_abi_layout(header);
+            fprintf(out,
+                    ",\"abi_layout_id\":%u,\"abi_layout_required\":%s",
+                    header->abi_layout_id,
+                    layout != NULL ? "true" : "false");
+            fputs(",\"abi_layout\":", out);
+            mir_json_emit_abi_layout_value(out, layout);
+        }
         if (ast_type == AST_ZONE_DECL)
             mir_json_emit_decl_zone_authorities(out, header);
         if (ast_type == AST_PARTY_DECL)

@@ -1,0 +1,260 @@
+// Typed expression-graph facts for the bounded nested value-struct argument
+// rung. Names come from call targets and declaration-bound graph nodes.
+
+import "direct_mir_array_int_graph_fact_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirStructArgumentGraphFact {
+    let valid: Bool;
+    let digest: Int;
+    let outer_callee_name: String;
+    let nested_callee_name: String;
+    let outer_type_name: String;
+    let nested_type_name: String;
+    let outer_first_field: String;
+    let outer_second_field: String;
+    let nested_first_field: String;
+    let nested_second_field: String;
+    let nested_argument: Int;
+    let first_second_value: Int;
+    let second_first_left: Int;
+    let second_first_right: Int;
+    let second_second_value: Int;
+}
+
+struct DirectMirStructMemberGraphFact {
+    let valid: Bool;
+    let digest: Int;
+    let outer_second_field: String;
+    let nested_first_field: String;
+    let outer_first_field: String;
+}
+
+func DirectMirStructArgumentCanonicalIntAt(
+    ref sequence: MirExpressionGraphSequence, row: Int
+) -> Int {
+    if row < 0 || row >= ArrayLength(sequence.arena.node_texts) ||
+        sequence.arena.topology.node_kinds[row] !=
+            AstExpressionNodeIntegerLiteral() {
+        Die("direct MIR struct argument integer node is invalid");
+    }
+    let value: String = sequence.arena.node_texts[row];
+    if value == "" || ToString(ToInt(value)) != value {
+        Die("direct MIR struct argument integer is not canonical");
+    }
+    return ToInt(value);
+}
+
+func DirectMirStructArgumentTopologyReady(
+    ref sequence: MirExpressionGraphSequence
+) -> Bool {
+    if !sequence.ok || sequence.ready_node_count != 39 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 38 {
+        return false;
+    }
+    let k: Array<Int> = [
+        AstExpressionNodeLeaf(), AstExpressionNodeCall(), AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+        AstExpressionNodeLeaf(), AstExpressionNodeStructLiteral(), AstExpressionNodeStructFieldName(),
+        AstExpressionNodeLeaf(), AstExpressionNodeStructLiteral(), AstExpressionNodeStructFieldName(),
+        AstExpressionNodeLeaf(), AstExpressionNodeCall(), AstExpressionNodeIntegerLiteral(), AstExpressionNodeCallArgument(),
+        AstExpressionNodeStructFieldBinding(), AstExpressionNodeStructField(), AstExpressionNodeStructFieldName(), AstExpressionNodeIntegerLiteral(),
+        AstExpressionNodeStructFieldBinding(), AstExpressionNodeStructField(), AstExpressionNodeStructFieldBinding(), AstExpressionNodeStructField(),
+        AstExpressionNodeStructFieldName(), AstExpressionNodeLeaf(), AstExpressionNodeStructLiteral(), AstExpressionNodeStructFieldName(),
+        AstExpressionNodeIntegerLiteral(), AstExpressionNodeIntegerLiteral(), AstExpressionNodeAdd(), AstExpressionNodeStructFieldBinding(),
+        AstExpressionNodeStructField(), AstExpressionNodeStructFieldName(), AstExpressionNodeIntegerLiteral(), AstExpressionNodeStructFieldBinding(),
+        AstExpressionNodeStructField(), AstExpressionNodeStructFieldBinding(), AstExpressionNodeStructField(), AstExpressionNodeCallArgument(), AstExpressionNodeCallArgument()
+    ];
+    let l: Array<Int> = [
+        0, 0, 0, 2, 0, 4, 0, 0, 7, 0, 0, 10, 0, 11, 9, 8, 0,
+        0, 16, 15, 6, 5, 0, 0, 23, 0, 0, 0, 26, 25, 24, 0, 0,
+        31, 30, 22, 21, 3, 1
+    ];
+    let r: Array<Int> = [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 13, 14,
+        0, 0, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 27, 28, 29, 0,
+        0, 32,
+        33, 34, 35, 36, 37
+    ];
+    let row: Int = 0;
+    while row < 39 {
+        if sequence.arena.topology.node_kinds[row] != k[row] ||
+            sequence.arena.topology.left_children[row] != l[row] ||
+            sequence.arena.topology.right_children[row] != r[row] {
+            return false;
+        }
+        let direct: Bool = row == 1 || row == 3 || row == 11;
+        if direct {
+            if sequence.arena.call_target_kinds[row] !=
+                    SemanticCallTargetDirect() ||
+                sequence.arena.call_target_names[row] == "" {
+                return false;
+            }
+        } else if sequence.arena.call_target_kinds[row] !=
+                SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[row] != "" {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirStructArgumentGraphFactDigest(
+    ref fact: DirectMirStructArgumentGraphFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(139L, fact.outer_callee_name);
+    hash = DirectMirCfgHashString(hash, fact.nested_callee_name);
+    hash = DirectMirCfgHashString(hash, fact.outer_type_name);
+    hash = DirectMirCfgHashString(hash, fact.nested_type_name);
+    hash = DirectMirCfgHashString(hash, fact.outer_first_field);
+    hash = DirectMirCfgHashString(hash, fact.outer_second_field);
+    hash = DirectMirCfgHashString(hash, fact.nested_first_field);
+    hash = DirectMirCfgHashString(hash, fact.nested_second_field);
+    hash = DirectMirCfgHashInt(hash, fact.nested_argument);
+    hash = DirectMirCfgHashInt(hash, fact.first_second_value);
+    hash = DirectMirCfgHashInt(hash, fact.second_first_left);
+    hash = DirectMirCfgHashInt(hash, fact.second_first_right);
+    hash = DirectMirCfgHashInt(hash, fact.second_second_value);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirStructArgumentGraphFactReady(
+    ref fact: DirectMirStructArgumentGraphFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirStructArgumentGraphFactDigest(fact) &&
+        fact.outer_callee_name != "" && fact.nested_callee_name != "" &&
+        fact.outer_callee_name != fact.nested_callee_name &&
+        fact.outer_type_name != "" && fact.nested_type_name != "" &&
+        fact.outer_type_name != fact.nested_type_name &&
+        fact.outer_first_field != "" && fact.outer_second_field != "" &&
+        fact.outer_first_field != fact.outer_second_field &&
+        fact.nested_first_field != "" && fact.nested_second_field != "" &&
+        fact.nested_first_field != fact.nested_second_field;
+}
+
+func DirectMirStructArgumentGraphFactFromSequence(
+    ref sequence: MirExpressionGraphSequence
+) -> DirectMirStructArgumentGraphFact {
+    if !DirectMirStructArgumentTopologyReady(sequence) ||
+        sequence.arena.call_target_names[1] != "ToString" ||
+        sequence.arena.node_texts[0] != "ToString" ||
+        sequence.arena.node_texts[2] !=
+            sequence.arena.call_target_names[3] ||
+        sequence.arena.node_texts[10] !=
+            sequence.arena.call_target_names[11] ||
+        sequence.arena.node_texts[4] == "" ||
+        sequence.arena.node_texts[7] == "" ||
+        sequence.arena.node_texts[7] != sequence.arena.node_texts[23] ||
+        sequence.arena.node_texts[9] != sequence.arena.node_texts[25] ||
+        sequence.arena.node_texts[9] == "" ||
+        sequence.arena.node_texts[16] != sequence.arena.node_texts[31] ||
+        sequence.arena.node_texts[16] == "" {
+        Die("direct MIR struct argument graph identity is invalid");
+    }
+    let fact: DirectMirStructArgumentGraphFact =
+        DirectMirStructArgumentGraphFact(
+            true, 0, sequence.arena.call_target_names[3],
+            sequence.arena.call_target_names[11],
+            sequence.arena.node_texts[4], sequence.arena.node_texts[7],
+            sequence.arena.node_texts[6], sequence.arena.node_texts[22],
+            sequence.arena.node_texts[9], sequence.arena.node_texts[16],
+            DirectMirStructArgumentCanonicalIntAt(sequence, 12),
+            DirectMirStructArgumentCanonicalIntAt(sequence, 17),
+            DirectMirStructArgumentCanonicalIntAt(sequence, 26),
+            DirectMirStructArgumentCanonicalIntAt(sequence, 27),
+            DirectMirStructArgumentCanonicalIntAt(sequence, 32)
+        );
+    let verified: DirectMirStructArgumentGraphFact =
+        DirectMirStructArgumentGraphFact(
+            fact.valid, DirectMirStructArgumentGraphFactDigest(fact),
+            fact.outer_callee_name, fact.nested_callee_name,
+            fact.outer_type_name, fact.nested_type_name,
+            fact.outer_first_field, fact.outer_second_field,
+            fact.nested_first_field, fact.nested_second_field,
+            fact.nested_argument, fact.first_second_value,
+            fact.second_first_left, fact.second_first_right,
+            fact.second_second_value
+        );
+    if !DirectMirStructArgumentGraphFactReady(verified) {
+        Die("direct MIR struct argument graph digest is invalid");
+    }
+    return verified;
+}
+
+func DirectMirStructMemberGraphFactDigest(
+    ref fact: DirectMirStructMemberGraphFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(149L, fact.outer_second_field);
+    hash = DirectMirCfgHashString(hash, fact.nested_first_field);
+    hash = DirectMirCfgHashString(hash, fact.outer_first_field);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirStructMemberGraphFactFromSequence(
+    ref sequence: MirExpressionGraphSequence,
+    param_name: String
+) -> DirectMirStructMemberGraphFact {
+    if !sequence.ok || sequence.ready_node_count != 11 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 10 ||
+        sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[0] != param_name ||
+        sequence.arena.topology.node_kinds[1] != AstExpressionNodeLeaf() ||
+        sequence.arena.topology.node_kinds[2] !=
+            AstExpressionNodeMemberAccess() ||
+        sequence.arena.topology.left_children[2] != 0 ||
+        sequence.arena.topology.right_children[2] != 1 ||
+        sequence.arena.topology.node_kinds[3] != AstExpressionNodeLeaf() ||
+        sequence.arena.topology.node_kinds[4] !=
+            AstExpressionNodeMemberAccess() ||
+        sequence.arena.topology.left_children[4] != 2 ||
+        sequence.arena.topology.right_children[4] != 3 ||
+        sequence.arena.topology.node_kinds[5] != AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[5] != param_name ||
+        sequence.arena.topology.node_kinds[6] != AstExpressionNodeLeaf() ||
+        sequence.arena.topology.node_kinds[7] !=
+            AstExpressionNodeMemberAccess() ||
+        sequence.arena.topology.left_children[7] != 5 ||
+        sequence.arena.topology.right_children[7] != 6 ||
+        sequence.arena.topology.node_kinds[8] != AstExpressionNodeLeaf() ||
+        sequence.arena.topology.node_kinds[9] !=
+            AstExpressionNodeMemberAccess() ||
+        sequence.arena.topology.left_children[9] != 7 ||
+        sequence.arena.topology.right_children[9] != 8 ||
+        sequence.arena.topology.node_kinds[10] !=
+            AstExpressionNodeSubtract() ||
+        sequence.arena.topology.left_children[10] != 4 ||
+        sequence.arena.topology.right_children[10] != 9 ||
+        sequence.arena.node_texts[3] != sequence.arena.node_texts[8] {
+        Die("direct MIR struct member graph is invalid");
+    }
+    let row: Int = 0;
+    while row < 11 {
+        if sequence.arena.call_target_kinds[row] !=
+                SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[row] != "" {
+            Die("direct MIR struct member graph has a call target");
+        }
+        row = row + 1;
+    }
+    let fact: DirectMirStructMemberGraphFact =
+        DirectMirStructMemberGraphFact(
+            true, 0, sequence.arena.node_texts[1],
+            sequence.arena.node_texts[3], sequence.arena.node_texts[6]
+        );
+    let verified: DirectMirStructMemberGraphFact =
+        DirectMirStructMemberGraphFact(
+            fact.valid, DirectMirStructMemberGraphFactDigest(fact),
+            fact.outer_second_field, fact.nested_first_field,
+            fact.outer_first_field
+        );
+    if !verified.valid || verified.digest == 0 ||
+        verified.digest != DirectMirStructMemberGraphFactDigest(verified) ||
+        verified.outer_first_field == verified.outer_second_field ||
+        verified.nested_first_field == "" {
+        Die("direct MIR struct member graph digest is invalid");
+    }
+    return verified;
+}

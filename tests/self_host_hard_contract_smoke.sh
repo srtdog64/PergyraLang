@@ -415,18 +415,35 @@ require_text "src/self_hosted/compiler/direct_mir_array_argument_plan_owner.pgy"
 require_text "tests/self_hosted/parity/one_mir_array_argument_projection.sh" \
     'repaired-param-abi'
 require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE)'
+require_text "Makefile" \
+    "self-host-one-mir-struct-argument-projection-test-smoke: self-host-compiler"
+require_file "tests/self_hosted/parity/one_mir_struct_argument_projection.sh"
+require_file "tests/self_hosted/parity/one_mir_struct_argument_mutations.py"
+require_text "tests/self_hosted/parity/one_mir_struct_argument_projection.sh" \
+    'C/LLVM exact 6'
+require_text "tests/self_hosted/parity/one_mir_struct_argument_projection.sh" \
+    'routine-declaration-order-cycle'
+require_text "tests/self_hosted/parity/one_mir_struct_argument_projection.sh" \
+    'repaired-line-layout-offset'
+require_text "src/self_hosted/compiler/direct_mir_struct_argument_plan_owner.pgy" \
+    'caller_owned_nested_value_by_value'
+require_text "src/self_hosted/compiler/direct_mir_struct_argument_plan_owner.pgy" \
+    'DirectMirStructArgumentPlanMutationRejected'
+require_text "Makefile" '$(SELFHOST_ONE_MIR_STRUCT_ARGUMENT_GATE)'
 require_text ".github/workflows/ci.yml" \
     'self-host-one-mir-array-return-projection-test-smoke'
 require_text ".github/workflows/ci.yml" \
     'self-host-one-mir-array-argument-projection-test-smoke'
+require_text ".github/workflows/ci.yml" \
+    'self-host-one-mir-struct-argument-projection-test-smoke'
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
-    'src/self_hosted/mir_lower/fixture/array_literal_call_argument.pgy'
+    'src/self_hosted/mir_lower/fixture/struct_literal_call_argument.pgy'
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
-    'printf '\''11\n'\'''
+    'printf '\''6\n'\'''
 require_text "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
-    'src/self_hosted/mir_lower/fixture/array_literal_call_argument.pgy'
+    'src/self_hosted/mir_lower/fixture/struct_literal_call_argument.pgy'
 require_text "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
-    'printf '\''11\n'\'''
+    'printf '\''6\n'\'''
 require_text "src/compiler/llvm_runner.c" \
     "compiler_compile_link_self_host_llvm_artifact("
 require_text "src/compiler/self_host_llvm_driver.c" \

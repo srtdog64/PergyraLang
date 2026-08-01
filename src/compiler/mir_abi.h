@@ -83,6 +83,8 @@ typedef struct
     MIRParamCarriage    carriage;
     MIRParamResourceKind resource_kind;
     bool                pass_indirect;
+    const MIRTypeLayout *type_layout;
+    uint32_t             abi_layout_id;
 } MIRParamAbiFact;
 
 typedef enum MIRTextBuilderCallShape

@@ -1,4 +1,6 @@
 #include "mir_signature_metadata.h"
+#include "mir_abi_layout.h"
+#include "mir_nominal_abi_layout.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -196,6 +198,18 @@ mir_routine_signature_metadata_capture(const MIRProgram *program,
                 routine->param_abi_facts[i].resource_kind =
                     mir_param_resource_kind_from_type_name(
                         routine->param_type_names[i]);
+                {
+                    const MIRTypeLayout *layout = mir_abi_lookup(
+                        routine->param_type_names[i]);
+                    if (layout == NULL) {
+                        const MIRDeclHeader *header = mir_find_decl_header(
+                            program, routine->param_type_names[i]);
+                        layout = mir_decl_header_abi_layout(header);
+                    }
+                    routine->param_abi_facts[i].type_layout = layout;
+                    routine->param_abi_facts[i].abi_layout_id =
+                        mir_abi_layout_id(layout);
+                }
                 if (routine->param_abi_facts[i].carriage
                         == MIR_PARAM_CARRIAGE_READONLY_REF
                     && routine->param_type_names[i] != NULL) {

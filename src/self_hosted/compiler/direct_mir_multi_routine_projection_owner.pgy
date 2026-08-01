@@ -4,6 +4,8 @@
 
 import "direct_mir_array_return_emission_owner.pgy";
 import "direct_mir_array_argument_emission_owner.pgy";
+import "direct_mir_struct_argument_c_emission_owner.pgy";
+import "direct_mir_struct_argument_llvm_emission_owner.pgy";
 
 func CompileAdmittedDirectMirMultiRoutineForTarget(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -38,6 +40,18 @@ func CompileAdmittedDirectMirMultiRoutineForTarget(
         }
         return DirectMirArrayReturnEmitC(
             return_plan, return_abi, formatted_print, line_format
+        );
+    }
+    if DirectMirStructArgumentProgramCandidate(admitted) {
+        let struct_plan: DirectMirStructArgumentPlan =
+            DirectMirStructArgumentPlanFromAdmitted(admitted);
+        if is_llvm {
+            return DirectMirStructArgumentEmitLlvm(
+                struct_plan, formatted_print, line_format
+            );
+        }
+        return DirectMirStructArgumentEmitC(
+            struct_plan, formatted_print, line_format
         );
     }
     if DirectMirArrayArgumentProgramCandidate(admitted) {

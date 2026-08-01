@@ -87,6 +87,9 @@ jobs:
           make self-host-preparation-exhaustive-parity-test-smoke
           self-host-one-mir-array-return-projection-test-smoke
           self-host-one-mir-array-argument-projection-test-smoke
+          self-host-one-mir-struct-argument-projection-test-smoke
+          self-host-default-c-compile-replacement-test-smoke
+          self-host-default-llvm-replacement-test-smoke
 
   self-host-bootstrap-linux:
     runs-on: ubuntu-latest

@@ -256,6 +256,9 @@ typedef struct
     bool         event_param_metadata_present;
     NominalDeclKind nominal_kind;
     bool         uses_pointer_self;
+    bool         abi_layout_present;
+    MIRTypeLayout abi_layout;
+    uint32_t     abi_layout_id;
 } MIRDeclHeader;
 
 typedef struct

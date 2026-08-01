@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "mir_base_helpers.h"
+#include "mir_abi_layout.h"
 #include "mir_public_surface.h"
 
 bool
@@ -377,6 +378,30 @@ mir_validate_program_inventory_shape(const MIRProgram *mir,
                         j);
                 }
                 return false;
+            }
+            {
+                const MIRTypeLayout *layout =
+                    routine->param_abi_facts[j].type_layout;
+                uint32_t layout_id = routine->param_abi_facts[j].abi_layout_id;
+                if ((layout == NULL && layout_id != 0)
+                    || (layout != NULL
+                        && (layout_id == 0
+                            || layout_id != mir_abi_layout_id(layout)
+                            || layout->abi_type_name == NULL
+                            || routine->param_type_names == NULL
+                            || routine->param_type_names[j] == NULL
+                            || strcmp(layout->abi_type_name,
+                                      routine->param_type_names[j]) != 0))) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' parameter[%zu] has invalid ABI layout ownership",
+                            routine->name != NULL
+                                ? routine->name
+                                : "(anonymous)",
+                            j);
+                    }
+                    return false;
+                }
             }
         }
         for (size_t j = 0; j < routine->source_local_type_count; j++) {

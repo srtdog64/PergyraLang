@@ -46,6 +46,7 @@
 #include "mir_decl_headers.h"
 #include "mir_cfg_contract_validate.h"
 #include "mir_abi_layout.h"
+#include "mir_nominal_abi_layout.h"
 
 static bool
 mir_capture_receiver_carriage(const MIRProgram *mir,
@@ -320,6 +321,10 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
             mir_destroy(mir);
             return NULL;
         }
+    }
+    if (!mir_nominal_abi_layouts_capture(mir, error_message)) {
+        mir_destroy(mir);
+        return NULL;
     }
 
     HIRRoutineInventory hir_inventory;

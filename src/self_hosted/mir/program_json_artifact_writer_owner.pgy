@@ -91,7 +91,8 @@ func SelfMirJsonRoutineWriteFile(
         if param_i > 0 { CompilerArtifactWrite(output, ","); }
         let param_row: Int = rows.param_starts[routine_index] + param_i;
         CompilerArtifactWrite(
-            output, SelfMirJsonRoutineParam(rows, param_row)
+            output,
+            SelfMirJsonRoutineParam(facts.declarations, rows, param_row)
         );
         param_i = param_i + 1;
     }

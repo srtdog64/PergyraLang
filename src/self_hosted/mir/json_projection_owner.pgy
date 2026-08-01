@@ -282,7 +282,10 @@ func SelfMirJsonRoutine(
     let param_i: Int = 0;
     while param_i < rows.param_counts[routine_index] {
         let row: Int = rows.param_starts[routine_index] + param_i;
-        ArrayPush(params, SelfMirJsonRoutineParam(rows, row));
+        ArrayPush(
+            params,
+            SelfMirJsonRoutineParam(facts.declarations, rows, row)
+        );
         param_i = param_i + 1;
     }
     let blocks: Array<String> = [];

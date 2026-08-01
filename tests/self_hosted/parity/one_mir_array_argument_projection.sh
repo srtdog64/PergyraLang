@@ -55,7 +55,7 @@ $graph|225
 $identity|245
 $plan|310
 $emission|265
-$multi|75
+$multi|90
 EOF
     for term in BuildMirDocumentFactIndex CompileMirJsonToCVerified \
         GenerateCFromVerifiedSemanticArtifact llvm_codegen_ \

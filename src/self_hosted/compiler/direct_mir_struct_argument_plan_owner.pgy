@@ -1,0 +1,205 @@
+// Target-neutral call, value, declaration, ABI, and lifetime plan for one
+// nested value-struct argument program.
+
+import "artifact_zone_owner.pgy";
+import "direct_mir_struct_argument_program_identity_owner.pgy";
+import "target_capability_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+
+struct DirectMirStructArgumentPlan {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let digest: Int;
+    let target_capability_schema: String;
+    let target_capability_fingerprint: Int;
+    let program: DirectMirStructArgumentProgramIdentity;
+    let member_graph: DirectMirStructMemberGraphFact;
+    let scalar_factor: Int;
+    let storage_carriage: String;
+}
+
+func DirectMirStructArgumentPlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-struct-argument-plan.v1";
+}
+
+func DirectMirStructArgumentStorageCarriage() -> String {
+    return "caller_owned_nested_value_by_value";
+}
+
+func DirectMirStructArgumentPlanDigest(
+    ref plan: DirectMirStructArgumentPlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(157L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
+    hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
+    hash = DirectMirCfgHashInt(hash, plan.program.digest);
+    hash = DirectMirCfgHashInt(hash, plan.member_graph.digest);
+    hash = DirectMirCfgHashInt(hash, plan.scalar_factor);
+    hash = DirectMirCfgHashString(hash, plan.storage_carriage);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirStructArgumentPlanWithDigest(
+    plan: DirectMirStructArgumentPlan,
+    digest: Int
+) -> DirectMirStructArgumentPlan {
+    return DirectMirStructArgumentPlan(
+        plan.valid, plan.schema, plan.revision, digest,
+        plan.target_capability_schema, plan.target_capability_fingerprint,
+        plan.program, plan.member_graph, plan.scalar_factor,
+        plan.storage_carriage
+    );
+}
+
+func DirectMirStructArgumentPlanReady(
+    ref plan: DirectMirStructArgumentPlan
+) -> Bool {
+    return plan.valid &&
+        plan.schema == DirectMirStructArgumentPlanSchema() &&
+        plan.revision == CompilerArtifactPlanRevision() && plan.digest != 0 &&
+        plan.digest == DirectMirStructArgumentPlanDigest(plan) &&
+        plan.target_capability_schema == CompilerTargetCapabilitySchema() &&
+        plan.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        DirectMirStructArgumentProgramIdentityReady(plan.program) &&
+        plan.member_graph.valid && plan.member_graph.digest != 0 &&
+        plan.member_graph.digest ==
+            DirectMirStructMemberGraphFactDigest(plan.member_graph) &&
+        plan.member_graph.outer_first_field ==
+            plan.program.main_graph.outer_first_field &&
+        plan.member_graph.outer_second_field ==
+            plan.program.main_graph.outer_second_field &&
+        plan.member_graph.nested_first_field ==
+            plan.program.main_graph.nested_first_field &&
+        plan.scalar_factor != 0 && plan.storage_carriage ==
+            DirectMirStructArgumentStorageCarriage();
+}
+
+func DirectMirStructArgumentPlanMutationRejected(
+    ref plan: DirectMirStructArgumentPlan
+) -> Bool {
+    if !DirectMirStructArgumentPlanReady(plan) { return false; }
+    let bad_carriage: DirectMirStructArgumentPlan =
+        DirectMirStructArgumentPlan(
+            plan.valid, plan.schema, plan.revision, 0,
+            plan.target_capability_schema, plan.target_capability_fingerprint,
+            plan.program, plan.member_graph, plan.scalar_factor,
+            "callee_owned_nested_value"
+        );
+    bad_carriage = DirectMirStructArgumentPlanWithDigest(
+        bad_carriage, DirectMirStructArgumentPlanDigest(bad_carriage)
+    );
+    let bad_target: DirectMirStructArgumentPlan =
+        DirectMirStructArgumentPlan(
+            plan.valid, plan.schema, plan.revision, 0,
+            plan.target_capability_schema,
+            plan.target_capability_fingerprint + 1, plan.program,
+            plan.member_graph, plan.scalar_factor, plan.storage_carriage
+        );
+    bad_target = DirectMirStructArgumentPlanWithDigest(
+        bad_target, DirectMirStructArgumentPlanDigest(bad_target)
+    );
+    return !DirectMirStructArgumentPlanReady(bad_carriage) &&
+        !DirectMirStructArgumentPlanReady(bad_target);
+}
+
+func DirectMirStructArgumentPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirStructArgumentPlan {
+    let program: DirectMirStructArgumentProgramIdentity =
+        DirectMirStructArgumentProgramIdentityFromAdmitted(admitted);
+    let rows: Array<Int> = [
+        program.entrypoint.row, program.outer_callee.row,
+        program.nested_callee.row
+    ];
+    let globals: Array<Int> = [];
+    let captures: Array<MirRoutineInstructionScalarCapture> = [];
+    let expressions: Array<MirProgramInstructionExpressionFact> = [];
+    let row: Int = 0;
+    while row < 3 {
+        let routine_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+            admitted.routines, rows[row]
+        );
+        let uses: MirRoutineInstructionUseFacts =
+            BuildMirRoutineInstructionUseFacts(admitted.routines, rows[row]);
+        let global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, rows[row], 0, 0
+        );
+        if !DirectMirArrayArgumentRoutineReady(routine_index) ||
+            !MirRoutineInstructionUseFactsReady(uses, 1) || global < 0 ||
+            MirRoutineInstructionUseCountAtGlobal(uses, global) != 0 {
+            Die("direct MIR struct argument routine facts are invalid");
+        }
+        let capture: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                routine_index.instruction_facts, global
+            );
+        if !capture.valid || !DirectMirArrayArgumentInstructionHasNoAbi(
+            admitted.routines.source_json, capture
+        ) {
+            Die("direct MIR struct argument instruction ABI is invalid");
+        }
+        ArrayPush(globals, global);
+        ArrayPush(captures, capture);
+        ArrayPush(expressions, MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions, global
+        ));
+        row = row + 1;
+    }
+    let main: MirRoutineInstructionScalarCapture = captures[0];
+    let consumer: MirRoutineInstructionScalarCapture = captures[1];
+    let nested: MirRoutineInstructionScalarCapture = captures[2];
+    if admitted.routines.instruction_kinds[globals[0]] != "stmt" ||
+        admitted.routines.instruction_source_types[globals[0]] != "AST_CALL" ||
+        main.name != "stmt" || main.result != "" || main.arg0 != "Log" ||
+        main.arg1 != "" || main.expr1 != "" ||
+        admitted.routines.instruction_kinds[globals[1]] != "return" ||
+        admitted.routines.instruction_source_types[globals[1]] !=
+            "AST_BINARY" || consumer.name != "return" ||
+        consumer.result != "" || consumer.arg0 != "" ||
+        consumer.arg1 != "" || consumer.expr1 != "" ||
+        admitted.routines.instruction_kinds[globals[2]] != "return" ||
+        admitted.routines.instruction_source_types[globals[2]] !=
+            "AST_BINARY" || nested.name != "return" || nested.result != "" ||
+        nested.arg0 != "" || nested.arg1 != "" || nested.expr1 != "" {
+        Die("direct MIR struct argument instructions are invalid");
+    }
+    let consumer_expression: MirProgramInstructionExpressionFact =
+        expressions[1];
+    let nested_expression: MirProgramInstructionExpressionFact =
+        expressions[2];
+    let consumer_sequence: MirExpressionGraphSequence =
+        DirectMirArrayIntGraphFromExpressionFact(
+            admitted.routines.source_json, consumer_expression, 0
+        );
+    let nested_sequence: MirExpressionGraphSequence =
+        DirectMirArrayIntGraphFromExpressionFact(
+            admitted.routines.source_json, nested_expression, 0
+        );
+    let member_graph: DirectMirStructMemberGraphFact =
+        DirectMirStructMemberGraphFactFromSequence(
+            consumer_sequence, program.outer_callee.param.name
+        );
+    let scalar_factor: Int = DirectMirArrayArgumentScalarFactor(
+        nested_sequence, program.nested_callee.param.name
+    );
+    let plan: DirectMirStructArgumentPlan = DirectMirStructArgumentPlan(
+        true, DirectMirStructArgumentPlanSchema(),
+        CompilerArtifactPlanRevision(), 0, CompilerTargetCapabilitySchema(),
+        CompilerTargetCapabilityFingerprint(), program, member_graph,
+        scalar_factor, DirectMirStructArgumentStorageCarriage()
+    );
+    let verified: DirectMirStructArgumentPlan =
+        DirectMirStructArgumentPlanWithDigest(
+            plan, DirectMirStructArgumentPlanDigest(plan)
+        );
+    if !DirectMirStructArgumentPlanReady(verified) ||
+        !DirectMirStructArgumentPlanMutationRejected(verified) {
+        Die("direct MIR struct argument plan identity is invalid");
+    }
+    return verified;
+}

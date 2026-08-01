@@ -188,6 +188,10 @@ MIRParamResourceKind mir_routine_param_resource_kind(
     size_t index);
 bool mir_routine_param_passes_indirect(const MIRRoutine *routine,
                                        size_t index);
+const MIRTypeLayout *mir_routine_param_abi_layout(
+    const MIRRoutine *routine, size_t index);
+uint32_t mir_routine_param_abi_layout_id(
+    const MIRRoutine *routine, size_t index);
 MIRParamCarriage mir_param_carriage_from_source_mode(ParamMode mode);
 MIRParamResourceKind mir_param_resource_kind_from_type_name(
     const char *type_name);

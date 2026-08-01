@@ -1,0 +1,225 @@
+// Row-order-independent identity for the bounded nested value-struct argument
+// graph. Main is the sole language-defined entrypoint name; callees and
+// nominal types are resolved from typed graph facts.
+
+import "direct_mir_struct_argument_graph_fact_owner.pgy";
+import "direct_mir_nominal_declaration_abi_fact_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_struct_argument_program_admission_owner.pgy";
+
+struct DirectMirStructArgumentProgramIdentity {
+    let valid: Bool;
+    let digest: Int;
+    let entrypoint: DirectMirRoutineSignatureFact;
+    let outer_callee: DirectMirRoutineSignatureFact;
+    let nested_callee: DirectMirRoutineSignatureFact;
+    let outer_declaration: DirectMirNominalDeclarationAbiFact;
+    let nested_declaration: DirectMirNominalDeclarationAbiFact;
+    let main_graph: DirectMirStructArgumentGraphFact;
+}
+
+func DirectMirStructAbiRowsEqual(
+    ref left: MirAbiLayoutRowCapture,
+    ref right: MirAbiLayoutRowCapture
+) -> Bool {
+    if !left.valid || !right.valid || left.type_name != right.type_name ||
+        left.size_text != right.size_text ||
+        left.align_text != right.align_text ||
+        left.runtime_fn != right.runtime_fn ||
+        left.inner_c_type != right.inner_c_type ||
+        left.representation_text != right.representation_text ||
+        left.discriminant != right.discriminant ||
+        left.primary_tag_text != right.primary_tag_text ||
+        left.secondary_tag_text != right.secondary_tag_text ||
+        left.niche_none_pattern != right.niche_none_pattern ||
+        ArrayLength(left.field_names) != ArrayLength(right.field_names) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(left.field_names) {
+        if left.field_names[row] != right.field_names[row] ||
+            left.field_offsets[row] != right.field_offsets[row] ||
+            left.field_sizes[row] != right.field_sizes[row] ||
+            left.field_aligns[row] != right.field_aligns[row] {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirStructArgumentPhysicalRowsReady(
+    ref outer: DirectMirNominalDeclarationAbiFact,
+    ref nested: DirectMirNominalDeclarationAbiFact
+) -> Bool {
+    return outer.abi.size_text == "16" && outer.abi.align_text == "4" &&
+        ArrayLength(outer.abi.field_names) == 2 &&
+        outer.abi.field_offsets[0] == "0" &&
+        outer.abi.field_offsets[1] == "8" &&
+        outer.abi.field_sizes[0] == "8" &&
+        outer.abi.field_sizes[1] == "8" &&
+        outer.abi.field_aligns[0] == "4" &&
+        outer.abi.field_aligns[1] == "4" &&
+        nested.abi.size_text == "8" && nested.abi.align_text == "4" &&
+        ArrayLength(nested.abi.field_names) == 2 &&
+        nested.abi.field_offsets[0] == "0" &&
+        nested.abi.field_offsets[1] == "4" &&
+        nested.abi.field_sizes[0] == "4" &&
+        nested.abi.field_sizes[1] == "4" &&
+        nested.abi.field_aligns[0] == "4" &&
+        nested.abi.field_aligns[1] == "4";
+}
+
+func DirectMirStructArgumentProgramIdentityDigest(
+    ref identity: DirectMirStructArgumentProgramIdentity
+) -> Int {
+    if !identity.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(151L, identity.entrypoint.digest);
+    hash = DirectMirCfgHashInt(hash, identity.outer_callee.digest);
+    hash = DirectMirCfgHashInt(hash, identity.nested_callee.digest);
+    hash = DirectMirCfgHashInt(hash, identity.outer_declaration.digest);
+    hash = DirectMirCfgHashInt(hash, identity.nested_declaration.digest);
+    hash = DirectMirCfgHashInt(hash, identity.main_graph.digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirStructArgumentProgramIdentityReady(
+    ref identity: DirectMirStructArgumentProgramIdentity
+) -> Bool {
+    if !identity.valid || identity.digest == 0 ||
+        identity.digest != DirectMirStructArgumentProgramIdentityDigest(
+            identity
+        ) || !DirectMirRoutineSignatureFactReady(identity.entrypoint) ||
+        !DirectMirRoutineSignatureFactReady(identity.outer_callee) ||
+        !DirectMirRoutineSignatureFactReady(identity.nested_callee) ||
+        !DirectMirNominalDeclarationAbiFactReady(
+            identity.outer_declaration
+        ) || !DirectMirNominalDeclarationAbiFactReady(
+            identity.nested_declaration
+        ) || !DirectMirStructArgumentGraphFactReady(identity.main_graph) {
+        return false;
+    }
+    let graph: DirectMirStructArgumentGraphFact = identity.main_graph;
+    let outer: DirectMirNominalDeclarationAbiFact =
+        identity.outer_declaration;
+    let nested: DirectMirNominalDeclarationAbiFact =
+        identity.nested_declaration;
+    return identity.entrypoint.name == "Main" &&
+        identity.entrypoint.return_type == "Void" &&
+        identity.entrypoint.param_count == 0 &&
+        identity.outer_callee.name == graph.outer_callee_name &&
+        identity.outer_callee.return_type == CompilerAbiLayoutIntTypeName() &&
+        identity.outer_callee.param_count == 1 &&
+        identity.outer_callee.param.name != "" &&
+        identity.outer_callee.param.type_name == graph.outer_type_name &&
+        identity.outer_callee.param.carriage == "value" &&
+        identity.outer_callee.param.resource == "none" &&
+        identity.outer_callee.param.pass_shape == "direct" &&
+        identity.outer_callee.param.abi_required &&
+        identity.outer_callee.param.abi_layout_id == outer.abi_layout_id &&
+        DirectMirStructAbiRowsEqual(
+            identity.outer_callee.param.abi, outer.abi
+        ) && identity.nested_callee.name == graph.nested_callee_name &&
+        identity.nested_callee.return_type == CompilerAbiLayoutIntTypeName() &&
+        identity.nested_callee.param_count == 1 &&
+        identity.nested_callee.param.type_name == CompilerAbiLayoutIntTypeName() &&
+        identity.nested_callee.param.carriage == "value" &&
+        identity.nested_callee.param.resource == "none" &&
+        identity.nested_callee.param.pass_shape == "direct" &&
+        !identity.nested_callee.param.abi_required &&
+        outer.name == graph.outer_type_name &&
+        nested.name == graph.nested_type_name &&
+        ArrayLength(outer.field_names) == 2 &&
+        outer.field_names[0] == graph.outer_first_field &&
+        outer.field_names[1] == graph.outer_second_field &&
+        outer.field_types[0] == nested.name &&
+        outer.field_types[1] == nested.name &&
+        ArrayLength(nested.field_names) == 2 &&
+        nested.field_names[0] == graph.nested_first_field &&
+        nested.field_names[1] == graph.nested_second_field &&
+        nested.field_types[0] == CompilerAbiLayoutIntTypeName() &&
+        nested.field_types[1] == CompilerAbiLayoutIntTypeName() &&
+        DirectMirStructArgumentPhysicalRowsReady(outer, nested) &&
+        identity.entrypoint.row != identity.outer_callee.row &&
+        identity.entrypoint.row != identity.nested_callee.row &&
+        identity.outer_callee.row != identity.nested_callee.row &&
+        outer.row != nested.row &&
+        outer.source_syntax_id != nested.source_syntax_id;
+}
+
+func DirectMirStructArgumentProgramIdentityFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirStructArgumentProgramIdentity {
+    if !DirectMirStructArgumentProgramEnvelopeReady(admitted) {
+        Die("direct MIR struct argument program envelope is invalid");
+    }
+    let main_row: Int = DirectMirStructArgumentUniqueRoutineRow(
+        admitted.routines, "Main"
+    );
+    if main_row < 0 {
+        Die("direct MIR struct entrypoint is missing or duplicated");
+    }
+    let entrypoint: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 1);
+    let main_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, main_row, 0, 0
+    );
+    if !DirectMirRoutineSignatureFactReady(entrypoint) ||
+        entrypoint.return_type != "Void" || entrypoint.param_count != 0 ||
+        main_global < 0 {
+        Die("direct MIR struct entrypoint identity is invalid");
+    }
+    let main_expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions, main_global
+        );
+    let main_sequence: MirExpressionGraphSequence =
+        DirectMirArrayIntGraphFromExpressionFact(
+            admitted.routines.source_json, main_expression, 0
+        );
+    let main_graph: DirectMirStructArgumentGraphFact =
+        DirectMirStructArgumentGraphFactFromSequence(main_sequence);
+    let outer_row: Int = DirectMirStructArgumentUniqueRoutineRow(
+        admitted.routines, main_graph.outer_callee_name
+    );
+    let nested_row: Int = DirectMirStructArgumentUniqueRoutineRow(
+        admitted.routines, main_graph.nested_callee_name
+    );
+    let outer_callee: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(admitted.routines, outer_row, 1);
+    let nested_callee: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(admitted.routines, nested_row, 1);
+    let declarations: MirProgramDeclarationIndex =
+        admitted.domain_runtime_admission.declarations;
+    let outer_decl_row: Int = DirectMirStructArgumentUniqueDeclarationRow(
+        declarations, main_graph.outer_type_name
+    );
+    let nested_decl_row: Int = DirectMirStructArgumentUniqueDeclarationRow(
+        declarations, main_graph.nested_type_name
+    );
+    let outer_declaration: DirectMirNominalDeclarationAbiFact =
+        DirectMirNominalDeclarationAbiFactFromDocument(
+            admitted.document.root.json, declarations, outer_decl_row
+        );
+    let nested_declaration: DirectMirNominalDeclarationAbiFact =
+        DirectMirNominalDeclarationAbiFactFromDocument(
+            admitted.document.root.json, declarations, nested_decl_row
+        );
+    let identity: DirectMirStructArgumentProgramIdentity =
+        DirectMirStructArgumentProgramIdentity(
+            true, 0, entrypoint, outer_callee, nested_callee,
+            outer_declaration, nested_declaration, main_graph
+        );
+    let verified: DirectMirStructArgumentProgramIdentity =
+        DirectMirStructArgumentProgramIdentity(
+            identity.valid,
+            DirectMirStructArgumentProgramIdentityDigest(identity),
+            identity.entrypoint, identity.outer_callee,
+            identity.nested_callee, identity.outer_declaration,
+            identity.nested_declaration, identity.main_graph
+        );
+    if !DirectMirStructArgumentProgramIdentityReady(verified) {
+        Die("direct MIR struct argument identity is invalid");
+    }
+    return verified;
+}

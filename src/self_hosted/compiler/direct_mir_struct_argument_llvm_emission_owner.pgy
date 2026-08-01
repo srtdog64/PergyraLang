@@ -1,0 +1,100 @@
+// Runtime-free LLVM emission from one verified nested value-struct plan.
+
+import "direct_mir_struct_argument_plan_owner.pgy";
+import "direct_mir_llvm_text_format_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "symbol_table_owner.pgy";
+
+func DirectMirStructArgumentEmitLlvm(
+    ref plan: DirectMirStructArgumentPlan,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirStructArgumentPlanReady(plan) || !formatted_print.ok ||
+        formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" {
+        Die("direct MIR struct argument LLVM projection facts are invalid");
+    }
+    let outer_type: String = CompilerSymbolCIdentifier(
+        plan.program.outer_declaration.name
+    );
+    let nested_type: String = CompilerSymbolCIdentifier(
+        plan.program.nested_declaration.name
+    );
+    let outer_symbol: String = CompilerSymbolCIdentifier(
+        plan.program.outer_callee.name
+    );
+    let nested_symbol: String = CompilerSymbolCIdentifier(
+        plan.program.nested_callee.name
+    );
+    if outer_type == "" || nested_type == "" || outer_type == nested_type ||
+        outer_symbol == "" || nested_symbol == "" ||
+        outer_symbol == nested_symbol {
+        Die("direct MIR struct argument LLVM symbols are invalid");
+    }
+    let payload: String = DirectMirScalarLlvmFormatPayload(line_format);
+    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
+    let output: String = "%";
+    output = Concat(output, nested_type);
+    output = Concat(output, " = type { i32, i32 }\n%");
+    output = Concat(output, outer_type);
+    output = Concat(output, " = type { %");
+    output = Concat(output, nested_type);
+    output = Concat(output, ", %");
+    output = Concat(output, nested_type);
+    output = Concat(output, " }\n\n@.pgy.int.line.format = private unnamed_addr constant [");
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, payload);
+    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n\ndefine internal i32 @");
+    output = Concat(output, nested_symbol);
+    output = Concat(output, "(i32 %value) {\nentry:\n  %pgy.nested = mul i32 %value, ");
+    output = Concat(output, ToString(plan.scalar_factor));
+    output = Concat(output, "\n  ret i32 %pgy.nested\n}\n\ndefine internal i32 @");
+    output = Concat(output, outer_symbol);
+    output = Concat(output, "(%");
+    output = Concat(output, outer_type);
+    output = Concat(output, " %value) {\nentry:\n  %pgy.end.x = extractvalue %");
+    output = Concat(output, outer_type);
+    output = Concat(output, " %value, 1, 0\n  %pgy.start.x = extractvalue %");
+    output = Concat(output, outer_type);
+    output = Concat(output, " %value, 0, 0\n  %pgy.width = sub i32 %pgy.end.x, %pgy.start.x\n  ret i32 %pgy.width\n}\n\ndefine i32 @main() {\nentry:\n  %pgy.start.x = call i32 @");
+    output = Concat(output, nested_symbol);
+    output = Concat(output, "(i32 ");
+    output = Concat(output, ToString(plan.program.main_graph.nested_argument));
+    output = Concat(output, ")\n  %pgy.start.0 = insertvalue %");
+    output = Concat(output, nested_type);
+    output = Concat(output, " poison, i32 %pgy.start.x, 0\n  %pgy.start.1 = insertvalue %");
+    output = Concat(output, nested_type);
+    output = Concat(output, " %pgy.start.0, i32 ");
+    output = Concat(output, ToString(plan.program.main_graph.first_second_value));
+    output = Concat(output, ", 1\n  %pgy.end.x = add i32 ");
+    output = Concat(output, ToString(plan.program.main_graph.second_first_left));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(plan.program.main_graph.second_first_right));
+    output = Concat(output, "\n  %pgy.end.0 = insertvalue %");
+    output = Concat(output, nested_type);
+    output = Concat(output, " poison, i32 %pgy.end.x, 0\n  %pgy.end.1 = insertvalue %");
+    output = Concat(output, nested_type);
+    output = Concat(output, " %pgy.end.0, i32 ");
+    output = Concat(output, ToString(plan.program.main_graph.second_second_value));
+    output = Concat(output, ", 1\n  %pgy.outer.0 = insertvalue %");
+    output = Concat(output, outer_type);
+    output = Concat(output, " poison, %");
+    output = Concat(output, nested_type);
+    output = Concat(output, " %pgy.start.1, 0\n  %pgy.outer.1 = insertvalue %");
+    output = Concat(output, outer_type);
+    output = Concat(output, " %pgy.outer.0, %");
+    output = Concat(output, nested_type);
+    output = Concat(output, " %pgy.end.1, 1\n  %pgy.result = call i32 @");
+    output = Concat(output, outer_symbol);
+    output = Concat(output, "(%");
+    output = Concat(output, outer_type);
+    output = Concat(output, " %pgy.outer.1)\n  %pgy.print = sext i32 %pgy.result to i64\n  %pgy.logged = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.int.line.format, i64 %pgy.print)\n  ret i32 0\n}\n");
+    return output;
+}

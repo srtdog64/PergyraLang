@@ -10,6 +10,7 @@ func SelfMirDeclarationsFromAnalysis(
     let kinds: Array<String> = rows.kinds;
     let nominal_kinds: Array<String> = rows.nominal_kinds;
     let names: Array<String> = rows.names;
+    let source_syntax_ids: Array<Int> = rows.source_syntax_ids;
     let target_types: Array<String> = rows.target_types;
     let uses_pointer_self: Array<Int> = rows.uses_pointer_self;
     let field_starts: Array<Int> = rows.field_starts;
@@ -75,6 +76,7 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(kinds, analysis.constructors.nominal_kinds[i]);
         ArrayPush(nominal_kinds, analysis.constructors.nominal_kinds[i]);
         ArrayPush(names, analysis.constructors.names[i]);
+        ArrayPush(source_syntax_ids, analysis.constructors.node_ids[i]);
         ArrayPush(target_types, "");
         ArrayPush(
             uses_pointer_self,
@@ -190,6 +192,7 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(kinds, "role");
         ArrayPush(nominal_kinds, "role");
         ArrayPush(names, role_name);
+        ArrayPush(source_syntax_ids, analysis.roles.role_node_ids[role_i]);
         ArrayPush(target_types, target_type);
         ArrayPush(
             uses_pointer_self, SelfMirDeclarationUsesPointerSelf("role")
@@ -293,6 +296,9 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(kinds, "ability");
         ArrayPush(nominal_kinds, "ability");
         ArrayPush(names, ability_name);
+        ArrayPush(
+            source_syntax_ids, analysis.roles.ability_node_ids[ability_i]
+        );
         ArrayPush(target_types, "");
         ArrayPush(
             uses_pointer_self, SelfMirDeclarationUsesPointerSelf("ability")
@@ -380,6 +386,7 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(kinds, "enum");
         ArrayPush(nominal_kinds, "enum");
         ArrayPush(names, enum_name);
+        ArrayPush(source_syntax_ids, enum_facts.node_ids[enum_i]);
         ArrayPush(target_types, "");
         ArrayPush(
             uses_pointer_self, SelfMirDeclarationUsesPointerSelf("enum")
@@ -439,7 +446,8 @@ func SelfMirDeclarationsFromAnalysis(
             analysis.zone_authorities, names, nominal_kinds
         );
     return SelfMirDeclarationRows(
-        kinds, nominal_kinds, names, target_types, uses_pointer_self,
+        kinds, nominal_kinds, names, source_syntax_ids,
+        target_types, uses_pointer_self,
         field_starts, field_counts,
         field_names, field_kinds, field_types, field_source_syntax_ids,
         method_starts, method_counts,
@@ -462,7 +470,10 @@ func SelfMirDeclarationsFromAnalysis(
         role_slot_starts, role_slot_counts, role_slot_names,
         role_slot_types, role_slot_dynamic,
         role_impl_starts, role_impl_counts, role_impl_ability_names,
-        role_impl_method_starts, role_impl_method_counts,
-        zone_authorities
+        role_impl_method_starts, role_impl_method_counts, zone_authorities,
+        SelfMirNominalAbiLayoutsCapture(
+            names, nominal_kinds, field_starts, field_counts,
+            field_names, field_kinds, field_types
+        )
     );
 }

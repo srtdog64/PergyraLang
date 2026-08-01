@@ -2,15 +2,22 @@
 
 import "program_fact_owner.pgy";
 import "abi_layout_json_projection_owner.pgy";
+import "nominal_abi_layout_json_projection_owner.pgy";
 import "json_projection_support_owner.pgy";
 import "../lib/json_emit.pgy";
 
 func SelfMirJsonRoutineParam(
+    ref declarations: SelfMirDeclarationRows,
     ref rows: SelfMirRoutineRows,
     row: Int
 ) -> String {
     let param_type: String = rows.param_types[row];
     let abi_layout: String = SelfMirJsonStaticAbiLayout(param_type);
+    if StringLength(abi_layout) == 0 {
+        abi_layout = SelfMirJsonNominalAbiLayoutForType(
+            declarations, param_type
+        );
+    }
     let abi_required: Bool = StringLength(abi_layout) > 0;
     let abi_wire: String = "null";
     if abi_required { abi_wire = abi_layout; }

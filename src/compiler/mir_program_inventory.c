@@ -217,6 +217,28 @@ mir_routine_param_passes_indirect(const MIRRoutine *routine, size_t index)
         && routine->param_abi_facts[index].pass_indirect;
 }
 
+const MIRTypeLayout *
+mir_routine_param_abi_layout(const MIRRoutine *routine, size_t index)
+{
+    if (!mir_routine_has_signature(routine)
+        || routine->param_abi_facts == NULL
+        || index >= routine->param_count) {
+        return NULL;
+    }
+    return routine->param_abi_facts[index].type_layout;
+}
+
+uint32_t
+mir_routine_param_abi_layout_id(const MIRRoutine *routine, size_t index)
+{
+    if (!mir_routine_has_signature(routine)
+        || routine->param_abi_facts == NULL
+        || index >= routine->param_count) {
+        return 0;
+    }
+    return routine->param_abi_facts[index].abi_layout_id;
+}
+
 const char *
 mir_param_resource_kind_name(MIRParamResourceKind kind)
 {

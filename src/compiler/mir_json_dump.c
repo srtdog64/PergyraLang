@@ -145,7 +145,7 @@ mir_json_emit_match_variant_facts(FILE *out, const MIRInstruction *inst)
 }
 
 
-static void
+void
 mir_json_emit_abi_layout_value(FILE *out, const MIRTypeLayout *layout);
 
 static void
@@ -164,7 +164,8 @@ mir_json_emit_routine_signature(FILE *out, const MIRRoutine *routine)
     for (size_t p = 0; p < mir_routine_param_count(routine); p++) {
         FuncParam *fp = mir_routine_param(routine, p);
         const char *param_type = mir_routine_param_type_name(routine, p);
-        const MIRTypeLayout *param_layout = mir_abi_lookup(param_type);
+        const MIRTypeLayout *param_layout =
+            mir_routine_param_abi_layout(routine, p);
         if (p > 0)
             fputc(',', out);
         fputs("{\"name\":", out);
@@ -185,7 +186,7 @@ mir_json_emit_routine_signature(FILE *out, const MIRRoutine *routine)
         fputs(",\"abi_type_name\":", out);
         mir_json_emit_str_or_null(out, param_type);
         fprintf(out, ",\"abi_layout_id\":%u,\"abi_layout_required\":%s",
-                mir_abi_layout_id(param_layout),
+                mir_routine_param_abi_layout_id(routine, p),
                 param_layout != NULL ? "true" : "false");
         fputs(",\"abi_layout\":", out);
         mir_json_emit_abi_layout_value(out, param_layout);
@@ -200,7 +201,7 @@ mir_json_emit_routine_signature(FILE *out, const MIRRoutine *routine)
  * from the source type or a process-local ABI table.  The numeric
  * representation is intentional: it is the enum value hashed by
  * mir_abi_layout_id, so the wire row remains lossless and target-neutral. */
-static void
+void
 mir_json_emit_abi_layout_value(FILE *out, const MIRTypeLayout *layout)
 {
     if (layout == NULL) {

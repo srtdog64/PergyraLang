@@ -1,0 +1,61 @@
+// JSON projection of already materialized nominal declaration ABI receipts.
+
+import "declaration_fact_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func SelfMirJsonNominalAbiLayout(
+    ref layouts: SelfMirNominalAbiLayoutRows,
+    declaration_index: Int,
+    type_name: String
+) -> String {
+    if !layouts.ready || declaration_index < 0 ||
+        declaration_index >= ArrayLength(layouts.required) ||
+        layouts.required[declaration_index] != 1 ||
+        layouts.layout_ids[declaration_index] <= 0 {
+        return "";
+    }
+    let fields: Array<String> = [];
+    let field_i: Int = 0;
+    while field_i < layouts.field_counts[declaration_index] {
+        let row: Int = layouts.field_starts[declaration_index] + field_i;
+        ArrayPush(fields, JsonEmitObject([
+            JsonEmitFieldString("name", layouts.field_names[row]),
+            JsonEmitFieldNumber("offset", ToString(layouts.field_offsets[row])),
+            JsonEmitFieldNumber("size", ToString(layouts.field_sizes[row])),
+            JsonEmitFieldNumber("align", ToString(layouts.field_aligns[row]))
+        ]));
+        field_i = field_i + 1;
+    }
+    return JsonEmitObject([
+        JsonEmitFieldString("type", type_name),
+        JsonEmitFieldNumber("size", ToString(layouts.sizes[declaration_index])),
+        JsonEmitFieldNumber("align", ToString(layouts.aligns[declaration_index])),
+        JsonEmitFieldRaw("fields", JsonEmitArray(fields)),
+        JsonEmitFieldRaw("runtime_fn", "null"),
+        JsonEmitFieldRaw("inner_c_type", "null"),
+        JsonEmitFieldNumber("representation", "0"),
+        JsonEmitFieldRaw("discriminant", "null"),
+        JsonEmitFieldNumber("primary_tag", "0"),
+        JsonEmitFieldNumber("secondary_tag", "0"),
+        JsonEmitFieldRaw("niche_none_pattern", "null")
+    ]);
+}
+
+func SelfMirJsonNominalAbiLayoutForType(
+    ref rows: SelfMirDeclarationRows,
+    type_name: String
+) -> String {
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(rows.names) {
+        if rows.nominal_kinds[row] == "struct" && rows.names[row] == type_name {
+            if found >= 0 { return ""; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    if found < 0 { return ""; }
+    return SelfMirJsonNominalAbiLayout(
+        rows.nominal_abi_layouts, found, type_name
+    );
+}

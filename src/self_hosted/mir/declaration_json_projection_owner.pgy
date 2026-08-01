@@ -2,6 +2,7 @@
 
 import "declaration_rows_owner.pgy";
 import "json_projection_support_owner.pgy";
+import "nominal_abi_layout_json_projection_owner.pgy";
 import "../lib/json_emit.pgy";
 import "../semantic/ast_type_name_canonical_owner.pgy";
 
@@ -319,15 +320,37 @@ func SelfMirJsonDeclaration(
             "nominal_kind", rows.nominal_kinds[declaration_index]
         ),
         JsonEmitFieldString("name", rows.names[declaration_index]),
+        JsonEmitFieldNumber(
+            "source_syntax_id",
+            ToString(rows.source_syntax_ids[declaration_index])
+        ),
         JsonEmitFieldRaw("fields", JsonEmitArray(fields_rows))
     ];
+    if rows.nominal_kinds[declaration_index] == "struct" {
+        let layout: String = SelfMirJsonNominalAbiLayout(
+            rows.nominal_abi_layouts, declaration_index,
+            rows.names[declaration_index]
+        );
+        ArrayPush(fields, JsonEmitFieldNumber(
+            "abi_layout_id",
+            ToString(rows.nominal_abi_layouts.layout_ids[declaration_index])
+        ));
+        ArrayPush(fields, JsonEmitFieldBool(
+            "abi_layout_required", StringLength(layout) > 0
+        ));
+        let layout_wire: String = "null";
+        if StringLength(layout) > 0 { layout_wire = layout; }
+        ArrayPush(fields, JsonEmitFieldRaw("abi_layout", layout_wire));
+    }
     if rows.nominal_kinds[declaration_index] == "zone" {
         ArrayPush(fields, JsonEmitFieldRaw(
             "zone_authorities",
             SelfMirJsonDeclarationZoneAuthorities(rows, declaration_index)
         ));
     }
-    ArrayPush(fields, JsonEmitFieldRaw("methods", JsonEmitArray(methods)));
+    if rows.nominal_kinds[declaration_index] != "struct" {
+        ArrayPush(fields, JsonEmitFieldRaw("methods", JsonEmitArray(methods)));
+    }
     if rows.generic_counts[declaration_index] > 0 {
         ArrayPush(fields, JsonEmitFieldRaw(
             "generic_params",
