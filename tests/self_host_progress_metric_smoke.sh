@@ -62,16 +62,16 @@ require_phrase() {
 
 require_phrase "Implementation inventory is live-measured" \
     "PROGRESS lost the live implementation-inventory rule"
-require_phrase "Released/native replacement remains 0%" \
-    "PROGRESS must state the current default-path replacement truth"
+require_phrase "Classification is target-specific" \
+    "PROGRESS must state the current target-specific replacement truth"
 require_phrase "Explicit bounded replacement: DRV-2 is" \
     "PROGRESS lost the live bounded replacement claim"
 grep -Fq "### Three-axis scorecard" "$PROGRESS" ||
     fail "PROGRESS lost the implementation/bounded/released scorecard"
 grep -Fq "| Bounded executable replacement |" "$PROGRESS" ||
     fail "PROGRESS lost bounded executable replacement evidence"
-grep -Fq "| Released/default replacement | 0% |" "$PROGRESS" ||
-    fail "PROGRESS blurred bounded progress with default replacement"
+grep -Fq '| Released/default replacement | pure-C artifact emit: `SUBSTITUTING`; plain compile/link, run, package, LLVM: `OPEN` |' "$PROGRESS" ||
+    fail "PROGRESS blurred the promoted artifact target with open default targets"
 grep -Fq "self-host-progress-metric-test-smoke" "$PROGRESS" ||
     fail "PROGRESS does not name this executable metric"
 grep -Fq "implementation volume is not substitution" "$README" ||
@@ -86,5 +86,5 @@ fi
 
 ratio="$(awk -v p="$pgy_frontend_backend_loc" -v c="$c_reference_loc" \
     'BEGIN { printf "%.2f", (100.0 * p) / c }')"
-printf '[self-host-progress] implementation_frontend_backend_loc=%s compiler_core_loc=%s c_reference_loc=%s implementation_volume_ratio=%s%% default_native_replacement=0%% explicit_drv2=live\n' \
+printf '[self-host-progress] implementation_frontend_backend_loc=%s compiler_core_loc=%s c_reference_loc=%s implementation_volume_ratio=%s%% default_c_emit=substituting full_default_compile=open explicit_drv2=live\n' \
     "$pgy_frontend_backend_loc" "$pgy_compiler_core_loc" "$c_reference_loc" "$ratio"

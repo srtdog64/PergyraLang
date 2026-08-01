@@ -195,12 +195,14 @@ Each candidate moves through this ladder:
 
 No step may broaden by adding a hidden fallback.
 
-An integrated complete-source gen2/gen3 fixed point satisfies the explicit
-bootstrap consumer rung only. Released/default replacement is a separate
-promotion: the normal build, install, and run path must select the
-Pergyra-owned driver without an opt-in self-host target while retaining the
-C/LLVM oracle gates. Until that promotion lands, released/default replacement
-remains 0%.
+An integrated complete-source gen2/gen3 fixed point satisfies the bootstrap
+consumer rung. Released/default promotion is counted per semantic execution
+target: public pure-C artifact emit is now `SUBSTITUTING` because normal
+`pgy --emit-c` selects the sibling Pergyra-owned driver without an opt-in and
+fails closed instead of returning to native semantic/codegen. Plain
+compile/link, run, package, and LLVM remain `OPEN`. A promoted target must keep
+its C/LLVM oracle gates; one promoted target never implies whole-product
+self-hosting.
 
 ## CI Owner
 

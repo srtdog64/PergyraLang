@@ -3825,3 +3825,40 @@ gen2 host C compile은 별도 측정에서 55.063초/0.753 GiB였다. 따라서 
 대상은 일반 C compiler가 아니라 compiler-scale self-host MIR consumer다. 정상
 설치 빌드 경로도 최신 source에서 96.9초에 완료했다. 2.4 GiB attention은 계속
 유지하되, hard cap 아래의 완주를 이유로 다시 같은 세대를 반복하지 않는다.
+
+### Fixed-point 단계는 통과하지만 direct source-to-C만 3 GiB를 넘는 경우
+
+2026-08-01 `d12f8240` 소스에서 설치 `pgy-self-driver`에 compiler source와 C
+output을 한 번에 주는 경로는 52.095초에 peak private 3.187 GiB로 hard stop됐다.
+Host compiler나 출력 크기 문제가 아니다. 같은 90,429,326-byte 입력을 기존
+artifact owner 경계로 분리하면 다음과 같이 완주한다.
+
+| 단계 | 결과 | 시간 | peak private |
+|---|---:|---:|---:|
+| source -> MIR artifact | SHA-256 `A151D69C...F9CA9B` | 53.579초 | 2.038 GiB |
+| MIR artifact -> gen2 C | 5,595,167 bytes, `275A66AC...A33440F` | 106.435초 | 2.912 GiB |
+| gen2 C -> host executable | 3,486,183 bytes | 59.450초 | 0.752 GiB |
+| gen2 -> gen3 C | gen2와 byte-equal | 105.837초 | 2.985 GiB |
+
+관찰된 소스 경로는 `CompileSourceToCVerified`가
+`CompileSourceToMirJsonVerified`의 완전한 JSON 문자열을 만든 직후 같은
+프로세스에서 `CompileMirJsonTextToCVerified`로 다시 admission한다. 두 개별 단계가
+각각 cap 아래인데 합성 경로만 cap을 넘으므로, producer epoch와 MIR consumer
+epoch의 whole-program lifetime이 겹친다는 판단은 실측과 소스에서 나온 inference다.
+해법을 cache, shard, timeout 증가로 바꾸지 않는다. 현재 compiler-scale fixed point는
+source-to-MIR와 MIR-to-C를 별도 프로세스/transaction owner로 실행해 앞 단계의
+증거 lifetime을 종료한 뒤 다음 단계를 시작한다. Direct 경로를 다시 허용하려면
+structured fact handoff 또는 명시적 release가 같은 hard-cap gate를 통과해야 한다.
+
+같은 세션에 normal install script도 별도 문제를 드러냈다. 기본
+`.tmp/self_hosted/codegen/bootstrap/gen2.exe`는 현재 `SubstringWithLen` builtin을
+모르는 stale AST codegen seed여서 126.229초/1.113 GiB 뒤
+`undefined_function: SubstringWithLen`로 실패했다. 설치 `pgy-self-driver`는
+source/MIR driver이지 AST-to-stdout codegen seed가 아니므로 그 자리에 넣으면
+11.888초 만에 AST 텍스트를 source로 오해한 parse error로 실패한다.
+
+따라서 seed 존재나 binary hash만 보고 호환된다고 판단하지 않는다. DRV-2 전체
+graph를 처리하기 전에 실제 `SubstringWithLen(...)` 호출 fixture를 선택된
+parser -> AST -> codegen 조합으로 실행하는 capability preflight를 두고 fail-fast해야
+한다. Previous-generation seed 자체는 정상 bootstrap 입력이므로 current source-set
+전체 hash equality를 강제해 모든 편집마다 reseed하는 것도 금지한다.

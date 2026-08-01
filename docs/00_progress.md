@@ -2,31 +2,39 @@
 
 마지막 업데이트: 2026-08-01
 
-## 활성 우선순위 — 현재 고정점 드라이버를 기본 경로로 치환
+## 활성 우선순위 — 기본 C compile/link까지 installed self-host 확장
 
-- 실행 체크포인트는 `46eef938`이다. Pergyra로 빌드된
-  `driver_bootstrap_main.pgy`가 현재 전체 compiler source를 MIR로 완주하고,
-  그 MIR에서 만든 gen2 driver가 같은 C를 gen3에서 바이트 동일하게
-  재생산한다.
-- source-to-MIR는 57.715초, peak private 1.990 GiB로 완주했다. 결과는
-  90,347,259 bytes이고 SHA-256은
-  `A5062BEE9909457E605D5809D6FD902FF74FCA9A4EFDBE3FE2F2541ABE44BD54`다.
-- gen2와 gen3 C는 모두 5,589,506 bytes이며 SHA-256
-  `BBB426860655205995CFD4B161D081843CE0CBFD1CA439733A0494A4200826D3`로
-  동일하다. 각 단계는 95.336초/2.986 GiB와 98.520초/2.943 GiB였다.
-  이것은 전체 compiler-scale 고정점 테스트 비용이며 일반 작은 프로그램
-  컴파일 시간으로 해석하지 않는다.
-- body-type admission receipt, expression usage one-pass, global type-value
-  index, global callable TextBuilder, function-definition streaming, 마지막
-  consumer의 function epoch release가 반복 전수 검증과 prefix 보존을 닫았다.
-- bounded bootstrap slice는 `SUBSTITUTING`이다. 하지만 사용자가 실행하는
-  기본 `pgy` 선택은 아직 C 구현을 소유하므로 released replacement는 0%다.
-- 다음 단일 rung은 current gen2 driver를 실제 installed/default 후보로
-  staging하고, hello를 그 entrypoint로 컴파일하면서 child executable을
-  기록해 native C fallback이 없음을 입증한 뒤 기존 bypass를 삭제하는 것이다.
-- 첨부 architecture review의 30분/routine-776 P0는 관찰 당시에는 맞았지만
-  `46eef938`에서 폐쇄됐다. 그 리뷰의 query engine, routine partition,
-  language expansion 제안은 현재 TODO가 아니다.
+- 실행 체크포인트는 `d12f8240`이다. `093cff52`에서 public
+  `pgy source.pgy --emit-c -o output.c`가 sibling `pgy-self-driver`를 선택하고,
+  missing/unsupported 요청은 native pipeline으로 fallback하지 않고 실패한다.
+  `d12f8240`은 AST-text compatibility bridge를 공개 entry owner 한 곳에 고정했다.
+- 최신 current source-to-MIR는 90,429,326 bytes, SHA-256
+  `A151D69CD7B3BD8F81C5587C6E9FB4B75503CD3411D9D3CD1004DED794F9CA9B`,
+  53.579초/2.038 GiB다. gen2/gen3 C는 모두 5,595,167 bytes, SHA-256
+  `275A66AC3203CDC3EE194952ED0CFA03A2E72A1D6E92A6F66F97EDBF0A33440F`로
+  byte-equal이며 106.435초/2.912 GiB와 105.837초/2.985 GiB에 완주했다.
+- 설치 promotion이 드러낸 missing CLI phi는 branch-owned declaration return으로
+  닫았다. Gen3 3.035 GiB hard stop은 모든 prototype을 배열에 보존한
+  `CollectProtos`가 원인이었고, 한 TextBuilder로 streaming한 뒤 2.988 GiB로
+  hard cap 아래 복귀했다. Prototype 전수 보존은 negative ratchet이 거부한다.
+- 일반 host C compile은 59.450초/0.752 GiB였다. 반면 compiler source를 한
+  프로세스에서 곧바로 C로 만드는 경로는 52.095초에 3.187 GiB hard stop을
+  넘었다. source-to-MIR와 MIR-to-C를 owner별 프로세스로 분리하면 각각
+  2.038/2.912 GiB에 통과하므로 host C compiler가 아니라 MIR serialization과
+  consumer lifetime을 겹친 composition이 결함이다.
+- normal install script의 기본 `.tmp` codegen seed는 현재 `SubstringWithLen`을
+  몰라 126.229초 뒤 실패했다. Installed source/MIR driver를 AST codegen seed로
+  바꿔 끼우는 것도 계약 위반이다. 실제-call capability preflight가 추가되기
+  전에는 이 기본 install 경로를 green으로 기록하지 않는다.
+- 증거 등급은 target별이다. Bounded source/MIR와 public pure-C artifact emit은
+  `SUBSTITUTING`; plain default compile/link, run, package, LLVM은 아직 C-owned/open이다.
+  이제 released/default를 0% 또는 100% 한 숫자로 쓰지 않는다.
+- 다음 단일 rung은 plain `pgy examples/hello.pgy -o ...`가 self-host C artifact를
+  정확히 한 번 받아 기존 host compiler/link owner로 넘기게 하고, native
+  semantic/codegen bypass를 삭제하는 것이다. Missing driver는 native 작업 전에
+  실패해야 한다.
+- 첨부 architecture review의 query engine, routine partition, language expansion,
+  Insere/Zeno 제안은 현재 TODO가 아니다.
 
 ## 이전 source-to-MIR checkpoint — 비활성 역사 자료
 

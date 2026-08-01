@@ -24,7 +24,15 @@ now reaches an integrated producer/fixed point: the Pergyra-built gen2 driver
 emits verified MIR for the current complete source, that artifact is
 byte-identical to separate C-oracle evidence, and the Pergyra seed/gen2 consume
 only the Pergyra artifact to emit byte-identical gen2/gen3 C. This closes the
-complete-source producer/fixed-point rung, not released/default replacement.
+complete-source producer/fixed-point rung. Focused 2026-08-01 evidence also
+promotes public pure-C artifact emit: default `pgy --emit-c` selects the sibling
+Pergyra-built driver and fails closed when it is missing or the option envelope
+is unsupported. Plain compile/link, run, package, and LLVM remain open.
+Compiler-scale direct source-to-C is also not a green shortcut: it crossed the
+3 GiB hard stop while the separately owned source-to-MIR and MIR-to-C processes
+completed below the cap. The fixed point therefore uses the bounded artifact
+composition; byte equality alone does not excuse overlapping whole-program
+producer and consumer lifetimes.
 
 As a planning estimate, hard self-host substrate readiness is effectively
 complete for the first pass-rewrite stage, but capability 5 is not a blanket
@@ -413,7 +421,7 @@ cleanup operation. Build-gated.
 
 The honest summary is that deterministic collection, allocator substrate, the
 measured CFG/MIR body SoT frontier, and the explicit complete-source Pergyra
-MIR producer/gen2/gen3 fixed point are closed. The remaining critical path is
-migration of any bounded/bridge stage owners and released/default driver and
-backend promotion. The fixed point is not a default-compiler replacement
-claim.
+MIR producer/gen2/gen3 fixed point are closed. Public pure-C artifact emit is
+also `SUBSTITUTING`; the remaining critical path is plain compile/link, run,
+package, LLVM, and any bounded/bridge owner reached by those targets. No single
+percentage replaces this target-specific score.

@@ -39,7 +39,7 @@ require_text "$PROCESS_DOC" "mixed AST-like expression bridge"
 require_text "$PROCESS_DOC" 'leave `typed ? text` dual-read authority'
 
 require_text "$LEDGER" "exactly nine ACTIVE rows"
-require_text "src/self_hosted/PROGRESS.md" "released/default replacement remains 0%"
+require_text "src/self_hosted/PROGRESS.md" "Classification is target-specific"
 require_text "src/self_hosted/PROGRESS.md" "70/20/10 effort split"
 require_text "AGENTS.md" "SoT is a hard-substitution rung condition"
 require_text "AGENTS.md" "more than two consecutive SoT-only commits"

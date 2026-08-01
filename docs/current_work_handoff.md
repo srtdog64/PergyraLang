@@ -6,71 +6,78 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — install the current-source fixed point
+## Active self-host context — extend installed replacement beyond C emission
 
-- Executable checkpoint: `46eef938` on `main`. This revision is the current
-  Pergyra-built driver/codegen fixed-point implementation; verify the branch and
-  dirty state before resuming because the documentation commit follows it.
-- Closed executable rung: `driver_bootstrap_main.pgy` now completes the current
-  import-composed compiler source through source-to-MIR and MIR-to-C, and its
-  generated driver reproduces the same C artifact on the next generation.
-- Current-source source-to-MIR evidence: 90,347,259-byte MIR, SHA-256
-  `A5062BEE9909457E605D5809D6FD902FF74FCA9A4EFDBE3FE2F2541ABE44BD54`,
-  exit 0 in 57.715 seconds, 1.990 GiB peak private, and no 2.4 GiB attention
-  signal. The same parsed source identity produced the same hash before the
-  final static-gate cleanup.
-- Current-MIR fixed point: gen2 and gen3 C are both 5,589,506 bytes with
-  SHA-256
-  `BBB426860655205995CFD4B161D081843CE0CBFD1CA439733A0494A4200826D3`.
-  Gen2 completed in 95.336 seconds at 2.986 GiB peak private; gen3 completed in
-  98.520 seconds at 2.943 GiB. The artifacts are byte-equal.
-- Small normal-compile oracle remains exact: hello C SHA-256
-  `0E32EC703F3B1237FC8C147BD8F395D89A53106D649F3E8F1AB4C608FC0FF25B`.
-  The 95–99 second numbers are full compiler-scale MIR consumption during the
-  fixed-point test, not ordinary small-program latency.
-- Closed repetition seams: body-type admission is validated once and carried by
-  a receipt; expression usage scans the surface and graph once; global type
-  values are indexed once; global callable rows and function-definition output
-  use one owned builder; emitted function epochs are released at their final
-  consumer. Per-nominal global-environment concatenation and retained arrays of
-  all emitted definitions are forbidden.
-- Rejected experiment: freeing replaced local environment epochs inside
-  statement traversal reduced pressure but produced
-  `semantic leaf binding fact is missing: c`. Statement environment views
-  still borrow those rows, so the experiment was fully reverted. Only
-  function-terminal owned epochs may be released in this checkpoint.
-- Evidence grade: the bounded `driver_bootstrap_main` compiler slice is
-  `SUBSTITUTING` and at a gen2==gen3 fixed point. The released/default `pgy`
-  selection is still C-owned and remains 0% replacement. Do not promote the
-  bounded result into a whole-product self-host claim.
-- Latest green: current-source pressure run, gen2/gen3 byte equality, hello
-  oracle, persisted expression-graph execution parity, hard substitution
-  contract, build-pressure contract, shell syntax, and the full structural
-  component/removed-path ratchet. No GitHub CI or full matrix is implied.
-- Active objective: install and select the Pergyra-built fixed-point driver on
-  the real default compiler path, then delete the direct native-C bypass.
-  Priority is semantic/artifact parity, installed-driver evidence, bypass
-  deletion, and a negative gate—in that order.
-- Fact owner: the current-source MIR artifact plus the fixed-point driver
-  generated at `46eef938`. Last legitimate consumer: the installed/default
-  driver selection boundary. Forbidden fallback: silently invoking the native
-  C compiler when the Pergyra driver is missing, mixing an old MIR artifact
-  with a new generator, or retaining both paths behind success fallback.
-- Next falsifier: stage the gen2 fixed-point driver as the installed candidate,
-  compile the hello oracle through that exact entrypoint, require artifact
-  parity, and record every child executable. A native compiler invocation or
-  fallback is a failure; only after this passes may the default selector move
-  and its old bypass be deleted.
-- Memory policy remains unchanged: execute each semantic target once and read
-  only the final pressure summary. Hard stop is 3 GiB and attention starts at
-  2.4 GiB. The completed full MIR consumer still exceeds attention, so memory
-  remains a bounded follow-up after installed-driver substitution—not a reason
-  to reopen repeated timeout-only optimization loops.
+- Executable checkpoint: `d12f8240` on `main`. Commit `093cff52` moved the
+  public pure-C artifact path to the installed self-host driver, `1c55da0c`
+  restored the current-source fixed point, and `d12f8240` confined both
+  AST-text compatibility calls to `program_entry_owner.pgy`.
+- Closed executable rung: `pgy source.pgy --emit-c -o output.c` now selects the
+  sibling `pgy-self-driver` and its `driver_bootstrap_main.pgy` composition
+  root. Missing driver and unsupported option envelopes fail closed; neither
+  case can return to `driver_run_pipeline`. The positive gate unsets
+  `PGY_SELF_DRIVER_BIN`, so sibling installation rather than an environment
+  override is the evidence.
+- Current source-to-MIR: 90,429,326 bytes, SHA-256
+  `A151D69CD7B3BD8F81C5587C6E9FB4B75503CD3411D9D3CD1004DED794F9CA9B`,
+  exit 0 in 53.579 seconds at 2.038 GiB peak private. Current gen2/gen3 C are
+  both 5,595,167 bytes with SHA-256
+  `275A66AC3203CDC3EE194952ED0CFA03A2E72A1D6E92A6F66F97EDBF0A33440F`.
+  Gen2 completed in 106.435 seconds at 2.912 GiB; gen3 completed in 105.837
+  seconds at 2.985 GiB; the artifacts are byte-equal. The installed driver is
+  the verified 3,486,183-byte gen2 executable with SHA-256
+  `AB42CE8E2B1A3329AD0EA31EA6161C900D60F0FCA175531C925E6E3520D99351`.
+- Promotion exposed two real falsifiers. Mutable optional-declaration routing
+  first failed with missing `RunDriverRung2FromArgs` phi facts; branch-owned
+  early returns removed that merge. The next gen3 crossed the hard cap at
+  3.035 GiB after `definitions:done:4244`; `CollectProtos` still retained every
+  prototype row. Prototype output now streams through one builder and releases
+  each completed row. Do not restore an all-prototype array.
+- Normal host C compilation is not the multi-GiB owner: the current generated
+  gen2 C compiled in 59.450 seconds at 0.752 GiB. Direct in-process compiler
+  source-to-C crossed the 3 GiB hard stop at 3.187 GiB because
+  `CompileSourceToCVerified` serializes the complete MIR and immediately
+  reparses it while the producer epoch is still live. The admitted two-process
+  source-to-MIR then MIR-to-C composition remains the compiler-scale path.
+- The default `.tmp/self_hosted/codegen/bootstrap` seed is stale: the normal
+  install script failed after 126.229 seconds on missing `SubstringWithLen`.
+  The installed source/MIR driver is not an AST-to-stdout codegen seed; using
+  it in that slot fails immediately. Add a real-call seed-capability preflight
+  before treating the normal install script as current green evidence.
+- Evidence grade is target-specific. The bounded compiler source/MIR slice and
+  the public pure-C artifact-emission path are `SUBSTITUTING`. Default source
+  compile/link, `--run`, package commands, and the released LLVM path remain
+  C-owned/open. Do not collapse this into either 0% or whole-product self-host.
+- Latest green: current-source pressure run, gen2/gen3 byte equality, actual
+  `bin/pgy.exe` plus sibling `bin/pgy-self-driver.exe` hello artifact/execution
+  parity, missing/unsupported negatives, source-MIR action gate, hard contract,
+  SoT registry, documentation quality, and full component/removed-path ratchet.
+  The Coq adequacy gate did not run because `rocq`/`coqc` is unavailable, and
+  the normal install script is not green with its stale default seed. No GitHub
+  CI or full matrix is implied.
+- Active objective: move the ordinary default C compile path (without
+  `--emit-c`) behind the installed self-host C artifact owner, then let the
+  existing host compiler/link owner consume that artifact. Priority is exact
+  output/run parity, one artifact identity, native semantic/codegen bypass
+  deletion, and a negative gate.
+- Fact owner: `driver_bootstrap_main.pgy` and the installed fixed-point driver.
+  Last legitimate consumer: the C host compile/link boundary in `c_runner`.
+  Forbidden fallback: invoking native semantic/codegen after the installed
+  driver is missing or rejects, generating a second C artifact through
+  `driver_run_pipeline`, or treating LLVM/backend/package modes as already
+  substituted.
+- Next falsifier: compile `examples/hello.pgy` through plain default `pgy` to a
+  runnable program, prove the intermediate C artifact came from the sibling
+  self-host driver exactly once, compare execution with the native oracle, and
+  require missing-driver failure before any native semantic/codegen work.
+- Memory policy remains: execute each changed semantic target once and read the
+  final summary only. Hard stop is 3 GiB; attention begins at 2.4 GiB. Gen2 and
+  gen3 remain attention targets, but both now finish below the hard cap.
 
 ## Historical checkpoint archive — inactive evidence
 
 The former source-to-MIR timeout card begins below. It was correct for its
-checkpoint but is superseded by `46eef938`; it must not be resumed as the active
+checkpoint but is superseded by `d12f8240`; it must not be resumed as the active
 P0. External reviews that observed `614cb5d5` likewise describe historical
 evidence, not the current compiler state.
 

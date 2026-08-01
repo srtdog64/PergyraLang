@@ -1,39 +1,38 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-08-01 current-source fixed point
+## Active self-host context — 2026-08-01 installed C-emission replacement
 
-- Executable checkpoint is `46eef938`. The bounded production bootstrap entry
-  `driver_bootstrap_main.pgy` now completes current source-to-MIR and current
-  MIR-to-C, and its generated driver reaches a byte-identical gen2==gen3 fixed
-  point.
-- Current source-to-MIR: 90,347,259 bytes, SHA-256
-  `A5062BEE9909457E605D5809D6FD902FF74FCA9A4EFDBE3FE2F2541ABE44BD54`,
-  57.715 seconds, 1.990 GiB peak private, attention false.
-- Current gen2/gen3 C: 5,589,506 bytes, SHA-256
-  `BBB426860655205995CFD4B161D081843CE0CBFD1CA439733A0494A4200826D3`,
-  byte-equal. Gen2 was 95.336 seconds/2.986 GiB; gen3 was 98.520
-  seconds/2.943 GiB. These are full fixed-point stages, not small-program build
-  latency.
-- The closed hot path validates body-type readiness once through an admission
-  receipt, performs one expression-usage surface/graph pass, indexes global
-  type values once, builds global callable rows once, streams definition
-  output through a responsibility-named owner, and releases only proven
-  function-terminal epochs.
-- Immediate local-environment epoch release is falsified: it reduced pressure
-  but failed with `semantic leaf binding fact is missing: c` because statement
-  views still borrowed the prior rows. That experiment was reverted and must
-  not be revived without changing the borrowing owner.
-- Classification is deliberately split: the bounded bootstrap compiler slice
-  is `SUBSTITUTING`; the released/default `pgy` remains C-owned and 0% replaced.
-- The sole next executable rung is installed/default-driver substitution:
-  stage the current gen2 driver, compile the hello oracle through that exact
-  entrypoint while recording child executables, require parity, then delete the
-  direct native-C bypass and add its negative gate. No cache/query-engine,
-  language-surface, Insere, or Zeno track is active.
+- Executable checkpoint is `d12f8240`. Public pure-C artifact emission now
+  selects the sibling Pergyra-built `pgy-self-driver` without an opt-in flag.
+  Missing driver and unsupported option envelopes fail closed before the native
+  semantic/codegen pipeline. The codegen AST-text compatibility calls now live
+  only in `program_entry_owner.pgy`.
+- Current source-to-MIR is 90,429,326 bytes with SHA-256
+  `A151D69CD7B3BD8F81C5587C6E9FB4B75503CD3411D9D3CD1004DED794F9CA9B`,
+  53.579 seconds, and 2.038 GiB peak private. Current gen2/gen3 C are
+  byte-identical 5,595,167-byte artifacts with SHA-256
+  `275A66AC3203CDC3EE194952ED0CFA03A2E72A1D6E92A6F66F97EDBF0A33440F`.
+  Gen2 was 106.435 seconds/2.912 GiB; gen3 was 105.837 seconds/2.985 GiB.
+- CLI optional declaration routing uses branch-owned returns, so the installed
+  graph no longer depends on a missing merge phi. Function definitions and
+  prototypes both stream through owned builders; retaining every completed
+  prototype row is forbidden.
+- Classification is target-specific: bounded source/MIR and public pure-C
+  artifact emission are `SUBSTITUTING`; plain default compile/link, run,
+  package, and LLVM paths remain C-owned/open. A single released/default
+  percentage would now hide the actual boundary and is not used.
+- The sole next executable rung moves plain default C compile behind the same
+  installed artifact owner, then reuses the existing host compiler/link owner.
+  Missing driver must fail before native semantic/codegen, and the old C emit
+  bypass must be negative-gated. No cache/query-engine, language-surface,
+  Insere, or Zeno track is active.
 - Green evidence includes current-source pressure completion, gen2/gen3 byte
-  equality, hello parity, persisted graph parity, hard/build-pressure contracts,
-  shell syntax, and the full structural component ratchet. GitHub CI and the
-  full matrix were not run.
+  equality, actual sibling-install hello artifact/execution parity,
+  missing/unsupported negatives, hard/source-MIR contracts, SoT registry,
+  documentation quality, and the full structural component ratchet. The Coq
+  adequacy gate could not run because no prover is installed. The normal install
+  script is not current-green: its default codegen seed is stale and needs a
+  real-call capability preflight. GitHub CI and the full matrix were not run.
 
 ## Historical self-host ledger — inactive navigation evidence
 
@@ -4428,13 +4427,12 @@ These numbers must not be collapsed into one percentage:
 
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
-| Implementation inventory | 58,954 frontend/backend LOC / 328,645 C-reference LOC = 17.94%; broader Pergyra compiler-core inventory = 112,554 LOC (live-measured 2026-07-29 by `self-host-progress-metric-test-smoke`; the previous 30,720 / 287,406 = 10.69% snapshot went stale while that gate was failing on a re-wrapped paragraph) | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures and 110 committed canonical MIR producer/consumer fixtures; the standalone fact-only MIR consumer has 102 fixtures. The explicit complete-source lane makes the Pergyra-built gen2 produce MIR byte-identical to C-oracle evidence, then produces byte-identical 3,378,704-byte gen2/gen3 C from that Pergyra artifact. | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. `make self-host-compiler` builds the bounded driver through Pergyra parser/codegen seeds; the complete-source evidence closes Pergyra MIR production and the gen2/gen3 fixed point, not default promotion. |
-| Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
+| Implementation inventory | 63,378 frontend/backend LOC / 330,170 C-reference LOC = 19.20%; broader Pergyra compiler-core inventory = 120,090 LOC (live-measured 2026-08-01 by `self-host-progress-metric-test-smoke`; the previous 58,954 / 328,645 = 17.94% snapshot is retained only in history) | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
+| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures and 110 committed canonical MIR producer/consumer fixtures; the standalone fact-only MIR consumer has 102 fixtures. The current complete-source lane emits a 90,429,326-byte MIR and byte-identical 5,595,167-byte gen2/gen3 C. | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. `make self-host-compiler` builds the installed driver through Pergyra parser/codegen seeds, while the complete-source lane closes the gen2/gen3 fixed point. |
+| Released/default replacement | pure-C artifact emit: `SUBSTITUTING`; plain compile/link, run, package, LLVM: `OPEN` | default `pgy --emit-c` selects the sibling Pergyra-built driver and has no native fallback; other default product targets still use C-owned orchestration. |
 
-The scorecard prevents two false claims: implementation volume must not be
-reported as native replacement, and native replacement at 0% must not erase
-measured progress in bounded executable rungs.
+The scorecard prevents two false claims: implementation volume is not native
+replacement, and one promoted target does not imply whole-product self-hosting.
 
 **Hard self-host contract (2026-06-22):** hard self-host is now gated as
 staged substitution rather than tracked as a separate cleanup project. The

@@ -23,6 +23,24 @@ evidence. The Pergyra seed/gen2 consume only that Pergyra artifact and emit
 byte-identical gen2/gen3 C. This is an explicit producer/fixed point, not a
 claim that the full preparation matrix or released/default replacement passed.
 
+Focused evidence on 2026-08-01 promotes one released/default target. Public
+`pgy source.pgy --emit-c -o output.c` now selects the sibling Pergyra-built
+driver without an opt-in flag; missing and unsupported boundaries fail before
+native semantic/codegen. The current graph produces a 90,429,326-byte MIR and
+byte-identical 5,595,167-byte gen2/gen3 C. This promotes pure-C artifact emit
+only. Plain compile/link, run, package, and LLVM remain C-owned/open, and the
+dated full preparation matrix was not rerun.
+
+After the AST-text compatibility bridge was confined to the public entry owner,
+the current MIR SHA-256 is
+`A151D69CD7B3BD8F81C5587C6E9FB4B75503CD3411D9D3CD1004DED794F9CA9B`.
+Gen2/gen3 C are byte-identical with SHA-256
+`275A66AC3203CDC3EE194952ED0CFA03A2E72A1D6E92A6F66F97EDBF0A33440F`.
+The bounded two-process source-to-MIR/MIR-to-C path completed below 3 GiB, but
+the in-process compiler-source-to-C convenience path crossed the hard stop at
+3.187 GiB. That path is not product-ready compiler-scale evidence and must not
+replace the bounded artifact composition.
+
 The same dated focused lane now includes a direct backend-neutral consumer.
 One Pergyra-produced hello MIR and one `let_log` MIR each drive both C and LLVM
 without MIR-to-AST/semantic reconstruction. The `let_log` artifact is 2,341
@@ -410,23 +428,21 @@ Substrate progress.
 
 ## Not yet self-hosted
 
-The explicit complete-source Pergyra MIR-producer/bootstrap fixed point is
-closed, but released/default replacement remains 0%. The normal `pgy`
-build/install/run path still selects the C-owned native driver. C emission is
-proven in the explicit bootstrap lane, while LLVM remains backend/oracle
-evidence rather than a released Pergyra-owned backend replacement.
+The complete-source Pergyra MIR-producer/bootstrap fixed point and public
+pure-C artifact emit are closed. The remaining product boundary is
+target-specific: plain default compile/link, `--run`, package commands, and
+LLVM still select C-owned orchestration. The project is therefore neither 0%
+nor wholly self-hosted; only named `SUBSTITUTING` targets count.
 
 ## Recommended next pass
 
-Keep the complete-source Pergyra producer/gen2/gen3 fixed point and the direct
-scalar gate green, then advance `ifelse.pgy` through MIR CFG facts, a MIR-bound
-AIR certificate, and one verified plan consumed by C and LLVM. Its current
-3,413-byte MIR is
-`09586fd65f95c178c17e2d77d355015eb93364f8b151881d222a4cc6e960e858`,
-a four-block no-phi diamond that prints `pos`; both direct backends currently
-reject it without opening output. Do not add a backend-local CFG reader or a
-second MIR. Default-driver promotion follows the shared backend spine rather
-than bypassing this plan boundary.
+Keep the current gen2/gen3 fixed point and installed `--emit-c` gate green,
+then move plain default C compile behind the same self-host artifact owner.
+The existing host compiler/link owner may consume that one C artifact; native
+semantic/codegen may not produce a second artifact or act as success fallback.
+The falsifier is a runnable hello program plus missing-driver failure before
+any native semantic/codegen work. LLVM and package modes remain outside this
+rung.
 
 ## How to reproduce
 
