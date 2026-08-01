@@ -1,0 +1,234 @@
+// Row-order-independent identity for the bounded three-routine Array<Int>
+// call-argument graph. Main is the only language-defined name; both user
+// callees are resolved from typed call-target facts.
+
+import "direct_mir_array_argument_graph_fact_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_graph_admission_owner.pgy";
+
+struct DirectMirArrayArgumentProgramIdentity {
+    let valid: Bool;
+    let digest: Int;
+    let entrypoint: DirectMirRoutineSignatureFact;
+    let array_callee: DirectMirRoutineSignatureFact;
+    let nested_callee: DirectMirRoutineSignatureFact;
+    let main_graph: DirectMirArrayArgumentMainGraphFact;
+}
+
+func DirectMirArrayArgumentProgramIdentityDigest(
+    ref identity: DirectMirArrayArgumentProgramIdentity
+) -> Int {
+    if !identity.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(127L, identity.entrypoint.digest);
+    hash = DirectMirCfgHashInt(hash, identity.array_callee.digest);
+    hash = DirectMirCfgHashInt(hash, identity.nested_callee.digest);
+    hash = DirectMirCfgHashInt(hash, identity.main_graph.digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirArrayArgumentProgramIdentityWithDigest(
+    identity: DirectMirArrayArgumentProgramIdentity,
+    digest: Int
+) -> DirectMirArrayArgumentProgramIdentity {
+    return DirectMirArrayArgumentProgramIdentity(
+        identity.valid, digest, identity.entrypoint,
+        identity.array_callee, identity.nested_callee, identity.main_graph
+    );
+}
+
+func DirectMirArrayArgumentProgramIdentityReady(
+    ref identity: DirectMirArrayArgumentProgramIdentity
+) -> Bool {
+    return identity.valid && identity.digest != 0 &&
+        identity.digest == DirectMirArrayArgumentProgramIdentityDigest(
+            identity
+        ) && DirectMirRoutineSignatureFactReady(identity.entrypoint) &&
+        DirectMirRoutineSignatureFactReady(identity.array_callee) &&
+        DirectMirRoutineSignatureFactReady(identity.nested_callee) &&
+        DirectMirArrayArgumentMainGraphFactReady(identity.main_graph) &&
+        identity.entrypoint.name == "Main" &&
+        identity.entrypoint.return_type == "Void" &&
+        identity.entrypoint.param_count == 0 &&
+        identity.array_callee.name == identity.main_graph.array_callee_name &&
+        identity.array_callee.return_type == CompilerAbiLayoutIntTypeName() &&
+        identity.array_callee.param_count == 1 &&
+        identity.array_callee.param.type_name ==
+            CompilerAbiLayoutArrayIntTypeName() &&
+        identity.array_callee.param.carriage == "value" &&
+        identity.array_callee.param.resource == "none" &&
+        identity.array_callee.param.pass_shape == "direct" &&
+        identity.array_callee.param.abi_required &&
+        DirectMirArrayIntCapturedAbiReady(identity.array_callee.param.abi) &&
+        identity.nested_callee.name ==
+            identity.main_graph.nested_callee_name &&
+        identity.nested_callee.return_type == CompilerAbiLayoutIntTypeName() &&
+        identity.nested_callee.param_count == 1 &&
+        identity.nested_callee.param.type_name ==
+            CompilerAbiLayoutIntTypeName() &&
+        identity.nested_callee.param.carriage == "value" &&
+        identity.nested_callee.param.resource == "none" &&
+        identity.nested_callee.param.pass_shape == "direct" &&
+        !identity.nested_callee.param.abi_required &&
+        identity.entrypoint.row != identity.array_callee.row &&
+        identity.entrypoint.row != identity.nested_callee.row &&
+        identity.array_callee.row != identity.nested_callee.row &&
+        identity.entrypoint.source_syntax_id !=
+            identity.array_callee.source_syntax_id &&
+        identity.entrypoint.source_syntax_id !=
+            identity.nested_callee.source_syntax_id &&
+        identity.array_callee.source_syntax_id !=
+            identity.nested_callee.source_syntax_id;
+}
+
+func DirectMirArrayArgumentProgramCandidate(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    return MirProgramRoutineIndexCount(admitted.routines) == 3;
+}
+
+func DirectMirArrayArgumentRoutineEnvelopeReady(
+    ref routine: JsonObjectFactTable
+) -> Bool {
+    return DirectMirObjectArrayEmpty(routine, "generics") &&
+        JsonObjectFactHasField(routine, "params") &&
+        !JsonObjectFactHasField(routine, "function_param_flow_summary_count") &&
+        !JsonObjectFactHasField(routine, "function_param_flow_summaries") &&
+        DirectMirObjectArrayEmpty(routine, "resource_flow_symbols") &&
+        DirectMirObjectArrayEmpty(routine, "loop_flow_summaries") &&
+        DirectMirObjectArrayEmpty(routine, "loop_flow_states") &&
+        DirectMirObjectArrayEmpty(routine, "iteration_type_facts") &&
+        DirectMirObjectArrayEmpty(routine, "destructure_type_facts") &&
+        DirectMirObjectNumberEquals(
+            routine, "resource_flow_symbol_count", "0"
+        ) && DirectMirObjectNumberEquals(
+            routine, "loop_flow_summary_count", "0"
+        ) && DirectMirObjectNumberEquals(
+            routine, "loop_flow_state_count", "0"
+        ) && DirectMirObjectNumberEquals(
+            routine, "iteration_type_fact_count", "0"
+        ) && DirectMirObjectNumberEquals(
+            routine, "destructure_type_fact_count", "0"
+        );
+}
+
+func DirectMirArrayArgumentProgramEnvelopeReady(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    let specializations: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(
+            admitted.document.root, "generic_method_specializations"
+        );
+    if !admitted.document.valid || admitted.domain_topology_plan.present ||
+        admitted.document.routines.json != admitted.routines.source_json ||
+        JsonObjectFactCount(admitted.document.root) != 5 ||
+        !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
+        JsonArrayObjectFactCount(admitted.document.declarations) != 0 ||
+        !JsonArrayObjectFactTableReady(
+            admitted.document.parallel_capture_boundaries
+        ) || JsonArrayObjectFactCount(
+            admitted.document.parallel_capture_boundaries
+        ) != 0 || !JsonArrayObjectFactTableReady(specializations) ||
+        JsonArrayObjectFactCount(specializations) != 0 ||
+        !MirProgramRoutineIndexStructureReady(admitted.routines) ||
+        !DirectMirArrayArgumentProgramCandidate(admitted) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < 3 {
+        if admitted.routines.kinds[row] != "function" ||
+            admitted.routines.owners[row] != "" ||
+            admitted.routines.routine_block_counts[row] != 1 {
+            return false;
+        }
+        let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.ends[row]
+        );
+        if !JsonObjectFactTableReady(routine) ||
+            !DirectMirArrayArgumentRoutineEnvelopeReady(routine) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirArrayArgumentUniqueRoutineRow(
+    ref routines: MirProgramRoutineIndex,
+    name: String
+) -> Int {
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < MirProgramRoutineIndexCount(routines) {
+        if routines.names[row] == name {
+            if found >= 0 {
+                Die("direct MIR Array argument call target is duplicated");
+            }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirArrayArgumentProgramIdentityFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirArrayArgumentProgramIdentity {
+    if !DirectMirArrayArgumentProgramEnvelopeReady(admitted) {
+        Die("direct MIR Array argument program envelope is invalid");
+    }
+    let main_row: Int = DirectMirArrayArgumentUniqueRoutineRow(
+        admitted.routines, "Main"
+    );
+    if main_row < 0 {
+        Die("direct MIR Array argument entrypoint identity is invalid");
+    }
+    let entrypoint: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 1);
+    if !DirectMirRoutineSignatureFactReady(entrypoint) ||
+        entrypoint.return_type != "Void" || entrypoint.param_count != 0 {
+        Die("direct MIR Array argument entrypoint identity is invalid");
+    }
+    let main_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, main_row, 0, 0
+    );
+    if main_global < 0 {
+        Die("direct MIR Array argument entrypoint routing is invalid");
+    }
+    let main_expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions, main_global
+        );
+    let sequence: MirExpressionGraphSequence =
+        DirectMirArrayIntGraphFromExpressionFact(
+            admitted.routines.source_json, main_expression, 0
+        );
+    let main_graph: DirectMirArrayArgumentMainGraphFact =
+        DirectMirArrayArgumentMainGraphFactFromSequence(sequence);
+    let array_row: Int = DirectMirArrayArgumentUniqueRoutineRow(
+        admitted.routines, main_graph.array_callee_name
+    );
+    let nested_row: Int = DirectMirArrayArgumentUniqueRoutineRow(
+        admitted.routines, main_graph.nested_callee_name
+    );
+    if array_row < 0 || nested_row < 0 || array_row == nested_row ||
+        array_row == main_row || nested_row == main_row {
+        Die("direct MIR Array argument call target is unresolved");
+    }
+    let array_callee: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(admitted.routines, array_row, 1);
+    let nested_callee: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(admitted.routines, nested_row, 1);
+    let identity: DirectMirArrayArgumentProgramIdentity =
+        DirectMirArrayArgumentProgramIdentity(
+            true, 0, entrypoint, array_callee, nested_callee, main_graph
+        );
+    let verified: DirectMirArrayArgumentProgramIdentity =
+        DirectMirArrayArgumentProgramIdentityWithDigest(
+            identity, DirectMirArrayArgumentProgramIdentityDigest(identity)
+        );
+    if !DirectMirArrayArgumentProgramIdentityReady(verified) {
+        Die("direct MIR Array argument signature or ABI identity is invalid");
+    }
+    return verified;
+}

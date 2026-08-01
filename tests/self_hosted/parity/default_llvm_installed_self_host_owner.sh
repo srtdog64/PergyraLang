@@ -13,7 +13,7 @@ PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 SELF_DRIVER="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"
 CC="${CC:-cc}"
 WORK_DIR="$ROOT_DIR/.tmp/self_hosted/default_llvm_installed"
-SOURCE="src/self_hosted/codegen/fixture/array_return_literal.pgy"
+SOURCE="src/self_hosted/mir_lower/fixture/array_literal_call_argument.pgy"
 COUNT_FILE="$WORK_DIR/count.txt"
 COUNT_FILE_FOR_DRIVER="$COUNT_FILE"
 
@@ -54,9 +54,9 @@ mkdir -p "$WORK_DIR/counting-install" "$WORK_DIR/missing-install"
         -o ".tmp/self_hosted/default_llvm_installed/real-program$suffix") \
     >"$WORK_DIR/real.out" 2>"$WORK_DIR/real.err"
 "$WORK_DIR/real-program$suffix" | tr -d '\r' >"$WORK_DIR/real-program.out"
-printf '4\n3\n' >"$WORK_DIR/real.expected"
+printf '11\n' >"$WORK_DIR/real.expected"
 cmp -s "$WORK_DIR/real.expected" "$WORK_DIR/real-program.out" ||
-    fail "installed self-host LLVM artifact produced the wrong Array<Int> return output"
+    fail "installed self-host LLVM artifact produced the wrong Array argument output"
 
 cp "$PGY" "$WORK_DIR/counting-install/pgy$suffix"
 "$CC" -std=c11 -Wall -Wextra -Werror \

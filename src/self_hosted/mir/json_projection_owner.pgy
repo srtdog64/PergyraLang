@@ -11,6 +11,7 @@ import "runtime_call_abi_json_projection_owner.pgy";
 import "abi_layout_json_projection_owner.pgy";
 import "machine_layer_json_projection_owner.pgy";
 import "json_projection_support_owner.pgy";
+import "routine_param_json_projection_owner.pgy";
 import "domain_runtime_assignment_json_owner.pgy";
 import "../lib/json_emit.pgy";
 func SelfMirJsonExpressionGraph(rows: SelfMirExpressionGraphRows, ref graph: SemanticExpressionGraphFacts,
@@ -281,26 +282,7 @@ func SelfMirJsonRoutine(
     let param_i: Int = 0;
     while param_i < rows.param_counts[routine_index] {
         let row: Int = rows.param_starts[routine_index] + param_i;
-        let fields: Array<String> = [
-            JsonEmitFieldString("name", rows.param_names[row]),
-            JsonEmitFieldRaw(
-                "type",
-                SelfMirJsonOptionalString(
-                    SelfMirOptionalString(rows.param_types[row])
-                )
-            ),
-            JsonEmitFieldString(
-                "carriage", SelfMirParamCarriageName(rows.param_abi_kinds[row])
-            ),
-            JsonEmitFieldString(
-                "resource",
-                SelfMirParamResourceKindName(rows.param_resource_kinds[row])
-            ),
-            JsonEmitFieldString(
-                "pass", SelfMirParamPassName(rows.param_abi_kinds[row])
-            )
-        ];
-        ArrayPush(params, JsonEmitObject(fields));
+        ArrayPush(params, SelfMirJsonRoutineParam(rows, row));
         param_i = param_i + 1;
     }
     let blocks: Array<String> = [];

@@ -83,7 +83,10 @@ jobs:
           sudo apt-get install -y gcc make llvm-dev llvm
 
       - name: Run exhaustive self-host parity
-        run: make self-host-preparation-exhaustive-parity-test-smoke
+        run: >-
+          make self-host-preparation-exhaustive-parity-test-smoke
+          self-host-one-mir-array-return-projection-test-smoke
+          self-host-one-mir-array-argument-projection-test-smoke
 
   self-host-bootstrap-linux:
     runs-on: ubuntu-latest

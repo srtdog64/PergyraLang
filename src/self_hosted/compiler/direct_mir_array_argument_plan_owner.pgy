@@ -1,0 +1,294 @@
+// Target-neutral call, value, ABI, and lifetime plan for the bounded
+// Array<Int> argument program. Emitters consume this plan without reopening
+// MIR or flattening either user call.
+
+import "artifact_zone_owner.pgy";
+import "direct_mir_array_argument_program_identity_owner.pgy";
+import "target_capability_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+
+struct DirectMirArrayArgumentPlan {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let digest: Int;
+    let target_capability_schema: String;
+    let target_capability_fingerprint: Int;
+    let program: DirectMirArrayArgumentProgramIdentity;
+    let scalar_factor: Int;
+    let consumer_indices: Array<Int>;
+    let storage_count: Int;
+    let storage_carriage: String;
+    let abi_layout_id: Int;
+    let abi_size: Int;
+    let abi_align: Int;
+    let data_offset: Int;
+    let length_offset: Int;
+    let capacity_offset: Int;
+    let allocator_offset: Int;
+}
+
+func DirectMirArrayArgumentPlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-array-argument-plan.v1";
+}
+
+func DirectMirArrayArgumentStorageCarriage() -> String {
+    return "caller_owned_fixed_array_by_value";
+}
+
+func DirectMirArrayArgumentPlanDigest(
+    ref plan: DirectMirArrayArgumentPlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(131L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
+    hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
+    hash = DirectMirCfgHashInt(hash, plan.program.digest);
+    hash = DirectMirCfgHashInt(hash, plan.scalar_factor);
+    let row: Int = 0;
+    while row < ArrayLength(plan.consumer_indices) {
+        hash = DirectMirCfgHashInt(hash, plan.consumer_indices[row]);
+        row = row + 1;
+    }
+    hash = DirectMirCfgHashInt(hash, plan.storage_count);
+    hash = DirectMirCfgHashString(hash, plan.storage_carriage);
+    hash = DirectMirCfgHashInt(hash, plan.abi_layout_id);
+    hash = DirectMirCfgHashInt(hash, plan.abi_size);
+    hash = DirectMirCfgHashInt(hash, plan.abi_align);
+    hash = DirectMirCfgHashInt(hash, plan.data_offset);
+    hash = DirectMirCfgHashInt(hash, plan.length_offset);
+    hash = DirectMirCfgHashInt(hash, plan.capacity_offset);
+    hash = DirectMirCfgHashInt(hash, plan.allocator_offset);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirArrayArgumentPlanWithDigest(
+    plan: DirectMirArrayArgumentPlan,
+    digest: Int
+) -> DirectMirArrayArgumentPlan {
+    return DirectMirArrayArgumentPlan(
+        plan.valid, plan.schema, plan.revision, digest,
+        plan.target_capability_schema, plan.target_capability_fingerprint,
+        plan.program, plan.scalar_factor, plan.consumer_indices,
+        plan.storage_count, plan.storage_carriage, plan.abi_layout_id,
+        plan.abi_size, plan.abi_align, plan.data_offset, plan.length_offset,
+        plan.capacity_offset, plan.allocator_offset
+    );
+}
+
+func DirectMirArrayArgumentPlanReady(
+    ref plan: DirectMirArrayArgumentPlan
+) -> Bool {
+    if !plan.valid || plan.schema != DirectMirArrayArgumentPlanSchema() ||
+        plan.revision != CompilerArtifactPlanRevision() || plan.digest == 0 ||
+        plan.digest != DirectMirArrayArgumentPlanDigest(plan) ||
+        plan.target_capability_schema != CompilerTargetCapabilitySchema() ||
+        plan.target_capability_fingerprint !=
+            CompilerTargetCapabilityFingerprint() ||
+        !DirectMirArrayArgumentProgramIdentityReady(plan.program) ||
+        plan.storage_count != 2 || plan.storage_carriage !=
+            DirectMirArrayArgumentStorageCarriage() ||
+        ArrayLength(plan.consumer_indices) != 2 ||
+        plan.abi_layout_id <= 0 || plan.abi_size != 32 ||
+        plan.abi_align != 8 || plan.data_offset != 0 ||
+        plan.length_offset != 8 || plan.capacity_offset != 16 ||
+        plan.allocator_offset != 24 {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(plan.consumer_indices) {
+        if plan.consumer_indices[row] < 0 ||
+            plan.consumer_indices[row] >= plan.storage_count {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirArrayArgumentPlanMutation(
+    plan: DirectMirArrayArgumentPlan,
+    storage_carriage: String,
+    length_offset: Int,
+    target_fingerprint: Int
+) -> DirectMirArrayArgumentPlan {
+    return DirectMirArrayArgumentPlan(
+        plan.valid, plan.schema, plan.revision, 0,
+        plan.target_capability_schema, target_fingerprint, plan.program,
+        plan.scalar_factor, plan.consumer_indices, plan.storage_count,
+        storage_carriage, plan.abi_layout_id, plan.abi_size, plan.abi_align,
+        plan.data_offset, length_offset, plan.capacity_offset,
+        plan.allocator_offset
+    );
+}
+
+func DirectMirArrayArgumentPlanMutationRejected(
+    ref plan: DirectMirArrayArgumentPlan
+) -> Bool {
+    if !DirectMirArrayArgumentPlanReady(plan) { return false; }
+    let bad_carriage: DirectMirArrayArgumentPlan =
+        DirectMirArrayArgumentPlanMutation(
+            plan, "callee_owned_array", plan.length_offset,
+            plan.target_capability_fingerprint
+        );
+    bad_carriage = DirectMirArrayArgumentPlanWithDigest(
+        bad_carriage, DirectMirArrayArgumentPlanDigest(bad_carriage)
+    );
+    let bad_abi: DirectMirArrayArgumentPlan =
+        DirectMirArrayArgumentPlanMutation(
+            plan, plan.storage_carriage, plan.length_offset + 8,
+            plan.target_capability_fingerprint
+        );
+    bad_abi = DirectMirArrayArgumentPlanWithDigest(
+        bad_abi, DirectMirArrayArgumentPlanDigest(bad_abi)
+    );
+    let bad_target: DirectMirArrayArgumentPlan =
+        DirectMirArrayArgumentPlanMutation(
+            plan, plan.storage_carriage, plan.length_offset,
+            plan.target_capability_fingerprint + 1
+        );
+    bad_target = DirectMirArrayArgumentPlanWithDigest(
+        bad_target, DirectMirArrayArgumentPlanDigest(bad_target)
+    );
+    return !DirectMirArrayArgumentPlanReady(bad_carriage) &&
+        !DirectMirArrayArgumentPlanReady(bad_abi) &&
+        !DirectMirArrayArgumentPlanReady(bad_target);
+}
+
+func DirectMirArrayArgumentInstructionHasNoAbi(
+    json: String,
+    ref capture: MirRoutineInstructionScalarCapture
+) -> Bool {
+    return capture.abi_type_value_ready && capture.abi_type_name == "" &&
+        capture.abi_layout_id_start >= 0 &&
+        capture.abi_layout_required_start >= 0 &&
+        capture.abi_layout_start >= 0 &&
+        SubEqualsWithLen(
+            json, capture.abi_layout_id_end,
+            capture.abi_layout_id_start, 1, "0"
+        ) && SubEqualsWithLen(
+            json, capture.abi_layout_required_end,
+            capture.abi_layout_required_start, 5, "false"
+        ) && SubEqualsWithLen(
+            json, capture.abi_layout_end,
+            capture.abi_layout_start, 4, "null"
+        );
+}
+
+func DirectMirArrayArgumentRoutineReady(
+    ref index: MirRoutineFactIndex
+) -> Bool {
+    return index.valid && ArrayLength(index.block_reachable) == 1 &&
+        index.block_reachable[0] &&
+        MirRoutineFactIndexBlockIsTerminal(index, 0) &&
+        index.block_has_conditional_branch[0] == 0 &&
+        ArrayLength(index.source_local_names) == 0 &&
+        ArrayLength(index.source_local_types) == 0;
+}
+
+func DirectMirArrayArgumentPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirArrayArgumentPlan {
+    let program: DirectMirArrayArgumentProgramIdentity =
+        DirectMirArrayArgumentProgramIdentityFromAdmitted(admitted);
+    let rows: Array<Int> = [
+        program.entrypoint.row, program.array_callee.row,
+        program.nested_callee.row
+    ];
+    let globals: Array<Int> = [];
+    let captures: Array<MirRoutineInstructionScalarCapture> = [];
+    let expressions: Array<MirProgramInstructionExpressionFact> = [];
+    let row: Int = 0;
+    while row < 3 {
+        let routine_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+            admitted.routines, rows[row]
+        );
+        let uses: MirRoutineInstructionUseFacts =
+            BuildMirRoutineInstructionUseFacts(admitted.routines, rows[row]);
+        let global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, rows[row], 0, 0
+        );
+        if !DirectMirArrayArgumentRoutineReady(routine_index) ||
+            !MirRoutineInstructionUseFactsReady(uses, 1) || global < 0 ||
+            MirRoutineInstructionUseCountAtGlobal(uses, global) != 0 {
+            Die("direct MIR Array argument routine facts are invalid");
+        }
+        let capture: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                routine_index.instruction_facts, global
+            );
+        if !capture.valid || !DirectMirArrayArgumentInstructionHasNoAbi(
+            admitted.routines.source_json, capture
+        ) {
+            Die("direct MIR Array argument instruction ABI is invalid");
+        }
+        ArrayPush(globals, global);
+        ArrayPush(captures, capture);
+        ArrayPush(expressions, MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions, global
+        ));
+        row = row + 1;
+    }
+    let main: MirRoutineInstructionScalarCapture = captures[0];
+    let consumer: MirRoutineInstructionScalarCapture = captures[1];
+    let nested: MirRoutineInstructionScalarCapture = captures[2];
+    if admitted.routines.instruction_kinds[globals[0]] != "stmt" ||
+        admitted.routines.instruction_source_types[globals[0]] != "AST_CALL" ||
+        main.name != "stmt" || main.result != "" || main.arg0 != "Log" ||
+        main.arg1 != "" || main.expr1 != "" ||
+        admitted.routines.instruction_kinds[globals[1]] != "return" ||
+        admitted.routines.instruction_source_types[globals[1]] !=
+            "AST_BINARY" || consumer.name != "return" ||
+        consumer.result != "" || consumer.arg0 != "" ||
+        consumer.arg1 != "" || consumer.expr1 != "" ||
+        admitted.routines.instruction_kinds[globals[2]] != "return" ||
+        admitted.routines.instruction_source_types[globals[2]] !=
+            "AST_BINARY" || nested.name != "return" || nested.result != "" ||
+        nested.arg0 != "" || nested.arg1 != "" || nested.expr1 != "" {
+        Die("direct MIR Array argument instructions are invalid");
+    }
+    let consumer_expression: MirProgramInstructionExpressionFact =
+        expressions[1];
+    let nested_expression: MirProgramInstructionExpressionFact =
+        expressions[2];
+    let consumer_sequence: MirExpressionGraphSequence =
+        DirectMirArrayIntGraphFromExpressionFact(
+            admitted.routines.source_json, consumer_expression, 0
+        );
+    let nested_sequence: MirExpressionGraphSequence =
+        DirectMirArrayIntGraphFromExpressionFact(
+            admitted.routines.source_json, nested_expression, 0
+        );
+    let indices: Array<Int> = DirectMirArrayArgumentConsumerIndices(
+        consumer_sequence, program.array_callee.param.name
+    );
+    let factor: Int = DirectMirArrayArgumentScalarFactor(
+        nested_sequence, program.nested_callee.param.name
+    );
+    let abi: MirAbiLayoutRowCapture = program.array_callee.param.abi;
+    if !DirectMirArrayIntCapturedAbiReady(abi) {
+        Die("direct MIR Array argument parameter ABI is unsupported");
+    }
+    let plan: DirectMirArrayArgumentPlan = DirectMirArrayArgumentPlan(
+        true, DirectMirArrayArgumentPlanSchema(),
+        CompilerArtifactPlanRevision(), 0, CompilerTargetCapabilitySchema(),
+        CompilerTargetCapabilityFingerprint(), program, factor, indices, 2,
+        DirectMirArrayArgumentStorageCarriage(),
+        program.array_callee.param.abi_layout_id, ToInt(abi.size_text),
+        ToInt(abi.align_text), ToInt(abi.field_offsets[0]),
+        ToInt(abi.field_offsets[1]), ToInt(abi.field_offsets[2]),
+        ToInt(abi.field_offsets[3])
+    );
+    let verified: DirectMirArrayArgumentPlan =
+        DirectMirArrayArgumentPlanWithDigest(
+            plan, DirectMirArrayArgumentPlanDigest(plan)
+        );
+    let negative: DirectMirArrayArgumentPlan = verified;
+    if !DirectMirArrayArgumentPlanReady(verified) ||
+        !DirectMirArrayArgumentPlanMutationRejected(negative) {
+        Die("direct MIR Array argument plan identity is invalid");
+    }
+    return verified;
+}

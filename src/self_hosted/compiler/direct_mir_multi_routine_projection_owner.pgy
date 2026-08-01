@@ -3,6 +3,7 @@
 // reinterpret the program.
 
 import "direct_mir_array_return_emission_owner.pgy";
+import "direct_mir_array_argument_emission_owner.pgy";
 
 func CompileAdmittedDirectMirMultiRoutineForTarget(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -14,26 +15,50 @@ func CompileAdmittedDirectMirMultiRoutineForTarget(
     let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
         target_projection, CompilerTargetCpuLlvmProjection()
     );
-    if (!is_c && !is_llvm) ||
-        !DirectMirArrayReturnProgramCandidate(admitted) {
+    if !is_c && !is_llvm {
         Die("direct MIR multi-routine projection rejected the program graph");
     }
-    let plan: DirectMirArrayReturnPlan =
-        DirectMirArrayReturnPlanFromAdmitted(admitted);
-    let abi: DirectMirArrayIntAbiProjection =
-        DirectMirArrayReturnAbiProjectionFromPlan(plan, target_projection);
     let formatted_print: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiFormattedPrintFact();
     if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
-        Die("direct MIR Array<Int> return runtime ABI owner is incomplete");
+        Die("direct MIR multi-routine runtime ABI owner is incomplete");
     }
     let line_format: String = StringRuntimeCIntLineFormat();
-    if is_llvm {
-        return DirectMirArrayReturnEmitLlvm(
-            plan, abi, formatted_print, line_format
+    if DirectMirArrayReturnProgramCandidate(admitted) {
+        let return_plan: DirectMirArrayReturnPlan =
+            DirectMirArrayReturnPlanFromAdmitted(admitted);
+        let return_abi: DirectMirArrayIntAbiProjection =
+            DirectMirArrayReturnAbiProjectionFromPlan(
+                return_plan, target_projection
+            );
+        if is_llvm {
+            return DirectMirArrayReturnEmitLlvm(
+                return_plan, return_abi, formatted_print, line_format
+            );
+        }
+        return DirectMirArrayReturnEmitC(
+            return_plan, return_abi, formatted_print, line_format
         );
     }
-    return DirectMirArrayReturnEmitC(
-        plan, abi, formatted_print, line_format
-    );
+    if DirectMirArrayArgumentProgramCandidate(admitted) {
+        let argument_plan: DirectMirArrayArgumentPlan =
+            DirectMirArrayArgumentPlanFromAdmitted(admitted);
+        let argument_abi: DirectMirArrayIntAbiProjection =
+            DirectMirArrayIntAbiProjectionFromCanonicalLayout(
+                target_projection, argument_plan.abi_layout_id,
+                argument_plan.abi_size, argument_plan.abi_align,
+                argument_plan.data_offset, argument_plan.length_offset,
+                argument_plan.capacity_offset, argument_plan.allocator_offset
+            );
+        if is_llvm {
+            return DirectMirArrayArgumentEmitLlvm(
+                argument_plan, argument_abi, formatted_print, line_format
+            );
+        }
+        return DirectMirArrayArgumentEmitC(
+            argument_plan, argument_abi, formatted_print, line_format
+        );
+    }
+    Die("direct MIR multi-routine projection rejected the program graph");
+    return "";
 }

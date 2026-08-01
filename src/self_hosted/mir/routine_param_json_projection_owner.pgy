@@ -1,0 +1,45 @@
+// One pgy.mir.v1 routine-parameter row, including its physical ABI receipt.
+
+import "program_fact_owner.pgy";
+import "abi_layout_json_projection_owner.pgy";
+import "json_projection_support_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func SelfMirJsonRoutineParam(
+    ref rows: SelfMirRoutineRows,
+    row: Int
+) -> String {
+    let param_type: String = rows.param_types[row];
+    let abi_layout: String = SelfMirJsonStaticAbiLayout(param_type);
+    let abi_required: Bool = StringLength(abi_layout) > 0;
+    let abi_wire: String = "null";
+    if abi_required { abi_wire = abi_layout; }
+    return JsonEmitObject([
+        JsonEmitFieldString("name", rows.param_names[row]),
+        JsonEmitFieldRaw(
+            "type", SelfMirJsonOptionalString(
+                SelfMirOptionalString(param_type)
+            )
+        ),
+        JsonEmitFieldString(
+            "carriage", SelfMirParamCarriageName(rows.param_abi_kinds[row])
+        ),
+        JsonEmitFieldString(
+            "resource",
+            SelfMirParamResourceKindName(rows.param_resource_kinds[row])
+        ),
+        JsonEmitFieldString(
+            "pass", SelfMirParamPassName(rows.param_abi_kinds[row])
+        ),
+        JsonEmitFieldRaw(
+            "abi_type_name", SelfMirJsonOptionalString(
+                SelfMirOptionalString(param_type)
+            )
+        ),
+        JsonEmitFieldNumber(
+            "abi_layout_id", SelfMirJsonAbiLayoutId(abi_layout)
+        ),
+        JsonEmitFieldBool("abi_layout_required", abi_required),
+        JsonEmitFieldRaw("abi_layout", abi_wire)
+    ]);
+}

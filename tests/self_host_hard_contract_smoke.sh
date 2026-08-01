@@ -398,10 +398,35 @@ require_text "src/self_hosted/compiler/direct_mir_array_return_plan_owner.pgy" \
 require_text "tests/self_hosted/parity/one_mir_array_return_projection.sh" \
     'abi-field-shape-repaired-id'
 require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_RETURN_GATE)'
+require_text "Makefile" \
+    "self-host-one-mir-array-argument-projection-test-smoke: self-host-compiler"
+require_text "Makefile" \
+    "tests/self_hosted/parity/one_mir_array_argument_projection.sh"
+require_file "tests/self_hosted/parity/one_mir_array_argument_projection.sh"
+require_file "tests/self_hosted/parity/one_mir_array_argument_mutations.py"
+require_text "tests/self_hosted/parity/one_mir_array_argument_projection.sh" \
+    'printf '\''11\n'\'''
+require_text "tests/self_hosted/parity/one_mir_array_argument_projection.sh" \
+    'routine-order-cycle'
+require_text "src/self_hosted/compiler/direct_mir_array_argument_plan_owner.pgy" \
+    'caller_owned_fixed_array_by_value'
+require_text "src/self_hosted/compiler/direct_mir_array_argument_plan_owner.pgy" \
+    'DirectMirArrayArgumentPlanMutationRejected'
+require_text "tests/self_hosted/parity/one_mir_array_argument_projection.sh" \
+    'repaired-param-abi'
+require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE)'
+require_text ".github/workflows/ci.yml" \
+    'self-host-one-mir-array-return-projection-test-smoke'
+require_text ".github/workflows/ci.yml" \
+    'self-host-one-mir-array-argument-projection-test-smoke'
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
-    'src/self_hosted/codegen/fixture/array_return_literal.pgy'
+    'src/self_hosted/mir_lower/fixture/array_literal_call_argument.pgy'
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
-    'printf '\''4\n3\n'\'''
+    'printf '\''11\n'\'''
+require_text "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
+    'src/self_hosted/mir_lower/fixture/array_literal_call_argument.pgy'
+require_text "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
+    'printf '\''11\n'\'''
 require_text "src/compiler/llvm_runner.c" \
     "compiler_compile_link_self_host_llvm_artifact("
 require_text "src/compiler/self_host_llvm_driver.c" \

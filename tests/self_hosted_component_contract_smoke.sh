@@ -5556,8 +5556,8 @@ require_text "src/self_hosted/mir/declaration_verify_owner.pgy" 'rows.field_sour
 require_text "src/self_hosted/mir/declaration_json_projection_owner.pgy" '"source_syntax_id", ToString(rows.field_source_syntax_ids[row])'
 reject_text "src/self_hosted/mir/declaration_rows_owner.pgy" 'ArrayPush(field_source_syntax_ids, field_i'
 require_text "src/self_hosted/mir/program_fact_owner.pgy" 'param_abi_kinds: Array<Int>;'
-require_text "src/self_hosted/mir/json_projection_owner.pgy" '"carriage", SelfMirParamCarriageName(rows.param_abi_kinds[row])'
-require_text "src/self_hosted/mir/json_projection_owner.pgy" '"pass", SelfMirParamPassName(rows.param_abi_kinds[row])'
+require_text "src/self_hosted/mir/routine_param_json_projection_owner.pgy" '"carriage", SelfMirParamCarriageName(rows.param_abi_kinds[row])'
+require_text "src/self_hosted/mir/routine_param_json_projection_owner.pgy" '"pass", SelfMirParamPassName(rows.param_abi_kinds[row])'
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" 'let param_carriages: Array<String>;'
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" 'param_prefix = "ref ";'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'if p_mode == 2 {'
@@ -13748,7 +13748,7 @@ require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 
     "if routine_count > 1 {"
 require_text \
     "src/self_hosted/compiler/direct_mir_array_return_program_identity_owner.pgy" \
-    "MirObjectUniqueStringFactAtBounds("
+    "DirectMirRoutineNoParamSignatureReady("
 require_text "src/self_hosted/compiler/direct_mir_array_return_plan_owner.pgy" \
     "MirRoutineFactIndexUniqueResultDefinition("
 require_text "src/self_hosted/compiler/direct_mir_array_return_plan_owner.pgy" \
@@ -13813,8 +13813,89 @@ require_text "tests/self_hosted/parity/one_mir_array_return_projection.sh" \
     "forged-log-result"
 require_text "Makefile" "SELFHOST_ONE_MIR_ARRAY_RETURN_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_RETURN_GATE)'
+require_file "src/self_hosted/compiler/direct_mir_routine_param_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_routine_param_fact_owner.pgy" 180
+require_file "src/self_hosted/compiler/direct_mir_routine_signature_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_routine_signature_fact_owner.pgy" 195
+require_file \
+    "src/self_hosted/compiler/direct_mir_array_argument_graph_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_argument_graph_fact_owner.pgy" 225
+require_file \
+    "src/self_hosted/compiler/direct_mir_array_argument_program_identity_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_argument_program_identity_owner.pgy" 245
+require_file "src/self_hosted/compiler/direct_mir_array_argument_plan_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_argument_plan_owner.pgy" 310
+require_file \
+    "src/self_hosted/compiler/direct_mir_array_argument_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_argument_emission_owner.pgy" 265
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" 75
+require_file "tests/self_hosted/parity/one_mir_array_argument_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_array_argument_projection.sh" 220
+require_file "tests/self_hosted/parity/one_mir_array_argument_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_array_argument_mutations.py" 130
+require_text \
+    "src/self_hosted/compiler/direct_mir_routine_param_fact_owner.pgy" \
+    "MirCapturedRequiredAbiLayoutRowAdmission("
+require_text \
+    "src/self_hosted/compiler/direct_mir_routine_signature_fact_owner.pgy" \
+    "DirectMirRoutineSignatureFactAt("
+require_text \
+    "src/self_hosted/compiler/direct_mir_array_argument_graph_fact_owner.pgy" \
+    "DirectMirArrayArgumentMainGraphFactFromSequence("
+require_text \
+    "src/self_hosted/compiler/direct_mir_array_argument_plan_owner.pgy" \
+    "DirectMirArrayArgumentPlanMutationRejected("
+require_text \
+    "src/self_hosted/compiler/direct_mir_array_argument_plan_owner.pgy" \
+    "caller_owned_fixed_array_by_value"
+require_text \
+    "src/self_hosted/compiler/direct_mir_array_argument_emission_owner.pgy" \
+    "func DirectMirArrayArgumentEmitC("
+require_text \
+    "src/self_hosted/compiler/direct_mir_array_argument_emission_owner.pgy" \
+    'output = Concat(output, abi.llvm_aggregate_type);'
+require_text \
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
+    "DirectMirArrayArgumentProgramCandidate(admitted)"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
+    "DirectMirHelloProjectionFromAdmitted"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
+    "DirectMirScalarBlockProjectionFromAdmitted"
+require_text "src/compiler/mir_json_dump.c" 'abi_layout_required'
+require_file "src/self_hosted/mir/routine_param_json_projection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir/routine_param_json_projection_owner.pgy" 60
+require_text "src/self_hosted/mir/routine_param_json_projection_owner.pgy" \
+    'JsonEmitFieldBool("abi_layout_required"'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    'SelfMirJsonRoutineParam(rows, row)'
+require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
+    'SelfMirJsonRoutineParam(rows, param_row)'
+require_text "tests/self_hosted/parity/one_mir_array_argument_projection.sh" \
+    "routine-order-cycle"
+require_text "tests/self_hosted/parity/one_mir_array_argument_projection.sh" \
+    "repaired-param-abi"
+require_text "tests/self_hosted/parity/one_mir_array_argument_projection.sh" \
+    "gate must produce source MIR exactly once"
+require_text "tests/self_hosted/parity/one_mir_array_argument_projection.sh" \
+    "native/self formal parameter ABI receipt parity drifted"
+require_text "Makefile" "SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE ?="
+require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE)'
+require_text ".github/workflows/ci.yml" \
+    "self-host-one-mir-array-argument-projection-test-smoke"
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
-    "src/self_hosted/codegen/fixture/array_return_literal.pgy"
+    "src/self_hosted/mir_lower/fixture/array_literal_call_argument.pgy"
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240

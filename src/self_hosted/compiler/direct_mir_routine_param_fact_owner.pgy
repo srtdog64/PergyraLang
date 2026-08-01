@@ -1,0 +1,165 @@
+// Exact formal-parameter facts for bounded direct-MIR plans. A composite
+// parameter carries its complete MIR-owned ABI receipt; consumers may not
+// rediscover physical layout from the source type.
+
+import "direct_mir_array_int_abi_fact_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirRoutineParamFact {
+    let valid: Bool;
+    let digest: Int;
+    let name: String;
+    let type_name: String;
+    let carriage: String;
+    let resource: String;
+    let pass_shape: String;
+    let abi_type_name: String;
+    let abi_layout_id: Int;
+    let abi_required: Bool;
+    let abi: MirAbiLayoutRowCapture;
+}
+
+func InvalidDirectMirRoutineParamFact() -> DirectMirRoutineParamFact {
+    return DirectMirRoutineParamFact(
+        false, 0, "", "", "", "", "", "", 0, false,
+        InvalidMirAbiLayoutRowCapture()
+    );
+}
+
+func DirectMirRoutineParamFactDigest(
+    ref fact: DirectMirRoutineParamFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(103L, fact.name);
+    hash = DirectMirCfgHashString(hash, fact.type_name);
+    hash = DirectMirCfgHashString(hash, fact.carriage);
+    hash = DirectMirCfgHashString(hash, fact.resource);
+    hash = DirectMirCfgHashString(hash, fact.pass_shape);
+    hash = DirectMirCfgHashString(hash, fact.abi_type_name);
+    hash = DirectMirCfgHashInt(hash, fact.abi_layout_id);
+    if fact.abi_required {
+        hash = DirectMirCfgHashInt(hash, 1);
+    } else {
+        hash = DirectMirCfgHashInt(hash, 0);
+    }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirRoutineParamFactWithDigest(
+    fact: DirectMirRoutineParamFact, digest: Int
+) -> DirectMirRoutineParamFact {
+    return DirectMirRoutineParamFact(
+        fact.valid, digest, fact.name, fact.type_name, fact.carriage,
+        fact.resource, fact.pass_shape, fact.abi_type_name,
+        fact.abi_layout_id, fact.abi_required, fact.abi
+    );
+}
+
+func DirectMirRoutineParamFactReady(
+    ref fact: DirectMirRoutineParamFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 ||
+        fact.digest != DirectMirRoutineParamFactDigest(fact) ||
+        fact.name == "" || fact.type_name == "" ||
+        fact.carriage == "" || fact.resource == "" ||
+        fact.pass_shape == "" || fact.abi_type_name != fact.type_name {
+        return false;
+    }
+    if fact.abi_required {
+        return fact.abi_layout_id > 0 && fact.abi.valid &&
+            fact.abi.type_name == fact.abi_type_name &&
+            MirAbiLayoutIdFromCapture(fact.abi) == fact.abi_layout_id;
+    }
+    return fact.abi_layout_id == 0 && !fact.abi.valid;
+}
+
+func DirectMirRoutineParamFactFromBounds(
+    json: String, start: Int, end: Int
+) -> DirectMirRoutineParamFact {
+    let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        json, start, end
+    );
+    let keys: Array<String> = [
+        "name", "type", "carriage", "resource", "pass",
+        "abi_type_name", "abi_layout_id", "abi_layout_required",
+        "abi_layout"
+    ];
+    let starts: Array<Int> = [
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
+        0 - 1, 0 - 1, 0 - 1, 0 - 1
+    ];
+    let ends: Array<Int> = [
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
+        0 - 1, 0 - 1, 0 - 1, 0 - 1
+    ];
+    if !JsonObjectFactTableReady(object) || JsonObjectFactCount(object) != 9 ||
+        !MirAbiSelectedObjectBoundsWithin(
+            json, start, end, keys, starts, ends
+        ) || !MirAbiAllBoundsPresent(starts, ends) {
+        return InvalidDirectMirRoutineParamFact();
+    }
+    let name: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[0], ends[0], false
+    );
+    let type_name: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[1], ends[1], false
+    );
+    let carriage: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[2], ends[2], false
+    );
+    let resource: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[3], ends[3], false
+    );
+    let pass_shape: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[4], ends[4], false
+    );
+    let abi_type_name: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[5], ends[5], false
+    );
+    let abi_id: Option<String> = MirAbiIntegerValueAtBounds(
+        json, starts[6], ends[6]
+    );
+    if !IsSome(name) || !IsSome(type_name) || !IsSome(carriage) ||
+        !IsSome(resource) || !IsSome(pass_shape) ||
+        !IsSome(abi_type_name) || !IsSome(abi_id) {
+        return InvalidDirectMirRoutineParamFact();
+    }
+    let required: Bool = starts[7] + 4 == ends[7] &&
+        SubEqualsWithLen(json, ends[7], starts[7], 4, "true");
+    let not_required: Bool = starts[7] + 5 == ends[7] &&
+        SubEqualsWithLen(json, ends[7], starts[7], 5, "false");
+    if !required && !not_required {
+        return InvalidDirectMirRoutineParamFact();
+    }
+    let abi: MirAbiLayoutRowCapture = InvalidMirAbiLayoutRowCapture();
+    if required {
+        let admitted: Option<MirAbiLayoutRowCapture> =
+            MirCapturedRequiredAbiLayoutRowAdmission(
+                json, UnwrapOption(abi_type_name), true,
+                starts[5], ends[5], starts[6], ends[6],
+                starts[7], ends[7], starts[8], ends[8]
+            );
+        if !IsSome(admitted) {
+            return InvalidDirectMirRoutineParamFact();
+        }
+        abi = UnwrapOption(admitted);
+    } else if UnwrapOption(abi_id) != "0" ||
+        starts[8] + 4 != ends[8] ||
+        !SubEqualsWithLen(json, ends[8], starts[8], 4, "null") {
+        return InvalidDirectMirRoutineParamFact();
+    }
+    let fact: DirectMirRoutineParamFact = DirectMirRoutineParamFact(
+        true, 0, UnwrapOption(name), UnwrapOption(type_name),
+        UnwrapOption(carriage), UnwrapOption(resource),
+        UnwrapOption(pass_shape), UnwrapOption(abi_type_name),
+        ToInt(UnwrapOption(abi_id)), required, abi
+    );
+    let verified: DirectMirRoutineParamFact =
+        DirectMirRoutineParamFactWithDigest(
+            fact, DirectMirRoutineParamFactDigest(fact)
+        );
+    if !DirectMirRoutineParamFactReady(verified) {
+        return InvalidDirectMirRoutineParamFact();
+    }
+    return verified;
+}

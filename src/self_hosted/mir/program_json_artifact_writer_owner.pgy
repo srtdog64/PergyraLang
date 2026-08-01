@@ -6,6 +6,7 @@
 import "instruction_json_artifact_writer_owner.pgy";
 import "artifact_transaction_owner.pgy";
 import "domain_runtime_assignment_json_owner.pgy";
+import "routine_param_json_projection_owner.pgy";
 
 func SelfMirJsonBlockWriteFile(
     facts: SelfMirProgramFacts,
@@ -89,25 +90,9 @@ func SelfMirJsonRoutineWriteFile(
     while param_i < rows.param_counts[routine_index] {
         if param_i > 0 { CompilerArtifactWrite(output, ","); }
         let param_row: Int = rows.param_starts[routine_index] + param_i;
-        CompilerArtifactWrite(output, JsonEmitObject([
-            JsonEmitFieldString("name", rows.param_names[param_row]),
-            JsonEmitFieldRaw("type", SelfMirJsonOptionalString(
-                SelfMirOptionalString(rows.param_types[param_row])
-            )),
-            JsonEmitFieldString(
-                "carriage", SelfMirParamCarriageName(
-                    rows.param_abi_kinds[param_row]
-                )
-            ),
-            JsonEmitFieldString(
-                "resource", SelfMirParamResourceKindName(
-                    rows.param_resource_kinds[param_row]
-                )
-            ),
-            JsonEmitFieldString(
-                "pass", SelfMirParamPassName(rows.param_abi_kinds[param_row])
-            )
-        ]));
+        CompilerArtifactWrite(
+            output, SelfMirJsonRoutineParam(rows, param_row)
+        );
         param_i = param_i + 1;
     }
     CompilerArtifactWrite(output, "],");

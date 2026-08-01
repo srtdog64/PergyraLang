@@ -1,0 +1,251 @@
+// Runtime-free C and LLVM emission for one verified Array<Int> argument plan.
+// Main owns the fixed backing storage, passes the aggregate shell by value,
+// and both user calls remain visible in the emitted program.
+
+import "direct_mir_array_argument_plan_owner.pgy";
+import "direct_mir_array_int_abi_projection_owner.pgy";
+import "direct_mir_array_int_emission_owner.pgy";
+import "symbol_table_owner.pgy";
+
+func DirectMirArrayArgumentEmitC(
+    ref plan: DirectMirArrayArgumentPlan,
+    ref abi: DirectMirArrayIntAbiProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirArrayArgumentPlanReady(plan) ||
+        !DirectMirArrayIntAbiProjectionReadyFor(
+            abi, CompilerTargetCpuCProjection()
+        ) || !formatted_print.ok || formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" ||
+        plan.storage_carriage != DirectMirArrayArgumentStorageCarriage() {
+        Die("direct MIR Array argument C projection facts are invalid");
+    }
+    let nested_symbol: String = CompilerSymbolCIdentifier(
+        plan.program.nested_callee.name
+    );
+    let consumer_symbol: String = CompilerSymbolCIdentifier(
+        plan.program.array_callee.name
+    );
+    let nested_param: String = CompilerSymbolCIdentifier(
+        plan.program.nested_callee.param.name
+    );
+    let consumer_param: String = CompilerSymbolCIdentifier(
+        plan.program.array_callee.param.name
+    );
+    if nested_symbol == "" || consumer_symbol == "" ||
+        nested_param == "" || consumer_param == "" ||
+        nested_symbol == consumer_symbol {
+        Die("direct MIR Array argument C symbols are invalid");
+    }
+    let output: String =
+        "#include <stdint.h>\n#include <stddef.h>\n#include <stdio.h>\n\n";
+    output = Concat(output, "typedef struct {\n    ");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " *data;\n    ");
+    output = Concat(output, abi.c_length_type);
+    output = Concat(output, " length;\n    ");
+    output = Concat(output, abi.c_length_type);
+    output = Concat(output, " capacity;\n    void *allocator;\n} ");
+    output = Concat(output, abi.c_array_type);
+    output = Concat(output, ";\n\nstatic ");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " ");
+    output = Concat(output, nested_symbol);
+    output = Concat(output, "(");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " ");
+    output = Concat(output, nested_param);
+    output = Concat(output, ") {\n    return ");
+    output = Concat(output, nested_param);
+    output = Concat(output, " * ");
+    output = Concat(output, ToString(plan.scalar_factor));
+    output = Concat(output, ";\n}\n\nstatic ");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " ");
+    output = Concat(output, consumer_symbol);
+    output = Concat(output, "(");
+    output = Concat(output, abi.c_array_type);
+    output = Concat(output, " ");
+    output = Concat(output, consumer_param);
+    output = Concat(output, ") {\n    return ");
+    output = Concat(output, consumer_param);
+    output = Concat(output, ".data[");
+    output = Concat(output, ToString(plan.consumer_indices[0]));
+    output = Concat(output, "] + ");
+    output = Concat(output, consumer_param);
+    output = Concat(output, ".data[");
+    output = Concat(output, ToString(plan.consumer_indices[1]));
+    output = Concat(output, "];\n}\n\nint main(void) {\n    ");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " pgy_argument_storage[");
+    output = Concat(output, ToString(plan.storage_count));
+    output = Concat(output, "];\n    pgy_argument_storage[0] = ");
+    output = Concat(output, ToString(plan.program.main_graph.first_left));
+    output = Concat(output, " + ");
+    output = Concat(output, ToString(plan.program.main_graph.first_right));
+    output = Concat(output, ";\n    pgy_argument_storage[1] = ");
+    output = Concat(output, nested_symbol);
+    output = Concat(output, "(");
+    output = Concat(output, ToString(plan.program.main_graph.nested_argument));
+    output = Concat(output, ");\n    ");
+    output = Concat(output, abi.c_array_type);
+    output = Concat(output, " pgy_argument = (");
+    output = Concat(output, abi.c_array_type);
+    output = Concat(output, "){pgy_argument_storage, ");
+    output = Concat(output, ToString(plan.storage_count));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(plan.storage_count));
+    output = Concat(output, ", NULL};\n    ");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " pgy_result = ");
+    output = Concat(output, consumer_symbol);
+    output = Concat(output, "(pgy_argument);\n    ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (");
+    output = Concat(output, abi.c_print_type);
+    output = Concat(output, ")pgy_result);\n    return 0;\n}\n");
+    return output;
+}
+
+func DirectMirArrayArgumentEmitLlvm(
+    ref plan: DirectMirArrayArgumentPlan,
+    ref abi: DirectMirArrayIntAbiProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirArrayArgumentPlanReady(plan) ||
+        !DirectMirArrayIntAbiProjectionReadyFor(
+            abi, CompilerTargetCpuLlvmProjection()
+        ) || !formatted_print.ok || formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" ||
+        plan.storage_carriage != DirectMirArrayArgumentStorageCarriage() {
+        Die("direct MIR Array argument LLVM projection facts are invalid");
+    }
+    let nested_symbol: String = CompilerSymbolCIdentifier(
+        plan.program.nested_callee.name
+    );
+    let consumer_symbol: String = CompilerSymbolCIdentifier(
+        plan.program.array_callee.name
+    );
+    let format_payload: String = DirectMirScalarLlvmFormatPayload(line_format);
+    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
+    let output: String = "@.pgy.int.line.format = private unnamed_addr constant [";
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, format_payload);
+    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n\ndefine internal ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " @");
+    output = Concat(output, nested_symbol);
+    output = Concat(output, "(");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %value) {\nentry:\n  %pgy.nested.value = mul ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %value, ");
+    output = Concat(output, ToString(plan.scalar_factor));
+    output = Concat(output, "\n  ret ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %pgy.nested.value\n}\n\ndefine internal ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " @");
+    output = Concat(output, consumer_symbol);
+    output = Concat(output, "(");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %values) {\nentry:\n  %pgy.values.data = extractvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %values, ");
+    output = Concat(output, ToString(abi.data_index));
+    output = Concat(output, "\n  %pgy.values.left.ptr = getelementptr inbounds ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, ", ptr %pgy.values.data, i64 ");
+    output = Concat(output, ToString(plan.consumer_indices[0]));
+    output = Concat(output, "\n  %pgy.values.left = load ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, ", ptr %pgy.values.left.ptr, align 4\n");
+    output = Concat(output, "  %pgy.values.right.ptr = getelementptr inbounds ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, ", ptr %pgy.values.data, i64 ");
+    output = Concat(output, ToString(plan.consumer_indices[1]));
+    output = Concat(output, "\n  %pgy.values.right = load ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, ", ptr %pgy.values.right.ptr, align 4\n");
+    output = Concat(output, "  %pgy.values.sum = add ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %pgy.values.left, %pgy.values.right\n  ret ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %pgy.values.sum\n}\n\ndefine i32 @main() {\nentry:\n");
+    output = Concat(output, "  %pgy.argument.storage = alloca [");
+    output = Concat(output, ToString(plan.storage_count));
+    output = Concat(output, " x ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, "], align 4\n  %pgy.argument.data = getelementptr inbounds [");
+    output = Concat(output, ToString(plan.storage_count));
+    output = Concat(output, " x ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, "], ptr %pgy.argument.storage, i64 0, i64 0\n");
+    output = Concat(output, "  %pgy.argument.first = add ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " ");
+    output = Concat(output, ToString(plan.program.main_graph.first_left));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(plan.program.main_graph.first_right));
+    output = Concat(output, "\n  store ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %pgy.argument.first, ptr %pgy.argument.data, align 4\n");
+    output = Concat(output, "  %pgy.argument.second = call ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " @");
+    output = Concat(output, nested_symbol);
+    output = Concat(output, "(");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " ");
+    output = Concat(output, ToString(plan.program.main_graph.nested_argument));
+    output = Concat(output, ")\n  %pgy.argument.second.ptr = getelementptr inbounds ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, ", ptr %pgy.argument.data, i64 1\n  store ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %pgy.argument.second, ptr %pgy.argument.second.ptr, align 4\n");
+    output = Concat(output, "  %pgy.argument.0 = insertvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " poison, ptr %pgy.argument.data, ");
+    output = Concat(output, ToString(abi.data_index));
+    output = Concat(output, "\n  %pgy.argument.1 = insertvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %pgy.argument.0, i64 ");
+    output = Concat(output, ToString(plan.storage_count));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(abi.length_index));
+    output = Concat(output, "\n  %pgy.argument.2 = insertvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %pgy.argument.1, i64 ");
+    output = Concat(output, ToString(plan.storage_count));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(abi.capacity_index));
+    output = Concat(output, "\n  %pgy.argument.3 = insertvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %pgy.argument.2, ptr null, ");
+    output = Concat(output, ToString(abi.allocator_index));
+    output = Concat(output, "\n  %pgy.result = call ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " @");
+    output = Concat(output, consumer_symbol);
+    output = Concat(output, "(");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %pgy.argument.3)\n  %pgy.result.print = ");
+    output = Concat(output, abi.llvm_print_extension);
+    output = Concat(output, " ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %pgy.result to ");
+    output = Concat(output, abi.llvm_print_type);
+    output = Concat(output, "\n  %pgy.logged = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.int.line.format, i64 %pgy.result.print)\n  ret i32 0\n}\n");
+    return output;
+}

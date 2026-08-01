@@ -760,6 +760,9 @@ inventory must not become a second fact-family owner registry.
   instruction-row shape diagnostics consumed by the program verifier.
 - `src/self_hosted/mir/json_projection_owner.pgy` -- verified `pgy.mir.v1`
   projection; it cannot read AST provenance.
+- `src/self_hosted/mir/routine_param_json_projection_owner.pgy` -- the one
+  routine-parameter JSON row shared by whole-string and streaming projection,
+  including the complete physical ABI receipt when the type requires one.
 - `src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy` --
   sequential file framing for unbounded instruction-local expression graphs,
   match/destructure lists, uses, and runtime-call ABI auxiliary rows; it reads
@@ -1880,6 +1883,26 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_array_return_emission_owner.pgy` --
   final C/LLVM consumers for the same two-routine plan. Both materialize a real
   producer call with caller-owned storage and no Pergyra runtime symbol.
+- `src/self_hosted/compiler/direct_mir_routine_param_fact_owner.pgy` -- exact
+  formal-parameter admission, including value/resource/pass carriage and the
+  complete carried ABI row; a required row cannot be reconstructed by a
+  backend.
+- `src/self_hosted/compiler/direct_mir_routine_signature_fact_owner.pgy` --
+  strict unique routine identity/signature facts shared by bounded
+  multi-routine projections. Missing return facts and duplicate fields fail
+  instead of defaulting.
+- `src/self_hosted/compiler/direct_mir_array_argument_graph_fact_owner.pgy` --
+  exact typed nested-call and Array-literal argument graph; direct call targets
+  come from expression facts rather than routine row order or source text.
+- `src/self_hosted/compiler/direct_mir_array_argument_program_identity_owner.pgy`
+  -- exact three-routine envelope joining `Main`, the scalar callee, and the
+  Array consumer to their strict signatures independent of row order.
+- `src/self_hosted/compiler/direct_mir_array_argument_plan_owner.pgy` -- one
+  target-neutral call/parameter/use/ABI/lifetime plan. Main owns fixed storage
+  and passes the admitted Array aggregate by value.
+- `src/self_hosted/compiler/direct_mir_array_argument_emission_owner.pgy` --
+  final C/LLVM consumers of that plan; both preserve the two real calls and
+  reopen neither MIR nor a Pergyra runtime path.
 - `src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy` --
   exclusive multi-routine direct-MIR projection boundary; rejection cannot
   retry hello, scalar, single-routine Array, Option, or CFG dispatch.

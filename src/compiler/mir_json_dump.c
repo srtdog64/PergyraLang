@@ -146,6 +146,9 @@ mir_json_emit_match_variant_facts(FILE *out, const MIRInstruction *inst)
 
 
 static void
+mir_json_emit_abi_layout_value(FILE *out, const MIRTypeLayout *layout);
+
+static void
 mir_json_emit_routine_signature(FILE *out, const MIRRoutine *routine)
 {
     if (!mir_routine_has_signature(routine))
@@ -160,13 +163,14 @@ mir_json_emit_routine_signature(FILE *out, const MIRRoutine *routine)
     fputs("],\"params\":[", out);
     for (size_t p = 0; p < mir_routine_param_count(routine); p++) {
         FuncParam *fp = mir_routine_param(routine, p);
+        const char *param_type = mir_routine_param_type_name(routine, p);
+        const MIRTypeLayout *param_layout = mir_abi_lookup(param_type);
         if (p > 0)
             fputc(',', out);
         fputs("{\"name\":", out);
         mir_json_emit_str_or_null(out, fp != NULL ? fp->name : NULL);
         fputs(",\"type\":", out);
-        mir_json_emit_str_or_null(out,
-            mir_routine_param_type_name(routine, p));
+        mir_json_emit_str_or_null(out, param_type);
         fputs(",\"carriage\":", out);
         mir_json_emit_str(out, mir_param_carriage_name(
             mir_routine_param_carriage(routine, p)));
@@ -178,6 +182,13 @@ mir_json_emit_routine_signature(FILE *out, const MIRRoutine *routine)
             mir_routine_param_passes_indirect(routine, p)
                 ? "indirect"
                 : "direct");
+        fputs(",\"abi_type_name\":", out);
+        mir_json_emit_str_or_null(out, param_type);
+        fprintf(out, ",\"abi_layout_id\":%u,\"abi_layout_required\":%s",
+                mir_abi_layout_id(param_layout),
+                param_layout != NULL ? "true" : "false");
+        fputs(",\"abi_layout\":", out);
+        mir_json_emit_abi_layout_value(out, param_layout);
         fputc('}', out);
     }
     fputs("],\"return\":", out);
@@ -190,19 +201,8 @@ mir_json_emit_routine_signature(FILE *out, const MIRRoutine *routine)
  * representation is intentional: it is the enum value hashed by
  * mir_abi_layout_id, so the wire row remains lossless and target-neutral. */
 static void
-mir_json_emit_instruction_abi_layout(FILE *out, const MIRInstruction *inst)
+mir_json_emit_abi_layout_value(FILE *out, const MIRTypeLayout *layout)
 {
-    const MIRTypeLayout *layout = inst != NULL ? inst->type_layout : NULL;
-    const char *abi_type_name = inst != NULL && inst->abi_type_name != NULL
-        ? inst->abi_type_name
-        : layout != NULL ? layout->abi_type_name : NULL;
-
-    fputs(",\"abi_type_name\":", out);
-    mir_json_emit_str_or_null(out, abi_type_name);
-    fprintf(out, ",\"abi_layout_id\":%u,\"abi_layout_required\":%s",
-            inst != NULL ? inst->abi_layout_id : 0,
-            layout != NULL ? "true" : "false");
-    fputs(",\"abi_layout\":", out);
     if (layout == NULL) {
         fputs("null", out);
         return;
@@ -233,6 +233,23 @@ mir_json_emit_instruction_abi_layout(FILE *out, const MIRInstruction *inst)
             layout->primary_tag_value, layout->secondary_tag_value);
     mir_json_emit_str_or_null(out, layout->niche_none_pattern);
     fputc('}', out);
+}
+
+static void
+mir_json_emit_instruction_abi_layout(FILE *out, const MIRInstruction *inst)
+{
+    const MIRTypeLayout *layout = inst != NULL ? inst->type_layout : NULL;
+    const char *abi_type_name = inst != NULL && inst->abi_type_name != NULL
+        ? inst->abi_type_name
+        : layout != NULL ? layout->abi_type_name : NULL;
+
+    fputs(",\"abi_type_name\":", out);
+    mir_json_emit_str_or_null(out, abi_type_name);
+    fprintf(out, ",\"abi_layout_id\":%u,\"abi_layout_required\":%s",
+            inst != NULL ? inst->abi_layout_id : 0,
+            layout != NULL ? "true" : "false");
+    fputs(",\"abi_layout\":", out);
+    mir_json_emit_abi_layout_value(out, layout);
 }
 
 static void

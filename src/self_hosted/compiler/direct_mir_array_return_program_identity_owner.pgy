@@ -3,9 +3,9 @@
 // and stable syntax IDs before value/ABI planning.
 
 import "direct_mir_array_return_graph_fact_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_scalar_graph_admission_owner.pgy";
 import "../air/mir_cfg_identity_owner.pgy";
-import "../mir_lower/routine_inventory_owner.pgy";
 
 struct DirectMirArrayReturnProgramIdentity {
     let valid: Bool;
@@ -111,58 +111,9 @@ func DirectMirArrayReturnRoutineSignatureReady(
     expected_return: String,
     expected_instruction_count: Int
 ) -> Bool {
-    if row < 0 || expected_return == "" || expected_instruction_count < 0 ||
-        !MirProgramRoutineIndexRowReady(routines, row) ||
-        MirProgramRoutineIndexBlockInstructionCountAt(
-            routines, row, 0
-        ) != expected_instruction_count {
-        return false;
-    }
-    let unique_name: Option<String> = MirObjectUniqueStringFactAtBounds(
-        routines.source_json, routines.starts[row], routines.ends[row],
-        "name"
+    return expected_return != "" && DirectMirRoutineNoParamSignatureReady(
+        routines, row, expected_return, expected_instruction_count
     );
-    let unique_kind: Option<String> = MirObjectUniqueStringFactAtBounds(
-        routines.source_json, routines.starts[row], routines.ends[row],
-        "kind"
-    );
-    let unique_syntax_id: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        routines.source_json, routines.starts[row], routines.ends[row],
-        "source_syntax_id"
-    );
-    let return_type: Option<String> = MirObjectUniqueStringFactAtBounds(
-        routines.source_json, routines.starts[row], routines.ends[row],
-        "return"
-    );
-    let generic_bounds: Array<Int> = [0, 0];
-    let param_bounds: Array<Int> = [0, 0];
-    if !IsSome(unique_name) || !IsSome(unique_kind) ||
-        !IsSome(unique_syntax_id) || !IsSome(return_type) ||
-        UnwrapOption(unique_name) != routines.names[row] ||
-        UnwrapOption(unique_kind) != routines.kinds[row] ||
-        UnwrapOption(unique_syntax_id) != routines.source_syntax_ids[row] ||
-        UnwrapOption(return_type) != expected_return ||
-        MirObjectFieldOccurrenceCountAtBounds(
-            routines.source_json, routines.starts[row], routines.ends[row],
-            "generics"
-        ) != 1 || MirObjectFieldOccurrenceCountAtBounds(
-            routines.source_json, routines.starts[row], routines.ends[row],
-            "params"
-        ) != 1 ||
-        !MirObjectArrayBoundsAtBounds(
-            routines.source_json, routines.starts[row], routines.ends[row],
-            "generics", generic_bounds
-        ) || !MirObjectArrayBoundsAtBounds(
-            routines.source_json, routines.starts[row], routines.ends[row],
-            "params", param_bounds
-        ) {
-        return false;
-    }
-    let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
-        routines.source_json, routines.starts[row], routines.ends[row]
-    );
-    return ArrayLength(header.generic_names) == 0 &&
-        ArrayLength(header.param_names) == 0;
 }
 
 func DirectMirArrayReturnProgramIdentityFromAdmitted(
