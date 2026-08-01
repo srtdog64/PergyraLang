@@ -18,6 +18,7 @@ func MirIntentExecutionInstructionGlobalRow(
         routines, routine_row, block_id
     );
     if block_row < 0 || instruction_id < 0 { return 0 - 1; }
+    let instruction_text: String = ToString(instruction_id);
     let found: Int = 0 - 1;
     let local_row: Int = 0;
     while local_row < routines.block_instruction_counts[block_row] {
@@ -27,7 +28,7 @@ func MirIntentExecutionInstructionGlobalRow(
             routines.source_json, routines.instruction_starts[global_row],
             routines.instruction_ends[global_row], "id"
         );
-        if id_text == ToString(instruction_id) {
+        if id_text == instruction_text {
             if found >= 0 { return 0 - 1; }
             found = global_row;
         }

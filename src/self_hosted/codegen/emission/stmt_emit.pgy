@@ -2,6 +2,7 @@
 //
 // Statement lowering owner for self-host C emission.
 import "../text/text_owner.pgy";
+import "../text/owned_string_join_owner.pgy";
 import "../text/enum_literal_owner.pgy";
 import "../text/expr_scan.pgy";
 import "../type_facts/type_env.pgy";
@@ -198,7 +199,7 @@ func EmitStmtList(count: Int, arena: AstArena,
         let idx: Int = cur[0];
         let ind: Int = CodegenAstArenaIndentOrDie(arena, idx);
         if ind < stmt_indent {
-            return StringJoin(result, "");
+            return CodegenJoinOwnedStringFragments(result, "");
         }
         if ind > stmt_indent {
             Die(Concat("unexpected over-indented AST line: ", CodegenAstArenaProvenanceOrDie(arena, idx)));
@@ -276,8 +277,8 @@ func EmitStmtList(count: Int, arena: AstArena,
             if !AbiLayoutIsVoidReturnType(cur_fn_ret) {
                 bare = Concat("return ", Concat(AbiLayoutCDefaultReturnValue(cur_fn_ret, env), ";"));
             }
-            ArrayPush(result, routine_defers[0]);
-            ArrayPush(result, active_defers);
+            ArrayPush(result, Concat("", routine_defers[0]));
+            ArrayPush(result, Concat("", active_defers));
             ArrayPush(result, Concat(pad, Concat(bare, "\n")));
             ArraySet(cur, 0, idx + 1); continue;
         }
@@ -614,7 +615,7 @@ func EmitStmtList(count: Int, arena: AstArena,
         }
         Die(Concat("unsupported AST line in supported subset: ", CodegenAstArenaProvenanceOrDie(arena, idx)));
     }
-    return StringJoin(result, "");
+    return CodegenJoinOwnedStringFragments(result, "");
 }
 
 // C parameter type for a Pergyra type. `String` params are read-only.

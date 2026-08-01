@@ -189,7 +189,11 @@ public sealed class BuildPressureOutputCapture : IDisposable
             !line.StartsWith(
                 "[semantic-body-type-stage]", StringComparison.Ordinal) &&
             !line.StartsWith(
-                "[semantic-initializer-stage]", StringComparison.Ordinal))
+                "[semantic-initializer-stage]", StringComparison.Ordinal) &&
+            !line.StartsWith(
+                "[codegen-view-stage]", StringComparison.Ordinal) &&
+            !line.StartsWith(
+                "[codegen-pressure-stage]", StringComparison.Ordinal))
         {
             return;
         }

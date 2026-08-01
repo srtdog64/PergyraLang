@@ -3189,6 +3189,30 @@ self-host-driver-full-mir-seed-pressure-shard-body-test-smoke:
 .PHONY: self-host-driver-full-mir-seed-pressure-shard-test-smoke
 .PHONY: self-host-driver-full-mir-seed-pressure-shard-body-test-smoke
 
+PGY_SELFHOST_DRIVER_MIR_CONSUMER_TIMEOUT_SEC ?= 300
+self-host-driver-full-mir-consumer-pressure-shard-test-smoke:
+	@if command -v powershell >/dev/null 2>&1; then \
+		powershell -NoProfile -ExecutionPolicy Bypass \
+		-File scripts/measure_build_pressure.ps1 \
+		-Label self-host-driver-full-mir-consumer-shard -Command "$(MAKE)" \
+		-Arguments self-host-driver-full-mir-consumer-pressure-shard-body-test-smoke \
+		-LimitMB $(PGY_BUILD_PRESSURE_LIMIT_MB) -StopOnLimit \
+		-TimeoutSec $(PGY_SELFHOST_DRIVER_MIR_CONSUMER_TIMEOUT_SEC); \
+	else \
+		echo "[self-host-driver-full-mir-consumer-shard] PowerShell pressure owner is required" >&2; \
+		exit 1; \
+	fi
+
+self-host-driver-full-mir-consumer-pressure-shard-body-test-smoke:
+	@if [ "$${PGY_BUILD_PRESSURE_ACTIVE:-0}" != "1" ]; then \
+		echo "[self-host-driver-full-mir-consumer-shard] body requires measure_build_pressure.ps1" >&2; \
+		exit 1; \
+	fi
+	"$(BASH)" tests/self_hosted/parity/driver_full_mir_consumer_pressure_shard.sh
+
+.PHONY: self-host-driver-full-mir-consumer-pressure-shard-test-smoke
+.PHONY: self-host-driver-full-mir-consumer-pressure-shard-body-test-smoke
+
 # Which self-hosted policy owners the integrated driver can already eat, and
 # which it cannot yet -- pinned both ways so bootstrap coverage neither rots
 # nor grows unrecorded. Consumes the driver-bootstrap artifacts.

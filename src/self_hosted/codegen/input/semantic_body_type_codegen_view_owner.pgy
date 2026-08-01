@@ -4,6 +4,7 @@
 // that prepared bundle; it may not invoke any semantic fact producer.
 
 import "../../semantic/ast_body_type_bundle_owner.pgy";
+import "../../semantic/ast_body_type_bundle_admission_receipt_owner.pgy";
 import "../text/text_owner.pgy";
 import "semantic_assignment_codegen_view_owner.pgy";
 import "semantic_statement_codegen_view_owner.pgy";
@@ -38,6 +39,30 @@ func CodegenSemanticBodyTypeFactsFromBundleOrDie(
         artifact, analysis.statements, bundle.statement_types
     ) {
         Die("codegen semantic statement type facts are missing or invalid");
+    }
+    if !generic_specializations.ok {
+        Die(Concat(
+            "codegen generic specialization facts are incomplete: ",
+            generic_specializations.diagnostic_message
+        ));
+    }
+    return CodegenSemanticBodyTypeFacts(
+        bundle.assignment_types, bundle.statement_types,
+        generic_specializations
+    );
+}
+
+func CodegenSemanticBodyTypeFactsFromAdmittedBundleOrDie(
+    artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis,
+    own bundle: SemanticAstBodyTypeBundle,
+    own generic_specializations: CodegenGenericSpecializationFacts,
+    receipt: SemanticAstBodyTypeBundleAdmissionReceipt
+) -> CodegenSemanticBodyTypeFacts {
+    if !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(
+        receipt, artifact, analysis, bundle
+    ) {
+        Die("codegen semantic body type admission receipt is missing or stale");
     }
     if !generic_specializations.ok {
         Die(Concat(

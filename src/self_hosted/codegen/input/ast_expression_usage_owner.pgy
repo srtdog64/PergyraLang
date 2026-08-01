@@ -46,6 +46,17 @@ struct CodegenExpressionParts {
     let aux_value: String;
 }
 
+struct CodegenExpressionSurfaceUsagePresence {
+    let groups: Array<Bool>;
+    let has_none: Bool;
+}
+
+struct CodegenExpressionGraphUsagePresence {
+    let has_checked_int_cast: Bool;
+    let has_checked_long_cast: Bool;
+    let has_spawn: Bool;
+}
+
 func CodegenUsageBuiltinGroupArgs() -> Int { return 1; }
 func CodegenUsageBuiltinGroupString() -> Int { return 2; }
 func CodegenUsageBuiltinGroupMath() -> Int { return 3; }
@@ -197,20 +208,6 @@ func CodegenUsageBuiltinGroupCalleeAt(group: Int, index: Int) -> String {
     return "";
 }
 
-func CodegenExpressionPartHasToken(part: Option<String>, token: String) -> Bool {
-    if !IsSome(part) {
-        return false;
-    }
-    return SemanticExpressionSurfaceHasToken(UnwrapOption(part), token);
-}
-
-func CodegenExpressionPartCalls(part: Option<String>, callee: String) -> Bool {
-    if !IsSome(part) {
-        return false;
-    }
-    return SemanticExpressionSurfaceCalls(UnwrapOption(part), callee);
-}
-
 func CodegenSemanticExpressionPartsAt(
     facts: SemanticAstExpressionSurfaceFacts,
     index: Int
@@ -243,119 +240,123 @@ func CodegenSemanticExpressionPartsAt(
 }
 
 func CodegenExpressionPartsHasToken(parts: CodegenExpressionParts, token: String) -> Bool {
-    return (parts.has_atom && CodegenExpressionPartHasToken(Some(parts.atom), token)) ||
-        (parts.has_value && CodegenExpressionPartHasToken(Some(parts.value), token)) ||
-        (parts.has_aux_value && CodegenExpressionPartHasToken(Some(parts.aux_value), token));
+    return (parts.has_atom && SemanticExpressionSurfaceHasToken(parts.atom, token)) ||
+        (parts.has_value && SemanticExpressionSurfaceHasToken(parts.value, token)) ||
+        (parts.has_aux_value && SemanticExpressionSurfaceHasToken(parts.aux_value, token));
 }
 
 func CodegenExpressionPartsCalls(parts: CodegenExpressionParts, callee: String) -> Bool {
-    return (parts.has_atom && CodegenExpressionPartCalls(Some(parts.atom), callee)) ||
-        (parts.has_value && CodegenExpressionPartCalls(Some(parts.value), callee)) ||
-        (parts.has_aux_value && CodegenExpressionPartCalls(Some(parts.aux_value), callee));
+    return (parts.has_atom && SemanticExpressionSurfaceCalls(parts.atom, callee)) ||
+        (parts.has_value && SemanticExpressionSurfaceCalls(parts.value, callee)) ||
+        (parts.has_aux_value && SemanticExpressionSurfaceCalls(parts.aux_value, callee));
 }
 
-func CodegenSemanticExpressionTokenPresent(facts: SemanticAstExpressionSurfaceFacts, token: String) -> Bool {
+func CodegenExpressionSurfaceUsagePresenceFromSemantic(
+    facts: SemanticAstExpressionSurfaceFacts
+) -> CodegenExpressionSurfaceUsagePresence {
+    let groups: Array<Bool> = [];
+    let group: Int = 0;
+    while group <= CodegenUsageBuiltinGroupArtifactTransaction() {
+        ArrayPush(groups, false);
+        group = group + 1;
+    }
+    let has_none: Bool = false;
     let i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(facts) {
         let parts: CodegenExpressionParts = CodegenSemanticExpressionPartsAt(facts, i);
-        if CodegenExpressionPartsHasToken(parts, token) {
-            return true;
+        if !has_none && CodegenExpressionPartsHasToken(parts, "None") {
+            has_none = true;
+        }
+        group = CodegenUsageBuiltinGroupArgs();
+        while group <= CodegenUsageBuiltinGroupArtifactTransaction() {
+            if !groups[group] {
+                let callee_index: Int = 0;
+                while callee_index < CodegenUsageBuiltinGroupCalleeCount(group) &&
+                    !groups[group] {
+                    let callee: String = CodegenUsageBuiltinGroupCalleeAt(
+                        group, callee_index
+                    );
+                    if StringLength(callee) > 0 &&
+                        CodegenExpressionPartsCalls(parts, callee) {
+                        ArraySet(groups, group, true);
+                    }
+                    callee_index = callee_index + 1;
+                }
+            }
+            group = group + 1;
         }
         i = i + 1;
     }
-    return false;
+    return CodegenExpressionSurfaceUsagePresence(groups, has_none);
 }
 
-func CodegenSemanticBuiltinCallPresent(facts: SemanticAstExpressionSurfaceFacts, callee: String) -> Bool {
-    let i: Int = 0;
-    while i < SemanticAstExpressionSurfaceCount(facts) {
-        let parts: CodegenExpressionParts = CodegenSemanticExpressionPartsAt(facts, i);
-        if CodegenExpressionPartsCalls(parts, callee) {
-            return true;
-        }
-        i = i + 1;
-    }
-    return false;
-}
-
-func CodegenSemanticBuiltinGroupPresent(facts: SemanticAstExpressionSurfaceFacts, group: Int) -> Bool {
-    let callee_index: Int = 0;
-    while callee_index < CodegenUsageBuiltinGroupCalleeCount(group) {
-        let callee: String = CodegenUsageBuiltinGroupCalleeAt(group, callee_index);
-        if StringLength(callee) > 0 && CodegenSemanticBuiltinCallPresent(facts, callee) {
-            return true;
-        }
-        callee_index = callee_index + 1;
-    }
-    return false;
-}
-
-func CodegenSemanticCheckedIntegerCastTargetPresent(
-    facts: SemanticAstExpressionSurfaceFacts,
-    target_type: String
-) -> Bool {
+func CodegenExpressionGraphUsagePresenceFromSemantic(
+    facts: SemanticAstExpressionSurfaceFacts
+) -> CodegenExpressionGraphUsagePresence {
     let graph: SemanticExpressionGraphFacts = facts.expression_graph;
     if !SemanticExpressionGraphFactsReady(
         graph, SemanticAstExpressionSurfaceCount(facts) * 3
     ) {
         Die("codegen checked-arithmetic usage requires expression graph facts");
     }
-    let i: Int = 0;
-    while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
-        if graph.arena.topology.node_kinds[i] == AstExpressionNodeCast() {
-            let target: Int = graph.arena.topology.right_children[i];
+    let has_checked_int_cast: Bool = false;
+    let has_checked_long_cast: Bool = false;
+    let has_spawn: Bool = false;
+    let node_id: Int = 0;
+    while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        if graph.arena.topology.node_kinds[node_id] == AstExpressionNodeCast() {
+            let target: Int = graph.arena.topology.right_children[node_id];
             if graph.arena.topology.node_kinds[target] == AstExpressionNodeTypeName() &&
-                graph.arena.node_texts[target] == target_type {
-                return true;
+                graph.arena.node_texts[target] == "Int" {
+                has_checked_int_cast = true;
+            }
+            if graph.arena.topology.node_kinds[target] == AstExpressionNodeTypeName() &&
+                graph.arena.node_texts[target] == "Long" {
+                has_checked_long_cast = true;
             }
         }
-        i = i + 1;
-    }
-    return false;
-}
-
-func CodegenSemanticExpressionGraphSpawnPresent(
-    facts: SemanticAstExpressionSurfaceFacts
-) -> Bool {
-    let graph: SemanticExpressionGraphFacts = facts.expression_graph;
-    let i: Int = 0;
-    while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
-        if graph.arena.topology.node_kinds[i] == AstExpressionNodeSpawn() {
-            return true;
+        if graph.arena.topology.node_kinds[node_id] == AstExpressionNodeSpawn() {
+            has_spawn = true;
         }
-        i = i + 1;
+        node_id = node_id + 1;
     }
-    return false;
+    return CodegenExpressionGraphUsagePresence(
+        has_checked_int_cast, has_checked_long_cast, has_spawn
+    );
 }
 
 func CodegenExpressionUsageFactsFromSemantic(facts: SemanticAstExpressionSurfaceFacts) -> CodegenExpressionUsageFacts {
+    let surface: CodegenExpressionSurfaceUsagePresence =
+        CodegenExpressionSurfaceUsagePresenceFromSemantic(facts);
+    let graph: CodegenExpressionGraphUsagePresence =
+        CodegenExpressionGraphUsagePresenceFromSemantic(facts);
     return CodegenExpressionUsageFacts(
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupArgs()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupString()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupMath()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupArraySort()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupArrayReverse()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupArrayMap()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupArrayFilter()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupResult()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupOption()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupExit()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupArrayCore()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupIo()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupJoin()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupSplit()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupDirWalk()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupLog()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupFileHandle()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupPrint()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupFloat()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupRandomValue()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupSeedRandom()),
-        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupArtifactTransaction()),
-        CodegenSemanticExpressionTokenPresent(facts, "None"),
-        CodegenSemanticCheckedIntegerCastTargetPresent(facts, "Int"),
-        CodegenSemanticCheckedIntegerCastTargetPresent(facts, "Long"),
-        CodegenSemanticExpressionGraphSpawnPresent(facts)
+        surface.groups[CodegenUsageBuiltinGroupArgs()],
+        surface.groups[CodegenUsageBuiltinGroupString()],
+        surface.groups[CodegenUsageBuiltinGroupMath()],
+        surface.groups[CodegenUsageBuiltinGroupArraySort()],
+        surface.groups[CodegenUsageBuiltinGroupArrayReverse()],
+        surface.groups[CodegenUsageBuiltinGroupArrayMap()],
+        surface.groups[CodegenUsageBuiltinGroupArrayFilter()],
+        surface.groups[CodegenUsageBuiltinGroupResult()],
+        surface.groups[CodegenUsageBuiltinGroupOption()],
+        surface.groups[CodegenUsageBuiltinGroupExit()],
+        surface.groups[CodegenUsageBuiltinGroupArrayCore()],
+        surface.groups[CodegenUsageBuiltinGroupIo()],
+        surface.groups[CodegenUsageBuiltinGroupJoin()],
+        surface.groups[CodegenUsageBuiltinGroupSplit()],
+        surface.groups[CodegenUsageBuiltinGroupDirWalk()],
+        surface.groups[CodegenUsageBuiltinGroupLog()],
+        surface.groups[CodegenUsageBuiltinGroupFileHandle()],
+        surface.groups[CodegenUsageBuiltinGroupPrint()],
+        surface.groups[CodegenUsageBuiltinGroupFloat()],
+        surface.groups[CodegenUsageBuiltinGroupRandomValue()],
+        surface.groups[CodegenUsageBuiltinGroupSeedRandom()],
+        surface.groups[CodegenUsageBuiltinGroupArtifactTransaction()],
+        surface.has_none,
+        graph.has_checked_int_cast,
+        graph.has_checked_long_cast,
+        graph.has_spawn
     );
 }
 

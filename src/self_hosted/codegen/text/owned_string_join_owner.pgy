@@ -1,0 +1,10 @@
+// Consuming join for codegen-owned text fragments.
+// Every element must be an owned string; the joined result is the sole survivor.
+
+func CodegenJoinOwnedStringFragments(
+    own fragments: Array<String>, separator: String
+) -> String {
+    let output: String = StringJoin(fragments, separator);
+    ArrayDropOwnedStrings(fragments);
+    return output;
+}

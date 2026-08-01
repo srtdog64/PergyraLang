@@ -18,10 +18,11 @@ func DirectMirIntentRoutineRowBySyntaxIdentity(
     expected_kind: String
 ) -> Int {
     if syntax_id <= 0 || expected_kind == "" { return 0 - 1; }
+    let syntax_text: String = ToString(syntax_id);
     let found: Int = 0 - 1;
     let row: Int = 0;
     while row < ArrayLength(routines.starts) {
-        if routines.source_syntax_ids[row] == ToString(syntax_id) &&
+        if routines.source_syntax_ids[row] == syntax_text &&
             routines.kinds[row] == expected_kind {
             if found >= 0 { return 0 - 1; }
             found = row;

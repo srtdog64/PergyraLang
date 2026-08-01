@@ -40,6 +40,8 @@ import "emission/try_let_emit_owner.pgy";
 import "emission/assign_emit_owner.pgy";
 import "emission/stmt_emit.pgy";
 import "emission/function_emit.pgy";
+import "emission/function_global_env_owner.pgy";
+import "emission/program_function_definition_block_owner.pgy";
 import "emission/program_emit.pgy";
 import "emission/program_entry_owner.pgy";
 import "input/ast_input_owner.pgy";

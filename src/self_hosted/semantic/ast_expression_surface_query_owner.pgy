@@ -39,8 +39,7 @@ func SemanticExpressionSurfaceHasToken(text: String, token: String) -> Bool {
 
 func SemanticExpressionSurfaceCalls(text: String, callee: String) -> Bool {
     let n: Int = StringLength(text);
-    let needle: String = Concat(callee, "(");
-    let m: Int = StringLength(needle);
+    let m: Int = StringLength(callee);
     let i: Int = 0;
     let in_string: Bool = false;
     while i < n {
@@ -52,8 +51,9 @@ func SemanticExpressionSurfaceCalls(text: String, callee: String) -> Bool {
             continue;
         }
         if c == SourceByteOf("\"") { in_string = true; i = i + 1; continue; }
-        if m > 0 && i + m <= n &&
-            SubEqualsWithLen(text, n, i, m, needle) &&
+        if m > 0 && i + m < n &&
+            SubEqualsWithLen(text, n, i, m, callee) &&
+            SourceByteAt(text, n, i + m) == SourceByteOf("(") &&
             (i == 0 || !SemanticExpressionSurfaceIdentifierByte(
                 SourceByteAt(text, n, i - 1)
             )) {

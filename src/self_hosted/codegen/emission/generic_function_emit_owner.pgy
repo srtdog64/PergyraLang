@@ -1,6 +1,7 @@
 // Emit concrete definitions for generic function specialization facts.
 
 import "../text/text_owner.pgy";
+import "../text/owned_string_join_owner.pgy";
 import "function_emit.pgy";
 
 func EmitFunctionSet(
@@ -75,5 +76,5 @@ func EmitFunctionSet(
         return "";
     }
     ArraySet(cur, 0, after_function);
-    return StringJoin(definitions, "\n");
+    return CodegenJoinOwnedStringFragments(definitions, "\n");
 }

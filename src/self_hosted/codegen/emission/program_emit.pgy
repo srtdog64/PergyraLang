@@ -30,7 +30,7 @@ import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../../compiler/machine_layer_runtime_binding_owner.pgy";
 import "../../compiler/runtime_call_abi_structured_fact_owner.pgy";
 import "type_declaration_emit_owner.pgy";
-import "generic_function_emit_owner.pgy";
+import "program_function_definition_block_owner.pgy";
 import "role_dispatch_emit_owner.pgy";
 import "result_runtime_emit_owner.pgy";
 import "program_statement_shape_owner.pgy";
@@ -213,7 +213,8 @@ func GenerateCUnitFromReadySemanticFacts(
     ref domain_runtime: CodegenDomainRuntimeFacts,
     ref intent_execution: CodegenIntentExecutionView,
     require_entrypoint: Bool,
-    machine_declaration: SelfHostMachineLayerDeclaration
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    observe_pressure: Bool
 ) -> String {
     if !SemanticAstArtifactAdmissionReady(
         artifact, semantic_analysis, require_entrypoint
@@ -221,6 +222,7 @@ func GenerateCUnitFromReadySemanticFacts(
         Die("codegen semantic admission receipt is missing or stale");
     }
     RejectUnsupportedCodegenBuiltins(artifact.tree_text);
+    if observe_pressure { Log("[codegen-pressure-stage] entry:ready"); }
     let count: Int = artifact.count;
     let arena: AstArena = artifact.arena;
     let signatures: SemanticAstFunctionSignatureFacts =
@@ -274,23 +276,28 @@ func GenerateCUnitFromReadySemanticFacts(
     ) {
         Die("semantic intent signature facts are missing or stale");
     }
+    if observe_pressure { Log("[codegen-pressure-stage] function-env:start"); }
     let env_acc: Array<String> = [BuildFunctionEnv(
-        signatures, specializations, receiver_facts
+        signatures, specializations, receiver_facts,
+        semantic_analysis.intent_signatures
     )];
-    ArraySet(env_acc, 0, Concat(
-        env_acc[0], CodegenIntentCallableEnvRows(semantic_analysis.intent_signatures)
-    ));
+    if observe_pressure { Log("[codegen-pressure-stage] function-env:done"); }
+    if observe_pressure { Log("[codegen-pressure-stage] value-wrappers:start"); }
     let value_wrappers: CodegenValueWrapperUsageFacts =
         CodegenValueWrapperUsageFactsFromSemantic(
             semantic_analysis.type_surfaces, arena, signatures,
             specializations
         );
+    if observe_pressure { Log("[codegen-pressure-stage] value-wrappers:done"); }
+    if observe_pressure { Log("[codegen-pressure-stage] type-declarations:start"); }
     let type_declaration_fact: CodegenTypeDeclarationBlockFact =
         CollectTypeDeclarations(
         semantic_analysis.enums, semantic_analysis.constructors,
         semantic_analysis.roles,
         value_wrappers, env_acc
         );
+    if observe_pressure { Log("[codegen-pressure-stage] type-declarations:done"); }
+    if observe_pressure { Log("[codegen-pressure-stage] role-dispatch:start"); }
     let dispatch_type_block: String = CodegenSemanticRoleDispatchTypeBlock(
         semantic_analysis.roles, signatures,
         CodegenTypeEnvFromPresealRows(env_acc[0], "")
@@ -314,7 +321,11 @@ func GenerateCUnitFromReadySemanticFacts(
             )
         )
     );
+    if observe_pressure { Log("[codegen-pressure-stage] role-dispatch:done"); }
+    if observe_pressure { Log("[codegen-pressure-stage] base-env:start"); }
     let base_env: CodegenTypeEnv = CodegenTypeEnvFromRows(env_acc[0], "");
+    if observe_pressure { Log("[codegen-pressure-stage] base-env:done"); }
+    if observe_pressure { Log("[codegen-pressure-stage] runtime-usage:start"); }
     let usage: CodegenRuntimeUsageFacts =
         CodegenRuntimeUsageFactsFromSemantic(
             semantic_analysis.expression_surfaces,
@@ -325,6 +336,7 @@ func GenerateCUnitFromReadySemanticFacts(
             value_wrappers,
             base_env
         );
+    if observe_pressure { Log("[codegen-pressure-stage] runtime-usage:done"); }
     if !usage.nominal_record_arrays.ok { Die("nominal record array usage facts are incomplete"); }
     let uses_args: Bool = usage.uses_args;
     if usage.uses_machine_layer &&
@@ -333,80 +345,13 @@ func GenerateCUnitFromReadySemanticFacts(
     }
     let machine_startup: String = CompilerMachineLayerRuntimeBindingStatement(machine_declaration);
     if usage.uses_spawn { machine_startup = Concat("    pgy_pool_init(0);\n    atexit(pgy_pool_shutdown);\n", machine_startup); }
-    let defs: Array<String> = [];
-    let cur: Array<Int> = [0];
-    while cur[0] < count {
-        let cur_node: Int = cur[0];
-        let cur_indent: Int = CodegenAstArenaIndentOrDie(arena, cur_node);
-        if CodegenSemanticKindIs(
-            semantic_analysis.kind_surfaces, cur[0],
-            TypedAstKindAbilityDeclTag()
-        ) {
-            let decl_node: Int = cur_node;
-            ArraySet(cur, 0, cur[0] + 1);
-            while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], decl_node) {
-                ArraySet(cur, 0, cur[0] + 1);
-            }
-        } else if CodegenSemanticNominalIs(
-            semantic_analysis.constructors, cur[0]
-        ) {
-            let owner_node: Int = cur_node;
-            ArraySet(cur, 0, cur[0] + 1);
-            while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], owner_node) {
-                if CodegenSemanticFunctionIs(signatures, cur[0]) {
-                    let method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
-                    let mdef: String = EmitFunctionSet(
-                        count, arena, signatures, semantic_analysis.roles,
-                        receiver_facts,
-                        local_bindings, assignments, statements, body_types,
-                        semantic_analysis.expression_surfaces,
-                        specializations,
-                        cur, method_indent,
-                        base_env, machine_startup, uses_args,
-                        domain_runtime
-                    );
-                    ArrayPush(defs, Concat(mdef, "\n"));
-                } else {
-                    ArraySet(cur, 0, cur[0] + 1);
-                }
-            }
-        } else if CodegenSemanticRoleIs(semantic_analysis.roles, cur[0]) {
-            let role_owner_node: Int = cur_node;
-            ArraySet(cur, 0, cur[0] + 1);
-            while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], role_owner_node) {
-                if CodegenSemanticFunctionIs(signatures, cur[0]) {
-                    let role_method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
-                    let role_mdef: String = EmitFunctionSet(
-                        count, arena, signatures, semantic_analysis.roles,
-                        receiver_facts,
-                        local_bindings, assignments, statements, body_types,
-                        semantic_analysis.expression_surfaces,
-                        specializations,
-                        cur, role_method_indent,
-                        base_env, machine_startup, uses_args,
-                        domain_runtime
-                    );
-                    ArrayPush(defs, Concat(role_mdef, "\n"));
-                } else {
-                    ArraySet(cur, 0, cur[0] + 1);
-                }
-            }
-        } else if CodegenSemanticFunctionIs(signatures, cur[0]) &&
-            cur_indent == f_indent {
-            let def: String = EmitFunctionSet(
-                count, arena, signatures, semantic_analysis.roles,
-                receiver_facts,
-                local_bindings, assignments, statements, body_types,
-                semantic_analysis.expression_surfaces,
-                specializations,
-                cur, f_indent, base_env, machine_startup, uses_args,
-                domain_runtime
-            );
-            ArrayPush(defs, Concat(def, "\n"));
-        } else {
-            ArraySet(cur, 0, cur[0] + 1);
-        }
-    }
+    let definition_block: String = CodegenProgramFunctionDefinitionBlock(
+        count, arena, signatures, semantic_analysis.constructors,
+        semantic_analysis.roles, semantic_analysis.kind_surfaces, receiver_facts,
+        local_bindings, assignments, statements, body_types,
+        semantic_analysis.expression_surfaces, specializations, f_indent,
+        base_env, machine_startup, uses_args, domain_runtime, observe_pressure
+    );
     // Forward declarations come from a GenerateC-scope pre-pass.
     let proto_block: String = CollectProtos(
         signatures, semantic_analysis.roles, receiver_facts,
@@ -424,6 +369,7 @@ func GenerateCUnitFromReadySemanticFacts(
         CodegenIntentExecutionPlanDefinitionBlock(
             intent_execution, semantic_analysis.intent_signatures, base_env
         );
+    if observe_pressure { Log("[codegen-pressure-stage] support-blocks:done"); }
     // String programs need the runtime string helpers; bool programs need
     // <stdbool.h>; array programs need the growable-array structs + stdlib;
     // int-only programs stay lean.
@@ -588,12 +534,12 @@ func GenerateCUnitFromReadySemanticFacts(
     TextBuilderAppend(output, intent_proto_block);
     TextBuilderAppend(output, intent_definition_block);
     TextBuilderAppend(output, admitted_intent_definition_block);
-    let definition_index: Int = 0;
-    while definition_index < ArrayLength(defs) {
-        TextBuilderAppend(output, defs[definition_index]);
-        definition_index = definition_index + 1;
-    }
+    if observe_pressure { Log("[codegen-pressure-stage] output-prefix:done"); }
+    TextBuilderAppend(output, definition_block);
+    let owned_definition_block: Array<String> = [definition_block];
+    ArrayDropOwnedStrings(owned_definition_block);
     let generated_c: String = TextBuilderFinish(output, output_allocator);
+    if observe_pressure { Log("[codegen-pressure-stage] output:finished"); }
     AllocatorDestroy(output_allocator);
     return generated_c;
 }

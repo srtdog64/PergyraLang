@@ -12,6 +12,12 @@ func PersistedGraphProbeJson(mode: String) -> String {
     if mode == "--unreachable-node" {
         return "{\"root\":0,\"nodes\":[{\"kind\":\"integer_literal\",\"text\":\"1\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"left\":null,\"right\":null},{\"kind\":\"integer_literal\",\"text\":\"2\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"left\":null,\"right\":null}]}";
     }
+    if mode == "--overflow-root" {
+        return "{\"root\":2147483648,\"nodes\":[{\"kind\":\"integer_literal\",\"text\":\"1\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"left\":null,\"right\":null}]}";
+    }
+    if mode == "--reordered-fields" {
+        return "{\"digest\":7,\"nodes\":[{\"right\":null,\"left\":null,\"call_target_name\":\"\",\"call_target_kind\":\"none\",\"text\":\"1\",\"kind\":\"integer_literal\"},{\"text\":\"2\",\"kind\":\"integer_literal\",\"right\":null,\"left\":null,\"call_target_name\":\"\",\"call_target_kind\":\"none\"},{\"left\":0,\"kind\":\"add\",\"right\":1,\"text\":\"1 + 2\",\"call_target_name\":\"\",\"call_target_kind\":\"none\"}],\"root\":2}";
+    }
     return "{\"root\":2,\"nodes\":[{\"kind\":\"integer_literal\",\"text\":\"1\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"left\":null,\"right\":null},{\"kind\":\"integer_literal\",\"text\":\"2\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"left\":null,\"right\":null},{\"kind\":\"add\",\"text\":\"1 + 2\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"left\":0,\"right\":1}],\"digest\":7}";
 }
 
@@ -27,7 +33,8 @@ func Main() -> Void with caps env {
             MirExpressionGraphSequenceEmpty(), graph
         );
     let negative: Bool = mode == "--duplicate-node-field" ||
-        mode == "--unknown-header-field" || mode == "--unreachable-node";
+        mode == "--unknown-header-field" || mode == "--unreachable-node" ||
+        mode == "--overflow-root";
     if negative {
         if sequence.ok {
             Log("malformed persisted graph was accepted");

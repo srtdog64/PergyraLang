@@ -58,6 +58,6 @@ func GenerateCUnitFromAdmittedSemanticArtifact(
     return GenerateCUnitFromReadySemanticFacts(
         artifact, semantic_analysis, body_types, receiver_facts,
         domain_runtime, intent_execution, require_entrypoint,
-        machine_declaration
+        machine_declaration, false
     );
 }

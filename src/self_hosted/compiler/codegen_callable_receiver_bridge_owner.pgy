@@ -38,9 +38,12 @@ func CodegenAdmittedCViewFromFactsOrDie(
     artifact: AstTreeArtifact,
     own semantic_body_types: SemanticAstBodyTypeBundle,
     own generic_specializations: CodegenGenericSpecializationFacts,
+    body_type_admission: SemanticAstBodyTypeBundleAdmissionReceipt,
     ref intent_expression_occurrences: MirExpressionSemanticOccurrenceIndex,
-    canonical_routine_source_syntax_ids: Array<String>
+    canonical_routine_source_syntax_ids: Array<String>,
+    observe_pressure: Bool
 ) -> CodegenAdmittedCView {
+    if observe_pressure { Log("[codegen-view-stage] receivers:start"); }
     let receivers: CodegenCallableReceiverFacts =
         CodegenCallableReceiverFactsFromAdmittedOrDie(
             admitted, analysis, canonical_routine_source_syntax_ids
@@ -48,12 +51,19 @@ func CodegenAdmittedCViewFromFactsOrDie(
     if !receivers.admitted {
         Die("MIR callable receiver facts did not cross machine admission");
     }
+    if observe_pressure { Log("[codegen-view-stage] receivers:done"); }
+    if observe_pressure { Log("[codegen-view-stage] body-types:start"); }
     let body_types: CodegenSemanticBodyTypeFacts =
-        CodegenSemanticBodyTypeFactsFromBundleOrDie(
-            artifact, analysis, semantic_body_types, generic_specializations
+        CodegenSemanticBodyTypeFactsFromAdmittedBundleOrDie(
+            artifact, analysis, semantic_body_types, generic_specializations,
+            body_type_admission
         );
+    if observe_pressure { Log("[codegen-view-stage] body-types:done"); }
+    if observe_pressure { Log("[codegen-view-stage] domain-runtime:start"); }
     let domain_runtime: CodegenDomainRuntimeFacts =
         CodegenDomainRuntimeFactsFromAdmittedOrDie(admitted);
+    if observe_pressure { Log("[codegen-view-stage] domain-runtime:done"); }
+    if observe_pressure { Log("[codegen-view-stage] intent-execution:start"); }
     let intent_execution: CodegenIntentExecutionView =
         DirectMirIntentExecutionViewFromAdmitted(
             admitted, admitted.intent_execution_plan,
@@ -64,6 +74,7 @@ func CodegenAdmittedCViewFromFactsOrDie(
     if !CodegenIntentExecutionViewReady(intent_execution) {
         Die("MIR typed intent execution plan did not cross machine admission");
     }
+    if observe_pressure { Log("[codegen-view-stage] intent-execution:done"); }
     return CodegenAdmittedCView(
         receivers, body_types, domain_runtime, intent_execution
     );

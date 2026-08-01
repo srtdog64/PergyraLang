@@ -1,7 +1,8 @@
-// DRV-2 readiness owner.
+// Test-only DRV-2 readiness aggregate.
 //
-// This contract names every fact producer required before the executable
-// source/MIR convergence driver may consume an artifact.
+// The contract suite imports this owner from test composition only. Production
+// drivers validate their actual artifact receipts and must not link or execute
+// the fixture corpus on every compilation.
 
 import "../parser/expression_graph_contract_owner.pgy";
 import "../parser/expression_set_literal_contract_owner.pgy";

@@ -1,0 +1,76 @@
+// One-time admission receipt for a materialized semantic body-type bundle.
+//
+// The semantic owner performs the graph-wide readiness proof exactly once.
+// Downstream codegen may compare this receipt with the same immutable bundle;
+// it must not reopen generic/call-return traversal at every consumer boundary.
+
+import "ast_body_type_bundle_owner.pgy";
+
+tobject SemanticAstBodyTypeBundleAdmissionReceipt {
+    schema: String;
+    admitted: Bool;
+    artifact_identity_digest: Int;
+    artifact_node_count: Int;
+    expression_graph_node_count: Int;
+    initializer_count: Int;
+    iteration_count: Int;
+    assignment_count: Int;
+    statement_count: Int;
+    generic_count: Int;
+}
+
+func SemanticAstBodyTypeBundleAdmissionSchema() -> String {
+    return "pgy.semantic-body-type-bundle-admission.v1";
+}
+
+func SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(
+    artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis,
+    ref bundle: SemanticAstBodyTypeBundle
+) -> SemanticAstBodyTypeBundleAdmissionReceipt {
+    let admitted: Bool = SemanticAstBodyTypeBundleReady(
+        artifact, analysis, bundle
+    );
+    return SemanticAstBodyTypeBundleAdmissionReceipt(
+        SemanticAstBodyTypeBundleAdmissionSchema(), admitted,
+        artifact.identity_digest, artifact.count,
+        SemanticExpressionGraphArenaNodeCount(
+            analysis.expression_surfaces.expression_graph.arena
+        ),
+        ArrayLength(bundle.initializer_types.node_ids),
+        ArrayLength(bundle.iteration_types.node_ids),
+        ArrayLength(bundle.assignment_types.node_ids),
+        ArrayLength(bundle.statement_types.node_ids),
+        ArrayLength(bundle.generic_specializations.call_node_ids)
+    );
+}
+
+func SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(
+    receipt: SemanticAstBodyTypeBundleAdmissionReceipt,
+    artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis,
+    ref bundle: SemanticAstBodyTypeBundle
+) -> Bool {
+    return receipt.admitted &&
+        receipt.schema == SemanticAstBodyTypeBundleAdmissionSchema() &&
+        SemanticAstArtifactAdmissionReady(
+            artifact, analysis, analysis.verdict.requires_entrypoint
+        ) && receipt.artifact_identity_digest == artifact.identity_digest &&
+        receipt.artifact_node_count == artifact.count &&
+        receipt.expression_graph_node_count ==
+            SemanticExpressionGraphArenaNodeCount(
+                analysis.expression_surfaces.expression_graph.arena
+            ) && bundle.verdict.ok && bundle.initializer_types.ok &&
+        bundle.iteration_types.ok && bundle.assignment_types.ok &&
+        bundle.statement_types.ok && bundle.generic_specializations.ok &&
+        receipt.initializer_count ==
+            ArrayLength(bundle.initializer_types.node_ids) &&
+        receipt.iteration_count ==
+            ArrayLength(bundle.iteration_types.node_ids) &&
+        receipt.assignment_count ==
+            ArrayLength(bundle.assignment_types.node_ids) &&
+        receipt.statement_count ==
+            ArrayLength(bundle.statement_types.node_ids) &&
+        receipt.generic_count ==
+            ArrayLength(bundle.generic_specializations.call_node_ids);
+}

@@ -1,5 +1,5 @@
-// Function/declaration scan and signature emission owner for self-host C emission.
 import "../text/text_owner.pgy";
+import "../text/owned_string_join_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/semantic_signature_codegen_view_owner.pgy";
 import "../input/generic_specialization_codegen_view_owner.pgy";
@@ -8,27 +8,13 @@ import "../input/semantic_nominal_codegen_view_owner.pgy";
 import "../input/callable_receiver_codegen_view_owner.pgy";
 import "../input/domain_runtime_codegen_view_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
-import "../../semantic/builtin_signature_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
-import "../runtime_abi/text_builder_runtime_owner.pgy";
 import "function_binding_env_owner.pgy";
+import "function_global_env_owner.pgy";
 import "role_receiver_binding_owner.pgy";
 import "stmt_emit.pgy";
-func ParamModeCsvAppend(csv: String, mode: Int) -> String {
-    let next: String = CodegenParamModeName(mode);
-    if StringLength(csv) == 0 {
-        return next;
-    }
-    return Concat(csv, Concat(",", next));
-}
-func ParamTypeCsvAppend(csv: String, type_name: String) -> String {
-    if StringLength(csv) == 0 {
-        return type_name;
-    }
-    return Concat(csv, Concat(",", type_name));
-}
 func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                    signatures: SemanticAstFunctionSignatureFacts,
                    roles: SemanticAstRoleFacts,
@@ -64,7 +50,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     let expected_param_count: Int = CodegenSemanticFunctionParamCountOrDie(
         signatures, signature_index
     );
-    let function_env_rows: Array<String> = [];
+    let function_env_rows: Array<String> = [Concat("", "|")];
     let env_state: Array<String> = [base_env.global_rows, ""];
     let prologue: String = "";
     let copyout: String = "";
@@ -204,13 +190,11 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     if param_n != expected_param_count {
         Die("semantic signature parameter count does not match AST traversal");
     }
-
     if cur[0] >= count || !CodegenAstArenaIsReturns(arena, cur[0]) {
         Die("expected Returns: line after parameters");
     }
-    ArraySet(
-        env_state, 1, Concat("|", StringJoin(function_env_rows, ""))
-    );
+    ArraySet(env_state, 1,
+        CodegenJoinOwnedStringFragments(function_env_rows, ""));
     let ret_type: String = CodegenGenericResolvedReturnTypeOrDie(
         signatures, signature_index, generic_actuals
     );
@@ -235,17 +219,8 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     );
 
     let signature: String = "";
-    let body_full: String = Concat(prologue, Concat(domain_runtime_prologue, Concat(body, Concat(routine_defers[0], copyout))));
     if is_main {
-        body_full = Concat(machine_startup, body_full);
         signature = HostIORuntimeCEntrypointSignature(uses_args);
-        if uses_args {
-            body_full = Concat(HostIORuntimeCArgsCapturePrefix(), Concat(
-                machine_startup, Concat(
-                    prologue, Concat(body, Concat(routine_defers[0], copyout))
-                )
-            ));
-        }
     } else {
         let param_list: String = params;
         if params == "" {
@@ -256,12 +231,40 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             Concat(" ", Concat(c_name, Concat("(", Concat(param_list, ")"))))
         );
     }
-
     let tail: String = "}\n";
     if is_main {
         tail = Concat("    return ", Concat(HostIORuntimeCEntrypointSuccessValue(), ";\n}\n"));
     }
-    return Concat(signature, Concat("\n{\n", Concat(body_full, tail)));
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(1024);
+    TextBuilderAppend(output, signature);
+    TextBuilderAppend(output, "\n{\n");
+    if is_main && uses_args {
+        TextBuilderAppend(output, HostIORuntimeCArgsCapturePrefix());
+        TextBuilderAppend(output, machine_startup);
+        TextBuilderAppend(output, prologue);
+    } else {
+        if is_main { TextBuilderAppend(output, machine_startup); }
+        TextBuilderAppend(output, prologue);
+        TextBuilderAppend(output, domain_runtime_prologue);
+    }
+    TextBuilderAppend(output, body);
+    TextBuilderAppend(output, routine_defers[0]);
+    TextBuilderAppend(output, copyout);
+    TextBuilderAppend(output, tail);
+    let definition: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    let owned_function_epoch: Array<String> = [body, env_state[1]];
+    if routine_defers[0] != "" {
+        ArrayPush(owned_function_epoch, routine_defers[0]);
+    }
+    if copyout != "" { ArrayPush(owned_function_epoch, copyout); }
+    if !is_main && signature != "" {
+        ArrayPush(owned_function_epoch, signature);
+    }
+    if is_main { ArrayPush(owned_function_epoch, tail); }
+    ArrayDropOwnedStrings(owned_function_epoch);
+    return definition;
 }
 
 func EmitFunction(count: Int, arena: AstArena,
@@ -284,143 +287,6 @@ func EmitFunction(count: Int, arena: AstArena,
         base_env, uses_args, machine_startup, "", no_actuals, domain_runtime
     );
 }
-func BuildFunctionEnv(
-    signatures: SemanticAstFunctionSignatureFacts,
-    specializations: CodegenGenericSpecializationFacts,
-    receiver_facts: CodegenCallableReceiverFacts
-) -> String {
-    let rows: Array<String> = ["|"];
-    ArrayPush(rows, CodegenCallableReceiverEnvRows(
-        receiver_facts, signatures
-    ));
-    let builtin_names: Array<String> = [];
-    let builtin_returns: Array<String> = [];
-    let builtin_params: Array<String> = [];
-    if !SeedSemanticBuiltinSignatures(
-        builtin_names, builtin_returns, builtin_params
-    ) {
-        Die("semantic builtin signature facts are invalid");
-    }
-    let builtin_index: Int = 0;
-    while builtin_index < ArrayLength(builtin_names) {
-        ArrayPush(rows, Concat(
-            builtin_names[builtin_index], Concat(
-                "=f:", Concat(builtin_returns[builtin_index], "|")
-            )
-        ));
-        builtin_index = builtin_index + 1;
-    }
-    ArrayPush(rows, Concat("AllocatorResult=call:", Concat(TextBuilderRuntimeCAllocatorResultFn(), "|")));
-    ArrayPush(rows, Concat("AllocatorDestroy=call:", Concat(TextBuilderRuntimeCAllocatorDestroyFn(), "|")));
-    ArrayPush(rows, Concat(TextBuilderRuntimeCAllocatorDestroyFn(), "=pm:ref|"));
-    ArrayPush(rows, Concat(TextBuilderRuntimeCAllocatorDestroyFn(), "=pt:Allocator|"));
-    ArrayPush(rows, Concat("TextBuilderNew=call:", Concat(TextBuilderRuntimeCNewFn(), "|")));
-    ArrayPush(rows, Concat("TextBuilderAppend=call:", Concat(TextBuilderRuntimeCAppendFn(), "|")));
-    ArrayPush(rows, Concat(TextBuilderRuntimeCAppendFn(), "=pm:inout,default|"));
-    ArrayPush(rows, Concat(TextBuilderRuntimeCAppendFn(), "=pt:TextBuilder,String|"));
-    ArrayPush(rows, Concat("TextBuilderFinish=call:", Concat(TextBuilderRuntimeCFinishFn(), "|")));
-    ArrayPush(rows, Concat(TextBuilderRuntimeCFinishFn(), "=pm:inout,ref|"));
-    ArrayPush(rows, Concat(TextBuilderRuntimeCFinishFn(), "=pt:TextBuilder,Allocator|"));
-    ArrayPush(rows, Concat("TextBuilderDrop=call:", Concat(TextBuilderRuntimeCDropFn(), "|")));
-    ArrayPush(rows, Concat(TextBuilderRuntimeCDropFn(), "=pm:inout|"));
-    ArrayPush(rows, Concat(TextBuilderRuntimeCDropFn(), "=pt:TextBuilder|"));
-    let i: Int = 0;
-    while i < SemanticAstFunctionSignatureCount(signatures) {
-        if CodegenSemanticFunctionGenericCountOrDie(signatures, i) > 0 {
-            i = i + 1;
-            continue;
-        }
-        let owner: String = CodegenSemanticFunctionOwnerOrDie(signatures, i);
-        let fname: String = CodegenSemanticFunctionNameOrDie(signatures, i);
-        let cname: String = CompilerSymbolCQualifiedName(owner, fname);
-        let modes: String = "";
-        let param_types: String = "";
-        let param_count: Int = CodegenSemanticFunctionParamCountOrDie(
-            signatures, i
-        );
-        let p: Int = 0;
-        while p < param_count {
-            modes = ParamModeCsvAppend(
-                modes, CodegenSemanticFunctionParamModeOrDie(signatures, i, p)
-            );
-            param_types = ParamTypeCsvAppend(
-                param_types,
-                CodegenSemanticFunctionParamTypeOrDie(signatures, i, p)
-            );
-            p = p + 1;
-        }
-        ArrayPush(rows, Concat(cname, Concat("=pm:", Concat(modes, "|"))));
-        ArrayPush(rows, Concat(cname, Concat("=pt:", Concat(param_types, "|"))));
-        let rtype: String = CodegenSemanticFunctionReturnTypeOrDie(signatures, i);
-        ArrayPush(rows, Concat(cname, Concat("=f:", Concat(rtype, "|"))));
-        if fname != cname {
-            ArrayPush(rows, Concat(fname, Concat("=call:", Concat(cname, "|"))));
-        }
-        let public_alias: String = CompilerSymbolCImportPublicName(cname);
-        if StringLength(public_alias) > 0 && public_alias != cname && public_alias != fname {
-            ArrayPush(rows, Concat(public_alias, Concat("=call:", Concat(cname, "|"))));
-        }
-        let local_alias: String = CompilerSymbolCLocalCallName(cname);
-        if StringLength(local_alias) > 0 && local_alias != cname &&
-            local_alias != fname && local_alias != public_alias {
-            ArrayPush(rows, Concat(local_alias, Concat("=call:", Concat(cname, "|"))));
-        }
-        i = i + 1;
-    }
-    i = 0;
-    while i < CodegenGenericSpecializationCount(specializations) {
-        let signature_index: Int = specializations.signature_indexes[i];
-        let c_name: String = specializations.c_names[i];
-        let actuals: Array<String> =
-            CodegenGenericSpecializationActuals(specializations, i);
-        let modes: String = "";
-        let param_types: String = "";
-        let p: Int = 0;
-        let param_count: Int = CodegenSemanticFunctionParamCountOrDie(
-            signatures, signature_index
-        );
-        while p < param_count {
-            modes = ParamModeCsvAppend(
-                modes, CodegenSemanticFunctionParamModeOrDie(
-                    signatures, signature_index, p
-                )
-            );
-            param_types = ParamTypeCsvAppend(
-                param_types, CodegenGenericResolvedParamTypeOrDie(
-                    signatures, signature_index, p, actuals
-                )
-            );
-            p = p + 1;
-        }
-        ArrayPush(rows, Concat(c_name, Concat("=pm:", Concat(modes, "|"))));
-        ArrayPush(rows, Concat(
-            c_name, Concat("=pt:", Concat(param_types, "|"))
-        ));
-        ArrayPush(rows, Concat(
-            c_name, Concat("=f:", Concat(
-                CodegenGenericResolvedReturnTypeOrDie(
-                    signatures, signature_index, actuals
-                ), "|"
-            ))
-        ));
-        ArrayPush(rows, Concat(
-            c_name, Concat("=rc:", Concat(
-                CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(
-                    receiver_facts, signature_index
-                ), "|"
-            ))
-        ));
-        if CodegenCallableReceiverRoleErasedForAdmittedSignatureOrDie(
-            receiver_facts, signature_index
-        ) {
-            ArrayPush(rows, Concat(c_name, "=rce:1|"));
-        }
-        i = i + 1;
-    }
-    ArrayPush(rows, CodegenGenericSpecializationCallEnvRows(specializations));
-    return StringJoin(rows, "");
-}
-
 func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
                    roles: SemanticAstRoleFacts,
                    receiver_facts: CodegenCallableReceiverFacts,
@@ -594,7 +460,7 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
         i = i + 1;
     }
     if ArrayLength(rows) > 0 {
-        ArrayPush(rows, "\n");
+        ArrayPush(rows, Concat("", "\n"));
     }
-    return StringJoin(rows, "");
+    return CodegenJoinOwnedStringFragments(rows, "");
 }

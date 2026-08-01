@@ -1,0 +1,130 @@
+// Program function-definition block owner.
+//
+// Function emission can materialize thousands of definitions. This owner
+// copies each completed definition into one builder and releases the temporary
+// string before advancing, so program-scale emission does not retain a second
+// array-backed copy of every function body.
+
+import "../text/text_owner.pgy";
+import "../input/semantic_kind_codegen_view_owner.pgy";
+import "../input/semantic_nominal_codegen_view_owner.pgy";
+import "generic_function_emit_owner.pgy";
+
+func CodegenProgramFunctionDefinitionBlock(
+    count: Int,
+    arena: AstArena,
+    signatures: SemanticAstFunctionSignatureFacts,
+    nominal_facts: SemanticAstNominalConstructorFacts,
+    roles: SemanticAstRoleFacts,
+    kind_surfaces: SemanticAstKindSurfaceFacts,
+    receiver_facts: CodegenCallableReceiverFacts,
+    local_bindings: SemanticAstLocalBindingFacts,
+    assignments: SemanticAstAssignmentFacts,
+    statements: SemanticAstStatementFacts,
+    ref body_types: CodegenSemanticBodyTypeFacts,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    specializations: CodegenGenericSpecializationFacts,
+    f_indent: Int,
+    base_env: CodegenTypeEnv,
+    machine_startup: String,
+    uses_args: Bool,
+    ref domain_runtime: CodegenDomainRuntimeFacts,
+    observe_pressure: Bool
+) -> String {
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(4096);
+    let definition_count: Int = 0;
+    let cur: Array<Int> = [0];
+    while cur[0] < count {
+        let cur_node: Int = cur[0];
+        let cur_indent: Int = CodegenAstArenaIndentOrDie(arena, cur_node);
+        if CodegenSemanticKindIs(
+            kind_surfaces, cur[0], TypedAstKindAbilityDeclTag()
+        ) {
+            let decl_node: Int = cur_node;
+            ArraySet(cur, 0, cur[0] + 1);
+            while cur[0] < count &&
+                CodegenAstArenaIsDescendantOf(arena, cur[0], decl_node) {
+                ArraySet(cur, 0, cur[0] + 1);
+            }
+        } else if CodegenSemanticNominalIs(nominal_facts, cur[0]) {
+            let owner_node: Int = cur_node;
+            ArraySet(cur, 0, cur[0] + 1);
+            while cur[0] < count &&
+                CodegenAstArenaIsDescendantOf(arena, cur[0], owner_node) {
+                if CodegenSemanticFunctionIs(signatures, cur[0]) {
+                    let method_indent: Int = CodegenAstArenaIndentOrDie(
+                        arena, cur[0]
+                    );
+                    let definition: String = EmitFunctionSet(
+                        count, arena, signatures, roles, receiver_facts,
+                        local_bindings, assignments, statements, body_types,
+                        expression_surfaces, specializations, cur, method_indent,
+                        base_env, machine_startup, uses_args, domain_runtime
+                    );
+                    if definition != "" {
+                        let owned_definition: Array<String> = [definition];
+                        TextBuilderAppend(output, owned_definition[0]);
+                        TextBuilderAppend(output, "\n");
+                        ArrayDropOwnedStrings(owned_definition);
+                        definition_count = definition_count + 1;
+                    }
+                } else {
+                    ArraySet(cur, 0, cur[0] + 1);
+                }
+            }
+        } else if CodegenSemanticRoleIs(roles, cur[0]) {
+            let role_owner_node: Int = cur_node;
+            ArraySet(cur, 0, cur[0] + 1);
+            while cur[0] < count &&
+                CodegenAstArenaIsDescendantOf(arena, cur[0], role_owner_node) {
+                if CodegenSemanticFunctionIs(signatures, cur[0]) {
+                    let method_indent: Int = CodegenAstArenaIndentOrDie(
+                        arena, cur[0]
+                    );
+                    let definition: String = EmitFunctionSet(
+                        count, arena, signatures, roles, receiver_facts,
+                        local_bindings, assignments, statements, body_types,
+                        expression_surfaces, specializations, cur, method_indent,
+                        base_env, machine_startup, uses_args, domain_runtime
+                    );
+                    if definition != "" {
+                        let owned_definition: Array<String> = [definition];
+                        TextBuilderAppend(output, owned_definition[0]);
+                        TextBuilderAppend(output, "\n");
+                        ArrayDropOwnedStrings(owned_definition);
+                        definition_count = definition_count + 1;
+                    }
+                } else {
+                    ArraySet(cur, 0, cur[0] + 1);
+                }
+            }
+        } else if CodegenSemanticFunctionIs(signatures, cur[0]) &&
+            cur_indent == f_indent {
+            let definition: String = EmitFunctionSet(
+                count, arena, signatures, roles, receiver_facts,
+                local_bindings, assignments, statements, body_types,
+                expression_surfaces, specializations, cur, f_indent,
+                base_env, machine_startup, uses_args, domain_runtime
+            );
+            if definition != "" {
+                let owned_definition: Array<String> = [definition];
+                TextBuilderAppend(output, owned_definition[0]);
+                TextBuilderAppend(output, "\n");
+                ArrayDropOwnedStrings(owned_definition);
+                definition_count = definition_count + 1;
+            }
+        } else {
+            ArraySet(cur, 0, cur[0] + 1);
+        }
+    }
+    if observe_pressure {
+        Log(Concat(
+            "[codegen-pressure-stage] definitions:done:",
+            ToString(definition_count)
+        ));
+    }
+    let block: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    return block;
+}

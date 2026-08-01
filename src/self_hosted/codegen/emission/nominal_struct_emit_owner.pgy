@@ -18,6 +18,7 @@ func CollectStructsSelected(
         Die("nominal declaration selection mask does not match semantic rows");
     }
     let typedefs: Array<String> = [];
+    let env_blocks: Array<String> = [];
     let dependency_env: CodegenTypeEnv =
         CodegenTypeEnvFromPresealRows(env_box[0], "");
     let i: Int = 0;
@@ -172,8 +173,11 @@ func CollectStructsSelected(
                 ))
             ));
         }
-        ArraySet(env_box, 0, Concat(env_box[0], StringJoin(struct_env_rows, "")));
+        ArrayPush(env_blocks, StringJoin(struct_env_rows, ""));
         i = i + 1;
+    }
+    if ArrayLength(env_blocks) > 0 {
+        ArraySet(env_box, 0, Concat(env_box[0], StringJoin(env_blocks, "")));
     }
     return StringJoin(typedefs, "");
 }

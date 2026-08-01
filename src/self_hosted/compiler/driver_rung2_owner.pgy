@@ -4,14 +4,10 @@ import "../semantic/ast_initializer_type_fact_owner.pgy";
 import "../semantic/ast_assignment_type_fact_owner.pgy";
 import "../semantic/ast_iteration_type_fact_owner.pgy";
 import "../semantic/ast_statement_type_fact_owner.pgy";
-import "../semantic/ast_statement_type_contract_owner.pgy";
 import "../semantic/ast_statement_type_query_owner.pgy";
 import "../semantic/ast_body_verdict_owner.pgy";
 import "../semantic/ast_body_type_bundle_owner.pgy";
-import "../semantic/ast_expression_surface_contract_owner.pgy";
-import "../semantic/ast_expression_graph_bridge_contract_owner.pgy";
-import "../semantic/ast_expression_call_target_contract_owner.pgy";
-import "../mir_lower/mir_fact_graph_contract_owner.pgy";
+import "../semantic/ast_body_type_bundle_admission_receipt_owner.pgy";
 import "../mir_lower/mir_json_input_owner.pgy";
 import "../mir_lower/program_lower.pgy";
 import "../mir_lower/expression_graph_fact_owner.pgy";
@@ -20,10 +16,7 @@ import "../mir_lower/generic_specialization_fact_owner.pgy";
 import "../mir/artifact_lower_owner.pgy";
 import "../mir/json_projection_owner.pgy";
 import "../mir/program_json_artifact_writer_owner.pgy";
-import "../mir/program_assignment_parameter_use_contract_owner.pgy";
 import "machine_layer_declaration_consumer.pgy";
-import "driver_rung2_readiness_owner.pgy";
-import "driver_rung2_semantic_fixture_manifest_owner.pgy";
 import "canonical_mir_identity_epoch_owner.pgy";
 import "domain_topology_graph_plan_consumer_owner.pgy";
 import "codegen_callable_receiver_bridge_owner.pgy";
@@ -31,6 +24,7 @@ import "driver_rung2_intent_consumer_owner.pgy";
 struct DriverRung2VerifiedFacts {
     analysis: SemanticAstArtifactAnalysis;
     body_types: SemanticAstBodyTypeBundle;
+    body_type_admission: SemanticAstBodyTypeBundleAdmissionReceipt;
 }
 struct DriverRung2MirProjection {
     facts: SelfMirProgramFacts;
@@ -40,12 +34,6 @@ func VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(
     artifact: AstTreeArtifact, semantic_analysis: SemanticAstArtifactAnalysis,
     observe_pressure: Bool
 ) -> DriverRung2VerifiedFacts {
-    DriverRung2PressureStage(observe_pressure, "readiness:start");
-    let readiness_error: String = CompilerDriverRung2ReadinessError();
-    if readiness_error != "" {
-        Die(Concat("driver rung-2 semantic facts are not ready: ", readiness_error));
-    }
-    DriverRung2PressureStage(observe_pressure, "readiness:done");
     if !semantic_analysis.verdict.ok {
         Log(semantic_analysis.verdict.diagnostic_message);
         Exit(1);
@@ -64,14 +52,20 @@ func VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(
             artifact, semantic_analysis, observe_pressure
         );
     DriverRung2PressureStage(observe_pressure, "body-types:done");
-    if !SemanticAstBodyTypeBundleReady(
-        artifact, semantic_analysis, body_types
+    let body_type_admission: SemanticAstBodyTypeBundleAdmissionReceipt =
+        SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(
+            artifact, semantic_analysis, body_types
+        );
+    if !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(
+        body_type_admission, artifact, semantic_analysis, body_types
     ) {
         Log(body_types.verdict.diagnostic_message);
         Exit(1);
     }
     DriverRung2PressureStage(observe_pressure, "body-types:ready");
-    return DriverRung2VerifiedFacts(semantic_analysis, body_types);
+    return DriverRung2VerifiedFacts(
+        semantic_analysis, body_types, body_type_admission
+    );
 }
 
 func VerifyArtifactAnalysisForDriverRung2Observed(
@@ -387,21 +381,33 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
     DriverRung2PressureStage(
         observe_pressure, "consumer:generic-specialization:done"
     );
+    // Body admission is the last legitimate consumer of the owned callable
+    // table strings. Codegen consumes signatures and the sealed body receipt,
+    // so retain no dead function-table epoch across C emission.
+    let codegen_analysis: SemanticAstArtifactAnalysis = verified.analysis;
+    let expired_function_tables: SemanticAstExpressionFunctionTableFacts =
+        codegen_analysis.function_tables;
+    SemanticAstExpressionFunctionTableFactsRelease(expired_function_tables);
+    codegen_analysis.function_tables = expired_function_tables;
+    DriverRung2PressureStage(
+        observe_pressure, "consumer:function-tables:released"
+    );
     DriverRung2PressureStage(observe_pressure, "consumer:codegen-view:start");
     let routine_identity_epoch: CanonicalMirRoutineIdentityEpoch =
         CanonicalMirRoutineIdentityEpochFromArtifact(admitted.routines,
-            artifact, verified.analysis.signatures);
+            artifact, codegen_analysis.signatures);
     if !routine_identity_epoch.ok { Die("canonical MIR routine identity epoch remap is invalid"); }
     let intent_expression_occurrences:
         MirExpressionSemanticOccurrenceIndex =
             DriverRung2IntentExpressionOccurrencesOrDie(
                 artifact, tree_emission.expression_order,
-                verified.analysis.expression_surfaces
+                codegen_analysis.expression_surfaces
             );
     let codegen_view: CodegenAdmittedCView = CodegenAdmittedCViewFromFactsOrDie(
-        admitted, verified.analysis, artifact, semantic_body_types,
-        mir_generic_specializations, intent_expression_occurrences,
-        routine_identity_epoch.source_syntax_ids);
+        admitted, codegen_analysis, artifact, semantic_body_types,
+        mir_generic_specializations, verified.body_type_admission,
+        intent_expression_occurrences,
+        routine_identity_epoch.source_syntax_ids, observe_pressure);
     DriverRung2PressureStage(observe_pressure, "consumer:codegen-view:done");
     let codegen_body_types: CodegenSemanticBodyTypeFacts = codegen_view.body_types;
     DriverRung2PressureStage(
@@ -411,9 +417,10 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
         "emitted-c",
         MirDomainTopologyGraphPlanAttachAdmittedToC(
             admitted, GenerateCFromVerifiedSemanticArtifact(
-                artifact, verified.analysis, codegen_body_types, codegen_view.receivers,
+                artifact, codegen_analysis, codegen_body_types, codegen_view.receivers,
                 codegen_view.domain_runtime, codegen_view.intent_execution,
-                admitted.machine_declaration, target_projection
+                admitted.machine_declaration, target_projection,
+                observe_pressure
             )
         ),
         target_projection.schema,

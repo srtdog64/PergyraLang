@@ -220,12 +220,12 @@ func MirExpressionGraphFactsForArtifactObserved(
                 "consumer:expression-graph:surface-row:", ToString(i)));
         }
     }
-    MirExpressionGraphFactPressureStage(observe_pressure,
-        "consumer:expression-graph:sequence:done");
     if order_i != order_count || !sequence.ok ||
         !SemanticExpressionGraphArenaReady(sequence.arena) {
         valid = false;
     }
+    MirExpressionGraphFactPressureStage(observe_pressure, Concat(
+        "consumer:expression-graph:sequence:done:valid:", ToString(valid)));
     let coverage_i: Int = 0;
     while coverage_i < instruction_count {
         let expression: MirProgramInstructionExpressionFact =
@@ -255,8 +255,8 @@ func MirExpressionGraphFactsForArtifactObserved(
         }
         coverage_i = coverage_i + 1;
     }
-    MirExpressionGraphFactPressureStage(observe_pressure,
-        "consumer:expression-graph:coverage:done");
+    MirExpressionGraphFactPressureStage(observe_pressure, Concat(
+        "consumer:expression-graph:coverage:done:valid:", ToString(valid)));
     let facts: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
         valid, roots, has_roots, sequence.arena
     );

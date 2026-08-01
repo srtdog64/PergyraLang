@@ -66,10 +66,10 @@ func SemanticAstInitializerTypePressureRow(
     stage: String,
     row: Int
 ) -> Void {
-    if enabled {
+    if enabled && stage == "row:done" && (row + 1) % 4096 == 0 {
         Log(Concat(
-            "[semantic-initializer-stage] ",
-            Concat(stage, Concat(":", ToString(row)))
+            "[semantic-initializer-stage] rows:done:",
+            ToString(row + 1)
         ));
     }
 }

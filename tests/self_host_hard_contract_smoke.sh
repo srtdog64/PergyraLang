@@ -183,6 +183,8 @@ require_text "src/compiler/mir_json_expression_graph_materialize.c" \
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'if kind == "float_literal" {'
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" \
+    'func CodegenExpressionGraphUsagePresenceFromSemantic('
+forbid_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" \
     'func CodegenSemanticCheckedIntegerCastTargetPresent('
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
     'if kind == AstExpressionNodeCast() &&'

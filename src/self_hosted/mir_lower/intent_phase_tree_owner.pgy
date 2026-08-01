@@ -60,6 +60,12 @@ func MirIntentPhaseAppendExpressionOrder(
         ) {
         return false;
     }
+    if phases.on_rows[step_index] != executable_on_row &&
+        !MirStructuredExpressionEmissionOrderCoverProducer(
+            order, phases.on_rows[step_index]
+        ) {
+        return false;
+    }
     let compensate_i: Int = 0;
     while compensate_i < phases.compensate_counts[step_index] {
         let row: Int = phases.compensate_starts[step_index] + compensate_i;

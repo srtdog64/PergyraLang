@@ -14,7 +14,8 @@ func GenerateCFromVerifiedSemanticArtifact(
     ref domain_runtime: CodegenDomainRuntimeFacts,
     ref intent_execution: CodegenIntentExecutionView,
     machine_declaration: SelfHostMachineLayerDeclaration,
-    target_projection: CompilerTargetProjectionFact
+    target_projection: CompilerTargetProjectionFact,
+    observe_pressure: Bool
 ) -> String {
     if !CompilerTargetProjectionFactReadyFor(
         target_projection, CompilerTargetCpuCProjection()
@@ -24,7 +25,7 @@ func GenerateCFromVerifiedSemanticArtifact(
     return GenerateCUnitFromReadySemanticFacts(
         artifact, semantic_analysis, body_types, receiver_facts,
         domain_runtime, intent_execution,
-        true, machine_declaration
+        true, machine_declaration, observe_pressure
     );
 }
 func GenerateCUnitFromSemanticArtifact(

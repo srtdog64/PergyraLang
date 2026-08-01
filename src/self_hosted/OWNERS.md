@@ -395,6 +395,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_body_type_bundle_owner.pgy` -- canonical
   one-pass assembly of initializer, iteration, assignment, and statement type
   facts plus readiness diagnostics consumed by driver and codegen projections.
+- `src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_owner.pgy` --
+  graph-wide body-type readiness admission performed once at the driver seam;
+  downstream codegen consumes its fixed-size receipt instead of revalidating
+  the cumulative semantic bundle.
 - `src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy` --
   body-fixpoint resolution of canonical expression call-target rows.
 - `src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy` --
@@ -1145,6 +1149,7 @@ inventory must not become a second fact-family owner registry.
   semantic nominal kind chooses pointer identity versus value carriage.
 - `src/self_hosted/codegen/run/codegen_run_owner.pgy` -- codegen CLI run boundary.
 - `src/self_hosted/codegen/text/text_owner.pgy` -- codegen expression scanning and unsupported-surface policy.
+- `src/self_hosted/codegen/text/owned_string_join_owner.pgy` -- consuming join for codegen-owned text fragments; only the joined result survives.
 - `src/self_hosted/codegen/text/enum_literal_owner.pgy` -- payload-free enum literal projection facts.
 - `src/self_hosted/codegen/text/expr_scan.pgy` -- expression text scanning.
 - `src/self_hosted/codegen/text/expr_sequence_owner.pgy` -- top-level comma-separated expression sequence facts.
@@ -1274,8 +1279,16 @@ inventory must not become a second fact-family owner registry.
   one function-value binding fact for source identity, semantic type, runtime
   kind, C name, and environment rows, plus implicit owner-field C binding rows
   derived from semantic locals and MIR-carried nominal declaration facts.
-- `src/self_hosted/codegen/emission/function_emit.pgy` -- function definition,
-  signature-environment, and prototype emission.
+- `src/self_hosted/codegen/emission/function_emit.pgy` -- function definition
+  and prototype emission.
+- `src/self_hosted/codegen/emission/function_global_env_owner.pgy` -- one-pass
+  serialization of admitted builtin, runtime, source, specialization, and
+  callable-receiver and intent rows into the immutable global codegen
+  environment.
+- `src/self_hosted/codegen/emission/program_function_definition_block_owner.pgy`
+  -- program-scale function-definition traversal and bounded materialization;
+  each completed function string is released after transfer to the block
+  builder instead of being retained in a parallel definitions array.
 - `src/self_hosted/codegen/emission/intent_emit_owner.pgy` -- distinct intent
   prototype/environment/definition emission for admitted participant bindings,
   zone rebinding, action execution, projection synchronization, and caller

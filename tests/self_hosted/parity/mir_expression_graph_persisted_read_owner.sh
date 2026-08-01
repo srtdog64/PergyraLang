@@ -29,10 +29,15 @@ positive="$($PROBE)"
 [[ "$positive" == *"persisted-graph-read=one-pass-exact"* ]] \
     || fail "positive graph reconstruction drifted"
 
+reordered="$($PROBE --reordered-fields)"
+[[ "$reordered" == *"persisted-graph-read=one-pass-exact"* ]] \
+    || fail "order-independent graph reconstruction drifted"
+
 for mode in \
     --duplicate-node-field \
     --unknown-header-field \
-    --unreachable-node; do
+    --unreachable-node \
+    --overflow-root; do
     negative="$($PROBE "$mode")"
     [[ "$negative" == *"persisted-graph-negative=closed"* ]] \
         || fail "negative graph was not rejected: $mode"

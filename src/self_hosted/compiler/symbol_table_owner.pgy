@@ -117,25 +117,29 @@ func CompilerSymbolCIdentifier(source_name: String) -> String {
         Exit(1);
         return "";
     }
-    let out: String = "";
+    let result_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(n + 5);
     let i: Int = 0;
     while i < n {
         let c: String = CompilerSymbolCharAt(name, i);
         if i == 0 {
             if CompilerSymbolCIdentStart(c) {
-                out = Concat(out, c);
+                TextBuilderAppend(output, c);
             } else if CompilerSymbolCIdentChar(c) {
-                out = Concat("_", c);
+                TextBuilderAppend(output, "_");
+                TextBuilderAppend(output, c);
             } else {
-                out = "_";
+                TextBuilderAppend(output, "_");
             }
         } else if CompilerSymbolCIdentChar(c) {
-            out = Concat(out, c);
+            TextBuilderAppend(output, c);
         } else {
-            out = Concat(out, "_");
+            TextBuilderAppend(output, "_");
         }
         i = i + 1;
     }
+    let out: String = TextBuilderFinish(output, result_allocator);
+    AllocatorDestroy(result_allocator);
     if CompilerSymbolCReservedWord(out) {
         return Concat("pgy_", out);
     }
@@ -160,15 +164,16 @@ func CompilerSymbolCImportPublicName(c_symbol: String) -> String {
 func CompilerSymbolCLocalCallName(c_symbol: String) -> String {
     let public_symbol: String = CompilerSymbolCImportPublicName(c_symbol);
     let last_underscore: Int = 0 - 1;
+    let public_symbol_length: Int = StringLength(public_symbol);
     let i: Int = 0;
-    while i < StringLength(public_symbol) {
-        if CompilerSymbolCharAt(public_symbol, i) == "_" {
+    while i < public_symbol_length {
+        if CharCode(public_symbol, public_symbol_length, i) == 95 {
             last_underscore = i;
         }
         i = i + 1;
     }
-    if last_underscore >= 0 && last_underscore + 1 < StringLength(public_symbol) {
-        return Substring(public_symbol, last_underscore + 1, StringLength(public_symbol) - last_underscore - 1);
+    if last_underscore >= 0 && last_underscore + 1 < public_symbol_length {
+        return Substring(public_symbol, last_underscore + 1, public_symbol_length - last_underscore - 1);
     }
     return public_symbol;
 }

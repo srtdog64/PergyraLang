@@ -1,0 +1,260 @@
+// One-pass global callable environment serialization for C emission.
+// The builder owns the only growing buffer; per-signature prefix strings are
+// never materialized or retained.
+
+import "../input/semantic_signature_codegen_view_owner.pgy";
+import "../input/generic_specialization_codegen_view_owner.pgy";
+import "../input/callable_receiver_codegen_view_owner.pgy";
+import "../text/text_owner.pgy";
+import "../runtime_abi/text_builder_runtime_owner.pgy";
+import "../../semantic/builtin_signature_owner.pgy";
+import "../../semantic/ast_intent_signature_fact_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+
+func BuildFunctionEnv(
+    signatures: SemanticAstFunctionSignatureFacts,
+    specializations: CodegenGenericSpecializationFacts,
+    receiver_facts: CodegenCallableReceiverFacts,
+    ref intents: SemanticAstIntentSignatureFacts
+) -> String {
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(16384);
+    TextBuilderAppend(output, "|");
+    if !CodegenCallableReceiverFactsAdmittedReady(
+        receiver_facts, signatures
+    ) {
+        Die("admitted callable receiver facts cannot populate the function environment");
+    }
+    // Admission already proved identity, uniqueness, and carriage semantics.
+    // Serialize that receipt once and retain each C name for the later
+    // signature rows instead of rebuilding the same symbol in a second pass.
+    let c_names: Array<String> = [];
+    let i: Int = 0;
+    while i < SemanticAstFunctionSignatureCount(signatures) {
+        let c_name: String = CompilerSymbolCQualifiedName(
+            receiver_facts.owners[i], receiver_facts.names[i]
+        );
+        ArrayPush(c_names, c_name);
+        TextBuilderAppend(output, c_name);
+        TextBuilderAppend(output, "=rc:");
+        TextBuilderAppend(output, receiver_facts.carriages[i]);
+        TextBuilderAppend(output, "|");
+        if receiver_facts.role_erased[i] {
+            TextBuilderAppend(output, c_name);
+            TextBuilderAppend(output, "=rce:1|");
+        }
+        i = i + 1;
+    }
+    let builtin_names: Array<String> = [];
+    let builtin_returns: Array<String> = [];
+    let builtin_params: Array<String> = [];
+    if !SeedSemanticOwnedBuiltinSignatures(
+        builtin_names, builtin_returns, builtin_params
+    ) {
+        Die("semantic builtin signature facts are invalid");
+    }
+    let builtin_index: Int = 0;
+    while builtin_index < ArrayLength(builtin_names) {
+        TextBuilderAppend(output, builtin_names[builtin_index]);
+        TextBuilderAppend(output, "=f:");
+        TextBuilderAppend(output, builtin_returns[builtin_index]);
+        TextBuilderAppend(output, "|");
+        builtin_index = builtin_index + 1;
+    }
+    ArrayDropOwnedStrings(builtin_names);
+    ArrayDropOwnedStrings(builtin_returns);
+    ArrayDropOwnedStrings(builtin_params);
+    TextBuilderAppend(output, "AllocatorResult=call:");
+    TextBuilderAppend(output, TextBuilderRuntimeCAllocatorResultFn());
+    TextBuilderAppend(output, "|AllocatorDestroy=call:");
+    TextBuilderAppend(output, TextBuilderRuntimeCAllocatorDestroyFn());
+    TextBuilderAppend(output, "|");
+    TextBuilderAppend(output, TextBuilderRuntimeCAllocatorDestroyFn());
+    TextBuilderAppend(output, "=pm:ref|");
+    TextBuilderAppend(output, TextBuilderRuntimeCAllocatorDestroyFn());
+    TextBuilderAppend(output, "=pt:Allocator|TextBuilderNew=call:");
+    TextBuilderAppend(output, TextBuilderRuntimeCNewFn());
+    TextBuilderAppend(output, "|TextBuilderAppend=call:");
+    TextBuilderAppend(output, TextBuilderRuntimeCAppendFn());
+    TextBuilderAppend(output, "|");
+    TextBuilderAppend(output, TextBuilderRuntimeCAppendFn());
+    TextBuilderAppend(output, "=pm:inout,default|");
+    TextBuilderAppend(output, TextBuilderRuntimeCAppendFn());
+    TextBuilderAppend(output, "=pt:TextBuilder,String|TextBuilderFinish=call:");
+    TextBuilderAppend(output, TextBuilderRuntimeCFinishFn());
+    TextBuilderAppend(output, "|");
+    TextBuilderAppend(output, TextBuilderRuntimeCFinishFn());
+    TextBuilderAppend(output, "=pm:inout,ref|");
+    TextBuilderAppend(output, TextBuilderRuntimeCFinishFn());
+    TextBuilderAppend(output, "=pt:TextBuilder,Allocator|TextBuilderDrop=call:");
+    TextBuilderAppend(output, TextBuilderRuntimeCDropFn());
+    TextBuilderAppend(output, "|");
+    TextBuilderAppend(output, TextBuilderRuntimeCDropFn());
+    TextBuilderAppend(output, "=pm:inout|");
+    TextBuilderAppend(output, TextBuilderRuntimeCDropFn());
+    TextBuilderAppend(output, "=pt:TextBuilder|");
+
+    i = 0;
+    while i < SemanticAstFunctionSignatureCount(signatures) {
+        if CodegenSemanticFunctionGenericCountOrDie(signatures, i) == 0 {
+            let name: String = receiver_facts.names[i];
+            let c_name: String = c_names[i];
+            TextBuilderAppend(output, c_name);
+            TextBuilderAppend(output, "=pm:");
+            let p: Int = 0;
+            let param_count: Int = CodegenSemanticFunctionParamCountOrDie(
+                signatures, i
+            );
+            while p < param_count {
+                if p > 0 { TextBuilderAppend(output, ","); }
+                TextBuilderAppend(output, CodegenParamModeName(
+                    CodegenSemanticFunctionParamModeOrDie(signatures, i, p)
+                ));
+                p = p + 1;
+            }
+            TextBuilderAppend(output, "|");
+            TextBuilderAppend(output, c_name);
+            TextBuilderAppend(output, "=pt:");
+            p = 0;
+            while p < param_count {
+                if p > 0 { TextBuilderAppend(output, ","); }
+                TextBuilderAppend(output,
+                    CodegenSemanticFunctionParamTypeOrDie(signatures, i, p)
+                );
+                p = p + 1;
+            }
+            TextBuilderAppend(output, "|");
+            TextBuilderAppend(output, c_name);
+            TextBuilderAppend(output, "=f:");
+            TextBuilderAppend(output,
+                CodegenSemanticFunctionReturnTypeOrDie(signatures, i)
+            );
+            TextBuilderAppend(output, "|");
+            if name != c_name {
+                TextBuilderAppend(output, name);
+                TextBuilderAppend(output, "=call:");
+                TextBuilderAppend(output, c_name);
+                TextBuilderAppend(output, "|");
+            }
+            let public_alias: String = CompilerSymbolCImportPublicName(c_name);
+            if public_alias != "" && public_alias != c_name &&
+                public_alias != name {
+                TextBuilderAppend(output, public_alias);
+                TextBuilderAppend(output, "=call:");
+                TextBuilderAppend(output, c_name);
+                TextBuilderAppend(output, "|");
+            }
+            let local_alias: String = CompilerSymbolCLocalCallName(c_name);
+            if local_alias != "" && local_alias != c_name &&
+                local_alias != name && local_alias != public_alias {
+                TextBuilderAppend(output, local_alias);
+                TextBuilderAppend(output, "=call:");
+                TextBuilderAppend(output, c_name);
+                TextBuilderAppend(output, "|");
+            }
+        }
+        i = i + 1;
+    }
+    ArrayDropOwnedStrings(c_names);
+    i = 0;
+    while i < CodegenGenericSpecializationCount(specializations) {
+        let signature_index: Int = specializations.signature_indexes[i];
+        let c_name: String = specializations.c_names[i];
+        let actuals: Array<String> =
+            CodegenGenericSpecializationActuals(specializations, i);
+        TextBuilderAppend(output, c_name);
+        TextBuilderAppend(output, "=pm:");
+        let p: Int = 0;
+        let param_count: Int = CodegenSemanticFunctionParamCountOrDie(
+            signatures, signature_index
+        );
+        while p < param_count {
+            if p > 0 { TextBuilderAppend(output, ","); }
+            TextBuilderAppend(output, CodegenParamModeName(
+                CodegenSemanticFunctionParamModeOrDie(
+                    signatures, signature_index, p
+                )
+            ));
+            p = p + 1;
+        }
+        TextBuilderAppend(output, "|");
+        TextBuilderAppend(output, c_name);
+        TextBuilderAppend(output, "=pt:");
+        p = 0;
+        while p < param_count {
+            if p > 0 { TextBuilderAppend(output, ","); }
+            TextBuilderAppend(output, CodegenGenericResolvedParamTypeOrDie(
+                signatures, signature_index, p, actuals
+            ));
+            p = p + 1;
+        }
+        TextBuilderAppend(output, "|");
+        TextBuilderAppend(output, c_name);
+        TextBuilderAppend(output, "=f:");
+        TextBuilderAppend(output, CodegenGenericResolvedReturnTypeOrDie(
+            signatures, signature_index, actuals
+        ));
+        TextBuilderAppend(output, "|");
+        TextBuilderAppend(output, c_name);
+        TextBuilderAppend(output, "=rc:");
+        TextBuilderAppend(output,
+            CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(
+                receiver_facts, signature_index
+            )
+        );
+        TextBuilderAppend(output, "|");
+        if CodegenCallableReceiverRoleErasedForAdmittedSignatureOrDie(
+            receiver_facts, signature_index
+        ) {
+            TextBuilderAppend(output, c_name);
+            TextBuilderAppend(output, "=rce:1|");
+        }
+        i = i + 1;
+    }
+    i = 0;
+    while i < ArrayLength(specializations.call_node_ids) {
+        TextBuilderAppend(output, "$generic_call_node_");
+        TextBuilderAppend(output, ToString(specializations.call_node_ids[i]));
+        TextBuilderAppend(output, "=call:");
+        TextBuilderAppend(output, specializations.call_c_names[i]);
+        TextBuilderAppend(output, "|");
+        i = i + 1;
+    }
+    i = 0;
+    while i < SemanticAstIntentSignatureCount(intents) {
+        let name: String = intents.names[i];
+        TextBuilderAppend(output, name);
+        TextBuilderAppend(output, "=f:");
+        TextBuilderAppend(output, intents.return_type_names[i]);
+        TextBuilderAppend(output, "|");
+        TextBuilderAppend(output, name);
+        TextBuilderAppend(output, "=pm:");
+        let p: Int = 0;
+        while p < intents.param_counts[i] {
+            if p > 0 { TextBuilderAppend(output, ","); }
+            let row: Int = intents.param_starts[i] + p;
+            if intents.param_is_values[row] {
+                TextBuilderAppend(output, "default");
+            } else {
+                TextBuilderAppend(output, "inout");
+            }
+            p = p + 1;
+        }
+        TextBuilderAppend(output, "|");
+        TextBuilderAppend(output, name);
+        TextBuilderAppend(output, "=pt:");
+        p = 0;
+        while p < intents.param_counts[i] {
+            if p > 0 { TextBuilderAppend(output, ","); }
+            TextBuilderAppend(
+                output, intents.param_types[intents.param_starts[i] + p]
+            );
+            p = p + 1;
+        }
+        TextBuilderAppend(output, "|");
+        i = i + 1;
+    }
+    let rows: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    return rows;
+}
