@@ -371,10 +371,11 @@ def validate_layer_inputs(root: pathlib.Path) -> None:
             fail(f"{rel}: codegen reopened semantic source loading")
 
     allowed_bridge = "src/self_hosted/codegen/emission/program_entry_owner.pgy"
-    if artifact_bridge_refs != [allowed_bridge]:
+    artifact_bridge_owners = sorted(set(artifact_bridge_refs))
+    if artifact_bridge_owners != [allowed_bridge]:
         fail(
             "self-host codegen AST-text bridge drifted; expected only "
-            f"{allowed_bridge}, got {artifact_bridge_refs}"
+            f"{allowed_bridge}, got {artifact_bridge_owners}"
         )
 
     native_codegen = root / "src/codegen"

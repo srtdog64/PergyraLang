@@ -195,12 +195,6 @@ func CheckCUnitFromSemanticArtifact(
     if require_entrypoint && !saw_function { Die("no function found in AST"); }
     return true;
 }
-func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(tree_text);
-    return CheckCUnitFromSemanticArtifact(
-        artifact, SemanticAstArtifactAnalyzeCompactBridge(artifact, require_entrypoint), require_entrypoint
-    );
-}
 // Ready core for an analysis admitted by the semantic owner. The semantic
 // fact-family arrays are immutable in this call graph.  Keep this core free of
 // whole-artifact reconstruction: the fixed-size artifact identity is checked

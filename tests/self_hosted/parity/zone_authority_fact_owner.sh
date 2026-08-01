@@ -48,4 +48,4 @@ probe_err="$BUILD_DIR/probe.err"
 grep -Fq 'zone-authority-carriage=PASS' "$probe_out" \
     || { cat "$probe_out" "$probe_err" >&2; fail "probe lost PASS marker"; }
 
-echo "[self-host-zone-authority] semantic carriage + DIR no-rescan: PASS"
+echo "[self-host-zone-authority] semantic identity carriage + admitted mutation negatives + DIR no-rescan: PASS"

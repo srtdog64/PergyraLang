@@ -50,6 +50,14 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
         AstTreeArtifactFromText(tree_text), require_entrypoint
     );
 }
+func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(tree_text);
+    return CheckCUnitFromSemanticArtifact(
+        artifact,
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, require_entrypoint),
+        require_entrypoint
+    );
+}
 func GenerateCUnitFromAstArtifact(
     artifact: AstTreeArtifact,
     require_entrypoint: Bool

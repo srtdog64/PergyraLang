@@ -2,12 +2,14 @@
 # Binds the bounded Coq SoT authority model to the first live typed-expression
 # substitution slice. This is source-consistency evidence, not extraction.
 # Retired copied MIR topology fallbacks named by the CLOSED registry row:
+# SelfMirExpressionGraphRows.graph
 # SelfMirExpressionGraphRows.node_kinds
 # SelfMirExpressionGraphRows.node_texts
 # SelfMirExpressionGraphRows.left_children
 # SelfMirExpressionGraphRows.right_children
 # SelfMirExpressionGraphRows.call_target_kinds
 # SelfMirExpressionGraphRows.call_target_names
+# SemanticExpressionGraphFactsEqual(
 
 set -euo pipefail
 

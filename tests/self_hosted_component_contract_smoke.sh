@@ -7921,7 +7921,7 @@ require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix
 reject_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" "GenerateC(tree_text: String)"
 reject_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "AstTreeArtifactFromText(tree_text)"
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "GenerateCUnit(tree_text, true)"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CheckCUnit(tree_text: String, require_entrypoint: Bool)"
+require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" "CheckCUnit(tree_text: String, require_entrypoint: Bool)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" 'import "../runtime_abi/host_io_runtime_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "RejectUnsupportedCodegenBuiltins(artifact.tree_text)"
 reject_function_text "src/self_hosted/codegen/emission/program_emit.pgy" \
