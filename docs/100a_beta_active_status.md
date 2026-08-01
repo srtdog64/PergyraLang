@@ -67,6 +67,18 @@ and passes the aggregate by value. C and LLVM both print `11`; cyclic routine
 order is artifact-equal and sixteen parameter/call/use/ABI/CFG mutations fail
 before publication. Installed public C and LLVM compile/run use this frontier.
 
+Direct LLVM nominal-struct parameter update (2026-08-02):
+`struct_literal_call_argument.pgy` now obtains `Vec2` and nested `Line` physical
+receipts from one program-owned topological layout owner. The `Line` formal
+parameter cross-seals the exact declaration receipt; native and self MIR agree
+on field order, types, layout, and parameter schema without requiring their
+producer-local syntax IDs to be numerically equal. One target-neutral
+row-order-independent plan preserves real `Twice` and `Width(Line)` calls. C
+and LLVM both print `6`; routine/declaration permutations are artifact-equal,
+and fifteen declaration/ABI/call/lifetime mutations fail before publication.
+Installed public C and LLVM compile/run use this frontier as bounded
+target-specific `SUBSTITUTING` evidence.
+
 Installed LLVM substitution update (2026-08-01): plain public LLVM binary
 requests use the sibling Pergyra-built driver for exactly one source-to-MIR
 production and one direct LLVM projection. `clang -x ir` is the only final host
@@ -75,11 +87,12 @@ closed. Missing, unsupported, producer/projector, malformed-IR, and unresolved-
 runtime cases fail without publishing a new or stale binary. This is executable
 `SUBSTITUTING` evidence for the sealed runtime-free Option, local `Array<Int>`,
 the bounded two-routine Array return, and three-routine Array parameter
-frontiers. It is not evidence for general, heap-backed, runtime-bearing, or
-arbitrary multi-routine programs. The next falsifier is
-`struct_literal_call_argument.pgy`: its `Line` value parameter currently has no
-carried physical ABI receipt and must fail closed rather than invite backend
-layout guesses.
+frontiers, including the bounded three-routine nominal-struct parameter slice.
+It is not evidence for general, heap-backed, runtime-bearing, or arbitrary
+multi-routine programs. The next falsifier is `struct_literal_value_flow.pgy`:
+its `Pair` declaration has a physical receipt, but the aggregate routine return
+and local SSA definitions do not yet carry it and must fail closed rather than
+invite backend type-spelling reconstruction.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:

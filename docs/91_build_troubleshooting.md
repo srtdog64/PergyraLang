@@ -4029,3 +4029,53 @@ receipt parity, 같은 self-host MIR의 C/LLVM execution, routine permutation, r
 ABI ID와 missing ABI를 포함한 16 negatives를 실행한다. 일반 build 성능이나 메모리
 문제로 확대하지 말고, 다음 nominal aggregate가 `abi_layout_required=false`로 나오면
 그 nominal declaration/layout owner를 다음 falsifier로 기록한다.
+
+## Named struct parameter가 declaration과 다른 ABI로 보이는 경우
+
+`struct_literal_call_argument.pgy`의 첫 MIR은 `Vec2`/`Line` field 의미는 갖고
+있었지만 `Line` formal parameter가 ID 0, required false, null layout이었다. 이를
+backend가 C struct나 LLVM aggregate 규칙으로 보충하면 두 backend가 각각 물리
+권위가 된다. 해법은 program declaration graph를 topological order로 한 번 계산해
+complete nominal receipt만 발행하고, parameter가 그 exact declaration receipt를
+운반하게 하는 것이다.
+
+- 현재 admitted leaf는 Pergyra `Int`의 4-byte/4-align 언어 ABI와 이미 해결된
+  nested value struct다. Unsupported/cyclic declaration은 row를 추측하지 않는다.
+- `Vec2`는 size 8/align 4/ID `669680999`, `Line`은 size 16/align 4/ID
+  `643231747`이다. Field order, type, offset, size, align과 content ID를 함께 검증한다.
+- Native/self syntax ID는 서로 다른 arena의 local representation이므로 숫자
+  equality를 요구하지 않는다. 대신 각 producer에서 positive/local unique인지와
+  semantic field/layout 교차봉인을 확인한다.
+- 같은 MIR을 backend마다 다시 생성하지 않는다. Source-to-MIR 한 번 뒤 C/LLVM을
+  각각 한 번 투영하고, routine/declaration permutation artifact equality를 본다.
+- Named-struct candidate가 분류된 뒤 Array plan을 retry하거나 backend가 type
+  spelling으로 layout을 복원하면 negative ratchet 위반이다.
+
+최종 focused gate는 exact `6`, 세 permutation, 15개 pre-artifact negative를
+통과했다. 설치 C/LLVM 경로도 같은 frontier를 사용한다. 이 결과는 aggregate
+return/local ABI까지 닫혔다는 뜻이 아니다. 바로 다음
+`struct_literal_value_flow.pgy`는 declaration receipt만 있고 routine return과 local
+SSA definition receipt가 없어 fail-closed한다.
+
+## `ArrayPush` 뒤 self-host driver가 Windows access violation으로 끝나는 경우
+
+Nominal layout owner를 처음 추가했을 때 source parse가 아니라 generated driver
+실행 중 access violation이 났다. 원인은 메모리 총량이나 누적 graph 검증이 아니라,
+growable `Array<T>` descriptor를 포함한 struct snapshot을 만든 뒤 그 snapshot의
+field에 `ArrayPush`를 수행하고 오래된 descriptor를 계속 읽은 것이었다. Push가
+storage를 재할당하면 이전 descriptor copy는 최신 pointer/capacity를 소유하지 않는다.
+
+수정 규칙은 다음과 같다.
+
+- Grow 가능한 각 array를 owner 시작 시 local handle로 꺼내고, 이후 push/set/read와
+  nested resolver 전달은 그 최신 local handle만 사용한다.
+- 모든 mutation이 끝난 뒤 최신 handle들로 result struct를 한 번 재조립한다.
+- Push 이전의 outer struct snapshot이나 그 field expression을 mutation 이후
+  lookup/read authority로 재사용하지 않는다.
+- Access violation을 메모리 hard-cap 문제로 오분류해 cap, cache, shard, worker를
+  추가하지 않는다. 누적 graph 반복검증 결함과 stale growable-handle 결함은 서로
+  다른 원인과 gate를 가진다.
+
+이 rung에서는 위 수정 뒤 DRV-2가 96.2초에 설치됐고 focused/installed/hard/component
+gate가 통과했다. Memory pressure는 측정하지 않았으므로 과거 peak를 이 binary에
+붙이지 않는다.

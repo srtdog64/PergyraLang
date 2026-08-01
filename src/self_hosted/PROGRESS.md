@@ -1,32 +1,31 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-08-02 named-struct parameter ABI
+## Active self-host context — 2026-08-02 named-struct return/local value ABI
 
-- Executable checkpoint `48c89486` closes the bounded three-routine
-  `array_literal_call_argument.pgy` slice. One 6,730-byte self-host MIR drives
-  real C and LLVM calls and exact output `11`; installed public C and LLVM
-  compile/run use the same sibling Pergyra-built driver.
-- Native and self-host producers carry identical nine-field formal parameter
-  rows. Required `Array<Int>` layout is a complete receipt, while scalar `Int`
-  explicitly carries no physical row. String and streaming MIR JSON share one
-  routine-parameter projection owner.
-- The target-neutral program/graph/plan owners are routine-order independent,
-  preserve `Double` and `SumPair` calls, give Main ownership of fixed backing
-  storage, and reject sixteen parameter/call/use/ABI/CFG mutations before
-  artifact publication.
-- Installed driver: 3,600,851 bytes, SHA-256
-  `00F2A1AE08474F43F3AEEE713D6B6C05CBBA077CABAA5BF6B346C35AC0CDD7E3`;
-  current-source DRV-2 rebuild 95.4 seconds, memory not measured.
-- The sole next executable rung is `struct_literal_call_argument.pgy`, expected
-  output `6`. Its first 10,121-byte self-host MIR succeeds, but `Line` is a
-  by-value aggregate parameter with no carried layout (`id=0`, required false,
-  null row), and direct C therefore fails closed. The next change must make the
-  nominal declaration/layout owner carry that receipt; backends may not guess
-  offsets or flatten the calls.
-- Latest green includes the new native/self ABI plus C/LLVM/16-negative gate,
-  installed C and LLVM paths, local/returned Array regressions, hard contract,
-  and full component ratchet. Full CI, Coq, and current-source fixed point were
-  not rerun.
+- Executable checkpoint `a891851b` closes bounded
+  `struct_literal_call_argument.pgy`. One 11,092-byte self-host MIR drives real
+  `Twice`, `Width(Line)`, and `Main` C/LLVM calls and exact output `6`; installed
+  public C and LLVM compile/run use the same sibling Pergyra-built driver.
+- Program-owned layout capture carries `Vec2` 8/4 ID `669680999` and nested
+  `Line` 16/4 ID `643231747`. The formal `Line` parameter cross-seals the exact
+  declaration receipt. Producer-local syntax IDs remain representation-local;
+  semantic field order/type/layout and positive/local uniqueness are gated.
+- One row-order-independent target-neutral program/graph/plan feeds both
+  emitters. Fifteen ABI, declaration, call-edge, expression, and lifetime
+  mutations fail before artifact publication; backend layout guessing, call
+  flattening, Array retry, and native semantic/codegen re-entry are forbidden.
+- Installed driver: 3,655,177 bytes, SHA-256
+  `D8924C6F2C63ED69277EFBD42F86753BF0E03AF033D7962D3FD9F0222F5DDC8B`;
+  current-source DRV-2 rebuild 96.2 seconds, memory not measured.
+- The sole next executable rung is `struct_literal_value_flow.pgy`, expected
+  output `11`. Source-to-MIR succeeds as 10,325 bytes, SHA-256
+  `DBE394E18B092C43B4CDBC7E4DBE918485C678E3A1528D737753D64B1C9272F5`,
+  but direct C fails before artifact publication. `Pair` declaration ABI exists;
+  `BuildPair` return and the first/latest aggregate local definitions do not
+  carry it. The next change projects that one receipt onto those facts.
+- Latest green includes focused C/LLVM/permutation/15-negative execution,
+  installed C and LLVM, hard contract, and full component ratchet. Full CI,
+  Coq, and current-source fixed point were not rerun.
 
 ## Historical self-host ledger — inactive navigation evidence
 

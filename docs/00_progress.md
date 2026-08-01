@@ -2,32 +2,32 @@
 
 마지막 업데이트: 2026-08-02
 
-## 활성 우선순위 — 첫 named-struct parameter ABI carriage
+## 활성 우선순위 — named-struct return/local value ABI carriage
 
-- 실행 체크포인트는 `48c89486`이다. `array_literal_call_argument.pgy`의
-  `Double`, `SumPair`, `Main`은 하나의 6,730-byte self-host MIR을 C와 LLVM이
-  소비해 모두 정확히 `11`을 출력한다. Public installed C/LLVM compile/run도
-  이 경로를 사용하며 target-specific `SUBSTITUTING`이다.
-- Native/self MIR의 formal parameter row는 이제 name/type/carriage/resource/pass와
-  ABI type/ID/required/layout의 아홉 필드가 일치한다. `Array<Int>`는 전체
-  32-byte layout receipt를 운반하고 backend는 이를 재구성하지 않는다.
-- Main이 fixed `int32_t` storage를 소유하고 Array aggregate를 value로 전달한다.
-  C와 LLVM 모두 `Double(4)`와 `SumPair(...)`의 실제 호출을 유지한다.
-- Focused gate는 native/self parameter ABI parity, routine-order cycle의 artifact
-  equality, exact `11`, 16개 pre-artifact negative를 검증한다. 기존 local Array와
-  Array-return, installed C/LLVM, hard contract, full component ratchet도 green이다.
-- 설치 드라이버는 3,600,851 bytes, SHA-256
-  `00F2A1AE08474F43F3AEEE713D6B6C05CBBA077CABAA5BF6B346C35AC0CDD7E3`다.
-  Current-source rebuild는 95.4초였고 메모리는 계측하지 않았다.
-- 다음 활성 fixture는 `struct_literal_call_argument.pgy`이며 예상 출력은 `6`이다.
-  첫 10,121-byte self-host MIR은 생성됐지만 `Line` value parameter가 아직
-  `abi_layout_id=0`, `abi_layout_required=false`, `abi_layout=null`이라 direct C가
-  fail-closed했다. 다음 owner는 nominal declaration identity와 nested struct의
-  명시적 physical ABI receipt를 결합해야 한다.
-- Backend별 offset 추측, false인 required flag를 aggregate fallback으로 해석,
-  call flattening, name/row special case, native 재진입, Array plan retry를 금지한다.
-  다음 falsifier는 native/self layout parity, 같은 MIR의 C/LLVM exact `6`, routine
-  permutation, nested field/offset/type와 call-edge/lifetime negative다.
+- 실행 체크포인트 `a891851b`는 `struct_literal_call_argument.pgy`를 닫았다.
+  하나의 11,092-byte self-host MIR이 실제 `Twice`, `Width(Line)`, `Main`을 C와
+  LLVM으로 투영하고 모두 정확히 `6`을 출력한다. Public installed C/LLVM
+  compile/run도 이 target-specific `SUBSTITUTING` 경로를 사용한다.
+- Program-owned nominal layout owner가 `Vec2` 8/4, ID `669680999`와 nested
+  `Line` 16/4, ID `643231747`을 계산한다. `Line` formal parameter는 declaration의
+  전체 receipt를 운반하며 backend는 offset을 재구성하지 않는다.
+- Native/self는 field order/type/layout과 parameter schema를 교차 봉인한다.
+  Producer-local syntax ID의 숫자 동일성은 계약이 아니며 positive/local unique만
+  요구한다. Routine/declaration 순서를 함께 바꿔도 C/LLVM artifact는 byte-equal이다.
+- Focused gate는 exact `6`과 15개 pre-artifact negative를 검증했다. Installed
+  C/LLVM, hard contract, full component ratchet도 최종 소스에서 green이다.
+- 설치 드라이버는 3,655,177 bytes, SHA-256
+  `D8924C6F2C63ED69277EFBD42F86753BF0E03AF033D7962D3FD9F0222F5DDC8B`다.
+  Current-source rebuild는 96.2초였고 메모리는 계측하지 않았다.
+- 다음 활성 fixture는 `struct_literal_value_flow.pgy`이며 예상 출력은 `11`이다.
+  10,325-byte MIR 생성은 성공하지만 direct C는 Array-return envelope에서
+  fail-closed하고 artifact를 만들지 않는다. `Pair` declaration은 8/4 receipt와
+  ID `674136663`을 갖지만 `BuildPair` return 및 `pair.1`/`built.1` aggregate
+  definition에는 그 receipt가 없다.
+- 다음 owner는 declaration receipt를 routine return과 local SSA definition에
+  투영한다. Backend type-spelling 추론, expression-text assignment 복원,
+  `BuildPair(pair.right)` flattening, missing aggregate ABI의 scalar 취급,
+  Array-return 재시도, old/new dual read를 금지한다.
 - Full CI, Coq adequacy, current-source gen2==gen3 fixed point는 이번 checkpoint에서
   재실행하지 않았다. 메모리는 semantic target의 final maximum만 기록하며
   2.4/3 GiB attention/hard-stop 정책을 유지한다.

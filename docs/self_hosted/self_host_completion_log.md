@@ -6,6 +6,36 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-02 - Named-struct parameter ABI reaches installed C and LLVM
+
+- Closed `struct_literal_call_argument.pgy` as a bounded three-routine nominal
+  value-parameter slice. One 11,092-byte self-host MIR drives real `Twice`,
+  `Width(Line)`, and `Main` in C and LLVM; both executables print exact `6`.
+- Added one program-owned topological nominal-layout capture. `Vec2` is 8/4
+  with ID `669680999`; `Line(Vec2, Vec2)` is 16/4 with ID `643231747`.
+  The formal `Line` parameter carries the exact declaration receipt instead of
+  inviting either backend to infer physical offsets.
+- Native and self MIR cross-seal field order/types/layout and the complete
+  parameter schema. Syntax IDs remain producer-local representations and are
+  gated for positive/local uniqueness rather than false numeric equality.
+- Added row-order-independent nominal declaration, expression graph, program
+  identity, target-neutral plan, and C/LLVM emission owners. Neither emitter
+  flattens `Twice(1)` or `Width(Line{...})`, re-enters native semantics, or
+  retries the older Array plan after nominal-struct classification.
+- The focused gate proves routine/declaration/combined permutation equality and
+  rejects fifteen declaration, ABI, parameter, call-edge, graph, and lifetime
+  mutations before artifact publication. Installed C/LLVM, hard substitution,
+  and the full component ratchet are green.
+- Refreshed the installed driver in 96.2 seconds. The 3,655,177-byte binary has
+  SHA-256 `D8924C6F2C63ED69277EFBD42F86753BF0E03AF033D7962D3FD9F0222F5DDC8B`;
+  memory was intentionally not measured. Full CI, Coq, and current-source
+  gen2==gen3 fixed point were not rerun.
+- Next observed falsifier is `struct_literal_value_flow.pgy`, expected `11`.
+  Its 10,325-byte MIR is produced successfully, but direct C fails closed with
+  no artifact. The `Pair` declaration receipt exists while `BuildPair` return
+  and the first/latest aggregate local definitions do not carry it. That
+  return/local carriage is the next single owner seam.
+
 ## 2026-08-02 - Formal Array parameter ABI reaches installed C and LLVM
 
 - Closed `array_literal_call_argument.pgy` as the first bounded three-routine
