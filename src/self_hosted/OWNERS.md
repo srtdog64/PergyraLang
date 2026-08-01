@@ -1742,9 +1742,28 @@ inventory must not become a second fact-family owner registry.
   `--backend=c` compile/run envelope after the native selector admits it. The
   native `c_runner` may consume that artifact only for host compile/link and
   optional execution; it cannot re-enter parser, semantic, MIR, AIR, or native
-  codegen as a fallback. Pipeline ownership remains in `driver_rung2_owner.pgy`;
-  test fixture manifests are excluded from this import graph. This target-
-  specific substitution does not claim the released LLVM or package paths.
+  codegen as a fallback. Its verified source-to-MIR and direct-MIR LLVM modes
+  also own the admitted runtime-free public `--backend=llvm` artifact pair;
+  the native launcher may only select that pair, invoke it once per stage, and
+  pass the resulting textual IR to clang. Pipeline ownership remains in
+  `driver_rung2_owner.pgy`; test fixture manifests are excluded from this
+  import graph. This target-specific substitution does not claim runtime-
+  bearing LLVM programs or package paths.
+- `src/compiler/driver_self_host_selection_owner.c` -- native launcher's one
+  policy owner for deciding whether a plain C/LLVM binary request is inside an
+  installed self-host artifact envelope. Unsupported options fail closed and
+  cannot fall through to the native semantic/backend pipeline.
+- `src/compiler/compiler_transient_artifact_workspace.c` -- private transient
+  artifact directory lifetime owner shared by the C and LLVM installed-driver
+  runners. It owns path allocation and cleanup, not semantic or backend facts.
+- `src/compiler/self_host_llvm_driver.c` -- installed self-host LLVM materializer
+  boundary. It invokes exactly one verified source-to-MIR producer and one
+  direct-MIR LLVM projector, then rejects runtime references until a runtime
+  profile is explicitly admitted.
+- `src/compiler/compiler_self_host_artifact.c` -- final host compiler boundary
+  for admitted self-host C and runtime-free textual LLVM artifacts. It accepts
+  no AST, MIR, AIR, libLLVM, or runtime-owner input and cannot claim projection
+  identity.
 - `src/self_hosted/compiler/driver_rung2_execution_owner.pgy` -- reachable
   identity-bearing action boundary for the direct-MIR rung. It owns request-
   to-target admission, exact emitted-artifact acceptance, output write, and

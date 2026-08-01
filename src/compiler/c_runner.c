@@ -5,136 +5,17 @@
 
 #include "c_runner.h"
 
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#ifdef _WIN32
-#include <direct.h>
-#include <process.h>
-#define getpid _getpid
-#define pgy_mkdir_private(path) _mkdir(path)
-#define pgy_rmdir(path)         _rmdir(path)
-#else
-#include <unistd.h>
-#define pgy_mkdir_private(path) mkdir((path), 0700)
-#define pgy_rmdir(path)         rmdir((path))
-#endif
 
 #include "../common/string_compat.h"
 #include "compiler.h"
+#include "compiler_transient_artifact_workspace.h"
 #include "driver_app.h"
 #include "driver_diag.h"
 #include "path_utils.h"
 #include "self_host_driver.h"
-
-/*
- * The generated C used to land at $TMPDIR/_pgy_<stem>_<pid>.c -- a name any
- * other process on the host can predict. On a shared /tmp that is the classic
- * symlink race: plant a symlink at the name we are about to write, and the
- * compiler writes its output through it, into whatever file the invoking user
- * can touch.
- *
- * Randomizing the file name alone does not fix it (the attacker only has to
- * win the race once). What fixes it is writing inside a directory nobody else
- * can enter: mkdir is atomic and refuses an existing path, so the create
- * either wins outright or we pick a new name; the 0700 mode then means no
- * other user can plant anything inside it. On Windows %TEMP% is already
- * per-user, but the same code holds -- the atomic create still refuses a
- * squatted name.
- *
- * The nonce only avoids collisions and denial of service; the security comes
- * from mkdir's atomicity and the mode.
- */
-static bool
-c_runner_make_private_tmpdir(const char *base, char *out, size_t out_cap)
-{
-    unsigned long nonce = (unsigned long)getpid()
-        ^ ((unsigned long)time(NULL) << 8);
-
-    for (int attempt = 0; attempt < 64; attempt++) {
-        int written = snprintf(out, out_cap, "%s/pgy-%lx",
-                               base, nonce + (unsigned long)attempt * 2654435761UL);
-        if (written < 0 || (size_t)written >= out_cap)
-            return false;
-        if (pgy_mkdir_private(out) == 0)
-            return true;
-        if (errno != EEXIST)
-            return false;
-    }
-    return false;
-}
-
-typedef struct
-{
-    char directory[1024];
-    char c_path[1024];
-    bool active;
-} CRunnerCArtifactWorkspace;
-
-static bool
-c_runner_c_artifact_workspace_open(const char *source_path,
-                                   const char *base_directory,
-                                   CRunnerCArtifactWorkspace *workspace)
-{
-    const char *base;
-    const char *sep;
-    const char *dot;
-    size_t stem_length;
-    char stem[256];
-    int written;
-
-    if (source_path == NULL || base_directory == NULL || workspace == NULL)
-        return false;
-    memset(workspace, 0, sizeof(*workspace));
-    if (!c_runner_make_private_tmpdir(
-            base_directory, workspace->directory,
-            sizeof(workspace->directory))) {
-        return false;
-    }
-
-    base = source_path;
-    sep = strrchr(base, '/');
-#ifdef _WIN32
-    {
-        const char *backslash = strrchr(base, '\\');
-        if (backslash != NULL && (sep == NULL || backslash > sep))
-            sep = backslash;
-    }
-#endif
-    if (sep != NULL)
-        base = sep + 1;
-    dot = strrchr(base, '.');
-    stem_length = dot != NULL ? (size_t)(dot - base) : strlen(base);
-    if (stem_length > sizeof(stem) - 1)
-        stem_length = sizeof(stem) - 1;
-    memcpy(stem, base, stem_length);
-    stem[stem_length] = '\0';
-    written = snprintf(workspace->c_path, sizeof(workspace->c_path),
-                       "%s/%s.c", workspace->directory, stem);
-    if (written < 0 || (size_t)written >= sizeof(workspace->c_path)) {
-        pgy_rmdir(workspace->directory);
-        memset(workspace, 0, sizeof(*workspace));
-        return false;
-    }
-    workspace->active = true;
-    return true;
-}
-
-static void
-c_runner_c_artifact_workspace_close(CRunnerCArtifactWorkspace *workspace)
-{
-    if (workspace == NULL || !workspace->active)
-        return;
-    remove(workspace->c_path);
-    pgy_rmdir(workspace->directory);
-    memset(workspace, 0, sizeof(*workspace));
-}
 
 int
 c_runner_execute_installed_self_host_c(
@@ -142,7 +23,7 @@ c_runner_execute_installed_self_host_c(
     const DriverFlags *flags,
     CompilerBackendTimings *backend_timings)
 {
-    CRunnerCArtifactWorkspace workspace;
+    CompilerTransientArtifactWorkspace workspace;
     char *binary_path;
     CompilerResult *result;
     int materialize_rc;
@@ -156,8 +37,8 @@ c_runner_execute_installed_self_host_c(
     /* The Pergyra runtime denies absolute file-I/O paths unless the caller
      * explicitly grants that authority.  Keep this compiler-owned transient
      * artifact relative instead of weakening the child process sandbox. */
-    if (!c_runner_c_artifact_workspace_open(
-            flags->source_path, ".", &workspace)) {
+    if (!compiler_transient_artifact_workspace_open(
+            flags->source_path, ".", ".c", NULL, &workspace)) {
         driver_emit_stage_fail(flags, "backend_c_self_host_artifact",
             "could not create a private self-host C artifact workspace",
             "PGY_C_RUNNER_TMPDIR_UNAVAILABLE: the installed self-host C path "
@@ -170,23 +51,23 @@ c_runner_execute_installed_self_host_c(
         : path_default_binary(flags->source_path);
     if (binary_path == NULL) {
         fprintf(stderr, "pgy: out of memory\n");
-        c_runner_c_artifact_workspace_close(&workspace);
+        compiler_transient_artifact_workspace_close(&workspace);
         return 1;
     }
 
     if (flags->verbose)
-        printf("pgy: self-host C artifact → %s\n", workspace.c_path);
+        printf("pgy: self-host C artifact → %s\n", workspace.primary_path);
     materialize_rc = driver_materialize_self_host_c_artifact(
-        launcher_path, flags->source_path, workspace.c_path, flags->verbose);
+        launcher_path, flags->source_path, workspace.primary_path, flags->verbose);
     if (materialize_rc != 0) {
-        c_runner_c_artifact_workspace_close(&workspace);
+        compiler_transient_artifact_workspace_close(&workspace);
         free(binary_path);
         return materialize_rc;
     }
 
     result = compiler_compile_link_self_host_c_artifact(
-        workspace.c_path, binary_path, flags->verbose, flags->opt_profile);
-    c_runner_c_artifact_workspace_close(&workspace);
+        workspace.primary_path, binary_path, flags->verbose, flags->opt_profile);
+    compiler_transient_artifact_workspace_close(&workspace);
     if (result == NULL || !result->success) {
         const char *message = result != NULL && result->error_message != NULL
             ? result->error_message : "out of memory";
@@ -264,7 +145,7 @@ CompilerResult *result;
     }
 
     /* Full C pipeline: HIR → .c → GCC → binary */
-    CRunnerCArtifactWorkspace workspace;
+    CompilerTransientArtifactWorkspace workspace;
     char *bin_path;
     CompilerResult *result;
     const char *tmpdir = getenv("TMPDIR");
@@ -277,8 +158,8 @@ CompilerResult *result;
     if (tmpdir == NULL) tmpdir = "/tmp";
 #endif
 
-    if (!c_runner_c_artifact_workspace_open(
-            flags->source_path, tmpdir, &workspace)) {
+    if (!compiler_transient_artifact_workspace_open(
+            flags->source_path, tmpdir, ".c", NULL, &workspace)) {
         driver_emit_stage_fail(flags, "backend_c_native",
             "could not create a private temporary directory",
             "PGY_C_RUNNER_TMPDIR_UNAVAILABLE: the C backend needs a directory "
@@ -294,16 +175,16 @@ CompilerResult *result;
         : path_default_binary(flags->source_path);
     if (bin_path == NULL) {
         fprintf(stderr, "pgy: out of memory\n");
-        c_runner_c_artifact_workspace_close(&workspace);
+        compiler_transient_artifact_workspace_close(&workspace);
         return 1;
     }
 
     if (flags->verbose)
-        printf("pgy: generating C → %s\n", workspace.c_path);
+        printf("pgy: generating C → %s\n", workspace.primary_path);
 
-    result = compiler_build_native(bundle, air, workspace.c_path, bin_path, flags->verbose,
+    result = compiler_build_native(bundle, air, workspace.primary_path, bin_path, flags->verbose,
                                    flags->opt_profile);
-    c_runner_c_artifact_workspace_close(&workspace);
+    compiler_transient_artifact_workspace_close(&workspace);
 
     const char *identity_error = NULL;
     bool identity_ready = result != NULL

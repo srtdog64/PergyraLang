@@ -14,7 +14,9 @@
 #include "compiler/pkg.h"
 #include "compiler/debugger.h"
 #include "compiler/self_host_driver.h"
+#include "compiler/driver_self_host_selection_owner.h"
 #include "compiler/c_runner.h"
+#include "compiler/llvm_runner.h"
 
 typedef enum
 {
@@ -172,62 +174,13 @@ parse_args(int argc, char *argv[])
     }
 
 #ifndef PGY_LLVM_ENABLED
-    if (f.backend == BACKEND_LLVM || f.emit_llvm_ir) {
+    if (f.emit_llvm_ir) {
         fprintf(stderr, "pgy: this build was compiled without LLVM backend support\n");
         exit(1);
     }
 #endif
 
     return f;
-}
-
-static bool
-driver_plain_c_binary_target_requested(const DriverFlags *flags)
-{
-    return flags != NULL
-        && flags->backend == BACKEND_C
-        && !flags->emit_c_only
-        && !flags->emit_llvm_ir
-        && !flags->dump_tokens
-        && !flags->dump_ast
-        && !flags->dump_capability_manifest
-        && !flags->dump_dir
-        && !flags->dump_rir
-        && !flags->dump_rir_json
-        && !flags->dump_machine_manifest_json
-        && !flags->dump_air
-        && !flags->dump_air_json
-        && !flags->dump_mir
-        && !flags->dump_mir_json
-        && !flags->dump_hir
-        && !flags->check_only
-        && !flags->repl;
-}
-
-static bool
-driver_self_host_c_artifact_request_supported(const DriverFlags *flags)
-{
-    return flags != NULL
-        && flags->backend == BACKEND_C
-        && !flags->emit_llvm_ir
-        && !flags->dump_tokens
-        && !flags->dump_ast
-        && !flags->dump_capability_manifest
-        && !flags->dump_dir
-        && !flags->dump_rir
-        && !flags->dump_rir_json
-        && !flags->dump_machine_manifest_json
-        && !flags->dump_air
-        && !flags->dump_air_json
-        && !flags->dump_mir
-        && !flags->dump_mir_json
-        && !flags->dump_hir
-        && !flags->check_only
-        && !flags->repl
-        && !flags->emit_debug_lines
-        && flags->diag_format == DIAG_FORMAT_TEXT
-        && flags->runtime_mode == RUNTIME_DEFAULT
-        && flags->machine_layer_physical_manifest == NULL;
 }
 
 int
@@ -293,6 +246,15 @@ main(int argc, char *argv[])
             return 1;
         }
         return c_runner_execute_installed_self_host_c(
+            argv[0], &flags, NULL);
+    }
+    if (driver_plain_llvm_binary_target_requested(&flags)) {
+        if (!driver_self_host_llvm_artifact_request_supported(&flags)) {
+            fprintf(stderr,
+                    "pgy: LLVM compile options are outside the installed self-host driver contract\n");
+            return 1;
+        }
+        return llvm_runner_execute_installed_self_host_llvm(
             argv[0], &flags, NULL);
     }
     return driver_run_pipeline(&flags);

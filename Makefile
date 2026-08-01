@@ -861,9 +861,13 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_world_select_event_emit.c \
                    $(CODEGEN_DIR)/transpiler.c
 COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
+                   $(COMPILER_DIR)/compiler_self_host_artifact.c \
                    $(COMPILER_DIR)/compiler_result.c \
                    $(COMPILER_DIR)/compiler_process.c \
+                   $(COMPILER_DIR)/compiler_transient_artifact_workspace.c \
+                   $(COMPILER_DIR)/driver_self_host_selection_owner.c \
                    $(COMPILER_DIR)/self_host_driver.c \
+                   $(COMPILER_DIR)/self_host_llvm_driver.c \
                    $(COMPILER_DIR)/compiler_llvm.c \
                    $(COMPILER_DIR)/dir.c \
                    $(COMPILER_DIR)/dir_storage.c \
@@ -3152,7 +3156,10 @@ self-host-one-mir-cfg-air-plan-projection-test-smoke: self-host-one-mir-dual-bac
 self-host-one-mir-option-match-projection-test-smoke: self-host-driver-bootstrap-test-smoke
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_option_match_projection.sh
 
-.PHONY: self-host-one-mir-dual-backend-projection-test-smoke self-host-one-mir-cfg-air-plan-projection-test-smoke self-host-one-mir-option-match-projection-test-smoke self-host-driver-source-mir-execution-action-test-smoke
+self-host-default-llvm-replacement-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh
+
+.PHONY: self-host-one-mir-dual-backend-projection-test-smoke self-host-one-mir-cfg-air-plan-projection-test-smoke self-host-one-mir-option-match-projection-test-smoke self-host-default-llvm-replacement-test-smoke self-host-driver-source-mir-execution-action-test-smoke
 
 self-host-driver-bootstrap-full-test-smoke: self-host-codegen-bootstrap-seed-test-smoke
 	@if command -v powershell >/dev/null 2>&1; then \

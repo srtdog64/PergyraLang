@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-static char *
-self_host_driver_binary(const char *launcher_path)
+char *
+driver_resolve_self_host_binary(const char *launcher_path)
 {
     const char *override = getenv("PGY_SELF_DRIVER_BIN");
     char *directory;
@@ -83,7 +83,7 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
         return 1;
     }
 
-    binary = self_host_driver_binary(launcher_path);
+    binary = driver_resolve_self_host_binary(launcher_path);
     if (binary == NULL || !path_file_exists(binary)) {
         fprintf(stderr,
                 "pgy: self-host driver is unavailable; run 'make self-host-compiler' or set PGY_SELF_DRIVER_BIN\n");
@@ -122,7 +122,7 @@ driver_materialize_self_host_c_artifact(const char *launcher_path,
         return 1;
     }
 
-    binary = self_host_driver_binary(launcher_path);
+    binary = driver_resolve_self_host_binary(launcher_path);
     if (binary == NULL || !path_file_exists(binary)) {
         fprintf(stderr,
                 "pgy: self-host driver is unavailable; run 'make self-host-compiler' or set PGY_SELF_DRIVER_BIN\n");

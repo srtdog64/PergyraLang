@@ -367,6 +367,25 @@ require_text "Makefile" \
 require_text "src/compiler/c_runner.c" \
     "compiler_compile_link_self_host_c_artifact("
 forbid_text "src/compiler/self_host_driver.c" "driver_run_pipeline("
+require_text "src/pgy_driver.c" "driver_plain_llvm_binary_target_requested("
+require_text "src/pgy_driver.c" \
+    "driver_self_host_llvm_artifact_request_supported("
+require_text "src/pgy_driver.c" \
+    "llvm_runner_execute_installed_self_host_llvm("
+require_text "Makefile" "self-host-default-llvm-replacement-test-smoke:"
+require_text "Makefile" \
+    "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh"
+require_text "src/compiler/llvm_runner.c" \
+    "compiler_compile_link_self_host_llvm_artifact("
+require_text "src/compiler/self_host_llvm_driver.c" \
+    'producer_argv[1] = "--emit-mir-json-verified"'
+require_text "src/compiler/self_host_llvm_driver.c" \
+    'backend_argv[1] = "--mir-json-backend=llvm"'
+forbid_text "src/compiler/self_host_llvm_driver.c" "driver_run_pipeline("
+forbid_text "src/compiler/self_host_llvm_driver.c" \
+    "compiler_build_native_llvm("
+forbid_text "src/compiler/self_host_llvm_driver.c" \
+    "compiler_runtime_object"
 require_text "Makefile" \
     'ifneq ($(abspath $(PGY)),$(abspath $(REPO_BIN_DIR)/pgy$(EXEEXT)))'
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \

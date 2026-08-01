@@ -15,5 +15,9 @@ int llvm_runner_execute(const DriverFlags *flags,
                         const CompilerIRBundle *bundle,
                         const PgyAirVerification *air,
                         CompilerBackendTimings *backend_timings);
+int llvm_runner_execute_installed_self_host_llvm(
+                        const char *launcher_path,
+                        const DriverFlags *flags,
+                        CompilerBackendTimings *backend_timings);
 
 #endif /* PGY_LLVM_RUNNER_H */

@@ -18,8 +18,11 @@ typedef struct PgyCCompilerSelection {
     char        target_storage[256];
 } PgyCCompilerSelection;
 
+typedef PgyCCompilerSelection PgyLlvmIrCompilerSelection;
+
 int pgy_exec_argv(const char *const argv[], bool verbose);
 bool pgy_select_c_compiler(PgyCCompilerSelection *selection);
+bool pgy_select_llvm_ir_compiler(PgyLlvmIrCompilerSelection *selection);
 double compiler_now_seconds(void);
 bool pgy_path_is_safe(const char *path);
 

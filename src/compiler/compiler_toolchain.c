@@ -213,6 +213,32 @@ pgy_select_c_compiler(PgyCCompilerSelection *selection)
     return false;
 }
 
+bool
+pgy_select_llvm_ir_compiler(PgyLlvmIrCompilerSelection *selection)
+{
+    const char *configured;
+    const char *candidates[] = {
+        "clang", "clang-20", "clang-19", "clang-18",
+        "clang-17", "clang-16", "clang-15", NULL
+    };
+
+    if (selection == NULL)
+        return false;
+    memset(selection, 0, sizeof(*selection));
+    configured = getenv("PGY_LLVM_CLANG");
+    if (configured != NULL && configured[0] != '\0')
+        return pgy_parse_compiler_command(selection, configured);
+
+    for (int i = 0; candidates[i] != NULL; i++) {
+        const char *probe_argv[] = { candidates[i], "--version", NULL };
+        if (pgy_exec_probe_argv_silent(probe_argv) == 0) {
+            selection->cc = candidates[i];
+            return true;
+        }
+    }
+    return false;
+}
+
 double
 compiler_now_seconds(void)
 {
