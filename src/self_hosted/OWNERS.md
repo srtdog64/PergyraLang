@@ -1724,10 +1724,13 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/driver_bootstrap_main.pgy` -- installed compiler
   composition root and source/MIR/output-file boundary used by producer parity
   and the integrated seed/oracle fixed point. Its two-argument source/output
-  mode owns the public `pgy --emit-c` artifact after the native selector admits
-  the supported C-emission envelope. Pipeline ownership remains in
-  `driver_rung2_owner.pgy`; test fixture manifests are excluded from this
-  import graph.
+  mode owns the public C artifact for `pgy --emit-c` and the admitted
+  `--backend=c` compile/run envelope after the native selector admits it. The
+  native `c_runner` may consume that artifact only for host compile/link and
+  optional execution; it cannot re-enter parser, semantic, MIR, AIR, or native
+  codegen as a fallback. Pipeline ownership remains in `driver_rung2_owner.pgy`;
+  test fixture manifests are excluded from this import graph. This target-
+  specific substitution does not claim the released LLVM or package paths.
 - `src/self_hosted/compiler/driver_rung2_execution_owner.pgy` -- reachable
   identity-bearing action boundary for the direct-MIR rung. It owns request-
   to-target admission, exact emitted-artifact acceptance, output write, and

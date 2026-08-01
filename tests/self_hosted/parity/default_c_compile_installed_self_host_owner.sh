@@ -13,6 +13,8 @@ SELF_DRIVER="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"
 CC="${CC:-cc}"
 WORK_DIR="$ROOT_DIR/.tmp/self_hosted/default_c_compile_installed"
 SOURCE="examples/hello.pgy"
+COUNT_FILE="$WORK_DIR/count.txt"
+COUNT_FILE_FOR_DRIVER="$COUNT_FILE"
 
 fail() {
     echo "[self-host-default-c-compile] $*" >&2
@@ -37,6 +39,7 @@ installed_name="pgy-self-driver"
 if [[ "$PGY" == *.exe ]]; then
     suffix=".exe"
     installed_name="pgy-self-driver.exe"
+    COUNT_FILE_FOR_DRIVER="$(cygpath -m "$COUNT_FILE")"
 fi
 [[ "$SELF_DRIVER" == "$(dirname "$PGY")/$installed_name" ]] ||
     fail "self-host driver is not installed beside the public launcher"
@@ -58,11 +61,11 @@ cp "$PGY" "$WORK_DIR/counting-install/pgy$suffix"
     -o "$WORK_DIR/counting-install/$installed_name"
 (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN &&
     PGY_DEBUG_PIPELINE_TIMING=1 \
-    PGY_SELF_DRIVER_COUNT_FILE="$WORK_DIR/count.txt" \
+    PGY_SELF_DRIVER_COUNT_FILE="$COUNT_FILE_FOR_DRIVER" \
     "$WORK_DIR/counting-install/pgy$suffix" "$SOURCE" --backend=c --run \
         -o ".tmp/self_hosted/default_c_compile_installed/shim-program$suffix") \
     >"$WORK_DIR/shim.out" 2>"$WORK_DIR/shim.err"
-[[ "$(wc -l < "$WORK_DIR/count.txt" | tr -d ' ')" == "1" ]] ||
+[[ "$(wc -l < "$COUNT_FILE" | tr -d ' ')" == "1" ]] ||
     fail "installed self-host driver was not invoked exactly once"
 grep -Fxq "self-host-shim" "$WORK_DIR/shim.out" ||
     fail "--run did not execute the self-host driver's C artifact"

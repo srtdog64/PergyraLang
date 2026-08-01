@@ -803,6 +803,41 @@ plan과 executable owner gate에 존재한다. 두 action fixture는 predecessor
 
 SoT seam은 `selfhost.intent_declaration_rows`에 typed transition authority를 섞지 않는다. 해당 row는 source declaration/signature와 legacy phase carriage를 유지한다. typed outcome case, success-only completion, carried predecessor와 failure-driven compensation은 `mir.execution_graph` 아래의 named execution subfacts인 `mir.intent_step_transition`과 `mir.intent_terminal_transition`이다. 이 이름들은 독립 top-level registry authority가 아니며, 별도 owner identity와 모든 consumer migration 및 negative gate가 생기기 전에는 새 registry row나 `CLOSED`를 추론하지 않는다.
 
+## 완료된 installed C artifact/compile/run substitution
+
+2026-08-01의 installed C rung은 다음 objective card로 닫혔다.
+
+- Objective: public C artifact, compile/link, `--run`의 semantic/codegen 결정을
+  sibling `pgy-self-driver`가 소유하고 native 쪽은 host compile/link와 실행만
+  수행한다.
+- Production entrypoints: `pgy source.pgy --emit-c -o output.c`,
+  `pgy source.pgy --backend=c -o output.exe`, 그리고 같은 binary target의
+  `--run`이다. C-only build의 implicit default C target도 같은 selector다.
+- Fact owner: `driver_bootstrap_main.pgy`와 installed fixed-point driver다.
+  Last consumer는 `driver_materialize_self_host_c_artifact`가 만든 정확히 한 C
+  artifact를 받는 `c_runner` host boundary다.
+- Deleted bypass: admitted envelope에서 `driver_run_pipeline`과
+  `compiler_build_native`의 semantic/MIR/AIR/codegen 재진입은 허용되지 않는다.
+  Driver missing, artifact missing, unsupported runtime/debug/diagnostic envelope는
+  native fallback 없이 fail closed한다.
+- Executable evidence:
+  `tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh`와
+  `tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh`가 실제
+  sibling driver, exactly-once counting shim, output execution, missing driver,
+  unsupported option, partial artifact 부재를 검증한다.
+- Grade: 이 세 C target만 `SUBSTITUTING`이다. LLVM-enabled build의 implicit
+  default와 released LLVM, package, dump/check/repl은 아직 open이다. 이 폐쇄는
+  `subject/action/intent`의 production-root 등급을 올리지 않는다.
+
+다음 LLVM rung은 hello reachability를 public replacement로 바로 승격하지 않는다.
+현재 direct-MIR LLVM emitter는 bounded scalar/CFG surface이며 runtime profile과
+intent-observability/target receipt를 artifact에 운반하지 않는다. 첫 non-hello
+runtime 또는 aggregate fixture에서 source-to-MIR와 MIR-to-LLVM을 각각 한 번만
+실행하고 C target과 실행 parity를 증명해야 한다. Text LLVM을 소비하는 `clang -x
+ir`는 합법적인 host boundary지만, native AIR/libLLVM 재진입, LLVM text scan으로
+runtime 정책 추론, always-observable runtime 추측은 금지한다. Unexpected `@pgy_*`
+reference나 missing profile fact는 released binary 전에 fail closed해야 한다.
+
 ## 세션 메모리와 handoff 규칙
 
 모든 후속 작업은 `docs/current_work_handoff.md`에 다음을 남긴다.

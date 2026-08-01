@@ -21,6 +21,15 @@ order is CFG/AIR/DAG/MIR/ABI language trust first. Substrate gaps are tracked in
 not permission to rewrite parser, semantic, MIR, codegen, or runtime owners.
 Gate: `make self-host-preparation-test-smoke`.
 
+Installed C substitution update (2026-08-01): the admitted public C artifact,
+compile/link, and `--run` envelopes now obtain exactly one C artifact from the
+sibling fixed-point `pgy-self-driver`; native code owns only host compile/link
+and optional execution. Missing driver and unsupported envelopes fail closed,
+and an exactly-once shim gate rejects native semantic/codegen fallback. This is
+target-specific `SUBSTITUTING` evidence. LLVM-enabled default builds, released
+general LLVM, package, dump/check/repl, and production-root intent remain open;
+hello-only direct LLVM reachability cannot promote those claims.
+
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
 toolchain/preflight clarity, release/debug hygiene, memory/string bounds audit,

@@ -6,18 +6,22 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — extend installed replacement beyond C emission
+## Active self-host context — widen installed direct-MIR LLVM before promotion
 
-- Executable checkpoint: `d12f8240` on `main`. Commit `093cff52` moved the
-  public pure-C artifact path to the installed self-host driver, `1c55da0c`
+- Executable checkpoint: `20229256` on `main`. Commit `093cff52` moved public
+  pure-C artifact emission to the installed self-host driver, `1c55da0c`
   restored the current-source fixed point, and `d12f8240` confined both
-  AST-text compatibility calls to `program_entry_owner.pgy`.
-- Closed executable rung: `pgy source.pgy --emit-c -o output.c` now selects the
-  sibling `pgy-self-driver` and its `driver_bootstrap_main.pgy` composition
-  root. Missing driver and unsupported option envelopes fail closed; neither
-  case can return to `driver_run_pipeline`. The positive gate unsets
-  `PGY_SELF_DRIVER_BIN`, so sibling installation rather than an environment
-  override is the evidence.
+  AST-text compatibility calls to `program_entry_owner.pgy`. Commits
+  `a02a8751`, `5109c7ed`, and `20229256` then replaced public C compile/link
+  and `--run`, including an exactly-once counting falsifier.
+- Closed executable rung: the supported C binary envelope now selects the
+  sibling `pgy-self-driver` for all three production forms:
+  `pgy source.pgy --emit-c -o output.c`,
+  `pgy source.pgy --backend=c -o output.exe`, and
+  `pgy source.pgy --backend=c --run`. The installed driver materializes one C
+  artifact; the native side owns only host compile/link and optional execution.
+  Missing driver and unsupported option envelopes fail closed before source
+  handling and cannot return to `driver_run_pipeline`.
 - Current source-to-MIR: 90,429,326 bytes, SHA-256
   `A151D69CD7B3BD8F81C5587C6E9FB4B75503CD3411D9D3CD1004DED794F9CA9B`,
   exit 0 in 53.579 seconds at 2.038 GiB peak private. Current gen2/gen3 C are
@@ -45,31 +49,40 @@ owner, and the named executable gate.
   it in that slot fails immediately. Add a real-call seed-capability preflight
   before treating the normal install script as current green evidence.
 - Evidence grade is target-specific. The bounded compiler source/MIR slice and
-  the public pure-C artifact-emission path are `SUBSTITUTING`. Default source
-  compile/link, `--run`, package commands, and the released LLVM path remain
+  the installed public C artifact/compile/run envelope are `SUBSTITUTING`.
+  C-only builds therefore have a self-hosted default binary target. An
+  LLVM-enabled build still defaults to the open LLVM path; package commands,
+  diagnostics/dumps/check/repl, and the general released LLVM path remain
   C-owned/open. Do not collapse this into either 0% or whole-product self-host.
 - Latest green: current-source pressure run, gen2/gen3 byte equality, actual
-  `bin/pgy.exe` plus sibling `bin/pgy-self-driver.exe` hello artifact/execution
-  parity, missing/unsupported negatives, source-MIR action gate, hard contract,
-  SoT registry, documentation quality, and full component/removed-path ratchet.
-  The Coq adequacy gate did not run because `rocq`/`coqc` is unavailable, and
-  the normal install script is not green with its stale default seed. No GitHub
-  CI or full matrix is implied.
-- Active objective: move the ordinary default C compile path (without
-  `--emit-c`) behind the installed self-host C artifact owner, then let the
-  existing host compiler/link owner consume that artifact. Priority is exact
-  output/run parity, one artifact identity, native semantic/codegen bypass
-  deletion, and a negative gate.
-- Fact owner: `driver_bootstrap_main.pgy` and the installed fixed-point driver.
-  Last legitimate consumer: the C host compile/link boundary in `c_runner`.
-  Forbidden fallback: invoking native semantic/codegen after the installed
-  driver is missing or rejects, generating a second C artifact through
-  `driver_run_pipeline`, or treating LLVM/backend/package modes as already
-  substituted.
-- Next falsifier: compile `examples/hello.pgy` through plain default `pgy` to a
-  runnable program, prove the intermediate C artifact came from the sibling
-  self-host driver exactly once, compare execution with the native oracle, and
-  require missing-driver failure before any native semantic/codegen work.
+  sibling-driver C artifact/execution parity, exactly-one materialization for
+  compile and run, missing/unsupported negatives, source-MIR action gate, hard
+  contract, SoT registry, documentation quality, and the full component/
+  removed-path ratchet. The Coq adequacy gate did not run because
+  `rocq`/`coqc` is unavailable, and the normal install script is not green with
+  its stale default seed. No GitHub CI or full matrix is implied.
+- Active objective: widen and falsify the installed direct-MIR LLVM semantic
+  frontier before routing the public LLVM binary selector to it. Priority is
+  semantic parity with the admitted C target, one source-to-MIR transaction,
+  one LLVM artifact transaction, explicit target/runtime-profile evidence,
+  then deletion of the native semantic/codegen bypass.
+- Fact owner: `PublishSourceMirArtifactThroughPgyCompilerWorld`,
+  `EmitDirectMirThroughPgyCompilerWorld`, and
+  `direct_mir_backend_projection_owner.pgy`. Last legitimate consumers are a
+  textual LLVM artifact host compiler/link boundary and, only after an explicit
+  runtime-profile receipt exists, the runtime object owner. `clang -x ir` is a
+  host boundary, not a second semantic or LLVM IR owner.
+- Forbidden fallback: native semantic/AIR/libLLVM re-entry after the installed
+  driver rejects, inferring runtime observability by scanning LLVM text,
+  attaching an always-observable runtime as a guessed default, dual-reading
+  native and self-host facts, or promoting hello/scalar reachability into a
+  claim that the general LLVM backend is substituted.
+- Next falsifier: choose the first admitted non-hello fixture that exercises a
+  runtime or aggregate fact, publish source-to-MIR exactly once, emit direct
+  LLVM exactly once, compile it with an LLVM-IR-capable host toolchain, and
+  compare execution with the C target. A missing target/runtime-profile fact
+  or an unexpected `@pgy_*` runtime reference must reject before a released
+  binary is claimed; no native fallback is permitted.
 - Memory policy remains: execute each changed semantic target once and read the
   final summary only. Hard stop is 3 GiB; attention begins at 2.4 GiB. Gen2 and
   gen3 remain attention targets, but both now finish below the hard cap.
@@ -77,7 +90,7 @@ owner, and the named executable gate.
 ## Historical checkpoint archive — inactive evidence
 
 The former source-to-MIR timeout card begins below. It was correct for its
-checkpoint but is superseded by `d12f8240`; it must not be resumed as the active
+checkpoint but is superseded by `20229256`; it must not be resumed as the active
 P0. External reviews that observed `614cb5d5` likewise describe historical
 evidence, not the current compiler state.
 

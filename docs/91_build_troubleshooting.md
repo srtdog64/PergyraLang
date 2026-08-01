@@ -3862,3 +3862,31 @@ graph를 처리하기 전에 실제 `SubstringWithLen(...)` 호출 fixture를 �
 parser -> AST -> codegen 조합으로 실행하는 capability preflight를 두고 fail-fast해야
 한다. Previous-generation seed 자체는 정상 bootstrap 입력이므로 current source-set
 전체 hash equality를 강제해 모든 편집마다 reseed하는 것도 금지한다.
+
+## Installed C compile/run 검증에서 경로·메모리·일반 빌드를 혼동하는 경우
+
+2026-08-01 public C compile/link와 `--run`을 installed self-host artifact로
+치환하면서 세 가지 독립 문제를 확인했다.
+
+첫째, MSYS make가 native linker response file에 `/d/PergyraLang/...` 형태의
+경로를 기록하면 Windows `ld`는 response file 내부의 MSYS path를 해석하지 못한다.
+이는 권한 문제나 compiler 결함이 아니다. Staged build는 repo-relative
+`BUILD_DIR=build`를 쓰고, 별도 repo-relative `BIN_DIR`에 먼저 링크한다. 절대 경로가
+필요한 변수는 `D:/PergyraLang` 같은 mixed/native spelling으로 넘기거나 response
+file 생성 전에 `cygpath -m`으로 변환한다. 성공 뒤에는 exit code뿐 아니라 `MZ`
+header와 실행 결과를 확인한 다음 설치한다.
+
+둘째, self-host runtime은 명시적 authority 없이 absolute output path를 거부한다.
+이를 피하려고 `PGY_IO_ALLOW_ABSOLUTE=1`을 launcher 전역에 설정하면 sandbox 계약을
+약화한다. Native C launcher는 repository-relative private workspace를 만들고 그
+안의 C artifact를 정확히 한 번 materialize한 뒤 host compile/link와 optional run을
+수행하고 workspace를 정리한다. Missing driver, missing artifact, unsupported option은
+source를 native pipeline으로 다시 처리하지 않고 실패해야 한다.
+
+셋째, 일반 C 빌드와 compiler fixed-point/test 비용을 분리한다. Installed C binary
+target은 작은 입력에서 self-host artifact 한 번과 host compile/link 한 번만 수행한다.
+Gen2/gen3 byte equality, 전체 compiler source MIR, sanitizers와 수백 gate는 test 또는
+merge-boundary 증거이지 사용자 normal build의 반복 단계가 아니다. 메모리는 매
+샘플마다 최적화 신호로 삼지 않고 semantic target당 한 번 실행한 final max만
+기록한다. Attention은 2.4 GiB, hard stop은 3 GiB이며 threshold를 넘기지 않은 같은
+target을 계측 확인만으로 반복하지 않는다.
