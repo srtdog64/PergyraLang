@@ -182,13 +182,12 @@ parse_args(int argc, char *argv[])
 }
 
 static bool
-driver_plain_c_compile_target_requested(const DriverFlags *flags)
+driver_plain_c_binary_target_requested(const DriverFlags *flags)
 {
     return flags != NULL
         && flags->backend == BACKEND_C
         && !flags->emit_c_only
         && !flags->emit_llvm_ir
-        && !flags->do_run
         && !flags->dump_tokens
         && !flags->dump_ast
         && !flags->dump_capability_manifest
@@ -211,7 +210,6 @@ driver_self_host_c_artifact_request_supported(const DriverFlags *flags)
     return flags != NULL
         && flags->backend == BACKEND_C
         && !flags->emit_llvm_ir
-        && !flags->do_run
         && !flags->dump_tokens
         && !flags->dump_ast
         && !flags->dump_capability_manifest
@@ -279,7 +277,8 @@ main(int argc, char *argv[])
     if (flags.repl)
         return repl_run();
     if (flags.emit_c_only) {
-        if (!driver_self_host_c_artifact_request_supported(&flags)) {
+        if (flags.do_run
+            || !driver_self_host_c_artifact_request_supported(&flags)) {
             fprintf(stderr,
                     "pgy: --emit-c options are outside the installed self-host driver contract\n");
             return 1;
@@ -287,7 +286,7 @@ main(int argc, char *argv[])
         return driver_run_self_host_c_emit_artifact(
             argv[0], flags.source_path, flags.output_path, flags.verbose);
     }
-    if (driver_plain_c_compile_target_requested(&flags)) {
+    if (driver_plain_c_binary_target_requested(&flags)) {
         if (!driver_self_host_c_artifact_request_supported(&flags)) {
             fprintf(stderr,
                     "pgy: C compile options are outside the installed self-host driver contract\n");

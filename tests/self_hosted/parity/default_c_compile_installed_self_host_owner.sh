@@ -59,14 +59,13 @@ cp "$PGY" "$WORK_DIR/counting-install/pgy$suffix"
 (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN &&
     PGY_DEBUG_PIPELINE_TIMING=1 \
     PGY_SELF_DRIVER_COUNT_FILE="$WORK_DIR/count.txt" \
-    "$WORK_DIR/counting-install/pgy$suffix" "$SOURCE" --backend=c \
+    "$WORK_DIR/counting-install/pgy$suffix" "$SOURCE" --backend=c --run \
         -o ".tmp/self_hosted/default_c_compile_installed/shim-program$suffix") \
     >"$WORK_DIR/shim.out" 2>"$WORK_DIR/shim.err"
 [[ "$(wc -l < "$WORK_DIR/count.txt" | tr -d ' ')" == "1" ]] ||
     fail "installed self-host driver was not invoked exactly once"
-"$WORK_DIR/shim-program$suffix" | tr -d '\r' >"$WORK_DIR/shim-program.out"
-grep -Fxq "self-host-shim" "$WORK_DIR/shim-program.out" ||
-    fail "host compiler did not consume the self-host driver's C artifact"
+grep -Fxq "self-host-shim" "$WORK_DIR/shim.out" ||
+    fail "--run did not execute the self-host driver's C artifact"
 ! grep -Fq "[pipeline timing]" "$WORK_DIR/shim.err" ||
     fail "plain self-host C compile re-entered the native compiler pipeline"
 

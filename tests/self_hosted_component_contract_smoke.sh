@@ -7060,7 +7060,7 @@ require_text "src/pgy_driver.c" "driver_run_self_host_command"
 require_text "src/pgy_driver.c" "driver_self_host_c_artifact_request_supported"
 require_text "src/pgy_driver.c" "if (flags.emit_c_only) {"
 require_text "src/pgy_driver.c" "driver_run_self_host_c_emit_artifact("
-require_text "src/pgy_driver.c" "driver_plain_c_compile_target_requested("
+require_text "src/pgy_driver.c" "driver_plain_c_binary_target_requested("
 require_text "src/pgy_driver.c" "c_runner_execute_installed_self_host_c("
 require_text "src/pgy_driver.c" \
     "--emit-c options are outside the installed self-host driver contract"

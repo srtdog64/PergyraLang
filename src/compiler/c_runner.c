@@ -200,9 +200,15 @@ c_runner_execute_installed_self_host_c(
     if (backend_timings != NULL)
         *backend_timings = result->backend_timings;
     printf("pgy: compiled → %s\n", binary_path);
+    int exit_code = 0;
+    if (flags->do_run) {
+        exit_code = compiler_run_binary(binary_path, flags->verbose);
+        if (exit_code != 0)
+            fprintf(stderr, "pgy: program exited with code %d\n", exit_code);
+    }
     compiler_result_destroy(result);
     free(binary_path);
-    return 0;
+    return exit_code;
 }
 
 int
