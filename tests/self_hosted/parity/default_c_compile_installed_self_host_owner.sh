@@ -54,7 +54,7 @@ cmp -s "$WORK_DIR/hello.expected" "$WORK_DIR/real-program.out" ||
 
 cp "$PGY" "$WORK_DIR/counting-install/pgy$suffix"
 "$CC" -std=c11 -Wall -Wextra -Werror \
-    "$ROOT_DIR/tests/self_hosted/fixtures/counting_self_host_c_driver.c" \
+    "$ROOT_DIR/tests/self_hosted/parity/fixture/counting_self_host_c_driver.c" \
     -o "$WORK_DIR/counting-install/$installed_name"
 (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN &&
     PGY_DEBUG_PIPELINE_TIMING=1 \

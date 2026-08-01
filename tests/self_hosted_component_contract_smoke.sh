@@ -7117,8 +7117,8 @@ require_file \
     "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" 120
-require_file "tests/self_hosted/fixtures/counting_self_host_c_driver.c"
-require_max_lines "tests/self_hosted/fixtures/counting_self_host_c_driver.c" 40
+require_file "tests/self_hosted/parity/fixture/counting_self_host_c_driver.c"
+require_max_lines "tests/self_hosted/parity/fixture/counting_self_host_c_driver.c" 40
 require_text "Makefile" \
     'self-host-default-c-compile-replacement-test-smoke: $(PGY) self-host-compiler'
 require_text \
