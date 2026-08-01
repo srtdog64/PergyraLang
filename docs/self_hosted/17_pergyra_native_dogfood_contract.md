@@ -243,6 +243,41 @@ LSP, TextMate에서 일치하는 것은 필요한 SoT 증거지만, 그 단어�
 컴파일러 책임을 소유한다는 증거는 아니다. fixture, generated projection,
 parser probe, readiness shell의 단어 수는 실행 개사료율로 세지 않는다.
 
+### Direct-MIR Option match aggregate의 개사료 판정
+
+`src/self_hosted/mir_lower/fixture/option_match.pgy`는 hello/단일 scalar보다 넓은
+첫 aggregate direct-MIR 경계다. Production self-host entrypoint가 source-to-MIR을
+한 번 만들고, 같은 admitted MIR에서 C 또는 LLVM target을 선택한다. Option match
+계산은 다음 소유권 사슬을 통과한다.
+
+```text
+MirMachineLayerAdmittedJsonInput
+  -> routine-local typed match/use facts
+  -> seven-block AIR certificate
+  -> reconstructible Option<Int> ABI receipt
+  -> target-capability-bound neutral plan
+  -> selected C or LLVM ABI projection
+  -> artifact
+```
+
+AIR certificate는 match instruction JSON을 다시 열지 않는다. Pattern, variant,
+binding, binding type은 routine-local typed index가 한 번 소유한다. ABI receipt는
+layout ID만 남기지 않고 size/alignment, tag/value offset와 size/alignment,
+representation과 tag를 보존해 canonical layout ID를 다시 검증한다. Target-bound
+projection은 선택되지 않은 backend mapping을 비워 둔다.
+
+실행 gate는 C/LLVM 모두 정확히 `42\n42\n`를 출력하고, pattern, binding type,
+extra use, successor, tag, offset, layout ID의 일곱 MIR 변조를 artifact 전에
+거부한다. Plan issuer는 repaired-digest certificate/ABI/target/plan negative도
+실행한다. `@pgy_*` runtime symbol은 이 bounded artifact에 허용하지 않는다.
+
+이 경계는 production `--mir-json-backend=c|llvm` 안에서 기존 direct backend
+우회를 실제로 대체하므로 그 bounded slice는 `SUBSTITUTING`이다. 그러나 public
+released LLVM selector, runtime-bearing program, package/dump/check/repl, compiler
+root intent에는 아직 이 증거를 승격하지 않는다. 다음 rung은 public LLVM binary
+envelope가 installed driver의 MIR producer와 LLVM projector를 각각 한 번만 호출하고
+`clang -x ir` host boundary로 넘기는지 falsify하는 것이다.
+
 ## 세 단계의 증거
 
 | 단계 | 의미 | 진척으로 세는 범위 |

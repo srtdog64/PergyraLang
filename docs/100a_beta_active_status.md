@@ -30,6 +30,18 @@ target-specific `SUBSTITUTING` evidence. LLVM-enabled default builds, released
 general LLVM, package, dump/check/repl, and production-root intent remain open;
 hello-only direct LLVM reachability cannot promote those claims.
 
+Direct LLVM aggregate update (2026-08-01): the bounded Option<Int> match
+fixture now uses one routine-local typed match index, one seven-block AIR
+certificate, one reconstructible ABI receipt, and one target-capability-bound
+plan to emit exact C and textual LLVM executables. Both print `42` twice;
+seven MIR mutations plus repaired-digest certificate/ABI/target/plan negatives
+fail before artifact creation. AIR cannot reopen match JSON, and a selected ABI
+projection carries only its chosen backend mapping. This is `SUBSTITUTING`
+inside the production direct-MIR mode, not evidence that the released general
+LLVM selector or runtime-bearing LLVM programs are replaced. The next active
+rung is the public runtime-free LLVM binary envelope with exactly-one producer
+and projector calls and `clang -x ir` as the final host boundary.
+
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
 toolchain/preflight clarity, release/debug hygiene, memory/string bounds audit,

@@ -6,91 +6,82 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — widen installed direct-MIR LLVM before promotion
+## Active self-host context — promote the sealed direct-LLVM slice
 
-- Executable checkpoint: `20229256` on `main`. Commit `093cff52` moved public
-  pure-C artifact emission to the installed self-host driver, `1c55da0c`
-  restored the current-source fixed point, and `d12f8240` confined both
-  AST-text compatibility calls to `program_entry_owner.pgy`. Commits
-  `a02a8751`, `5109c7ed`, and `20229256` then replaced public C compile/link
-  and `--run`, including an exactly-once counting falsifier.
-- Closed executable rung: the supported C binary envelope now selects the
-  sibling `pgy-self-driver` for all three production forms:
-  `pgy source.pgy --emit-c -o output.c`,
-  `pgy source.pgy --backend=c -o output.exe`, and
-  `pgy source.pgy --backend=c --run`. The installed driver materializes one C
-  artifact; the native side owns only host compile/link and optional execution.
-  Missing driver and unsupported option envelopes fail closed before source
-  handling and cannot return to `driver_run_pipeline`.
-- Current source-to-MIR: 90,429,326 bytes, SHA-256
-  `A151D69CD7B3BD8F81C5587C6E9FB4B75503CD3411D9D3CD1004DED794F9CA9B`,
-  exit 0 in 53.579 seconds at 2.038 GiB peak private. Current gen2/gen3 C are
-  both 5,595,167 bytes with SHA-256
-  `275A66AC3203CDC3EE194952ED0CFA03A2E72A1D6E92A6F66F97EDBF0A33440F`.
-  Gen2 completed in 106.435 seconds at 2.912 GiB; gen3 completed in 105.837
-  seconds at 2.985 GiB; the artifacts are byte-equal. The installed driver is
-  the verified 3,486,183-byte gen2 executable with SHA-256
-  `AB42CE8E2B1A3329AD0EA31EA6161C900D60F0FCA175531C925E6E3520D99351`.
-- Promotion exposed two real falsifiers. Mutable optional-declaration routing
-  first failed with missing `RunDriverRung2FromArgs` phi facts; branch-owned
-  early returns removed that merge. The next gen3 crossed the hard cap at
-  3.035 GiB after `definitions:done:4244`; `CollectProtos` still retained every
-  prototype row. Prototype output now streams through one builder and releases
-  each completed row. Do not restore an all-prototype array.
-- Normal host C compilation is not the multi-GiB owner: the current generated
-  gen2 C compiled in 59.450 seconds at 0.752 GiB. Direct in-process compiler
-  source-to-C crossed the 3 GiB hard stop at 3.187 GiB because
-  `CompileSourceToCVerified` serializes the complete MIR and immediately
-  reparses it while the producer epoch is still live. The admitted two-process
-  source-to-MIR then MIR-to-C composition remains the compiler-scale path.
-- The default `.tmp/self_hosted/codegen/bootstrap` seed is stale: the normal
-  install script failed after 126.229 seconds on missing `SubstringWithLen`.
-  The installed source/MIR driver is not an AST-to-stdout codegen seed; using
-  it in that slot fails immediately. Add a real-call seed-capability preflight
-  before treating the normal install script as current green evidence.
-- Evidence grade is target-specific. The bounded compiler source/MIR slice and
-  the installed public C artifact/compile/run envelope are `SUBSTITUTING`.
-  C-only builds therefore have a self-hosted default binary target. An
-  LLVM-enabled build still defaults to the open LLVM path; package commands,
-  diagnostics/dumps/check/repl, and the general released LLVM path remain
-  C-owned/open. Do not collapse this into either 0% or whole-product self-host.
-- Latest green: current-source pressure run, gen2/gen3 byte equality, actual
-  sibling-driver C artifact/execution parity, exactly-one materialization for
-  compile and run, missing/unsupported negatives, source-MIR action gate, hard
-  contract, SoT registry, documentation quality, and the full component/
-  removed-path ratchet. The Coq adequacy gate did not run because
-  `rocq`/`coqc` is unavailable, and the normal install script is not green with
-  its stale default seed. No GitHub CI or full matrix is implied.
-- Active objective: widen and falsify the installed direct-MIR LLVM semantic
-  frontier before routing the public LLVM binary selector to it. Priority is
-  semantic parity with the admitted C target, one source-to-MIR transaction,
-  one LLVM artifact transaction, explicit target/runtime-profile evidence,
-  then deletion of the native semantic/codegen bypass.
+- Executable checkpoint: `74cbf946` on `main`. The installed public C artifact,
+  compile/link, and `--run` envelopes remain `SUBSTITUTING`; missing or
+  unsupported requests fail before native semantic/codegen fallback.
+- Closed aggregate frontier: `src/self_hosted/mir_lower/fixture/option_match.pgy`
+  now travels through source-to-MIR once, one routine-local typed match index,
+  one AIR seven-block certificate, one reconstructible `Option<Int>` ABI fact,
+  one target-capability-bound plan, and one selected C or LLVM projection. Both
+  host executables print exactly `42\n42\n`.
+- The focused gate rejects seven pre-artifact mutations: pattern variant,
+  binding type, extra SSA use, CFG successor, primary tag, value-field offset,
+  and layout ID. Plan issuance also executes repaired-digest negatives for the
+  certificate, canonical ABI identity, target capability fingerprint, and
+  enclosing plan.
+- Match JSON authority is closed at
+  `routine_instruction_match_fact_owner.pgy`; AIR cannot reopen instruction
+  JSON. ABI admission parses the required row once, the compact receipt keeps
+  size/alignment/offset/field-size facts and reconstructs the canonical layout
+  ID, and the unselected backend mapping is absent from the target-bound ABI
+  projection.
+- Current fixed point uses a 91,484,937-byte MIR with SHA-256
+  `B5CDDBD6B5777FD86C45875D4DC7815D9693EC19E409575F752676F4A3840F06`.
+  Gen2/gen3 C are both 5,661,265 bytes with SHA-256
+  `B30B28CE978582764B168B1238C5EB5D2CF2AA6CDB8EB25FB0AF346C01ADB4FF`
+  and are byte-equal. Source-to-MIR was 49.516 seconds/2.059 GiB; gen2 was
+  103.733 seconds/2.844 GiB; gen3 was 106.105 seconds/2.852 GiB. Host release C
+  compilation was 54.138 seconds/0.758 GiB.
+- The installed `bin/pgy-self-driver.exe` is the verified 3,520,814-byte gen2
+  executable with SHA-256
+  `958A0D74751D2A8036E5ABF138B4D5B3386050E7B1A75EA8385C44FF04226B69`.
+  Its hash equals the fixed-point candidate; the public installed-C gate is
+  green.
+- Memory cause is now precise. Streaming prototypes removed the retained
+  all-prototype array but did not by itself close the cap: a completed run still
+  sampled 3.077 GiB. File-backed MIR admission retained the roughly 91 MiB raw
+  JSON after every JSON-indexed consumer had already projected typed facts.
+  Releasing that owned buffer before C emission brought the same class of run
+  below 3 GiB. Borrowed text APIs do not release caller-owned input. Do not
+  restore an all-prototype array or extend the raw input lifetime.
+- Evidence grade remains target-specific. The bounded direct-MIR aggregate C/
+  LLVM slice and public C envelope are `SUBSTITUTING`. The released public LLVM
+  selector, runtime-bearing LLVM programs, package/dump/check/repl paths, and a
+  canonical compiler-purpose intent remain open. This is not whole-compiler
+  self-host completion.
+- Active objective: route the public LLVM binary envelope through the installed
+  driver for the already sealed runtime-free frontier. Priority is source-to-MIR
+  exactly once, direct LLVM exactly once, `clang -x ir` as the last host
+  consumer, exact execution parity, then deletion of native semantic/AIR/
+  libLLVM re-entry for that envelope.
 - Fact owner: `PublishSourceMirArtifactThroughPgyCompilerWorld`,
-  `EmitDirectMirThroughPgyCompilerWorld`, and
-  `direct_mir_backend_projection_owner.pgy`. Last legitimate consumers are a
-  textual LLVM artifact host compiler/link boundary and, only after an explicit
-  runtime-profile receipt exists, the runtime object owner. `clang -x ir` is a
-  host boundary, not a second semantic or LLVM IR owner.
-- Forbidden fallback: native semantic/AIR/libLLVM re-entry after the installed
-  driver rejects, inferring runtime observability by scanning LLVM text,
-  attaching an always-observable runtime as a guessed default, dual-reading
-  native and self-host facts, or promoting hello/scalar reachability into a
-  claim that the general LLVM backend is substituted.
-- Next falsifier: choose the first admitted non-hello fixture that exercises a
-  runtime or aggregate fact, publish source-to-MIR exactly once, emit direct
-  LLVM exactly once, compile it with an LLVM-IR-capable host toolchain, and
-  compare execution with the C target. A missing target/runtime-profile fact
-  or an unexpected `@pgy_*` runtime reference must reject before a released
-  binary is claimed; no native fallback is permitted.
-- Memory policy remains: execute each changed semantic target once and read the
-  final summary only. Hard stop is 3 GiB; attention begins at 2.4 GiB. Gen2 and
-  gen3 remain attention targets, but both now finish below the hard cap.
+  `EmitDirectMirThroughPgyCompilerWorld`, the Option certificate/plan/ABI
+  owners, and the target projection fact. Last legitimate consumer is the
+  textual LLVM host compile/link boundary. No runtime object is admitted while
+  the artifact has no explicit runtime profile and contains no `@pgy_*` use.
+- Forbidden fallback: native `driver_run_pipeline`, AIR/libLLVM re-entry after
+  rejection, scanning LLVM text to invent runtime policy, attaching the native
+  runtime by default, dual target mappings in one selected receipt, or claiming
+  general LLVM substitution from the bounded aggregate frontier.
+- Next falsifier: public `--backend=llvm` compile/run of the Option fixture with
+  a counting sibling-driver shim. Producer and backend counts must each be one;
+  malformed LLVM, missing driver, unsupported options, or any unexpected
+  `@pgy_*` reference must leave no binary and must not invoke the native path.
+- Latest green: sealed current-source fixed point; focused Option C/LLVM parity
+  and seven mutations; repaired-digest owner negatives; installed public C
+  boundary; hard self-host contract; single Gate SoT; full component and
+  removed-path ratchet; shell syntax and diff check. The full CI matrix and Coq
+  adequacy suite were not run.
+- Memory policy remains one execution per changed semantic target, followed by
+  the final summary only. Hard stop is 3 GiB and attention begins at 2.4 GiB;
+  attention is recorded but does not redirect the active rung.
 
 ## Historical checkpoint archive — inactive evidence
 
 The former source-to-MIR timeout card begins below. It was correct for its
-checkpoint but is superseded by `20229256`; it must not be resumed as the active
+checkpoint but is superseded by `74cbf946`; it must not be resumed as the active
 P0. External reviews that observed `614cb5d5` likewise describe historical
 evidence, not the current compiler state.
 

@@ -3640,6 +3640,56 @@ Current evidence artifacts are under .tmp/source_mir_stream. The authoritative
 summary is pressure/source-mir-stream-release.summary.json. Temporary artifacts
 are evidence only and are not semantic owners.
 
+## Prototype streaming 뒤에도 3 GiB를 넘으면 raw MIR lifetime을 확인한다
+
+2026-08-01의 current-driver fixed-point에서 처음 관찰된 마지막 marker는
+`[codegen-pressure-stage] definitions:done:4267`이었고 old installed driver는
+private 3.071 GiB에서 중단됐다. 이 단계의 source 변경은 old driver가 자기
+codegen을 끝낸 뒤에야 실행될 수 있으므로, current source 자체를 검증하려면
+호환되는 Pergyra parser/codegen seed로 bridge driver를 먼저 만들어야 한다.
+Windows에서는 WSL alias `bash.exe`가 아니라 실제 MSYS2 UCRT64 bash와 PATH를
+사용한다.
+
+`CollectProtos`의 `Array<String>` 전수 보존을 책임명
+`function_prototype_block_owner.pgy`의 한 `TextBuilder` streaming으로 바꾸자
+동일 compiler-scale MIR가 모든 emission stage를 끝냈다. 그러나 sampled peak는
+여전히 3.077 GiB였고 prototype 단계 자체는 약 216 ms뿐이었다. 따라서
+"prototype 배열 하나만 없애면 끝"이라는 최초 가설은 불완전했다.
+
+다음 수명 겹침은 약 91 MiB의 file-backed raw MIR JSON이었다. Routine/use/match/
+ABI/codegen view owner가 필요한 typed facts를 모두 만든 뒤에도
+`MirMachineLayerAdmittedJsonInput`이 raw buffer를 C emission 끝까지 보존했다.
+파일 입력 경로는 machine declaration과 topology receipt/plan을 snapshot한 뒤
+`MirJsonOwnedInputRelease`로 그 owned buffer를 retire한다. Borrowed text API는
+caller가 소유한 입력이므로 같은 release를 실행하지 않는다.
+
+관찰 결과:
+
+| 단계 | 시간 | peak private | 판정 |
+| --- | ---: | ---: | --- |
+| compatible Pergyra bridge build | 112.658초 | 2.236 GiB | PASS |
+| current source -> MIR | 49.516초 | 2.059 GiB | PASS |
+| sealed MIR -> gen2 C | 103.733초 | 2.844 GiB | PASS, attention |
+| gen2 host release C compile | 54.138초 | 0.758 GiB | PASS |
+| same MIR -> gen3 C | 106.105초 | 2.852 GiB | PASS, attention |
+
+Gen2와 gen3는 모두 5,661,265 bytes이고 SHA-256
+`B30B28CE978582764B168B1238C5EB5D2CF2AA6CDB8EB25FB0AF346C01ADB4FF`로
+byte-equal이다. 이 결과는 hard cap을 높이거나 cache/shard/worker를 추가한 것이
+아니다. 같은 semantic target을 한 번씩 실행하고 final summary만 읽었으며,
+3 GiB hard stop과 2.4 GiB attention threshold는 그대로다.
+
+재발 방지 규칙:
+
+- prototype 전체를 parallel array로 다시 보존하지 않는다.
+- JSON-indexed consumer가 끝난 뒤 file-backed raw MIR을 emission까지 연장하지
+  않는다.
+- borrowed input과 owned file buffer의 release 권한을 합치지 않는다.
+- host C compiler의 0.758 GiB와 self-host MIR consumer의 2.8 GiB를 같은 build
+  비용으로 보고하지 않는다.
+- attention 초과는 기록하되 hard cap 미만이라는 이유만으로 새 active rung을
+  중단하거나 매 sample에 맞춰 구조를 바꾸지 않는다.
+
 ## 누적 expression graph를 매 row마다 다시 검증해 3 GiB에 도달하는 경우
 
 2026-08-01의 90,304,012-byte 고정 MIR consumer에서 메모리 hard stop의 직접 원인은

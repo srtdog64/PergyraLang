@@ -2,39 +2,35 @@
 
 마지막 업데이트: 2026-08-01
 
-## 활성 우선순위 — 기본 C compile/link까지 installed self-host 확장
+## 활성 우선순위 — sealed direct LLVM slice를 public 경로로 승격
 
-- 실행 체크포인트는 `d12f8240`이다. `093cff52`에서 public
-  `pgy source.pgy --emit-c -o output.c`가 sibling `pgy-self-driver`를 선택하고,
-  missing/unsupported 요청은 native pipeline으로 fallback하지 않고 실패한다.
-  `d12f8240`은 AST-text compatibility bridge를 공개 entry owner 한 곳에 고정했다.
-- 최신 current source-to-MIR는 90,429,326 bytes, SHA-256
-  `A151D69CD7B3BD8F81C5587C6E9FB4B75503CD3411D9D3CD1004DED794F9CA9B`,
-  53.579초/2.038 GiB다. gen2/gen3 C는 모두 5,595,167 bytes, SHA-256
-  `275A66AC3203CDC3EE194952ED0CFA03A2E72A1D6E92A6F66F97EDBF0A33440F`로
-  byte-equal이며 106.435초/2.912 GiB와 105.837초/2.985 GiB에 완주했다.
-- 설치 promotion이 드러낸 missing CLI phi는 branch-owned declaration return으로
-  닫았다. Gen3 3.035 GiB hard stop은 모든 prototype을 배열에 보존한
-  `CollectProtos`가 원인이었고, 한 TextBuilder로 streaming한 뒤 2.988 GiB로
-  hard cap 아래 복귀했다. Prototype 전수 보존은 negative ratchet이 거부한다.
-- 일반 host C compile은 59.450초/0.752 GiB였다. 반면 compiler source를 한
-  프로세스에서 곧바로 C로 만드는 경로는 52.095초에 3.187 GiB hard stop을
-  넘었다. source-to-MIR와 MIR-to-C를 owner별 프로세스로 분리하면 각각
-  2.038/2.912 GiB에 통과하므로 host C compiler가 아니라 MIR serialization과
-  consumer lifetime을 겹친 composition이 결함이다.
-- normal install script의 기본 `.tmp` codegen seed는 현재 `SubstringWithLen`을
-  몰라 126.229초 뒤 실패했다. Installed source/MIR driver를 AST codegen seed로
-  바꿔 끼우는 것도 계약 위반이다. 실제-call capability preflight가 추가되기
-  전에는 이 기본 install 경로를 green으로 기록하지 않는다.
-- 증거 등급은 target별이다. Bounded source/MIR와 public pure-C artifact emit은
-  `SUBSTITUTING`; plain default compile/link, run, package, LLVM은 아직 C-owned/open이다.
-  이제 released/default를 0% 또는 100% 한 숫자로 쓰지 않는다.
-- 다음 단일 rung은 plain `pgy examples/hello.pgy -o ...`가 self-host C artifact를
-  정확히 한 번 받아 기존 host compiler/link owner로 넘기게 하고, native
-  semantic/codegen bypass를 삭제하는 것이다. Missing driver는 native 작업 전에
-  실패해야 한다.
-- 첨부 architecture review의 query engine, routine partition, language expansion,
-  Insere/Zeno 제안은 현재 TODO가 아니다.
+- 실행 체크포인트는 `74cbf946`이다. Public C artifact/compile/run은 installed
+  `pgy-self-driver`가 소유하고 native semantic/codegen fallback은 닫혀 있다.
+- 첫 aggregate falsifier인 `option_match.pgy`는 7-block AIR certificate, typed
+  match index, reconstructible `Option<Int>` ABI receipt, target-bound plan을
+  거쳐 C/LLVM에서 정확히 `42\n42\n`를 출력한다. Pattern, binding type, SSA use,
+  successor, tag, offset, layout ID의 일곱 변조와 repaired-digest 내부 변조가
+  artifact 전에 실패한다.
+- Match JSON은 routine-local typed owner만 한 번 읽고 AIR가 재개방하지 않는다.
+  ABI receipt는 size/alignment/offset/field size를 유지해 canonical layout ID를
+  다시 검증하며 선택되지 않은 backend mapping은 target projection에 없다.
+- 최신 fixed point는 91,484,937-byte MIR에서 gen2/gen3 C 5,661,265 bytes,
+  SHA-256 `B30B28CE978582764B168B1238C5EB5D2CF2AA6CDB8EB25FB0AF346C01ADB4FF`
+  로 byte-equal이다. Source-to-MIR 49.516초/2.059 GiB, gen2 103.733초/
+  2.844 GiB, gen3 106.105초/2.852 GiB, host C compile 54.138초/0.758 GiB다.
+- Prototype streaming만으로는 완료 실행이 3.077 GiB였다. 모든 JSON consumer가
+  typed facts를 만든 뒤에도 남아 있던 약 91 MiB file-backed MIR buffer를 C emission
+  전에 release해 cap 아래로 내렸다. Borrowed text API는 caller-owned input을
+  release하지 않는다.
+- 증거 등급은 target별이다. Bounded direct-MIR aggregate C/LLVM와 public C는
+  `SUBSTITUTING`; released public LLVM과 runtime-bearing LLVM, package/dump/check/
+  repl, compiler-purpose intent는 아직 open이다.
+- 다음 단일 rung은 public `--backend=llvm`의 sealed runtime-free envelope다.
+  Installed driver가 source-to-MIR와 direct LLVM을 각각 정확히 한 번 수행하고,
+  `clang -x ir`만 마지막 host boundary가 된다. 실패 시 native AIR/libLLVM으로
+  돌아가면 안 되며 unexpected `@pgy_*`는 runtime profile이 생기기 전 거부한다.
+- Query engine, broad library adoption, Insere/Zeno provenance, unrelated SoT 정리는
+  이 실행 rung의 blocker가 아니며 현재 TODO로 재개하지 않는다.
 
 ## 이전 source-to-MIR checkpoint — 비활성 역사 자료
 
