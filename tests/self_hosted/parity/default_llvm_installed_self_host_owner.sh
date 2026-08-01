@@ -79,7 +79,8 @@ grep -Fxq "self-host-llvm-shim" "$WORK_DIR/shim.out" ||
 run_failure() {
     local mode="$1" expected_count="$2" expected_error="$3"
     local output="$WORK_DIR/$mode-program$suffix"
-    rm -f "$COUNT_FILE" "$output"
+    rm -f "$COUNT_FILE"
+    printf 'stale-binary-must-not-survive\n' >"$output"
     set +e
     (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN &&
         PGY_SELF_DRIVER_COUNT_FILE="$COUNT_FILE_FOR_DRIVER" \
@@ -107,7 +108,7 @@ run_failure "backend-fail" 'producer\nbackend\n' \
 run_failure "malformed" 'producer\nbackend\n' \
     "self-host LLVM compile failed"
 run_failure "runtime-ref" 'producer\nbackend\n' \
-    "self-host LLVM artifact is not runtime-free"
+    "self-host LLVM compile failed"
 
 cp "$PGY" "$WORK_DIR/missing-install/pgy$suffix"
 set +e
@@ -139,5 +140,8 @@ grep -Fq "compiler_compile_link_self_host_llvm_artifact(" <<< "$runner_body" ||
     fail "public LLVM runner reintroduced native semantic/libLLVM ownership"
 ! grep -Eq 'compiler_runtime_object|PGY_INTENT_OBSERVABILITY' <<< "$runner_body" ||
     fail "runtime-free public LLVM runner attached an implicit runtime"
+! grep -Eq 'path_read_file\(|strstr\(' \
+    "$ROOT_DIR/src/compiler/self_host_llvm_driver.c" ||
+    fail "native LLVM materializer inferred runtime policy from artifact text"
 
 echo "[self-host-default-llvm] installed MIR+LLVM artifacts own public runtime-free LLVM compile/run"

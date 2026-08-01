@@ -7108,8 +7108,8 @@ require_text "src/compiler/self_host_llvm_driver.c" \
     'producer_argv[1] = "--emit-mir-json-verified"'
 require_text "src/compiler/self_host_llvm_driver.c" \
     'backend_argv[1] = "--mir-json-backend=llvm"'
-require_text "src/compiler/self_host_llvm_driver.c" \
-    'strstr(text, "@pgy_") == NULL'
+reject_text "src/compiler/self_host_llvm_driver.c" "path_read_file("
+reject_text "src/compiler/self_host_llvm_driver.c" "strstr("
 reject_text "src/compiler/self_host_llvm_driver.c" "driver_run_pipeline("
 reject_text "src/compiler/self_host_llvm_driver.c" "compiler_build_native_llvm("
 reject_text "src/compiler/self_host_llvm_driver.c" "compiler_runtime_object"
@@ -7186,6 +7186,9 @@ require_text \
 require_text \
     "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
     "runtime-free public LLVM runner attached an implicit runtime"
+require_text \
+    "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
+    "stale-binary-must-not-survive"
 require_text "tests/self_host_live_replacement_smoke.sh" '"$PGY" --self-driver "$positive"'
 require_text "tests/self_host_live_replacement_smoke.sh" '"$PGY" --self-driver --mir-json'
 require_text "tests/self_host_live_replacement_smoke.sh" "integrated MIR run output differs from C oracle"

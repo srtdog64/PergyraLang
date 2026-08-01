@@ -60,7 +60,10 @@ main(int argc, char **argv)
         return write_text(
             argv[3],
             "declare void @pgy_forbidden()\n"
-            "define i32 @main() { ret i32 0 }\n");
+            "define i32 @main() {\n"
+            "  call void @pgy_forbidden()\n"
+            "  ret i32 0\n"
+            "}\n");
     }
     return write_text(
         argv[3],

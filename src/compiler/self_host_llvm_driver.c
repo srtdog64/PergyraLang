@@ -6,20 +6,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-
-static bool
-driver_self_host_llvm_artifact_is_runtime_free(const char *llvm_path)
-{
-    char *text = path_read_file(llvm_path);
-    bool runtime_free;
-
-    if (text == NULL)
-        return false;
-    runtime_free = strstr(text, "@pgy_") == NULL;
-    free(text);
-    return runtime_free;
-}
 
 int
 driver_materialize_self_host_llvm_artifacts(
@@ -85,11 +71,6 @@ driver_materialize_self_host_llvm_artifacts(
                 "pgy: self-host driver reported success without an LLVM artifact\n");
         rc = 1;
         goto done;
-    }
-    if (!driver_self_host_llvm_artifact_is_runtime_free(llvm_output_path)) {
-        fprintf(stderr,
-                "pgy: self-host LLVM artifact is not runtime-free; no runtime profile was admitted\n");
-        rc = 1;
     }
 
 done:

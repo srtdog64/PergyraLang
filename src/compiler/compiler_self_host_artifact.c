@@ -1,6 +1,7 @@
 #include "compiler_internal.h"
 #include "compiler_toolchain.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "../common/string_compat.h"
@@ -78,6 +79,7 @@ compiler_compile_link_self_host_c_artifact(const char *input_c_path,
     result->backend_timings.native_compile =
         compiler_now_seconds() - phase_start;
     if (rc != 0) {
+        remove(output_binary_path);
         result->success = false;
         result->exit_code = rc;
         free(result->error_message);
@@ -130,6 +132,7 @@ compiler_compile_link_self_host_llvm_artifact(
     result->backend_timings.native_compile =
         compiler_now_seconds() - phase_start;
     if (rc != 0) {
+        remove(output_binary_path);
         result->success = false;
         result->exit_code = rc;
         free(result->error_message);

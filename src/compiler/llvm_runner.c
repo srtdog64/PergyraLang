@@ -11,6 +11,7 @@
 
 #include "../common/string_compat.h"
 #include "compiler.h"
+#include "compiler_toolchain.h"
 #include "compiler_transient_artifact_workspace.h"
 #include "driver_app.h"
 #include "path_utils.h"
@@ -95,6 +96,19 @@ llvm_runner_execute_installed_self_host_llvm(
                 requested_path, binary_path);
     }
     free(requested_path);
+    if (!pgy_path_is_safe(binary_path)) {
+        fprintf(stderr, "pgy: unsafe self-host LLVM output path\n");
+        compiler_transient_artifact_workspace_close(&workspace);
+        free(binary_path);
+        return 1;
+    }
+    if (path_file_exists(binary_path) && remove(binary_path) != 0) {
+        fprintf(stderr,
+                "pgy: could not remove the stale self-host LLVM output\n");
+        compiler_transient_artifact_workspace_close(&workspace);
+        free(binary_path);
+        return 1;
+    }
     if (flags->verbose)
         printf("pgy: self-host LLVM artifacts → %s, %s\n",
                workspace.primary_path, workspace.secondary_path);
