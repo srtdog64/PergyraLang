@@ -3789,3 +3789,39 @@ summary의 `detached_compiler_worker_tracking=false`, compile sample 0, peak pri
 0.008 GiB는 유효한 compiler peak가 아니다. 수치가 지나치게 작을 때도 그대로
 성능 개선으로 기록하지 말고, process coverage를 먼저 확인한다. 이미 완주한 semantic
 target을 이 계측 실수만으로 반복하지 않는다.
+
+### Default-driver promotion 뒤 current fixed point가 다시 깨지는 경우
+
+설치 composition root가 production CLI owner를 새로 import한 직후 source-to-MIR는
+완료했지만 MIR consumer가 다음처럼 fail-closed했다.
+
+```text
+MIR-LOWER ERROR: MIR phi facts are missing or inconsistent: RunDriverRung2FromArgs
+```
+
+CLI owner는 optional machine declaration을 다섯 branch에서 `Empty()`로 만든 뒤
+조건부 재할당했다. 설치 graph에 처음 도달한 이 함수의 merge identity가 MIR phi
+계약을 만족하지 못했다. 해법은 phi를 추측하거나 consumer fallback을 넣는 것이
+아니라, `DriverRung2OptionalMachineDeclaration`이 branch별 값을 조기 return하게 하고
+source mode도 각 branch에서 완결된 declaration으로 즉시 실행하는 것이다.
+
+그 다음 gen2는 2.991 GiB로 완료했지만 새 gen2가 같은 MIR을 처리하는 gen3는
+3.035 GiB에서 hard stop됐다. 마지막 marker는
+`[codegen-pressure-stage] definitions:done:4244`였다. Function definitions는 이미
+builder streaming이었지만 `CollectProtos`가 모든 prototype 문자열을 `Array<String>`에
+보존한 뒤 join하는 두 번째 program-scale retention 경로를 갖고 있었다. Prototype도
+같은 방식으로 한 builder에 append하고 각 completed row를 즉시 해제한다. 이 경로에
+cache, shard, worker, timeout, 또는 더 높은 memory limit을 추가하지 않는다.
+
+수정 후 current-source fixed-point 증거는 다음과 같다.
+
+| 단계 | 결과 | 시간 | peak private |
+|---|---:|---:|---:|
+| current source -> MIR | 90,429,326 bytes, `BA91F9CF...C2650` | 44.906초 | 1.993 GiB |
+| current MIR -> gen2 C | 5,595,167 bytes, `D65657BF...096A` | 98.095초 | 2.949 GiB |
+| gen2 -> gen3 C | gen2와 byte-equal | 98.614초 | 2.988 GiB |
+
+gen2 host C compile은 별도 측정에서 55.063초/0.753 GiB였다. 따라서 attention
+대상은 일반 C compiler가 아니라 compiler-scale self-host MIR consumer다. 정상
+설치 빌드 경로도 최신 source에서 96.9초에 완료했다. 2.4 GiB attention은 계속
+유지하되, hard cap 아래의 완주를 이유로 다시 같은 세대를 반복하지 않는다.

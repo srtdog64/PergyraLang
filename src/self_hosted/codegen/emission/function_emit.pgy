@@ -292,7 +292,9 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
                    receiver_facts: CodegenCallableReceiverFacts,
                    struct_env: CodegenTypeEnv,
                    specializations: CodegenGenericSpecializationFacts) -> String {
-    let rows: Array<String> = [];
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(4096);
+    let emitted_count: Int = 0;
     let i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
         if !CodegenSemanticFunctionRuntimeCallableOrDie(signatures, i) ||
@@ -389,7 +391,10 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
                 plist = AbiLayoutCEmptyParameterList();
             }
             let sig: String = Concat(AbiLayoutCReturnType(rtype, struct_env), Concat(" ", Concat(c_name, Concat("(", Concat(plist, ")")))));
-            ArrayPush(rows, Concat(sig, ";\n"));
+            let owned_proto: Array<String> = [Concat(sig, ";\n")];
+            TextBuilderAppend(output, owned_proto[0]);
+            ArrayDropOwnedStrings(owned_proto);
+            emitted_count = emitted_count + 1;
         }
         i = i + 1;
     }
@@ -450,17 +455,22 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
         }
         let plist: String = params;
         if pn == 0 { plist = AbiLayoutCEmptyParameterList(); }
-        ArrayPush(rows, Concat(
+        let owned_proto: Array<String> = [Concat(
             AbiLayoutCReturnType(
                 CodegenGenericResolvedReturnTypeOrDie(
                     signatures, signature_index, actuals
                 ), struct_env
             ), Concat(" ", Concat(c_name, Concat("(", Concat(plist, ");\n"))))
-        ));
+        )];
+        TextBuilderAppend(output, owned_proto[0]);
+        ArrayDropOwnedStrings(owned_proto);
+        emitted_count = emitted_count + 1;
         i = i + 1;
     }
-    if ArrayLength(rows) > 0 {
-        ArrayPush(rows, Concat("", "\n"));
+    if emitted_count > 0 {
+        TextBuilderAppend(output, "\n");
     }
-    return CodegenJoinOwnedStringFragments(rows, "");
+    let block: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    return block;
 }

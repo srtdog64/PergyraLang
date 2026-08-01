@@ -2500,6 +2500,10 @@ reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolPro
 reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolProjectionAt(1) == "llvm_symbol"'
 reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolProjectionAt(2) == "self_hosted_symbol"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCQualifiedName"
+reject_function_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    "func CollectProtos(" "let rows: Array<String> = [];"
+require_function_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    "func CollectProtos(" "TextBuilderAppend(output, owned_proto[0]);"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_arena_codegen_view_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunction(count: Int, arena: AstArena,"
 require_file "src/self_hosted/codegen/emission/function_global_env_owner.pgy"
@@ -7005,6 +7009,8 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyVe
 require_file "src/self_hosted/compiler/driver_rung2_cli_owner.pgy"
 require_max_lines "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 100
 require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" "func RunDriverRung2FromArgs"
+require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" \
+    "func DriverRung2OptionalMachineDeclaration("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func RunDriverRung2FromArgs"
 require_text "src/self_hosted/compiler/driver_rung2_main.pgy" 'import "driver_rung2_cli_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung2_main.pgy" \

@@ -1280,7 +1280,8 @@ inventory must not become a second fact-family owner registry.
   kind, C name, and environment rows, plus implicit owner-field C binding rows
   derived from semantic locals and MIR-carried nominal declaration facts.
 - `src/self_hosted/codegen/emission/function_emit.pgy` -- function definition
-  and prototype emission.
+  and prototype emission. Program-scale prototypes stream into one builder and
+  release each completed row; an array retaining every prototype is forbidden.
 - `src/self_hosted/codegen/emission/function_global_env_owner.pgy` -- one-pass
   serialization of admitted builtin, runtime, source, specialization, and
   callable-receiver and intent rows into the immutable global codegen
