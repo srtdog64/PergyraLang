@@ -1,9 +1,9 @@
-// Target-neutral stable mutable identity plan from one shared nominal admission.
+// Target-neutral stable identity plan for mutable nominal declarations.
 import "direct_mir_nominal_literal_program_admission_owner.pgy";
 import "direct_mir_closed_module_call_abi_owner.pgy";
 import "artifact_zone_owner.pgy";
 
-struct DirectMirSubjectIdentityPlan {
+struct DirectMirMutableNominalIdentityPlan {
     let valid: Bool;
     let schema: String;
     let revision: Int;
@@ -24,16 +24,16 @@ struct DirectMirSubjectIdentityPlan {
     let call_abi: DirectMirClosedModuleCallAbiFact;
 }
 
-func DirectMirSubjectIdentityPlanSchema() -> String {
-    return "pgy.selfhost.direct-mir-subject-identity-plan.v1";
+func DirectMirMutableNominalIdentityPlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-mutable-nominal-identity-plan.v1";
 }
 
-func DirectMirSubjectIdentityAbiProvenance() -> String {
+func DirectMirMutableNominalIdentityAbiProvenance() -> String {
     return "typed_nominal_physical_abi_absent_compiler_private_identity";
 }
 
-func DirectMirSubjectIdentityPlanDigest(
-    ref plan: DirectMirSubjectIdentityPlan
+func DirectMirMutableNominalIdentityPlanDigest(
+    ref plan: DirectMirMutableNominalIdentityPlan
 ) -> Int {
     if !plan.valid { return 0; }
     let hash: Long = DirectMirCfgHashString(587L, plan.schema);
@@ -62,26 +62,26 @@ func DirectMirSubjectIdentityPlanDigest(
     return DirectMirCfgBoundedDigest(hash);
 }
 
-func DirectMirSubjectIdentityPlanReady(
-    ref plan: DirectMirSubjectIdentityPlan
+func DirectMirMutableNominalIdentityPlanReady(
+    ref plan: DirectMirMutableNominalIdentityPlan
 ) -> Bool {
-    return plan.valid && plan.schema == DirectMirSubjectIdentityPlanSchema() &&
+    return plan.valid && plan.schema ==
+            DirectMirMutableNominalIdentityPlanSchema() &&
         plan.revision == CompilerArtifactPlanRevision() && plan.digest != 0 &&
-        plan.digest == DirectMirSubjectIdentityPlanDigest(plan) &&
+        plan.digest == DirectMirMutableNominalIdentityPlanDigest(plan) &&
         DirectMirNominalLiteralProgramAdmissionReady(plan.admission) &&
-        plan.admission.program.declaration.kind == "subject" &&
         plan.admission.program.declaration.receiver_carriage ==
             CallableReceiverCarriageMutableIdentity() &&
         CallableReceiverNominalKindUsesMutableIdentity(
             plan.admission.program.declaration.kind
         ) && plan.abi_provenance ==
-            DirectMirSubjectIdentityAbiProvenance() &&
+            DirectMirMutableNominalIdentityAbiProvenance() &&
         plan.abi_evidence_id ==
             plan.admission.typed_nominal_abi_absence.digest &&
         plan.identity_evidence_id > 0 && plan.identity_evidence_id ==
             plan.admission.typed_nominal_abi_absence.result_capture_digest &&
         plan.representation ==
-            "compiler_private_single_int_subject_identity" &&
+            "compiler_private_single_int_mutable_nominal_identity" &&
         plan.receiver_carriage == CallableReceiverCarriageMutableIdentity() &&
         plan.storage_lifetime == "main_stack_stable_identity_no_escape" &&
         plan.storage_count == 1 && plan.stable_pointer_count == 1 &&
@@ -90,34 +90,35 @@ func DirectMirSubjectIdentityPlanReady(
         DirectMirClosedModuleCallAbiFactReady(plan.call_abi);
 }
 
-func DirectMirSubjectIdentityPlanFromAdmission(
+func DirectMirMutableNominalIdentityPlanFromAdmission(
     ref admission: DirectMirNominalLiteralProgramAdmission
-) -> DirectMirSubjectIdentityPlan {
+) -> DirectMirMutableNominalIdentityPlan {
     if !DirectMirNominalLiteralProgramAdmissionReady(admission) ||
-        admission.program.declaration.kind != "subject" ||
         admission.program.declaration.receiver_carriage !=
             CallableReceiverCarriageMutableIdentity() ||
         !CallableReceiverNominalKindUsesMutableIdentity(
             admission.program.declaration.kind
         ) {
-        Die("direct MIR subject identity admission is invalid");
+        Die("direct MIR mutable nominal identity admission is invalid");
     }
     let call_abi: DirectMirClosedModuleCallAbiFact =
         DirectMirClosedModuleCallAbiFactFromOwner();
-    let plan: DirectMirSubjectIdentityPlan = DirectMirSubjectIdentityPlan(
-        true, DirectMirSubjectIdentityPlanSchema(),
+    let plan: DirectMirMutableNominalIdentityPlan =
+        DirectMirMutableNominalIdentityPlan(
+        true, DirectMirMutableNominalIdentityPlanSchema(),
         CompilerArtifactPlanRevision(), 0, admission,
-        DirectMirSubjectIdentityAbiProvenance(),
+        DirectMirMutableNominalIdentityAbiProvenance(),
         admission.typed_nominal_abi_absence.digest,
         admission.typed_nominal_abi_absence.result_capture_digest,
-        "compiler_private_single_int_subject_identity",
+        "compiler_private_single_int_mutable_nominal_identity",
         CallableReceiverCarriageMutableIdentity(),
         "main_stack_stable_identity_no_escape", 1, 1,
         true, true, true, true, call_abi
     );
-    let verified: DirectMirSubjectIdentityPlan = DirectMirSubjectIdentityPlan(
+    let verified: DirectMirMutableNominalIdentityPlan =
+        DirectMirMutableNominalIdentityPlan(
         plan.valid, plan.schema, plan.revision,
-        DirectMirSubjectIdentityPlanDigest(plan), plan.admission,
+        DirectMirMutableNominalIdentityPlanDigest(plan), plan.admission,
         plan.abi_provenance, plan.abi_evidence_id,
         plan.identity_evidence_id, plan.representation,
         plan.receiver_carriage, plan.storage_lifetime,
@@ -126,8 +127,8 @@ func DirectMirSubjectIdentityPlanFromAdmission(
         plan.member_write_via_pointer, plan.member_read_via_pointer,
         plan.call_abi
     );
-    if !DirectMirSubjectIdentityPlanReady(verified) {
-        Die("direct MIR subject identity plan is invalid");
+    if !DirectMirMutableNominalIdentityPlanReady(verified) {
+        Die("direct MIR mutable nominal identity plan is invalid");
     }
     return verified;
 }

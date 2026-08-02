@@ -61,7 +61,7 @@ EOF
     [[ "$(grep -R -F 'DirectMirNominalLiteralRouteFactFromAdmitted(' "$ROOT_DIR/src/self_hosted/compiler" | wc -l | tr -d ' ')" -eq 2 ]] || fail "nominal literal route constructor escaped one definition and one call"
     [[ "$(grep -R -F 'DirectMirNominalLiteralProgramAdmissionFromAdmitted(' "$ROOT_DIR/src/self_hosted/compiler" | wc -l | tr -d ' ')" -eq 2 ]] || fail "nominal literal admission escaped one definition and one call"
     [[ "$(grep -Fc 'DirectMirNominalLiteralRouteFactFromAdmitted(admitted)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy")" -eq 1 ]] || fail "nominal literal classification is not single-shot"
-    ! grep -R -Eq 'NominalLiteralProgramCandidate|SubjectIdentityProgramCandidate' "$ROOT_DIR/src/self_hosted/compiler" || fail "nominal literal route was re-evaluated"
+    ! grep -R -Eq 'NominalLiteralProgramCandidate|MutableNominalIdentityProgramCandidate' "$ROOT_DIR/src/self_hosted/compiler" || fail "nominal literal route was re-evaluated"
     grep -Fq 'CompileAdmittedDirectMirNominalLiteral(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" || fail "nominal literal projection is not routed"
     [[ "$(grep -Ec 'PassiveNominalLiteralPlanFromAdmission\(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_projection_owner.pgy")" -eq 1 ]] || fail "passive nominal projection retried a planner"
     ! grep -R -Fq 'CompileAdmittedDirectMirPassiveNominalLiteral' "$ROOT_DIR/src/self_hosted/compiler" || fail "retired passive-only composition root reappeared"
@@ -98,7 +98,7 @@ reject_mutation() {
         fail "$target accepted passive nominal mutation: $name"
     fi
     [[ ! -e "$output" ]] || fail "$target emitted before rejecting $name"
-    grep -Eq 'nominal literal|subject identity' "$output.stdout" "$output.stderr" || fail "$target rejection lost nominal owner: $name"
+    grep -Eq 'nominal literal|mutable nominal identity' "$output.stdout" "$output.stderr" || fail "$target rejection lost nominal owner: $name"
     ! grep -Fq 'unsupported scalar facts' "$output.stdout" "$output.stderr" || fail "$target retried scalar after passive nominal admission: $name"
 }
 
@@ -123,8 +123,8 @@ rm -f "$MIR" "$NATIVE_MIR"
 (cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified "$(root_relative "$SOURCE")" "$(root_relative "$MIR")") || fail "source-to-MIR rejected tobject fixture"
 mir_digest="$(hash_file "$MIR")"
 (cd "$ROOT_DIR" && "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$SOURCE")" >"$NATIVE_MIR") || fail "native MIR oracle rejected tobject fixture"
-"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_passive_nominal_literal_mutations.py" "$MIR" "$NATIVE_MIR" compare || fail "native/self passive nominal semantics drifted"
-"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_passive_nominal_literal_mutations.py" "$MIR" "$WORK_DIR"
+"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_nominal_literal_mutations.py" "$MIR" "$NATIVE_MIR" compare || fail "native/self passive nominal semantics drifted"
+"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_nominal_literal_mutations.py" "$MIR" "$WORK_DIR"
 
 project "$MIR" c "$WORK_DIR/baseline.c"
 project "$MIR" llvm "$WORK_DIR/baseline.ll"
@@ -148,13 +148,15 @@ for host in host-object host-class; do
     cmp -s "$WORK_DIR/baseline.c" "$WORK_DIR/$host.c" || fail "C representation drifted for $host"
     cmp -s "$WORK_DIR/baseline.ll" "$WORK_DIR/$host.ll" || fail "LLVM representation drifted for $host"
 done
-project "$WORK_DIR/host-subject.json" c "$WORK_DIR/host-subject.c"
-project "$WORK_DIR/host-subject.json" llvm "$WORK_DIR/host-subject.ll"
-grep -Fq 'PlayerDto *const _pgy_subject_0 = &_pgy_subject_storage_0;' "$WORK_DIR/host-subject.c" || fail "subject route fell back to passive C value representation"
-grep -Fq '%pgy.subject.0 = alloca %PlayerDto' "$WORK_DIR/host-subject.ll" || fail "subject route fell back to passive LLVM value representation"
-compile_and_expect host-subject 12
+for host in host-subject host-vessel; do
+    project "$WORK_DIR/$host.json" c "$WORK_DIR/$host.c"
+    project "$WORK_DIR/$host.json" llvm "$WORK_DIR/$host.ll"
+    grep -Fq 'PlayerDto *const _pgy_identity_0 = &_pgy_identity_storage_0;' "$WORK_DIR/$host.c" || fail "$host route fell back to passive C value representation"
+    grep -Fq '%pgy.identity.0 = alloca %PlayerDto' "$WORK_DIR/$host.ll" || fail "$host route fell back to passive LLVM value representation"
+    compile_and_expect "$host" 12
+done
 
-for mutation in kind-drift nominal-kind-drift host-vessel declaration-name-drift declaration-id-zero field-name-drift field-type-drift field-kind-drift field-id-collision method-tail entrypoint-drift return-drift source-local-name-drift source-local-type-drift constructor-type-drift constructor-field-drift constructor-edge-drift constructor-noncanonical-int definition-result-drift definition-local-drift definition-arg-type-drift definition-expr-type-drift definition-abi-type-drift definition-abi-forged instruction-tail duplicate-identity-definition second-source-local missing-use duplicate-use stale-use member-receiver-drift member-name-drift member-edge-drift unreachable; do reject_mutation "$mutation"; done
-for mutation in kind-drift nominal-kind-drift host-vessel field-type-drift source-local-name-drift constructor-edge-drift definition-expr-type-drift definition-abi-type-drift definition-abi-forged instruction-tail duplicate-identity-definition duplicate-use stale-use member-name-drift; do reject_mutation "$mutation" llvm; done
+for mutation in kind-drift nominal-kind-drift declaration-name-drift declaration-id-zero field-name-drift field-type-drift field-kind-drift field-id-collision method-tail entrypoint-drift return-drift source-local-name-drift source-local-type-drift constructor-type-drift constructor-field-drift constructor-edge-drift constructor-noncanonical-int definition-result-drift definition-local-drift definition-arg-type-drift definition-expr-type-drift definition-abi-type-drift definition-abi-forged instruction-tail duplicate-identity-definition second-source-local missing-use duplicate-use stale-use member-receiver-drift member-name-drift member-edge-drift unreachable; do reject_mutation "$mutation"; done
+for mutation in kind-drift nominal-kind-drift field-type-drift source-local-name-drift source-local-type-drift constructor-edge-drift definition-expr-type-drift definition-abi-type-drift definition-abi-forged instruction-tail duplicate-identity-definition duplicate-use stale-use member-name-drift; do reject_mutation "$mutation" llvm; done
 
-echo "[$LABEL] PASS: tobject exact 12, real C/LLVM construction+read, subject representation split, 34 C negatives, 14 LLVM sentinels (sha256=$mir_digest)"
+echo "[$LABEL] PASS: tobject exact 12, real C/LLVM construction+read, subject/vessel identity split, 33 C negatives, 14 LLVM sentinels (sha256=$mir_digest)"

@@ -19,8 +19,8 @@ struct DirectMirNominalLiteralDeclarationFact {
 func DirectMirNominalLiteralFrontierKindReady(kind: String) -> Bool {
     // Struct owns a physical layout; enum construction uses another plan.
     return kind != "struct" && kind != "enum" &&
-        (CallableReceiverNominalKindUsesValue(kind) || kind == "subject" ||
-         kind == "vessel");
+        (CallableReceiverNominalKindUsesValue(kind) ||
+         CallableReceiverNominalKindUsesMutableLiteralIdentity(kind));
 }
 
 func DirectMirNominalLiteralExpectedCarriage(kind: String) -> String {

@@ -33,6 +33,14 @@ func CallableReceiverNominalKindUsesMutableIdentity(
         nominal_kind == "zone";
 }
 
+func CallableReceiverNominalKindUsesMutableLiteralIdentity(
+    nominal_kind: String
+) -> Bool {
+    // This is the bounded construction frontier, not the full receiver set.
+    return CallableReceiverNominalKindUsesMutableIdentity(nominal_kind) &&
+        (nominal_kind == "subject" || nominal_kind == "vessel");
+}
+
 func CallableReceiverNominalKindUsesValue(nominal_kind: String) -> Bool {
     // ability is known but owns compile-time contracts, not runtime receivers.
     return nominal_kind == "struct" || nominal_kind == "class" ||

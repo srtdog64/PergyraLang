@@ -64,7 +64,7 @@ def declaration_shape(document, native=False):
 if mode == "compare":
     oracle = json.loads(target.read_text(encoding="utf-8"))
     if declaration_shape(baseline) != declaration_shape(oracle, native=True):
-        raise RuntimeError("native/self passive nominal declaration drifted")
+        raise RuntimeError("native/self nominal literal declaration drifted")
     left = routine(baseline)
     right = routine(oracle)
     for key in ("name", "kind", "receiver_carriage", "generics", "params",

@@ -1,8 +1,8 @@
 // Exclusive value/identity plan selection after one shared admission.
 import "direct_mir_passive_nominal_literal_c_emission_owner.pgy";
 import "direct_mir_passive_nominal_literal_llvm_emission_owner.pgy";
-import "direct_mir_subject_identity_c_emission_owner.pgy";
-import "direct_mir_subject_identity_llvm_emission_owner.pgy";
+import "direct_mir_mutable_nominal_identity_c_emission_owner.pgy";
+import "direct_mir_mutable_nominal_identity_llvm_emission_owner.pgy";
 import "direct_mir_nominal_literal_program_admission_owner.pgy";
 import "direct_mir_nominal_literal_route_fact_owner.pgy";
 
@@ -29,19 +29,21 @@ func CompileAdmittedDirectMirNominalLiteral(
         Die("direct MIR nominal literal projection target is invalid");
     }
     if DirectMirNominalLiteralRouteUsesMutableIdentity(route) {
-        let subject_plan: DirectMirSubjectIdentityPlan =
-            DirectMirSubjectIdentityPlanFromAdmission(admission);
-        let subject_projection: DirectMirSubjectIdentityTargetProjection =
-            DirectMirSubjectIdentityTargetProjectionFromPlan(
-                subject_plan, target
+        let identity_plan: DirectMirMutableNominalIdentityPlan =
+            DirectMirMutableNominalIdentityPlanFromAdmission(admission);
+        let identity_projection:
+            DirectMirMutableNominalIdentityTargetProjection =
+            DirectMirMutableNominalIdentityTargetProjectionFromPlan(
+                identity_plan, target
             );
         if is_llvm {
-            return DirectMirSubjectIdentityEmitLlvm(
-                subject_plan, subject_projection, formatted_print, line_format
+            return DirectMirMutableNominalIdentityEmitLlvm(
+                identity_plan, identity_projection,
+                formatted_print, line_format
             );
         }
-        return DirectMirSubjectIdentityEmitC(
-            subject_plan, subject_projection, formatted_print, line_format
+        return DirectMirMutableNominalIdentityEmitC(
+            identity_plan, identity_projection, formatted_print, line_format
         );
     }
     let value_plan: DirectMirPassiveNominalLiteralPlan =

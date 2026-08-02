@@ -1,9 +1,9 @@
-// Target-bound capability/representation projection for one stable identity.
+// Target-bound representation projection for one mutable nominal identity.
 // Exact C and LLVM syntax remains owned by the selected emitter.
-import "direct_mir_subject_identity_plan_owner.pgy";
+import "direct_mir_mutable_nominal_identity_plan_owner.pgy";
 import "target_projection_fact_owner.pgy";
 
-struct DirectMirSubjectIdentityTargetProjection {
+struct DirectMirMutableNominalIdentityTargetProjection {
     let valid: Bool;
     let target_projection: String;
     let target_capability_fingerprint: Int;
@@ -14,8 +14,8 @@ struct DirectMirSubjectIdentityTargetProjection {
     let mutable_pointee: Bool;
 }
 
-func DirectMirSubjectIdentityTargetProjectionReadyFor(
-    ref projection: DirectMirSubjectIdentityTargetProjection,
+func DirectMirMutableNominalIdentityTargetProjectionReadyFor(
+    ref projection: DirectMirMutableNominalIdentityTargetProjection,
     expected_target: String
 ) -> Bool {
     return projection.valid &&
@@ -32,14 +32,14 @@ func DirectMirSubjectIdentityTargetProjectionReadyFor(
          expected_target == CompilerTargetCpuLlvmProjection());
 }
 
-func DirectMirSubjectIdentityTargetProjectionFromPlan(
-    ref plan: DirectMirSubjectIdentityPlan,
+func DirectMirMutableNominalIdentityTargetProjectionFromPlan(
+    ref plan: DirectMirMutableNominalIdentityPlan,
     ref target: CompilerTargetProjectionFact
-) -> DirectMirSubjectIdentityTargetProjection {
-    if !DirectMirSubjectIdentityPlanReady(plan) ||
+) -> DirectMirMutableNominalIdentityTargetProjection {
+    if !DirectMirMutableNominalIdentityPlanReady(plan) ||
         plan.storage_count != 1 || plan.stable_pointer_count != 1 ||
         !plan.pointer_stable || !plan.pointee_mutable {
-        Die("direct MIR subject identity target plan is invalid");
+        Die("direct MIR mutable nominal identity target plan is invalid");
     }
     let target_ready: Bool = CompilerTargetProjectionFactReadyFor(
         target, CompilerTargetCpuCProjection()
@@ -47,18 +47,18 @@ func DirectMirSubjectIdentityTargetProjectionFromPlan(
         target, CompilerTargetCpuLlvmProjection()
     );
     if !target_ready {
-        Die("direct MIR subject identity target is unsupported");
+        Die("direct MIR mutable nominal identity target is unsupported");
     }
-    let projection: DirectMirSubjectIdentityTargetProjection =
-        DirectMirSubjectIdentityTargetProjection(
+    let projection: DirectMirMutableNominalIdentityTargetProjection =
+        DirectMirMutableNominalIdentityTargetProjection(
             true, target.projection, target.target_capability_fingerprint,
             "compiler_private_single_i32_stable_address", 1, 1,
             true, true
         );
-    if !DirectMirSubjectIdentityTargetProjectionReadyFor(
+    if !DirectMirMutableNominalIdentityTargetProjectionReadyFor(
         projection, target.projection
     ) {
-        Die("direct MIR subject identity target projection is invalid");
+        Die("direct MIR mutable nominal identity target projection is invalid");
     }
     return projection;
 }

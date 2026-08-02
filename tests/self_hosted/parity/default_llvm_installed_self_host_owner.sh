@@ -68,7 +68,7 @@ cmp -s "$WORK_DIR/real.expected" "$WORK_DIR/real-program.out" ||
 for member_case in "$MEMBER_SOURCE|member|41" \
     "$VESSEL_MEMBER_SOURCE|vessel-member|42" \
     "$PASSIVE_NOMINAL_SOURCE|passive-nominal|12" \
-    "$SUBJECT_SOURCE|subject|7" \
+    "$SUBJECT_SOURCE|subject|7" "src/self_hosted/mir_lower/fixture/nominal_vessel.pgy|vessel|13" \
     "$CONSTRUCTED_MEMBER_SOURCE|constructed-member|43" \
     "$CONSTRUCTED_ARRAY_MEMBER_SOURCE|constructed-array-member|44" \
     "$CONSTRUCTED_RECORD_ARRAY_MEMBER_SOURCE|constructed-record-array-member|45"; do

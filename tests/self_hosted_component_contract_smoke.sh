@@ -14288,31 +14288,31 @@ require_text ".github/workflows/ci.yml" \
 require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-passive-nominal-literal-projection-test-smoke"
 require_text ".github/workflows/ci.yml" \
-    "self-host-one-mir-subject-identity-projection-test-smoke"
+    "self-host-one-mir-mutable-nominal-identity-projection-test-smoke"
 require_text "Makefile" \
     "SELFHOST_ONE_MIR_PASSIVE_NOMINAL_LITERAL_GATE ?="
 require_text "Makefile" \
-    "SELFHOST_ONE_MIR_SUBJECT_IDENTITY_GATE ?="
+    "SELFHOST_ONE_MIR_MUTABLE_NOMINAL_IDENTITY_GATE ?="
 require_text "Makefile" \
     '$(SELFHOST_ONE_MIR_PASSIVE_NOMINAL_LITERAL_GATE)'
 require_text "Makefile" \
-    '$(SELFHOST_ONE_MIR_SUBJECT_IDENTITY_GATE)'
+    '$(SELFHOST_ONE_MIR_MUTABLE_NOMINAL_IDENTITY_GATE)'
 require_text "Makefile" \
     "self-host-one-mir-passive-nominal-literal-projection-test-smoke: self-host-compiler"
 require_text "Makefile" \
-    "self-host-one-mir-subject-identity-projection-test-smoke: self-host-compiler"
+    "self-host-one-mir-mutable-nominal-identity-projection-test-smoke: self-host-compiler"
 require_file \
     "tests/self_hosted/parity/one_mir_passive_nominal_literal_projection.sh"
 require_file \
-    "tests/self_hosted/parity/one_mir_subject_identity_projection.sh"
+    "tests/self_hosted/parity/one_mir_mutable_nominal_identity_projection.sh"
 require_file \
-    "tests/self_hosted/parity/one_mir_passive_nominal_literal_mutations.py"
+    "tests/self_hosted/parity/one_mir_nominal_literal_mutations.py"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_passive_nominal_literal_projection.sh" 200
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_subject_identity_projection.sh" 200
+    "tests/self_hosted/parity/one_mir_mutable_nominal_identity_projection.sh" 200
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_passive_nominal_literal_mutations.py" 260
+    "tests/self_hosted/parity/one_mir_nominal_literal_mutations.py" 260
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_exact_json_array_cardinality_owner.pgy" 90
 [[ ! -e src/self_hosted/compiler/direct_mir_inferred_generic_member_array_shape_owner.pgy ]] || \
@@ -14357,22 +14357,22 @@ passive_nominal_inventory=(src/self_hosted/compiler/direct_mir_passive_nominal_l
     fail "passive nominal owner inventory drifted"
 [[ "$passive_nominal_total" -le 320 ]] || \
     fail "passive nominal owner cap exceeded: $passive_nominal_total/320"
-subject_identity_total=0
+mutable_identity_total=0
 while IFS='|' read -r owner cap; do
     require_max_lines "src/self_hosted/compiler/$owner" "$cap"
-    subject_identity_total=$((subject_identity_total + $(wc -l < \
+    mutable_identity_total=$((mutable_identity_total + $(wc -l < \
         "src/self_hosted/compiler/$owner")))
-done <<'SUBJECT_IDENTITY_OWNER_CAPS'
-direct_mir_subject_identity_plan_owner.pgy|180
-direct_mir_subject_identity_target_projection_owner.pgy|100
-direct_mir_subject_identity_c_emission_owner.pgy|90
-direct_mir_subject_identity_llvm_emission_owner.pgy|90
-SUBJECT_IDENTITY_OWNER_CAPS
-subject_identity_inventory=(src/self_hosted/compiler/direct_mir_subject_identity_*.pgy)
-[[ "${#subject_identity_inventory[@]}" -eq 4 ]] || \
-    fail "subject identity owner inventory drifted"
-[[ "$subject_identity_total" -le 384 ]] || \
-    fail "subject identity owner cap exceeded: $subject_identity_total/384"
+done <<'MUTABLE_IDENTITY_OWNER_CAPS'
+direct_mir_mutable_nominal_identity_plan_owner.pgy|180
+direct_mir_mutable_nominal_identity_target_projection_owner.pgy|100
+direct_mir_mutable_nominal_identity_c_emission_owner.pgy|90
+direct_mir_mutable_nominal_identity_llvm_emission_owner.pgy|90
+MUTABLE_IDENTITY_OWNER_CAPS
+mutable_identity_inventory=(src/self_hosted/compiler/direct_mir_mutable_nominal_identity_*.pgy)
+[[ "${#mutable_identity_inventory[@]}" -eq 4 ]] || \
+    fail "mutable nominal identity owner inventory drifted"
+[[ "$mutable_identity_total" -le 384 ]] || \
+    fail "mutable nominal identity owner cap exceeded: $mutable_identity_total/384"
 for retired in direct_mir_passive_nominal_declaration_fact_owner.pgy direct_mir_passive_nominal_literal_route_fact_owner.pgy direct_mir_passive_nominal_literal_graph_fact_owner.pgy direct_mir_passive_nominal_literal_program_identity_owner.pgy direct_mir_passive_nominal_literal_instruction_envelope_owner.pgy direct_mir_passive_nominal_literal_abi_absence_owner.pgy direct_mir_passive_nominal_literal_program_admission_owner.pgy direct_mir_passive_nominal_literal_projection_owner.pgy; do
     [[ ! -e "src/self_hosted/compiler/$retired" ]] || \
         fail "retired passive-only common owner reappeared: $retired"
@@ -14386,7 +14386,7 @@ done
 [[ "$(grep -Fc 'DirectMirNominalLiteralRouteFactFromAdmitted(admitted)' \
     src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy)" -eq 1 ]] || \
     fail "nominal literal classification is not single-shot"
-! grep -R -Eq 'NominalLiteralProgramCandidate|SubjectIdentityProgramCandidate' \
+! grep -R -Eq 'NominalLiteralProgramCandidate|MutableNominalIdentityProgramCandidate' \
     src/self_hosted/compiler || \
     fail "nominal literal route was re-evaluated"
 require_text \
@@ -14410,6 +14410,17 @@ require_text \
     "src/self_hosted/compiler/direct_mir_nominal_literal_declaration_fact_owner.pgy" \
     "DirectMirExactObjectArrayCount(methods, 0)"
 require_text \
+    "src/self_hosted/compiler/direct_mir_nominal_literal_declaration_fact_owner.pgy" \
+    "CallableReceiverNominalKindUsesMutableLiteralIdentity(kind)"
+require_text \
+    "src/self_hosted/semantic/callable_receiver_carriage_policy_owner.pgy" \
+    "func CallableReceiverNominalKindUsesMutableLiteralIdentity("
+! grep -Eq '"(subject|vessel)"' \
+    src/self_hosted/compiler/direct_mir_nominal_literal_declaration_fact_owner.pgy \
+    src/self_hosted/compiler/direct_mir_nominal_literal_route_fact_owner.pgy \
+    src/self_hosted/compiler/direct_mir_nominal_literal_projection_owner.pgy || \
+    fail "shared nominal router recreated a mutable kind allow-list"
+require_text \
     "src/self_hosted/compiler/direct_mir_passive_nominal_literal_target_projection_owner.pgy" \
     "each emitter owns syntax"
 require_text \
@@ -14419,32 +14430,35 @@ for passive_nominal_ratchet in \
     '%pgy.nominal.0 = insertvalue %PlayerDto poison, i32 12, 0' \
     '%pgy.member.0 = extractvalue %PlayerDto %pgy.nominal.0, 0' \
     definition-local-drift definition-arg-type-drift \
-    definition-expr-type-drift instruction-tail kind-drift method-tail host-vessel \
-    'subject representation split' 'scalar after passive nominal admission'; do
+    definition-expr-type-drift instruction-tail kind-drift method-tail host-subject \
+    'subject/vessel identity split' 'scalar after passive nominal admission'; do
     require_text \
         "tests/self_hosted/parity/one_mir_passive_nominal_literal_projection.sh" \
         "$passive_nominal_ratchet"
 done
-for subject_identity_ratchet in \
-    'Hero *const _pgy_subject_0 = &_pgy_subject_storage_0;' \
-    '%pgy.subject.0 = alloca %Hero' \
-    '%pgy.subject.field.0 = getelementptr inbounds %Hero, ptr %pgy.subject.0, i32 0, i32 0' \
-    'store i32 7, ptr %pgy.subject.field.0' \
-    '%pgy.member.0 = load i32, ptr %pgy.subject.field.0' \
+for mutable_identity_ratchet in \
+    'assert_identity_shape subject Hero hp 7' \
+    'assert_identity_shape vessel HP value 13' \
+    '$type_name *const _pgy_identity_0 = &_pgy_identity_storage_0;' \
+    '%pgy.identity.0 = alloca %$type_name' \
+    '%pgy.identity.field.0 = getelementptr inbounds %$type_name' \
     'for opcode in alloca getelementptr store load' 'insertvalue|extractvalue' \
     source-local-name-drift definition-abi-type-drift \
     duplicate-identity-definition second-source-local duplicate-use \
-    'passive/scalar after subject admission'; do
+    host-subject 'passive/scalar after mutable identity admission'; do
     require_text \
-        "tests/self_hosted/parity/one_mir_subject_identity_projection.sh" \
-        "$subject_identity_ratchet"
+        "tests/self_hosted/parity/one_mir_mutable_nominal_identity_projection.sh" \
+        "$mutable_identity_ratchet"
 done
 ! grep -R -Fq 'direct_mir_passive_nominal_literal_plan_owner.pgy' \
-    src/self_hosted/compiler/direct_mir_subject_identity*.pgy || \
-    fail "subject identity family imported passive value plan"
+    src/self_hosted/compiler/direct_mir_mutable_nominal_identity*.pgy || \
+    fail "mutable nominal identity family imported passive value plan"
 ! grep -Fq 'aggregate_value' \
-    src/self_hosted/compiler/direct_mir_subject_identity_plan_owner.pgy || \
-    fail "subject identity plan became aggregate-by-value"
+    src/self_hosted/compiler/direct_mir_mutable_nominal_identity_plan_owner.pgy || \
+    fail "mutable nominal identity plan became aggregate-by-value"
+for retired_subject_owner in src/self_hosted/compiler/direct_mir_subject_identity_*.pgy; do
+    [[ ! -e "$retired_subject_owner" ]] || fail "retired subject-only identity owner returned"
+done
 require_text \
     "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
     "nominal_tobject.pgy|passive-nominal|12"
@@ -14457,6 +14471,12 @@ require_text \
 require_text \
     "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
     '$SUBJECT_SOURCE|subject|7'
+require_text \
+    "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
+    "nominal_vessel.pgy|vessel|13"
+require_text \
+    "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
+    "nominal_vessel.pgy|vessel|13"
 require_text \
     "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
     "generic_member_inferred_flow.pgy"
