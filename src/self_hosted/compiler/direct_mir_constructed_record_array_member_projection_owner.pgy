@@ -1,0 +1,35 @@
+// Exclusive target selection for the mixed constructed record Array plan.
+
+import "direct_mir_constructed_record_array_member_c_emission_owner.pgy";
+import "direct_mir_constructed_record_array_member_llvm_emission_owner.pgy";
+
+func CompileAdmittedDirectMirConstructedRecordArrayMember(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirThreeRoutineClassificationFact,
+    target_projection: CompilerTargetProjectionFact,
+    is_llvm: Bool,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirThreeRoutineClassificationFactReady(classification) ||
+        classification.kind !=
+            DirectMirThreeRoutineMixedConstructedGenericMember() {
+        Die("direct MIR constructed record Array classification is invalid");
+    }
+    let plan: DirectMirConstructedRecordArrayMemberPlan =
+        DirectMirConstructedRecordArrayMemberPlanFromAdmitted(
+            admitted, classification
+        );
+    let abi: DirectMirConstructedRecordArrayMemberAbiProjection =
+        DirectMirConstructedRecordArrayMemberAbiProjectionFromPlan(
+            plan, target_projection
+        );
+    if is_llvm {
+        return DirectMirConstructedRecordArrayMemberEmitLlvm(
+            plan, abi, formatted_print, line_format
+        );
+    }
+    return DirectMirConstructedRecordArrayMemberEmitC(
+        plan, abi, formatted_print, line_format
+    );
+}

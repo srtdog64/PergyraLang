@@ -24,6 +24,8 @@ func DirectMirThreeRoutineClassificationFromAdmitted(
         DirectMirThreeRoutineGenericRoutineCount(admitted.routines);
     let constructed_shape: DirectMirThreeRoutineConstructedMemberShapeFact =
         InvalidDirectMirThreeRoutineConstructedMemberShapeFact();
+    let mixed_shape: DirectMirThreeRoutineMixedConstructedMemberShapeFact =
+        InvalidDirectMirThreeRoutineMixedConstructedMemberShapeFact();
     let kind: String = "";
     if declarations == 0 && specialization_count == 0 &&
         generic_routine_count == 0 {
@@ -44,6 +46,18 @@ func DirectMirThreeRoutineClassificationFromAdmitted(
             Die("direct MIR constructed member structural shape is invalid");
         }
         kind = DirectMirThreeRoutineConstructedGenericMember();
+    } else if declarations == 2 && specialization_count == 2 &&
+        generic_routine_count == 2 {
+        mixed_shape =
+            DirectMirThreeRoutineMixedConstructedMemberShapeFromAdmitted(
+                admitted
+            );
+        if !DirectMirThreeRoutineMixedConstructedMemberShapeFactReady(
+            mixed_shape
+        ) {
+            Die("direct MIR mixed constructed member structural shape is invalid");
+        }
+        kind = DirectMirThreeRoutineMixedConstructedGenericMember();
     } else if declarations == 2 && specialization_count == 0 &&
         generic_routine_count == 0 {
         kind = DirectMirThreeRoutineStructArgument();
@@ -53,13 +67,15 @@ func DirectMirThreeRoutineClassificationFromAdmitted(
     let fact: DirectMirThreeRoutineClassificationFact =
         DirectMirThreeRoutineClassificationFact(
             true, 0, kind, declarations,
-            specialization_count, generic_routine_count, constructed_shape
+            specialization_count, generic_routine_count, constructed_shape,
+            mixed_shape
         );
     let verified: DirectMirThreeRoutineClassificationFact =
         DirectMirThreeRoutineClassificationFact(
             fact.valid, DirectMirThreeRoutineClassificationFactDigest(fact),
             fact.kind, fact.declaration_count, fact.specialization_count,
-            fact.generic_routine_count, fact.constructed_member_shape
+            fact.generic_routine_count, fact.constructed_member_shape,
+            fact.mixed_constructed_member_shape
         );
     if !DirectMirThreeRoutineClassificationFactReady(verified) {
         Die("direct MIR three-routine classification is invalid");

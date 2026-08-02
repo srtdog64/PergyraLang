@@ -48,7 +48,7 @@ func DirectMirConstructedGenericMemberDeclarationFactReady(
 ) -> Bool {
     return fact.valid && fact.digest != 0 && fact.digest ==
         DirectMirConstructedGenericMemberDeclarationDigest(fact) &&
-        fact.row == 0 && fact.name != "" && fact.source_syntax_id > 0 &&
+        fact.row >= 0 && fact.name != "" && fact.source_syntax_id > 0 &&
         fact.field_name != "" &&
         fact.field_type == CompilerAbiLayoutIntTypeName() &&
         fact.field_source_syntax_id > 0 &&
@@ -80,16 +80,19 @@ func DirectMirConstructedGenericMemberDeclarationHasMethod(
     return false;
 }
 
-func DirectMirConstructedGenericMemberDeclarationFactFromDocument(
-    json: String, ref declarations: MirProgramDeclarationIndex
+func DirectMirConstructedGenericMemberDeclarationFactAtDocument(
+    json: String, ref declarations: MirProgramDeclarationIndex,
+    declaration_row: Int
 ) -> DirectMirConstructedGenericMemberDeclarationFact {
-    if !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 ||
-        declarations.kinds[0] != "class" ||
-        declarations.nominal_kinds[0] != "class" {
+    if !declarations.valid || declaration_row < 0 ||
+        declaration_row >= MirProgramDeclarationIndexCount(declarations) ||
+        declarations.kinds[declaration_row] != "class" ||
+        declarations.nominal_kinds[declaration_row] != "class" {
         return InvalidDirectMirConstructedGenericMemberDeclarationFact();
     }
     let declaration: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json, declarations.starts[0], declarations.ends[0]
+        json, declarations.starts[declaration_row],
+        declarations.ends[declaration_row]
     );
     let name_opt: Option<String> = JsonObjectFactStringFieldOpt(
         declaration, "name"
@@ -105,7 +108,8 @@ func DirectMirConstructedGenericMemberDeclarationFactFromDocument(
     );
     if !JsonObjectFactTableReady(declaration) ||
         JsonObjectFactCount(declaration) != 6 || !IsSome(name_opt) ||
-        !IsSome(syntax_opt) || UnwrapOption(name_opt) != declarations.names[0] ||
+        !IsSome(syntax_opt) || UnwrapOption(name_opt) !=
+            declarations.names[declaration_row] ||
         !DirectMirInferredGenericMemberExactObjectArrayCount(fields, 1) ||
         !DirectMirInferredGenericMemberExactObjectArrayCount(methods, 2) {
         return InvalidDirectMirConstructedGenericMemberDeclarationFact();
@@ -126,9 +130,11 @@ func DirectMirConstructedGenericMemberDeclarationFactFromDocument(
     }
     let method_names: Array<String> = [];
     let method_returns: Array<String> = [];
-    let row: Int = 0;
-    while row < 2 {
-        let method: JsonObjectFactTable = JsonArrayObjectFactAt(methods, row);
+    let method_row: Int = 0;
+    while method_row < 2 {
+        let method: JsonObjectFactTable = JsonArrayObjectFactAt(
+            methods, method_row
+        );
         let method_name: Option<String> = JsonObjectFactStringFieldOpt(
             method, "name"
         );
@@ -152,11 +158,11 @@ func DirectMirConstructedGenericMemberDeclarationFactFromDocument(
         }
         ArrayPush(method_names, UnwrapOption(method_name));
         ArrayPush(method_returns, UnwrapOption(method_return));
-        row = row + 1;
+        method_row = method_row + 1;
     }
     let fact: DirectMirConstructedGenericMemberDeclarationFact =
         DirectMirConstructedGenericMemberDeclarationFact(
-            true, 0, 0, UnwrapOption(name_opt),
+            true, 0, declaration_row, UnwrapOption(name_opt),
             ToInt(UnwrapOption(syntax_opt)), UnwrapOption(field_name),
             UnwrapOption(field_type), ToInt(UnwrapOption(field_syntax)),
             method_names, method_returns
@@ -173,4 +179,15 @@ func DirectMirConstructedGenericMemberDeclarationFactFromDocument(
         return InvalidDirectMirConstructedGenericMemberDeclarationFact();
     }
     return verified;
+}
+
+func DirectMirConstructedGenericMemberDeclarationFactFromDocument(
+    json: String, ref declarations: MirProgramDeclarationIndex
+) -> DirectMirConstructedGenericMemberDeclarationFact {
+    if MirProgramDeclarationIndexCount(declarations) != 1 {
+        return InvalidDirectMirConstructedGenericMemberDeclarationFact();
+    }
+    return DirectMirConstructedGenericMemberDeclarationFactAtDocument(
+        json, declarations, 0
+    );
 }

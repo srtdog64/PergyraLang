@@ -1,0 +1,47 @@
+// Public language Array storage layout consumed by direct-MIR projections.
+// Call classification is deliberately owned by a separate call-ABI fact.
+
+struct DirectMirArrayStorageLayoutContract {
+    let valid: Bool;
+    let size: Int;
+    let align: Int;
+    let data_layout_id: String;
+    let field_order: String;
+    let c_length_type: String;
+    let llvm_aggregate_type: String;
+    let data_offset: Int;
+    let length_offset: Int;
+    let capacity_offset: Int;
+    let allocator_offset: Int;
+}
+
+func DirectMirArrayStorageLayoutContractFact(
+) -> DirectMirArrayStorageLayoutContract {
+    return DirectMirArrayStorageLayoutContract(
+        true, 32, 8, "pgy.runtime.pointer64-size_t64.v1",
+        "data,length,capacity,allocator", "size_t",
+        "{ ptr, i64, i64, ptr }", 0, 8, 16, 24
+    );
+}
+
+func DirectMirArrayStorageLayoutContractReady(
+    ref contract: DirectMirArrayStorageLayoutContract
+) -> Bool {
+    return contract.valid && contract.size == 32 && contract.align == 8 &&
+        contract.data_layout_id == "pgy.runtime.pointer64-size_t64.v1" &&
+        contract.field_order == "data,length,capacity,allocator" &&
+        contract.c_length_type == "size_t" &&
+        contract.llvm_aggregate_type == "{ ptr, i64, i64, ptr }" &&
+        contract.data_offset == 0 && contract.length_offset == 8 &&
+        contract.capacity_offset == 16 && contract.allocator_offset == 24;
+}
+
+func DirectMirArrayStorageLayoutIndex(
+    ref contract: DirectMirArrayStorageLayoutContract, offset: Int
+) -> Int {
+    if !DirectMirArrayStorageLayoutContractReady(contract) ||
+        offset < 0 || offset % contract.align != 0 {
+        return 0 - 1;
+    }
+    return offset / contract.align;
+}

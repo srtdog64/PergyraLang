@@ -1,0 +1,37 @@
+// Call-classification boundary for runtime-free closed-module projections.
+// Storage layout does not authorize external ABI interoperability.
+
+import "target_capability_owner.pgy";
+
+struct DirectMirClosedModuleCallAbiFact {
+    let valid: Bool;
+    let target_capability_fingerprint: Int;
+    let scope: String;
+    let c_classifier: String;
+    let llvm_classifier: String;
+    let external_interop: Bool;
+}
+
+func DirectMirClosedModuleCallAbiFactFromOwner(
+) -> DirectMirClosedModuleCallAbiFact {
+    if !CompilerTargetCapabilityEnvelopeReady() {
+        return DirectMirClosedModuleCallAbiFact(false, 0, "", "", "", true);
+    }
+    return DirectMirClosedModuleCallAbiFact(
+        true, CompilerTargetCapabilityFingerprint(),
+        "closed_module_internal_only", "host_c_compiler_classified",
+        "llvm_default_internal_classified", false
+    );
+}
+
+func DirectMirClosedModuleCallAbiFactReady(
+    ref fact: DirectMirClosedModuleCallAbiFact
+) -> Bool {
+    return fact.valid && fact.target_capability_fingerprint != 0 &&
+        fact.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        fact.scope == "closed_module_internal_only" &&
+        fact.c_classifier == "host_c_compiler_classified" &&
+        fact.llvm_classifier == "llvm_default_internal_classified" &&
+        !fact.external_interop;
+}

@@ -1,6 +1,7 @@
 // Stable fact for one exclusive three-routine structural decision.
 
 import "direct_mir_three_routine_constructed_member_shape_owner.pgy";
+import "direct_mir_three_routine_mixed_constructed_member_shape_owner.pgy";
 
 struct DirectMirThreeRoutineClassificationFact {
     let valid: Bool;
@@ -10,6 +11,8 @@ struct DirectMirThreeRoutineClassificationFact {
     let specialization_count: Int;
     let generic_routine_count: Int;
     let constructed_member_shape: DirectMirThreeRoutineConstructedMemberShapeFact;
+    let mixed_constructed_member_shape:
+        DirectMirThreeRoutineMixedConstructedMemberShapeFact;
 }
 
 func DirectMirThreeRoutineArrayArgument() -> String { return "declaration-free"; }
@@ -17,6 +20,9 @@ func DirectMirThreeRoutineGenericNominal() -> String { return "single-nominal"; 
 func DirectMirThreeRoutineInferredGenericScalar() -> String { return "declaration-free-inferred-generic"; }
 func DirectMirThreeRoutineStructArgument() -> String { return "double-nominal"; }
 func DirectMirThreeRoutineConstructedGenericMember() -> String { return "single-class-constructed-member"; }
+func DirectMirThreeRoutineMixedConstructedGenericMember() -> String {
+    return "mixed-struct-class-constructed-member";
+}
 
 func DirectMirThreeRoutineClassificationFactDigest(
     ref fact: DirectMirThreeRoutineClassificationFact
@@ -27,6 +33,7 @@ func DirectMirThreeRoutineClassificationFactDigest(
     hash = DirectMirCfgHashInt(hash, fact.specialization_count);
     hash = DirectMirCfgHashInt(hash, fact.generic_routine_count);
     hash = DirectMirCfgHashInt(hash, fact.constructed_member_shape.digest);
+    hash = DirectMirCfgHashInt(hash, fact.mixed_constructed_member_shape.digest);
     return DirectMirCfgBoundedDigest(hash);
 }
 
@@ -35,24 +42,37 @@ func DirectMirThreeRoutineClassificationFactReady(
 ) -> Bool {
     let shape_absent: Bool = !fact.constructed_member_shape.valid &&
         fact.constructed_member_shape.digest == 0;
+    let mixed_shape_absent: Bool =
+        !fact.mixed_constructed_member_shape.valid &&
+        fact.mixed_constructed_member_shape.digest == 0;
     return fact.valid && fact.digest != 0 && fact.digest ==
         DirectMirThreeRoutineClassificationFactDigest(fact) &&
         ((fact.kind == DirectMirThreeRoutineArrayArgument() && shape_absent &&
+          mixed_shape_absent &&
           fact.declaration_count == 0 && fact.specialization_count == 0 &&
           fact.generic_routine_count == 0) ||
          (fact.kind == DirectMirThreeRoutineInferredGenericScalar() &&
-          shape_absent && fact.declaration_count == 0 &&
+          shape_absent && mixed_shape_absent && fact.declaration_count == 0 &&
           fact.specialization_count == 2 && fact.generic_routine_count == 1) ||
          (fact.kind == DirectMirThreeRoutineGenericNominal() && shape_absent &&
+          mixed_shape_absent &&
           fact.declaration_count == 1 && fact.specialization_count == 4 &&
           fact.generic_routine_count == 1) ||
          (fact.kind == DirectMirThreeRoutineConstructedGenericMember() &&
           fact.declaration_count == 1 && fact.specialization_count == 2 &&
           fact.generic_routine_count == 2 &&
+          mixed_shape_absent &&
           DirectMirThreeRoutineConstructedMemberShapeFactReady(
               fact.constructed_member_shape
           )) ||
+         (fact.kind == DirectMirThreeRoutineMixedConstructedGenericMember() &&
+          shape_absent && fact.declaration_count == 2 &&
+          fact.specialization_count == 2 && fact.generic_routine_count == 2 &&
+          DirectMirThreeRoutineMixedConstructedMemberShapeFactReady(
+              fact.mixed_constructed_member_shape
+          )) ||
          (fact.kind == DirectMirThreeRoutineStructArgument() && shape_absent &&
+          mixed_shape_absent &&
           fact.declaration_count == 2 && fact.specialization_count == 0 &&
           fact.generic_routine_count == 0));
 }

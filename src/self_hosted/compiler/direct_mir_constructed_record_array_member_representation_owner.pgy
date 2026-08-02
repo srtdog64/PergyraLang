@@ -1,0 +1,39 @@
+// Internal one-Int value-class representation for RecordArrayWrapper.
+
+import "direct_mir_constructed_record_array_member_point_abi_owner.pgy";
+import "direct_mir_constructed_array_member_method_instruction_owner.pgy";
+import "direct_mir_inferred_generic_member_representation_fact_owner.pgy";
+
+func DirectMirConstructedRecordArrayMemberRepresentationFromProgram(
+    ref identity: DirectMirConstructedRecordArrayMemberIdentity,
+    ref methods: DirectMirConstructedArrayMemberMethodInstructions,
+    ref main: DirectMirConstructedRecordArrayMemberMainAdmission
+) -> DirectMirInferredGenericMemberRepresentationFact {
+    if !DirectMirConstructedRecordArrayMemberIdentityReady(identity) ||
+        !DirectMirConstructedArrayMemberMethodInstructionsReady(methods) ||
+        !DirectMirConstructedRecordArrayMemberMainAdmissionReady(main) ||
+        identity.constructed_method.receiver_carriage != "value" ||
+        identity.identity_method.receiver_carriage != "value" ||
+        main.wrapper.abi_layout_id_start < 0 ||
+        main.wrapper.abi_layout_required_start < 0 ||
+        main.wrapper.abi_layout_start < 0 {
+        Die("direct MIR constructed record Array representation input is invalid");
+    }
+    let fact: DirectMirInferredGenericMemberRepresentationFact =
+        DirectMirInferredGenericMemberRepresentationFact(
+            true, 0, identity.wrapper.name, identity.wrapper.field_name,
+            identity.wrapper.field_type,
+            DirectMirInferredGenericMemberRepresentation(), "value"
+        );
+    let verified: DirectMirInferredGenericMemberRepresentationFact =
+        DirectMirInferredGenericMemberRepresentationFact(
+            fact.valid,
+            DirectMirInferredGenericMemberRepresentationFactDigest(fact),
+            fact.type_name, fact.field_name, fact.field_type,
+            fact.representation, fact.receiver_carriage
+        );
+    if !DirectMirInferredGenericMemberRepresentationFactReady(verified) {
+        Die("direct MIR constructed record Array representation is invalid");
+    }
+    return verified;
+}

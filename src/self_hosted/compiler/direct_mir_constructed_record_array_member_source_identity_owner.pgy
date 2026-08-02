@@ -1,0 +1,20 @@
+// Cross-domain source identity uniqueness for one admitted mixed member rung.
+
+func DirectMirConstructedRecordArraySourceIdentitiesReady(
+    source_syntax_ids: Array<Int>
+) -> Bool {
+    if ArrayLength(source_syntax_ids) != 8 { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(source_syntax_ids) {
+        if source_syntax_ids[row] <= 0 { return false; }
+        let prior: Int = 0;
+        while prior < row {
+            if source_syntax_ids[prior] == source_syntax_ids[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}

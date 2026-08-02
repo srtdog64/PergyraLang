@@ -45,7 +45,7 @@ func DirectMirConstructedMemberSpecializationPairDigest(
     return DirectMirCfgBoundedDigest(hash);
 }
 
-func DirectMirConstructedMemberSpecializationPairFactReady(
+func DirectMirConstructedMemberSpecializationPairWireFactReady(
     ref fact: DirectMirConstructedMemberSpecializationPairFact
 ) -> Bool {
     let outer_actuals: Array<String> = [fact.outer_generic_actual];
@@ -58,7 +58,7 @@ func DirectMirConstructedMemberSpecializationPairFactReady(
         fact.outer_callable != "" && fact.inner_callable != "" &&
         fact.outer_callable != fact.inner_callable &&
         fact.outer_generic_param != "" && fact.inner_generic_param != "" &&
-        fact.inner_generic_actual == CompilerAbiLayoutIntTypeName() &&
+        fact.inner_generic_actual != "" &&
         outer_shape.ok && outer_shape.canonical_name ==
             fact.outer_generic_actual &&
         outer_shape.nominal_base_name == fact.outer_constructor &&
@@ -75,8 +75,25 @@ func DirectMirConstructedMemberSpecializationPairFactReady(
         );
 }
 
-func DirectMirConstructedMemberSpecializationPairFromDocument(
-    ref root: JsonObjectFactTable
+func DirectMirConstructedMemberSpecializationPairFactReadyFor(
+    ref fact: DirectMirConstructedMemberSpecializationPairFact,
+    inner_actual: String
+) -> Bool {
+    return inner_actual != "" &&
+        DirectMirConstructedMemberSpecializationPairWireFactReady(fact) &&
+        fact.inner_generic_actual == inner_actual;
+}
+
+func DirectMirConstructedMemberSpecializationPairFactReady(
+    ref fact: DirectMirConstructedMemberSpecializationPairFact
+) -> Bool {
+    return DirectMirConstructedMemberSpecializationPairFactReadyFor(
+        fact, CompilerAbiLayoutIntTypeName()
+    );
+}
+
+func DirectMirConstructedMemberSpecializationPairFromDocumentForInner(
+    ref root: JsonObjectFactTable, inner_actual: String
 ) -> DirectMirConstructedMemberSpecializationPairFact {
     let table: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
         root, "generic_method_specializations"
@@ -182,8 +199,18 @@ func DirectMirConstructedMemberSpecializationPairFromDocument(
             fact.outer_constructor, fact.inner_callable, fact.inner_symbol,
             fact.inner_generic_param, fact.inner_generic_actual
         );
-    if !DirectMirConstructedMemberSpecializationPairFactReady(verified) {
+    if !DirectMirConstructedMemberSpecializationPairFactReadyFor(
+        verified, inner_actual
+    ) {
         return InvalidDirectMirConstructedMemberSpecializationPairFact();
     }
     return verified;
+}
+
+func DirectMirConstructedMemberSpecializationPairFromDocument(
+    ref root: JsonObjectFactTable
+) -> DirectMirConstructedMemberSpecializationPairFact {
+    return DirectMirConstructedMemberSpecializationPairFromDocumentForInner(
+        root, CompilerAbiLayoutIntTypeName()
+    );
 }

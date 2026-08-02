@@ -13702,7 +13702,7 @@ require_max_lines \
 require_file \
     "src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy" 160
+    "src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy" 170
 require_file "src/self_hosted/compiler/direct_mir_array_int_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_array_int_emission_owner.pgy" 320
@@ -14277,7 +14277,7 @@ require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-inferred-generic-member-projection-test-smoke"
 require_text \
     "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
-    "src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy"
+    "generic_member_inferred_flow.pgy"
 require_text \
     "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
     "src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy"
@@ -14337,7 +14337,7 @@ require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-constructed-generic-member-projection-test-smoke"
 require_text \
     "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
-    "src/self_hosted/mir_lower/fixture/generic_member_constructed_return_flow.pgy"
+    "generic_member_constructed_return_flow.pgy"
 require_text \
     "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
     "src/self_hosted/mir_lower/fixture/generic_member_constructed_return_flow.pgy"
@@ -14353,6 +14353,7 @@ for constructed_array_member_owner in \
     direct_mir_constructed_array_member_method_instruction_owner.pgy \
     direct_mir_constructed_array_member_main_instruction_owner.pgy \
     direct_mir_constructed_array_member_abi_admission_owner.pgy \
+    direct_mir_array_storage_layout_contract_owner.pgy \
     direct_mir_constructed_array_member_representation_owner.pgy \
     direct_mir_constructed_array_member_plan_owner.pgy \
     direct_mir_constructed_array_member_c_emission_owner.pgy \
@@ -14389,10 +14390,68 @@ require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-constructed-array-member-projection-test-smoke"
 require_text \
     "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
-    "src/self_hosted/mir_lower/fixture/generic_member_array_return_flow.pgy"
+    "generic_member_array_return_flow.pgy"
 require_text \
     "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
     "src/self_hosted/mir_lower/fixture/generic_member_array_return_flow.pgy"
+for constructed_record_array_member_owner in \
+    direct_mir_three_routine_mixed_constructed_member_shape_owner.pgy \
+    direct_mir_constructed_record_array_member_program_admission_owner.pgy \
+    direct_mir_constructed_record_array_member_specialization_owner.pgy \
+    direct_mir_constructed_record_array_member_main_graph_owner.pgy \
+    direct_mir_constructed_record_array_member_source_identity_owner.pgy \
+    direct_mir_constructed_record_array_member_identity_owner.pgy \
+    direct_mir_constructed_record_array_member_instruction_envelope_owner.pgy \
+    direct_mir_constructed_record_array_member_main_admission_owner.pgy \
+    direct_mir_constructed_record_array_member_point_abi_owner.pgy \
+    direct_mir_constructed_record_array_member_representation_owner.pgy \
+    direct_mir_constructed_record_array_member_plan_join_owner.pgy \
+    direct_mir_closed_module_call_abi_owner.pgy \
+    direct_mir_constructed_record_array_member_plan_owner.pgy \
+    direct_mir_array_storage_layout_contract_owner.pgy \
+    direct_mir_constructed_record_array_member_abi_projection_owner.pgy \
+    direct_mir_constructed_record_array_member_c_emission_owner.pgy \
+    direct_mir_constructed_record_array_member_llvm_emission_owner.pgy \
+    direct_mir_constructed_record_array_member_projection_owner.pgy; do
+    require_file "src/self_hosted/compiler/$constructed_record_array_member_owner"
+    require_max_lines \
+        "src/self_hosted/compiler/$constructed_record_array_member_owner" 220
+done
+require_file \
+    "tests/self_hosted/parity/one_mir_constructed_record_array_member_projection.sh"
+require_file \
+    "tests/self_hosted/parity/one_mir_constructed_record_array_member_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_constructed_record_array_member_projection.sh" 180
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_constructed_record_array_member_mutations.py" 360
+require_text \
+    "src/self_hosted/compiler/direct_mir_three_routine_classification_owner.pgy" \
+    "DirectMirThreeRoutineMixedConstructedGenericMember()"
+require_text \
+    "src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" \
+    "CompileAdmittedDirectMirConstructedRecordArrayMember("
+require_text \
+    "src/self_hosted/compiler/direct_mir_constructed_record_array_member_plan_owner.pgy" \
+    "typed_array_abi_absence_then_target_nominal_projection"
+require_text \
+    "src/self_hosted/compiler/direct_mir_constructed_record_array_member_plan_owner.pgy" \
+    "caller_owned_fixed_record_array_through_nested_member_by_value"
+require_text \
+    "src/self_hosted/compiler/direct_mir_constructed_record_array_member_representation_owner.pgy" \
+    "DirectMirInferredGenericMemberRepresentation()"
+require_text "Makefile" \
+    "SELFHOST_ONE_MIR_CONSTRUCTED_RECORD_ARRAY_MEMBER_GATE ?="
+require_text "Makefile" \
+    '$(SELFHOST_ONE_MIR_CONSTRUCTED_RECORD_ARRAY_MEMBER_GATE)'
+require_text ".github/workflows/ci.yml" \
+    "self-host-one-mir-constructed-record-array-member-projection-test-smoke"
+require_text \
+    "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
+    "generic_member_record_array_return_flow.pgy"
+require_text \
+    "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
+    "src/self_hosted/mir_lower/fixture/generic_member_record_array_return_flow.pgy"
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240

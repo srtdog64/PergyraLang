@@ -5,6 +5,7 @@
 import "direct_mir_array_int_plan_owner.pgy";
 import "direct_mir_array_return_plan_owner.pgy";
 import "target_projection_fact_owner.pgy";
+import "direct_mir_array_storage_layout_contract_owner.pgy";
 
 struct DirectMirArrayIntAbiProjection {
     let valid: Bool;
@@ -29,7 +30,10 @@ func DirectMirArrayIntAbiProjectionReadyFor(
     ref projection: DirectMirArrayIntAbiProjection,
     expected_target: String
 ) -> Bool {
+    let contract: DirectMirArrayStorageLayoutContract =
+        DirectMirArrayStorageLayoutContractFact();
     if !projection.valid ||
+        !DirectMirArrayStorageLayoutContractReady(contract) ||
         !CompilerTargetProjectionKnown(expected_target) ||
         projection.target_projection != expected_target ||
         projection.target_capability_fingerprint !=
@@ -38,7 +42,7 @@ func DirectMirArrayIntAbiProjectionReadyFor(
     }
     if expected_target == CompilerTargetCpuCProjection() {
         return projection.c_element_type == "int32_t" &&
-            projection.c_length_type == "int64_t" &&
+            projection.c_length_type == contract.c_length_type &&
             projection.c_print_type == CompilerAbiLayoutIntCValueType() &&
             projection.c_array_type ==
                 CompilerAbiLayoutArrayIntCValueType() &&
@@ -60,7 +64,7 @@ func DirectMirArrayIntAbiProjectionReadyFor(
         projection.llvm_element_type == "i32" &&
         projection.llvm_length_type == "i64" &&
         projection.llvm_print_type == "i64" &&
-        projection.llvm_aggregate_type == "{ ptr, i64, i64, ptr }" &&
+        projection.llvm_aggregate_type == contract.llvm_aggregate_type &&
         projection.llvm_print_extension == "sext" &&
         projection.data_index == 0 && projection.length_index == 1 &&
         projection.capacity_index == 2 && projection.allocator_index == 3;
@@ -76,15 +80,21 @@ func DirectMirArrayIntAbiProjectionFromCanonicalLayout(
     capacity_offset: Int,
     allocator_offset: Int
 ) -> DirectMirArrayIntAbiProjection {
+    let contract: DirectMirArrayStorageLayoutContract =
+        DirectMirArrayStorageLayoutContractFact();
     let is_c: Bool = CompilerTargetProjectionFactReadyFor(
         target, CompilerTargetCpuCProjection()
     );
     let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
         target, CompilerTargetCpuLlvmProjection()
     );
-    if (!is_c && !is_llvm) || abi_layout_id <= 0 || abi_size != 32 ||
-        abi_align != 8 || data_offset != 0 || length_offset != 8 ||
-        capacity_offset != 16 || allocator_offset != 24 ||
+    if (!is_c && !is_llvm) || abi_layout_id <= 0 ||
+        !DirectMirArrayStorageLayoutContractReady(contract) ||
+        abi_size != contract.size || abi_align != contract.align ||
+        data_offset != contract.data_offset ||
+        length_offset != contract.length_offset ||
+        capacity_offset != contract.capacity_offset ||
+        allocator_offset != contract.allocator_offset ||
         data_offset % 8 != 0 || length_offset % 8 != 0 ||
         capacity_offset % 8 != 0 || allocator_offset % 8 != 0 {
         Die("direct MIR Array<Int> ABI has no target projection");
@@ -100,7 +110,7 @@ func DirectMirArrayIntAbiProjectionFromCanonicalLayout(
         projection = DirectMirArrayIntAbiProjection(
             true, target.projection,
             target.target_capability_fingerprint,
-            "int32_t", "int64_t", CompilerAbiLayoutIntCValueType(),
+            "int32_t", contract.c_length_type, CompilerAbiLayoutIntCValueType(),
             CompilerAbiLayoutArrayIntCValueType(),
             "", "", "", "", "", 0 - 1, 0 - 1, 0 - 1, 0 - 1
         );
@@ -109,9 +119,11 @@ func DirectMirArrayIntAbiProjectionFromCanonicalLayout(
             true, target.projection,
             target.target_capability_fingerprint,
             "", "", "", "", "i32", "i64", "i64",
-            "{ ptr, i64, i64, ptr }", "sext",
-            data_offset / 8, length_offset / 8,
-            capacity_offset / 8, allocator_offset / 8
+            contract.llvm_aggregate_type, "sext",
+            DirectMirArrayStorageLayoutIndex(contract, data_offset),
+            DirectMirArrayStorageLayoutIndex(contract, length_offset),
+            DirectMirArrayStorageLayoutIndex(contract, capacity_offset),
+            DirectMirArrayStorageLayoutIndex(contract, allocator_offset)
         );
     }
     if !DirectMirArrayIntAbiProjectionReadyFor(

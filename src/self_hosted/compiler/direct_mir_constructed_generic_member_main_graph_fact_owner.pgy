@@ -50,10 +50,10 @@ func DirectMirConstructedGenericMemberMainGraphFactReady(
         fact.unwrap_policy == "checked_some_extract";
 }
 
-func DirectMirConstructedGenericMemberNestedCallReady(
+func DirectMirConstructedGenericMemberNestedCallReadyWithArgumentKind(
     ref sequence: MirExpressionGraphSequence,
     receiver: String, outer_method: String, outer_target: String,
-    inner_method: String, inner_target: String
+    inner_method: String, inner_target: String, argument_kind: Int
 ) -> Bool {
     let kinds: Array<Int> = [];
     ArrayPush(kinds, AstExpressionNodeLeaf());
@@ -64,7 +64,7 @@ func DirectMirConstructedGenericMemberNestedCallReady(
     ArrayPush(kinds, AstExpressionNodeLeaf());
     ArrayPush(kinds, AstExpressionNodeMemberAccess());
     ArrayPush(kinds, AstExpressionNodeCall());
-    ArrayPush(kinds, AstExpressionNodeIntegerLiteral());
+    ArrayPush(kinds, argument_kind);
     ArrayPush(kinds, AstExpressionNodeCallArgument());
     ArrayPush(kinds, AstExpressionNodeCallArgument());
     let lefts: Array<Int> = [0,0,0,2,0,0,4,6,0,7,3];
@@ -113,6 +113,17 @@ func DirectMirConstructedGenericMemberNestedCallReady(
         sequence.arena.node_texts[7] == Concat(inner_access, "()") &&
         sequence.arena.node_texts[9] == inner &&
         sequence.arena.node_texts[10] == outer;
+}
+
+func DirectMirConstructedGenericMemberNestedCallReady(
+    ref sequence: MirExpressionGraphSequence,
+    receiver: String, outer_method: String, outer_target: String,
+    inner_method: String, inner_target: String
+) -> Bool {
+    return DirectMirConstructedGenericMemberNestedCallReadyWithArgumentKind(
+        sequence, receiver, outer_method, outer_target,
+        inner_method, inner_target, AstExpressionNodeIntegerLiteral()
+    );
 }
 
 func DirectMirConstructedGenericMemberOutputReady(

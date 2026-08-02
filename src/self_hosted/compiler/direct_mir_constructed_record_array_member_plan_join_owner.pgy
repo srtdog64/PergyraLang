@@ -1,0 +1,110 @@
+// Seals admitted method/Main instruction facts to the semantic identity.
+
+import "direct_mir_constructed_record_array_member_main_admission_owner.pgy";
+
+func DirectMirConstructedRecordArrayCaptureDigest(
+    ref capture: MirRoutineInstructionScalarCapture
+) -> Int {
+    if !capture.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(467L, capture.name);
+    hash = DirectMirCfgHashString(hash, capture.result);
+    hash = DirectMirCfgHashString(hash, capture.expr0);
+    hash = DirectMirCfgHashString(hash, capture.expr1);
+    hash = DirectMirCfgHashString(hash, capture.arg0);
+    hash = DirectMirCfgHashString(hash, capture.arg1);
+    hash = DirectMirCfgHashString(hash, capture.slot_anchor);
+    hash = DirectMirCfgHashString(hash, capture.abi_type_name);
+    hash = DirectMirCfgHashString(hash, capture.kind);
+    hash = DirectMirCfgHashString(hash, capture.source_type);
+    hash = DirectMirCfgHashString(hash, capture.match_variant);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirConstructedRecordArrayProgramDigest(
+    ref methods: DirectMirConstructedArrayMemberMethodInstructions,
+    ref main: DirectMirConstructedRecordArrayMemberMainAdmission
+) -> Int {
+    if !DirectMirConstructedArrayMemberMethodInstructionsReady(methods) ||
+        !DirectMirConstructedRecordArrayMemberMainAdmissionReady(main) {
+        return 0;
+    }
+    let hash: Long = DirectMirCfgHashInt(479L,
+        DirectMirConstructedRecordArrayCaptureDigest(
+            methods.constructed_return));
+    hash = DirectMirCfgHashInt(hash,
+        DirectMirConstructedRecordArrayCaptureDigest(methods.identity_return));
+    hash = DirectMirCfgHashInt(hash,
+        DirectMirConstructedRecordArrayCaptureDigest(main.wrapper));
+    hash = DirectMirCfgHashInt(hash,
+        DirectMirConstructedRecordArrayCaptureDigest(main.point));
+    hash = DirectMirCfgHashInt(hash,
+        DirectMirConstructedRecordArrayCaptureDigest(main.result));
+    hash = DirectMirCfgHashInt(hash,
+        DirectMirConstructedRecordArrayCaptureDigest(main.first));
+    hash = DirectMirCfgHashInt(hash,
+        DirectMirConstructedRecordArrayCaptureDigest(main.output));
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirConstructedRecordArrayProgramJoinDiagnostic(
+    ref identity: DirectMirConstructedRecordArrayMemberIdentity,
+    ref methods: DirectMirConstructedArrayMemberMethodInstructions,
+    ref main: DirectMirConstructedRecordArrayMemberMainAdmission
+) -> String {
+    if !DirectMirConstructedRecordArrayMemberIdentityReady(identity) ||
+        !DirectMirConstructedArrayMemberMethodInstructionsReady(methods) ||
+        !DirectMirConstructedRecordArrayMemberMainAdmissionReady(main) {
+        return "admitted_fact";
+    }
+    if DirectMirConstructedRecordArrayProgramDigest(methods, main) == 0 {
+        return "program_digest";
+    }
+    let graph: DirectMirConstructedRecordArrayMemberMainGraphFact =
+        identity.main_graph;
+    let constructed: DirectMirConstructedArrayMemberSignatureFact =
+        identity.constructed_method;
+    let echoed: DirectMirConstructedArrayMemberSignatureFact =
+        identity.identity_method;
+    let expected_point: String = Concat(
+        identity.record.name, Concat(" { ", Concat(
+            identity.record.field_names[0], Concat(": ", Concat(
+                ToString(graph.field_value), " }")))));
+    let expected_result: String = Concat(
+        graph.receiver_local, Concat(".", Concat(
+            graph.outer_method, Concat("(", Concat(
+                graph.receiver_local, Concat(".", Concat(
+                    graph.inner_method, Concat("(", Concat(
+                        graph.point_local, "))")))))))));
+    if methods.constructed_return.expr0 != Concat(
+            "[", Concat(constructed.value_param.name, "]")) ||
+        methods.constructed_return.abi_type_name != constructed.return_type {
+        return "constructed_return";
+    }
+    if methods.identity_return.expr0 != echoed.value_param.name ||
+        methods.identity_return.abi_type_name != echoed.return_type {
+        return "identity_return";
+    }
+    if main.wrapper.expr0 != Concat(identity.wrapper.name, Concat(
+            "(", Concat(ToString(graph.marker_value), ")"))) ||
+        main.wrapper.expr1 != identity.wrapper.name { return "wrapper"; }
+    if main.point.expr0 != expected_point ||
+        main.point.expr1 != identity.record.name { return "point"; }
+    if main.result.expr0 != expected_result || main.result.expr1 !=
+        identity.specialization.pair.outer_generic_actual { return "result"; }
+    if main.first.expr0 != Concat(graph.result_local, "[0]") ||
+        main.first.expr1 != identity.record.name { return "first"; }
+    if main.output.expr0 != Concat("Log(ToString(", Concat(
+        graph.first_local, Concat(".", Concat(
+            identity.record.field_names[0], "))")))) { return "output"; }
+    return "";
+}
+
+func DirectMirConstructedRecordArrayProgramJoinReady(
+    ref identity: DirectMirConstructedRecordArrayMemberIdentity,
+    ref methods: DirectMirConstructedArrayMemberMethodInstructions,
+    ref main: DirectMirConstructedRecordArrayMemberMainAdmission
+) -> Bool {
+    return DirectMirConstructedRecordArrayProgramJoinDiagnostic(
+        identity, methods, main
+    ) == "";
+}

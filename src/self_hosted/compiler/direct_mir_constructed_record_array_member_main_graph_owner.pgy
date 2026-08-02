@@ -1,0 +1,190 @@
+// Exact constructor, record literal, nested calls, index, and field output graph.
+
+import "direct_mir_constructed_generic_member_main_graph_fact_owner.pgy";
+
+struct DirectMirConstructedRecordArrayMemberMainGraphFact {
+    let valid: Bool;
+    let digest: Int;
+    let owner: String;
+    let record_type: String;
+    let record_field: String;
+    let outer_method: String;
+    let outer_target: String;
+    let inner_method: String;
+    let inner_target: String;
+    let receiver_local: String;
+    let point_local: String;
+    let result_local: String;
+    let first_local: String;
+    let marker_value: Int;
+    let field_value: Int;
+    let selected_index: Int;
+}
+
+func DirectMirConstructedRecordArrayMemberMainGraphDigest(
+    ref fact: DirectMirConstructedRecordArrayMemberMainGraphFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(449L, fact.owner);
+    hash = DirectMirCfgHashString(hash, fact.record_type);
+    hash = DirectMirCfgHashString(hash, fact.record_field);
+    hash = DirectMirCfgHashString(hash, fact.outer_method);
+    hash = DirectMirCfgHashString(hash, fact.outer_target);
+    hash = DirectMirCfgHashString(hash, fact.inner_method);
+    hash = DirectMirCfgHashString(hash, fact.inner_target);
+    hash = DirectMirCfgHashString(hash, fact.receiver_local);
+    hash = DirectMirCfgHashString(hash, fact.point_local);
+    hash = DirectMirCfgHashString(hash, fact.result_local);
+    hash = DirectMirCfgHashString(hash, fact.first_local);
+    hash = DirectMirCfgHashInt(hash, fact.marker_value);
+    hash = DirectMirCfgHashInt(hash, fact.field_value);
+    hash = DirectMirCfgHashInt(hash, fact.selected_index);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirConstructedRecordArrayMemberMainGraphFactReady(
+    ref fact: DirectMirConstructedRecordArrayMemberMainGraphFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirConstructedRecordArrayMemberMainGraphDigest(fact) &&
+        fact.owner != "" && fact.record_type != "" &&
+        fact.record_field != "" && fact.outer_method != "" &&
+        fact.inner_method != "" && fact.outer_method != fact.inner_method &&
+        fact.outer_target == CompilerSymbolCQualifiedName(
+            fact.owner, fact.outer_method
+        ) && fact.inner_target == CompilerSymbolCQualifiedName(
+            fact.owner, fact.inner_method
+        ) && fact.receiver_local != "" && fact.point_local != "" &&
+        fact.result_local != "" && fact.first_local != "" &&
+        fact.receiver_local != fact.point_local &&
+        fact.receiver_local != fact.result_local &&
+        fact.receiver_local != fact.first_local &&
+        fact.point_local != fact.result_local &&
+        fact.point_local != fact.first_local &&
+        fact.result_local != fact.first_local && fact.selected_index == 0;
+}
+
+func DirectMirConstructedRecordArrayLiteralReady(
+    ref sequence: MirExpressionGraphSequence,
+    record_type: String, record_field: String
+) -> Bool {
+    if !DirectMirGenericNominalExactTopologyReady(
+        sequence,
+        [AstExpressionNodeLeaf(), AstExpressionNodeStructLiteral(),
+         AstExpressionNodeStructFieldName(), AstExpressionNodeIntegerLiteral(),
+         AstExpressionNodeStructFieldBinding(), AstExpressionNodeStructField()],
+        [0,0,0,0,2,1], [0,0,0,0,3,4], ["","","","","",""], 5
+    ) {
+        return false;
+    }
+    let value: String = sequence.arena.node_texts[3];
+    return record_type != "" && record_field != "" && value != "" &&
+        sequence.arena.node_texts[0] == record_type &&
+        sequence.arena.node_texts[1] == Concat(record_type, " { }") &&
+        sequence.arena.node_texts[2] == record_field &&
+        sequence.arena.node_texts[4] ==
+            Concat(record_field, Concat(": ", value)) &&
+        sequence.arena.node_texts[5] == Concat(
+            record_type, Concat(" { ", Concat(
+                record_field, Concat(": ", Concat(value, " }"))
+            ))
+        );
+}
+
+func DirectMirConstructedRecordArrayIndexReady(
+    ref sequence: MirExpressionGraphSequence, result_local: String
+) -> Bool {
+    return DirectMirGenericNominalExactTopologyReady(
+        sequence, [AstExpressionNodeLeaf(), AstExpressionNodeIntegerLiteral(),
+                   AstExpressionNodeIndex()],
+        [0,0,0], [0,0,1], ["","",""], 2
+    ) && sequence.arena.node_texts[0] == result_local &&
+        sequence.arena.node_texts[1] == "0" &&
+        sequence.arena.node_texts[2] == Concat(result_local, "[0]");
+}
+
+func DirectMirConstructedRecordArrayOutputReady(
+    ref sequence: MirExpressionGraphSequence,
+    first_local: String, record_field: String
+) -> Bool {
+    let member: String = Concat(first_local, Concat(".", record_field));
+    return DirectMirGenericNominalExactTopologyReady(
+        sequence, [AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+                   AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+                   AstExpressionNodeMemberAccess(),
+                   AstExpressionNodeCallArgument()],
+        [0,0,0,0,2,1], [0,0,0,0,3,4], ["","ToString","","","",""], 5
+    ) && sequence.arena.node_texts[0] == "ToString" &&
+        sequence.arena.node_texts[1] == "ToString()" &&
+        sequence.arena.node_texts[2] == first_local &&
+        sequence.arena.node_texts[3] == record_field &&
+        sequence.arena.node_texts[4] == member &&
+        sequence.arena.node_texts[5] ==
+            Concat("ToString(", Concat(member, ")"));
+}
+
+func DirectMirConstructedRecordArrayMemberMainGraphFactFromSequences(
+    ref constructor: MirExpressionGraphSequence,
+    ref point_literal: MirExpressionGraphSequence,
+    ref nested_call: MirExpressionGraphSequence,
+    ref index: MirExpressionGraphSequence,
+    ref output: MirExpressionGraphSequence
+) -> DirectMirConstructedRecordArrayMemberMainGraphFact {
+    if !constructor.ok || constructor.ready_node_count != 4 ||
+        !point_literal.ok || point_literal.ready_node_count != 6 ||
+        !nested_call.ok || nested_call.ready_node_count != 11 ||
+        !index.ok || index.ready_node_count != 3 ||
+        !output.ok || output.ready_node_count != 6 {
+        Die("direct MIR constructed record Array Main graph is incomplete");
+    }
+    let owner: String = constructor.arena.call_target_names[1];
+    let record_type: String = point_literal.arena.node_texts[0];
+    let record_field: String = point_literal.arena.node_texts[2];
+    let receiver: String = nested_call.arena.node_texts[0];
+    let outer_method: String = nested_call.arena.node_texts[1];
+    let outer_target: String = nested_call.arena.call_target_names[3];
+    let inner_method: String = nested_call.arena.node_texts[5];
+    let inner_target: String = nested_call.arena.call_target_names[7];
+    let point_local: String = nested_call.arena.node_texts[8];
+    let result_local: String = index.arena.node_texts[0];
+    let first_local: String = output.arena.node_texts[2];
+    if !DirectMirGenericNominalExactTopologyReady(
+            constructor,
+            [AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+             AstExpressionNodeIntegerLiteral(), AstExpressionNodeCallArgument()],
+            [0,0,0,1], [0,0,0,2], ["",owner,"",""], 3
+        ) || constructor.arena.node_texts[0] != owner ||
+        !DirectMirConstructedRecordArrayLiteralReady(
+            point_literal, record_type, record_field
+        ) || !DirectMirConstructedGenericMemberNestedCallReadyWithArgumentKind(
+            nested_call, receiver, outer_method, outer_target,
+            inner_method, inner_target, AstExpressionNodeLeaf()
+        ) || !DirectMirConstructedRecordArrayIndexReady(index, result_local) ||
+        !DirectMirConstructedRecordArrayOutputReady(
+            output, first_local, record_field
+        ) {
+        Die("direct MIR constructed record Array Main graph is invalid");
+    }
+    let fact: DirectMirConstructedRecordArrayMemberMainGraphFact =
+        DirectMirConstructedRecordArrayMemberMainGraphFact(
+            true, 0, owner, record_type, record_field,
+            outer_method, outer_target, inner_method, inner_target,
+            receiver, point_local, result_local, first_local,
+            DirectMirInferredGenericMemberCanonicalIntAt(constructor, 2),
+            DirectMirInferredGenericMemberCanonicalIntAt(point_literal, 3), 0
+        );
+    let verified: DirectMirConstructedRecordArrayMemberMainGraphFact =
+        DirectMirConstructedRecordArrayMemberMainGraphFact(
+            fact.valid,
+            DirectMirConstructedRecordArrayMemberMainGraphDigest(fact),
+            fact.owner, fact.record_type, fact.record_field,
+            fact.outer_method, fact.outer_target, fact.inner_method,
+            fact.inner_target, fact.receiver_local, fact.point_local,
+            fact.result_local, fact.first_local, fact.marker_value,
+            fact.field_value, fact.selected_index
+        );
+    if !DirectMirConstructedRecordArrayMemberMainGraphFactReady(verified) {
+        Die("direct MIR constructed record Array Main fact is invalid");
+    }
+    return verified;
+}

@@ -1,0 +1,150 @@
+// Target-bound nominal Array spelling after Point ABI and typed absence admit.
+
+import "direct_mir_constructed_record_array_member_plan_owner.pgy";
+import "abi_layout_nominal_array_owner.pgy";
+import "target_projection_fact_owner.pgy";
+import "symbol_table_owner.pgy";
+import "direct_mir_array_storage_layout_contract_owner.pgy";
+
+struct DirectMirConstructedRecordArrayMemberAbiProjection {
+    let valid: Bool;
+    let target_projection: String;
+    let target_capability_fingerprint: Int;
+    let c_element_type: String;
+    let c_array_type: String;
+    let c_length_type: String;
+    let c_field_order: String;
+    let llvm_element_type: String;
+    let llvm_aggregate_type: String;
+    let data_index: Int;
+    let length_index: Int;
+    let capacity_index: Int;
+    let allocator_index: Int;
+}
+
+func DirectMirConstructedRecordArrayMemberAbiProjectionReadyFor(
+    ref projection: DirectMirConstructedRecordArrayMemberAbiProjection,
+    expected_target: String
+) -> Bool {
+    let contract: DirectMirArrayStorageLayoutContract =
+        DirectMirArrayStorageLayoutContractFact();
+    if !projection.valid ||
+        !DirectMirArrayStorageLayoutContractReady(contract) ||
+        !CompilerTargetProjectionKnown(expected_target) ||
+        projection.target_projection != expected_target ||
+        projection.target_capability_fingerprint !=
+            CompilerTargetCapabilityFingerprint() {
+        return false;
+    }
+    if expected_target == CompilerTargetCpuCProjection() {
+        return projection.c_element_type != "" &&
+            projection.c_array_type != "" &&
+            projection.c_length_type == contract.c_length_type &&
+            projection.c_field_order == contract.field_order &&
+            projection.llvm_element_type == "" &&
+            projection.llvm_aggregate_type == "" &&
+            projection.data_index == 0 - 1 &&
+            projection.length_index == 0 - 1 &&
+            projection.capacity_index == 0 - 1 &&
+            projection.allocator_index == 0 - 1;
+    }
+    return expected_target == CompilerTargetCpuLlvmProjection() &&
+        projection.c_element_type == "" && projection.c_array_type == "" &&
+        projection.c_length_type == "" && projection.c_field_order == "" &&
+        projection.llvm_element_type != "" &&
+        projection.llvm_aggregate_type == contract.llvm_aggregate_type &&
+        projection.data_index == DirectMirArrayStorageLayoutIndex(
+            contract, contract.data_offset
+        ) && projection.length_index == DirectMirArrayStorageLayoutIndex(
+            contract, contract.length_offset
+        ) && projection.capacity_index == DirectMirArrayStorageLayoutIndex(
+            contract, contract.capacity_offset
+        ) && projection.allocator_index == DirectMirArrayStorageLayoutIndex(
+            contract, contract.allocator_offset
+        );
+}
+
+func DirectMirConstructedRecordArrayMemberAbiProjectionReadyForPlan(
+    ref projection: DirectMirConstructedRecordArrayMemberAbiProjection,
+    ref plan: DirectMirConstructedRecordArrayMemberPlan,
+    expected_target: String
+) -> Bool {
+    if !DirectMirConstructedRecordArrayMemberAbiProjectionReadyFor(
+            projection, expected_target
+        ) || !DirectMirConstructedRecordArrayMemberPlanReady(plan) {
+        return false;
+    }
+    let c_record: String = CompilerSymbolCTypeName(plan.identity.record.name);
+    if c_record == "" { return false; }
+    if expected_target == CompilerTargetCpuCProjection() {
+        let nominal: CompilerAbiNominalArrayLayoutFact =
+            CompilerAbiNominalArrayLayoutFactFor(plan.identity.record.name);
+        return nominal.ok && projection.c_element_type == c_record &&
+            projection.c_element_type == nominal.c_element_type &&
+            projection.c_array_type == nominal.c_value_type;
+    }
+    return expected_target == CompilerTargetCpuLlvmProjection() &&
+        projection.llvm_element_type == Concat("%", c_record);
+}
+
+func DirectMirConstructedRecordArrayMemberAbiProjectionFromPlan(
+    ref plan: DirectMirConstructedRecordArrayMemberPlan,
+    target: CompilerTargetProjectionFact
+) -> DirectMirConstructedRecordArrayMemberAbiProjection {
+    let contract: DirectMirArrayStorageLayoutContract =
+        DirectMirArrayStorageLayoutContractFact();
+    let is_c: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuCProjection()
+    );
+    let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuLlvmProjection()
+    );
+    if !DirectMirConstructedRecordArrayMemberPlanReady(plan) ||
+        !DirectMirArrayStorageLayoutContractReady(contract) ||
+        (!is_c && !is_llvm) {
+        Die("direct MIR constructed record Array has no target projection");
+    }
+    let record_name: String = plan.identity.record.name;
+    let c_record: String = CompilerSymbolCTypeName(record_name);
+    if c_record == "" {
+        Die("direct MIR constructed record Array element symbol is invalid");
+    }
+    let projection: DirectMirConstructedRecordArrayMemberAbiProjection =
+        DirectMirConstructedRecordArrayMemberAbiProjection(
+            true, target.projection, target.target_capability_fingerprint,
+            "", "", "", "", "", "", 0 - 1, 0 - 1, 0 - 1, 0 - 1
+        );
+    if is_c {
+        let nominal: CompilerAbiNominalArrayLayoutFact =
+            CompilerAbiNominalArrayLayoutFactFor(record_name);
+        if !nominal.ok || nominal.c_element_type != c_record ||
+            nominal.ownership_shape !=
+                CompilerAbiLayoutOwnershipSharedBufferValue() ||
+            nominal.materialization_policy !=
+                CompilerAbiLayoutFieldAllowedMaterialization() {
+            Die("direct MIR constructed record Array C ABI fact is invalid");
+        }
+        projection = DirectMirConstructedRecordArrayMemberAbiProjection(
+            true, target.projection, target.target_capability_fingerprint,
+            nominal.c_element_type, nominal.c_value_type,
+            contract.c_length_type, contract.field_order,
+            "", "", 0 - 1, 0 - 1, 0 - 1, 0 - 1
+        );
+    } else {
+        projection = DirectMirConstructedRecordArrayMemberAbiProjection(
+            true, target.projection, target.target_capability_fingerprint,
+            "", "", "", "", Concat("%", c_record),
+            contract.llvm_aggregate_type,
+            DirectMirArrayStorageLayoutIndex(contract, contract.data_offset),
+            DirectMirArrayStorageLayoutIndex(contract, contract.length_offset),
+            DirectMirArrayStorageLayoutIndex(contract, contract.capacity_offset),
+            DirectMirArrayStorageLayoutIndex(contract, contract.allocator_offset)
+        );
+    }
+    if !DirectMirConstructedRecordArrayMemberAbiProjectionReadyForPlan(
+        projection, plan, target.projection
+    ) {
+        Die("direct MIR constructed record Array target ABI is invalid");
+    }
+    return projection;
+}

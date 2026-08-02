@@ -17,12 +17,13 @@ func DirectMirConstructedArrayMemberMethodInstructionsReady(
         fact.identity_return.result == "";
 }
 
-func DirectMirConstructedArrayMemberMethodInstructionsFromProgram(
+func DirectMirConstructedArrayMemberMethodInstructionsFromSignatures(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref identity: DirectMirConstructedArrayMemberProgramIdentity
+    ref constructed_method: DirectMirConstructedArrayMemberSignatureFact,
+    ref identity_method: DirectMirConstructedArrayMemberSignatureFact
 ) -> DirectMirConstructedArrayMemberMethodInstructions {
-    let constructed_row: Int = identity.constructed_method.row;
-    let identity_row: Int = identity.identity_method.row;
+    let constructed_row: Int = constructed_method.row;
+    let identity_row: Int = identity_method.row;
     let constructed_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
         admitted.routines, constructed_row
     );
@@ -74,10 +75,10 @@ func DirectMirConstructedArrayMemberMethodInstructionsFromProgram(
         identity_return.arg1 != "" ||
         !DirectMirInstructionHasNoPhysicalAbi(
             admitted.routines.source_json, constructed_return,
-            identity.constructed_method.return_type
+            constructed_method.return_type
         ) || !DirectMirInstructionHasNoPhysicalAbi(
             admitted.routines.source_json, identity_return,
-            identity.identity_method.return_type
+            identity_method.return_type
         ) || !DirectMirInferredGenericMemberExpectedUse(
             constructed_uses, constructed_global, ""
         ) || !DirectMirInferredGenericMemberExpectedUse(
@@ -93,4 +94,13 @@ func DirectMirConstructedArrayMemberMethodInstructionsFromProgram(
         Die("direct MIR constructed Array method admission is invalid");
     }
     return fact;
+}
+
+func DirectMirConstructedArrayMemberMethodInstructionsFromProgram(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref identity: DirectMirConstructedArrayMemberProgramIdentity
+) -> DirectMirConstructedArrayMemberMethodInstructions {
+    return DirectMirConstructedArrayMemberMethodInstructionsFromSignatures(
+        admitted, identity.constructed_method, identity.identity_method
+    );
 }

@@ -547,6 +547,44 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_constructed_array_member_plan_owner.pgy" \
     'caller_owned_fixed_array_through_nested_member_by_value'
+require_text ".github/workflows/ci.yml" \
+    'self-host-one-mir-constructed-record-array-member-projection-test-smoke'
+require_text "Makefile" \
+    'self-host-one-mir-constructed-record-array-member-projection-test-smoke: self-host-compiler'
+require_file \
+    "tests/self_hosted/parity/one_mir_constructed_record_array_member_projection.sh"
+require_file \
+    "tests/self_hosted/parity/one_mir_constructed_record_array_member_mutations.py"
+require_text \
+    "src/self_hosted/compiler/direct_mir_three_routine_classification_owner.pgy" \
+    'DirectMirThreeRoutineMixedConstructedGenericMember()'
+require_text \
+    "src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" \
+    'CompileAdmittedDirectMirConstructedRecordArrayMember('
+require_text \
+    "src/self_hosted/compiler/direct_mir_constructed_record_array_member_plan_owner.pgy" \
+    'caller_owned_fixed_record_array_through_nested_member_by_value'
+require_text \
+    "src/self_hosted/compiler/direct_mir_constructed_record_array_member_program_admission_owner.pgy" \
+    'JsonObjectFactCount(admitted.document.root) != 5'
+require_text \
+    "src/self_hosted/compiler/direct_mir_constructed_record_array_member_representation_owner.pgy" \
+    'DirectMirInferredGenericMemberRepresentation()'
+require_text \
+    "src/self_hosted/compiler/direct_mir_constructed_record_array_member_source_identity_owner.pgy" \
+    'DirectMirConstructedRecordArraySourceIdentitiesReady('
+require_text \
+    "src/self_hosted/compiler/direct_mir_constructed_record_array_member_instruction_envelope_owner.pgy" \
+    'JsonObjectFactCount(instruction) == 25'
+require_text \
+    "src/self_hosted/compiler/direct_mir_constructed_record_array_member_plan_join_owner.pgy" \
+    'DirectMirConstructedRecordArrayProgramJoinReady('
+require_text \
+    "src/self_hosted/compiler/direct_mir_array_storage_layout_contract_owner.pgy" \
+    'pgy.runtime.pointer64-size_t64.v1'
+require_text \
+    "src/self_hosted/compiler/direct_mir_closed_module_call_abi_owner.pgy" \
+    'closed_module_internal_only'
 require_text \
     "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     'return "AST_ARRAY_LITERAL"'
@@ -563,7 +601,7 @@ require_text \
     "src/self_hosted/compiler/direct_mir_inferred_generic_member_plan_owner.pgy" \
     'nested_inferred_generic_member_calls_on_value_receiver'
 require_text "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
-    'src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy'
+    'generic_member_inferred_flow.pgy'
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
     'src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy'
 require_text \

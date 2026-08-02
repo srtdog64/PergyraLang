@@ -1,0 +1,63 @@
+// Exact Array<Record> specialization pair for the mixed declaration rung.
+
+import "direct_mir_constructed_member_specialization_pair_owner.pgy";
+
+struct DirectMirConstructedRecordArrayMemberSpecializationFact {
+    let valid: Bool;
+    let digest: Int;
+    let pair: DirectMirConstructedMemberSpecializationPairFact;
+    let record_type: String;
+}
+
+func DirectMirConstructedRecordArrayMemberSpecializationDigest(
+    ref fact: DirectMirConstructedRecordArrayMemberSpecializationFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(443L, fact.pair.digest);
+    hash = DirectMirCfgHashString(hash, fact.record_type);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirConstructedRecordArrayMemberSpecializationFactReady(
+    ref fact: DirectMirConstructedRecordArrayMemberSpecializationFact
+) -> Bool {
+    let shape: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(fact.pair.outer_generic_actual);
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirConstructedRecordArrayMemberSpecializationDigest(fact) &&
+        fact.record_type != "" &&
+        DirectMirConstructedMemberSpecializationPairFactReadyFor(
+            fact.pair, fact.record_type
+        ) && fact.pair.outer_constructor == "Array" && shape.ok &&
+        shape.canonical_name == fact.pair.outer_generic_actual &&
+        shape.nominal_base_name == "Array" &&
+        ArrayLength(shape.actual_type_names) == 1 &&
+        shape.actual_type_names[0] == fact.record_type;
+}
+
+func DirectMirConstructedRecordArrayMemberSpecializationFromDocument(
+    ref root: JsonObjectFactTable, record_type: String,
+    class_name: String
+) -> DirectMirConstructedRecordArrayMemberSpecializationFact {
+    let pair: DirectMirConstructedMemberSpecializationPairFact =
+        DirectMirConstructedMemberSpecializationPairFromDocumentForInner(
+            root, record_type
+        );
+    let fact: DirectMirConstructedRecordArrayMemberSpecializationFact =
+        DirectMirConstructedRecordArrayMemberSpecializationFact(
+            true, 0, pair, record_type
+        );
+    let verified: DirectMirConstructedRecordArrayMemberSpecializationFact =
+        DirectMirConstructedRecordArrayMemberSpecializationFact(
+            fact.valid,
+            DirectMirConstructedRecordArrayMemberSpecializationDigest(fact),
+            fact.pair, fact.record_type
+        );
+    if pair.owner != class_name ||
+        !DirectMirConstructedRecordArrayMemberSpecializationFactReady(
+            verified
+        ) {
+        Die("direct MIR constructed record Array specialization is invalid");
+    }
+    return verified;
+}

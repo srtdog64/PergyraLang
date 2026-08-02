@@ -1,0 +1,207 @@
+// Five-instruction Main SSA, use-chain, and ABI presence/absence admission.
+
+import "direct_mir_constructed_record_array_member_identity_owner.pgy";
+import "direct_mir_constructed_record_array_member_instruction_envelope_owner.pgy";
+import "direct_mir_inferred_generic_member_instruction_admission_owner.pgy";
+
+struct DirectMirConstructedRecordArrayMemberMainAdmission {
+    let valid: Bool;
+    let wrapper: MirRoutineInstructionScalarCapture;
+    let point: MirRoutineInstructionScalarCapture;
+    let result: MirRoutineInstructionScalarCapture;
+    let first: MirRoutineInstructionScalarCapture;
+    let output: MirRoutineInstructionScalarCapture;
+}
+
+func DirectMirConstructedRecordArrayMemberMainAdmissionReady(
+    ref fact: DirectMirConstructedRecordArrayMemberMainAdmission
+) -> Bool {
+    return fact.valid && fact.wrapper.valid && fact.point.valid &&
+        fact.result.valid && fact.first.valid && fact.output.valid &&
+        fact.wrapper.result != "" && fact.point.result != "" &&
+        fact.result.result != "" && fact.first.result != "" &&
+        fact.output.result == "";
+}
+
+func DirectMirConstructedRecordArrayUsesReady(
+    ref uses: MirRoutineInstructionUseFacts,
+    global_row: Int, expected: Array<String>
+) -> Bool {
+    if MirRoutineInstructionUseCountAtGlobal(uses, global_row) !=
+        ArrayLength(expected) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(expected) {
+        let value: Option<String> = MirRoutineInstructionUseAtGlobal(
+            uses, global_row, row
+        );
+        if !IsSome(value) || UnwrapOption(value) != expected[row] {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirConstructedRecordArrayMainLocalsReady(
+    ref index: MirRoutineFactIndex,
+    ref identity: DirectMirConstructedRecordArrayMemberIdentity
+) -> Bool {
+    let expected_names: Array<String> = [
+        identity.main_graph.receiver_local, identity.main_graph.point_local,
+        identity.main_graph.result_local, identity.main_graph.first_local
+    ];
+    let expected_types: Array<String> = [
+        identity.wrapper.name, identity.record.name,
+        identity.specialization.pair.outer_generic_actual,
+        identity.record.name
+    ];
+    if ArrayLength(index.source_local_names) != 4 ||
+        ArrayLength(index.source_local_types) != 4 {
+        return false;
+    }
+    let seen: Array<Bool> = [false, false, false, false];
+    let row: Int = 0;
+    while row < 4 {
+        let expected_row: Int = 0;
+        let matched: Bool = false;
+        while expected_row < 4 {
+            if !seen[expected_row] && index.source_local_names[row] ==
+                    expected_names[expected_row] &&
+                index.source_local_types[row] == expected_types[expected_row] {
+                ArraySet(seen, expected_row, true);
+                matched = true;
+            }
+            expected_row = expected_row + 1;
+        }
+        if !matched { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirConstructedRecordArrayMemberMainAdmissionFromProgram(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref identity: DirectMirConstructedRecordArrayMemberIdentity
+) -> DirectMirConstructedRecordArrayMemberMainAdmission {
+    let main_row: Int = identity.entrypoint.row;
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, main_row
+    );
+    let uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, main_row);
+    if !index.valid || ArrayLength(index.block_reachable) != 1 ||
+        !index.block_reachable[0] ||
+        !MirRoutineFactIndexBlockIsTerminal(index, 0) ||
+        index.block_has_conditional_branch[0] != 0 ||
+        !DirectMirConstructedRecordArrayMainLocalsReady(index, identity) ||
+        !MirRoutineInstructionUseFactsReady(uses, 5) {
+        Die("direct MIR constructed record Array Main facts are invalid");
+    }
+    let captures: Array<MirRoutineInstructionScalarCapture> = [];
+    let globals: Array<Int> = [];
+    let row: Int = 0;
+    while row < 5 {
+        ArrayPush(captures, DirectMirInferredGenericMemberInstructionCapture(
+            admitted, index, main_row, row
+        ));
+        ArrayPush(globals, MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, main_row, 0, row
+        ));
+        row = row + 1;
+    }
+    let wrapper: MirRoutineInstructionScalarCapture = captures[0];
+    let point: MirRoutineInstructionScalarCapture = captures[1];
+    let result: MirRoutineInstructionScalarCapture = captures[2];
+    let first: MirRoutineInstructionScalarCapture = captures[3];
+    let output: MirRoutineInstructionScalarCapture = captures[4];
+    let envelope0: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[globals[0]],
+        admitted.routines.instruction_ends[globals[0]]);
+    let envelope1: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[globals[1]],
+        admitted.routines.instruction_ends[globals[1]]);
+    let envelope2: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[globals[2]],
+        admitted.routines.instruction_ends[globals[2]]);
+    let envelope3: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[globals[3]],
+        admitted.routines.instruction_ends[globals[3]]);
+    let envelope4: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[globals[4]],
+        admitted.routines.instruction_ends[globals[4]]);
+    if !DirectMirConstructedRecordArrayDefinitionEnvelopeReady(
+            envelope0, "0", identity.main_graph.receiver_local,
+            wrapper.result, identity.wrapper.name, identity.wrapper.name,
+            false, identity.wrapper.name
+        ) || !DirectMirConstructedRecordArrayDefinitionEnvelopeReady(
+            envelope1, "1", identity.main_graph.point_local,
+            point.result, identity.record.name, identity.record.name,
+            true, identity.record.name
+        ) || !DirectMirConstructedRecordArrayDefinitionEnvelopeReady(
+            envelope2, "2", identity.main_graph.result_local,
+            result.result, "", identity.specialization.pair.outer_generic_actual,
+            false, identity.specialization.pair.outer_generic_actual
+        ) || !DirectMirConstructedRecordArrayDefinitionEnvelopeReady(
+            envelope3, "3", identity.main_graph.first_local,
+            first.result, identity.record.name, identity.record.name,
+            true, identity.record.name
+        ) || JsonObjectFactCount(envelope4) != 25 ||
+        !DirectMirLogInstructionEnvelopeReady(envelope4, "4") ||
+        wrapper.arg0 != identity.main_graph.receiver_local ||
+        wrapper.arg1 != identity.wrapper.name ||
+        point.arg0 != identity.main_graph.point_local ||
+        point.arg1 != identity.record.name ||
+        result.arg0 != identity.main_graph.result_local || result.arg1 != "" ||
+        first.arg0 != identity.main_graph.first_local ||
+        first.arg1 != identity.record.name || output.arg0 != "Log" ||
+        output.arg1 != "" || !DirectMirInstructionHasNoPhysicalAbi(
+            admitted.routines.source_json, wrapper, identity.wrapper.name
+        ) || !DirectMirInstructionHasNoPhysicalAbi(
+            admitted.routines.source_json, result,
+            identity.specialization.pair.outer_generic_actual
+        ) || point.abi_type_name != identity.record.name ||
+        first.abi_type_name != identity.record.name {
+        Die("direct MIR constructed record Array Main instruction is invalid");
+    }
+    let names: Array<String> = [
+        wrapper.result, point.result, result.result, first.result
+    ];
+    if !DirectMirConstructedRecordArrayUsesReady(uses, globals[0], []) ||
+        !DirectMirConstructedRecordArrayUsesReady(uses, globals[1], []) ||
+        !DirectMirConstructedRecordArrayUsesReady(
+            uses, globals[2], [wrapper.result, point.result]
+        ) || !DirectMirConstructedRecordArrayUsesReady(
+            uses, globals[3], [result.result]
+        ) || !DirectMirConstructedRecordArrayUsesReady(
+            uses, globals[4], [first.result]
+        ) {
+        Die("direct MIR constructed record Array Main SSA use is invalid");
+    }
+    let definition_row: Int = 0;
+    while definition_row < 4 {
+        let definition: MirRoutineResultDefinitionFact =
+            MirRoutineFactIndexUniqueResultDefinition(
+                index, names[definition_row]
+            );
+        if !MirRoutineResultDefinitionFactReady(definition) ||
+            definition.global_row != globals[definition_row] {
+            Die("direct MIR constructed record Array definition is invalid");
+        }
+        definition_row = definition_row + 1;
+    }
+    let fact: DirectMirConstructedRecordArrayMemberMainAdmission =
+        DirectMirConstructedRecordArrayMemberMainAdmission(
+            true, wrapper, point, result, first, output
+        );
+    if !DirectMirConstructedRecordArrayMemberMainAdmissionReady(fact) {
+        Die("direct MIR constructed record Array Main admission is invalid");
+    }
+    return fact;
+}

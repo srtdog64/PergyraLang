@@ -1,0 +1,79 @@
+// Exact scalar envelopes for the four Main definitions in this rung.
+
+import "direct_mir_scalar_graph_admission_owner.pgy";
+
+func DirectMirConstructedRecordArrayDefinitionAbiReady(
+    ref instruction: JsonObjectFactTable, physical_abi: Bool
+) -> Bool {
+    let layout_id: Option<String> = JsonObjectFactNumberFieldOpt(
+        instruction, "abi_layout_id"
+    );
+    if !IsSome(layout_id) { return false; }
+    if physical_abi {
+        return UnwrapOption(layout_id) != "0" &&
+            JsonObjectBoolFieldEqualsWithin(
+                instruction.json, instruction.start, instruction.end,
+                "abi_layout_required", true
+            ) && DirectMirObjectFieldKindEquals(
+                instruction, "abi_layout", "object"
+            );
+    }
+    return UnwrapOption(layout_id) == "0" &&
+        JsonObjectBoolFieldEqualsWithin(
+            instruction.json, instruction.start, instruction.end,
+            "abi_layout_required", false
+        ) && DirectMirObjectFieldKindEquals(
+            instruction, "abi_layout", "null"
+        );
+}
+
+func DirectMirConstructedRecordArrayDefinitionEnvelopeReady(
+    ref instruction: JsonObjectFactTable, expected_id: String,
+    expected_local: String, expected_result: String,
+    expected_arg1: String, expected_abi_type: String,
+    physical_abi: Bool, expected_expr1: String
+) -> Bool {
+    let arg1_ready: Bool = DirectMirObjectFieldKindEquals(
+        instruction, "arg1", "null"
+    );
+    if expected_arg1 != "" {
+        arg1_ready = JsonObjectFactStringFieldEquals(
+            instruction, "arg1", expected_arg1
+        );
+    }
+    return JsonObjectFactTableReady(instruction) &&
+        JsonObjectFactCount(instruction) == 25 &&
+        DirectMirObjectNumberEquals(instruction, "id", expected_id) &&
+        JsonObjectFactStringFieldEquals(instruction, "kind", "def") &&
+        JsonObjectFactStringFieldEquals(instruction, "name", "ssa-def") &&
+        JsonObjectFactStringFieldEquals(
+            instruction, "result", expected_result
+        ) && JsonObjectFactStringFieldEquals(
+            instruction, "arg0", expected_local
+        ) && arg1_ready &&
+        DirectMirObjectFieldKindEquals(instruction, "slot_anchor", "null") &&
+        JsonObjectFactStringFieldEquals(
+            instruction, "abi_type_name", expected_abi_type
+        ) && DirectMirConstructedRecordArrayDefinitionAbiReady(
+            instruction, physical_abi
+        ) && DirectMirObjectFieldKindEquals(instruction, "expr0", "string") &&
+        DirectMirObjectFieldKindEquals(
+            instruction, "expr0_graph", "object"
+        ) && JsonObjectFactStringFieldEquals(
+            instruction, "expr1", expected_expr1
+        ) && DirectMirObjectFieldKindEquals(
+            instruction, "expr1_graph", "null"
+        ) && JsonObjectFactStringFieldEquals(
+            instruction, "source_type", "AST_LET_DECL"
+        ) && JsonObjectFactStringFieldEquals(
+            instruction, "machine_contact_kind", ""
+        ) && DirectMirObjectFieldKindEquals(
+            instruction, "machine_layer", "null"
+        ) && DirectMirObjectArrayEmpty(instruction, "match_patterns") &&
+        DirectMirObjectFieldKindEquals(instruction, "match_variant", "null") &&
+        DirectMirObjectArrayEmpty(instruction, "match_bindings") &&
+        DirectMirObjectArrayEmpty(instruction, "match_binding_types") &&
+        DirectMirObjectFieldKindEquals(
+            instruction, "destructure_element_type", "null"
+        ) && DirectMirObjectArrayEmpty(instruction, "destructure_bindings");
+}

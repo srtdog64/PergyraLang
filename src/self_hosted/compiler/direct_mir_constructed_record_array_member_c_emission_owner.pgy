@@ -1,35 +1,37 @@
-// C emission for caller-owned storage carried through nested member calls.
+// Runtime-free C projection of the admitted caller-owned record Array plan.
 
-import "direct_mir_constructed_array_member_plan_owner.pgy";
-import "direct_mir_array_int_abi_projection_owner.pgy";
+import "direct_mir_constructed_record_array_member_abi_projection_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
-import "symbol_table_owner.pgy";
 
-func DirectMirConstructedArrayMemberEmitC(
-    ref plan: DirectMirConstructedArrayMemberPlan,
-    ref abi: DirectMirArrayIntAbiProjection,
+func DirectMirConstructedRecordArrayMemberEmitC(
+    ref plan: DirectMirConstructedRecordArrayMemberPlan,
+    ref abi: DirectMirConstructedRecordArrayMemberAbiProjection,
     formatted_print: CompilerRuntimeCallAbiFact,
     line_format: String
 ) -> String {
-    if !DirectMirConstructedArrayMemberPlanReady(plan) ||
-        !DirectMirArrayIntAbiProjectionReadyFor(
-            abi, CompilerTargetCpuCProjection()
+    if !DirectMirConstructedRecordArrayMemberPlanReady(plan) ||
+        !DirectMirConstructedRecordArrayMemberAbiProjectionReadyForPlan(
+            abi, plan, CompilerTargetCpuCProjection()
         ) || !formatted_print.ok || formatted_print.call_shape !=
             CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
         formatted_print.symbol == "" || line_format == "" {
-        Die("direct MIR constructed Array member C facts are invalid");
+        Die("direct MIR constructed record Array C facts are invalid");
     }
-    let type_name: String = CompilerSymbolCIdentifier(
+    let record: String = CompilerSymbolCIdentifier(plan.identity.record.name);
+    let field: String = CompilerSymbolCIdentifier(
+        plan.identity.record.field_names[0]
+    );
+    let wrapper: String = CompilerSymbolCIdentifier(
         plan.representation.type_name
     );
-    let field_name: String = CompilerSymbolCIdentifier(
+    let marker: String = CompilerSymbolCIdentifier(
         plan.representation.field_name
     );
-    let outer_symbol: String = CompilerSymbolCIdentifier(
-        plan.identity.specialization.outer_symbol
-    );
     let inner_symbol: String = CompilerSymbolCIdentifier(
-        plan.identity.specialization.inner_symbol
+        plan.identity.specialization.pair.inner_symbol
+    );
+    let outer_symbol: String = CompilerSymbolCIdentifier(
+        plan.identity.specialization.pair.outer_symbol
     );
     let receiver: String = CompilerSymbolCIdentifier(
         plan.identity.constructed_method.receiver_name
@@ -40,42 +42,62 @@ func DirectMirConstructedArrayMemberEmitC(
     let outer_value: String = CompilerSymbolCIdentifier(
         plan.identity.identity_method.value_param.name
     );
-    if type_name == "" || field_name == "" || outer_symbol == "" ||
-        inner_symbol == "" || outer_symbol == inner_symbol || receiver == "" ||
+    if record == "" || field == "" || wrapper == "" || marker == "" ||
+        inner_symbol == "" || outer_symbol == "" ||
+        inner_symbol == outer_symbol || receiver == "" ||
         inner_value == "" || outer_value == "" || receiver == inner_value ||
         receiver == outer_value {
-        Die("direct MIR constructed Array member C symbols are invalid");
+        Die("direct MIR constructed record Array C symbols are invalid");
     }
-    let graph: DirectMirConstructedArrayMemberMainGraphFact =
+    let graph: DirectMirConstructedRecordArrayMemberMainGraphFact =
         plan.identity.main_graph;
+    let point_abi: MirAbiLayoutRowCapture = plan.point_abi.declaration.abi;
     let output: String =
         "#include <stdint.h>\n#include <stddef.h>\n#include <stdio.h>\n\n";
     output = Concat(output, "typedef struct {\n    int32_t ");
-    output = Concat(output, field_name);
+    output = Concat(output, field);
     output = Concat(output, ";\n} ");
-    output = Concat(output, type_name);
-    output = Concat(output, ";\n\ntypedef struct {\n    ");
+    output = Concat(output, record);
+    output = Concat(output, ";\n\n_Static_assert(sizeof(");
+    output = Concat(output, record);
+    output = Concat(output, ") == ");
+    output = Concat(output, point_abi.size_text);
+    output = Concat(output, ", \"record size receipt\");\n_Static_assert(_Alignof(");
+    output = Concat(output, record);
+    output = Concat(output, ") == ");
+    output = Concat(output, point_abi.align_text);
+    output = Concat(output, ", \"record align receipt\");\n_Static_assert(offsetof(");
+    output = Concat(output, record);
+    output = Concat(output, ", ");
+    output = Concat(output, field);
+    output = Concat(output, ") == ");
+    output = Concat(output, point_abi.field_offsets[0]);
+    output = Concat(output, ", \"record field receipt\");\n\ntypedef struct {\n    int32_t ");
+    output = Concat(output, marker);
+    output = Concat(output, ";\n} ");
+    output = Concat(output, wrapper);
+    output = Concat(output, ";\n\ntypedef struct { ");
     output = Concat(output, abi.c_element_type);
-    output = Concat(output, " *data;\n    ");
+    output = Concat(output, " *data; ");
     output = Concat(output, abi.c_length_type);
-    output = Concat(output, " length;\n    ");
+    output = Concat(output, " length; ");
     output = Concat(output, abi.c_length_type);
-    output = Concat(output, " capacity;\n    void *allocator;\n} ");
+    output = Concat(output, " capacity; void *allocator; } ");
     output = Concat(output, abi.c_array_type);
     output = Concat(output, ";\n\nstatic ");
     output = Concat(output, abi.c_array_type);
     output = Concat(output, " ");
     output = Concat(output, inner_symbol);
     output = Concat(output, "(");
-    output = Concat(output, type_name);
+    output = Concat(output, wrapper);
     output = Concat(output, " ");
     output = Concat(output, receiver);
     output = Concat(output, ", ");
-    output = Concat(output, abi.c_element_type);
+    output = Concat(output, record);
     output = Concat(output, " ");
     output = Concat(output, inner_value);
     output = Concat(output, ", ");
-    output = Concat(output, abi.c_element_type);
+    output = Concat(output, record);
     output = Concat(output, " *__pgy_array_storage) {\n    (void)");
     output = Concat(output, receiver);
     output = Concat(output, ";\n    __pgy_array_storage[0] = ");
@@ -87,7 +109,7 @@ func DirectMirConstructedArrayMemberEmitC(
     output = Concat(output, " ");
     output = Concat(output, outer_symbol);
     output = Concat(output, "(");
-    output = Concat(output, type_name);
+    output = Concat(output, wrapper);
     output = Concat(output, " ");
     output = Concat(output, receiver);
     output = Concat(output, ", ");
@@ -99,29 +121,33 @@ func DirectMirConstructedArrayMemberEmitC(
     output = Concat(output, ";\n    return ");
     output = Concat(output, outer_value);
     output = Concat(output, ";\n}\n\nint main(void) {\n    ");
-    output = Concat(output, type_name);
+    output = Concat(output, wrapper);
     output = Concat(output, " pgy_receiver = {");
     output = Concat(output, ToString(graph.marker_value));
     output = Concat(output, "};\n    ");
-    output = Concat(output, abi.c_element_type);
+    output = Concat(output, record);
+    output = Concat(output, " pgy_point = {");
+    output = Concat(output, ToString(graph.field_value));
+    output = Concat(output, "};\n    ");
+    output = Concat(output, record);
     output = Concat(output, " __pgy_array_storage[1];\n    ");
     output = Concat(output, abi.c_array_type);
     output = Concat(output, " pgy_inner = ");
     output = Concat(output, inner_symbol);
-    output = Concat(output, "(pgy_receiver, ");
-    output = Concat(output, ToString(graph.argument_value));
-    output = Concat(output, ", __pgy_array_storage);\n    ");
+    output = Concat(output, "(pgy_receiver, pgy_point, __pgy_array_storage);\n    ");
     output = Concat(output, abi.c_array_type);
     output = Concat(output, " pgy_result = ");
     output = Concat(output, outer_symbol);
     output = Concat(output, "(pgy_receiver, pgy_inner);\n    ");
+    output = Concat(output, record);
+    output = Concat(output, " pgy_first = pgy_result.data[");
+    output = Concat(output, ToString(plan.selected_index));
+    output = Concat(output, "];\n    ");
     output = Concat(output, formatted_print.symbol);
     output = Concat(output, "(\"");
     output = Concat(output, line_format);
-    output = Concat(output, "\", (");
-    output = Concat(output, abi.c_print_type);
-    output = Concat(output, ")pgy_result.data[");
-    output = Concat(output, ToString(plan.selected_index));
-    output = Concat(output, "]);\n    return 0;\n}\n");
+    output = Concat(output, "\", (long long)pgy_first.");
+    output = Concat(output, field);
+    output = Concat(output, ");\n    return 0;\n}\n");
     return output;
 }

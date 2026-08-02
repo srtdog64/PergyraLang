@@ -42,6 +42,7 @@ $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_program_i
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_method_instruction_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_main_instruction_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_abi_admission_owner.pgy
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_storage_layout_contract_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_representation_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_plan_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_c_emission_owner.pgy
@@ -49,7 +50,7 @@ $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_llvm_emis
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_projection_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_projection_owner.pgy
 EOF
-    [[ "$total" -le 2100 ]] || fail "constructed Array member family cap exceeded: $total/2100"
+    [[ "$total" -le 2160 ]] || fail "constructed Array member family cap exceeded: $total/2160"
     grep -Fq 'DirectMirConstructedMemberVariantFromPair(pair)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_projection_owner.pgy" || fail "one-shot family classification is not routed"
     grep -Fq 'CompileAdmittedDirectMirConstructedArrayMember(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_projection_owner.pgy" || fail "Array member projection is not routed"
     for projection in direct_mir_constructed_generic_member_specialization_fact_owner.pgy direct_mir_constructed_array_member_specialization_fact_owner.pgy; do
@@ -111,9 +112,9 @@ project "$MIR" c "$WORK_DIR/baseline.c"
 [[ "$(hash_file "$MIR")" == "$mir_digest" ]] || fail "C projection mutated MIR"
 project "$MIR" llvm "$WORK_DIR/baseline.ll"
 [[ "$(hash_file "$MIR")" == "$mir_digest" ]] || fail "LLVM projection mutated MIR"
-grep -Fq 'ArrayWrapper_Wrap_Int(ArrayWrapper self, int32_t value, int32_t *pgy_array_storage)' "$WORK_DIR/baseline.c" || fail "C lost caller-storage Wrap ABI"
+grep -Fq 'ArrayWrapper_Wrap_Int(ArrayWrapper self, int32_t value, int32_t *__pgy_array_storage)' "$WORK_DIR/baseline.c" || fail "C lost collision-proof caller-storage Wrap ABI"
 grep -Fq 'pgy_ai ArrayWrapper_Echo_Array_Int_(ArrayWrapper self, pgy_ai value)' "$WORK_DIR/baseline.c" || fail "C lost by-value Echo ABI"
-[[ "$(grep -Fc 'int32_t pgy_array_storage[1];' "$WORK_DIR/baseline.c")" -eq 1 ]] || fail "C storage owner is not unique"
+[[ "$(grep -Fc 'int32_t __pgy_array_storage[1];' "$WORK_DIR/baseline.c")" -eq 1 ]] || fail "C storage owner is not unique"
 grep -Fq 'ArrayWrapper_Echo_Array_Int_(pgy_receiver, pgy_inner)' "$WORK_DIR/baseline.c" || fail "C flattened nested member flow"
 ! grep -Eq 'pgy_array_new_Int|malloc|free' "$WORK_DIR/baseline.c" || fail "C reintroduced runtime allocation"
 [[ "$(grep -Fc 'alloca [1 x i32]' "$WORK_DIR/baseline.ll")" -eq 1 ]] || fail "LLVM storage owner is not unique"
