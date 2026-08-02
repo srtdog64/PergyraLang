@@ -6,68 +6,59 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — canonical MIR call-return fact frontier
+## Active self-host context — canonical MIR routine identity frontier
 
-- Executable checkpoint: `bcb1d8facc2db0e31b8b15060f99e5f6936603d9` on
-  `main`. The implementation worktree was clean and one commit ahead of
-  `origin/main` before this handoff-only update. The current installed
-  Pergyra-built driver is 4,239,010 bytes, SHA-256
-  `CB0B0F1EE761CD755EEE3EA4A9582A05AA31464287B258BF675C485B53CCAF21`.
-  The native launcher is 4,620,901 bytes, SHA-256
+- Executable checkpoint: `e7125ab3081a095866c240643a9dbb4f410f0978` on
+  `main`, one commit ahead of `origin/main` before this handoff update. The
+  installed Pergyra-built driver is 4,245,240 bytes, SHA-256
+  `CB03F0017AD058709E47E4592705BD51531D9E1E5F12463293132A5A52A7E217`.
+  The native launcher remains 4,620,901 bytes, SHA-256
   `FBA8E6D73AB9072C8130483A34C13164C4C8DE58425E355141655F65E5AE7374`.
-- Closed executable rung: `DriverRung2CliRequest` is now the sole argv meaning
-  owner before I/O. Source/MIR machine declarations require
-  `--machine-manifest-json`; source-MIR, MIR-C, and direct C/LLVM artifacts
-  require `-o`; pressure and consumer observation have distinct variants. Bare
-  positional third arguments, missing values, extra tokens, option-shaped
-  paths, and input/output identity fail at admission. The old optional-third
-  inference owner is removed and ratcheted against reintroduction.
-- Production composition is
-  `driver_bootstrap_main -> request owner -> installed executor`. The 11-line
-  root parses exactly once and has no raw argv branch. Read-only stdout variants
-  delegate to `driver_rung2_cli_read_execution_owner.pgy`; only
-  `driver_rung2_installed_cli_owner.pgy` can publish artifacts. Test fixture
-  manifests live behind a separate test-only root and do not enter the
-  installed graph. The hard LoC caps are 240/140/160 for request/read/installed
-  owners, 40 for the standalone wrapper, and 30/60/30 for the thin/test roots.
-- Fresh executable evidence: direct installed rebuild 126 seconds; installed
-  typed CLI parity PASS; default installed C compile PASS in 29.4 seconds;
-  runtime-free installed LLVM PASS in 38.5 seconds; source-MIR action gate PASS;
-  hard substitution contract PASS; compiler topology PASS; protocol registry
-  PASS with 10 rows; documentation quality PASS; component/removed-path ratchet
-  PASS in 174.1 seconds; all 37 changed shell files pass `bash -n`; and
-  `git diff --check` is green.
-- One integration compile observed about 2.43 GiB peak working set: above the
-  2.4 GiB attention threshold but below the 3 GiB hard stop. This is not an
-  official full pressure measurement and was not repeated per edit. No full CI,
-  full bootstrap, current-source gen2==gen3, or Coq/Rocq suite was run; `coqc`
-  is unavailable in the current shell.
-- Explicit RED evidence: `tests/self_host_compiler_world_contract_smoke.sh`
-  passes the refreshed topology slice and then fails on the pre-existing
-  `driver_pipeline_owner.pgy` pin for `GenerateCUnitFromReadySemanticFacts(`.
-  `sot_authority_adequacy_smoke.sh` remains RED on the unrelated live semantic
-  role declaration-row owner. The last observed live replacement run remains
-  RED after source-MIR equality at `semantic call return type rows are
-  incomplete`; none of these were relabelled as a CLI regression.
-- Active objective: close the reached canonical-MIR call-return fact failure in
-  `tests/self_host_live_replacement_smoke.sh`, without reopening a general
-  query/cache track. The production path is public installed
-  `--canonicalize-mir-json`; the current rejecting owner is
-  `ast_body_type_bundle_owner.pgy`, which calls
-  `SemanticAstAnalysisResolveCallReturnTypes` after the body fixpoint.
-- Fact owner and last consumer are not yet assumed: first identify which typed
-  call-return row is absent and which existing semantic owner must supply it;
-  the canonical MIR consumer is the next falsifier. Forbidden fallback is AST
-  or program-root re-scan, name-based reconstruction, a second return-type
-  table, native-C semantic re-entry, or weakening the incomplete-row rejection.
-  Close only the reached row, delete the old read path if one exists, and add a
-  focused negative before proceeding to another rung.
-- Three exact ignored build directories created during this rung remain because
-  recursive cleanup was blocked by the command policy:
+- Closed executable rung: strict canonical MIR now verifies semantic body facts
+  once. `CanonicalizeMirJsonVerified` creates one `DriverRung2VerifiedFacts`;
+  `CanonicalizeMirArtifactWithAdmittedTopology` passes that receipt to
+  `DriverRung2MirProjectionFromVerifiedFactsObserved`, which validates the
+  admission receipt and consumes ready facts without reopening
+  `VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved`.
+- The intentional stale call-return-row rejection remains unchanged. The
+  previous `let-log` failure was a second verification of the already populated
+  `ToString -> String` row, not a missing semantic rule. Canonical execution now
+  has a separate 112-line owner capped at 140 lines; the main driver owner is
+  485/500 lines and the CLI read owner is 118/140 lines.
+- Fresh executable evidence: current installed-driver rebuild PASS in 108.6
+  seconds; canonical verified-projection fixpoint PASS in 3.0 seconds; hard
+  substitution contract PASS in 61.3 seconds; semantic environment lifetime
+  PASS in 26.5 seconds; mutable-analysis admission negative PASS in 158.4
+  seconds; component/removed-path ratchet PASS in 174.9 seconds; all changed
+  shell files pass `bash -n`; and `git diff --check` is green.
+- `tests/self_host_live_replacement_smoke.sh` now passes the former first
+  `let-log` row and the next eleven rows. It reaches the final
+  `intent-typed-outcome` row, where both canonical artifacts are 47,400 bytes
+  and become byte-identical when only routine `source_syntax_id` values are
+  normalized. The exact remaining drift is `Main=85, RunIntent=72` for the
+  native oracle versus `Main=72, RunIntent=85` for self MIR.
+- Active objective: close that final canonical routine-identity drift through
+  the public installed `--canonicalize-mir-json` path. Existing owners are
+  `MirProgramRoutineIndex`, `CanonicalMirRoutineIdentityEpoch`, and
+  `CanonicalMirIdentityEpochRebindProgramFacts`; the last artifact consumer is
+  `SelfMirProgramJson`. First prove which owner must canonicalize routine order
+  or IDs before editing.
+- Forbidden fallback: ignoring or deleting `source_syntax_id`, regex/JSON text
+  rewriting, row-position identity, fixture/name special cases, synthetic IDs
+  disconnected from the canonical AST epoch, AST/program-root rescan, native-C
+  semantic re-entry, or weakening MIR identity validation. The next falsifier
+  is exact native/self canonical equality for `intent-typed-outcome`, followed
+  by repeated canonicalization fixpoint and a routine-order mutation negative.
+- The previous 2.43 GiB observation remains historical attention evidence, not
+  a measurement of this rung. No per-edit pressure probes, full CI, full
+  bootstrap, current-source gen2==gen3, or Coq/Rocq suite ran. The previously
+  observed unrelated compiler-world and SoT adequacy RED rows were not
+  relabelled as regressions.
+- Three exact ignored build directories from the previous CLI rung remain:
   `.tmp/self_hosted/cli-request-check`,
   `.tmp/self_hosted/cli-request-direct-build`, and
-  `.tmp/self_hosted/cli-request-official-build`. They are not Git state or
-  semantic evidence; do not broaden cleanup beyond these paths.
+  `.tmp/self_hosted/cli-request-official-build`. Additional current test
+  artifacts are ignored and are not semantic evidence.
 
 ## Historical checkpoint archive — inactive evidence
 

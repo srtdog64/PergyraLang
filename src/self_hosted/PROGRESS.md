@@ -1,26 +1,26 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-08-03 canonical MIR call-return fact
+## Active self-host context — 2026-08-03 canonical MIR routine identity
 
 - Resume authority remains the top card in `docs/current_work_handoff.md`.
-  Executable commit `bcb1d8facc2db0e31b8b15060f99e5f6936603d9`
-  closes the installed/standalone argv meaning collision.
-- `DriverRung2CliRequest` admits argv exactly once before I/O. Artifact effects
-  require `-o`, machine declarations require `--machine-manifest-json`, and
-  pressure/observation/direct-backend requests are distinct variants. The
-  production root is 11 lines, fixture manifests are test-only, read execution
-  has no `io_write`, and the optional-third inference path is forbidden.
-- Installed CLI parity, default C and runtime-free LLVM replacement, source-MIR
-  action, hard contract, compiler topology, protocol, documentation, and full
-  component/removed-path gates are green. One integrated compile observed about
-  2.43 GiB working set; it was not an official full pressure run. Full CI,
-  bootstrap fixpoint, and Coq/Rocq were not run.
-- The sole next executable rung is the already reached live-replacement
-  canonical MIR failure `semantic call return type rows are incomplete` in
-  `ast_body_type_bundle_owner.pgy`. Identify the exact absent typed row and its
-  existing semantic owner before editing. AST/root re-scan, name-based
-  reconstruction, a parallel return-type table, native semantic fallback, and
-  weakening the fail-closed diagnostic are forbidden.
+  Executable commit `e7125ab3081a095866c240643a9dbb4f410f0978`
+  closes the duplicate semantic verification in canonical MIR execution.
+- One `DriverRung2VerifiedFacts` receipt now crosses the canonical projection
+  seam. The verified projection validates that receipt, consumes ready body
+  facts once, and cannot call the admitted-analysis verifier. The stale
+  call-return negative remains strict; `let_log` canonicalization and repeated
+  canonicalization are byte-identical.
+- Installed rebuild, focused fixpoint, hard contract, mutable-analysis negative,
+  semantic lifetime, and full component/removed-path gates are green. The live
+  replacement matrix advances from the former first row to 12/13 rows.
+- The sole next executable rung is the final `intent-typed-outcome` routine
+  identity drift. Canonical JSON differs only in swapped `Main` and `RunIntent`
+  `source_syntax_id` values. Close it through the existing routine/identity
+  epoch owners and exact native/self parity. Do not ignore identity fields,
+  rewrite JSON text, infer identity from row position, invent fixture-specific
+  IDs, rescan the AST root, or fall back to native semantics.
+- This rung was not pressure-measured. Full CI, bootstrap fixpoint, and
+  Coq/Rocq were not run.
 
 ## Historical self-host ledger — inactive navigation evidence
 
