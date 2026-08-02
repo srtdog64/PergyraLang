@@ -1,29 +1,27 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-08-03 role operator substitution
+## Active self-host context — 2026-08-03 installed CLI mode disambiguation
 
 - Resume authority remains the top card in `docs/current_work_handoff.md`.
-  Implementation commit `aa61503ad1762d9b3f14933cff71e247eb2d5a90`
-  closes `role_operator_dispatch.pgy` as bounded, target-specific
-  `SUBSTITUTING` through the installed Pergyra-built driver.
-- One 5,143-byte self-produced MIR artifact, SHA-256
-  `3D2A408D4271D74D0F76962D9FA62CE9F2017901C96D1490724B276824021E95`,
-  feeds direct C and runtime-free textual LLVM. Both execute exact `123`.
-- Semantic analysis owns the carried `role_operator` target. The compiler owns
-  one target-neutral role-call plan and a separate selected-target ABI view;
-  C uses `long long`, LLVM uses `i64`, and neither backend rediscovers the
-  operator from source, display text, fixture identity, or the only visible
-  role.
-- The focused gate covers six metamorphic cases and 27 negative mutations.
-  The final current-source self-host driver build completed in 106.7 seconds;
-  its installed artifact is 4,226,751 bytes with SHA-256
-  `F641598CA1E5EB81F5F312307B8BEBAA7FF21D3D02EB4C66A82A1CB34F1D1E3F`.
-  Memory was not measured for this rung and no older peak is relabelled.
-- The sole next executable rung is the current-source self-host codegen role
-  fixture. It currently fails closed with `role receiver target nominal-kind
-  fact is missing`. The next change must carry and exact-join the existing
-  semantic nominal-kind fact at the role receiver binding boundary; it must not
-  infer from target spelling, scan declarations, or retry native codegen.
+  Implementation commit `9f4ec7442b6278b2494a42ac0e7a4952527c8736`
+  closes the current-source role receiver admission seam.
+- Callable receiver admission now binds exact role target type and a distinct
+  target carriage. `IntMath.Add` keeps erased ABI `mutable-identity` while
+  compiler-ABI `Int` is a concrete `value`; mutable source nominals remain
+  pointer identity. Function emission no longer rescans role declarations and
+  binding no longer reconstructs target kind from `nk` string rows.
+- The installed sibling produced a 3,889,557-byte current codegen C artifact;
+  its 2,351,659-byte host-compiled Pergyra tool generated runnable role C with
+  exact `123\n123\n3`. The focused gate is green for exact execution,
+  `123 -> 321` metamorphism, non-copyable builtin rejection, and no partial C.
+  The component/removed-path ratchet is also green.
+- The sole next executable rung is the installed composition-root CLI. A call
+  shaped as `source.pgy --emit-c-verified` is currently captured by the generic
+  two-positional artifact transaction, creates a file named after the flag, and
+  emits empty stdout. Explicit mode identity must select stdout versus artifact
+  publication before any write; unknown or missing modes fail closed.
+- Memory was not measured for this rung and no older peak is relabelled. Full
+  CI, proof adequacy, and current-source gen2/gen3 remain unrun.
 
 ## Historical self-host ledger — inactive navigation evidence
 

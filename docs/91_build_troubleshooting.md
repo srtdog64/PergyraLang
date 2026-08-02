@@ -4613,3 +4613,32 @@ gen2 codegen과 DRV-2 설치까지 재생성할 수 있다. 2026-08-03의 579.2�
 현재 pin은 단순 snapshot이 아니라 “현재 생산자 identity + 현재 소비자 계약”을
 묶는 회귀 증거다. 생산자가 강화됐는데 소비자와 gate가 함께 이동하지 않으면 CI가
 조용히 죽어 있는 상태로 취급한다.
+
+## self-host role receiver가 builtin target에서 nominal-kind 누락으로 실패하는 경우
+
+증상이 `role receiver target nominal-kind fact is missing`이고 선언이
+`role IntMath for Int` 같은 형태라면, `Int=nk:struct` 같은 행을 추가하지 않는다.
+`Int`는 nominal 선언이 아니라 compiler ABI row가 소유하는 plain value다. 이
+실패는 두 개의 서로 다른 carriage를 하나로 취급했을 때 발생한다.
+
+- erased role method ABI는 stable address를 받으므로 `mutable-identity`다.
+- 그 주소 뒤의 concrete target은 `Int`라면 `value`, `subject`라면
+  `mutable-identity`다.
+- callable identity admission이 target type과 concrete target carriage를 함께
+  봉인해야 한다. Function emitter가 role table을 다시 훑거나 binding owner가
+  generic type environment의 `nk` row를 조회하면 같은 결함이 재발한다.
+- builtin, enum, source nominal authority가 같은 이름을 동시에 주장하면
+  ambiguous로 실패하고, 누락되거나 non-copyable builtin이면 C를 내기 전에
+  실패한다.
+
+Focused gate는
+`make self-host-codegen-role-receiver-admission-test-smoke`다. 설치된 Pergyra
+sibling이 현재 codegen tool을 만들고, `operator_add.pgy`를 C로 내린 뒤 exact
+`123/123/3`, body mutation `321/321/3`, non-copyable target rejection을 확인한다.
+
+Windows에서 설치 driver에 `source --emit-c-verified` 두 인자를 주면
+`driver_bootstrap_main.pgy`의 artifact transaction branch가 먼저 선택되어
+`--emit-c-verified`라는 파일을 만들 수 있다. Compiler-scale artifact build에는
+명시적인 `source output.c` 모드를 사용한다. 또한 PowerShell의 `>`는 native
+stdout을 UTF-16LE로 저장할 수 있으므로 생성 C 캡처는 Git Bash redirection 또는
+명시적 byte/UTF-8 writer를 사용한다.

@@ -3,7 +3,8 @@
 Source review: the attached `PergyraLang Architecture Review — August 2,
 2026`, which observed `bac9b3f1` and named `a891851b` as its latest substantive
 implementation. Checked on 2026-08-03 against role-operator implementation
-commit `aa61503ad1762d9b3f14933cff71e247eb2d5a90` and the documentation update
+commit `aa61503ad1762d9b3f14933cff71e247eb2d5a90`, role-receiver implementation
+commit `9f4ec7442b6278b2494a42ac0e7a4952527c8736`, and the documentation update
 recorded in `docs/current_work_handoff.md`.
 
 This document adjudicates the review. It is not a semantic owner, a green-head
@@ -17,15 +18,18 @@ claim, or an independent work queue.
 - Priority: producer-owned semantic target, one target-neutral plan, explicit
   selected-target ABI, fail-closed backend publication, then integration and
   bounded performance evidence.
-- Fact owners: current semantic/MIR registries, callable receiver carriage,
-  direct-MIR aggregate/role plan owners, and the executable gates named below.
+- Fact owners: current semantic/MIR registries, callable receiver carriage plus
+  its exact concrete role-target carriage, direct-MIR aggregate/role plan
+  owners, and the executable gates named below.
 - Last consumers: the selected C or LLVM emitter and, for the next rung, the
   self-host codegen role receiver binding boundary.
 - Forbidden fallback: fixture/topology/name dispatch, layout treated as a full
   call ABI, backend semantic reconstruction, planner retry after classification,
   or stale binaries reported as current-source evidence.
 - Gates: focused direct-MIR aggregate gates already recorded in the SoT
-  registry and `tests/self_hosted/parity/one_mir_role_operator_projection.sh`.
+  registry, `tests/self_hosted/parity/one_mir_role_operator_projection.sh`, and
+  `tests/self_hosted/parity/codegen_role_receiver_admission_owner.sh` for the
+  separate current-source self-codegen receiver seam.
 
 ## Superseded findings
 
@@ -95,16 +99,29 @@ boundary correction, not a cache or query engine. Incremental dependency
 infrastructure remains deferred until stable identity and invalidation keys are
 proven by a reached executable blocker.
 
-## Current routed action
+## Current routed result
 
 The direct-MIR role-operator slice is bounded `SUBSTITUTING`: the same
 5,143-byte MIR artifact executes exact `123` under C and runtime-free LLVM.
-The next reached blocker is separate: the current-source Pergyra codegen tool
-rejects `src/self_hosted/codegen/role_fixture/operator_add.pgy` with
-`role receiver target nominal-kind fact is missing` before role collection.
+The separate current-source Pergyra codegen receiver seam is now closed for the
+bounded fixture. The earlier diagnostic was not evidence of a missing nominal
+kind: `IntMath for Int` targets a compiler-ABI builtin value, not a nominal
+declaration. Treating `Int` as `nk:struct` or another invented nominal row would
+have violated the review's single-owner rule.
 
-The next implementation must carry and exact-join the existing semantic
-nominal-kind and receiver-carriage facts at that codegen boundary. It may not
-reopen aggregate work, infer kind from the role target spelling, scan the
-nominal table for a same-name declaration, or use the closed direct-MIR plan as
-a second semantic owner.
+`CodegenCallableReceiverFacts` now binds exact callable identity to two distinct
+axes: the erased role method ABI remains `mutable-identity`, while the concrete
+target `Int` is admitted as a plain `value`. Source nominals, enums, and compiler
+ABI builtins are mutually exclusive target authorities; a same-name collision,
+missing target, unsupported builtin ownership shape, or stale parallel row
+fails before emission. Function emission consumes this admitted fact and no
+longer rescans role declarations. The final binding owner no longer reads
+`target_type + nk` from the generic string environment.
+
+The current Pergyra-built sibling emitted a 3,889,557-byte current codegen C
+artifact. Its 2,351,659-byte host-compiled tool emitted `operator_add.pgy` to C,
+which compiled and ran exact `123\n123\n3`. The focused gate also changes the
+role body `123` to `321` and observes exact `321\n321\n3`, then rejects a
+non-copyable builtin role target with no partial C. This is bounded self-codegen
+execution evidence; it does not promote the whole compiler or the general
+cross-target call ABI to complete.
