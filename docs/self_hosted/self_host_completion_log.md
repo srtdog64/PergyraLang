@@ -6,6 +6,41 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-02 - Passive nominal literals reach installed C and LLVM
+
+- Landed executable checkpoint `f5eedd97`. The 2,857-byte self MIR for
+  `nominal_tobject.pgy`
+  (`41A07B3035C6DACA292E21CDFB68E8D3EFC34DDB7E4C6973869702D5E4E40BCF`)
+  now drives a 269-byte C artifact and a 439-byte LLVM artifact. C preserves a
+  named initializer followed by a field read; LLVM preserves one exact
+  `insertvalue -> extractvalue` SSA edge. Both execute exact `12`.
+- Routing is single-shot. A sealed route fact claims class/object/tobject plus
+  the neighboring subject/vessel frontier before scalar routing, then the
+  passive admission accepts only value-carried hosts. Malformed kind identity,
+  non-object method tails and instruction tails fail in that owner without a
+  scalar retry or partial artifact.
+- Declaration, graph, program identity, instruction envelope, typed physical-
+  ABI absence, program admission, plan, target capability, and the two emitter
+  syntaxes have separate owners. The plan's ABI evidence is the digest of the
+  actual typed definition capture after id-zero/required-false/null-layout
+  verification; it is not a declaration-derived pseudo receipt.
+- Raw JSON object/string-array exact cardinality moved from the inferred-member
+  family into one responsibility-named 68/90-line owner. The retired owner path
+  and both family-local function names are negative-gated. Passive owners obey
+  individual caps and a 1,024-line family cap; current total is 1,009.
+- Final focused evidence is green for four variants, 28 C negatives and nine
+  LLVM sentinels. The existing class/vessel exact `41`/`42` gate remains green
+  with 81 C negatives and nine LLVM sentinels. Current-source driver build,
+  final hard contract and installed public C/LLVM gates are green. Full CI,
+  Coq/Rocq, pressure and bootstrap gen2==gen3 were not run; the full component
+  contract was green before the final route/cardinality correction and was not
+  rerun on final source.
+- The next active falsifier is `nominal_subject.pgy`. Its 2,791-byte MIR
+  (`7A86E9AFF8CE964052663652136CCEEDAD66C06A4090C6CCAA7C7C996203297F`)
+  is produced once and rejected by both targets at passive program identity
+  before artifact creation. It must execute exact `7` through a distinct stable
+  mutable-identity plan; widening the passive aggregate-value plan is forbidden.
+
 ## 2026-08-02 - Passive vessel generic members reach C and LLVM
 
 - Landed executable checkpoint `ceb43938`. The existing inferred

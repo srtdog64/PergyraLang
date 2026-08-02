@@ -2,36 +2,41 @@
 
 마지막 업데이트: 2026-08-02
 
-## 활성 우선순위 — tobject nominal value 실행 경로 치환
+## 활성 우선순위 — subject stable identity 실행 경로 치환
 
-- 실행 체크포인트 `ceb43938`에서 passive vessel generic-member 경로를 닫았다.
-  같은 6,527-byte self MIR이 기존 공용 plan/emitter를 통해 C와 LLVM을 만들고
-  둘 다 exact `42`를 실행한다. Class는 value-carried exact `41`, vessel은
-  mutable-identity-carried exact `42`로 서로 다른 host identity를 보존한다.
-- Declaration digest가 host fact를 소유하고 routine receiver carriage와
-  교차 봉인한다. 선택된 target projection만 aggregate-value/pointer formal,
-  local storage와 call shape를 결정한다. Vessel 전용 plan/emitter, fixture/type
-  이름 dispatch, 다른 planner retry와 native fallback은 없다.
-- Focused gate는 여섯 order invariants, 다섯 class variants, 81 C negatives와
-  9 LLVM sentinels를 통과한다. Receiver state 초기화, class/vessel carriage
-  mismatch, unsupported host, ABI forgery, stale SSA use, specialization drift와
-  single-shot classifier를 고정했다. Hard/component와 installed public C/LLVM도
-  green이다.
-- 현재 설치 드라이버는 4,085,980 bytes, SHA-256
-  `282BC5B8DDFED182390A7926726478341870AD17A1A63CD42205EFFEF5A35A5F`다.
-  Current-source parse/codegen/host compile/source smoke는 성공했다. Pressure,
-  full CI, Coq/Rocq, bootstrap fixpoint와 current-source gen2==gen3는 재실행하지
-  않았다. 마지막 유효 peak는 `8bd92069`의 private 1.937 GiB다.
-- 다음 실제 C-owned 경로는 `nominal_tobject.pgy`다. Source-to-MIR은 한 번
-  성공하며 결과는 2,857 bytes, SHA-256
-  `41A07B3035C6DACA292E21CDFB68E8D3EFC34DDB7E4C6973869702D5E4E40BCF`다.
-  Direct C와 LLVM은 모두 artifact 전에 `unsupported scalar facts`로 거부하며
-  의도한 출력은 exact `12`다.
-- 기존 nominal declaration/graph/ABI owner를 재사용해 하나의 generic passive-
-  nominal literal plan을 만든다. `tobject`를 struct/class로 낮추거나 PlayerDto/
-  fixture 이름으로 분기하거나 construction/field read를 상수화하거나 scalar
-  planner/native backend로 재시도해서는 안 된다. Host/field/type/constructor/
-  result/use 변조가 artifact 전에 거부되는 것이 다음 falsifier다.
+- 실행 체크포인트 `f5eedd97`에서 `nominal_tobject.pgy`의 실제 nominal
+  construction/field-read 경로를 닫았다. 같은 2,857-byte self MIR이 C와 LLVM을
+  만들고 둘 다 exact `12`를 실행한다. C는 named initializer 뒤 field read,
+  LLVM은 같은 SSA에서 `insertvalue -> extractvalue`를 수행한다.
+- Route fact는 class/object/tobject/subject/vessel literal frontier를 scalar보다
+  먼저 한 번만 소유한다. Declaration, graph, program identity, instruction,
+  typed physical-ABI absence, plan, target projection과 emitter 책임을 분리했다.
+  ABI absence는 실제 instruction capture digest에 봉인된다.
+- Focused gate는 네 positive variants, 28 C negatives와 9 LLVM sentinels를
+  통과한다. Kind mismatch, non-object method tail, instruction tail, ABI/graph/
+  SSA 변조가 passive owner에서 artifact 없이 거부되며 scalar retry는 없다.
+  기존 class/vessel exact `41`/`42`의 81 C negatives와 9 LLVM sentinels도
+  green이다. Final hard contract와 installed C/LLVM 경로도 green이다.
+- 현재 드라이버는 4,114,711 bytes, SHA-256
+  `27744C11FD107C82B4072831AF6F84294DBC8ADBD6E61E89AD284D3DA5A9A398`다.
+  Passive 가족은 개별 cap과 `1009/1024` 전체 cap을 통과한다. JSON object/
+  string array exact cardinality는 `68/90` 공용 owner 하나가 소유하며 옛
+  inferred-family owner 경로와 함수명은 negative gate로 막았다.
+- Full component contract는 이 세션의 최종 route/cardinality 교정 전에는
+  green이었지만 최종 source에서 재실행하지 않았다. Full CI, Coq/Rocq,
+  bootstrap fixpoint, current-source gen2==gen3와 pressure도 재측정하지 않았다.
+  마지막 유효 peak는 `8bd92069`의 private 1.937 GiB다.
+- 다음 실제 C-owned 경로는 `nominal_subject.pgy`다. Source-to-MIR은 한 번
+  성공하며 결과는 2,791 bytes, SHA-256
+  `7A86E9AFF8CE964052663652136CCEEDAD66C06A4090C6CCAA7C7C996203297F`다.
+  Direct C/LLVM은 artifact 전에 passive nominal program identity에서 거부하고,
+  의도한 출력은 exact `7`이다.
+- `subject`는 passive aggregate value가 아니라 stable mutable identity다.
+  별도 identity plan/target projection이 C의 stable address와 LLVM의
+  alloca/GEP/store/load를 소유해야 한다. Hero/fixture 분기, subject value copy,
+  passive-plan 확장, C-only reconstruction, scalar/native fallback을 금지한다.
+  Identity/carriage/allocation/field/graph/use 변조가 artifact 전에 거부되는
+  것이 다음 falsifier이며, 이 rung 전에는 `action`을 열지 않는다.
 
 ## 비활성 진행 기록 archive
 

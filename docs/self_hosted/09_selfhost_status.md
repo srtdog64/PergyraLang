@@ -89,6 +89,22 @@ for that bounded slice, not whole-compiler replacement. The next observed
 falsifier is `nominal_tobject.pgy`, whose 2,857-byte self MIR is produced but
 rejected by both direct targets before artifact creation.
 
+Later focused evidence on 2026-08-02 closes that tobject falsifier at checkpoint
+`f5eedd97`. One sealed route fact claims the nominal literal frontier before
+scalar routing, and separate declaration, graph, program, instruction,
+physical-ABI-absence, plan and target owners feed exclusive C/LLVM emitters.
+The same 2,857-byte self MIR constructs and reads a real value and executes
+exact `12` in both installed public paths. Four variants, 28 C negatives and
+nine LLVM sentinels pin kind/nominal mismatch, non-object method tail,
+instruction tail, ABI/graph/use drift, single-shot routing and no scalar retry.
+The existing class/vessel exact `41`/`42` gate, final hard contract and installed
+C/LLVM paths remain green. This is bounded target-specific `SUBSTITUTING`, not
+whole-compiler replacement. The full component contract passed earlier in the
+session but was not rerun after the final route/cardinality correction. The
+next observed falsifier is the 2,791-byte `nominal_subject.pgy` MIR, rejected at
+passive program identity before artifact creation; it requires a distinct
+stable mutable-identity representation and exact output `7`.
+
 ## Verified
 
 Front-end self-hosts on both backends in LLVM-enabled builds.

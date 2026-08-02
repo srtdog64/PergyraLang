@@ -1040,6 +1040,20 @@ executable replacement progress. The next rung is the single-routine
 `nominal_tobject.pgy` construction/field-read path, not a general nominal query
 engine or another SoT-only cleanup.
 
+Passive-nominal executable delta, 2026-08-02: checkpoint `f5eedd97` replaces
+the exact `nominal_tobject.pgy` construction/field-read path in installed C and
+LLVM and executes `12`. One route receipt is issued before scalar routing; a
+typed instruction-capture digest seals physical-ABI absence; target projection
+admits representation/capability only; and each emitter owns its syntax. Four
+variants, 28 C negatives and nine LLVM sentinels reject malformed declaration
+tails, kind identity drift, instruction-count drift, ABI/graph/use mutations
+and scalar fallback. JSON object/string-array exact cardinality also moves to
+one shared owner, while the retired inferred-family owner path is
+negative-gated. This is executable replacement progress, not a SoT-only
+commit. The next rung is `nominal_subject.pgy` exact `7` through a distinct
+stable mutable-identity plan; the passive aggregate-value plan must not be
+widened and `action` remains downstream.
+
 ## 7. Fifteen-Day Correction
 
 The previous roughly fifteen-day interval delivered substantial owner, gate,

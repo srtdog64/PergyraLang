@@ -6,65 +6,70 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — tobject nominal value execution
+## Active self-host context — subject stable-identity execution
 
-- Executable checkpoint: `ceb43938` on `main`; documentation is the only
-  intended dirty state during this handoff refresh. The Pergyra-built driver is
-  4,085,980 bytes with SHA-256
-  `282BC5B8DDFED182390A7926726478341870AD17A1A63CD42205EFFEF5A35A5F`.
-- Closed executable rung: the same 6,527-byte vessel MIR
-  (`367AA5B544912E9735B42F9C16222A6424432D88FD308CAC6258E823D0229DD5`)
-  now drives the existing inferred generic-member plan and both target
-  emitters. C emits `Cell *self` and passes `&(_pgy_receiver_0)` twice; LLVM
-  emits one `alloca %Cell`, initializes it once, and passes the same `ptr %box`
-  twice. Both binaries execute exact `42`.
-- Host identity is not erased. `class` remains value-carried and `vessel`
-  remains mutable-identity-carried. The declaration digest contains one
-  admitted host fact, program identity cross-seals it to the routine receiver
-  carriage, and one target projection owns aggregate-value versus pointer
-  formal/local/call shapes. No vessel-specific plan/emitter, fixture/type-name
-  dispatch, planner retry, or native fallback was added. Existing class C/LLVM
-  artifacts remain exact `41` through the same owner path.
-- Focused evidence is green: six order invariants, five class variants, 81 C
-  negatives and nine LLVM sentinels, including class/vessel carriage mismatch,
-  unsupported host, receiver ABI forgery, stale use and specialization drift.
-  Hard self-host contract, full component contract, installed public C
-  compile/run, installed runtime-free LLVM compile/run, current-source
-  parse/codegen/host compile/source smoke, Python/shell syntax and diff checks
-  are green. Full CI, Coq/Rocq adequacy, bootstrap fixpoint and current-source
-  gen2==gen3 were not run. The unrelated duplicate-Coq-fact
+- Executable checkpoint: `f5eedd97` on `main`; documentation is the only
+  intended dirty state during this handoff refresh. The current Pergyra-built
+  driver is 4,114,711 bytes with SHA-256
+  `27744C11FD107C82B4072831AF6F84294DBC8ADBD6E61E89AD284D3DA5A9A398`.
+- Closed executable rung: `nominal_tobject.pgy` now produces one 2,857-byte
+  self MIR with SHA-256
+  `41A07B3035C6DACA292E21CDFB68E8D3EFC34DDB7E4C6973869702D5E4E40BCF`.
+  The same MIR drives a 269-byte C artifact
+  (`6AF7125293E17763FF4C3BC4E23C8B6CBEB5DE624380B2E23742A3A430B6DE84`)
+  and a 439-byte LLVM artifact
+  (`E9D0411DE24B2FD107F3E24C44E6B570CCC0E9262BFFB328794E2FFC229A33BB`).
+  Both construct a real nominal value, read its field, and execute exact `12`.
+- One sealed route fact claims the class/object/tobject/subject/vessel literal
+  frontier before scalar routing. Declaration, graph, program identity,
+  instruction envelope, ABI absence, admission, plan and target projection are
+  separate owners. The plan's ABI evidence is the digest of the actual typed
+  instruction capture proving id zero, required false and null physical
+  layout. C alone owns initializer/member syntax; LLVM alone owns the exact
+  `insertvalue -> extractvalue` SSA syntax.
+- The focused gate is green with four positive variants, 28 C negatives and
+  nine LLVM sentinels. `kind`/`nominal_kind` mismatch, non-object method tail,
+  instruction tail, ABI forgery, graph/use drift and subject carriage all fail
+  in the passive owner without scalar retry or partial artifact. The existing
+  class/vessel gate remains green at exact `41`/`42` with 81 C negatives and
+  nine LLVM sentinels. Final hard contract and installed public C/LLVM gates
+  are green. The full component contract was green earlier in this session,
+  before the final route/cardinality correction, and was not rerun on the
+  final source. Full CI, Coq/Rocq adequacy, bootstrap fixpoint and current-
+  source gen2==gen3 were not run. The unrelated duplicate-Coq-fact
   `sot-authority-edge-test-smoke` remains a known red.
-- Native MIR still serializes this legacy host as `kind=class,
-  nominal_kind=vessel`; self MIR preserves `vessel/vessel`. The parity test
-  normalizes that native compatibility encoding only for semantic comparison.
-  The self-host compiler path does not lower vessel identity to class.
+- Raw JSON object/string array exactness now has one shared owner capped at
+  90 lines. The old inferred-family array-shape owner path and both old helper
+  names are negative-gated. The passive family has per-owner caps plus a
+  1,024-line family cap and currently occupies 1,009 lines.
 - Last valid pressure evidence remains checkpoint `8bd92069`: 104.381 seconds,
   peak private 1.937 GiB and working set 1.836 GiB. The current driver was not
   pressure-measured. Memory stays a final-maximum signal with 2.4 GiB attention
   and 3 GiB hard stop, not a per-edit objective.
 - Active objective: replace the next real C-owned path for
-  `src/self_hosted/mir_lower/fixture/nominal_tobject.pgy`. Its source-to-MIR
-  succeeds once: 2,857 bytes, SHA-256
-  `41A07B3035C6DACA292E21CDFB68E8D3EFC34DDB7E4C6973869702D5E4E40BCF`.
-  Both direct targets currently fail before artifact publication with
-  `CODEGEN ERROR: direct MIR backend projection rejected unsupported scalar
-  facts`; the intended output is exact `12`.
-- Objective card: preserve `tobject` as a transfer-boundary nominal identity;
-  priority is reuse of the existing nominal declaration/graph/ABI facts, one
-  generic passive-nominal literal plan, no C bypass, then exact C/LLVM parity.
-  The production entrypoint is installed
-  `pgy-self-driver --mir-json-backend={c,llvm}`. The reached orchestration owner
-  is `direct_mir_backend_projection_owner.pgy`; the fact seam is the admitted
-  nominal declaration plus constructor/field-read SSA graph, and the last
-  legitimate consumers are the selected C/LLVM emitters.
-- Forbidden fallback: a `PlayerDto` or fixture-name branch, a tobject-only
-  mini-compiler, treating `tobject` as `struct`/`class`, source-text field
-  recovery, constant-folding away construction/read, retrying the scalar
-  planner after nominal admission, or native semantic/backend re-entry.
-- Next falsifier: one self MIR must preserve a real `PlayerDto` construction and
-  `.score` read in both targets and execute exact `12`. Host-kind, field/type,
-  constructor target/edge, result/use, declaration identity and planner-retry
-  mutations must reject before artifact creation.
+  `src/self_hosted/mir_lower/fixture/nominal_subject.pgy`. Current source-to-MIR
+  succeeds once: 2,791 bytes, SHA-256
+  `7A86E9AFF8CE964052663652136CCEEDAD66C06A4090C6CCAA7C7C996203297F`.
+  Both direct targets fail before artifact publication with
+  `direct MIR passive nominal literal program identity is invalid`; the
+  intended output is exact `7`.
+- Objective card: preserve `subject` as stable mutable identity; semantic
+  identity and one SoT come first, then explicit pointer carriage, no passive
+  value fallback, and exact C/LLVM parity. The production entrypoint is
+  installed `pgy-self-driver --mir-json-backend={c,llvm}`. The route fact is the
+  reached owner; `CallableReceiverNominalKindUsesMutableIdentity` is the
+  existing carriage fact owner, and the last legitimate consumers will be a
+  distinct subject target projection plus its selected C/LLVM emitter.
+- Forbidden fallback: widening the passive value plan to subject, copying a
+  subject aggregate by value, a `Hero` or fixture-name branch, C-only address
+  reconstruction, physical-ABI guessing, scalar planner retry, or native
+  semantic/backend re-entry.
+- Next falsifier: one self MIR must allocate one stable subject identity,
+  initialize `hp` once, read through that identity in C and LLVM, and execute
+  exact `7`. Host-kind/carriage, duplicate allocation, field/type, graph edge,
+  result/use, reachability and value-copy mutations must reject before artifact
+  creation. `action` remains downstream; it must not be opened until this
+  identity representation is executable.
 
 ## Historical checkpoint archive — inactive evidence
 
