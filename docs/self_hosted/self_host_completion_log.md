@@ -6,6 +6,50 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-02 - Mixed-lane inferred return and assignment reach C and LLVM
+
+- Closed `generic_return_assignment_inferred_flow.pgy` at code checkpoint
+  `82a926f3`. One 6,994-byte self MIR with SHA-256
+  `1B108D7A782BFC4491C217570F4D70D527E7CD6565370C742C69FCEA04580DBC`
+  drives both targets. C and LLVM preserve a real `Identity_Int` definition and
+  two calls, a real `ReturnIdentity` definition and call, initial and latest
+  `result` identities, and exact output `41`.
+- Added a distinct exact-two mixed-lane specialization owner: Atom and Value
+  lanes each have ordinal zero, their positive opaque source owners are
+  distinct, and both rows carry the same
+  `(direct, Identity, T -> Int, Identity_Int)` tuple. Existing inferred-nominal
+  and explicit-four owners remain strict; native's empty table is not a
+  specialization or self-SSA oracle.
+- Three-routine classification now owns the exact declaration, specialization,
+  and generic-routine cardinality tuple. Array `(0,0,0)`, mixed inferred scalar
+  `(0,2,1)`, explicit generic nominal `(1,4,1)`, and nested struct `(2,0,0)` are
+  the only admitted combinations. A failed selection cannot retry another
+  interpretation.
+- Added responsibility-named program, graph, instruction, ABI, plan and
+  emission owners. The plan seals exact wrapper/assignment/output graphs,
+  initial/latest SSA definitions and use, four typed no-layout receipts, one
+  exact null statement receipt, target capability, and the carried specialized
+  symbol. Emitters receive the plan only.
+- The focused gate reuses one MIR across C and LLVM, proves reverse and cyclic
+  routine order, specialization and combined order, coherent opaque-owner
+  renumber equality, and independent initial/assigned-value behavior. It runs
+  55 C negatives and three LLVM sentinels before artifact publication. Array
+  argument, explicit generic nominal, inferred generic Pair, nested-struct
+  argument, hard-contract, and component-contract regressions remain green.
+- The installed 3,864,005-byte driver has SHA-256
+  `DE73C52BFB1657539A4CFE8BE3B93363A6389D134F2CF525C06253D3ECDBEB63`;
+  its direct current-source install took 128.8 seconds without memory
+  measurement. `make self-host-compiler` first expands through codegen seed
+  bootstrap; the bounded runner reached fresh parser/gen2 artifacts but ended
+  at its 15-minute output-cell limit before that aggregate completed. The
+  direct install leg is green, but bootstrap fixpoint/breadth, full CI and Coq
+  were not rerun and are not claimed green.
+- Next falsifier is `generic_member_inferred_flow.pgy`. Its 6,482-byte self MIR
+  has one `Box` declaration, generic value-receiver `Echo<T>`, `Main`, and two
+  Value-lane member specialization rows for nested `Box_Echo_Int` calls. Both
+  direct targets fail closed in the inferred-generic program envelope. The next
+  plan must execute exact `41` without weakening the landed direct-call owners.
+
 ## 2026-08-02 - Inferred generic nominal value flow reaches C and LLVM
 
 - Closed `generic_struct_field_inferred_value_flow.pgy` at code checkpoint

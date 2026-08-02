@@ -1,6 +1,6 @@
 # Build Troubleshooting
 
-마지막 업데이트: 2026-07-31
+마지막 업데이트: 2026-08-02
 
 빌드/회귀 도중 자주 마주치는 문제와 대응. **항상 `mingw32-make rebuild`를 먼저 시도**하면 절반은 풀린다.
 
@@ -181,6 +181,36 @@ recorded but does not become an optimization task.
   but it confirms that ordinary native compilation is not the multi-gigabyte
   owner; the historical pressure belongs to repeated self-host whole-program
   graph work.
+
+### `self-host-compiler` 시간과 실제 driver install 시간 구분
+
+`make self-host-compiler`는 순수 driver C compile target이 아니다. 현재 Makefile은
+먼저 `self-host-codegen-bootstrap-seed-test-smoke`를 실행해 native gen0, parser
+producer, Pergyra-built gen1/gen2를 만든 다음 `self_host_compiler_build.sh` install
+leg를 실행한다. 따라서 이 target의 wall time을 일반 C/LLVM 빌드나 driver install
+시간으로 기록하면 안 된다.
+
+2026-08-02 관측에서는 clean native dependency rebuild와 seed 생성이 이어졌고,
+bounded runner의 15분 output-cell 제한이 gen2 생성 직후 끝났다. 이는 driver source
+compile 실패도, seed gate green도 아니다. 같은 최신 parser/gen2를 사용해 실제
+install leg만 실행했을 때는 128.8초에 완료됐고 3,864,005-byte driver를 설치했다.
+
+Self-host owner를 반복 수정하면서 parser/codegen seed source가 바뀌지 않았다면 다음
+owned install leg로 시간을 분리해 측정할 수 있다.
+
+```sh
+PGY_BIN="$PWD/bin/pgy.exe" \
+PGY_SELF_DRIVER_BIN="$PWD/bin/pgy-self-driver.exe" \
+PGY_SELFHOST_CC=gcc \
+bash tests/self_hosted/parity/self_host_compiler_build.sh
+```
+
+이 경로는 seed가 현재 source와 맞다는 증거를 새로 만들지 않는다. Parser/codegen
+seed owner가 바뀌었거나 clean checkout이라면 먼저 seed target을 실행해야 한다.
+반대로 focused projection gate에서 매번 seed/bootstrap breadth를 재실행하는 것도
+잘못이다. 현재 semantic target마다 driver를 한 번 설치하고, 같은 설치 산출물로
+그 target의 C/LLVM positive/negative gate를 실행한다. Full bootstrap/fixpoint는
+scheduled 또는 merge boundary의 별도 증거다.
 
 ## 0. Resource pressure first
 

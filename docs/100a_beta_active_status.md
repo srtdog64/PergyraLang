@@ -152,12 +152,22 @@ frontiers, including the bounded three-routine nominal-struct parameter slice.
 The bounded nominal-struct and Option-of-nominal return/local value-flow slices
 are also substituting; this is not evidence for general, heap-backed,
 runtime-bearing, or arbitrary multi-routine programs. The bounded explicit and
-inferred `Identity<Int>` nominal value-flow slices are now also substituting.
-The next falsifier is `generic_return_assignment_inferred_flow.pgy`: its
-6,994-byte self MIR owns one Atom-lane return-call receipt and one Value-lane
-assignment-call receipt for `Identity_Int`, but both direct C and LLVM currently
-fail closed in the declaration-free three-routine Array envelope before artifact
-publication. The intended output is exact `41`.
+  inferred `Identity<Int>` nominal value-flow slices are now also substituting.
+
+Direct LLVM inferred-generic scalar assignment update (2026-08-02):
+`generic_return_assignment_inferred_flow.pgy` now carries an exact mixed-lane
+two-row specialization class, a strict generic identity routine, a real wrapper
+call, initial and latest local SSA identities, and exact typed/null ABI receipts
+into one target-neutral plan. C and LLVM preserve real `Identity_Int` and
+`ReturnIdentity` definitions/calls and execute exact `41`. Five ordering/opaque-
+owner metamorphics, two independent value variants, 55 C negatives, and three
+LLVM sentinels are green. Three-routine routing is fixed by the exact
+`(declaration, specialization, generic-routine)` cardinality tuple, so removing a
+specialization cannot reroute the program through Array projection. The next
+falsifier is `generic_member_inferred_flow.pgy`: its 6,482-byte self MIR owns one
+`Box` declaration, generic value-receiver `Echo<T>`, and two Value-lane member
+specializations for the nested call. Both direct targets currently fail closed
+in the inferred-generic program envelope; the intended output is exact `41`.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
