@@ -2,45 +2,46 @@
 
 마지막 업데이트: 2026-08-02
 
-## 활성 우선순위 — constructed Array<Point> member return flow
+## 활성 우선순위 — aggregate value-flow owner 승격
 
-- 실행 체크포인트 `f1c675fa`는
-  `generic_member_array_return_flow.pgy`를 닫았다. 최종 self MIR은 9,228 bytes,
-  SHA-256
-  `D6DCE4F0584BF512CDA37FB0413DB2D596208C6776BEFC8FBE6081488764C20B`다.
-  `[value]` 반환의 self MIR `source_type`도 native와 같은
-  `AST_ARRAY_LITERAL`로 교정됐다.
-- Specialization wire는 중립 pair owner가 한 번만 읽는다. 구조 분류 뒤 Option과
-  Array variant를 배타적으로 선택하고, 두 계열은 각각 strict signature,
-  substitution, graph, ABI, plan과 emitter를 갖는다. 실패 후 다른 계열을 재시도하는
-  fallback은 없다.
-- C/LLVM 모두 실제 `ArrayWrapper_Wrap_Int`와
-  `ArrayWrapper_Echo_Array_Int_`를 호출한다. `Main`만 1-element backing storage를
-  소유하고, Wrap은 hidden pointer로 aggregate를 만들며 Echo는 이를 by-value로
-  전달한다. Heap/runtime allocation이나 constant-output flattening 없이 두 artifact가
-  정확히 `44`를 출력한다.
-- Focused gate는 같은 MIR을 C/LLVM이 재사용하며 여섯 순서/formal invariant, 두
-  value/name variant, C negative 27개, LLVM sentinel 7개를 통과한다. 기존 Option
-  exact `43`, Array-return, public installed C/LLVM, hard contract와 full component
-  inventory도 green이다. 새 owner는 모두 220줄 이하이고 focused family도
-  2,100줄 cap 이하다.
-- 최종 설치 드라이버는 4,006,944 bytes, SHA-256
-  `CA77CC6569C6F778DF4DBCE6BA01AE49A59D7F7562BD5F074D71C1E1C7C33391`다.
-  Full CI, Coq adequacy, bootstrap fixpoint와 current-source gen2==gen3은 재실행하지
-  않았다. 기존 duplicate Coq fact ID gate도 이번 green으로 숨기지 않는다.
-- 다음 활성 fixture는 `generic_member_record_array_return_flow.pgy`다. 관찰한
-  11,952-byte self MIR, SHA-256
-  `FA0EDC384115F1978C1AB25C8CC587CD9EE6370FAE5717E25DE54BD52EBEC3FF`는
-  `Point { x: Int }`, `RecordArrayWrapper`, `Wrap<Point> -> Array<Point>`,
-  `Echo<Array<Point>>`, index/field projection과 목표 출력 exact `45`를 운반한다.
-  C/LLVM 모두 artifact 없이
-  `direct MIR three-routine structural shape is unsupported`에서 fail-closed한다.
-- 다음 owner는 기존 single-class classifier를 느슨하게 넓히지 않는다. Exact mixed
-  declaration shape와 기존 Point/Array ABI, caller-owned storage, nested member
-  carriage, index/field SSA를 한 plan으로 결합한다. Point를 Int로 평탄화하거나
-  source-text를 다시 읽거나 다른 planner를 retry하는 경로를 금지한다.
-- 메모리는 semantic target의 final maximum만 기록하며 2.4/3 GiB
-  attention/hard-stop 정책을 유지한다.
+- 실행 체크포인트 `8bd92069`는
+  `generic_member_record_array_return_flow.pgy`를 target-specific
+  `SUBSTITUTING`으로 닫았다. 같은 11,952-byte self MIR, SHA-256
+  `FA0EDC384115F1978C1AB25C8CC587CD9EE6370FAE5717E25DE54BD52EBEC3FF`가
+  C와 LLVM을 모두 구동하며 실제 `Wrap<Point> -> Array<Point>`,
+  `Echo<Array<Point>>`, index, `Point` load와 `.x`를 보존해 exact `45`를 출력한다.
+- Exact mixed declaration/program owner는 한 struct, 한 class, 두 specialization,
+  세 routine, 양수이며 도메인 간 중복 없는 source syntax ID, 25개 Main field
+  envelope, Point/Array ABI와 SSA, nested calls, caller-owned storage, 최종 Log를
+  한 plan에 봉인한다. Focused gate는 세 variant, C negative 35개, LLVM sentinel
+  10개와 exact `45`/`75` 실행을 검증한다.
+- Public direct-MIR Array storage는
+  `{data,length,capacity,allocator}`와
+  `pgy.runtime.pointer64-size_t64.v1`이 소유한다. Self-host compiler 내부의 private
+  `{data,len,cap}` growable container와 다른 도메인이다. 저장 layout과 호출 ABI도
+  분리했으며 현재 C/LLVM 산출물은 closed-module internal 호출만 주장한다. 외부
+  ABI interoperability는 아직 열려 있다.
+- Hidden storage 이름은 `__pgy_array_storage`로 격리했고, C에는 모든
+  `pgy_array_*(` runtime call 금지, LLVM에는 Echo/result/data/index/load/field/printf
+  전체 chain ratchet을 추가했다. 새 owner는 각 220줄 이하, focused family는
+  1,958/2,100줄이다.
+- 최종 설치 드라이버는 4,060,853 bytes, SHA-256
+  `EC1C6292D75BF76686E0F0020231AE2F716FC021DD9AD531912BD6F0087FDD67`다.
+  Fresh full self-host build는 104.381초, peak private 1.937 GiB, working set
+  1.836 GiB였고 2.4 GiB attention을 넘지 않았다. Full CI, Coq adequacy,
+  bootstrap fixpoint와 current-source gen2==gen3은 재실행하지 않았다.
+- 첨부 architecture review의 Pair/Array<Point> 미구현 판정은 관찰 HEAD가 뒤처져
+  현재 사실과 맞지 않지만, fixture topology별 mini-compiler 확산 경고는 유효하다.
+  따라서 다음 활성 작업은 새 aggregate fixture를 추가하는 일이 아니다.
+- 다음 objective는 기존 constructed `Array<Int>`와 `Array<Point>`가 하나의
+  representation-parameterized aggregate value-flow plan을 소비하게 승격하는 것이다.
+  Fact owner는 element nominal ABI, Array storage, caller lifetime, specialization,
+  call/result/index/member flow와 target capability를 소유하고, 마지막 consumer는
+  `DirectMirThreeRoutineProjectionOrDie`가 선택한 C/LLVM emitter다.
+- 새 fixture 이름 기반 owner/emitter 계열, type spelling dispatch, private container를
+  public ABI로 승격, storage layout을 call ABI로 간주, target default 추측, 실패 후
+  이전 planner retry를 금지한다. Exact `44`와 `45`, 기존 permutations 및 모든
+  ABI/storage/call/SSA negative가 같은 승격 owner 아래 green인 것이 다음 falsifier다.
 
 ## 비활성 진행 기록 archive
 

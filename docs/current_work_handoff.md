@@ -6,71 +6,70 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — carry constructed Array<Point> member flow
+## Active self-host context — promote aggregate value-flow ownership
 
-- Executable checkpoint: `f1c675fa` on `main`; documentation is the only
+- Executable checkpoint: `8bd92069` on `main`; documentation is the only
   intended dirty state during this handoff refresh. The installed Pergyra-built
-  driver is 4,006,944 bytes with SHA-256
-  `CA77CC6569C6F778DF4DBCE6BA01AE49A59D7F7562BD5F074D71C1E1C7C33391`.
-  The final current-source rebuild passed. It was not pressure-measured.
+  driver is 4,060,853 bytes with SHA-256
+  `EC1C6292D75BF76686E0F0020231AE2F716FC021DD9AD531912BD6F0087FDD67`.
 - Closed frontier:
-  `src/self_hosted/mir_lower/fixture/generic_member_array_return_flow.pgy`.
-  Its final one-shot self MIR is 9,228 bytes with SHA-256
-  `D6DCE4F0584BF512CDA37FB0413DB2D596208C6776BEFC8FBE6081488764C20B`.
-  Native/self row parity is exact after the self MIR value-return owner was
-  corrected to classify `[value]` as `AST_ARRAY_LITERAL` rather than
-  `AST_IDENTIFIER`.
-- The structural three-routine classifier now reads one neutral heterogeneous
-  specialization pair and chooses exactly one semantic family. Option and
-  Array have separate strict signature, specialization, substitution, graph,
-  instruction, ABI, plan, and emitter owners. Neither family reparses the
-  specialization wire, and a failed family cannot retry the other.
-- Both C and LLVM retain real `ArrayWrapper_Wrap_Int` and
-  `ArrayWrapper_Echo_Array_Int_` definitions/calls. `Main` uniquely owns one
-  element of backing storage; `Wrap` receives its hidden pointer and builds the
-  admitted `{data,length,capacity,allocator}` shell, `Echo` carries that shell
-  by value, and `Main` loads index zero. There is no heap/runtime allocation,
-  callee-local returned storage, forged `ArrayWrapper` ABI, or constant-output
-  flattening. Both artifacts compile and execute exact `44`.
-- The shared `Array<Int>` ABI predicate now seals size/alignment, all four field
-  rows, runtime and inner C type, representation, null discriminant/niche, and
-  zero tags. The focused gate proves six order/formal invariants, two value/name
-  variants, 27 C negatives, and seven LLVM sentinels. Every new Pergyra owner is
-  at or below 220 lines and the focused family remains below its 2,100-line
-  aggregate cap.
-- Latest green: final current-source driver rebuild; the new constructed Array
-  focused gate; the previous constructed Option exact-`43` gate; the existing
-  caller-owned Array-return gate; installed public C and runtime-free LLVM
-  compile/run including exact `44`; hard substitution contract; full component
-  inventory; and diff checks. Full CI, Coq adequacy, bootstrap seed/fixpoint,
-  and current-source gen2==gen3 were not run. The unrelated duplicate-Coq-ID
-  `sot-authority-edge-test-smoke` remains a known red and is not claimed green.
-- Active objective: close
   `src/self_hosted/mir_lower/fixture/generic_member_record_array_return_flow.pgy`.
-  Its observed self MIR is 11,952 bytes with SHA-256
+  Its one-shot self MIR is 11,952 bytes with SHA-256
   `FA0EDC384115F1978C1AB25C8CC587CD9EE6370FAE5717E25DE54BD52EBEC3FF`.
-  It carries one `Point { x: Int }` struct, one `RecordArrayWrapper` class,
-  `Wrap<Point> -> Array<Point>`, `Echo<Array<Point>>`, five Main instructions,
-  Array indexing, field access, and intended exact output `45`. Both C and LLVM
-  currently reject before publication with
-  `direct MIR three-routine structural shape is unsupported`.
-- Fact owner for the next rung: add an exact mixed-declaration structural class,
-  then join the existing `Point` nominal ABI, `Array<Point>` ABI and caller
-  storage lifetime, heterogeneous member specializations, result/index/field
-  SSA, and output into one target-neutral plan. The last legitimate consumer is
-  the selected C or LLVM emitter after that single classification.
-- Forbidden fallback: broadening the single-class structural predicate,
-  treating `Point` as `Int`, reconstructing declarations or types from source
-  text in an emitter, using a heap/runtime default, flattening the nested calls
-  or `result[0].x` into `45`, retrying another planner, or adding a general
-  query/cache system.
-- Next falsifier: the same one-shot MIR drives C and LLVM to exact `45`; mixed
-  declaration/routine/specialization/local/formal permutations preserve the
-  artifact, while Point/Array ABI, storage owner, nested-call edges, index,
-  field projection, SSA, and reachability drift fail before publication.
-- Memory policy remains one execution per changed semantic target followed by
-  the final maximum only. Attention begins at 2.4 GiB and the hard stop is
-  3 GiB; no threshold crossing was measured or inferred in this rung.
+  The installed public C and runtime-free LLVM paths preserve the real
+  `RecordArrayWrapper_Wrap_Point` and
+  `RecordArrayWrapper_Echo_Array_Point_` definitions/calls, caller-owned fixed
+  storage, `Array<Point>` by-value carriage, index zero, the loaded `Point`, and
+  `.x`; both artifacts execute exact `45`.
+- Exact admission now owns one struct plus one class, two specializations,
+  three routines, cross-domain unique positive source syntax IDs, every Main
+  instruction envelope, the Point declaration/SSA ABI receipts, nested call
+  graph, storage lifetime, representation, and final Log. The focused gate
+  proves three artifact-preserving variants, 35 C negatives, ten LLVM
+  sentinels, exact `45`, and the existing exact-`75` value variant.
+- Public direct-MIR `Array<T>` storage uses the explicit four-field
+  `{data,length,capacity,allocator}` contract and target data-layout identity
+  `pgy.runtime.pointer64-size_t64.v1`. This does not redefine the private
+  three-field growable containers used inside the self-host compiler. Storage
+  layout is also separate from the new closed-module call-ABI fact: C uses the
+  host compiler's closed-module classifier and LLVM uses its internal default.
+  Neither projection claims external C/LLVM interoperability.
+- Generated hidden storage now uses `__pgy_array_storage`, not a legal source
+  parameter spelling. C publication rejects every `pgy_array_*(` runtime call;
+  LLVM publication proves the full Echo/result/data/index/load/field/printf
+  chain. Every new Pergyra owner remains at or below 220 lines and the focused
+  family is 1,958/2,100 lines.
+- Latest green: final current-source driver rebuild; constructed record-array
+  C/LLVM focused gate; prior constructed Array exact `44`; hard self-host
+  contract; full component contract; installed public C and runtime-free LLVM
+  compile/run; shell/Python syntax and diff checks. Full CI, Coq adequacy,
+  bootstrap seed/fixpoint, and current-source gen2==gen3 were not run. The
+  unrelated duplicate-Coq-ID `sot-authority-edge-test-smoke` remains a known
+  red and is not claimed green.
+- Final pressure evidence is one fresh full DRV-2 build under the process-tree
+  owner: 104.381 seconds, peak private 1.937 GiB, peak working set 1.836 GiB,
+  `attention_required=false`, 3 GiB hard cap. Earlier WSL/absolute-path setup
+  failures are invalid samples and are not included.
+- Active objective: before admitting a third aggregate topology, promote the
+  completed constructed `Array<Int>` and `Array<Point>` slices behind one
+  representation-parameterized aggregate value-flow plan. Priority is semantic
+  identity/one SoT, explicit storage and closed-module call facts, deletion of
+  topology-specific duplicate decisions, then artifact stability. This is an
+  architecture ratchet, not new substitution progress.
+- Fact owner: the promoted plan owns element nominal ABI, Array storage layout,
+  caller storage lifetime, specialization substitution, nested call/result/
+  index/member flow, and selected target capability. The last legitimate
+  consumer is the selected C or LLVM emitter reached from
+  `DirectMirThreeRoutineProjectionOrDie`.
+- Forbidden fallback: another fixture-named planner/emitter family, class or
+  type spelling dispatch, treating storage layout as calling convention,
+  deriving public ABI from the compiler's private growable container, target
+  default guessing, or retrying an older planner after admission.
+- Next falsifier: exact `44` and `45` continue through the same promoted owner;
+  existing permutations and all Array/Point/storage/call/SSA negatives remain
+  fail-closed; the old duplicated decision entrypoints become a shrink-only
+  inventory. Only after this gate is green may the next unsupported executable
+  aggregate program be selected.
 
 ## Historical checkpoint archive — inactive evidence
 

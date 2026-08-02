@@ -4390,3 +4390,53 @@ Windows 변환까지 막으면 안 된다.
 
 이 결함은 메모리나 host compiler 문제가 아니다. Producer source identity와 consumer
 gate를 함께 고친 뒤 current-source self-host driver를 다시 설치해야 한다.
+
+## `Array<T>` layout을 self-host 내부 container나 호출 ABI와 혼동한 경우
+
+`Array<Point>` direct-MIR projection을 추가할 때 세 가지 서로 다른 사실을 하나의
+"Array ABI"로 부르면 잘못된 SoT 충돌이 생긴다.
+
+- Public/runtime Array value storage는 `src/runtime/pgy_abi_spec.h`와 direct-MIR
+  storage contract가 소유하는 `{data,length,capacity,allocator}` 네 필드다.
+- Self-host compiler가 AST/MIR row를 담기 위해 쓰는 growable container의
+  `{data,len,cap}`은 compiler-private 구현 자료구조다. Public value ABI가 아니다.
+- Value의 storage layout은 함수 인자/반환 전달 규칙이 아니다. Calling convention은
+  target profile과 interop boundary를 포함하는 별도 사실이어야 한다.
+
+따라서 direct-MIR plan은 public storage layout ID
+`pgy.runtime.pointer64-size_t64.v1`과 별도 closed-module call-ABI receipt를 각각
+소비한다. 현재 C는 host compiler가 한 closed module 안의 호출을 분류하고 LLVM은
+internal default convention을 사용한다. 이 사실로 Win64, SysV AMD64, AArch64 또는
+외부 C ABI 호환을 주장하지 않는다. 외부 symbol 경계가 열릴 때 target profile,
+data layout과 call classification을 별도 SoT로 승격하고 cross-target gate를 추가한다.
+
+Consumer가 private `field_order`를 public layout으로 사용하거나, 네 필드가 같다는
+이유만으로 external ABI가 닫혔다고 판단하거나, emitter가 target default를 추측하면
+artifact publication 전에 실패시킨다.
+
+## PowerShell pressure runner의 self-host 격리 경로가 codegen에서 사라지는 경우
+
+`measure_build_pressure.ps1`로 fresh self-host build를 감쌀 때 Windows 기본 `bash`는
+WSL launcher일 수 있다. 이 경우 `/mnt/d/...` chdir 전에 실패하며 peak 0인 표본은
+compiler evidence가 아니다. Git Bash를 명시해도 격리 변수를 `D:/...` 절대경로로
+넘기면 `self_host_compiler_build.sh`의 repo-relative 정규화와 맞지 않아 다음처럼
+존재하는 AST를 codegen seed가 찾지 못할 수 있다.
+
+```text
+CODEGEN ERROR: AST file not found:
+D:/PergyraLang/.tmp/self_hosted/compiler/<run>/driver.ast.txt
+```
+
+Pressure invocation은 다음 경계를 지킨다.
+
+- `-Command 'C:\Program Files\Git\bin\bash.exe'`를 사용한다.
+- `PGY_SELFHOST_COMPILER_BUILD_DIR`와 `PGY_SELF_DRIVER_BIN`은 repository-relative
+  `.tmp/...`로 넘긴다.
+- parser, gen2 codegen, host compile, generated-driver smoke가 모두 끝난 exit 0
+  summary만 최종 peak로 기록한다.
+- WSL/경로 정규화 조기 실패의 elapsed/peak는 최종 compiler build 표본에 합산하지
+  않는다.
+
+2026-08-02의 정상 표본은 104.381초, peak private 1.937 GiB, peak working set
+1.836 GiB, `attention_required=false`였다. Summary owner는
+`.tmp/build-pressure/record-array-final/record-array-final-self-host-build-relative.summary.json`이다.

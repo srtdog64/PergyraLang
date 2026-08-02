@@ -223,6 +223,40 @@ shape boundary. The next closure must own the mixed declaration class, Point
 and Array ABI facts, caller storage, nested calls, index and field projection
 without broadening the completed single-class path.
 
+Constructed record-Array member update (2026-08-02):
+`generic_member_record_array_return_flow.pgy` is now target-specific
+`SUBSTITUTING` at `8bd92069`. The same 11,952-byte self MIR drives real
+`RecordArrayWrapper_Wrap_Point` and
+`RecordArrayWrapper_Echo_Array_Point_` definitions/calls in C and LLVM,
+preserves caller-owned fixed storage, by-value `Array<Point>`, index zero,
+the loaded `Point` and `.x`, and executes exact `45`. Exact admission owns the
+mixed declaration class, three-routine identity, cross-domain unique positive
+source IDs, Main instruction envelopes, Point and Array receipts, nested graph,
+storage lifetime, representation and Log. Three variants, 35 C negatives, ten
+LLVM sentinels, installed C/LLVM, the hard substitution contract and full
+component contract are green.
+
+The public direct-MIR Array storage contract is explicitly four-field
+`{data,length,capacity,allocator}` under
+`pgy.runtime.pointer64-size_t64.v1`. It is not the private three-field growable
+container used by the self-host compiler itself. Storage layout is not calling
+convention: this slice also carries a separate closed-module call-ABI fact and
+makes no external interoperability claim. A fresh full DRV-2 build completed in
+104.381 seconds with peak private 1.937 GiB and peak working set 1.836 GiB,
+below the 2.4 GiB attention threshold.
+
+Architecture review disposition (2026-08-02): the review's Pair and
+`Array<Point>` implementation claims were observed against an older HEAD and
+are no longer current. Its structural warning is accepted: the exact fixture
+families have reached the point where another topology-named planner/emitter
+would be a mini-compiler, not healthy closure. Before adding a third aggregate
+shape, the active ratchet is to promote the completed constructed
+`Array<Int>`/`Array<Point>` decisions into one representation-parameterized
+aggregate value-flow plan and make the old duplicate decision entries
+shrink-only. Exact `44` and `45` plus every existing storage/call/ABI/SSA
+negative must remain green. This consolidation is architecture work and is not
+counted as new self-host substitution progress.
+
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
 toolchain/preflight clarity, release/debug hygiene, memory/string bounds audit,

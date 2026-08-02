@@ -6,6 +6,49 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-02 - Constructed Array<Point> member flow reaches C and LLVM
+
+- Closed `generic_member_record_array_return_flow.pgy` at code checkpoint
+  `8bd92069`. Its 11,952-byte self MIR has SHA-256
+  `FA0EDC384115F1978C1AB25C8CC587CD9EE6370FAE5717E25DE54BD52EBEC3FF`.
+  The installed public C and runtime-free LLVM paths preserve real
+  `RecordArrayWrapper_Wrap_Point` and
+  `RecordArrayWrapper_Echo_Array_Point_` definitions/calls, caller-owned fixed
+  storage, by-value `Array<Point>`, index zero, the loaded `Point` and `.x`;
+  both execute exact `45`.
+- Added exact mixed declaration/program admission, source/program identity,
+  specialization, Main graph/instruction envelope, Point ABI, internal
+  representation, plan/join, target ABI projection and C/LLVM emission owners.
+  Positive source syntax IDs are unique across declaration, field and routine
+  domains. Point declaration, `point.1`, and `first.1` receipts must agree, and
+  the target-neutral plan digest seals every method/Main capture.
+- Public direct-MIR Array storage now consumes the explicit four-field
+  `{data,length,capacity,allocator}` contract and target data-layout identity
+  `pgy.runtime.pointer64-size_t64.v1`. This is separate from private three-field
+  self-host compiler containers and from the closed-module call-ABI fact. C
+  uses its host-compiler internal classifier; LLVM uses its internal default;
+  neither claims an external interoperation ABI.
+- Renamed hidden caller storage to `__pgy_array_storage`, generalized the C
+  runtime-free ratchet to every `pgy_array_*(` call, and strengthened LLVM to
+  prove Echo/result/data/index/load/field/printf carriage. The focused gate
+  passes three variants, 35 C negatives, ten LLVM sentinels and exact `45`/`75`.
+  Prior Array exact `44`, installed public C/LLVM, hard self-host, full component,
+  syntax and diff gates are green.
+- The installed driver is 4,060,853 bytes with SHA-256
+  `EC1C6292D75BF76686E0F0020231AE2F716FC021DD9AD531912BD6F0087FDD67`.
+  One fresh full DRV-2 pressure build completed in 104.381 seconds at peak
+  private 1.937 GiB and working set 1.836 GiB; `attention_required=false` under
+  the 2.4/3 GiB policy. Full CI, Coq adequacy, bootstrap fixpoint and
+  current-source gen2==gen3 were not rerun.
+- The attached architecture review's stale Pair/Array<Point> status is rejected
+  by current executable evidence, but its topology-fragmentation warning is
+  accepted. Before another aggregate fixture is admitted, promote the completed
+  constructed `Array<Int>` and `Array<Point>` paths into one
+  representation-parameterized aggregate value-flow plan. Exact `44`/`45` and
+  all existing ABI/storage/call/SSA negatives are the falsifiers; no new
+  fixture-named planner/emitter family is allowed. This ratchet is not counted
+  as new substitution progress.
+
 ## 2026-08-02 - Constructed Array member flow reaches C and LLVM
 
 - Closed `generic_member_array_return_flow.pgy` at code checkpoint `f1c675fa`.
