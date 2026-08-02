@@ -6,65 +6,68 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — typed installed-driver request admission
+## Active self-host context — canonical MIR call-return fact frontier
 
-- Executable checkpoint: `9a8e3dbc96c5b6e46200246a5af929c765a94a05` on
-  `main`, equal to `origin/main` with a clean worktree immediately after the
-  implementation push. The freshly installed Pergyra-built driver is
-  4,230,100 bytes, SHA-256
-  `192363B13E9F51801ADEDEE27C02936E0BA4CF4FF002642DF385DD77EAA719A1`.
-  The incrementally rebuilt native launcher is 4,621,413 bytes, SHA-256
-  `E56C737F61C81ED1597D985D0331BDC5BA326C1F5C9920477ECD3B43761C9986`.
-- Closed executable rung: the installed composition root no longer infers a C
-  file-write effect from two positional strings. Source C stdout remains
-  `source.pgy --emit-c-verified`; atomic file publication is now only
-  `--emit-c-artifact-verified source.pgy output.c`. The old `source output`
-  form, unknown second options, missing output, and option-shaped output paths
-  all fail before artifact publication. The native public `pgy --emit-c` and
-  compile/run surfaces keep their user syntax and pass the explicit child mode
-  to the sibling driver internally.
-- `tests/self_hosted/parity/installed_driver_cli_mode_owner.sh` is the focused
-  negative gate. It proves repeated stdout byte stability, normalized
-  stdout/artifact payload equality, atomic artifact publication with no temp,
-  restored source-MIR and MIR-C stdout routes, source preservation, and all four
-  pre-publication negatives. It is wired into the default C compile replacement
-  target so CI cannot skip this boundary again.
-- Fresh evidence: official installed-driver rebuild 109.2 seconds; focused CLI
-  gate 4.1 seconds; public default C emit PASS; default C compile/run and the
-  exactly-once shim PASS in 15.4 seconds; all 17 grammar stdout fixtures PASS;
-  component/removed-path ratchet PASS in 177.2 seconds. `git diff --check` is
-  green. No pressure measurement was attached to this rung.
-- `tests/self_host_live_replacement_smoke.sh` advances through direct/launcher C
-  equality, negative diagnostic equality, and source-MIR producer equality, but
-  remains RED at the pre-existing canonical MIR consumer diagnostic
-  `semantic call return type rows are incomplete`. The artifact transaction
-  contract gate is independently RED on its stale
-  `SelfMirProgramJsonWriteArtifactVerified` source pin, and the compiler-world
-  contract gate is RED on stale `GenerateCUnitFromReadySemanticFacts` text.
-  These failures were not relabelled as CLI regressions or silently greened.
-- Full CI, Coq/Rocq, pressure, full bootstrap fixpoint, and current-source
-  gen2==gen3 were not run. Last valid pressure evidence remains checkpoint
-  `8bd92069`: 104.381 seconds, peak private 1.937 GiB and working set 1.836 GiB.
-  Memory remains a final-maximum signal with 2.4 GiB attention and 3 GiB hard
-  stop.
-- Next reached production defect: the same three-argument argv has different
-  meanings in the installed and standalone roots. For
-  `--emit-mir-json-verified source third` and `--mir-json input third`, the
-  installed root treats `third` as an output artifact while
-  `driver_rung2_cli_owner.pgy` treats it as an optional machine declaration.
-- Objective card: admit argv once into a typed driver request before any I/O.
-  The request owner must distinguish stdout, artifact, machine declaration,
-  pressure/observation, canonicalization, and direct-backend effects; the
-  installed and standalone roots are only effect executors. The last consumers
-  are `driver_bootstrap_main.pgy` and `driver_rung2_main.pgy` immediately before
-  compiler-world execution or artifact commit.
-- Forbidden fallback: raw argv re-parsing in both roots, the same argv denoting
-  output in one root and a declaration in another, optional third-position
-  guessing, unknown option as source/path, or retaining the old forms beside a
-  typed request. The next falsifier gives every supported request exactly one
-  variant and rejects missing `-o`, missing manifest values, unknown/extra
-  tokens, and artifact variants at the read-only standalone boundary before
-  source or MIR reads.
+- Executable checkpoint: `bcb1d8facc2db0e31b8b15060f99e5f6936603d9` on
+  `main`. The implementation worktree was clean and one commit ahead of
+  `origin/main` before this handoff-only update. The current installed
+  Pergyra-built driver is 4,239,010 bytes, SHA-256
+  `CB0B0F1EE761CD755EEE3EA4A9582A05AA31464287B258BF675C485B53CCAF21`.
+  The native launcher is 4,620,901 bytes, SHA-256
+  `FBA8E6D73AB9072C8130483A34C13164C4C8DE58425E355141655F65E5AE7374`.
+- Closed executable rung: `DriverRung2CliRequest` is now the sole argv meaning
+  owner before I/O. Source/MIR machine declarations require
+  `--machine-manifest-json`; source-MIR, MIR-C, and direct C/LLVM artifacts
+  require `-o`; pressure and consumer observation have distinct variants. Bare
+  positional third arguments, missing values, extra tokens, option-shaped
+  paths, and input/output identity fail at admission. The old optional-third
+  inference owner is removed and ratcheted against reintroduction.
+- Production composition is
+  `driver_bootstrap_main -> request owner -> installed executor`. The 11-line
+  root parses exactly once and has no raw argv branch. Read-only stdout variants
+  delegate to `driver_rung2_cli_read_execution_owner.pgy`; only
+  `driver_rung2_installed_cli_owner.pgy` can publish artifacts. Test fixture
+  manifests live behind a separate test-only root and do not enter the
+  installed graph. The hard LoC caps are 240/140/160 for request/read/installed
+  owners, 40 for the standalone wrapper, and 30/60/30 for the thin/test roots.
+- Fresh executable evidence: direct installed rebuild 126 seconds; installed
+  typed CLI parity PASS; default installed C compile PASS in 29.4 seconds;
+  runtime-free installed LLVM PASS in 38.5 seconds; source-MIR action gate PASS;
+  hard substitution contract PASS; compiler topology PASS; protocol registry
+  PASS with 10 rows; documentation quality PASS; component/removed-path ratchet
+  PASS in 174.1 seconds; all 37 changed shell files pass `bash -n`; and
+  `git diff --check` is green.
+- One integration compile observed about 2.43 GiB peak working set: above the
+  2.4 GiB attention threshold but below the 3 GiB hard stop. This is not an
+  official full pressure measurement and was not repeated per edit. No full CI,
+  full bootstrap, current-source gen2==gen3, or Coq/Rocq suite was run; `coqc`
+  is unavailable in the current shell.
+- Explicit RED evidence: `tests/self_host_compiler_world_contract_smoke.sh`
+  passes the refreshed topology slice and then fails on the pre-existing
+  `driver_pipeline_owner.pgy` pin for `GenerateCUnitFromReadySemanticFacts(`.
+  `sot_authority_adequacy_smoke.sh` remains RED on the unrelated live semantic
+  role declaration-row owner. The last observed live replacement run remains
+  RED after source-MIR equality at `semantic call return type rows are
+  incomplete`; none of these were relabelled as a CLI regression.
+- Active objective: close the reached canonical-MIR call-return fact failure in
+  `tests/self_host_live_replacement_smoke.sh`, without reopening a general
+  query/cache track. The production path is public installed
+  `--canonicalize-mir-json`; the current rejecting owner is
+  `ast_body_type_bundle_owner.pgy`, which calls
+  `SemanticAstAnalysisResolveCallReturnTypes` after the body fixpoint.
+- Fact owner and last consumer are not yet assumed: first identify which typed
+  call-return row is absent and which existing semantic owner must supply it;
+  the canonical MIR consumer is the next falsifier. Forbidden fallback is AST
+  or program-root re-scan, name-based reconstruction, a second return-type
+  table, native-C semantic re-entry, or weakening the incomplete-row rejection.
+  Close only the reached row, delete the old read path if one exists, and add a
+  focused negative before proceeding to another rung.
+- Three exact ignored build directories created during this rung remain because
+  recursive cleanup was blocked by the command policy:
+  `.tmp/self_hosted/cli-request-check`,
+  `.tmp/self_hosted/cli-request-direct-build`, and
+  `.tmp/self_hosted/cli-request-official-build`. They are not Git state or
+  semantic evidence; do not broaden cleanup beyond these paths.
 
 ## Historical checkpoint archive — inactive evidence
 

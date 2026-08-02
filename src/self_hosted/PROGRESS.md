@@ -1,26 +1,26 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-08-03 typed CLI request admission
+## Active self-host context — 2026-08-03 canonical MIR call-return fact
 
 - Resume authority remains the top card in `docs/current_work_handoff.md`.
-  Executable commit `9a8e3dbc96c5b6e46200246a5af929c765a94a05`
-  closes the installed source-C stdout/artifact collision.
-- Source C stdout is `source --emit-c-verified`; file publication is only
-  `--emit-c-artifact-verified source output`. Generic `source output`, unknown
-  options, missing output, and option-shaped output paths fail before writes.
-  Public C emit and compile/run keep their existing user syntax while the
-  native launcher passes the explicit internal mode.
-- Fresh installed build, focused CLI negatives, public C emit, default C
-  compile/run, 17 grammar fixtures, and component/removed-path ratchets are
-  green. The live replacement gate remains red later at the existing canonical
-  MIR `semantic call return type rows are incomplete` defect. No new pressure
-  measurement, full CI, proof run, or gen2/gen3 claim was made.
-- The sole next executable rung is one typed argv admission owner shared by the
-  installed and standalone roots. Today `--emit-mir-json-verified source third`
-  and `--mir-json input third` still mean output artifact in one root and
-  optional machine declaration in the other. Each valid request must become one
-  typed variant before I/O; raw dual parsing and compatibility fallback are
-  forbidden.
+  Executable commit `bcb1d8facc2db0e31b8b15060f99e5f6936603d9`
+  closes the installed/standalone argv meaning collision.
+- `DriverRung2CliRequest` admits argv exactly once before I/O. Artifact effects
+  require `-o`, machine declarations require `--machine-manifest-json`, and
+  pressure/observation/direct-backend requests are distinct variants. The
+  production root is 11 lines, fixture manifests are test-only, read execution
+  has no `io_write`, and the optional-third inference path is forbidden.
+- Installed CLI parity, default C and runtime-free LLVM replacement, source-MIR
+  action, hard contract, compiler topology, protocol, documentation, and full
+  component/removed-path gates are green. One integrated compile observed about
+  2.43 GiB working set; it was not an official full pressure run. Full CI,
+  bootstrap fixpoint, and Coq/Rocq were not run.
+- The sole next executable rung is the already reached live-replacement
+  canonical MIR failure `semantic call return type rows are incomplete` in
+  `ast_body_type_bundle_owner.pgy`. Identify the exact absent typed row and its
+  existing semantic owner before editing. AST/root re-scan, name-based
+  reconstruction, a parallel return-type table, native semantic fallback, and
+  weakening the fail-closed diagnostic are forbidden.
 
 ## Historical self-host ledger — inactive navigation evidence
 
