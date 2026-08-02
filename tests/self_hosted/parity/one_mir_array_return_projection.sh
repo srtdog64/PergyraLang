@@ -105,7 +105,7 @@ project() {
     stderr="$output.stderr"
     rm -f "$output" "$stdout" "$stderr"
     (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" \
-        "$(root_relative "$input")" "$(root_relative "$output")" \
+        "$(root_relative "$input")" -o "$(root_relative "$output")" \
         >"$stdout" 2>"$stderr") || {
         cat "$stdout" "$stderr" >&2 || true
         fail "$target rejected admitted Array return MIR"
@@ -121,7 +121,7 @@ reject_mutation() {
         stderr="$WORK_DIR/$name.$target.err"
         rm -f "$output" "$stdout" "$stderr"
         if (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" \
-            "$(root_relative "$WORK_DIR/$name.json")" \
+            "$(root_relative "$WORK_DIR/$name.json")" -o \
             "$(root_relative "$output")" >"$stdout" 2>"$stderr"); then
             fail "$target accepted Array return mutation: $name"
         fi
@@ -144,7 +144,7 @@ mkdir -p "$WORK_DIR"
 
 rm -f "$MIR"
 (cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified \
-    "$(root_relative "$SOURCE")" "$(root_relative "$MIR")") ||
+    "$(root_relative "$SOURCE")" -o "$(root_relative "$MIR")") ||
     fail "source-to-MIR producer rejected array_return_literal.pgy"
 mir_digest="$(hash_file "$MIR")"
 

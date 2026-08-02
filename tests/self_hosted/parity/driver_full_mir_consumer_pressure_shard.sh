@@ -34,5 +34,5 @@ cd "$ROOT_DIR"
 "$DRIVER_SEED" \
     --mir-json \
     "$INPUT_REL" \
-    "$OUTPUT_REL" \
-    --observe-mir-consumer-stages
+    --observe-mir-consumer-stages \
+    -o "$OUTPUT_REL"

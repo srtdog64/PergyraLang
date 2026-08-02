@@ -158,7 +158,7 @@ run_driver_mode_to_file() {
     rm -f "$output"
     echo "[self-host-driver-bootstrap] running $label"
     if ! (cd "$ROOT_DIR" && \
-        "$bin" "$mode" "$input_rel" "$output_rel" "${extra_args[@]}" >"$stdout" 2>"$stderr"); then
+        "$bin" "$mode" "$input_rel" "${extra_args[@]}" -o "$output_rel" >"$stdout" 2>"$stderr"); then
         echo "[self-host-driver-bootstrap] $label failed for $input_rel" >&2
         cat "$stdout" "$stderr" >&2 || true
         exit 1

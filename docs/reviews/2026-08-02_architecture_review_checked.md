@@ -141,3 +141,13 @@ This confirms the review's broader warning: a passing downstream compile did
 not prove the argv ownership boundary was coherent. The next rung therefore
 does not add features. It replaces the remaining duplicate installed/standalone
 argv interpretations with one typed request admission owner before I/O.
+
+That follow-up is now implemented as
+`driver_rung2_cli_request_owner.pgy`. Source-C, source-MIR, MIR-C,
+canonicalization, machine-manifest, pressure/observation, and direct-backend
+requests have one typed identity before either root can read or write. MIR and
+direct-backend artifacts require explicit `-o`; fixture manifests moved to a
+test-only entrypoint. The installed and standalone roots are effect executors,
+not competing parsers. This closes the review's immediate composition-root
+ambiguity without reviving the superseded Pair rung or starting a general
+query/cache architecture.

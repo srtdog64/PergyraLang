@@ -24,16 +24,22 @@ Pergyra의 self-host는 두 조건을 모두 만족해야 한다.
 
 ## 현재 관측된 상태
 
-2026-08-02 현재 사용자에게 설치되는 self-host 진입점과 full bootstrap
-artifact 진입점은 서로 다른 `Main`이지만, source-to-MIR 실행 owner는 하나다.
+2026-08-03 현재 사용자에게 설치되는 self-host 진입점과 full bootstrap artifact
+진입점은 같은 production `Main`을 사용하며, argv admission과 source-to-MIR 실행
+owner도 각각 하나다.
 
 - `bin/pgy --self-driver`는 `src/compiler/self_host_driver.c`의 sibling launcher를
   거쳐 `bin/pgy-self-driver`를 실행한다. 그 binary의 source root는
-  `driver_rung2_main.pgy -> driver_rung2_cli_owner.pgy`이다.
-- full bootstrap artifact root는 `driver_bootstrap_main.pgy`이다.
-- 두 root 모두 `compiler_world_direct_mir_owner.pgy`의 같은 world materializer와
-  같은 `DriverSourceMirExecution` subject를 호출한다. Publication action만 실제
-  capability 경계에 따라 payload와 artifact로 나뉜다.
+  `driver_bootstrap_main.pgy -> driver_rung2_cli_request_owner.pgy ->
+  driver_rung2_installed_cli_owner.pgy`이다.
+- `driver_rung2_main.pgy`는 fixture manifest와 read-only standalone parity만을 위한
+  test root다. Production installed graph는 fixture manifest owner를 import하지 않는다.
+- production root와 test root는 같은 `DriverRung2CliRequest` admission을 소비한다.
+  Installed executor만 artifact publication authority를 가지며, stdout request는
+  `driver_rung2_cli_read_execution_owner.pgy`에 위임한다.
+- direct-MIR와 source-MIR 실행은 계속
+  `compiler_world_direct_mir_owner.pgy`의 같은 world materializer와 각 typed action
+  owner를 호출한다. Raw argv는 composition root 밖에서 다시 해석하지 않는다.
 
 source-to-C 및 기존 MIR-to-C 호환 mode는 아직 다음 일반 함수들로 분기한다.
 
@@ -45,6 +51,9 @@ source-to-C 및 기존 MIR-to-C 호환 mode는 아직 다음 일반 함수들로
 
 ```text
 driver_bootstrap_main.Main
+  -> DriverRung2CliRequestFromArgsOrDie
+  -> DriverRung2ExecuteInstalledRequest
+  -> DriverRung2InstalledPublishDirectMir
   -> EmitDirectMirThroughPgyCompilerWorld
   -> PgyCompilerWorld.EmitDirectMir
   -> PgyCompilerWorld.direct_mir
@@ -53,6 +62,9 @@ driver_bootstrap_main.Main
   -> existing target/projection/emission owners
 
 driver_bootstrap_main.Main
+  -> DriverRung2CliRequestFromArgsOrDie
+  -> DriverRung2ExecuteInstalledRequest
+  -> DriverRung2InstalledPublishSourceMir
   -> PublishSourceMirArtifactThroughPgyCompilerWorld
   -> PgyCompilerWorld.PublishSourceMirArtifact
   -> PgyCompilerWorld.source_mir
@@ -63,8 +75,11 @@ driver_bootstrap_main.Main
 
 bin/pgy --self-driver
   -> native sibling launcher -> bin/pgy-self-driver
-  -> driver_rung2_main.Main
-  -> RunDriverRung2FromArgs
+  -> driver_bootstrap_main.Main
+  -> DriverRung2CliRequestFromArgsOrDie
+  -> DriverRung2ExecuteInstalledRequest
+  -> DriverRung2ExecuteReadRequest
+  -> DriverRung2CliLogSourceMirPayloadOrDie
   -> ProduceSourceMirThroughPgyCompilerWorld
   -> PgyCompilerWorld.ProduceSourceMir
   -> PgyCompilerWorld.source_mir
@@ -76,8 +91,10 @@ bin/pgy --self-driver
 action이 request를 typed target projection으로 admit하고, 기존
 `CompileMirJsonToDirectBackendVerified` owner를 정확히 한 번 소비하고,
 artifact identity를 확인한 뒤 shared compiler-artifact transaction을 commit한다.
-`Main`의 target-fact 생성, direct backend 호출, direct-mode raw writer 우회는
-삭제됐다.
+`Main`의 mode 문자열 분기, target-fact 생성, direct backend 호출, direct-mode raw
+writer 우회는 삭제됐다. Artifact는 `-o`, machine declaration은
+`--machine-manifest-json`으로만 admit되며 bare positional third argument는 두 root
+모두 같은 admission diagnostic으로 거부한다.
 
 source-to-MIR subject는 subject/topology identity와 pressure request를 하나의
 payload admission owner에서 검사하고 기존 typed producer 중 정확히 하나를
@@ -87,9 +104,10 @@ receipt를 반환한다. Bootstrap의 `PublishSourceMirArtifact`는 `io_read, io
 요구하며 빈 output path를 비싼 compile 전에 거부한 뒤 shared artifact
 transaction을 정확히 한 번 commit한다. 빈 path를 stdout sentinel로 쓰거나 임시
 파일로 왕복하는 fallback은 없다. Full driver source는 pressure-observed 요청만
-허용하고 일반 fixture는 그 요청을 거부한다. 두 `Main`은 각 action의 typed
-outcome과 diagnostic만 소비하며, 옛 file-helper와 installed CLI의 직접
-`CompileSourceToMirJsonVerified` 호출은 삭제됐다.
+허용하고 일반 fixture는 그 요청을 거부한다. Production `Main`은 admitted request
+하나만 installed executor에 전달하고, test `Main`은 fixture mode를 분리한 뒤 같은
+request admission과 read executor를 소비한다. 옛 file-helper와 installed CLI의
+직접 `CompileSourceToMirJsonVerified` 호출은 삭제됐다.
 
 `DriverRung2Executed`는 `tobject SelfMirArtifactReceipt`의 exact target/path,
 `atomic_visibility=true`, `crash_durable=false`가 확인된 경우에만 반환된다.

@@ -217,7 +217,8 @@ for source_case in "$SOURCE_MACHINE_CASE" "$SOURCE_REMOTE_CASE"; do
         expected_contacts=(claim write submit-read release)
     fi
     if ! (cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified \
-        "$source_case" "$MACHINE_MANIFEST_REL" >"$source_mir" 2>&1); then
+        "$source_case" --machine-manifest-json "$MACHINE_MANIFEST_REL" \
+        >"$source_mir" 2>&1); then
         echo "[self-host-mir-machine-layer] source-to-MIR machine fixture failed: $source_case" >&2
         cat "$source_mir" >&2
         exit 1
@@ -247,7 +248,8 @@ pgy_replace_first_literal "$SOURCE_REMOTE_MIR" \
     '"kind":"await"' '"kind":"leaf"'
 SOURCE_REMOTE_BAD_AWAIT_REL="${SOURCE_REMOTE_BAD_AWAIT_MIR#$ROOT_DIR/}"
 if (cd "$ROOT_DIR" && "$DRIVER_BIN" --mir-json \
-    "$SOURCE_REMOTE_BAD_AWAIT_REL" "$MACHINE_MANIFEST_REL" \
+    "$SOURCE_REMOTE_BAD_AWAIT_REL" --machine-manifest-json \
+    "$MACHINE_MANIFEST_REL" \
     >"$SOURCE_REMOTE_BAD_AWAIT_OUT" 2>&1); then
     echo "[self-host-mir-machine-layer] mutated await node was accepted" >&2
     exit 1

@@ -125,9 +125,10 @@ done
 compile_driver() {
     local backend="$1"
     local out_bin="$2"
+    local source="${3:-$DRIVER_SOURCE}"
     local log="$BUILD_DIR/driver_${backend}.compile.log"
     if ! (cd "$ROOT_DIR" && "$PGY" \
-        "$(pgy_path_for_compiler "$PGY" "$DRIVER_SOURCE")" \
+        "$(pgy_path_for_compiler "$PGY" "$source")" \
         --backend="$backend" \
         -o "$(pgy_path_for_compiler "$PGY" "$out_bin")" \
         >"$log" 2>&1); then
@@ -141,12 +142,16 @@ compile_driver() {
 }
 
 C_DRIVER="$BUILD_DIR/driver_c.exe"
+MANIFEST_DRIVER="$C_DRIVER"
 if [[ -n "$PREBUILT_DRIVER" ]]; then
     C_DRIVER="$PREBUILT_DRIVER"
+    MANIFEST_DRIVER="$BUILD_DIR/driver_fixture_manifest.exe"
+    compile_driver c "$MANIFEST_DRIVER" \
+        "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_fixture_manifest_main.pgy"
 else
     compile_driver c "$C_DRIVER"
 fi
-if ! (cd "$ROOT_DIR" && "$C_DRIVER" --fixture-manifest >"$FIXTURE_ROWS"); then
+if ! (cd "$ROOT_DIR" && "$MANIFEST_DRIVER" --fixture-manifest >"$FIXTURE_ROWS"); then
     echo "[self-host-parity:driver-rung2] fixture manifest emission failed" >&2
     exit 1
 fi
@@ -159,7 +164,7 @@ if [[ "${#fixture_rows[@]}" -ne 20 ]]; then
     echo "[self-host-parity:driver-rung2] fixture count drifted: ${#fixture_rows[@]} != 20" >&2
     exit 1
 fi
-if ! (cd "$ROOT_DIR" && "$C_DRIVER" --mir-fixture-manifest \
+if ! (cd "$ROOT_DIR" && "$MANIFEST_DRIVER" --mir-fixture-manifest \
     >"$MIR_FIXTURE_ROWS"); then
     echo "[self-host-parity:driver-rung2] MIR fixture manifest emission failed" >&2
     exit 1

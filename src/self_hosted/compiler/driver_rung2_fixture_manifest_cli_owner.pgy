@@ -1,0 +1,27 @@
+// Test-only fixture inventory CLI owner. Production installed-driver argv
+// admission must not import this fixture surface.
+
+import "driver_rung2_mir_manifest_owner.pgy";
+import "driver_rung2_semantic_fixture_manifest_owner.pgy";
+
+func DriverRung2TryRunFixtureManifest(
+    args: Array<String>
+) -> Bool {
+    if ArrayLength(args) > 0 && args[0] == "--fixture-manifest" {
+        if ArrayLength(args) != 1 {
+            Log("fixture manifest mode does not accept extra arguments");
+            Exit(1);
+        }
+        EmitDriverRung2FixtureManifest();
+        return true;
+    }
+    if ArrayLength(args) > 0 && args[0] == "--mir-fixture-manifest" {
+        if ArrayLength(args) != 1 {
+            Log("MIR fixture manifest mode does not accept extra arguments");
+            Exit(1);
+        }
+        EmitDriverRung2MirFixtureManifest();
+        return true;
+    }
+    return false;
+}

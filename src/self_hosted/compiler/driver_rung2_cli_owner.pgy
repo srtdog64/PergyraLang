@@ -1,90 +1,11 @@
-// DRV-2 command-line mode routing owner.
-import "compiler_world_direct_mir_owner.pgy";
+// Standalone DRV-2 command-line boundary. Exact argv meaning is owned by the
+// pure request owner; this wrapper performs one admission and one read action.
 
-func DriverRung2OptionalMachineDeclaration(
-    args: Array<String>
-) -> SelfHostMachineLayerDeclaration {
-    if ArrayLength(args) == 3 {
-        return SelfHostMachineLayerDeclarationFromPath(args[2]);
-    }
-    return SelfHostMachineLayerDeclarationEmpty();
-}
+import "driver_rung2_cli_request_owner.pgy";
+import "driver_rung2_cli_read_execution_owner.pgy";
 
 func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {
-    if (ArrayLength(args) == 2 || ArrayLength(args) == 3) &&
-        args[0] == "--emit-mir-json-verified" {
-        let declaration: SelfHostMachineLayerDeclaration =
-            DriverRung2OptionalMachineDeclaration(args);
-        let source_outcome: DriverSourceMirExecutionOutcome = ProduceSourceMirThroughPgyCompilerWorld(
-            args[1], declaration, SourceMirVerified
-        );
-        if !DriverSourceMirExecutionOutcomePayloadReadyFor(source_outcome, args[1], SourceMirVerified) {
-            Log(DriverSourceMirExecutionOutcomePayloadDiagnostic(
-                source_outcome, args[1], SourceMirVerified
-            ));
-            Exit(1);
-        }
-        match source_outcome {
-            case DriverSourceMirProduced(receipt): Log(receipt.payload);
-            case DriverSourceMirExecuted(receipt):
-                Die("source MIR payload execution published an artifact");
-            case DriverSourceMirRejected(rejection):
-                Die("source MIR payload execution returned an unchecked rejection");
-            case DriverSourceMirArtifactRejected(failure):
-                Die("source MIR payload execution reached the artifact transaction");
-        }
-        return;
-    }
-    if (ArrayLength(args) == 2 || ArrayLength(args) == 3) &&
-        args[0] == "--canonicalize-mir-json" {
-        let declaration: SelfHostMachineLayerDeclaration =
-            DriverRung2OptionalMachineDeclaration(args);
-        Log(CanonicalizeMirJsonVerified(args[1], declaration));
-        return;
-    }
-    if (ArrayLength(args) == 2 || ArrayLength(args) == 3) &&
-        args[0] == "--canonicalize-oracle-mir-json" {
-        let declaration: SelfHostMachineLayerDeclaration =
-            DriverRung2OptionalMachineDeclaration(args);
-        Log(CanonicalizeOracleMirJsonBridge(args[1], declaration));
-        return;
-    }
-    if ArrayLength(args) > 0 && args[0] == "--mir-json" {
-        if ArrayLength(args) != 2 && ArrayLength(args) != 3 {
-            Die("driver rung-2 --mir-json requires MIR JSON and optional declaration path");
-        }
-        let declaration: SelfHostMachineLayerDeclaration =
-            DriverRung2OptionalMachineDeclaration(args);
-        Log(CompileMirJsonToCVerified(args[1], declaration).payload);
-        return;
-    }
-    if ArrayLength(args) > 0 &&
-        args[0] == "--self-test-missing-target-projection" {
-        if ArrayLength(args) != 2 && ArrayLength(args) != 3 {
-            Die("missing-target-projection self-test requires MIR JSON and optional declaration path");
-        }
-        let declaration: SelfHostMachineLayerDeclaration =
-            DriverRung2OptionalMachineDeclaration(args);
-        let json: String = MirJsonReadInput(args[1], declaration);
-        CompileMirJsonTextToCForTargetVerified(
-            json, declaration, CompilerTargetProjectionFactEmpty()
-        );
-        Die("missing target projection fact was accepted");
-    }
-    let source_path: String = ParserDefaultSourcePath(args);
-    if ArrayLength(args) == 3 &&
-        args[1] == "--machine-manifest-json" {
-        Log(CompileSourceToCVerified(
-            source_path,
-            SelfHostMachineLayerDeclarationFromPath(args[2])
-        ).payload);
-        return;
-    }
-    if ArrayLength(args) > 1 && args[1] != "--emit-c-verified" {
-        Die(Concat("unknown driver rung-2 mode: ", args[1]));
-    }
-    Log(CompileSourceToCVerified(
-        source_path,
-        SelfHostMachineLayerDeclarationEmpty()
-    ).payload);
+    let request: DriverRung2CliRequest =
+        DriverRung2CliRequestFromArgsOrDie(args);
+    DriverRung2ExecuteReadRequest(request);
 }

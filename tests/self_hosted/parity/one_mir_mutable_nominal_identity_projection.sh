@@ -73,7 +73,7 @@ EOF
 project() {
     local input="$1" target="$2" output="$3"
     rm -f "$output" "$output.stdout" "$output.stderr"
-    (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" "$(root_relative "$input")" "$(root_relative "$output")" >"$output.stdout" 2>"$output.stderr") || {
+    (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" "$(root_relative "$input")" -o "$(root_relative "$output")" >"$output.stdout" 2>"$output.stderr") || {
         cat "$output.stdout" "$output.stderr" >&2 || true
         fail "$target rejected mutable nominal identity MIR"
     }
@@ -84,7 +84,7 @@ reject_mutation() {
     local name="$1" target="${2:-c}" output
     output="$WORK_DIR/$name.$target.artifact"
     rm -f "$output" "$output.stdout" "$output.stderr"
-    if (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" "$(root_relative "$WORK_DIR/$name.json")" "$(root_relative "$output")" >"$output.stdout" 2>"$output.stderr"); then
+    if (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" "$(root_relative "$WORK_DIR/$name.json")" -o "$(root_relative "$output")" >"$output.stdout" 2>"$output.stderr"); then
         fail "$target accepted mutable nominal identity mutation: $name"
     fi
     [[ ! -e "$output" ]] || fail "$target emitted before rejecting $name"
@@ -127,8 +127,8 @@ command -v "$CLANG" >/dev/null || fail "missing LLVM compiler"
 assert_owner_ratchet
 mkdir -p "$WORK_DIR"
 rm -f "$SUBJECT_MIR" "$VESSEL_MIR" "$SUBJECT_NATIVE_MIR" "$VESSEL_NATIVE_MIR"
-(cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified "$(root_relative "$SUBJECT_SOURCE")" "$(root_relative "$SUBJECT_MIR")") || fail "source-to-MIR rejected subject fixture"
-(cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified "$(root_relative "$VESSEL_SOURCE")" "$(root_relative "$VESSEL_MIR")") || fail "source-to-MIR rejected vessel fixture"
+(cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified "$(root_relative "$SUBJECT_SOURCE")" -o "$(root_relative "$SUBJECT_MIR")") || fail "source-to-MIR rejected subject fixture"
+(cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified "$(root_relative "$VESSEL_SOURCE")" -o "$(root_relative "$VESSEL_MIR")") || fail "source-to-MIR rejected vessel fixture"
 subject_digest="$(hash_file "$SUBJECT_MIR")"
 vessel_digest="$(hash_file "$VESSEL_MIR")"
 (cd "$ROOT_DIR" && "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$SUBJECT_SOURCE")" >"$SUBJECT_NATIVE_MIR") || fail "native MIR oracle rejected subject fixture"

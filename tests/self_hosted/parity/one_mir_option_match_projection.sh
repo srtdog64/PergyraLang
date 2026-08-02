@@ -96,7 +96,7 @@ project() {
     stderr="$WORK_DIR/project-$target.err"
     rm -f "$output" "$stdout" "$stderr"
     (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" \
-        "$(root_relative "$MIR")" "$(root_relative "$output")" \
+        "$(root_relative "$MIR")" -o "$(root_relative "$output")" \
         >"$stdout" 2>"$stderr") || {
         cat "$stdout" "$stderr" >&2 || true
         fail "$target rejected admitted Option match MIR"
@@ -112,7 +112,7 @@ reject_mutation() {
         stderr="$WORK_DIR/$name.$target.err"
         rm -f "$output" "$stdout" "$stderr"
         if (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" \
-            "$(root_relative "$WORK_DIR/$name.json")" \
+            "$(root_relative "$WORK_DIR/$name.json")" -o \
             "$(root_relative "$output")" >"$stdout" 2>"$stderr"); then
             fail "$target accepted Option match mutation: $name"
         fi
@@ -135,7 +135,7 @@ mkdir -p "$WORK_DIR"
 
 rm -f "$MIR" "$C_ARTIFACT" "$LLVM_ARTIFACT"
 (cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified \
-    "$(root_relative "$SOURCE")" "$(root_relative "$MIR")") ||
+    "$(root_relative "$SOURCE")" -o "$(root_relative "$MIR")") ||
     fail "source-to-MIR producer rejected option_match.pgy"
 mir_digest="$(hash_file "$MIR")"
 project c "$C_ARTIFACT"

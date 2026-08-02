@@ -1767,9 +1767,11 @@ inventory must not become a second fact-family owner registry.
   source-to-AST-to-C pipeline shared by the user-facing driver and bootstrap;
   this is the single owner of parser/codegen composition.
 - `src/self_hosted/compiler/driver_bootstrap_main.pgy` -- installed compiler
-  composition root and source/MIR/output-file boundary used by producer parity
-  and the integrated seed/oracle fixed point. Its explicit
-  `--emit-c-artifact-verified source output` mode owns the public C artifact for
+  composition root used by producer parity and the integrated seed/oracle
+  fixed point. It admits argv once through `driver_rung2_cli_request_owner.pgy`
+  and delegates effects to `driver_rung2_installed_cli_owner.pgy`; it owns no
+  mode or positional interpretation. The explicit
+  `--emit-c-artifact-verified source output` request owns the public C artifact for
   `pgy --emit-c` and the admitted
   `--backend=c` compile/run envelope after the native selector admits it. The
   removed `source output` form is not a compatibility surface: it is rejected
@@ -2083,14 +2085,28 @@ inventory must not become a second fact-family owner registry.
   topology field references by exact `(owner, name, field_kind)` joins.
   Numeric equality, offsets, declaration order, and name-only fallback are
   forbidden.
-- `src/self_hosted/compiler/driver_rung2_cli_owner.pgy` -- DRV-2 command-line
-  production mode selection and argument routing shared by the installed and
-  standalone entrypoints; consumes compiler-stage operations but owns no
-  semantic or MIR facts and imports no test fixture manifest.
+- `src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy` -- sole pure
+  argv admission owner for the versioned DRV-2 CLI request family. It maps
+  exact source-C, source-MIR, canonical, MIR-C, and direct-backend forms to a
+  flat typed enum before I/O. Artifact requests require an explicit artifact
+  mode or `-o`; optional positional-third guessing and implicit default source
+  are forbidden.
+- `src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy` --
+  read-only executor for admitted stdout, machine-manifest, canonicalization,
+  and missing-projection probe requests. Artifact variants fail before reads.
+- `src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy` -- installed
+  artifact-effect executor. It delegates read variants to the read owner and
+  publishes only typed artifact variants through the compiler-world and atomic
+  transaction owners.
+- `src/self_hosted/compiler/driver_rung2_cli_owner.pgy` -- 11-line standalone
+  wrapper that performs one argv admission and one read-only execution.
+- `src/self_hosted/compiler/driver_rung2_fixture_manifest_cli_owner.pgy` and
+  `driver_rung2_fixture_manifest_main.pgy` -- test-only fixture inventory CLI;
+  the installed composition root cannot import this surface.
 - `src/self_hosted/compiler/driver_rung2_main.pgy` -- DRV-2 runnable hard
   semantic test entrypoint and fixture-manifest boundary; production CLI
-  ownership remains in `driver_rung2_cli_owner.pgy` and compiler-stage
-  ownership remains in `driver_rung2_owner.pgy`.
+  request ownership remains in `driver_rung2_cli_request_owner.pgy` and
+  compiler-stage ownership remains in `driver_rung2_owner.pgy`.
 - `src/self_hosted/compiler/authority_owner.pgy` -- authority contracts
   (abilities + roles) for the sensitive compiler-world boundaries: semantic
   verdict, C emission, subprocess planning, and parity judgement.

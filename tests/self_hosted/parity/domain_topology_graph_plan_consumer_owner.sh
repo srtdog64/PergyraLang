@@ -111,11 +111,11 @@ DIGEST_PROBE_SRC="$ROOT_DIR/tests/self_hosted/parity/fixture/domain_topology_gra
 DIGEST_PROBE="$BUILD_DIR/domain-topology-digest-probe.exe"
 
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
-    "${FIXTURE#"$ROOT_DIR/"}" \
+    "${FIXTURE#"$ROOT_DIR/"}" -o \
     "${ZONE_MIR#"$ROOT_DIR/"}") \
     || fail "self-host fixture topology MIR production failed"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
-    "${HELLO#"$ROOT_DIR/"}" \
+    "${HELLO#"$ROOT_DIR/"}" -o \
     "${HELLO_MIR#"$ROOT_DIR/"}") \
     || fail "self-produced supported routine MIR failed"
 
@@ -156,7 +156,7 @@ for target in c llvm; do
     output="$C_OUT"
     [[ "$target" == c ]] || output="$LLVM_OUT"
     (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$target" \
-        "${COMBINED#"$ROOT_DIR/"}" \
+        "${COMBINED#"$ROOT_DIR/"}" -o \
         "${output#"$ROOT_DIR/"}") \
         || fail "$target production consumer rejected exact admitted plan"
     [[ -s "$output" ]] || fail "$target production consumer emitted no artifact"
@@ -218,7 +218,7 @@ grep -Fq 'absent domain topology graph plan residual arrays rejected' \
 bad_general="$BUILD_DIR/forged-edge.general-c.artifact"
 rm -f "$bad_general"
 if (cd "$ROOT_DIR" && "$DRIVER" --mir-json \
-    "${MUTATED#"$ROOT_DIR/"}" \
+    "${MUTATED#"$ROOT_DIR/"}" -o \
     "${bad_general#"$ROOT_DIR/"}") \
     >"$BUILD_DIR/forged-edge.general-c.out" \
     2>"$BUILD_DIR/forged-edge.general-c.err"; then
@@ -234,7 +234,7 @@ for target in c llvm; do
     bad_out="$BUILD_DIR/forged-edge.$target.artifact"
     rm -f "$bad_out"
     if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$target" \
-        "${MUTATED#"$ROOT_DIR/"}" \
+        "${MUTATED#"$ROOT_DIR/"}" -o \
         "${bad_out#"$ROOT_DIR/"}") \
         >"$BUILD_DIR/forged-edge.$target.out" \
         2>"$BUILD_DIR/forged-edge.$target.err"; then

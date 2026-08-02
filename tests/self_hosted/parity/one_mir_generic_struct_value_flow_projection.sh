@@ -72,7 +72,7 @@ project() {
     local input="$1" target="$2" output="$3"
     rm -f "$output" "$output.stdout" "$output.stderr"
     (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" \
-        "$(root_relative "$input")" "$(root_relative "$output")" \
+        "$(root_relative "$input")" -o "$(root_relative "$output")" \
         >"$output.stdout" 2>"$output.stderr") ||
         { cat "$output.stdout" "$output.stderr" >&2 || true; fail "$target rejected admitted generic nominal MIR"; }
     [[ -s "$output" ]] || fail "$target emitted no generic nominal artifact"
@@ -83,7 +83,7 @@ reject_mutation() {
     output="$WORK_DIR/$name.$target.artifact"
     rm -f "$output" "$output.stdout" "$output.stderr"
     if (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" \
-        "$(root_relative "$WORK_DIR/$name.json")" "$(root_relative "$output")" \
+        "$(root_relative "$WORK_DIR/$name.json")" -o "$(root_relative "$output")" \
         >"$output.stdout" 2>"$output.stderr"); then
         fail "$target accepted generic nominal mutation: $name"
     fi
@@ -105,7 +105,7 @@ mkdir -p "$WORK_DIR"
 rm -f "$MIR" "$NATIVE_MIR"
 # The gate must produce source MIR exactly once; both targets reuse that fact.
 (cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified \
-    "$(root_relative "$SOURCE")" "$(root_relative "$MIR")") ||
+    "$(root_relative "$SOURCE")" -o "$(root_relative "$MIR")") ||
     fail "source-to-MIR producer rejected generic nominal fixture"
 mir_digest="$(hash_file "$MIR")"
 (cd "$ROOT_DIR" && "$PGY" --mir-json \

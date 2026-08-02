@@ -15,8 +15,8 @@ driver_materialize_self_host_llvm_artifacts(
     const char *llvm_output_path,
     bool verbose)
 {
-    const char *producer_argv[5];
-    const char *backend_argv[5];
+    const char *producer_argv[6];
+    const char *backend_argv[6];
     char *binary;
     int rc;
 
@@ -40,8 +40,9 @@ driver_materialize_self_host_llvm_artifacts(
     producer_argv[0] = binary;
     producer_argv[1] = "--emit-mir-json-verified";
     producer_argv[2] = source_path;
-    producer_argv[3] = mir_output_path;
-    producer_argv[4] = NULL;
+    producer_argv[3] = "-o";
+    producer_argv[4] = mir_output_path;
+    producer_argv[5] = NULL;
     rc = pgy_exec_argv(producer_argv, verbose);
     if (rc != 0) {
         fprintf(stderr,
@@ -58,8 +59,9 @@ driver_materialize_self_host_llvm_artifacts(
     backend_argv[0] = binary;
     backend_argv[1] = "--mir-json-backend=llvm";
     backend_argv[2] = mir_output_path;
-    backend_argv[3] = llvm_output_path;
-    backend_argv[4] = NULL;
+    backend_argv[3] = "-o";
+    backend_argv[4] = llvm_output_path;
+    backend_argv[5] = NULL;
     rc = pgy_exec_argv(backend_argv, verbose);
     if (rc != 0) {
         fprintf(stderr,

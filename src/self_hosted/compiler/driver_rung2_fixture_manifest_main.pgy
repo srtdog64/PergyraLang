@@ -1,0 +1,11 @@
+// Minimal test-harness entrypoint for DRV-2 fixture inventories.
+
+import "driver_rung2_fixture_manifest_cli_owner.pgy";
+
+func Main() -> Void with caps env {
+    if DriverRung2TryRunFixtureManifest(Args()) {
+        return;
+    }
+    Log("driver rung-2 fixture manifest mode is required");
+    Exit(1);
+}

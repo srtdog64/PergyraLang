@@ -39,20 +39,17 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
     bool mir_json_mode;
     bool mir_producer_mode;
     bool mir_canonicalize_mode;
-    bool manifest_mode;
     int child_argc = 0;
     int rc;
 
     if (argc < 1) {
         fprintf(stderr,
-                "pgy: --self-driver requires a source path or --fixture-manifest\n");
+                "pgy: --self-driver requires a source path or read-only compiler mode\n");
         return 1;
     }
     mir_json_mode = strcmp(argv[0], "--mir-json") == 0;
     mir_producer_mode = strcmp(argv[0], "--emit-mir-json-verified") == 0;
     mir_canonicalize_mode = strcmp(argv[0], "--canonicalize-mir-json") == 0;
-    manifest_mode = strcmp(argv[0], "--fixture-manifest") == 0
-        || strcmp(argv[0], "--mir-fixture-manifest") == 0;
     if (mir_json_mode && argc != 2) {
         fprintf(stderr,
                 "pgy: --self-driver --mir-json requires one MIR JSON path\n");
@@ -68,13 +65,7 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
                 "pgy: --self-driver --canonicalize-mir-json requires one MIR JSON path\n");
         return 1;
     }
-    if (manifest_mode && argc != 1) {
-        fprintf(stderr,
-                "pgy: --self-driver manifest mode does not accept extra arguments\n");
-        return 1;
-    }
     if (!mir_json_mode && !mir_producer_mode && !mir_canonicalize_mode
-        && !manifest_mode
         && (argc > 2
             || (argc == 2
                 && strcmp(argv[1], "--emit-c-verified") != 0))) {
@@ -95,7 +86,7 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
     child_argv[child_argc++] = argv[0];
     if (mir_json_mode || mir_producer_mode || mir_canonicalize_mode)
         child_argv[child_argc++] = argv[1];
-    else if (!manifest_mode)
+    else
         child_argv[child_argc++] = "--emit-c-verified";
     child_argv[child_argc] = NULL;
     rc = pgy_exec_argv(child_argv, false);

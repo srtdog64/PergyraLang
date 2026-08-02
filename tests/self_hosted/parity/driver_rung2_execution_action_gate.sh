@@ -2,40 +2,41 @@
 # Owns the reachable direct-MIR action boundary and its no-bypass ratchet.
 pgy_selfhost_assert_driver_rung2_execution_action() {
     local root="$1" term
-    local main_owner="$root/src/self_hosted/compiler/driver_bootstrap_main.pgy" execution_owner="$root/src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
+    local main_owner="$root/src/self_hosted/compiler/driver_bootstrap_main.pgy" installed_owner="$root/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
+    local execution_owner="$root/src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
     local world_owner="$root/src/self_hosted/compiler/world.pgy" composition_owner="$root/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
-    for term in "$main_owner" "$execution_owner" "$world_owner" "$composition_owner"; do
-        [[ -f "$term" ]] || {
-            echo "[driver-rung2-execution-action] missing owner: ${term#"$root/"}" >&2
-            return 1
-        }
+    for term in "$main_owner" "$installed_owner" "$execution_owner" "$world_owner" "$composition_owner"; do
+        [[ -f "$term" ]] || { echo "[driver-rung2-execution-action] missing owner: ${term#"$root/"}" >&2; return 1; }
     done
-    for term in 'import "compiler_world_direct_mir_owner.pgy";' 'DriverRung2DirectMirRequest' \
+    for term in 'DriverRung2DirectMirRequest' \
         'EmitDirectMirThroughPgyCompilerWorld(' 'DriverRung2ExecutionOutcomeReadyFor(' \
         'DriverRung2ExecutionOutcomeDiagnostic('; do
-        grep -Fq -- "$term" "$main_owner" || {
-            echo "[driver-rung2-execution-action] Main bypasses compiler world composition: $term" >&2
-            return 1
-        }
+        grep -Fq -- "$term" "$installed_owner" || {
+            echo "[driver-rung2-execution-action] installed request owner bypasses compiler world composition: $term" >&2; return 1; }
     done
-    [[ "$(grep -F -c -- 'EmitDirectMirThroughPgyCompilerWorld(' "$main_owner")" -eq 1 ]] || {
-        echo "[driver-rung2-execution-action] Main must consume compiler world composition exactly once" >&2
-        return 1
-    }
-    for term in 'import "driver_rung2_execution_owner.pgy";' 'import "world.pgy";' \
+    [[ "$(grep -F -c -- 'EmitDirectMirThroughPgyCompilerWorld(' "$installed_owner")" -eq 1 ]] || {
+        echo "[driver-rung2-execution-action] installed request owner must consume compiler world composition exactly once" >&2; return 1; }
+    for term in 'import "compiler_world_direct_mir_owner.pgy";' \
+        'DriverRung2DirectMirRequest' 'EmitDirectMirThroughPgyCompilerWorld(' \
+        'DriverRung2ExecutionOutcomeReadyFor(' 'DriverRung2ExecutionOutcomeDiagnostic(' \
+        'import "driver_rung2_execution_owner.pgy";' 'import "world.pgy";' \
         '.EmitDirectMir(' 'let compiler_world = PgyCompilerWorld(' \
         'DriverRung2DirectMirZone(' 'DriverRung2Execution(' \
         'import "direct_mir_backend_projection_owner.pgy";' 'CompilerTargetProjectionFactFromOwner(' \
         'CompileMirJsonToDirectBackendVerified('; do
         if grep -Fq -- "$term" "$main_owner"; then
-            echo "[driver-rung2-execution-action] Main retained direct owner/world call: $term" >&2
-            return 1
-        fi
+            echo "[driver-rung2-execution-action] Main retained direct owner/world call: $term" >&2; return 1; fi
     done
-    if awk '/if ArrayLength\(args\) == 3 &&/{direct=1} direct && /if ArrayLength\(args\) > 0/{exit} direct{print}' "$main_owner" | grep -Fq -- 'WriteFile('; then
-        echo "[driver-rung2-execution-action] Main retained direct-MIR WriteFile" >&2
-        return 1
-    fi
+    for term in 'import "driver_rung2_execution_owner.pgy";' 'import "world.pgy";' \
+        '.EmitDirectMir(' 'let compiler_world = PgyCompilerWorld(' \
+        'DriverRung2DirectMirZone(' 'DriverRung2Execution(' \
+        'import "direct_mir_backend_projection_owner.pgy";' 'CompilerTargetProjectionFactFromOwner(' \
+        'CompileMirJsonToDirectBackendVerified('; do
+        if grep -Fq -- "$term" "$installed_owner"; then
+            echo "[driver-rung2-execution-action] installed request owner retained direct implementation detail: $term" >&2; return 1; fi
+    done
+    if grep -Fq -- 'WriteFile(' "$main_owner" || grep -Fq -- 'WriteFile(' "$installed_owner"; then
+        echo "[driver-rung2-execution-action] CLI composition retained direct-MIR WriteFile" >&2; return 1; fi
     for term in 'enum DriverRung2DirectMirRequest' 'tobject DriverRung2ExecutionReceipt' \
         'tobject DriverRung2ExecutionRejection' \
         'enum DriverRung2ExecutionOutcome' 'func DriverRung2DirectMirRequestProjection(' \

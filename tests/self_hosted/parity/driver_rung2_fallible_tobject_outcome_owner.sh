@@ -87,12 +87,12 @@ SUCCESS="$ROOT_DIR/$SUCCESS_REL"
 rm -f "$MIR" "$SUCCESS"
 
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
-    "$SOURCE_REL" "$MIR_REL" >"$BUILD_DIR/mir.out" 2>"$BUILD_DIR/mir.err") \
+    "$SOURCE_REL" -o "$MIR_REL" >"$BUILD_DIR/mir.out" 2>"$BUILD_DIR/mir.err") \
     || { cat "$BUILD_DIR/mir.out" "$BUILD_DIR/mir.err" >&2; fail "MIR production failed"; }
 [[ -s "$MIR" ]] || fail "MIR production emitted no artifact"
 
 (cd "$ROOT_DIR" && "$DRIVER" --mir-json-backend=c \
-    "$MIR_REL" "$SUCCESS_REL" >"$BUILD_DIR/success.out" 2>"$BUILD_DIR/success.err") \
+    "$MIR_REL" -o "$SUCCESS_REL" >"$BUILD_DIR/success.out" 2>"$BUILD_DIR/success.err") \
     || { cat "$BUILD_DIR/success.out" "$BUILD_DIR/success.err" >&2; fail "success receipt was rejected"; }
 [[ -s "$SUCCESS" ]] || fail "success receipt did not publish the artifact"
 
@@ -100,7 +100,7 @@ MISSING_DIR="$BUILD_DIR/not-created"
 [[ ! -e "$MISSING_DIR" ]] || fail "negative path owner already exists: $MISSING_DIR"
 FAIL_REL="${MISSING_DIR#"$ROOT_DIR"/}/artifact.c"
 if (cd "$ROOT_DIR" && "$DRIVER" --mir-json-backend=c \
-    "$MIR_REL" "$FAIL_REL" >"$BUILD_DIR/failure.out" 2>"$BUILD_DIR/failure.err"); then
+    "$MIR_REL" -o "$FAIL_REL" >"$BUILD_DIR/failure.out" 2>"$BUILD_DIR/failure.err"); then
     fail "artifact begin failure was accepted"
 fi
 [[ ! -e "$ROOT_DIR/$FAIL_REL" ]] || fail "failure published a partial artifact"

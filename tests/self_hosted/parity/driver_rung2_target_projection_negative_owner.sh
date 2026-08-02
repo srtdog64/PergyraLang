@@ -10,7 +10,7 @@ pgy_selfhost_verify_driver_rung2_target_projection_negative() {
 
     command=("$driver_bin" --self-test-missing-target-projection \
         "$(pgy_selfhost_path_relative_to_root "$self_mir_json")")
-    command+=("$machine_declaration")
+    command+=(--machine-manifest-json "$machine_declaration")
     if (cd "$ROOT_DIR" && "${command[@]}" \
         >"$self_mir_json.missing-target.out" \
         2>"$self_mir_json.missing-target.err"); then

@@ -117,7 +117,8 @@ pgy_selfhost_driver_rung2_produce_self_mir() {
             echo "[self-host-parity:driver-rung2] $backend machine MIR producer accepted missing declaration: $base" >&2
             return 1
         fi
-        command+=("$DRIVER_RUNG2_MACHINE_MANIFEST_REL")
+        command+=(--machine-manifest-json \
+            "$DRIVER_RUNG2_MACHINE_MANIFEST_REL")
     fi
     (cd "$ROOT_DIR" && "${command[@]}" \
         >"$self_mir_json.raw" 2>"$self_mir_json.err")

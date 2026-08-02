@@ -1,0 +1,139 @@
+// Installed composition-root executor for one admitted DRV-2 CLI request.
+// Artifact publication is reachable only through the explicit artifact
+// variants produced by driver_rung2_cli_request_owner.pgy.
+
+import "driver_rung2_cli_request_owner.pgy";
+import "driver_rung2_cli_read_execution_owner.pgy";
+
+func DriverRung2InstalledCommitSourceC(
+    source_path: String,
+    output_path: String
+) -> Void with caps io_read, io_write {
+    let committed: SelfMirArtifactCommitOutcome =
+        SelfMirArtifactCommitPayload(
+            output_path,
+            CompileSourceToCVerified(
+                source_path, SelfHostMachineLayerDeclarationEmpty()
+            ).payload
+        );
+    if !SelfMirArtifactCommitOutcomeReady(committed) {
+        Die("source compiler artifact transaction failed");
+    }
+}
+
+func DriverRung2InstalledPublishSourceMir(
+    source_path: String,
+    output_path: String,
+    source_request: DriverSourceMirRequest
+) -> Void with caps io_read, io_write {
+    let source_outcome: DriverSourceMirExecutionOutcome =
+        PublishSourceMirArtifactThroughPgyCompilerWorld(
+            source_path, output_path,
+            SelfHostMachineLayerDeclarationEmpty(), source_request
+        );
+    if !DriverSourceMirExecutionOutcomeReadyFor(
+        source_outcome, source_path, output_path, source_request
+    ) {
+        Log(DriverSourceMirExecutionOutcomeDiagnostic(
+            source_outcome, source_path, output_path, source_request
+        ));
+        Exit(1);
+    }
+}
+
+func DriverRung2InstalledCommitMirC(
+    input_path: String,
+    output_path: String,
+    observe_pressure: Bool
+) -> Void with caps io_read, io_write {
+    let payload: String = "";
+    if observe_pressure {
+        payload = CompileMirJsonToCVerifiedObserved(
+            input_path, SelfHostMachineLayerDeclarationEmpty()
+        ).payload;
+    } else {
+        payload = CompileMirJsonToCVerified(
+            input_path, SelfHostMachineLayerDeclarationEmpty()
+        ).payload;
+    }
+    let committed: SelfMirArtifactCommitOutcome =
+        SelfMirArtifactCommitPayload(output_path, payload);
+    if !SelfMirArtifactCommitOutcomeReady(committed) {
+        Die("MIR compiler artifact transaction failed");
+    }
+}
+
+func DriverRung2InstalledPublishDirectMir(
+    input_path: String,
+    output_path: String,
+    direct_request: DriverRung2DirectMirRequest
+) -> Void with caps io_read, io_write {
+    let outcome: DriverRung2ExecutionOutcome =
+        EmitDirectMirThroughPgyCompilerWorld(
+            input_path, output_path,
+            SelfHostMachineLayerDeclarationEmpty(), direct_request
+        );
+    let projection: String =
+        DriverRung2DirectMirRequestProjection(direct_request);
+    if !DriverRung2ExecutionOutcomeReadyFor(
+        outcome, output_path, projection
+    ) {
+        Log(DriverRung2ExecutionOutcomeDiagnostic(
+            outcome, output_path, projection
+        ));
+        Exit(1);
+    }
+}
+
+func DriverRung2ExecuteInstalledRequest(
+    request: DriverRung2CliRequest
+) -> Void with caps io_read, io_write {
+    match request {
+        case DriverCliSourceCArtifact(source_path, output_path):
+            DriverRung2InstalledCommitSourceC(source_path, output_path);
+        case DriverCliSourceMirArtifact(source_path, output_path):
+            DriverRung2InstalledPublishSourceMir(
+                source_path, output_path, SourceMirVerified
+            );
+        case DriverCliSourceMirPressureArtifact(source_path, output_path):
+            DriverRung2InstalledPublishSourceMir(
+                source_path, output_path, SourceMirPressureObserved
+            );
+        case DriverCliMirCArtifact(input_path, output_path):
+            DriverRung2InstalledCommitMirC(input_path, output_path, false);
+        case DriverCliMirCObservedArtifact(input_path, output_path):
+            DriverRung2InstalledCommitMirC(input_path, output_path, true);
+        case DriverCliDirectMirCArtifact(input_path, output_path):
+            DriverRung2InstalledPublishDirectMir(
+                input_path, output_path, DirectMirC
+            );
+        case DriverCliDirectMirLlvmArtifact(input_path, output_path):
+            DriverRung2InstalledPublishDirectMir(
+                input_path, output_path, DirectMirLlvm
+            );
+        case DriverCliSourceCStdout(source_path):
+            DriverRung2ExecuteReadRequest(request);
+        case DriverCliSourceCManifestStdout(source_path, manifest_path):
+            DriverRung2ExecuteReadRequest(request);
+        case DriverCliSourceMirStdout(source_path):
+            DriverRung2ExecuteReadRequest(request);
+        case DriverCliSourceMirManifestStdout(source_path, manifest_path):
+            DriverRung2ExecuteReadRequest(request);
+        case DriverCliCanonicalMirStdout(input_path):
+            DriverRung2ExecuteReadRequest(request);
+        case DriverCliCanonicalMirManifestStdout(input_path, manifest_path):
+            DriverRung2ExecuteReadRequest(request);
+        case DriverCliCanonicalOracleMirStdout(input_path):
+            DriverRung2ExecuteReadRequest(request);
+        case DriverCliCanonicalOracleMirManifestStdout(input_path, manifest_path):
+            DriverRung2ExecuteReadRequest(request);
+        case DriverCliMirCStdout(input_path):
+            DriverRung2ExecuteReadRequest(request);
+        case DriverCliMirCManifestStdout(input_path, manifest_path):
+            DriverRung2ExecuteReadRequest(request);
+        case DriverCliMissingProjectionProbe(input_path):
+            DriverRung2ExecuteReadRequest(request);
+        case DriverCliMissingProjectionManifestProbe(input_path, manifest_path):
+            DriverRung2ExecuteReadRequest(request);
+    }
+}

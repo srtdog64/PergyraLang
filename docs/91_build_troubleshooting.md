@@ -6,6 +6,42 @@
 
 ---
 
+## Installed and standalone self-host drivers interpret the same argv differently
+
+Symptom: `--emit-mir-json-verified SOURCE THIRD` or `--mir-json INPUT THIRD`
+writes a file under the installed driver but treats `THIRD` as a machine
+manifest under the standalone driver. Downstream compilation may still pass,
+so this is an argv ownership defect rather than a backend failure.
+
+The closed contract is `pergyra.selfhost-driver-cli.v1`:
+
+```text
+stdout + machine facts:
+  MODE INPUT --machine-manifest-json MANIFEST
+
+artifact publication:
+  --emit-mir-json-verified SOURCE -o OUTPUT
+  --mir-json INPUT -o OUTPUT
+  --mir-json-backend=c|llvm INPUT -o OUTPUT
+```
+
+`driver_rung2_cli_request_owner.pgy` must admit the complete argv once before
+I/O. `driver_rung2_cli_read_execution_owner.pgy` may execute only read/stdout
+variants; `driver_rung2_installed_cli_owner.pgy` owns artifact variants. Do not
+repair this by restoring positional-third guessing in either executor.
+
+The falsifier is
+`tests/self_hosted/parity/installed_driver_cli_mode_owner.sh`: legacy positional
+forms, missing `-o` values, option-shaped paths, extras, and empty argv must
+fail without output or transaction temporaries. Fixture manifests are test-only
+and must remain outside `driver_bootstrap_main.pgy`.
+
+When validating only this installed-driver change, do not use the full
+`make self-host-compiler` chain as a timing sample: that target may rebuild the
+seed parser and gen2 codegen first. Reuse the already validated seed and run
+`tests/self_hosted/parity/self_host_compiler_build.sh`, then state that the
+measurement covers the installed driver only.
+
 ## Role-operator targets disappear between semantic analysis and MIR
 
 A role operator is not primitive arithmetic merely because its source token is

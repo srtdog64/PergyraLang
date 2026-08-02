@@ -10,6 +10,7 @@ EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
 SOURCE_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_execution_owner.pgy"
 COMPOSITION="$ROOT_DIR/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
 MAIN="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
+INSTALLED="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
 COMPILER_ROOT="$ROOT_DIR/src/self_hosted/compiler"
 ARCH="$ROOT_DIR/docs/self_hosted/11_compiler_world_architecture.md"
 
@@ -24,6 +25,7 @@ fail() {
 [[ -f "$SOURCE_EXECUTION" ]] || fail "missing source-to-MIR execution owner"
 [[ -f "$COMPOSITION" ]] || fail "missing direct-MIR world composition owner"
 [[ -f "$MAIN" ]] || fail "missing production compiler entrypoint"
+[[ -f "$INSTALLED" ]] || fail "missing installed CLI request executor"
 [[ -f "$ARCH" ]] || fail "missing compiler world architecture"
 
 awk '
@@ -137,9 +139,10 @@ for owner_term in \
     "$COMPOSITION|return compiler_world.EmitDirectMir(" \
     "$COMPOSITION|return compiler_world.ProduceSourceMir(" \
     "$COMPOSITION|return compiler_world.PublishSourceMirArtifact(" \
-    "$MAIN|import \"compiler_world_direct_mir_owner.pgy\";" \
-    "$MAIN|EmitDirectMirThroughPgyCompilerWorld(" \
-    "$MAIN|PublishSourceMirArtifactThroughPgyCompilerWorld("; do
+    "$MAIN|import \"driver_rung2_installed_cli_owner.pgy\";" \
+    "$MAIN|DriverRung2ExecuteInstalledRequest(request);" \
+    "$INSTALLED|EmitDirectMirThroughPgyCompilerWorld(" \
+    "$INSTALLED|PublishSourceMirArtifactThroughPgyCompilerWorld("; do
     owner="${owner_term%%|*}"
     term="${owner_term#*|}"
     [[ "$(grep -F -c -- "$term" "$owner")" -eq 1 ]] ||
@@ -219,8 +222,8 @@ awk '
     /^\| `BackendResources\.Artifact` \| `ArtifactZone`, `TestHarnessZone`, `SubprocessRunnerZone`, `ParityZone` \|$/ { artifact++ }
     /^\| `BackendResources\.DirectMIR` \| `DriverRung2DirectMirZone` \|$/ { direct_mir++ }
     /^\| `BackendResources\.SourceMIR` \| `DriverSourceMirZone` \|$/ { source_mir++ }
-    /driver_bootstrap_main\.Main -> EmitDirectMirThroughPgyCompilerWorld/ { reachable_path++ }
-    /driver_bootstrap_main\.Main -> PublishSourceMirArtifactThroughPgyCompilerWorld/ { reachable_source_path++ }
+    /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishDirectMir -> EmitDirectMirThroughPgyCompilerWorld/ { reachable_path++ }
+    /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceMir -> PublishSourceMirArtifactThroughPgyCompilerWorld/ { reachable_source_path++ }
     /exactly 20 concrete resource zones and two executable world members/ { exact_topology++ }
     /target facade projection, not a claim that four new aggregate zones/ {
         projection++

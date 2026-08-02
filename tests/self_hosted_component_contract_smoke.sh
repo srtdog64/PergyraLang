@@ -4657,7 +4657,7 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     'import "driver_rung2_readiness_owner.pgy";'
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     'import "driver_rung2_semantic_fixture_manifest_owner.pgy";'
-require_text "src/self_hosted/compiler/driver_rung2_main.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_fixture_manifest_cli_owner.pgy" \
     'import "driver_rung2_semantic_fixture_manifest_owner.pgy";'
 reject_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" \
     'import "driver_rung2_semantic_fixture_manifest_owner.pgy";'
@@ -5369,7 +5369,7 @@ require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
     "MirProgramRoutineReceiverIdentityRowReady("
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
     "index.source_length != StringLength(index.source_json)"
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     '"--observe-mir-consumer-stages"'
 require_file "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" 600
@@ -5470,7 +5470,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"emitted-c", CompileArtifactToCVerified(artifact)'
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "MirFactGraphPayloadContractReady()"
-require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 'args[0] == "--mir-json"'
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 'args[0] == "--mir-json"'
 reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
     "GenerateCUnitFromReadySemanticFacts("
 require_file \
@@ -5506,20 +5506,20 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SelfMirProgramJson(projection.facts)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CompileSourceToMirJsonVerified("
-require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 'args[0] == "--emit-mir-json-verified"'
-require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 'args[0] == "--emit-mir-json-verified"'
+require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     'ProduceSourceMirThroughPgyCompilerWorld('
-require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     'DriverSourceMirExecutionOutcomePayloadReadyFor('
-reject_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" \
+reject_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     'CompileSourceToMirJsonVerified('
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     'PublishSourceMirArtifactThroughPgyCompilerWorld('
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     'DriverSourceMirExecutionOutcomeReadyFor('
-reject_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+reject_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     'CompileSourceToMirJsonPressureObserved('
-reject_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+reject_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     'CompileSourceToMirJsonVerified('
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     'CompileSourceToMirJsonFilePressureObserved('
@@ -5529,7 +5529,7 @@ reject_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     'let mir_json: String'
 reject_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     'SelfMirProgramJson('
-require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 'args[0] == "--canonicalize-mir-json"'
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 'args[0] == "--canonicalize-mir-json"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" '"src/self_hosted/mir_lower/fixture/class_method.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_member_access.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_member_call.pgy"'
@@ -7032,23 +7032,42 @@ reject_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIteration
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "MIR producer requires verified iteration type rows"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyVerdictFromFacts"
 require_file "src/self_hosted/compiler/driver_rung2_cli_owner.pgy"
-require_max_lines "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 100
+require_max_lines "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 40
 require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" "func RunDriverRung2FromArgs"
-require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" \
-    "func DriverRung2OptionalMachineDeclaration("
+require_file "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
+require_max_lines "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 240
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    "enum DriverRung2CliRequest"
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    "func DriverRung2CliRequestFromArgsOrDie("
+require_file "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
+require_max_lines "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" 140
+require_file "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
+require_max_lines "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" 160
+reject_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
+    "io_write"
+reject_regex_under "src/self_hosted/compiler" \
+    "DriverRung2OptionalMachineDeclaration\\("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func RunDriverRung2FromArgs"
 require_text "src/self_hosted/compiler/driver_rung2_main.pgy" 'import "driver_rung2_cli_owner.pgy";'
+require_max_lines "src/self_hosted/compiler/driver_rung2_main.pgy" 30
+require_file "src/self_hosted/compiler/driver_rung2_fixture_manifest_cli_owner.pgy"
+require_max_lines "src/self_hosted/compiler/driver_rung2_fixture_manifest_cli_owner.pgy" 60
+require_file "src/self_hosted/compiler/driver_rung2_fixture_manifest_main.pgy"
+require_max_lines "src/self_hosted/compiler/driver_rung2_fixture_manifest_main.pgy" 30
 require_text "src/self_hosted/compiler/driver_rung2_main.pgy" \
-    'import "driver_rung2_mir_manifest_owner.pgy";'
+    'import "driver_rung2_fixture_manifest_cli_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung2_main.pgy" \
-    'import "driver_rung2_semantic_fixture_manifest_owner.pgy";'
-require_text "src/self_hosted/compiler/driver_rung2_main.pgy" \
+    'DriverRung2TryRunFixtureManifest(run_args)'
+require_text "src/self_hosted/compiler/driver_rung2_fixture_manifest_cli_owner.pgy" \
     'args[0] == "--fixture-manifest"'
-require_text "src/self_hosted/compiler/driver_rung2_main.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_fixture_manifest_cli_owner.pgy" \
     'args[0] == "--mir-fixture-manifest"'
 require_text "src/self_hosted/compiler/driver_rung2_main.pgy" "RunDriverRung2FromArgs(run_args)"
 reject_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" \
     'import "driver_rung2_mir_manifest_owner.pgy";'
+reject_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    'driver_rung2_fixture_manifest_cli_owner.pgy'
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CheckProgram("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "LoadSemanticSource"
@@ -7130,7 +7149,11 @@ reject_text "src/compiler/self_host_driver.c" "system("
 require_text "src/compiler/self_host_llvm_driver.c" \
     'producer_argv[1] = "--emit-mir-json-verified"'
 require_text "src/compiler/self_host_llvm_driver.c" \
+    'producer_argv[3] = "-o"'
+require_text "src/compiler/self_host_llvm_driver.c" \
     'backend_argv[1] = "--mir-json-backend=llvm"'
+require_text "src/compiler/self_host_llvm_driver.c" \
+    'backend_argv[3] = "-o"'
 reject_text "src/compiler/self_host_llvm_driver.c" "path_read_file("
 reject_text "src/compiler/self_host_llvm_driver.c" "strstr("
 reject_text "src/compiler/self_host_llvm_driver.c" "driver_run_pipeline("
@@ -7149,13 +7172,15 @@ require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
 reject_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'DRIVER_SOURCE="src/self_hosted/compiler/driver_rung2_main.pgy"'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
-    'import "driver_rung2_cli_owner.pgy";'
+    'import "driver_rung2_cli_request_owner.pgy";'
+require_max_lines "src/self_hosted/compiler/driver_bootstrap_main.pgy" 30
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
-    "RunDriverRung2FromArgs(args);"
+    'import "driver_rung2_installed_cli_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
-    'args[0] == "--emit-c-artifact-verified"'
-reject_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
-    "if ArrayLength(args) == 2 {"
+    "DriverRung2CliRequestFromArgsOrDie(Args())"
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    "DriverRung2ExecuteInstalledRequest(request);"
+reject_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "args["
 require_file "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh"
 require_text "Makefile" "self-host-installed-driver-cli-mode-test-smoke"
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
@@ -7207,7 +7232,7 @@ require_file \
 require_max_lines \
     "tests/self_hosted/parity/fixture/counting_self_host_llvm_driver.c" 90
 require_text "Makefile" \
-    'self-host-default-llvm-replacement-test-smoke: $(PGY) self-host-compiler'
+    'self-host-default-llvm-replacement-test-smoke: $(PGY) self-host-installed-driver-cli-mode-test-smoke'
 require_text \
     "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
     "public LLVM path did not invoke producer/backend exactly once"
@@ -15215,15 +15240,15 @@ require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'func ProduceSourceMirThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'func PublishSourceMirArtifactThroughPgyCompilerWorld('
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
-    'import "compiler_world_direct_mir_owner.pgy";'
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+    'import "driver_rung2_cli_request_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     'EmitDirectMirThroughPgyCompilerWorld('
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     'PublishSourceMirArtifactThroughPgyCompilerWorld('
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[0] == "--mir-json-backend=c"'
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[0] == "--mir-json-backend=llvm"'
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
     'func CompileMirJsonToDirectBackendVerified('
@@ -15539,7 +15564,7 @@ reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"src/self_hosted/
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'args[0] == "--fixture-manifest"'
 require_text "src/self_hosted/compiler/driver_cli_owner.pgy" 'args[0] == "--fixture-manifest"'
 require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "EmitDriverParityFixtureManifest()"
-require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" '"--emit-c-verified"'
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" '"--emit-c-verified"'
 require_file "tests/self_hosted/parity/driver_rung2_body_parity.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_body_parity.sh" 310
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" '"driver-rung2-paths"'

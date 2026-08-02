@@ -71,7 +71,7 @@ EOF
 project() {
     local input="$1" target="$2" output="$3"
     rm -f "$output" "$output.stdout" "$output.stderr"
-    (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" "$(root_relative "$input")" "$(root_relative "$output")" >"$output.stdout" 2>"$output.stderr") || {
+    (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" "$(root_relative "$input")" -o "$(root_relative "$output")" >"$output.stdout" 2>"$output.stderr") || {
         cat "$output.stdout" "$output.stderr" >&2 || true
         fail "$target rejected inferred generic member MIR"
     }
@@ -82,7 +82,7 @@ reject_mutation() {
     local name="$1" target="${2:-c}" input_dir="${3:-$WORK_DIR}" output
     output="$input_dir/$name.$target.artifact"
     rm -f "$output" "$output.stdout" "$output.stderr"
-    if (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" "$(root_relative "$input_dir/$name.json")" "$(root_relative "$output")" >"$output.stdout" 2>"$output.stderr"); then
+    if (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" "$(root_relative "$input_dir/$name.json")" -o "$(root_relative "$output")" >"$output.stdout" 2>"$output.stderr"); then
         fail "$target accepted inferred generic member mutation: $name"
     fi
     [[ ! -e "$output" ]] || fail "$target emitted before rejecting $name"
@@ -109,7 +109,7 @@ assert_owner_ratchet
 mkdir -p "$WORK_DIR"
 rm -f "$MIR" "$NATIVE_MIR"
 # The gate must produce source MIR exactly once; every projection reuses it.
-(cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified "$(root_relative "$SOURCE")" "$(root_relative "$MIR")") || fail "source-to-MIR rejected inferred generic member fixture"
+(cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified "$(root_relative "$SOURCE")" -o "$(root_relative "$MIR")") || fail "source-to-MIR rejected inferred generic member fixture"
 mir_digest="$(hash_file "$MIR")"
 (cd "$ROOT_DIR" && "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$SOURCE")" >"$NATIVE_MIR") || fail "native MIR oracle rejected inferred generic member fixture"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_inferred_generic_member_mutations.py" "$MIR" "$NATIVE_MIR" compare || fail "native/self member semantic parity drifted"
@@ -156,7 +156,7 @@ for mutation in declaration-kind-drift nominal-kind-drift declaration-name-drift
 for mutation in specialization-symbol-drift inner-target-kind-drift stale-output-use constructor-physical-layout; do reject_mutation "$mutation" llvm; done
 
 mkdir -p "$VESSEL_DIR"
-(cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified "$(root_relative "$VESSEL_SOURCE")" "$(root_relative "$VESSEL_MIR")") || fail "source-to-MIR rejected vessel member fixture"
+(cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified "$(root_relative "$VESSEL_SOURCE")" -o "$(root_relative "$VESSEL_MIR")") || fail "source-to-MIR rejected vessel member fixture"
 (cd "$ROOT_DIR" && "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$VESSEL_SOURCE")" >"$VESSEL_NATIVE_MIR") || fail "native MIR oracle rejected vessel member fixture"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_inferred_generic_member_mutations.py" "$VESSEL_MIR" "$VESSEL_NATIVE_MIR" compare || fail "native/self vessel nominal semantics drifted"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_inferred_generic_member_mutations.py" "$VESSEL_MIR" "$VESSEL_DIR"

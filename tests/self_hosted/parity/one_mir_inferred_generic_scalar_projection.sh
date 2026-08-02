@@ -59,7 +59,7 @@ EOF
 project() {
     local input="$1" target="$2" output="$3"
     rm -f "$output" "$output.stdout" "$output.stderr"
-    (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" "$(root_relative "$input")" "$(root_relative "$output")" >"$output.stdout" 2>"$output.stderr") || {
+    (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" "$(root_relative "$input")" -o "$(root_relative "$output")" >"$output.stdout" 2>"$output.stderr") || {
         cat "$output.stdout" "$output.stderr" >&2 || true
         fail "$target rejected inferred generic scalar MIR"
     }
@@ -70,7 +70,7 @@ reject_mutation() {
     local name="$1" target="${2:-c}" output
     output="$WORK_DIR/$name.$target.artifact"
     rm -f "$output" "$output.stdout" "$output.stderr"
-    if (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" "$(root_relative "$WORK_DIR/$name.json")" "$(root_relative "$output")" >"$output.stdout" 2>"$output.stderr"); then
+    if (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" "$(root_relative "$WORK_DIR/$name.json")" -o "$(root_relative "$output")" >"$output.stdout" 2>"$output.stderr"); then
         fail "$target accepted inferred generic scalar mutation: $name"
     fi
     [[ ! -e "$output" ]] || fail "$target emitted before rejecting $name"
@@ -97,7 +97,7 @@ assert_owner_ratchet
 mkdir -p "$WORK_DIR"
 rm -f "$MIR" "$NATIVE_MIR"
 # The gate must produce source MIR exactly once; every projection reuses it.
-(cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified "$(root_relative "$SOURCE")" "$(root_relative "$MIR")") || fail "source-to-MIR producer rejected inferred generic scalar fixture"
+(cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified "$(root_relative "$SOURCE")" -o "$(root_relative "$MIR")") || fail "source-to-MIR producer rejected inferred generic scalar fixture"
 mir_digest="$(hash_file "$MIR")"
 (cd "$ROOT_DIR" && "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$SOURCE")" >"$NATIVE_MIR") || fail "native MIR oracle rejected inferred generic scalar fixture"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_inferred_generic_scalar_mutations.py" "$MIR" "$NATIVE_MIR" compare || fail "native/self inferred scalar graph or ABI parity drifted"

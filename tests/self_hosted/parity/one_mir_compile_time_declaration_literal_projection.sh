@@ -25,7 +25,7 @@ project() {
     local target="$1" input="$2" output="$3"
     rm -f "$output" "$output.out" "$output.err"
     (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$target" \
-        "$(rel "$input")" "$(rel "$output")" >"$output.out" 2>"$output.err") || {
+        "$(rel "$input")" -o "$(rel "$output")" >"$output.out" 2>"$output.err") || {
         cat "$output.out" "$output.err" >&2 || true
         fail "$target rejected admitted positive MIR: ${input##*/}"
     }
@@ -51,7 +51,7 @@ reject_case() {
         output="$WORK/rejected-$target-${input##*/}"
         rm -f "$output" "$output.out" "$output.err"
         if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$target" \
-            "$(rel "$input")" "$(rel "$output")" >"$output.out" 2>"$output.err"); then
+            "$(rel "$input")" -o "$(rel "$output")" >"$output.out" 2>"$output.err"); then
             fail "$target accepted negative MIR: ${input##*/}"
         fi
         [[ ! -e "$output" ]] || fail "$target published a rejected artifact: ${input##*/}"
@@ -86,7 +86,7 @@ grep -Fq 'DirectMirLiteralLogPlanFromAdmitted(admitted)' "$ROOT_OWNER" || fail "
 ! grep -Eq 'Json|MirMachine|source_json|Arithmetic|Add|ability' "$EMISSION" || fail "emitter reopened MIR or declaration policy"
 
 rm -f "$MIR"
-(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$(rel "$FIXTURE")" "$(rel "$MIR")") \
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$(rel "$FIXTURE")" -o "$(rel "$MIR")") \
     >"$WORK/produce.out" 2>"$WORK/produce.err" || fail "source-to-MIR failed"
 [[ -s "$MIR" ]] || fail "source-to-MIR emitted no artifact"
 python "$MUTATOR" "$MIR" "$WORK"

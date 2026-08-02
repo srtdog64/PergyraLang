@@ -258,7 +258,7 @@ forbid_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 forbid_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "CompileSourceToCVerified" \
     "CanonicalizeOracleMirJsonBridge("
-require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[0] == "--canonicalize-oracle-mir-json"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/device_slot_machine_layer/main.pgy"'
@@ -937,7 +937,11 @@ require_text "src/compiler/llvm_runner.c" \
 require_text "src/compiler/self_host_llvm_driver.c" \
     'producer_argv[1] = "--emit-mir-json-verified"'
 require_text "src/compiler/self_host_llvm_driver.c" \
+    'producer_argv[3] = "-o"'
+require_text "src/compiler/self_host_llvm_driver.c" \
     'backend_argv[1] = "--mir-json-backend=llvm"'
+require_text "src/compiler/self_host_llvm_driver.c" \
+    'backend_argv[3] = "-o"'
 forbid_text "src/compiler/self_host_llvm_driver.c" "driver_run_pipeline("
 forbid_text "src/compiler/self_host_llvm_driver.c" \
     "compiler_build_native_llvm("

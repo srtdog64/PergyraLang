@@ -1,0 +1,226 @@
+// Sole argv-to-request admission owner for the DRV-2 compiler surface.
+//
+// This owner is intentionally pure: it assigns one meaning to each exact argv
+// shape before either composition root reads source/MIR or publishes output.
+
+enum DriverRung2CliRequest {
+    DriverCliSourceCStdout(String),
+    DriverCliSourceCManifestStdout(String, String),
+    DriverCliSourceCArtifact(String, String),
+    DriverCliSourceMirStdout(String),
+    DriverCliSourceMirManifestStdout(String, String),
+    DriverCliSourceMirArtifact(String, String),
+    DriverCliSourceMirPressureArtifact(String, String),
+    DriverCliCanonicalMirStdout(String),
+    DriverCliCanonicalMirManifestStdout(String, String),
+    DriverCliCanonicalOracleMirStdout(String),
+    DriverCliCanonicalOracleMirManifestStdout(String, String),
+    DriverCliMirCStdout(String),
+    DriverCliMirCManifestStdout(String, String),
+    DriverCliMirCArtifact(String, String),
+    DriverCliMirCObservedArtifact(String, String),
+    DriverCliMissingProjectionProbe(String),
+    DriverCliMissingProjectionManifestProbe(String, String),
+    DriverCliDirectMirCArtifact(String, String),
+    DriverCliDirectMirLlvmArtifact(String, String),
+}
+
+func DriverRung2CliPathOperandOrDie(
+    path: String,
+    purpose: String
+) -> String {
+    if path == "" || StartsWith(path, "-") {
+        Die(Concat(purpose, " must be a non-option path"));
+    }
+    return path;
+}
+
+func DriverRung2CliArtifactPathsOrDie(
+    input_path: String,
+    output_path: String
+) -> Void {
+    if input_path == output_path {
+        Die("driver rung-2 input and output paths must differ");
+    }
+}
+
+func DriverRung2CliRequestFromArgsOrDie(
+    args: Array<String>
+) -> DriverRung2CliRequest {
+    let count: Int = ArrayLength(args);
+    if count == 0 {
+        Die("driver rung-2 requires an explicit source or mode");
+    }
+
+    if args[0] == "--emit-c-artifact-verified" {
+        if count != 3 {
+            Die("source C artifact mode requires source and output paths");
+        }
+        let source_path: String = DriverRung2CliPathOperandOrDie(
+            args[1], "source C input path"
+        );
+        let output_path: String = DriverRung2CliPathOperandOrDie(
+            args[2], "source C artifact output path"
+        );
+        DriverRung2CliArtifactPathsOrDie(source_path, output_path);
+        return DriverCliSourceCArtifact(source_path, output_path);
+    }
+
+    if args[0] == "--emit-mir-json-verified" {
+        if count == 2 {
+            return DriverCliSourceMirStdout(
+                DriverRung2CliPathOperandOrDie(args[1], "source MIR input path")
+            );
+        }
+        if count == 4 && args[2] == "--machine-manifest-json" {
+            return DriverCliSourceMirManifestStdout(
+                DriverRung2CliPathOperandOrDie(args[1], "source MIR input path"),
+                DriverRung2CliPathOperandOrDie(args[3], "machine manifest path")
+            );
+        }
+        if count == 4 && args[2] == "-o" {
+            let source_path: String = DriverRung2CliPathOperandOrDie(
+                args[1], "source MIR input path"
+            );
+            let output_path: String = DriverRung2CliPathOperandOrDie(
+                args[3], "source MIR artifact output path"
+            );
+            DriverRung2CliArtifactPathsOrDie(source_path, output_path);
+            return DriverCliSourceMirArtifact(source_path, output_path);
+        }
+        if count == 5 && args[2] == "--pressure-owned-full-fixpoint" &&
+            args[3] == "-o" {
+            let source_path: String = DriverRung2CliPathOperandOrDie(
+                args[1], "source MIR pressure input path"
+            );
+            let output_path: String = DriverRung2CliPathOperandOrDie(
+                args[4], "source MIR pressure output path"
+            );
+            DriverRung2CliArtifactPathsOrDie(source_path, output_path);
+            return DriverCliSourceMirPressureArtifact(
+                source_path, output_path
+            );
+        }
+        Die("source MIR mode requires stdout, explicit machine manifest, or -o artifact syntax");
+    }
+
+    if args[0] == "--canonicalize-mir-json" {
+        if count == 2 {
+            return DriverCliCanonicalMirStdout(
+                DriverRung2CliPathOperandOrDie(args[1], "canonical MIR input path")
+            );
+        }
+        if count == 4 && args[2] == "--machine-manifest-json" {
+            return DriverCliCanonicalMirManifestStdout(
+                DriverRung2CliPathOperandOrDie(args[1], "canonical MIR input path"),
+                DriverRung2CliPathOperandOrDie(args[3], "machine manifest path")
+            );
+        }
+        Die("canonical MIR mode requires input and optional explicit machine manifest");
+    }
+
+    if args[0] == "--canonicalize-oracle-mir-json" {
+        if count == 2 {
+            return DriverCliCanonicalOracleMirStdout(
+                DriverRung2CliPathOperandOrDie(args[1], "oracle MIR input path")
+            );
+        }
+        if count == 4 && args[2] == "--machine-manifest-json" {
+            return DriverCliCanonicalOracleMirManifestStdout(
+                DriverRung2CliPathOperandOrDie(args[1], "oracle MIR input path"),
+                DriverRung2CliPathOperandOrDie(args[3], "machine manifest path")
+            );
+        }
+        Die("oracle MIR mode requires input and optional explicit machine manifest");
+    }
+
+    if args[0] == "--mir-json" {
+        if count == 2 {
+            return DriverCliMirCStdout(
+                DriverRung2CliPathOperandOrDie(args[1], "MIR C input path")
+            );
+        }
+        if count == 4 && args[2] == "--machine-manifest-json" {
+            return DriverCliMirCManifestStdout(
+                DriverRung2CliPathOperandOrDie(args[1], "MIR C input path"),
+                DriverRung2CliPathOperandOrDie(args[3], "machine manifest path")
+            );
+        }
+        if count == 4 && args[2] == "-o" {
+            let input_path: String = DriverRung2CliPathOperandOrDie(
+                args[1], "MIR C input path"
+            );
+            let output_path: String = DriverRung2CliPathOperandOrDie(
+                args[3], "MIR C artifact output path"
+            );
+            DriverRung2CliArtifactPathsOrDie(input_path, output_path);
+            return DriverCliMirCArtifact(input_path, output_path);
+        }
+        if count == 5 && args[2] == "--observe-mir-consumer-stages" &&
+            args[3] == "-o" {
+            let input_path: String = DriverRung2CliPathOperandOrDie(
+                args[1], "observed MIR C input path"
+            );
+            let output_path: String = DriverRung2CliPathOperandOrDie(
+                args[4], "observed MIR C output path"
+            );
+            DriverRung2CliArtifactPathsOrDie(input_path, output_path);
+            return DriverCliMirCObservedArtifact(input_path, output_path);
+        }
+        Die("MIR C mode requires stdout, explicit machine manifest, or -o artifact syntax");
+    }
+
+    if args[0] == "--self-test-missing-target-projection" {
+        if count == 2 {
+            return DriverCliMissingProjectionProbe(
+                DriverRung2CliPathOperandOrDie(args[1], "missing-projection MIR input path")
+            );
+        }
+        if count == 4 && args[2] == "--machine-manifest-json" {
+            return DriverCliMissingProjectionManifestProbe(
+                DriverRung2CliPathOperandOrDie(args[1], "missing-projection MIR input path"),
+                DriverRung2CliPathOperandOrDie(args[3], "machine manifest path")
+            );
+        }
+        Die("missing-target-projection probe requires input and optional explicit machine manifest");
+    }
+
+    if args[0] == "--mir-json-backend=c" ||
+        args[0] == "--mir-json-backend=llvm" {
+        if count != 4 || args[2] != "-o" {
+            Die("direct MIR backend mode requires input and -o output");
+        }
+        let input_path: String = DriverRung2CliPathOperandOrDie(
+            args[1], "direct MIR input path"
+        );
+        let output_path: String = DriverRung2CliPathOperandOrDie(
+            args[3], "direct MIR artifact output path"
+        );
+        DriverRung2CliArtifactPathsOrDie(input_path, output_path);
+        if args[0] == "--mir-json-backend=llvm" {
+            return DriverCliDirectMirLlvmArtifact(input_path, output_path);
+        }
+        return DriverCliDirectMirCArtifact(input_path, output_path);
+    }
+    if StringLength(args[0]) >= 19 &&
+        Substring(args[0], 0, 19) == "--mir-json-backend=" {
+        Die("unknown direct MIR backend target; expected c or llvm");
+    }
+    if StartsWith(args[0], "-") {
+        Die(Concat("unknown driver rung-2 mode: ", args[0]));
+    }
+
+    let source_path: String = DriverRung2CliPathOperandOrDie(
+        args[0], "source C input path"
+    );
+    if count == 1 || (count == 2 && args[1] == "--emit-c-verified") {
+        return DriverCliSourceCStdout(source_path);
+    }
+    if count == 3 && args[1] == "--machine-manifest-json" {
+        return DriverCliSourceCManifestStdout(
+            source_path,
+            DriverRung2CliPathOperandOrDie(args[2], "machine manifest path")
+        );
+    }
+    Die("source C mode requires --emit-c-verified or --machine-manifest-json PATH");
+}

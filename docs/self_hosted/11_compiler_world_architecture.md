@@ -12,13 +12,13 @@ share the same source-to-MIR world/action owner; source folders remain fact
 boundaries, not competing program graphs. The reachable paths are:
 
 ```text
-driver_bootstrap_main.Main -> EmitDirectMirThroughPgyCompilerWorld
+driver_bootstrap_main.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishDirectMir -> EmitDirectMirThroughPgyCompilerWorld
     -> PgyCompilerWorld.EmitDirectMir
     -> PgyCompilerWorld.direct_mir
     -> DriverRung2DirectMirZone.execution
     -> DriverRung2Execution.EmitDirectMir
 
-driver_bootstrap_main.Main -> PublishSourceMirArtifactThroughPgyCompilerWorld
+driver_bootstrap_main.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceMir -> PublishSourceMirArtifactThroughPgyCompilerWorld
     -> PgyCompilerWorld.PublishSourceMirArtifact
     -> PgyCompilerWorld.source_mir
     -> DriverSourceMirZone.execution

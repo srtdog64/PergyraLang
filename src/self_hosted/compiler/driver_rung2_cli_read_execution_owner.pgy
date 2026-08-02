@@ -1,0 +1,117 @@
+// Read-only DRV-2 request execution owner shared by both composition roots.
+
+import "driver_rung2_cli_request_owner.pgy";
+import "compiler_world_direct_mir_owner.pgy";
+
+func DriverRung2CliLogSourceMirPayloadOrDie(
+    source_path: String,
+    declaration: SelfHostMachineLayerDeclaration
+) -> Void with caps io_read {
+    let source_outcome: DriverSourceMirExecutionOutcome =
+        ProduceSourceMirThroughPgyCompilerWorld(
+            source_path, declaration, SourceMirVerified
+        );
+    if !DriverSourceMirExecutionOutcomePayloadReadyFor(
+        source_outcome, source_path, SourceMirVerified
+    ) {
+        Log(DriverSourceMirExecutionOutcomePayloadDiagnostic(
+            source_outcome, source_path, SourceMirVerified
+        ));
+        Exit(1);
+    }
+    match source_outcome {
+        case DriverSourceMirProduced(receipt): Log(receipt.payload);
+        case DriverSourceMirExecuted(receipt):
+            Die("source MIR stdout request published an artifact");
+        case DriverSourceMirRejected(rejection):
+            Die("source MIR stdout request returned an unchecked rejection");
+        case DriverSourceMirArtifactRejected(failure):
+            Die("source MIR stdout request reached artifact publication");
+    }
+}
+
+func DriverRung2ExecuteReadRequest(
+    request: DriverRung2CliRequest
+) -> Void with caps io_read {
+    match request {
+        case DriverCliSourceCStdout(source_path):
+            Log(CompileSourceToCVerified(
+                source_path, SelfHostMachineLayerDeclarationEmpty()
+            ).payload);
+        case DriverCliSourceCManifestStdout(source_path, manifest_path):
+            Log(CompileSourceToCVerified(
+                source_path,
+                SelfHostMachineLayerDeclarationFromPath(manifest_path)
+            ).payload);
+        case DriverCliSourceMirStdout(source_path):
+            DriverRung2CliLogSourceMirPayloadOrDie(
+                source_path, SelfHostMachineLayerDeclarationEmpty()
+            );
+        case DriverCliSourceMirManifestStdout(source_path, manifest_path):
+            DriverRung2CliLogSourceMirPayloadOrDie(
+                source_path,
+                SelfHostMachineLayerDeclarationFromPath(manifest_path)
+            );
+        case DriverCliCanonicalMirStdout(input_path):
+            Log(CanonicalizeMirJsonVerified(
+                input_path, SelfHostMachineLayerDeclarationEmpty()
+            ));
+        case DriverCliCanonicalMirManifestStdout(input_path, manifest_path):
+            Log(CanonicalizeMirJsonVerified(
+                input_path,
+                SelfHostMachineLayerDeclarationFromPath(manifest_path)
+            ));
+        case DriverCliCanonicalOracleMirStdout(input_path):
+            Log(CanonicalizeOracleMirJsonBridge(
+                input_path, SelfHostMachineLayerDeclarationEmpty()
+            ));
+        case DriverCliCanonicalOracleMirManifestStdout(input_path, manifest_path):
+            Log(CanonicalizeOracleMirJsonBridge(
+                input_path,
+                SelfHostMachineLayerDeclarationFromPath(manifest_path)
+            ));
+        case DriverCliMirCStdout(input_path):
+            Log(CompileMirJsonToCVerified(
+                input_path, SelfHostMachineLayerDeclarationEmpty()
+            ).payload);
+        case DriverCliMirCManifestStdout(input_path, manifest_path):
+            Log(CompileMirJsonToCVerified(
+                input_path,
+                SelfHostMachineLayerDeclarationFromPath(manifest_path)
+            ).payload);
+        case DriverCliMissingProjectionProbe(input_path):
+            DriverRung2RunMissingProjectionProbe(
+                input_path, SelfHostMachineLayerDeclarationEmpty()
+            );
+        case DriverCliMissingProjectionManifestProbe(input_path, manifest_path):
+            DriverRung2RunMissingProjectionProbe(
+                input_path,
+                SelfHostMachineLayerDeclarationFromPath(manifest_path)
+            );
+        case DriverCliSourceCArtifact(source_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliSourceMirArtifact(source_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliSourceMirPressureArtifact(source_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliMirCArtifact(input_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliMirCObservedArtifact(input_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliDirectMirCArtifact(input_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliDirectMirLlvmArtifact(input_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
+    }
+}
+
+func DriverRung2RunMissingProjectionProbe(
+    input_path: String,
+    declaration: SelfHostMachineLayerDeclaration
+) -> Void with caps io_read {
+    let json: String = MirJsonReadInput(input_path, declaration);
+    CompileMirJsonTextToCForTargetVerified(
+        json, declaration, CompilerTargetProjectionFactEmpty()
+    );
+    Die("missing target projection fact was accepted");
+}

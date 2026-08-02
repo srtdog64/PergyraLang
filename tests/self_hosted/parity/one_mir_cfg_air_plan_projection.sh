@@ -130,7 +130,7 @@ produce_one_mir() {
     mir_rel="$(root_relative "$MIR_ARTIFACT")"
     rm -f "$MIR_ARTIFACT"
     if ! (cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified \
-        "$source_rel" "$mir_rel" >"$WORK_DIR/producer.out" \
+        "$source_rel" -o "$mir_rel" >"$WORK_DIR/producer.out" \
         2>"$WORK_DIR/producer.err"); then
         cat "$WORK_DIR/producer.out" "$WORK_DIR/producer.err" >&2 || true
         fail "Pergyra seed failed to produce ${SOURCE##*/} MIR"
@@ -146,7 +146,7 @@ project_one_target() {
     output_rel="$(root_relative "$output")"
     rm -f "$output"
     if ! (cd "$ROOT_DIR" && "$DRIVER_BIN" \
-        "--mir-json-backend=$target" "$input_rel" "$output_rel" \
+        "--mir-json-backend=$target" "$input_rel" -o "$output_rel" \
         >"$WORK_DIR/project-$target.out" 2>"$WORK_DIR/project-$target.err"); then
         cat "$WORK_DIR/project-$target.out" \
             "$WORK_DIR/project-$target.err" >&2 || true
@@ -177,7 +177,7 @@ expect_rejected_without_artifact() {
         output_rel="$(root_relative "$output")"
         rm -f "$output" "$stdout" "$stderr"
         if (cd "$ROOT_DIR" && "$DRIVER_BIN" \
-            "--mir-json-backend=$target" "$input_rel" "$output_rel" \
+            "--mir-json-backend=$target" "$input_rel" -o "$output_rel" \
             >"$stdout" 2>"$stderr"); then
             fail "$target accepted mutated $fact"
         fi

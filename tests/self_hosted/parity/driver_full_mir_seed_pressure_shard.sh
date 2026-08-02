@@ -44,5 +44,5 @@ cd "$ROOT_DIR"
 "$DRIVER_SEED" \
     --emit-mir-json-verified \
     "$DRIVER_SOURCE_REL" \
-    "$OUTPUT_REL" \
-    --pressure-owned-full-fixpoint
+    --pressure-owned-full-fixpoint \
+    -o "$OUTPUT_REL"

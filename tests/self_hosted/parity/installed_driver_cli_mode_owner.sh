@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Installed composition-root proof for distinct source-C stdout and artifact
-# effects. The removed source/output positional form must stay rejected.
+# Installed composition-root proof for one exact argv request owner. Read-only
+# stdout and explicit artifact effects must not share a positional shape.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -69,11 +69,38 @@ source_hash_before="$(sha256sum "$ROOT_DIR/$SOURCE_REL" | awk '{print $1}')"
     fail "source-MIR stdout mode remained shadowed"
 grep -Fq '"schema":"pgy.mir.v1"' "$WORK_DIR/source.mir.json" ||
     fail "source-MIR stdout mode emitted no canonical MIR"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \
+    -o "$WORK_REL/source.artifact.mir.json" \
+    >"$WORK_DIR/source-artifact.out" \
+    2>"$WORK_DIR/source-artifact.err") ||
+    fail "explicit source-MIR artifact mode failed"
+[[ -s "$WORK_DIR/source.artifact.mir.json" ]] ||
+    fail "source-MIR artifact mode emitted no artifact"
+[[ ! -s "$WORK_DIR/source-artifact.out" ]] ||
+    fail "source-MIR artifact mode leaked payload to stdout"
+tr -d '\r\n' <"$WORK_DIR/source.mir.json" >"$WORK_DIR/source.stdout.normalized.json"
+tr -d '\r\n' <"$WORK_DIR/source.artifact.mir.json" >"$WORK_DIR/source.artifact.normalized.json"
+cmp -s "$WORK_DIR/source.stdout.normalized.json" \
+    "$WORK_DIR/source.artifact.normalized.json" ||
+    fail "source-MIR stdout and artifact payloads differ"
 (cd "$ROOT_DIR" && "$DRIVER" --mir-json "$WORK_REL/source.mir.json" \
     >"$WORK_DIR/mir.c" 2>"$WORK_DIR/mir.err") ||
     fail "MIR-C stdout mode remained shadowed"
 grep -Fq '#include' "$WORK_DIR/mir.c" ||
     fail "MIR-C stdout mode emitted no C"
+(cd "$ROOT_DIR" && "$DRIVER" --mir-json "$WORK_REL/source.mir.json" \
+    -o "$WORK_REL/mir.artifact.c" >"$WORK_DIR/mir-artifact.out" \
+    2>"$WORK_DIR/mir-artifact.err") ||
+    fail "explicit MIR-C artifact mode failed"
+[[ -s "$WORK_DIR/mir.artifact.c" ]] ||
+    fail "MIR-C artifact mode emitted no artifact"
+[[ ! -s "$WORK_DIR/mir-artifact.out" ]] ||
+    fail "MIR-C artifact mode leaked payload to stdout"
+tr -d '\r' <"$WORK_DIR/mir.c" >"$WORK_DIR/mir.stdout.normalized.c"
+tr -d '\r' <"$WORK_DIR/mir.artifact.c" >"$WORK_DIR/mir.artifact.normalized.c"
+cmp -s "$WORK_DIR/mir.stdout.normalized.c" \
+    "$WORK_DIR/mir.artifact.normalized.c" ||
+    fail "MIR-C stdout and artifact payloads differ"
 source_hash_after="$(sha256sum "$ROOT_DIR/$SOURCE_REL" | awk '{print $1}')"
 [[ "$source_hash_before" == "$source_hash_after" ]] ||
     fail "stdout mode overwrote its source operand"
@@ -91,22 +118,64 @@ missing_rc=$?
 (cd "$ROOT_DIR" && "$DRIVER" "$MODE" "$SOURCE_REL" "$OUTPUT_FLAG" \
     >"$WORK_DIR/output-flag.out" 2>"$WORK_DIR/output-flag.err")
 output_flag_rc=$?
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \
+    "$WORK_REL/legacy-source.mir.json" \
+    >"$WORK_DIR/legacy-source-mir.out" \
+    2>"$WORK_DIR/legacy-source-mir.err")
+legacy_source_mir_rc=$?
+(cd "$ROOT_DIR" && "$DRIVER" --mir-json "$WORK_REL/source.mir.json" \
+    "$WORK_REL/legacy-mir.c" >"$WORK_DIR/legacy-mir-c.out" \
+    2>"$WORK_DIR/legacy-mir-c.err")
+legacy_mir_c_rc=$?
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" -o \
+    >"$WORK_DIR/missing-source-output.out" \
+    2>"$WORK_DIR/missing-source-output.err")
+missing_source_output_rc=$?
+(cd "$ROOT_DIR" && "$DRIVER" --mir-json "$WORK_REL/source.mir.json" -o \
+    >"$WORK_DIR/missing-mir-output.out" \
+    2>"$WORK_DIR/missing-mir-output.err")
+missing_mir_output_rc=$?
+(cd "$ROOT_DIR" && "$DRIVER" >"$WORK_DIR/empty.out" 2>"$WORK_DIR/empty.err")
+empty_rc=$?
 set -e
 
 [[ "$legacy_rc" -ne 0 && ! -e "$WORK_DIR/legacy.c" ]] ||
     fail "removed positional artifact form was accepted"
-grep -Fq 'unknown driver rung-2 mode' "$WORK_DIR/legacy.out" ||
+grep -Fq 'source C mode requires' "$WORK_DIR/legacy.out" ||
     fail "removed positional form lost its owned diagnostic"
 [[ "$unknown_rc" -ne 0 && ! -e "$UNKNOWN_PATH" ]] ||
     fail "unknown option was accepted as an output path"
-grep -Fq 'unknown driver rung-2 mode' "$WORK_DIR/unknown.out" ||
+grep -Fq 'source C mode requires' "$WORK_DIR/unknown.out" ||
     fail "unknown option lost its owned diagnostic"
 [[ "$missing_rc" -ne 0 ]] || fail "artifact mode accepted a missing output"
 grep -Fq 'requires source and output paths' "$WORK_DIR/missing.out" ||
     fail "missing artifact output lost its owned diagnostic"
 [[ "$output_flag_rc" -ne 0 && ! -e "$OUTPUT_FLAG_PATH" ]] ||
     fail "artifact mode accepted an option token as output"
-grep -Fq 'output path must not be an option token' \
+grep -Fq 'output path must be a non-option path' \
     "$WORK_DIR/output-flag.out" || fail "output-option rejection lost its diagnostic"
 
-echo "[self-host-installed-cli-mode] stdout and atomic artifact modes are disjoint; positional fallback rejected"
+[[ "$legacy_source_mir_rc" -ne 0 && \
+    ! -e "$WORK_DIR/legacy-source.mir.json" ]] ||
+    fail "ambiguous positional source-MIR artifact form was accepted"
+grep -Fq 'source MIR mode requires' "$WORK_DIR/legacy-source-mir.out" ||
+    fail "positional source-MIR rejection lost its owned diagnostic"
+[[ "$legacy_mir_c_rc" -ne 0 && ! -e "$WORK_DIR/legacy-mir.c" ]] ||
+    fail "ambiguous positional MIR-C artifact form was accepted"
+grep -Fq 'MIR C mode requires' "$WORK_DIR/legacy-mir-c.out" ||
+    fail "positional MIR-C rejection lost its owned diagnostic"
+[[ "$missing_source_output_rc" -ne 0 ]] ||
+    fail "source-MIR -o accepted a missing output"
+[[ "$missing_mir_output_rc" -ne 0 ]] ||
+    fail "MIR-C -o accepted a missing output"
+[[ "$empty_rc" -ne 0 ]] || fail "empty argv recovered an implicit source"
+grep -Fq 'requires an explicit source or mode' "$WORK_DIR/empty.out" ||
+    fail "empty argv rejection lost its owned diagnostic"
+
+for artifact in artifact.c source.artifact.mir.json mir.artifact.c; do
+    if compgen -G "$WORK_DIR/$artifact.pgy-tmp-*" >/dev/null; then
+        fail "$artifact left a temporary publication"
+    fi
+done
+
+echo "[self-host-installed-cli-mode] one typed argv owner keeps source-C, source-MIR, and MIR-C stdout/artifact effects disjoint"

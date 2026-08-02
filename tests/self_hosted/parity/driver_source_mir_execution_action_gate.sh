@@ -3,19 +3,17 @@ set -euo pipefail
 
 # Ratchets source_mir_main_direct_commit and source_mir_file_helper_fallback.
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-MAIN_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
-CLI_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_owner.pgy"
-RUNG2_MAIN="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_main.pgy"
-SOURCE_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_execution_owner.pgy"
-PROTOCOL_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_protocol_owner.pgy"
-WORLD_OWNER="$ROOT_DIR/src/self_hosted/compiler/world.pgy"
-COMPOSITION_OWNER="$ROOT_DIR/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
-MIR_MANIFEST="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy"
-NATIVE_LAUNCHER="$ROOT_DIR/src/compiler/self_host_driver.c"
-BUILD_OWNER="$ROOT_DIR/tests/self_hosted/parity/self_host_compiler_build.sh"
+MAIN_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy" CLI_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_owner.pgy"
+REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" READ_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
+INSTALLED_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" SOURCE_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_execution_owner.pgy"
+PROTOCOL_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_protocol_owner.pgy" WORLD_OWNER="$ROOT_DIR/src/self_hosted/compiler/world.pgy"
+COMPOSITION_OWNER="$ROOT_DIR/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" MIR_MANIFEST="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy"
+NATIVE_LAUNCHER="$ROOT_DIR/src/compiler/self_host_driver.c" BUILD_OWNER="$ROOT_DIR/tests/self_hosted/parity/self_host_compiler_build.sh"
 fail() { echo "[driver-source-mir-execution-action] $1" >&2; exit 1; }
 require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
-for owner in "$MAIN_OWNER" "$CLI_OWNER" "$RUNG2_MAIN" "$SOURCE_OWNER" "$PROTOCOL_OWNER" "$WORLD_OWNER" "$COMPOSITION_OWNER" "$MIR_MANIFEST" "$NATIVE_LAUNCHER" "$BUILD_OWNER"; do
+for owner in "$MAIN_OWNER" "$CLI_OWNER" "$REQUEST_OWNER" "$READ_OWNER" "$INSTALLED_OWNER" \
+    "$SOURCE_OWNER" "$PROTOCOL_OWNER" "$WORLD_OWNER" "$COMPOSITION_OWNER" \
+    "$MIR_MANIFEST" "$NATIVE_LAUNCHER" "$BUILD_OWNER"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 for term in \
@@ -115,52 +113,54 @@ for term in 'DriverRung2DirectMirZone(' 'DriverSourceMirZone(' \
     'func PublishSourceMirArtifactThroughPgyCompilerWorld('; do
     require_text "$COMPOSITION_OWNER" "$term"
 done
-for term in 'PublishSourceMirArtifactThroughPgyCompilerWorld(' 'DriverSourceMirExecutionOutcomeReadyFor(' \
-    'DriverSourceMirExecutionOutcomeDiagnostic(' 'SourceMirPressureObserved' 'SourceMirVerified' \
-    'args[1], args[2], machine_declaration, source_request' \
-    'args[3] != "--pressure-owned-full-fixpoint"'; do
+for term in 'enum DriverRung2CliRequest' 'func DriverRung2CliRequestFromArgsOrDie(' \
+    'DriverCliSourceMirStdout(String)' 'DriverCliSourceMirManifestStdout(String, String)' \
+    'DriverCliSourceMirArtifact(String, String)' 'DriverCliSourceMirPressureArtifact(String, String)' \
+    'args[2] == "--machine-manifest-json"' 'args[2] == "-o"' 'args[2] == "--pressure-owned-full-fixpoint"' \
+    'driver rung-2 requires an explicit source or mode'; do
+    require_text "$REQUEST_OWNER" "$term"
+done
+grep -Eq -- '(io_read|io_write|ReadFile\(|WriteFile\(|CompileSource|CompileMir|PublishSourceMir)' "$REQUEST_OWNER" && fail "pure CLI request admission regained compiler or I/O authority"
+for term in 'func DriverRung2CliLogSourceMirPayloadOrDie(' 'ProduceSourceMirThroughPgyCompilerWorld(' \
+    'DriverSourceMirExecutionOutcomePayloadReadyFor(' 'DriverSourceMirExecutionOutcomePayloadDiagnostic(' \
+    'case DriverSourceMirProduced(receipt): Log(receipt.payload);' \
+    'driver rung-2 artifact request requires installed composition root'; do
+    require_text "$READ_OWNER" "$term"
+done
+[[ "$(grep -F -c -- 'ProduceSourceMirThroughPgyCompilerWorld(' "$READ_OWNER")" -eq 1 ]] || fail "read executor must delegate source-MIR stdout exactly once"
+grep -Eq -- '(io_write|SelfMirArtifactCommitPayload|PublishSourceMirArtifact)' "$READ_OWNER" && fail "read executor regained artifact publication authority"
+for term in 'func DriverRung2InstalledPublishSourceMir(' 'PublishSourceMirArtifactThroughPgyCompilerWorld(' \
+    'DriverSourceMirExecutionOutcomeReadyFor(' 'DriverSourceMirExecutionOutcomeDiagnostic(' \
+    'case DriverCliSourceMirArtifact(source_path, output_path):' \
+    'case DriverCliSourceMirPressureArtifact(source_path, output_path):' \
+    'SourceMirPressureObserved' 'SourceMirVerified'; do
+    require_text "$INSTALLED_OWNER" "$term"
+done
+[[ "$(grep -F -c -- 'PublishSourceMirArtifactThroughPgyCompilerWorld(' "$INSTALLED_OWNER")" -eq 1 ]] || fail "installed executor must delegate source-MIR artifact publication exactly once"
+for owner in "$MAIN_OWNER" "$CLI_OWNER" "$READ_OWNER" "$INSTALLED_OWNER"; do
+    grep -Eq -- 'args\[[0-9]+\]' "$owner" && fail "raw argv indexing escaped the request owner: ${owner#"$ROOT_DIR/"}"
+done
+for term in 'import "driver_rung2_cli_request_owner.pgy";' 'import "driver_rung2_installed_cli_owner.pgy";' \
+    'DriverRung2CliRequestFromArgsOrDie(Args())' \
+    'DriverRung2ExecuteInstalledRequest(request);'; do
     require_text "$MAIN_OWNER" "$term"
 done
-[[ "$(grep -F -c -- 'PublishSourceMirArtifactThroughPgyCompilerWorld(' "$MAIN_OWNER")" -eq 1 ]] ||
-    fail "Main must delegate source-MIR execution exactly once"
-source_branch="$(awk '/args\[0\] == "--emit-mir-json-verified"/{inside=1} inside{print} inside && /^[[:space:]]*return;/{exit}' "$MAIN_OWNER")"
-[[ -n "$source_branch" ]] || fail "Main source-MIR branch is missing"
-grep -Fq -- 'SelfMirArtifactCommitPayload(' <<<"$source_branch" &&
-    fail "Main source-MIR branch retained a direct artifact commit"
-grep -Eq -- 'CompileSourceToMirJson(Verified|PressureObserved)\(' <<<"$source_branch" &&
-    fail "Main source-MIR branch retained direct payload compilation"
-for term in 'import "compiler_world_direct_mir_owner.pgy";' \
-    'ProduceSourceMirThroughPgyCompilerWorld(' \
-    'DriverSourceMirExecutionOutcomePayloadReadyFor(' \
-    'DriverSourceMirExecutionOutcomePayloadDiagnostic(' \
-    'case DriverSourceMirProduced(receipt): Log(receipt.payload);'; do
+grep -Eq -- '(PublishSourceMirArtifact|ProduceSourceMir|SelfMirArtifactCommitPayload|--emit-mir-json-verified)' "$MAIN_OWNER" && fail "installed Main regained source-MIR routing or publication"
+for term in 'import "driver_rung2_cli_request_owner.pgy";' 'import "driver_rung2_cli_read_execution_owner.pgy";' \
+    'DriverRung2CliRequestFromArgsOrDie(args)' \
+    'DriverRung2ExecuteReadRequest(request);' 'with caps io_read {'; do
     require_text "$CLI_OWNER" "$term"
 done
-[[ "$(grep -F -c -- 'ProduceSourceMirThroughPgyCompilerWorld(' "$CLI_OWNER")" -eq 1 ]] ||
-    fail "installed DRV-2 CLI must delegate source-MIR execution exactly once"
-cli_source_branch="$(awk '/args\[0\] == "--emit-mir-json-verified"/{inside=1} inside{print} inside && /^[[:space:]]*return;/{exit}' "$CLI_OWNER")"
-[[ -n "$cli_source_branch" ]] || fail "installed DRV-2 CLI source-MIR branch is missing"
-grep -Eq -- 'CompileSourceToMirJson(Verified|PressureObserved)\(' <<<"$cli_source_branch" &&
-    fail "installed DRV-2 CLI retained direct source-MIR compilation"
-grep -Eq -- '(SelfMirArtifactCommitPayload|WriteFile|PublishSourceMirArtifact|[.]tmp)' <<<"$cli_source_branch" &&
-    fail "stdout source-MIR mode must not round-trip through an artifact path"
-require_text "$CLI_OWNER" 'with caps io_read {'
-grep -Fq -- 'with caps io_read, io_write {' "$CLI_OWNER" &&
-    fail "installed stdout CLI regained io_write authority"
-require_text "$RUNG2_MAIN" 'func Main() -> Void with caps env, io_read {'
-require_text "$RUNG2_MAIN" 'import "driver_rung2_cli_owner.pgy";'
+grep -Fq -- 'io_write' "$CLI_OWNER" && fail "standalone CLI wrapper regained io_write authority"
 require_text "$BUILD_OWNER" 'DRIVER_SOURCE="src/self_hosted/compiler/driver_bootstrap_main.pgy"'
-grep -Fq -- 'DRIVER_SOURCE="src/self_hosted/compiler/driver_rung2_main.pgy"' "$BUILD_OWNER" &&
-    fail "installed build returned to the test-only DRV-2 entrypoint"
+grep -Fq -- 'DRIVER_SOURCE="src/self_hosted/compiler/driver_rung2_main.pgy"' "$BUILD_OWNER" && fail "installed build returned to the test-only DRV-2 entrypoint"
 require_text "$BUILD_OWNER" 'OUTPUT="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"'
 require_text "$NATIVE_LAUNCHER" 'path_join_dup(directory, "pgy-self-driver")'
 retired_file_helpers="$(
     find "$ROOT_DIR/src/self_hosted" -type f -name '*.pgy' \
         -exec grep -lE 'CompileSourceToMirJsonFile(Verified|PressureObserved)\(' {} + || true
 )"
-if [[ -n "$retired_file_helpers" ]]; then
-    fail "retired source-MIR file helper definition or call returned"
-fi
+[[ -z "$retired_file_helpers" ]] || fail "retired source-MIR file helper definition or call returned"
 source_mir_call_files="$(
     find "$ROOT_DIR/src/self_hosted" -type f -name '*.pgy' \
         -exec grep -lE 'CompileSourceToMirJson(Verified|PressureObserved)\(' {} + || true

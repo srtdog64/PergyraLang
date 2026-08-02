@@ -9,7 +9,8 @@ pgy_selfhost_driver_rung2_canonicalize() {
     local output="$5"
     local -a command=("$driver_bin" "$mode" "$input_arg")
     if [[ "$machine_fixture" -eq 1 ]]; then
-        command+=("$DRIVER_RUNG2_MACHINE_MANIFEST_REL")
+        command+=(--machine-manifest-json \
+            "$DRIVER_RUNG2_MACHINE_MANIFEST_REL")
     fi
     if ! (cd "$ROOT_DIR" && "${command[@]}" | tr -d '\r' >"$output"); then
         echo "[self-host-parity:driver-rung2] MIR canonicalization failed: mode=$mode input=$input_arg" >&2
@@ -23,7 +24,8 @@ pgy_selfhost_driver_rung2_consume_mir() {
     local error="$5"
     local -a command=("$driver_bin" --mir-json "$input_arg")
     if [[ "$machine_fixture" -eq 1 ]]; then
-        command+=("$DRIVER_RUNG2_MACHINE_MANIFEST_REL")
+        command+=(--machine-manifest-json \
+            "$DRIVER_RUNG2_MACHINE_MANIFEST_REL")
     fi
     (cd "$ROOT_DIR" && "${command[@]}" >"$output" 2>"$error")
 }

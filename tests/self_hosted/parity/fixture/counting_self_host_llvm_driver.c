@@ -35,7 +35,7 @@ main(int argc, char **argv)
     const char *mode = getenv("PGY_SELF_DRIVER_LLVM_MODE");
     int rc;
 
-    if (argc != 4)
+    if (argc != 5 || strcmp(argv[3], "-o") != 0)
         return 2;
     if (mode == NULL)
         mode = "ok";
@@ -45,7 +45,7 @@ main(int argc, char **argv)
             return rc;
         if (strcmp(mode, "producer-fail") == 0)
             return 7;
-        return write_text(argv[3], "{}\n");
+        return write_text(argv[4], "{}\n");
     }
     if (strcmp(argv[1], "--mir-json-backend=llvm") != 0)
         return 8;
@@ -55,10 +55,10 @@ main(int argc, char **argv)
     if (strcmp(mode, "backend-fail") == 0)
         return 9;
     if (strcmp(mode, "malformed") == 0)
-        return write_text(argv[3], "not llvm ir\n");
+        return write_text(argv[4], "not llvm ir\n");
     if (strcmp(mode, "runtime-ref") == 0) {
         return write_text(
-            argv[3],
+            argv[4],
             "declare void @pgy_forbidden()\n"
             "define i32 @main() {\n"
             "  call void @pgy_forbidden()\n"
@@ -66,7 +66,7 @@ main(int argc, char **argv)
             "}\n");
     }
     return write_text(
-        argv[3],
+        argv[4],
         "@.msg = private constant [20 x i8] c\"self-host-llvm-shim\\00\"\n"
         "declare i32 @puts(ptr)\n"
         "define i32 @main() {\n"

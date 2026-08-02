@@ -5316,6 +5316,44 @@ ratchets, the live-owner Coq adequacy bridge, and native object/runtime
 boundaries remain explicit follow-up work; none may reopen a second MIR or
 text-recovery path.
 
+## 2026-08-03 typed installed-driver request admission
+
+The installed and standalone DRV-2 roots now admit argv exactly once through
+`DriverRung2CliRequestFromArgsOrDie`. The owner is a pure flat enum projection:
+it cannot read source/MIR, compile, publish, or import test fixture inventories.
+The read-only executor owns stdout and explicit machine-manifest requests; the
+installed executor alone owns typed artifact effects. Both roots consume the
+same admitted variant and no longer infer a different meaning from the same
+third positional argument.
+
+The stable artifact forms are now explicit:
+
+```text
+--emit-c-artifact-verified SOURCE OUTPUT
+--emit-mir-json-verified SOURCE -o OUTPUT
+--emit-mir-json-verified SOURCE --pressure-owned-full-fixpoint -o OUTPUT
+--mir-json INPUT -o OUTPUT
+--mir-json INPUT --observe-mir-consumer-stages -o OUTPUT
+--mir-json-backend=c|llvm INPUT -o OUTPUT
+```
+
+Machine declarations on stdout modes use
+`--machine-manifest-json MANIFEST`; the old positional-third forms, implicit
+default source, missing `-o` values, option-shaped paths, extras, and input/
+output identity fail during pure request admission. Test fixture manifests are
+served by `driver_rung2_fixture_manifest_cli_owner.pgy` and a small dedicated
+entrypoint, so the installed production graph does not carry the 20/282-row
+test inventory.
+
+`selfhost.driver_cli_request` is the CLOSED owner-spine row and
+`pergyra.selfhost-driver-cli.v1` is the protocol registry projection. The
+focused installed gate proves source-C, source-MIR, and MIR-C stdout/artifact
+payload parity plus legacy-form rejection. The source-MIR action ratchet also
+proves that raw argv indexing did not escape the request owner and the
+read-only executor regained no publication capability. This is an executable
+composition-root closure; it does not add a language feature or raise the
+whole-compiler substitution percentage.
+
 ## How to Update This Document
 
 When a tool lands or expands, update three things:

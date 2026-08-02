@@ -104,7 +104,7 @@ run_projection() {
     output_rel="$(pgy_selfhost_path_relative_to_root "$output")"
     rm -f "$output"
     if ! (cd "$ROOT_DIR" && "$DRIVER_BIN" \
-        "--mir-json-backend=$target" "$mir_rel" "$output_rel" \
+        "--mir-json-backend=$target" "$mir_rel" -o "$output_rel" \
         >"$stdout" 2>"$stderr"); then
         cat "$stdout" "$stderr" >&2 || true
         fail "$CASE $target projection rejected the admitted MIR artifact"
@@ -126,7 +126,7 @@ expect_rejected_without_artifact() {
         output_rel="$(pgy_selfhost_path_relative_to_root "$output")"
         mode="$mode_override"
         [[ -n "$mode" ]] || mode="--mir-json-backend=$target"
-        if (cd "$ROOT_DIR" && "$DRIVER_BIN" "$mode" "$input_rel" "$output_rel" \
+        if (cd "$ROOT_DIR" && "$DRIVER_BIN" "$mode" "$input_rel" -o "$output_rel" \
             >"$stdout" 2>"$stderr"); then
             fail "$CASE $target accepted mutated $fact"
         fi
@@ -192,7 +192,7 @@ run_positive_case() {
     mir_rel="$(pgy_selfhost_path_relative_to_root "$MIR_ARTIFACT")"
     # projections below consume this exact path and cannot mutate its digest.
     if ! (cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified \
-        "$source_rel" "$mir_rel" >"$WORK_DIR/$CASE.producer.out" \
+        "$source_rel" -o "$mir_rel" >"$WORK_DIR/$CASE.producer.out" \
         2>"$WORK_DIR/$CASE.producer.err"); then
         cat "$WORK_DIR/$CASE.producer.out" \
             "$WORK_DIR/$CASE.producer.err" >&2 || true
