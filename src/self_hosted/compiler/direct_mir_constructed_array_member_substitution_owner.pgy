@@ -1,0 +1,20 @@
+// Array<T>[T:=Int] substitution for the selected Array member family.
+
+import "direct_mir_constructed_array_member_specialization_fact_owner.pgy";
+import "../semantic/ast_type_name_canonical_owner.pgy";
+
+func DirectMirConstructedArrayMemberSubstitutionReady(
+    ref specialization: DirectMirConstructedArrayMemberSpecializationFact
+) -> Bool {
+    let concrete: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(
+            specialization.outer_generic_actual
+        );
+    return DirectMirConstructedArrayMemberSpecializationFactReady(
+            specialization
+        ) && concrete.ok && concrete.canonical_name ==
+            specialization.outer_generic_actual &&
+        concrete.nominal_base_name == "Array" &&
+        ArrayLength(concrete.actual_type_names) == 1 &&
+        concrete.actual_type_names[0] == specialization.inner_generic_actual;
+}

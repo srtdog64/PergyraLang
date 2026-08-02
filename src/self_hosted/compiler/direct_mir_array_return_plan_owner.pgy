@@ -260,7 +260,7 @@ func DirectMirArrayReturnPlanFromAdmitted(
     if !returned.valid ||
         admitted.routines.instruction_kinds[producer_global] != "return" ||
         admitted.routines.instruction_source_types[producer_global] !=
-            "AST_IDENTIFIER" || returned.name != "return" ||
+            "AST_ARRAY_LITERAL" || returned.name != "return" ||
         returned.result != "" || returned.arg0 != "" ||
         returned.arg1 != "" || returned.expr1 != "" ||
         MirRoutineInstructionUseCountAtGlobal(

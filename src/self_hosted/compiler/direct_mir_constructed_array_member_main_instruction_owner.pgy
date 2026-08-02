@@ -1,0 +1,156 @@
+// Main definitions, uses, physical Array receipt, and indexed Log admission.
+
+import "direct_mir_constructed_array_member_program_identity_owner.pgy";
+import "direct_mir_inferred_generic_member_instruction_admission_owner.pgy";
+
+struct DirectMirConstructedArrayMemberMainInstructions {
+    let valid: Bool;
+    let constructor: MirRoutineInstructionScalarCapture;
+    let result: MirRoutineInstructionScalarCapture;
+    let output: MirRoutineInstructionScalarCapture;
+}
+
+func DirectMirConstructedArrayMemberMainInstructionsReady(
+    ref fact: DirectMirConstructedArrayMemberMainInstructions
+) -> Bool {
+    return fact.valid && fact.constructor.valid && fact.result.valid &&
+        fact.output.valid && fact.constructor.result != "" &&
+        fact.result.result != "" &&
+        fact.constructor.result != fact.result.result &&
+        fact.output.result == "";
+}
+
+func DirectMirConstructedArrayMemberMainLocalsReady(
+    ref index: MirRoutineFactIndex,
+    receiver_name: String, receiver_type: String,
+    result_name: String, result_type: String
+) -> Bool {
+    if ArrayLength(index.source_local_names) != 2 ||
+        ArrayLength(index.source_local_types) != 2 || receiver_name == "" ||
+        result_name == "" || receiver_name == result_name {
+        return false;
+    }
+    let receiver_seen: Bool = false;
+    let result_seen: Bool = false;
+    let row: Int = 0;
+    while row < 2 {
+        if index.source_local_names[row] == receiver_name &&
+            index.source_local_types[row] == receiver_type && !receiver_seen {
+            receiver_seen = true;
+        } else if index.source_local_names[row] == result_name &&
+            index.source_local_types[row] == result_type && !result_seen {
+            result_seen = true;
+        } else {
+            return false;
+        }
+        row = row + 1;
+    }
+    return receiver_seen && result_seen;
+}
+
+func DirectMirConstructedArrayMemberMainInstructionsFromProgram(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref identity: DirectMirConstructedArrayMemberProgramIdentity
+) -> DirectMirConstructedArrayMemberMainInstructions {
+    let main_row: Int = identity.entrypoint.row;
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, main_row
+    );
+    let uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, main_row);
+    if !index.valid || ArrayLength(index.block_reachable) != 1 ||
+        !index.block_reachable[0] ||
+        !MirRoutineFactIndexBlockIsTerminal(index, 0) ||
+        index.block_has_conditional_branch[0] != 0 ||
+        !DirectMirConstructedArrayMemberMainLocalsReady(
+            index, identity.main_graph.receiver_local,
+            identity.declaration.name, identity.main_graph.result_local,
+            identity.specialization.outer_generic_actual
+        ) || !MirRoutineInstructionUseFactsReady(uses, 3) {
+        Die("direct MIR constructed Array Main facts are invalid");
+    }
+    let constructor: MirRoutineInstructionScalarCapture =
+        DirectMirInferredGenericMemberInstructionCapture(
+            admitted, index, main_row, 0
+        );
+    let result: MirRoutineInstructionScalarCapture =
+        DirectMirInferredGenericMemberInstructionCapture(
+            admitted, index, main_row, 1
+        );
+    let output: MirRoutineInstructionScalarCapture =
+        DirectMirInferredGenericMemberInstructionCapture(
+            admitted, index, main_row, 2
+        );
+    let globals: Array<Int> = [
+        MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, main_row, 0, 0
+        ), MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, main_row, 0, 1
+        ), MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, main_row, 0, 2
+        )
+    ];
+    let output_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[globals[2]],
+        admitted.routines.instruction_ends[globals[2]]
+    );
+    if admitted.routines.instruction_kinds[globals[0]] != "def" ||
+        admitted.routines.instruction_source_types[globals[0]] !=
+            "AST_LET_DECL" ||
+        admitted.routines.instruction_kinds[globals[1]] != "def" ||
+        admitted.routines.instruction_source_types[globals[1]] !=
+            "AST_LET_DECL" ||
+        admitted.routines.instruction_kinds[globals[2]] != "stmt" ||
+        admitted.routines.instruction_source_types[globals[2]] != "AST_CALL" ||
+        constructor.name != "ssa-def" || result.name != "ssa-def" ||
+        output.name != "stmt" ||
+        constructor.arg0 != identity.main_graph.receiver_local ||
+        constructor.arg1 != identity.declaration.name ||
+        constructor.expr1 != identity.declaration.name ||
+        !DirectMirInstructionHasNoPhysicalAbi(
+            admitted.routines.source_json, constructor,
+            identity.declaration.name
+        ) || result.arg0 != identity.main_graph.result_local ||
+        result.arg1 != "" ||
+        result.expr1 != identity.specialization.outer_generic_actual ||
+        result.abi_type_name != identity.specialization.outer_generic_actual ||
+        !result.abi_type_value_ready || result.abi_layout_id_start < 0 ||
+        result.abi_layout_required_start < 0 || result.abi_layout_start < 0 ||
+        output.arg0 != "Log" || output.arg1 != "" ||
+        !DirectMirLogInstructionEnvelopeReady(output_object, "2") {
+        Die("direct MIR constructed Array Main instruction is invalid");
+    }
+    if !MirSsaNameMatches(
+            constructor.result, identity.main_graph.receiver_local, false
+        ) || !MirSsaNameMatches(
+            result.result, identity.main_graph.result_local, false
+        ) || !DirectMirInferredGenericMemberExpectedUse(
+            uses, globals[0], ""
+        ) || !DirectMirInferredGenericMemberExpectedUse(
+            uses, globals[1], constructor.result
+        ) || !DirectMirInferredGenericMemberExpectedUse(
+            uses, globals[2], result.result
+        ) {
+        Die("direct MIR constructed Array Main SSA use is invalid");
+    }
+    let values: Array<String> = [constructor.result, result.result];
+    let row: Int = 0;
+    while row < 2 {
+        let definition: MirRoutineResultDefinitionFact =
+            MirRoutineFactIndexUniqueResultDefinition(index, values[row]);
+        if !MirRoutineResultDefinitionFactReady(definition) ||
+            definition.global_row != globals[row] {
+            Die("direct MIR constructed Array result definition is invalid");
+        }
+        row = row + 1;
+    }
+    let fact: DirectMirConstructedArrayMemberMainInstructions =
+        DirectMirConstructedArrayMemberMainInstructions(
+            true, constructor, result, output
+        );
+    if !DirectMirConstructedArrayMemberMainInstructionsReady(fact) {
+        Die("direct MIR constructed Array Main admission is invalid");
+    }
+    return fact;
+}

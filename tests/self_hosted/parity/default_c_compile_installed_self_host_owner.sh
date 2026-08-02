@@ -15,6 +15,7 @@ WORK_DIR="$ROOT_DIR/.tmp/self_hosted/default_c_compile_installed"
 SOURCE="src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy"
 MEMBER_SOURCE="src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy"
 CONSTRUCTED_MEMBER_SOURCE="src/self_hosted/mir_lower/fixture/generic_member_constructed_return_flow.pgy"
+CONSTRUCTED_ARRAY_MEMBER_SOURCE="src/self_hosted/mir_lower/fixture/generic_member_array_return_flow.pgy"
 COUNT_FILE="$WORK_DIR/count.txt"
 COUNT_FILE_FOR_DRIVER="$COUNT_FILE"
 
@@ -58,7 +59,8 @@ cmp -s "$WORK_DIR/real.expected" "$WORK_DIR/real-program.out" ||
     fail "installed self-host C artifact produced the wrong Option nominal binary"
 
 for member_case in "$MEMBER_SOURCE|member|41" \
-    "$CONSTRUCTED_MEMBER_SOURCE|constructed-member|43"; do
+    "$CONSTRUCTED_MEMBER_SOURCE|constructed-member|43" \
+    "$CONSTRUCTED_ARRAY_MEMBER_SOURCE|constructed-array-member|44"; do
     IFS='|' read -r member_source member_stem member_expected <<< "$member_case"
     (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN && "$PGY" "$member_source" \
         --backend=c -o ".tmp/self_hosted/default_c_compile_installed/$member_stem-program$suffix") \

@@ -1,0 +1,31 @@
+// One-way admission of the Main result's canonical Array<Int> ABI receipt.
+
+import "direct_mir_constructed_array_member_main_instruction_owner.pgy";
+import "direct_mir_array_int_abi_fact_owner.pgy";
+
+func DirectMirConstructedArrayMemberAbiFromResult(
+    json: String,
+    ref main: DirectMirConstructedArrayMemberMainInstructions
+) -> MirAbiLayoutRowCapture {
+    if !DirectMirConstructedArrayMemberMainInstructionsReady(main) {
+        Die("direct MIR constructed Array member ABI input is invalid");
+    }
+    let capture: MirRoutineInstructionScalarCapture = main.result;
+    let admitted: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            json, capture.abi_type_name, capture.abi_type_value_ready,
+            capture.abi_type_start, capture.abi_type_end,
+            capture.abi_layout_id_start, capture.abi_layout_id_end,
+            capture.abi_layout_required_start,
+            capture.abi_layout_required_end, capture.abi_layout_start,
+            capture.abi_layout_end
+        );
+    if !IsSome(admitted) {
+        Die("direct MIR constructed Array member ABI receipt is missing");
+    }
+    let abi: MirAbiLayoutRowCapture = UnwrapOption(admitted);
+    if !DirectMirArrayIntCapturedAbiReady(abi) {
+        Die("direct MIR constructed Array member ABI identity is invalid");
+    }
+    return abi;
+}

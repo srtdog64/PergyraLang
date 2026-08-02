@@ -1,0 +1,96 @@
+// Exact no-layout returns for the Array-constructing and identity methods.
+
+import "direct_mir_constructed_array_member_program_identity_owner.pgy";
+import "direct_mir_inferred_generic_member_instruction_admission_owner.pgy";
+
+struct DirectMirConstructedArrayMemberMethodInstructions {
+    let valid: Bool;
+    let constructed_return: MirRoutineInstructionScalarCapture;
+    let identity_return: MirRoutineInstructionScalarCapture;
+}
+
+func DirectMirConstructedArrayMemberMethodInstructionsReady(
+    ref fact: DirectMirConstructedArrayMemberMethodInstructions
+) -> Bool {
+    return fact.valid && fact.constructed_return.valid &&
+        fact.identity_return.valid && fact.constructed_return.result == "" &&
+        fact.identity_return.result == "";
+}
+
+func DirectMirConstructedArrayMemberMethodInstructionsFromProgram(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref identity: DirectMirConstructedArrayMemberProgramIdentity
+) -> DirectMirConstructedArrayMemberMethodInstructions {
+    let constructed_row: Int = identity.constructed_method.row;
+    let identity_row: Int = identity.identity_method.row;
+    let constructed_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, constructed_row
+    );
+    let identity_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, identity_row
+    );
+    let constructed_uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, constructed_row);
+    let identity_uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, identity_row);
+    if !constructed_index.valid || !identity_index.valid ||
+        ArrayLength(constructed_index.block_reachable) != 1 ||
+        ArrayLength(identity_index.block_reachable) != 1 ||
+        !constructed_index.block_reachable[0] ||
+        !identity_index.block_reachable[0] ||
+        !MirRoutineFactIndexBlockIsTerminal(constructed_index, 0) ||
+        !MirRoutineFactIndexBlockIsTerminal(identity_index, 0) ||
+        constructed_index.block_has_conditional_branch[0] != 0 ||
+        identity_index.block_has_conditional_branch[0] != 0 ||
+        ArrayLength(constructed_index.source_local_names) != 0 ||
+        ArrayLength(identity_index.source_local_names) != 0 ||
+        !MirRoutineInstructionUseFactsReady(constructed_uses, 1) ||
+        !MirRoutineInstructionUseFactsReady(identity_uses, 1) {
+        Die("direct MIR constructed Array method facts are invalid");
+    }
+    let constructed_return: MirRoutineInstructionScalarCapture =
+        DirectMirInferredGenericMemberInstructionCapture(
+            admitted, constructed_index, constructed_row, 0
+        );
+    let identity_return: MirRoutineInstructionScalarCapture =
+        DirectMirInferredGenericMemberInstructionCapture(
+            admitted, identity_index, identity_row, 0
+        );
+    let constructed_global: Int =
+        MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, constructed_row, 0, 0
+        );
+    let identity_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, identity_row, 0, 0
+    );
+    if admitted.routines.instruction_kinds[constructed_global] != "return" ||
+        admitted.routines.instruction_source_types[constructed_global] !=
+            "AST_ARRAY_LITERAL" ||
+        admitted.routines.instruction_kinds[identity_global] != "return" ||
+        admitted.routines.instruction_source_types[identity_global] !=
+            "AST_IDENTIFIER" || constructed_return.name != "return" ||
+        identity_return.name != "return" || constructed_return.arg0 != "" ||
+        constructed_return.arg1 != "" || identity_return.arg0 != "" ||
+        identity_return.arg1 != "" ||
+        !DirectMirInstructionHasNoPhysicalAbi(
+            admitted.routines.source_json, constructed_return,
+            identity.constructed_method.return_type
+        ) || !DirectMirInstructionHasNoPhysicalAbi(
+            admitted.routines.source_json, identity_return,
+            identity.identity_method.return_type
+        ) || !DirectMirInferredGenericMemberExpectedUse(
+            constructed_uses, constructed_global, ""
+        ) || !DirectMirInferredGenericMemberExpectedUse(
+            identity_uses, identity_global, ""
+        ) {
+        Die("direct MIR constructed Array method instruction is invalid");
+    }
+    let fact: DirectMirConstructedArrayMemberMethodInstructions =
+        DirectMirConstructedArrayMemberMethodInstructions(
+            true, constructed_return, identity_return
+        );
+    if !DirectMirConstructedArrayMemberMethodInstructionsReady(fact) {
+        Die("direct MIR constructed Array method admission is invalid");
+    }
+    return fact;
+}

@@ -10,6 +10,23 @@ import "routine_for_owner.pgy";
 import "routine_match_owner.pgy";
 import "routine_defer_owner.pgy";
 
+func SelfMirValueReturnSourceType(
+    graph: SemanticExpressionGraphView,
+    expression: String
+) -> String {
+    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph.graph, graph.root_id
+    );
+    if IsSome(kind_opt) && AstExpressionNodeIsArrayLiteralSpine(
+        UnwrapOption(kind_opt)
+    ) {
+        return "AST_ARRAY_LITERAL";
+    }
+    return SelfMirExpressionSourceTypeName(
+        SelfMirExpressionKindFromText(expression)
+    );
+}
+
 func SelfMirLowerTrackedStatementFromArtifact(
     ref input: SelfMirRoutineInput,
     build: SelfMirRoutineBuild,
@@ -142,8 +159,8 @@ func SelfMirLowerTrackedStatementFromArtifact(
                 build, "MIR value return expression graph is missing"
             );
         }
-        let return_source_type: String = SelfMirExpressionSourceTypeName(
-            SelfMirExpressionKindFromText(payload)
+        let return_source_type: String = SelfMirValueReturnSourceType(
+            return_graph, payload
         );
         let return_type: Option<String> =
             SemanticAstStatementInferredTypeForNode(

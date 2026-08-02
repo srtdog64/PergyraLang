@@ -1,33 +1,32 @@
-// Semantic identity for one constructed-return generic member program.
+// Semantic identity for one constructed Array-return generic member program.
 
 import "direct_mir_constructed_generic_member_program_admission_owner.pgy";
 import "direct_mir_constructed_generic_member_declaration_fact_owner.pgy";
-import "direct_mir_constructed_generic_member_signature_fact_owner.pgy";
-import "direct_mir_constructed_generic_member_specialization_fact_owner.pgy";
-import "direct_mir_constructed_generic_member_substitution_owner.pgy";
-import "direct_mir_constructed_generic_member_method_graph_fact_owner.pgy";
-import "direct_mir_constructed_generic_member_main_graph_fact_owner.pgy";
+import "direct_mir_constructed_array_member_signature_fact_owner.pgy";
+import "direct_mir_constructed_array_member_substitution_owner.pgy";
+import "direct_mir_constructed_array_member_method_graph_fact_owner.pgy";
+import "direct_mir_constructed_array_member_main_graph_fact_owner.pgy";
 import "direct_mir_inferred_generic_member_program_identity_owner.pgy";
 import "direct_mir_inferred_generic_member_routine_array_shape_owner.pgy";
 import "direct_mir_routine_signature_fact_owner.pgy";
 
-struct DirectMirConstructedGenericMemberProgramIdentity {
+struct DirectMirConstructedArrayMemberProgramIdentity {
     let valid: Bool;
     let digest: Int;
     let entrypoint: DirectMirRoutineSignatureFact;
-    let constructed_method: DirectMirConstructedGenericMemberSignatureFact;
-    let identity_method: DirectMirConstructedGenericMemberSignatureFact;
-    let specialization: DirectMirConstructedGenericMemberSpecializationFact;
+    let constructed_method: DirectMirConstructedArrayMemberSignatureFact;
+    let identity_method: DirectMirConstructedArrayMemberSignatureFact;
+    let specialization: DirectMirConstructedArrayMemberSpecializationFact;
     let declaration: DirectMirConstructedGenericMemberDeclarationFact;
-    let method_graph: DirectMirConstructedGenericMemberMethodGraphFact;
-    let main_graph: DirectMirConstructedGenericMemberMainGraphFact;
+    let method_graph: DirectMirConstructedArrayMemberMethodGraphFact;
+    let main_graph: DirectMirConstructedArrayMemberMainGraphFact;
 }
 
-func DirectMirConstructedGenericMemberProgramIdentityDigest(
-    ref identity: DirectMirConstructedGenericMemberProgramIdentity
+func DirectMirConstructedArrayMemberProgramIdentityDigest(
+    ref identity: DirectMirConstructedArrayMemberProgramIdentity
 ) -> Int {
     if !identity.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(383L, identity.entrypoint.digest);
+    let hash: Long = DirectMirCfgHashInt(419L, identity.entrypoint.digest);
     hash = DirectMirCfgHashInt(hash, identity.constructed_method.digest);
     hash = DirectMirCfgHashInt(hash, identity.identity_method.digest);
     hash = DirectMirCfgHashInt(hash, identity.specialization.digest);
@@ -37,8 +36,8 @@ func DirectMirConstructedGenericMemberProgramIdentityDigest(
     return DirectMirCfgBoundedDigest(hash);
 }
 
-func DirectMirConstructedGenericMemberSourceIdentitiesReady(
-    ref identity: DirectMirConstructedGenericMemberProgramIdentity
+func DirectMirConstructedArrayMemberSourceIdentitiesReady(
+    ref identity: DirectMirConstructedArrayMemberProgramIdentity
 ) -> Bool {
     let ids: Array<Int> = [
         identity.entrypoint.source_syntax_id,
@@ -60,44 +59,42 @@ func DirectMirConstructedGenericMemberSourceIdentitiesReady(
     return true;
 }
 
-func DirectMirConstructedGenericMemberProgramIdentityReady(
-    ref identity: DirectMirConstructedGenericMemberProgramIdentity
+func DirectMirConstructedArrayMemberProgramIdentityReady(
+    ref identity: DirectMirConstructedArrayMemberProgramIdentity
 ) -> Bool {
     if !identity.valid || identity.digest == 0 || identity.digest !=
-        DirectMirConstructedGenericMemberProgramIdentityDigest(identity) ||
+        DirectMirConstructedArrayMemberProgramIdentityDigest(identity) ||
         !DirectMirRoutineSignatureFactReady(identity.entrypoint) ||
-        !DirectMirConstructedGenericMemberSignatureFactReady(
+        !DirectMirConstructedArrayMemberSignatureFactReady(
             identity.constructed_method
-        ) || !DirectMirConstructedGenericMemberSignatureFactReady(
+        ) || !DirectMirConstructedArrayMemberSignatureFactReady(
             identity.identity_method
-        ) || !DirectMirConstructedGenericMemberSpecializationFactReady(
+        ) || !DirectMirConstructedArrayMemberSpecializationFactReady(
             identity.specialization
         ) || !DirectMirConstructedGenericMemberDeclarationFactReady(
             identity.declaration
-        ) || !DirectMirConstructedGenericMemberMethodGraphFactReady(
+        ) || !DirectMirConstructedArrayMemberMethodGraphFactReady(
             identity.method_graph
-        ) || !DirectMirConstructedGenericMemberMainGraphFactReady(
+        ) || !DirectMirConstructedArrayMemberMainGraphFactReady(
             identity.main_graph
-        ) || !DirectMirConstructedGenericMemberSourceIdentitiesReady(identity) {
+        ) || !DirectMirConstructedArrayMemberSourceIdentitiesReady(identity) {
         return false;
     }
-    let constructed: DirectMirConstructedGenericMemberSignatureFact =
+    let constructed: DirectMirConstructedArrayMemberSignatureFact =
         identity.constructed_method;
-    let value_identity: DirectMirConstructedGenericMemberSignatureFact =
+    let value_identity: DirectMirConstructedArrayMemberSignatureFact =
         identity.identity_method;
-    let spec: DirectMirConstructedGenericMemberSpecializationFact =
+    let spec: DirectMirConstructedArrayMemberSpecializationFact =
         identity.specialization;
     let declaration: DirectMirConstructedGenericMemberDeclarationFact =
         identity.declaration;
-    let graph: DirectMirConstructedGenericMemberMainGraphFact =
+    let graph: DirectMirConstructedArrayMemberMainGraphFact =
         identity.main_graph;
     return identity.entrypoint.name == "Main" &&
         identity.entrypoint.return_type == "Void" &&
-        identity.entrypoint.param_count == 0 &&
-        constructed.returns_option && !value_identity.returns_option &&
-        DirectMirConstructedGenericMemberSubstitutionReady(
-            identity.specialization
-        ) &&
+        identity.entrypoint.param_count == 0 && constructed.returns_array &&
+        !value_identity.returns_array &&
+        DirectMirConstructedArrayMemberSubstitutionReady(spec) &&
         constructed.owner == declaration.name &&
         value_identity.owner == declaration.name &&
         constructed.name == spec.inner_callable &&
@@ -124,20 +121,17 @@ func DirectMirConstructedGenericMemberProgramIdentityReady(
         identity.entrypoint.row != value_identity.row;
 }
 
-func DirectMirConstructedGenericMemberProgramIdentityFromAdmitted(
+func DirectMirConstructedArrayMemberProgramIdentityFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref classification: DirectMirThreeRoutineClassificationFact,
-    ref specialization: DirectMirConstructedGenericMemberSpecializationFact
-) -> DirectMirConstructedGenericMemberProgramIdentity {
+    ref specialization: DirectMirConstructedArrayMemberSpecializationFact
+) -> DirectMirConstructedArrayMemberProgramIdentity {
     if !DirectMirConstructedGenericMemberProgramEnvelopeReady(
         admitted, classification
-    ) {
-        Die("direct MIR constructed generic member envelope is invalid");
-    }
-    if !DirectMirConstructedGenericMemberSpecializationFactReady(
+    ) || !DirectMirConstructedArrayMemberSpecializationFactReady(
         specialization
     ) {
-        Die("direct MIR constructed member specialization is invalid");
+        Die("direct MIR constructed Array member envelope is invalid");
     }
     let main_row: Int = DirectMirInferredGenericMemberUniqueRoutineRow(
         admitted.routines, "Main"
@@ -164,7 +158,7 @@ func DirectMirConstructedGenericMemberProgramIdentityFromAdmitted(
         ) != 1 || MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, identity_row, 0
         ) != 1 {
-        Die("direct MIR constructed member routine cardinality is invalid");
+        Die("direct MIR constructed Array member routine cardinality is invalid");
     }
     let constructed_return: MirExpressionGraphSequence =
         DirectMirInferredGenericMemberInstructionGraph(
@@ -180,34 +174,34 @@ func DirectMirConstructedGenericMemberProgramIdentityFromAdmitted(
         DirectMirInferredGenericMemberInstructionGraph(admitted, main_row, 1);
     let output: MirExpressionGraphSequence =
         DirectMirInferredGenericMemberInstructionGraph(admitted, main_row, 2);
-    let identity: DirectMirConstructedGenericMemberProgramIdentity =
-        DirectMirConstructedGenericMemberProgramIdentity(
+    let identity: DirectMirConstructedArrayMemberProgramIdentity =
+        DirectMirConstructedArrayMemberProgramIdentity(
             true, 0,
             DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 3),
-            DirectMirConstructedGenericMemberSignatureFactAt(
+            DirectMirConstructedArrayMemberSignatureFactAt(
                 admitted.routines, constructed_row
-            ), DirectMirConstructedGenericMemberSignatureFactAt(
+            ), DirectMirConstructedArrayMemberSignatureFactAt(
                 admitted.routines, identity_row
             ), specialization,
             DirectMirConstructedGenericMemberDeclarationFactFromDocument(
                 admitted.document.root.json,
                 admitted.domain_runtime_admission.declarations
-            ), DirectMirConstructedGenericMemberMethodGraphFactFromSequences(
+            ), DirectMirConstructedArrayMemberMethodGraphFactFromSequences(
                 constructed_return, identity_return
-            ), DirectMirConstructedGenericMemberMainGraphFactFromSequences(
+            ), DirectMirConstructedArrayMemberMainGraphFactFromSequences(
                 constructor, nested_call, output
             )
         );
-    let verified: DirectMirConstructedGenericMemberProgramIdentity =
-        DirectMirConstructedGenericMemberProgramIdentity(
+    let verified: DirectMirConstructedArrayMemberProgramIdentity =
+        DirectMirConstructedArrayMemberProgramIdentity(
             identity.valid,
-            DirectMirConstructedGenericMemberProgramIdentityDigest(identity),
+            DirectMirConstructedArrayMemberProgramIdentityDigest(identity),
             identity.entrypoint, identity.constructed_method,
             identity.identity_method, identity.specialization,
             identity.declaration, identity.method_graph, identity.main_graph
         );
-    if !DirectMirConstructedGenericMemberProgramIdentityReady(verified) {
-        Die("direct MIR constructed generic member identity is invalid");
+    if !DirectMirConstructedArrayMemberProgramIdentityReady(verified) {
+        Die("direct MIR constructed Array member identity is invalid");
     }
     return verified;
 }

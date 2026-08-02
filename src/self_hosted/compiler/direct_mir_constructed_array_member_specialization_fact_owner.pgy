@@ -1,8 +1,8 @@
-// Option-specific projection of one admitted constructed member pair.
+// Array-specific projection of one admitted constructed member pair.
 
 import "direct_mir_constructed_member_specialization_pair_owner.pgy";
 
-struct DirectMirConstructedGenericMemberSpecializationFact {
+struct DirectMirConstructedArrayMemberSpecializationFact {
     let valid: Bool;
     let digest: Int;
     let owner: String;
@@ -17,18 +17,18 @@ struct DirectMirConstructedGenericMemberSpecializationFact {
     let inner_generic_actual: String;
 }
 
-func InvalidDirectMirConstructedGenericMemberSpecializationFact(
-) -> DirectMirConstructedGenericMemberSpecializationFact {
-    return DirectMirConstructedGenericMemberSpecializationFact(
+func InvalidDirectMirConstructedArrayMemberSpecializationFact(
+) -> DirectMirConstructedArrayMemberSpecializationFact {
+    return DirectMirConstructedArrayMemberSpecializationFact(
         false, 0, "", 0, "", "", "", "", "", "", "", ""
     );
 }
 
-func DirectMirConstructedGenericMemberSpecializationDigest(
-    ref fact: DirectMirConstructedGenericMemberSpecializationFact
+func DirectMirConstructedArrayMemberSpecializationDigest(
+    ref fact: DirectMirConstructedArrayMemberSpecializationFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(367L, fact.owner);
+    let hash: Long = DirectMirCfgHashString(421L, fact.owner);
     hash = DirectMirCfgHashInt(hash, fact.source_owner_syntax_id);
     hash = DirectMirCfgHashString(hash, fact.outer_callable);
     hash = DirectMirCfgHashString(hash, fact.outer_symbol);
@@ -41,18 +41,18 @@ func DirectMirConstructedGenericMemberSpecializationDigest(
     return DirectMirCfgBoundedDigest(hash);
 }
 
-func DirectMirConstructedGenericMemberSpecializationFactReady(
-    ref fact: DirectMirConstructedGenericMemberSpecializationFact
+func DirectMirConstructedArrayMemberSpecializationFactReady(
+    ref fact: DirectMirConstructedArrayMemberSpecializationFact
 ) -> Bool {
     let outer_actuals: Array<String> = [fact.outer_generic_actual];
     let inner_actuals: Array<String> = [fact.inner_generic_actual];
     return fact.valid && fact.digest != 0 && fact.digest ==
-        DirectMirConstructedGenericMemberSpecializationDigest(fact) &&
+        DirectMirConstructedArrayMemberSpecializationDigest(fact) &&
         fact.owner != "" && fact.source_owner_syntax_id > 0 &&
         fact.outer_callable != "" && fact.inner_callable != "" &&
         fact.outer_callable != fact.inner_callable &&
         fact.outer_generic_param != "" && fact.inner_generic_param != "" &&
-        fact.outer_generic_actual == CompilerAbiLayoutOptionIntTypeName() &&
+        fact.outer_generic_actual == CompilerAbiLayoutArrayIntTypeName() &&
         fact.inner_generic_actual == CompilerAbiLayoutIntTypeName() &&
         fact.outer_symbol == CompilerSymbolCGenericSpecializationName(
             CompilerSymbolCQualifiedName(fact.owner, fact.outer_callable),
@@ -63,34 +63,34 @@ func DirectMirConstructedGenericMemberSpecializationFactReady(
         );
 }
 
-func DirectMirConstructedGenericMemberSpecializationFactFromPair(
+func DirectMirConstructedArrayMemberSpecializationFactFromPair(
     ref pair: DirectMirConstructedMemberSpecializationPairFact
-) -> DirectMirConstructedGenericMemberSpecializationFact {
+) -> DirectMirConstructedArrayMemberSpecializationFact {
     if !DirectMirConstructedMemberSpecializationPairFactReady(pair) ||
-        pair.outer_constructor != "Option" ||
-        pair.outer_generic_actual != CompilerAbiLayoutOptionIntTypeName() {
-        return InvalidDirectMirConstructedGenericMemberSpecializationFact();
+        pair.outer_constructor != "Array" ||
+        pair.outer_generic_actual != CompilerAbiLayoutArrayIntTypeName() {
+        return InvalidDirectMirConstructedArrayMemberSpecializationFact();
     }
-    let fact: DirectMirConstructedGenericMemberSpecializationFact =
-        DirectMirConstructedGenericMemberSpecializationFact(
+    let fact: DirectMirConstructedArrayMemberSpecializationFact =
+        DirectMirConstructedArrayMemberSpecializationFact(
             true, 0, pair.owner, pair.source_owner_syntax_id,
             pair.outer_callable, pair.outer_symbol,
             pair.outer_generic_param, pair.outer_generic_actual,
             pair.inner_callable, pair.inner_symbol,
             pair.inner_generic_param, pair.inner_generic_actual
         );
-    let verified: DirectMirConstructedGenericMemberSpecializationFact =
-        DirectMirConstructedGenericMemberSpecializationFact(
+    let verified: DirectMirConstructedArrayMemberSpecializationFact =
+        DirectMirConstructedArrayMemberSpecializationFact(
             fact.valid,
-            DirectMirConstructedGenericMemberSpecializationDigest(fact),
+            DirectMirConstructedArrayMemberSpecializationDigest(fact),
             fact.owner, fact.source_owner_syntax_id,
             fact.outer_callable, fact.outer_symbol,
             fact.outer_generic_param, fact.outer_generic_actual,
             fact.inner_callable, fact.inner_symbol,
             fact.inner_generic_param, fact.inner_generic_actual
         );
-    if !DirectMirConstructedGenericMemberSpecializationFactReady(verified) {
-        return InvalidDirectMirConstructedGenericMemberSpecializationFact();
+    if !DirectMirConstructedArrayMemberSpecializationFactReady(verified) {
+        return InvalidDirectMirConstructedArrayMemberSpecializationFact();
     }
     return verified;
 }

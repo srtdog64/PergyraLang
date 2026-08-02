@@ -2,6 +2,8 @@
 
 import "direct_mir_constructed_generic_member_c_emission_owner.pgy";
 import "direct_mir_constructed_generic_member_llvm_emission_owner.pgy";
+import "direct_mir_constructed_array_member_projection_owner.pgy";
+import "direct_mir_constructed_member_variant_owner.pgy";
 
 func CompileAdmittedDirectMirConstructedGenericMember(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -11,9 +13,29 @@ func CompileAdmittedDirectMirConstructedGenericMember(
     formatted_print: CompilerRuntimeCallAbiFact,
     line_format: String
 ) -> String {
+    let pair: DirectMirConstructedMemberSpecializationPairFact =
+        DirectMirConstructedMemberSpecializationPairFromDocument(
+            admitted.document.root
+        );
+    let variant: DirectMirConstructedMemberVariantFact =
+        DirectMirConstructedMemberVariantFromPair(pair);
+    if variant.kind == DirectMirConstructedMemberArrayVariant() {
+        let array_specialization:
+            DirectMirConstructedArrayMemberSpecializationFact =
+            DirectMirConstructedArrayMemberSpecializationFactFromPair(pair);
+        return CompileAdmittedDirectMirConstructedArrayMember(
+            admitted, classification, array_specialization,
+            target_projection, is_llvm, formatted_print, line_format
+        );
+    }
+    if variant.kind != DirectMirConstructedMemberOptionVariant() {
+        Die("direct MIR constructed member variant is unsupported");
+    }
+    let specialization: DirectMirConstructedGenericMemberSpecializationFact =
+        DirectMirConstructedGenericMemberSpecializationFactFromPair(pair);
     let plan: DirectMirConstructedGenericMemberPlan =
         DirectMirConstructedGenericMemberPlanFromAdmitted(
-            admitted, classification
+            admitted, classification, specialization
         );
     let abi: DirectMirOptionMatchAbiProjection =
         DirectMirOptionMatchAbiProjectionFromFact(

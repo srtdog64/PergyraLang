@@ -533,6 +533,23 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_constructed_generic_member_plan_owner.pgy" \
     'some_to_nested_member_option_to_checked_unwrap'
+require_text ".github/workflows/ci.yml" \
+    'self-host-one-mir-constructed-array-member-projection-test-smoke'
+require_text "Makefile" \
+    'self-host-one-mir-constructed-array-member-projection-test-smoke: self-host-compiler'
+require_file \
+    "tests/self_hosted/parity/one_mir_constructed_array_member_projection.sh"
+require_file \
+    "tests/self_hosted/parity/one_mir_constructed_array_member_mutations.py"
+require_text \
+    "src/self_hosted/compiler/direct_mir_constructed_generic_member_projection_owner.pgy" \
+    'DirectMirConstructedMemberVariantFromPair(pair)'
+require_text \
+    "src/self_hosted/compiler/direct_mir_constructed_array_member_plan_owner.pgy" \
+    'caller_owned_fixed_array_through_nested_member_by_value'
+require_text \
+    "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
+    'return "AST_ARRAY_LITERAL"'
 require_text \
     "src/self_hosted/compiler/direct_mir_two_routine_classification_owner.pgy" \
     'DirectMirTwoRoutineInferredGenericMember()'

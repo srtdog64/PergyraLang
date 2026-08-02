@@ -1,0 +1,36 @@
+// Target selection after one constructed Array member plan is admitted.
+
+import "direct_mir_constructed_array_member_c_emission_owner.pgy";
+import "direct_mir_constructed_array_member_llvm_emission_owner.pgy";
+
+func CompileAdmittedDirectMirConstructedArrayMember(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirThreeRoutineClassificationFact,
+    ref specialization: DirectMirConstructedArrayMemberSpecializationFact,
+    target_projection: CompilerTargetProjectionFact,
+    is_llvm: Bool,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    let plan: DirectMirConstructedArrayMemberPlan =
+        DirectMirConstructedArrayMemberPlanFromAdmitted(
+            admitted, classification, specialization
+        );
+    let abi: DirectMirArrayIntAbiProjection =
+        DirectMirArrayIntAbiProjectionFromCanonicalLayout(
+            target_projection, MirAbiLayoutIdFromCapture(plan.abi),
+            ToInt(plan.abi.size_text), ToInt(plan.abi.align_text),
+            ToInt(plan.abi.field_offsets[0]),
+            ToInt(plan.abi.field_offsets[1]),
+            ToInt(plan.abi.field_offsets[2]),
+            ToInt(plan.abi.field_offsets[3])
+        );
+    if is_llvm {
+        return DirectMirConstructedArrayMemberEmitLlvm(
+            plan, abi, formatted_print, line_format
+        );
+    }
+    return DirectMirConstructedArrayMemberEmitC(
+        plan, abi, formatted_print, line_format
+    );
+}

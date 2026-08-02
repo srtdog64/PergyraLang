@@ -1,0 +1,128 @@
+// Exact constructor, nested member call, and Array index output graph.
+
+import "direct_mir_constructed_generic_member_main_graph_fact_owner.pgy";
+
+struct DirectMirConstructedArrayMemberMainGraphFact {
+    let valid: Bool;
+    let digest: Int;
+    let owner: String;
+    let outer_method: String;
+    let outer_target: String;
+    let inner_method: String;
+    let inner_target: String;
+    let receiver_local: String;
+    let result_local: String;
+    let marker_value: Int;
+    let argument_value: Int;
+    let selected_index: Int;
+    let output_policy: String;
+}
+
+func DirectMirConstructedArrayMemberMainGraphDigest(
+    ref fact: DirectMirConstructedArrayMemberMainGraphFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(409L, fact.owner);
+    hash = DirectMirCfgHashString(hash, fact.outer_method);
+    hash = DirectMirCfgHashString(hash, fact.outer_target);
+    hash = DirectMirCfgHashString(hash, fact.inner_method);
+    hash = DirectMirCfgHashString(hash, fact.inner_target);
+    hash = DirectMirCfgHashString(hash, fact.receiver_local);
+    hash = DirectMirCfgHashString(hash, fact.result_local);
+    hash = DirectMirCfgHashInt(hash, fact.marker_value);
+    hash = DirectMirCfgHashInt(hash, fact.argument_value);
+    hash = DirectMirCfgHashInt(hash, fact.selected_index);
+    hash = DirectMirCfgHashString(hash, fact.output_policy);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirConstructedArrayMemberMainGraphFactReady(
+    ref fact: DirectMirConstructedArrayMemberMainGraphFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirConstructedArrayMemberMainGraphDigest(fact) &&
+        fact.owner != "" && fact.outer_method != "" &&
+        fact.inner_method != "" && fact.outer_method != fact.inner_method &&
+        fact.outer_target == CompilerSymbolCQualifiedName(
+            fact.owner, fact.outer_method
+        ) && fact.inner_target == CompilerSymbolCQualifiedName(
+            fact.owner, fact.inner_method
+        ) && fact.receiver_local != "" && fact.result_local != "" &&
+        fact.receiver_local != fact.result_local && fact.selected_index == 0 &&
+        fact.output_policy == "fixed_array_index";
+}
+
+func DirectMirConstructedArrayMemberOutputLocal(
+    ref sequence: MirExpressionGraphSequence
+) -> String {
+    if !DirectMirGenericNominalExactTopologyReady(
+        sequence,
+        [AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+         AstExpressionNodeLeaf(), AstExpressionNodeIntegerLiteral(),
+         AstExpressionNodeIndex(), AstExpressionNodeCallArgument()],
+        [0,0,0,0,2,1], [0,0,0,0,3,4],
+        ["","ToString","","","",""], 5
+    ) || sequence.arena.node_texts[0] != "ToString" ||
+        sequence.arena.node_texts[1] != "ToString()" ||
+        sequence.arena.node_texts[3] != "0" {
+        Die("direct MIR constructed Array member output graph is invalid");
+    }
+    let result: String = sequence.arena.node_texts[2];
+    let indexed: String = Concat(result, "[0]");
+    if result == "" || sequence.arena.node_texts[4] != indexed ||
+        sequence.arena.node_texts[5] !=
+            Concat("ToString(", Concat(indexed, ")")) {
+        Die("direct MIR constructed Array member output identity is invalid");
+    }
+    return result;
+}
+
+func DirectMirConstructedArrayMemberMainGraphFactFromSequences(
+    ref constructor: MirExpressionGraphSequence,
+    ref nested_call: MirExpressionGraphSequence,
+    ref output: MirExpressionGraphSequence
+) -> DirectMirConstructedArrayMemberMainGraphFact {
+    if !constructor.ok || constructor.ready_node_count != 4 ||
+        !nested_call.ok || nested_call.ready_node_count != 11 {
+        Die("direct MIR constructed Array Main graph input is incomplete");
+    }
+    let owner: String = constructor.arena.call_target_names[1];
+    let receiver: String = nested_call.arena.node_texts[0];
+    let outer_method: String = nested_call.arena.node_texts[1];
+    let outer_target: String = nested_call.arena.call_target_names[3];
+    let inner_method: String = nested_call.arena.node_texts[5];
+    let inner_target: String = nested_call.arena.call_target_names[7];
+    let result: String = DirectMirConstructedArrayMemberOutputLocal(output);
+    if !DirectMirGenericNominalExactTopologyReady(
+            constructor,
+            [AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+             AstExpressionNodeIntegerLiteral(), AstExpressionNodeCallArgument()],
+            [0,0,0,1], [0,0,0,2], ["",owner,"",""], 3
+        ) || constructor.arena.node_texts[0] != owner ||
+        !DirectMirConstructedGenericMemberNestedCallReady(
+            nested_call, receiver, outer_method, outer_target,
+            inner_method, inner_target
+        ) {
+        Die("direct MIR constructed Array Main topology is invalid");
+    }
+    let fact: DirectMirConstructedArrayMemberMainGraphFact =
+        DirectMirConstructedArrayMemberMainGraphFact(
+            true, 0, owner, outer_method, outer_target,
+            inner_method, inner_target, receiver, result,
+            DirectMirInferredGenericMemberCanonicalIntAt(constructor, 2),
+            DirectMirInferredGenericMemberCanonicalIntAt(nested_call, 8),
+            0, "fixed_array_index"
+        );
+    let verified: DirectMirConstructedArrayMemberMainGraphFact =
+        DirectMirConstructedArrayMemberMainGraphFact(
+            fact.valid, DirectMirConstructedArrayMemberMainGraphDigest(fact),
+            fact.owner, fact.outer_method, fact.outer_target,
+            fact.inner_method, fact.inner_target, fact.receiver_local,
+            fact.result_local, fact.marker_value, fact.argument_value,
+            fact.selected_index, fact.output_policy
+        );
+    if !DirectMirConstructedArrayMemberMainGraphFactReady(verified) {
+        Die("direct MIR constructed Array Main graph fact is invalid");
+    }
+    return verified;
+}

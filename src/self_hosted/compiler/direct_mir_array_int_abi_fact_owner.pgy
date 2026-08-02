@@ -27,5 +27,7 @@ func DirectMirArrayIntCapturedAbiReady(
         abi.field_aligns[3] == "8" &&
         abi.runtime_fn == "pgy_array_new_Int" &&
         abi.inner_c_type == "int32_t" &&
-        abi.representation_text == "0";
+        abi.representation_text == "0" && abi.discriminant == "" &&
+        abi.primary_tag_text == "0" && abi.secondary_tag_text == "0" &&
+        abi.niche_none_pattern == "";
 }

@@ -85,11 +85,12 @@ func DirectMirConstructedGenericMemberPlanReady(
 
 func DirectMirConstructedGenericMemberPlanFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref classification: DirectMirThreeRoutineClassificationFact
+    ref classification: DirectMirThreeRoutineClassificationFact,
+    ref specialization: DirectMirConstructedGenericMemberSpecializationFact
 ) -> DirectMirConstructedGenericMemberPlan {
     let identity: DirectMirConstructedGenericMemberProgramIdentity =
         DirectMirConstructedGenericMemberProgramIdentityFromAdmitted(
-            admitted, classification
+            admitted, classification, specialization
         );
     let methods: DirectMirConstructedGenericMemberMethodInstructions =
         DirectMirConstructedGenericMemberMethodInstructionsFromProgram(

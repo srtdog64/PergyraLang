@@ -1,0 +1,61 @@
+// Exclusive Option/Array decision derived from one admitted specialization fact.
+
+import "direct_mir_constructed_member_specialization_pair_owner.pgy";
+
+struct DirectMirConstructedMemberVariantFact {
+    let valid: Bool;
+    let digest: Int;
+    let kind: String;
+    let specialization_digest: Int;
+}
+
+func DirectMirConstructedMemberOptionVariant() -> String { return "option"; }
+func DirectMirConstructedMemberArrayVariant() -> String { return "array"; }
+
+func DirectMirConstructedMemberVariantDigest(
+    ref fact: DirectMirConstructedMemberVariantFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(397L, fact.kind);
+    hash = DirectMirCfgHashInt(hash, fact.specialization_digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirConstructedMemberVariantFactReady(
+    ref fact: DirectMirConstructedMemberVariantFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirConstructedMemberVariantDigest(fact) &&
+        fact.specialization_digest != 0 &&
+        (fact.kind == DirectMirConstructedMemberOptionVariant() ||
+         fact.kind == DirectMirConstructedMemberArrayVariant());
+}
+
+func DirectMirConstructedMemberVariantFromPair(
+    ref specialization: DirectMirConstructedMemberSpecializationPairFact
+) -> DirectMirConstructedMemberVariantFact {
+    if !DirectMirConstructedMemberSpecializationPairFactReady(specialization) {
+        Die("direct MIR constructed member specialization is invalid");
+    }
+    let kind: String = "";
+    if specialization.outer_constructor == "Option" {
+        kind = DirectMirConstructedMemberOptionVariant();
+    } else if specialization.outer_constructor == "Array" {
+        kind = DirectMirConstructedMemberArrayVariant();
+    } else {
+        Die("direct MIR constructed member variant is unsupported");
+    }
+    let fact: DirectMirConstructedMemberVariantFact =
+        DirectMirConstructedMemberVariantFact(
+            true, 0, kind, specialization.digest
+        );
+    let verified: DirectMirConstructedMemberVariantFact =
+        DirectMirConstructedMemberVariantFact(
+            fact.valid, DirectMirConstructedMemberVariantDigest(fact),
+            fact.kind, fact.specialization_digest
+        );
+    if !DirectMirConstructedMemberVariantFactReady(verified) {
+        Die("direct MIR constructed member variant fact is invalid");
+    }
+    return verified;
+}
