@@ -1,0 +1,99 @@
+// Target-neutral plan for two inferred scalar calls into one nominal value.
+
+import "direct_mir_inferred_generic_nominal_abi_fact_owner.pgy";
+import "target_capability_owner.pgy";
+import "artifact_zone_owner.pgy";
+import "../mir_lower/ssa_identity_owner.pgy";
+
+struct DirectMirInferredGenericNominalPlan {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let digest: Int;
+    let target_capability_schema: String;
+    let target_capability_fingerprint: Int;
+    let identity: DirectMirInferredGenericNominalProgramIdentity;
+    let abi: DirectMirInferredGenericNominalAbiFact;
+    let result_value: String;
+    let value_carriage: String;
+}
+
+func DirectMirInferredGenericNominalPlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-inferred-generic-nominal-plan.v1";
+}
+
+func DirectMirInferredGenericNominalCarriage() -> String {
+    return "inferred_generic_scalar_calls_into_nominal_value_by_value";
+}
+
+func DirectMirInferredGenericNominalPlanDigest(
+    ref plan: DirectMirInferredGenericNominalPlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(257L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
+    hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
+    hash = DirectMirCfgHashInt(hash, plan.identity.digest);
+    hash = DirectMirCfgHashInt(hash, plan.abi.digest);
+    hash = DirectMirCfgHashString(hash, plan.result_value);
+    hash = DirectMirCfgHashString(hash, plan.value_carriage);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirInferredGenericNominalPlanReady(
+    ref plan: DirectMirInferredGenericNominalPlan
+) -> Bool {
+    return plan.valid &&
+        plan.schema == DirectMirInferredGenericNominalPlanSchema() &&
+        plan.revision == CompilerArtifactPlanRevision() && plan.digest != 0 &&
+        plan.digest == DirectMirInferredGenericNominalPlanDigest(plan) &&
+        plan.target_capability_schema == CompilerTargetCapabilitySchema() &&
+        plan.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        DirectMirInferredGenericNominalProgramIdentityReady(plan.identity) &&
+        DirectMirInferredGenericNominalAbiFactReady(plan.abi) &&
+        MirSsaNameMatches(
+            plan.result_value, plan.identity.graph.source_local_name, false
+        ) && plan.value_carriage ==
+            DirectMirInferredGenericNominalCarriage();
+}
+
+func DirectMirInferredGenericNominalPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirTwoRoutineClassificationFact
+) -> DirectMirInferredGenericNominalPlan {
+    let identity: DirectMirInferredGenericNominalProgramIdentity =
+        DirectMirInferredGenericNominalProgramIdentityFromAdmitted(
+            admitted, classification
+        );
+    let instructions: DirectMirInferredGenericNominalInstructionAdmission =
+        DirectMirInferredGenericNominalInstructionAdmissionFromProgram(
+            admitted, identity
+        );
+    let abi: DirectMirInferredGenericNominalAbiFact =
+        DirectMirInferredGenericNominalAbiFactFromInstructions(
+            admitted.routines.source_json, identity, instructions
+        );
+    let plan: DirectMirInferredGenericNominalPlan =
+        DirectMirInferredGenericNominalPlan(
+            true, DirectMirInferredGenericNominalPlanSchema(),
+            CompilerArtifactPlanRevision(), 0,
+            CompilerTargetCapabilitySchema(),
+            CompilerTargetCapabilityFingerprint(), identity, abi,
+            instructions.initial.result,
+            DirectMirInferredGenericNominalCarriage()
+        );
+    let verified: DirectMirInferredGenericNominalPlan =
+        DirectMirInferredGenericNominalPlan(
+            plan.valid, plan.schema, plan.revision,
+            DirectMirInferredGenericNominalPlanDigest(plan),
+            plan.target_capability_schema,
+            plan.target_capability_fingerprint, plan.identity, plan.abi,
+            plan.result_value, plan.value_carriage
+        );
+    if !DirectMirInferredGenericNominalPlanReady(verified) {
+        Die("direct MIR inferred generic nominal plan is invalid");
+    }
+    return verified;
+}

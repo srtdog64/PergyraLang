@@ -1,0 +1,25 @@
+// Target selection after one inferred-generic nominal plan is admitted.
+
+import "direct_mir_inferred_generic_nominal_c_emission_owner.pgy";
+import "direct_mir_inferred_generic_nominal_llvm_emission_owner.pgy";
+
+func CompileAdmittedDirectMirInferredGenericNominal(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirTwoRoutineClassificationFact,
+    is_llvm: Bool,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    let plan: DirectMirInferredGenericNominalPlan =
+        DirectMirInferredGenericNominalPlanFromAdmitted(
+            admitted, classification
+        );
+    if is_llvm {
+        return DirectMirInferredGenericNominalEmitLlvm(
+            plan, formatted_print, line_format
+        );
+    }
+    return DirectMirInferredGenericNominalEmitC(
+        plan, formatted_print, line_format
+    );
+}

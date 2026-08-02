@@ -14132,6 +14132,29 @@ require_text "Makefile" "SELFHOST_ONE_MIR_GENERIC_STRUCT_VALUE_FLOW_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_GENERIC_STRUCT_VALUE_FLOW_GATE)'
 require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-generic-struct-value-flow-projection-test-smoke"
+require_file \
+    "tests/self_hosted/parity/one_mir_inferred_generic_nominal_projection.sh"
+require_file \
+    "tests/self_hosted/parity/one_mir_inferred_generic_nominal_mutations.py"
+require_text \
+    "src/self_hosted/compiler/direct_mir_two_routine_classification_owner.pgy" \
+    "DirectMirTwoRoutineInferredGenericNominal()"
+require_text \
+    "src/self_hosted/compiler/direct_mir_inferred_generic_specialization_fact_owner.pgy" \
+    "JsonArrayObjectFactCount(table) != 2"
+require_text \
+    "src/self_hosted/compiler/direct_mir_inferred_generic_nominal_plan_owner.pgy" \
+    "inferred_generic_scalar_calls_into_nominal_value_by_value"
+require_text \
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
+    "CompileAdmittedDirectMirInferredGenericNominal("
+require_text \
+    "tests/self_hosted/parity/one_mir_inferred_generic_nominal_projection.sh" \
+    "one specialization definition and two calls"
+require_text "Makefile" "SELFHOST_ONE_MIR_INFERRED_GENERIC_NOMINAL_GATE ?="
+require_text "Makefile" '$(SELFHOST_ONE_MIR_INFERRED_GENERIC_NOMINAL_GATE)'
+require_text ".github/workflows/ci.yml" \
+    "self-host-one-mir-inferred-generic-nominal-projection-test-smoke"
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240

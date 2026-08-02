@@ -4,6 +4,7 @@
 import "artifact_zone_owner.pgy";
 import "direct_mir_struct_argument_program_identity_owner.pgy";
 import "target_capability_owner.pgy";
+import "direct_mir_instruction_abi_absence_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
 
@@ -142,7 +143,7 @@ func DirectMirStructArgumentPlanFromAdmitted(
                 routine_index.instruction_facts, global
             );
         if !capture.valid ||
-            !DirectMirArrayArgumentInstructionHasNoPhysicalAbi(
+            !DirectMirInstructionHasNoPhysicalAbi(
                 admitted.routines.source_json, capture, abi_types[row]
         ) {
             Die("direct MIR struct argument instruction ABI is invalid");

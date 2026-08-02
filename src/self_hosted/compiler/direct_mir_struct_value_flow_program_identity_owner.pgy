@@ -4,6 +4,7 @@ import "direct_mir_struct_value_flow_program_admission_owner.pgy";
 import "direct_mir_struct_value_flow_graph_fact_owner.pgy";
 import "direct_mir_nominal_declaration_abi_fact_owner.pgy";
 import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_two_int_nominal_abi_shape_owner.pgy";
 
 struct DirectMirStructValueFlowProgramIdentity {
     let valid: Bool;
@@ -23,20 +24,6 @@ func DirectMirStructValueFlowProgramIdentityDigest(
     hash = DirectMirCfgHashInt(hash, identity.declaration.digest);
     hash = DirectMirCfgHashInt(hash, identity.graph.digest);
     return DirectMirCfgBoundedDigest(hash);
-}
-
-func DirectMirStructValueFlowPhysicalRowReady(
-    ref declaration: DirectMirNominalDeclarationAbiFact
-) -> Bool {
-    return declaration.abi.size_text == "8" &&
-        declaration.abi.align_text == "4" &&
-        ArrayLength(declaration.abi.field_names) == 2 &&
-        declaration.abi.field_offsets[0] == "0" &&
-        declaration.abi.field_offsets[1] == "4" &&
-        declaration.abi.field_sizes[0] == "4" &&
-        declaration.abi.field_sizes[1] == "4" &&
-        declaration.abi.field_aligns[0] == "4" &&
-        declaration.abi.field_aligns[1] == "4";
 }
 
 func DirectMirStructValueFlowProgramIdentityReady(
@@ -70,7 +57,7 @@ func DirectMirStructValueFlowProgramIdentityReady(
         declaration.field_names[1] == graph.second_field &&
         declaration.field_types[0] == CompilerAbiLayoutIntTypeName() &&
         declaration.field_types[1] == CompilerAbiLayoutIntTypeName() &&
-        DirectMirStructValueFlowPhysicalRowReady(declaration) &&
+        DirectMirTwoIntNominalPhysicalRowReady(declaration) &&
         identity.entrypoint.row != identity.producer.row &&
         identity.entrypoint.source_syntax_id !=
             identity.producer.source_syntax_id;

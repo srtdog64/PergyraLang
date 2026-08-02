@@ -1,0 +1,135 @@
+// Exact inferred-call graph identity for one Pair value and member sum.
+
+import "direct_mir_generic_nominal_graph_shape_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirInferredGenericNominalGraphFact {
+    let valid: Bool;
+    let digest: Int;
+    let type_name: String;
+    let first_field: String;
+    let second_field: String;
+    let generic_callable: String;
+    let generic_parameter_name: String;
+    let source_local_name: String;
+    let first_value: Int;
+    let second_value: Int;
+}
+
+func DirectMirInferredGenericNominalCanonicalIntAt(
+    ref sequence: MirExpressionGraphSequence, row: Int
+) -> Int {
+    if row < 0 || row >= ArrayLength(sequence.arena.node_texts) ||
+        sequence.arena.topology.node_kinds[row] !=
+            AstExpressionNodeIntegerLiteral() {
+        Die("direct MIR inferred generic integer node is invalid");
+    }
+    let value: String = sequence.arena.node_texts[row];
+    if value == "" || ToString(ToInt(value)) != value {
+        Die("direct MIR inferred generic integer is not canonical");
+    }
+    return ToInt(value);
+}
+
+func DirectMirInferredGenericNominalInitializerShapeReady(
+    ref sequence: MirExpressionGraphSequence, callable: String
+) -> Bool {
+    return callable != "" && DirectMirGenericNominalExactTopologyReady(
+        sequence, [
+            AstExpressionNodeLeaf(), AstExpressionNodeStructLiteral(),
+            AstExpressionNodeStructFieldName(), AstExpressionNodeLeaf(),
+            AstExpressionNodeCall(), AstExpressionNodeIntegerLiteral(),
+            AstExpressionNodeCallArgument(),
+            AstExpressionNodeStructFieldBinding(),
+            AstExpressionNodeStructField(),
+            AstExpressionNodeStructFieldName(), AstExpressionNodeLeaf(),
+            AstExpressionNodeCall(), AstExpressionNodeIntegerLiteral(),
+            AstExpressionNodeCallArgument(),
+            AstExpressionNodeStructFieldBinding(),
+            AstExpressionNodeStructField()
+        ], [0,0,0,0,3,0,4,2,1,0,0,10,0,11,9,8],
+        [0,0,0,0,0,0,5,6,7,0,0,0,0,12,13,14], [
+            "","","","",callable,"","","","",
+            "","",callable,"","","",""
+        ], 15
+    );
+}
+
+func DirectMirInferredGenericNominalGraphFactDigest(
+    ref fact: DirectMirInferredGenericNominalGraphFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(239L, fact.type_name);
+    hash = DirectMirCfgHashString(hash, fact.first_field);
+    hash = DirectMirCfgHashString(hash, fact.second_field);
+    hash = DirectMirCfgHashString(hash, fact.generic_callable);
+    hash = DirectMirCfgHashString(hash, fact.generic_parameter_name);
+    hash = DirectMirCfgHashString(hash, fact.source_local_name);
+    hash = DirectMirCfgHashInt(hash, fact.first_value);
+    hash = DirectMirCfgHashInt(hash, fact.second_value);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirInferredGenericNominalGraphFactReady(
+    ref fact: DirectMirInferredGenericNominalGraphFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirInferredGenericNominalGraphFactDigest(fact) &&
+        fact.type_name != "" && fact.first_field != "" &&
+        fact.second_field != "" && fact.first_field != fact.second_field &&
+        fact.generic_callable != "" && fact.generic_parameter_name != "" &&
+        fact.source_local_name != "";
+}
+
+func DirectMirInferredGenericNominalGraphFactFromSequences(
+    ref generic_return: MirExpressionGraphSequence,
+    ref initial: MirExpressionGraphSequence,
+    ref output: MirExpressionGraphSequence
+) -> DirectMirInferredGenericNominalGraphFact {
+    if !initial.ok || initial.ready_node_count != 16 {
+        Die("direct MIR inferred generic initializer graph is incomplete");
+    }
+    let callable: String = initial.arena.call_target_names[4];
+    if !DirectMirGenericNominalIdentityReturnShapeReady(generic_return) ||
+        !DirectMirInferredGenericNominalInitializerShapeReady(
+            initial, callable
+        ) || !DirectMirGenericNominalOutputShapeReady(output) {
+        Die("direct MIR inferred generic graph topology is invalid");
+    }
+    if initial.arena.call_target_names[11] != callable ||
+        initial.arena.node_texts[3] != callable ||
+        initial.arena.node_texts[10] != callable ||
+        initial.arena.node_texts[0] == "" ||
+        initial.arena.node_texts[2] == "" ||
+        initial.arena.node_texts[9] == "" ||
+        initial.arena.node_texts[2] == initial.arena.node_texts[9] ||
+        output.arena.node_texts[0] != "ToString" ||
+        output.arena.node_texts[2] == "" ||
+        output.arena.node_texts[2] != output.arena.node_texts[5] ||
+        output.arena.node_texts[3] != initial.arena.node_texts[2] ||
+        output.arena.node_texts[6] != initial.arena.node_texts[9] ||
+        generic_return.arena.node_texts[0] == "" {
+        Die("direct MIR inferred generic graph identity is invalid");
+    }
+    let fact: DirectMirInferredGenericNominalGraphFact =
+        DirectMirInferredGenericNominalGraphFact(
+            true, 0, initial.arena.node_texts[0],
+            initial.arena.node_texts[2], initial.arena.node_texts[9],
+            callable, generic_return.arena.node_texts[0],
+            output.arena.node_texts[2],
+            DirectMirInferredGenericNominalCanonicalIntAt(initial, 5),
+            DirectMirInferredGenericNominalCanonicalIntAt(initial, 12)
+        );
+    let verified: DirectMirInferredGenericNominalGraphFact =
+        DirectMirInferredGenericNominalGraphFact(
+            fact.valid,
+            DirectMirInferredGenericNominalGraphFactDigest(fact),
+            fact.type_name, fact.first_field, fact.second_field,
+            fact.generic_callable, fact.generic_parameter_name,
+            fact.source_local_name, fact.first_value, fact.second_value
+        );
+    if !DirectMirInferredGenericNominalGraphFactReady(verified) {
+        Die("direct MIR inferred generic graph fact is invalid");
+    }
+    return verified;
+}

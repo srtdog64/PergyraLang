@@ -4,6 +4,7 @@ import "direct_mir_generic_struct_value_flow_program_identity_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
 import "../mir_lower/routine_result_definition_fact_owner.pgy";
+import "direct_mir_instruction_abi_absence_owner.pgy";
 
 struct DirectMirGenericStructValueFlowInstructionAdmission {
     let valid: Bool;
@@ -40,27 +41,6 @@ func DirectMirGenericStructExpectedUse(
         uses, global_row, 0
     );
     return count == 1 && IsSome(value) && UnwrapOption(value) == expected;
-}
-
-func DirectMirGenericStructInstructionHasNoPhysicalAbi(
-    json: String,
-    ref capture: MirRoutineInstructionScalarCapture,
-    expected_type: String
-) -> Bool {
-    return capture.abi_type_value_ready &&
-        capture.abi_type_name == expected_type &&
-        capture.abi_layout_id_start >= 0 &&
-        capture.abi_layout_required_start >= 0 &&
-        capture.abi_layout_start >= 0 && SubEqualsWithLen(
-            json, capture.abi_layout_id_end,
-            capture.abi_layout_id_start, 1, "0"
-        ) && SubEqualsWithLen(
-            json, capture.abi_layout_required_end,
-            capture.abi_layout_required_start, 5, "false"
-        ) && SubEqualsWithLen(
-            json, capture.abi_layout_end,
-            capture.abi_layout_start, 4, "null"
-        );
 }
 
 func DirectMirGenericStructValueFlowInstructionAdmissionReady(
@@ -177,7 +157,7 @@ func DirectMirGenericStructValueFlowInstructionAdmissionFromProgram(
         output.name != "stmt" || generic_return.arg0 != "" ||
         generic_return.arg1 != "" || returned.arg0 != "" ||
         returned.arg1 != "" ||
-        !DirectMirGenericStructInstructionHasNoPhysicalAbi(
+        !DirectMirInstructionHasNoPhysicalAbi(
             admitted.routines.source_json, generic_return,
             identity.generic_template.generic_name
         ) ||

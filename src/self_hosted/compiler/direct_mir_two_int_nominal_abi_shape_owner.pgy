@@ -1,0 +1,17 @@
+// One physical shape contract for two-field Int nominal declarations.
+
+import "direct_mir_nominal_declaration_abi_fact_owner.pgy";
+
+func DirectMirTwoIntNominalPhysicalRowReady(
+    ref declaration: DirectMirNominalDeclarationAbiFact
+) -> Bool {
+    return declaration.abi.size_text == "8" &&
+        declaration.abi.align_text == "4" &&
+        ArrayLength(declaration.abi.field_names) == 2 &&
+        declaration.abi.field_offsets[0] == "0" &&
+        declaration.abi.field_offsets[1] == "4" &&
+        declaration.abi.field_sizes[0] == "4" &&
+        declaration.abi.field_sizes[1] == "4" &&
+        declaration.abi.field_aligns[0] == "4" &&
+        declaration.abi.field_aligns[1] == "4";
+}

@@ -85,12 +85,12 @@ func DirectMirGenericStructValueFlowGraphFactFromSequences(
     }
     let callable: String = produced.arena.call_target_names[6];
     let producer: String = producer_call.arena.call_target_names[1];
-    if !DirectMirGenericStructIdentityReturnShapeReady(generic_return) ||
+    if !DirectMirGenericNominalIdentityReturnShapeReady(generic_return) ||
         !DirectMirGenericStructProducerShapeReady(produced, callable) ||
         !DirectMirGenericStructInitialShapeReady(initial, callable) ||
         !DirectMirGenericStructProducerCallShapeReady(
             producer_call, producer
-        ) || !DirectMirGenericStructOutputShapeReady(output) {
+        ) || !DirectMirGenericNominalOutputShapeReady(output) {
         Die("direct MIR generic nominal graph topology is invalid");
     }
     if produced.arena.call_target_names[17] != callable ||

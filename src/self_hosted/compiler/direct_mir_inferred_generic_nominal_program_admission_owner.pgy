@@ -1,22 +1,28 @@
-// Exclusive document/routine envelope for the explicit-generic nominal rung.
+// Exclusive outer envelope for the two-routine inferred-generic nominal rung.
 
-import "direct_mir_three_routine_classification_owner.pgy";
+import "direct_mir_two_routine_classification_owner.pgy";
 import "direct_mir_generic_routine_program_envelope_owner.pgy";
 
-func DirectMirGenericStructValueFlowProgramEnvelopeReady(
+func DirectMirInferredGenericNominalProgramEnvelopeReady(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref classification: DirectMirThreeRoutineClassificationFact
+    ref classification: DirectMirTwoRoutineClassificationFact
 ) -> Bool {
     let declarations: MirProgramDeclarationIndex =
         admitted.domain_runtime_admission.declarations;
-    if !DirectMirThreeRoutineClassificationFactReady(classification) ||
-        classification.kind != DirectMirThreeRoutineGenericNominal() ||
-        classification.specialization_count != 4 ||
+    let specializations: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(
+            admitted.document.root, "generic_method_specializations"
+        );
+    if !DirectMirTwoRoutineClassificationFactReady(classification) ||
+        classification.kind != DirectMirTwoRoutineInferredGenericNominal() ||
+        classification.specialization_count != 2 ||
         !admitted.document.valid || admitted.domain_topology_plan.present ||
         admitted.document.routines.json != admitted.routines.source_json ||
         JsonObjectFactCount(admitted.document.root) != 5 ||
-        !declarations.valid ||
-        MirProgramDeclarationIndexCount(declarations) != 1 ||
+        !DirectMirTwoRoutineNominalProgramCandidate(admitted) ||
+        !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 ||
+        !JsonArrayObjectFactTableReady(specializations) ||
+        JsonArrayObjectFactCount(specializations) != 2 ||
         !JsonArrayObjectFactTableReady(
             admitted.document.parallel_capture_boundaries
         ) || JsonArrayObjectFactCount(
@@ -26,7 +32,7 @@ func DirectMirGenericStructValueFlowProgramEnvelopeReady(
     }
     let generic_rows: Int = 0;
     let row: Int = 0;
-    while row < 3 {
+    while row < 2 {
         if admitted.routines.kinds[row] != "function" ||
             admitted.routines.owners[row] != "" ||
             admitted.routines.routine_block_counts[row] != 1 {

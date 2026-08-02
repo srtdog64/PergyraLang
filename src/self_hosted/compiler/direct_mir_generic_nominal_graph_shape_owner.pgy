@@ -1,0 +1,59 @@
+// Shared exact graph shapes for one generic identity and nominal member sum.
+
+import "direct_mir_array_int_graph_fact_owner.pgy";
+
+func DirectMirGenericNominalExactTopologyReady(
+    ref sequence: MirExpressionGraphSequence,
+    kinds: Array<Int>, lefts: Array<Int>, rights: Array<Int>,
+    targets: Array<String>, root: Int
+) -> Bool {
+    let count: Int = ArrayLength(kinds);
+    if !sequence.ok || sequence.ready_node_count != count ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != root ||
+        ArrayLength(lefts) != count || ArrayLength(rights) != count ||
+        ArrayLength(targets) != count {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if sequence.arena.topology.node_kinds[row] != kinds[row] ||
+            sequence.arena.topology.left_children[row] != lefts[row] ||
+            sequence.arena.topology.right_children[row] != rights[row] {
+            return false;
+        }
+        if targets[row] == "" {
+            if sequence.arena.call_target_kinds[row] !=
+                    SemanticCallTargetNone() ||
+                sequence.arena.call_target_names[row] != "" {
+                return false;
+            }
+        } else if sequence.arena.call_target_kinds[row] !=
+                SemanticCallTargetDirect() ||
+            sequence.arena.call_target_names[row] != targets[row] {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirGenericNominalIdentityReturnShapeReady(
+    ref sequence: MirExpressionGraphSequence
+) -> Bool {
+    return DirectMirGenericNominalExactTopologyReady(
+        sequence, [AstExpressionNodeLeaf()], [0], [0], [""], 0
+    );
+}
+
+func DirectMirGenericNominalOutputShapeReady(
+    ref sequence: MirExpressionGraphSequence
+) -> Bool {
+    return DirectMirGenericNominalExactTopologyReady(sequence, [
+        AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+        AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+        AstExpressionNodeMemberAccess(), AstExpressionNodeLeaf(),
+        AstExpressionNodeLeaf(), AstExpressionNodeMemberAccess(),
+        AstExpressionNodeAdd(), AstExpressionNodeCallArgument()
+    ], [0,0,0,0,2,0,0,5,4,1], [0,0,0,0,3,0,0,6,7,8],
+    ["","ToString","","","","","","","",""], 9);
+}

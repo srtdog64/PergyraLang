@@ -1,0 +1,72 @@
+// Pair layout receipt shared by the declaration and the one aggregate value.
+
+import "direct_mir_inferred_generic_nominal_instruction_admission_owner.pgy";
+import "direct_mir_nominal_abi_row_equality_owner.pgy";
+import "../mir_lower/abi_layout_admission_fact_owner.pgy";
+
+struct DirectMirInferredGenericNominalAbiFact {
+    let valid: Bool;
+    let digest: Int;
+    let declaration: DirectMirNominalDeclarationAbiFact;
+    let initial_layout_id: Int;
+}
+
+func DirectMirInferredGenericNominalAbiFactDigest(
+    ref fact: DirectMirInferredGenericNominalAbiFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(251L, fact.declaration.digest);
+    hash = DirectMirCfgHashInt(hash, fact.initial_layout_id);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirInferredGenericNominalAbiFactReady(
+    ref fact: DirectMirInferredGenericNominalAbiFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirInferredGenericNominalAbiFactDigest(fact) &&
+        DirectMirNominalDeclarationAbiFactReady(fact.declaration) &&
+        fact.initial_layout_id == fact.declaration.abi_layout_id;
+}
+
+func DirectMirInferredGenericNominalAbiFactFromInstructions(
+    json: String,
+    ref identity: DirectMirInferredGenericNominalProgramIdentity,
+    ref instructions: DirectMirInferredGenericNominalInstructionAdmission
+) -> DirectMirInferredGenericNominalAbiFact {
+    let captured: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            json, instructions.initial.abi_type_name,
+            instructions.initial.abi_type_value_ready,
+            instructions.initial.abi_type_start,
+            instructions.initial.abi_type_end,
+            instructions.initial.abi_layout_id_start,
+            instructions.initial.abi_layout_id_end,
+            instructions.initial.abi_layout_required_start,
+            instructions.initial.abi_layout_required_end,
+            instructions.initial.abi_layout_start,
+            instructions.initial.abi_layout_end
+        );
+    if !IsSome(captured) {
+        Die("direct MIR inferred generic ABI receipt disagrees");
+    }
+    let captured_row: MirAbiLayoutRowCapture = UnwrapOption(captured);
+    if !DirectMirStructAbiRowsEqual(
+        captured_row, identity.declaration.abi
+    ) { Die("direct MIR inferred generic ABI receipt disagrees"); }
+    let fact: DirectMirInferredGenericNominalAbiFact =
+        DirectMirInferredGenericNominalAbiFact(
+            true, 0, identity.declaration,
+            MirAbiLayoutIdFromCapture(captured_row)
+        );
+    let verified: DirectMirInferredGenericNominalAbiFact =
+        DirectMirInferredGenericNominalAbiFact(
+            fact.valid,
+            DirectMirInferredGenericNominalAbiFactDigest(fact),
+            fact.declaration, fact.initial_layout_id
+        );
+    if !DirectMirInferredGenericNominalAbiFactReady(verified) {
+        Die("direct MIR inferred generic ABI fact is invalid");
+    }
+    return verified;
+}

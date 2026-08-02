@@ -1,0 +1,74 @@
+// Structural classification for two-routine, one-declaration programs.
+// Specialization cardinality is read once so a rejected interpretation cannot
+// retry the other projection family.
+
+import "direct_mir_two_routine_nominal_program_admission_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirTwoRoutineClassificationFact {
+    let valid: Bool;
+    let digest: Int;
+    let kind: Int;
+    let specialization_count: Int;
+}
+
+func DirectMirTwoRoutineClosedNominal() -> Int { return 1; }
+func DirectMirTwoRoutineInferredGenericNominal() -> Int { return 2; }
+
+func InvalidDirectMirTwoRoutineClassificationFact(
+) -> DirectMirTwoRoutineClassificationFact {
+    return DirectMirTwoRoutineClassificationFact(false, 0, 0, 0);
+}
+
+func DirectMirTwoRoutineClassificationDigest(
+    ref fact: DirectMirTwoRoutineClassificationFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(229L, fact.kind);
+    hash = DirectMirCfgHashInt(hash, fact.specialization_count);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirTwoRoutineClassificationFactReady(
+    ref fact: DirectMirTwoRoutineClassificationFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirTwoRoutineClassificationDigest(fact) &&
+        ((fact.kind == DirectMirTwoRoutineClosedNominal() &&
+          fact.specialization_count == 0) ||
+         (fact.kind == DirectMirTwoRoutineInferredGenericNominal() &&
+          fact.specialization_count == 2));
+}
+
+func DirectMirTwoRoutineClassificationFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirTwoRoutineClassificationFact {
+    let specializations: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(
+            admitted.document.root, "generic_method_specializations"
+        );
+    if !DirectMirTwoRoutineNominalProgramCandidate(admitted) ||
+        !JsonArrayObjectFactTableReady(specializations) {
+        return InvalidDirectMirTwoRoutineClassificationFact();
+    }
+    let count: Int = JsonArrayObjectFactCount(specializations);
+    let kind: Int = 0;
+    if count == 0 {
+        kind = DirectMirTwoRoutineClosedNominal();
+    } else if count == 2 {
+        kind = DirectMirTwoRoutineInferredGenericNominal();
+    } else {
+        return InvalidDirectMirTwoRoutineClassificationFact();
+    }
+    let fact: DirectMirTwoRoutineClassificationFact =
+        DirectMirTwoRoutineClassificationFact(true, 0, kind, count);
+    let verified: DirectMirTwoRoutineClassificationFact =
+        DirectMirTwoRoutineClassificationFact(
+            fact.valid, DirectMirTwoRoutineClassificationDigest(fact),
+            fact.kind, fact.specialization_count
+        );
+    if !DirectMirTwoRoutineClassificationFactReady(verified) {
+        return InvalidDirectMirTwoRoutineClassificationFact();
+    }
+    return verified;
+}
