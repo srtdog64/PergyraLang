@@ -7114,6 +7114,11 @@ require_text "src/compiler/self_host_driver.c" 'path_join_dup(directory, "pgy-se
 require_text "src/compiler/self_host_driver.c" \
     "driver_run_self_host_c_emit_artifact("
 require_text "src/compiler/self_host_driver.c" 'child_argv[child_argc++] = "--emit-c-verified"'
+require_text "src/compiler/self_host_driver.c" \
+    'child_argv[1] = "--emit-c-artifact-verified"'
+require_text "src/compiler/self_host_driver.c" 'child_argv[2] = source_path'
+require_text "src/compiler/self_host_driver.c" 'child_argv[3] = output_path'
+reject_text "src/compiler/self_host_driver.c" 'child_argv[1] = source_path'
 require_text "src/compiler/self_host_driver.c" 'mir_json_mode = strcmp(argv[0], "--mir-json") == 0'
 require_text "src/compiler/self_host_driver.c" 'mir_producer_mode = strcmp(argv[0], "--emit-mir-json-verified") == 0'
 require_text "src/compiler/self_host_driver.c" 'mir_canonicalize_mode = strcmp(argv[0], "--canonicalize-mir-json") == 0'
@@ -7147,6 +7152,12 @@ require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     'import "driver_rung2_cli_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     "RunDriverRung2FromArgs(args);"
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    'args[0] == "--emit-c-artifact-verified"'
+reject_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    "if ArrayLength(args) == 2 {"
+require_file "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh"
+require_text "Makefile" "self-host-installed-driver-cli-mode-test-smoke"
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL"'
 reject_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
@@ -7178,7 +7189,9 @@ require_max_lines \
 require_file "tests/self_hosted/parity/fixture/counting_self_host_c_driver.c"
 require_max_lines "tests/self_hosted/parity/fixture/counting_self_host_c_driver.c" 40
 require_text "Makefile" \
-    'self-host-default-c-compile-replacement-test-smoke: $(PGY) self-host-compiler'
+    'self-host-default-c-compile-replacement-test-smoke: $(PGY) self-host-installed-driver-cli-mode-test-smoke'
+require_text "tests/self_hosted/parity/fixture/counting_self_host_c_driver.c" \
+    'strcmp(argv[1], "--emit-c-artifact-verified")'
 require_text \
     "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
     "installed self-host driver was not invoked exactly once"

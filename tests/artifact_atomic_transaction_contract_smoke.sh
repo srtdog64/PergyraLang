@@ -61,6 +61,14 @@ if grep -Eq -- 'WriteFile\(' "$MAIN"; then
     echo "bootstrap compiler output bypassed artifact transaction" >&2
     exit 1
 fi
+grep -Fq -- 'args[0] == "--emit-c-artifact-verified"' "$MAIN" || {
+    echo "source C artifact transaction lost its explicit mode" >&2
+    exit 1
+}
+if grep -Fq -- 'if ArrayLength(args) == 2 {' "$MAIN"; then
+    echo "generic source/output artifact fallback returned" >&2
+    exit 1
+fi
 
 [[ "$(grep -F -c 'SelfMirProgramFactsReady(facts)' "$WRITER")" -eq 1 ]] || {
     echo "compatibility writer must validate raw MIR facts exactly once" >&2

@@ -11,12 +11,19 @@ func Main() -> Void with caps env, io_read, io_write {
     let args: Array<String> = Args();
     let machine_declaration: SelfHostMachineLayerDeclaration =
         SelfHostMachineLayerDeclarationEmpty();
-    if ArrayLength(args) == 2 {
+    if ArrayLength(args) > 0 &&
+        args[0] == "--emit-c-artifact-verified" {
+        if ArrayLength(args) != 3 {
+            Die("source C artifact mode requires source and output paths");
+        }
+        if StartsWith(args[2], "-") {
+            Die("source C artifact output path must not be an option token");
+        }
         let source_commit: SelfMirArtifactCommitOutcome =
             SelfMirArtifactCommitPayload(
-            args[1],
+            args[2],
             CompileSourceToCVerified(
-                args[0], machine_declaration
+                args[1], machine_declaration
             ).payload
         );
         if !SelfMirArtifactCommitOutcomeReady(source_commit) {

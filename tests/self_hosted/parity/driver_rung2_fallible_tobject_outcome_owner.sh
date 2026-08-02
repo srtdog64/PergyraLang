@@ -55,7 +55,8 @@ SELF_C_REL="${BUILD_DIR#"$ROOT_DIR"/}/outcome.self.c"
 SELF_C="$ROOT_DIR/$SELF_C_REL"
 SELF_EXE="$BUILD_DIR/outcome.self.exe"
 rm -f "$SELF_C" "$SELF_EXE"
-(cd "$ROOT_DIR" && "$DRIVER" "$OUTCOME_FIXTURE_REL" "$SELF_C_REL" \
+(cd "$ROOT_DIR" && "$DRIVER" --emit-c-artifact-verified \
+    "$OUTCOME_FIXTURE_REL" "$SELF_C_REL" \
     >"$BUILD_DIR/outcome.self.emit.out" 2>"$BUILD_DIR/outcome.self.emit.err") \
     || { cat "$BUILD_DIR/outcome.self.emit.out" "$BUILD_DIR/outcome.self.emit.err" >&2; fail "self C outcome emission failed"; }
 gcc -x c -std=c11 -fwrapv -fno-strict-aliasing \

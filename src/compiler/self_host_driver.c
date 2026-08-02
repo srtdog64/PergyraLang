@@ -109,7 +109,7 @@ driver_materialize_self_host_c_artifact(const char *launcher_path,
                                         const char *output_path,
                                         bool verbose)
 {
-    const char *child_argv[4];
+    const char *child_argv[5];
     char *binary;
     int rc;
 
@@ -131,9 +131,10 @@ driver_materialize_self_host_c_artifact(const char *launcher_path,
     }
 
     child_argv[0] = binary;
-    child_argv[1] = source_path;
-    child_argv[2] = output_path;
-    child_argv[3] = NULL;
+    child_argv[1] = "--emit-c-artifact-verified";
+    child_argv[2] = source_path;
+    child_argv[3] = output_path;
+    child_argv[4] = NULL;
     rc = pgy_exec_argv(child_argv, verbose);
     if (rc == 0 && !path_file_exists(output_path)) {
         fprintf(stderr,

@@ -46,7 +46,8 @@ mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR/direct.c" "$WORK_DIR/launcher.c" \
     "$WORK_DIR/missing.c" "$WORK_DIR/unsupported.c"
 
-(cd "$ROOT_DIR" && "$SELF_DRIVER" "$SOURCE" "$WORK_REL/direct.c")
+(cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-c-artifact-verified \
+    "$SOURCE" "$WORK_REL/direct.c")
 (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN && \
     "$PGY" "$SOURCE" --emit-c -o "$WORK_REL/launcher.c") \
     >"$WORK_DIR/launcher.out" 2>"$WORK_DIR/launcher.err"

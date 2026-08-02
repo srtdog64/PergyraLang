@@ -131,7 +131,7 @@ run_driver_to_file() {
     output_rel="$(pgy_selfhost_path_relative_to_root "$output")"
     rm -f "$output"
     echo "[self-host-driver-bootstrap] running $label"
-    if ! (cd "$ROOT_DIR" && "$bin" "$source_rel" "$output_rel" >"$stdout" 2>"$stderr"); then
+    if ! (cd "$ROOT_DIR" && "$bin" --emit-c-artifact-verified "$source_rel" "$output_rel" >"$stdout" 2>"$stderr"); then
         echo "[self-host-driver-bootstrap] $label failed for $source_rel" >&2
         cat "$stdout" "$stderr" >&2 || true
         exit 1

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 int
 main(int argc, char **argv)
@@ -8,7 +9,9 @@ main(int argc, char **argv)
     FILE *count;
     FILE *output;
 
-    if (argc != 3 || count_path == NULL || count_path[0] == '\0')
+    if (argc != 4
+        || strcmp(argv[1], "--emit-c-artifact-verified") != 0
+        || count_path == NULL || count_path[0] == '\0')
         return 2;
     count = fopen(count_path, "ab");
     if (count == NULL)
@@ -16,7 +19,7 @@ main(int argc, char **argv)
     if (fputs("1\n", count) == EOF || fclose(count) != 0)
         return 4;
 
-    output = fopen(argv[2], "wb");
+    output = fopen(argv[3], "wb");
     if (output == NULL)
         return 5;
     if (fputs("#include <stdio.h>\n"

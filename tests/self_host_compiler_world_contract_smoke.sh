@@ -188,7 +188,12 @@ forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSo
 forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "let ast_text: String = CompileSourceToAst(source_path)"
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'import "driver_rung2_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToCVerified("
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "args[0], machine_declaration"
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    'args[0] == "--emit-c-artifact-verified"'
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    "args[1], machine_declaration"
+forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    "if ArrayLength(args) == 2 {"
 forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToCVerified(args[0])"
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'args[0] == "--emit-mir-json-verified"'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "PublishSourceMirArtifactThroughPgyCompilerWorld("

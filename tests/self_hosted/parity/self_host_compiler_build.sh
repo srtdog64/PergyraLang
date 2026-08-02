@@ -144,6 +144,7 @@ mv -f "$tmp_output" "$OUTPUT"
 smoke_rel="${SMOKE_OUT#"$ROOT_DIR"/}"
 rm -f "$SMOKE_OUT"
 if ! (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" "$OUTPUT" \
+    --emit-c-artifact-verified \
     src/self_hosted/semantic/fixture/valid_call_int.pgy "$smoke_rel"); then
     fail "Pergyra-built DRV-2 failed its bounded source smoke"
 fi

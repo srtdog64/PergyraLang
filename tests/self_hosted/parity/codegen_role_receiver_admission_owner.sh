@@ -20,7 +20,8 @@ command -v "$CC_BIN" >/dev/null 2>&1 || fail "C compiler is missing: $CC_BIN"
 
 if [[ -z "${PGY_SELFHOST_PREBUILT_CODEGEN:-}" ]]; then
     codegen_c="$BUILD_DIR/codegen.c"
-    (cd "$ROOT_DIR" && "$DRIVER" "$CODEGEN_SOURCE_REL" \
+    (cd "$ROOT_DIR" && "$DRIVER" --emit-c-artifact-verified \
+        "$CODEGEN_SOURCE_REL" \
         "${codegen_c#"$ROOT_DIR/"}") \
         >"$BUILD_DIR/codegen.emit.out" 2>"$BUILD_DIR/codegen.emit.err" \
         || { cat "$BUILD_DIR/codegen.emit.err" >&2; fail "current codegen C emission failed"; }
