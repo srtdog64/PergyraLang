@@ -6,6 +6,38 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-02 - Subject literals gain stable mutable identity
+
+- Landed executable checkpoint `e52e07da`. The 2,791-byte self MIR for
+  `nominal_subject.pgy`
+  (`7A86E9AFF8CE964052663652136CCEEDAD66C06A4090C6CCAA7C7C996203297F`)
+  now drives a 330-byte C artifact and a 527-byte LLVM artifact. Both execute
+  exact `7` through a real stable mutable identity.
+- The old passive-only declaration, graph, program, instruction, ABI-absence
+  and admission owners became one neutral nominal-literal `ProgramAdmission`.
+  One sealed route and one admission run before the semantic receiver-carriage
+  policy chooses passive value or stable identity; there is no subject-to-
+  passive/scalar retry.
+- C emits one storage object and one `T *const`, then writes and reads the same
+  field through that pointer. LLVM emits exactly one alloca, one GEP, one store
+  and one load through the same field SSA. Target projection owns capability
+  and compiler-private representation only; emitters own target syntax.
+- The focused subject gate passes coherent rename, exact `7`/`73`, a value-host
+  representation split, 34 C negatives and 14 LLVM sentinels. The tobject
+  exact-12 regression passes the same 34/14 negative surface. Source-local-name
+  and ABI-type drift are independent falsifiers; exact GEP/opcode counts and
+  no aggregate SSA are hard/component ratchets.
+- Current-source driver build, final hard/component contracts and installed
+  public C/runtime-free LLVM compile/run are green. Shared nominal owners are
+  810/900 lines, passive owners 258/320 and subject owners 299/384, with
+  individual and exact-inventory caps. Full CI, Coq/Rocq, pressure and
+  bootstrap gen2==gen3 were not run.
+- The next active falsifier is `nominal_vessel.pgy`. Its 2,785-byte MIR
+  (`37472A654ACCEDA0ED4530642E0EBB774BE0729A17EDE158AE34054273596F7D`)
+  is produced once and rejected by both targets at subject identity admission.
+  It must execute exact `13` without erasing vessel identity or adding a
+  vessel-specific parser/plan/emitter family.
+
 ## 2026-08-02 - Passive nominal literals reach installed C and LLVM
 
 - Landed executable checkpoint `f5eedd97`. The 2,857-byte self MIR for

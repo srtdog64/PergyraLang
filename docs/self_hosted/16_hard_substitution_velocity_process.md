@@ -1054,6 +1054,21 @@ commit. The next rung is `nominal_subject.pgy` exact `7` through a distinct
 stable mutable-identity plan; the passive aggregate-value plan must not be
 widened and `action` remains downstream.
 
+Subject-identity executable delta, 2026-08-02: checkpoint `e52e07da` replaces
+the exact `nominal_subject.pgy` construction/field-read path in installed C and
+LLVM and executes `7`. The plan-before seam is no longer passive-specific:
+declaration, graph, instruction, SSA/use, reachability and actual-capture ABI
+absence share one nominal admission. The existing semantic carriage owner then
+selects aggregate value or stable mutable identity exactly once. C owns one
+storage and one `T *const`; LLVM owns one alloca/GEP/store/load chain through
+the same field pointer. Coherent rename, literal 73, representation split,
+34 C negatives and 14 LLVM sentinels reject identity, local, ABI, allocation,
+graph/use and fallback drift. Shared/passive/subject families have individual,
+aggregate and exact-inventory caps. Final hard/component and installed C/LLVM
+gates are green. The next rung is `nominal_vessel.pgy` exact `13`; promote the
+stable-identity owner only where obligations match, and do not add a vessel
+mini-compiler. `action` remains downstream of that identity frontier.
+
 ## 7. Fifteen-Day Correction
 
 The previous roughly fifteen-day interval delivered substantial owner, gate,

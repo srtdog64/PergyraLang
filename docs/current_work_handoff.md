@@ -6,70 +6,73 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — subject stable-identity execution
+## Active self-host context — vessel stable-identity execution
 
-- Executable checkpoint: `f5eedd97` on `main`; documentation is the only
+- Executable checkpoint: `e52e07da` on `main`; documentation is the only
   intended dirty state during this handoff refresh. The current Pergyra-built
-  driver is 4,114,711 bytes with SHA-256
-  `27744C11FD107C82B4072831AF6F84294DBC8ADBD6E61E89AD284D3DA5A9A398`.
-- Closed executable rung: `nominal_tobject.pgy` now produces one 2,857-byte
-  self MIR with SHA-256
-  `41A07B3035C6DACA292E21CDFB68E8D3EFC34DDB7E4C6973869702D5E4E40BCF`.
-  The same MIR drives a 269-byte C artifact
-  (`6AF7125293E17763FF4C3BC4E23C8B6CBEB5DE624380B2E23742A3A430B6DE84`)
-  and a 439-byte LLVM artifact
-  (`E9D0411DE24B2FD107F3E24C44E6B570CCC0E9262BFFB328794E2FFC229A33BB`).
-  Both construct a real nominal value, read its field, and execute exact `12`.
-- One sealed route fact claims the class/object/tobject/subject/vessel literal
-  frontier before scalar routing. Declaration, graph, program identity,
-  instruction envelope, ABI absence, admission, plan and target projection are
-  separate owners. The plan's ABI evidence is the digest of the actual typed
-  instruction capture proving id zero, required false and null physical
-  layout. C alone owns initializer/member syntax; LLVM alone owns the exact
-  `insertvalue -> extractvalue` SSA syntax.
-- The focused gate is green with four positive variants, 28 C negatives and
-  nine LLVM sentinels. `kind`/`nominal_kind` mismatch, non-object method tail,
-  instruction tail, ABI forgery, graph/use drift and subject carriage all fail
-  in the passive owner without scalar retry or partial artifact. The existing
-  class/vessel gate remains green at exact `41`/`42` with 81 C negatives and
-  nine LLVM sentinels. Final hard contract and installed public C/LLVM gates
-  are green. The full component contract was green earlier in this session,
-  before the final route/cardinality correction, and was not rerun on the
-  final source. Full CI, Coq/Rocq adequacy, bootstrap fixpoint and current-
-  source gen2==gen3 were not run. The unrelated duplicate-Coq-fact
-  `sot-authority-edge-test-smoke` remains a known red.
-- Raw JSON object/string array exactness now has one shared owner capped at
-  90 lines. The old inferred-family array-shape owner path and both old helper
-  names are negative-gated. The passive family has per-owner caps plus a
-  1,024-line family cap and currently occupies 1,009 lines.
+  driver is 4,123,248 bytes with SHA-256
+  `F8E1260E65DA4B2CF621B9D3EB7AF0778495BC6914D68A61F75E2A2FFE428BC1`.
+- Closed executable rung: `nominal_subject.pgy` produces one 2,791-byte self
+  MIR with SHA-256
+  `7A86E9AFF8CE964052663652136CCEEDAD66C06A4090C6CCAA7C7C996203297F`.
+  The same MIR drives a 330-byte C artifact
+  (`24290E213FFBDDA3905B7003D60B34D1E9C93DDEABF59EEBDF61798B6C3053EA`)
+  and a 527-byte LLVM artifact
+  (`E48794EA746F562915938E5E90DB4939FAA9868DECF3DA705FFBC01829D64D8F`).
+  Both initialize and read one stable mutable identity and execute exact `7`.
+- One nominal route and one shared `ProgramAdmission` now own declaration,
+  constructor/member graph, instruction envelope, unique SSA definition/use,
+  reachability and actual-capture ABI absence. Only after that seal does the
+  existing receiver-carriage policy select passive aggregate value or subject
+  stable identity. Subject failure cannot retry passive or scalar projection.
+- C emits one storage object, one `T *const` identity, and writes/reads through
+  that same pointer. LLVM emits exactly one `alloca`, one GEP, one store and one
+  load through the same field pointer; `insertvalue`/`extractvalue` are absent.
+  The target projection owns capability and compiler-private representation,
+  while each emitter alone owns target syntax.
+- The subject focused gate is green for exact `7`/`73`, coherent semantic
+  rename, a value-host representation split, 34 C negatives and 14 LLVM
+  sentinels. The passive tobject regression is green at exact `12` with the
+  same 34/14 negative surface. Final hard contract, final component contract,
+  installed public C and runtime-free LLVM compile/run, current-source driver
+  build, Python/shell syntax and diff checks are green. Full CI, Coq/Rocq,
+  pressure, bootstrap fixpoint and current-source gen2==gen3 were not run. The
+  unrelated duplicate-Coq-fact `sot-authority-edge-test-smoke` remains known
+  red.
+- Shared nominal owners occupy 810/900 lines, passive value owners 258/320 and
+  subject identity owners 299/384. Every owner also has an individual hard cap;
+  exact family inventories prevent a new file from escaping aggregate caps.
+  Retired passive-only common owners, a second route/admission constructor,
+  subject MIR re-read, passive-plan import and old composition root are all
+  negative-gated.
 - Last valid pressure evidence remains checkpoint `8bd92069`: 104.381 seconds,
   peak private 1.937 GiB and working set 1.836 GiB. The current driver was not
   pressure-measured. Memory stays a final-maximum signal with 2.4 GiB attention
   and 3 GiB hard stop, not a per-edit objective.
 - Active objective: replace the next real C-owned path for
-  `src/self_hosted/mir_lower/fixture/nominal_subject.pgy`. Current source-to-MIR
-  succeeds once: 2,791 bytes, SHA-256
-  `7A86E9AFF8CE964052663652136CCEEDAD66C06A4090C6CCAA7C7C996203297F`.
+  `src/self_hosted/mir_lower/fixture/nominal_vessel.pgy`. Current source-to-MIR
+  succeeds once: 2,785 bytes, SHA-256
+  `37472A654ACCEDA0ED4530642E0EBB774BE0729A17EDE158AE34054273596F7D`.
   Both direct targets fail before artifact publication with
-  `direct MIR passive nominal literal program identity is invalid`; the
-  intended output is exact `7`.
-- Objective card: preserve `subject` as stable mutable identity; semantic
-  identity and one SoT come first, then explicit pointer carriage, no passive
-  value fallback, and exact C/LLVM parity. The production entrypoint is
-  installed `pgy-self-driver --mir-json-backend={c,llvm}`. The route fact is the
-  reached owner; `CallableReceiverNominalKindUsesMutableIdentity` is the
-  existing carriage fact owner, and the last legitimate consumers will be a
-  distinct subject target projection plus its selected C/LLVM emitter.
-- Forbidden fallback: widening the passive value plan to subject, copying a
-  subject aggregate by value, a `Hero` or fixture-name branch, C-only address
-  reconstruction, physical-ABI guessing, scalar planner retry, or native
+  `direct MIR subject identity admission is invalid`; intended output is exact
+  `13`.
+- Objective card: preserve `vessel` as its own semantic identity while reusing
+  the existing mutable-identity carriage and one shared nominal admission.
+  Promote the stable-identity plan/target/emitter only if subject and vessel
+  obligations are identical; do not add a vessel mini-compiler. The production
+  entrypoint is installed `pgy-self-driver --mir-json-backend={c,llvm}`; the
+  route/admission are the fact owners and the selected C/LLVM emitters are the
+  last legitimate consumers.
+- Forbidden fallback: treating vessel as subject/class, widening passive value
+  carriage, a `HP` or fixture-name branch, a separate vessel parser/plan/emitter
+  family, physical-ABI guessing, C-only reconstruction, scalar retry or native
   semantic/backend re-entry.
-- Next falsifier: one self MIR must allocate one stable subject identity,
-  initialize `hp` once, read through that identity in C and LLVM, and execute
-  exact `7`. Host-kind/carriage, duplicate allocation, field/type, graph edge,
-  result/use, reachability and value-copy mutations must reject before artifact
-  creation. `action` remains downstream; it must not be opened until this
-  identity representation is executable.
+- Next falsifier: one self MIR must allocate one stable vessel identity,
+  initialize `value` once, read through that identity in C and LLVM, and execute
+  exact `13`, while the existing subject exact `7` remains byte-shape stable.
+  Host-kind/carriage, allocation, field/type, graph, SSA/use, reachability and
+  value-copy mutations must fail before artifact creation. `action` stays
+  downstream until this mutable nominal identity frontier is closed.
 
 ## Historical checkpoint archive — inactive evidence
 

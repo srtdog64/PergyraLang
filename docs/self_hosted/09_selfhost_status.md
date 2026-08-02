@@ -105,6 +105,20 @@ next observed falsifier is the 2,791-byte `nominal_subject.pgy` MIR, rejected at
 passive program identity before artifact creation; it requires a distinct
 stable mutable-identity representation and exact output `7`.
 
+The next focused checkpoint `e52e07da` closes that subject falsifier. The
+former passive-only declaration/graph/program/instruction/ABI/admission owners
+are promoted into one shared nominal-literal admission seam. The semantic
+receiver-carriage owner then selects an aggregate-value plan or a stable
+mutable-identity plan without retry. One 2,791-byte self MIR drives one C
+storage plus `T *const` write/read and one LLVM `alloca`/GEP/store/load chain;
+both installed paths execute exact `7`. Coherent rename, exact `73`, value-host
+representation separation, 34 C negatives, 14 LLVM sentinels, final hard and
+component contracts, and installed public C/LLVM compile/run are green. This
+is bounded target-specific `SUBSTITUTING`, not whole-subject/action or whole-
+compiler replacement. The next observed falsifier is the 2,785-byte
+`nominal_vessel.pgy` MIR, rejected by both targets at subject identity
+admission; it requires exact `13` while preserving vessel semantic identity.
+
 ## Verified
 
 Front-end self-hosts on both backends in LLVM-enabled builds.

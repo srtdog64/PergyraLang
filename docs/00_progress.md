@@ -2,41 +2,40 @@
 
 마지막 업데이트: 2026-08-02
 
-## 활성 우선순위 — subject stable identity 실행 경로 치환
+## 활성 우선순위 — vessel stable identity 실행 경로 치환
 
-- 실행 체크포인트 `f5eedd97`에서 `nominal_tobject.pgy`의 실제 nominal
-  construction/field-read 경로를 닫았다. 같은 2,857-byte self MIR이 C와 LLVM을
-  만들고 둘 다 exact `12`를 실행한다. C는 named initializer 뒤 field read,
-  LLVM은 같은 SSA에서 `insertvalue -> extractvalue`를 수행한다.
-- Route fact는 class/object/tobject/subject/vessel literal frontier를 scalar보다
-  먼저 한 번만 소유한다. Declaration, graph, program identity, instruction,
-  typed physical-ABI absence, plan, target projection과 emitter 책임을 분리했다.
-  ABI absence는 실제 instruction capture digest에 봉인된다.
-- Focused gate는 네 positive variants, 28 C negatives와 9 LLVM sentinels를
-  통과한다. Kind mismatch, non-object method tail, instruction tail, ABI/graph/
-  SSA 변조가 passive owner에서 artifact 없이 거부되며 scalar retry는 없다.
-  기존 class/vessel exact `41`/`42`의 81 C negatives와 9 LLVM sentinels도
-  green이다. Final hard contract와 installed C/LLVM 경로도 green이다.
-- 현재 드라이버는 4,114,711 bytes, SHA-256
-  `27744C11FD107C82B4072831AF6F84294DBC8ADBD6E61E89AD284D3DA5A9A398`다.
-  Passive 가족은 개별 cap과 `1009/1024` 전체 cap을 통과한다. JSON object/
-  string array exact cardinality는 `68/90` 공용 owner 하나가 소유하며 옛
-  inferred-family owner 경로와 함수명은 negative gate로 막았다.
-- Full component contract는 이 세션의 최종 route/cardinality 교정 전에는
-  green이었지만 최종 source에서 재실행하지 않았다. Full CI, Coq/Rocq,
-  bootstrap fixpoint, current-source gen2==gen3와 pressure도 재측정하지 않았다.
-  마지막 유효 peak는 `8bd92069`의 private 1.937 GiB다.
-- 다음 실제 C-owned 경로는 `nominal_subject.pgy`다. Source-to-MIR은 한 번
-  성공하며 결과는 2,791 bytes, SHA-256
-  `7A86E9AFF8CE964052663652136CCEEDAD66C06A4090C6CCAA7C7C996203297F`다.
-  Direct C/LLVM은 artifact 전에 passive nominal program identity에서 거부하고,
-  의도한 출력은 exact `7`이다.
-- `subject`는 passive aggregate value가 아니라 stable mutable identity다.
-  별도 identity plan/target projection이 C의 stable address와 LLVM의
-  alloca/GEP/store/load를 소유해야 한다. Hero/fixture 분기, subject value copy,
-  passive-plan 확장, C-only reconstruction, scalar/native fallback을 금지한다.
-  Identity/carriage/allocation/field/graph/use 변조가 artifact 전에 거부되는
-  것이 다음 falsifier이며, 이 rung 전에는 `action`을 열지 않는다.
+- 실행 체크포인트 `e52e07da`에서 `nominal_subject.pgy`의 실제 stable mutable
+  identity 경로를 닫았다. 같은 2,791-byte self MIR이 C와 LLVM을 만들고 둘 다
+  exact `7`을 실행한다. C는 storage 하나와 `T *const` 하나를 만들고 같은
+  포인터로 write/read한다. LLVM은 같은 field pointer에서 정확히 한
+  `alloca -> GEP -> store/load`를 수행한다.
+- Nominal route와 공용 `ProgramAdmission`은 각각 한 번만 실행된다. Declaration,
+  constructor/member graph, instruction envelope, unique SSA definition/use,
+  reachability와 actual-capture ABI absence를 공용으로 봉인한 뒤 기존 semantic
+  carriage owner가 passive value와 stable identity plan을 배타적으로 선택한다.
+- Subject focused gate는 coherent rename, exact `7`/`73`, value-host 표현 분리,
+  34 C negatives와 14 LLVM sentinels를 통과한다. Tobject exact `12` 회귀도 같은
+  34/14 surface에서 green이다. Subject 실패 뒤 passive/scalar retry, aggregate
+  copy, MIR 재독해, 두 번째 route/admission은 negative gate로 막았다.
+- 현재 드라이버는 4,123,248 bytes, SHA-256
+  `F8E1260E65DA4B2CF621B9D3EB7AF0778495BC6914D68A61F75E2A2FFE428BC1`다.
+  Shared nominal owners는 `810/900`, passive value owners는 `258/320`, subject
+  identity owners는 `299/384`이며 개별 cap과 exact 파일 inventory도 통과한다.
+- Final hard/component contract, installed public C와 runtime-free LLVM 경로,
+  current-source driver build가 green이다. Full CI, Coq/Rocq, bootstrap fixpoint,
+  current-source gen2==gen3와 pressure는 재실행하지 않았다. 마지막 유효 peak는
+  `8bd92069`의 private 1.937 GiB다.
+- 다음 실제 C-owned 경로는 `nominal_vessel.pgy`다. Source-to-MIR은 한 번
+  성공하며 결과는 2,785 bytes, SHA-256
+  `37472A654ACCEDA0ED4530642E0EBB774BE0729A17EDE158AE34054273596F7D`다.
+  Direct C/LLVM은 artifact 전에 subject identity admission에서 거부하고,
+  의도한 출력은 exact `13`이다.
+- `vessel` 의미를 subject/class로 지우지 않고 기존 mutable-identity carriage를
+  소비한다. Subject와 vessel의 의무가 같을 때만 identity plan/target/emitter를
+  공용 owner로 승격하며 vessel 전용 미니컴파일러를 만들지 않는다. HP/fixture
+  분기, value copy, passive-plan 확장, C-only reconstruction, scalar/native
+  fallback을 금지한다. 기존 subject exact `7`을 보존한 채 vessel exact `13`과
+  identity/carriage/allocation/field/graph/use 변조 거부가 다음 falsifier다.
 
 ## 비활성 진행 기록 archive
 

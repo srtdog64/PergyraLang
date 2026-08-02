@@ -304,6 +304,22 @@ reject it at passive nominal program identity. The next delta must preserve
 stable mutable identity, execute exact 7 through real pointer storage, and must
 not widen the passive value plan.
 
+Subject identity update (2026-08-02): executable checkpoint `e52e07da` closes
+`nominal_subject.pgy` as a bounded target-specific `SUBSTITUTING` slice. One
+shared nominal route and one shared admission seal declaration, graph,
+instruction, SSA/use, reachability and actual-capture ABI absence before the
+semantic carriage owner selects value or mutable identity. C emits one storage
+plus one stable mutable pointer; LLVM emits one `alloca`, one GEP and one
+store/load pair through the same field pointer. Both installed public paths
+execute exact 7. Coherent rename, literal 73, cross-representation variants,
+34 C negatives, 14 LLVM sentinels, the tobject exact-12 regression, hard and
+component contracts, and installed C/LLVM gates are green. Subject failure has
+no passive/scalar retry. The next executable falsifier is
+`nominal_vessel.pgy`: its 2,785-byte self MIR reaches the mutable-identity lane
+but both targets reject it at subject identity admission. The next delta must
+preserve vessel identity, execute exact 13 through the same obligations where
+valid, and must not add a vessel-specific mini-compiler.
+
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
 toolchain/preflight clarity, release/debug hygiene, memory/string bounds audit,
