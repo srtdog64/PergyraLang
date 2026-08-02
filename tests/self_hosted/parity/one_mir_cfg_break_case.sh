@@ -32,8 +32,8 @@ grep -Fq -- 'DirectMirBreakCfgEmitC' "$BREAK_EMISSION_OWNER" &&
     fail "break emission responsibility must retain both backends"
 
 require_file "$SOURCE"; produce_one_mir; mir_digest="$(hash_file "$MIR_ARTIFACT")"
-[[ "$(wc -c <"$MIR_ARTIFACT" | tr -d ' ')" == 7054 && "$mir_digest" == \
-    cb2d4f9fad6411ae9ce54e2d072d038735c29d2499a960909a09fae8eb59efbf && \
+[[ "$(wc -c <"$MIR_ARTIFACT" | tr -d ' ')" == 7082 && "$mir_digest" == \
+    8c6b45fa54fcb40362b47d2e17d7b1b91a9cf7f913835c22db8b624fba6f6bf9 && \
     "$(grep -o '"id":[0-9]*,"reachable":true' "$MIR_ARTIFACT" | wc -l | tr -d ' ')" == 6 && \
     "$(grep -o '"kind":"phi"' "$MIR_ARTIFACT" | wc -l | tr -d ' ')" == 1 ]] ||
     fail "break_after_stmt producer identity or six-block/one-phi shape drifted"
@@ -173,6 +173,11 @@ mutation="$(make_mutation break_increment_use \
     's/"uses":\["i\.2"\]/"uses":["i.1"]/2' '"uses":["i.1"]')"
 expect_rejected_without_artifact break_increment_use "$mutation" \
     'break|increment|assignment|use|SSA'
+mutation="$(make_mutation break_increment_abi \
+    's/"result":"i\.4","arg0":"i","arg1":"local","slot_anchor":null,"abi_type_name":"Int"/"result":"i.4","arg0":"i","arg1":"local","slot_anchor":null,"abi_type_name":"String"/' \
+    '"result":"i.4","arg0":"i","arg1":"local","slot_anchor":null,"abi_type_name":"String"')"
+expect_rejected_without_artifact break_increment_abi "$mutation" \
+    'break|increment|assignment|ABI|type'
 mutation="$(make_mutation break_increment_target_graph \
     's/"expr1_graph":{"root":0,"nodes":\[{"kind":"leaf","text":"i"/"expr1_graph":{"root":0,"nodes":[{"kind":"leaf","text":"j"/' \
     '"expr1_graph":{"root":0,"nodes":[{"kind":"leaf","text":"j"')"

@@ -9,12 +9,12 @@ func DirectMirCfgPlanWithDigest(
         plan.valid, plan.schema, plan.revision, digest,
         plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
         plan.phi_digest, plan.nested_digest, plan.loop_digest,
-        plan.range_digest, plan.break_digest,
+        plan.range_digest, plan.break_digest, plan.enum_digest,
         plan.target_capability_schema,
         plan.target_capability_fingerprint, plan.entry_block,
         plan.true_block, plan.false_block, plan.merge_block,
         plan.phi_count, plan.nested, plan.loop_fact, plan.range_fact,
-        plan.break_fact, plan.shape
+        plan.break_fact, plan.enum_match, plan.shape
     );
 }
 
@@ -25,11 +25,11 @@ func DirectMirCfgPlanWithTargetFingerprint(
         plan.valid, plan.schema, plan.revision, plan.plan_digest,
         plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
         plan.phi_digest, plan.nested_digest, plan.loop_digest,
-        plan.range_digest, plan.break_digest,
+        plan.range_digest, plan.break_digest, plan.enum_digest,
         plan.target_capability_schema, fingerprint,
         plan.entry_block, plan.true_block, plan.false_block,
         plan.merge_block, plan.phi_count, plan.nested, plan.loop_fact,
-        plan.range_fact, plan.break_fact, plan.shape
+        plan.range_fact, plan.break_fact, plan.enum_match, plan.shape
     );
 }
 
@@ -40,12 +40,12 @@ func DirectMirCfgPlanWithNested(
         plan.valid, plan.schema, plan.revision, plan.plan_digest,
         plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
         plan.phi_digest, plan.nested_digest, plan.loop_digest,
-        plan.range_digest, plan.break_digest,
+        plan.range_digest, plan.break_digest, plan.enum_digest,
         plan.target_capability_schema,
         plan.target_capability_fingerprint, plan.entry_block,
         plan.true_block, plan.false_block, plan.merge_block,
         plan.phi_count, nested, plan.loop_fact, plan.range_fact,
-        plan.break_fact, plan.shape
+        plan.break_fact, plan.enum_match, plan.shape
     );
 }
 
@@ -56,11 +56,11 @@ func DirectMirCfgPlanWithLoop(
         plan.valid, plan.schema, plan.revision, plan.plan_digest,
         plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
         plan.phi_digest, plan.nested_digest, plan.loop_digest,
-        plan.range_digest, plan.break_digest,
+        plan.range_digest, plan.break_digest, plan.enum_digest,
         plan.target_capability_schema, plan.target_capability_fingerprint,
         plan.entry_block, plan.true_block, plan.false_block,
         plan.merge_block, plan.phi_count, plan.nested, loop_fact,
-        plan.range_fact, plan.break_fact, plan.shape
+        plan.range_fact, plan.break_fact, plan.enum_match, plan.shape
     );
 }
 
@@ -71,12 +71,12 @@ func DirectMirCfgPlanWithRange(
         plan.valid, plan.schema, plan.revision, plan.plan_digest,
         plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
         plan.phi_digest, plan.nested_digest, plan.loop_digest,
-        plan.range_digest, plan.break_digest,
+        plan.range_digest, plan.break_digest, plan.enum_digest,
         plan.target_capability_schema,
         plan.target_capability_fingerprint, plan.entry_block,
         plan.true_block, plan.false_block, plan.merge_block,
         plan.phi_count, plan.nested, plan.loop_fact, range_fact,
-        plan.break_fact, plan.shape
+        plan.break_fact, plan.enum_match, plan.shape
     );
 }
 
@@ -87,10 +87,26 @@ func DirectMirCfgPlanWithBreak(
         plan.valid, plan.schema, plan.revision, plan.plan_digest,
         plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
         plan.phi_digest, plan.nested_digest, plan.loop_digest,
-        plan.range_digest, plan.break_digest,
+        plan.range_digest, plan.break_digest, plan.enum_digest,
         plan.target_capability_schema, plan.target_capability_fingerprint,
         plan.entry_block, plan.true_block, plan.false_block,
         plan.merge_block, plan.phi_count, plan.nested, plan.loop_fact,
-        plan.range_fact, break_fact, plan.shape
+        plan.range_fact, break_fact, plan.enum_match, plan.shape
+    );
+}
+
+func DirectMirCfgPlanWithEnumMatch(
+    plan: DirectMirCfgPlan,
+    enum_match: DirectMirEnumValueMatchPlanFact
+) -> DirectMirCfgPlan {
+    return DirectMirCfgPlan(
+        plan.valid, plan.schema, plan.revision, plan.plan_digest,
+        plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
+        plan.phi_digest, plan.nested_digest, plan.loop_digest,
+        plan.range_digest, plan.break_digest, plan.enum_digest,
+        plan.target_capability_schema, plan.target_capability_fingerprint,
+        plan.entry_block, plan.true_block, plan.false_block,
+        plan.merge_block, plan.phi_count, plan.nested, plan.loop_fact,
+        plan.range_fact, plan.break_fact, enum_match, plan.shape
     );
 }

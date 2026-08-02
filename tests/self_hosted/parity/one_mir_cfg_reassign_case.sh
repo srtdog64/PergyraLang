@@ -3,8 +3,8 @@
 
 SOURCE="$ROOT_DIR/src/self_hosted/mir_lower/fixture/reassign_block.pgy"
 require_file "$SOURCE"; produce_one_mir; mir_digest="$(hash_file "$MIR_ARTIFACT")"
-[[ "$(wc -c <"$MIR_ARTIFACT" | tr -d ' ')" == 4062 && "$mir_digest" == \
-    c89121892f643aaabc7d2e79a47cfea2705efdc746fcf3f80c749d9ed59b223b && \
+[[ "$(wc -c <"$MIR_ARTIFACT" | tr -d ' ')" == 4090 && "$mir_digest" == \
+    fba038d0ac0e502a7336b66abf184d6a400756f78069875d16d2c18f91ae746f && \
     "$(grep -o '"kind":"phi"' "$MIR_ARTIFACT" | wc -l | tr -d ' ')" == 1 ]] ||
     fail "reassign_block producer identity or [2,1,2]/one-phi shape drifted"
 project_one_target c "$C_ARTIFACT" "$mir_digest"
@@ -28,5 +28,10 @@ mutation="$(make_mutation missing_false_predecessor_phi \
     '"uses":["x.3","x.3"]')"
 expect_rejected_without_artifact missing_false_predecessor_phi "$mutation" \
     'phi.*(incoming|predecessor)|incoming.*predecessor'
+mutation="$(make_mutation assignment_abi \
+    's/"arg1":"local","slot_anchor":null,"abi_type_name":"Int"/"arg1":"local","slot_anchor":null,"abi_type_name":"String"/g' \
+    '"arg1":"local","slot_anchor":null,"abi_type_name":"String"')"
+expect_rejected_without_artifact assignment_abi "$mutation" \
+    'CFG.*(arm|type)|arm.*(ABI|type)|ABI.*assignment'
 
 source "$ROOT_DIR/tests/self_hosted/parity/one_mir_cfg_nested_case.sh"

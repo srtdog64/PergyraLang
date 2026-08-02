@@ -980,9 +980,9 @@ inventory must not become a second fact-family owner registry.
   and enum variant index from those already-discovered spans rather than
   reopening the declaration array.
 - `src/self_hosted/mir_lower/program_enum_variant_index_owner.pgy` -- one
-  program-owned enum variant/name identity index built during declaration
-  admission; condition and expression-graph consumers query it and never
-  reconstruct the declaration graph from the JSON root.
+  program-owned enum variant/name/ordinal/payload identity index built during
+  declaration admission; condition and expression-graph consumers query it
+  and never reconstruct the declaration graph from the JSON root.
 - `src/self_hosted/mir_lower/program_declaration_field_identity_index_owner.pgy`
   -- one flattened owner/name/source-ID/field-kind identity index built from
   program declaration spans; topology consumers must use its exact join and
@@ -1547,7 +1547,7 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/air/mir_cfg_certificate_owner.pgy` -- MIR-bound AIR
   certificate issuer for the bounded direct CFG rung. It verifies the typed
   block/terminator/merge-phi, nested-conditional, while-loop, integer-range,
-  or six-block loop-break inventory
+  six-block loop-break, or four-block identity-match inventory
   once, binds MIR, CFG, predecessor-resolved phi, nested-spine, and loop-spine
   facts, and permits only strict zero-fallback/zero-drift evidence with a
   fixed-size identity guard.
@@ -1557,11 +1557,18 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/air/mir_cfg_certificate_value_owner.pgy` -- immutable
   replacement constructors shared by issuance and repaired-digest negatives.
 - `src/self_hosted/air/mir_cfg_certificate_mutation_owner.pgy` -- repaired-
-  digest negative owner for outer, nested, while, range, and loop-break
-  certificate facts.
-- `src/self_hosted/air/mir_cfg_certificate_fact_owner.pgy` -- fixed-size v6
+  digest negative owner for outer, nested, while, range, loop-break, and
+  identity-match certificate facts.
+- `src/self_hosted/air/mir_cfg_certificate_fact_owner.pgy` -- fixed-size v7
   certificate identity shared by issuance and the target-neutral plan; it
-  carries nested, while, range, and loop-break digests without reopening MIR.
+  carries nested, while, range, loop-break, and identity-match digests without
+  reopening MIR.
+- `src/self_hosted/air/mir_identity_match_cfg_certificate_fact_owner.pgy` --
+  optional common-CFG child binding the exact four-block topology, five
+  instruction roles, one SSA definition, and the two exact SSA uses. It owns
+  no enum declaration, ordinal, ABI, or target syntax.
+- `src/self_hosted/air/mir_identity_match_cfg_certificate_mutation_owner.pgy`
+  -- repaired-digest negative for the carried identity-match instruction rows.
 - `src/self_hosted/air/mir_cfg_identity_owner.pgy` -- stable digest functions
   over the already-built typed MIR routine index; it does not reopen a document
   or build another graph/certificate view.
@@ -1793,9 +1800,10 @@ inventory must not become a second fact-family owner registry.
   world.
 - `src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy` --
   backend-neutral hard-substitution boundary that receives one admitted MIR
-  graph, selects the bounded scalar or verified-CFG path, and creates one C or
-  LLVM artifact without rebuilding AST/semantic artifacts or creating
-  backend-specific MIR readers.
+  graph, claims enum-marked input before nominal/erasure/shape dispatch,
+  selects the bounded scalar or verified-CFG path, and creates one C or LLVM
+  artifact without rebuilding AST/semantic artifacts or creating backend-
+  specific MIR readers.
 - `src/self_hosted/compiler/domain_topology_graph_plan_consumer_owner.pgy` --
   bounded production receipt plus C/LLVM projections of the one admitted
   target-neutral domain topology plan. It serializes exact ID edges and
@@ -1808,9 +1816,9 @@ inventory must not become a second fact-family owner registry.
   read path.
 - `src/self_hosted/compiler/direct_mir_compile_time_declaration_erasure_owner.pgy`
   -- exact compile-time declaration admission and zero-runtime-materialization
-  receipt. A nonempty plain declaration array is claimed here after the
-  runtime nominal route declines it; malformed declarations cannot retry a
-  declaration-free path.
+  receipt. Only declaration kinds explicitly owned by the compile-time
+  contract policy are claimed; enum and runtime nominal declarations cannot
+  enter or retry this route.
 - `src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy` -- one
   target-neutral plan for a terminal one-instruction `Log` whose semantic
   value is a canonical integer or safe string graph literal. It combines the
@@ -1820,17 +1828,34 @@ inventory must not become a second fact-family owner registry.
   LLVM text emission from the verified literal-Log plan only. It cannot read
   MIR declarations or create runtime nominal storage.
 - `src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy` -- target-neutral
-  plan issuer. It derives the admitted bounded shape from typed owners and
-  issues one verified plan; no full certificate survives issuance.
+  plan issuer. It derives the admitted bounded shape or enum identity-match
+  child from typed owners and issues one verified plan; no full outer
+  certificate survives issuance.
 - `src/self_hosted/compiler/direct_mir_cfg_plan_value_owner.pgy` -- immutable
   fixed-plan replacement constructors used by the issuer and negative owner.
 - `src/self_hosted/compiler/direct_mir_cfg_plan_mutation_owner.pgy` -- repaired-
   digest negative owner for target fingerprint, phi, nested, while, range, and
-  loop-break plan bindings.
+  loop-break or enum plan bindings.
 - `src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy` -- fixed-size
-  v6 plan identity/readiness contract binding AIR/MIR/CFG/phi/nested/while/
-  range/loop-break digests, target capability, topology, and normalized shape
-  before emission.
+  v7 plan identity/readiness contract binding AIR/MIR/CFG/phi/nested/while/
+  range/loop-break/enum digests, target capability, topology, and normalized
+  shape before emission.
+- `src/self_hosted/compiler/direct_mir_enum_value_match_route_owner.pgy` --
+  single-shot declaration-family route. Either captured declaration axis may
+  claim enum input, but exact admission remains downstream and claimed failure
+  cannot retry nominal, erasure, scalar, Option, or legacy CFG paths.
+- `src/self_hosted/compiler/direct_mir_payload_free_enum_abi_owner.pgy` --
+  target-neutral scalar-ordinal ABI fact with one materialization and zero
+  payload, aggregate layout, payload storage, or runtime helper facts.
+- `src/self_hosted/compiler/direct_mir_enum_value_match_plan_fact_owner.pgy`
+  -- optional enum child carried by the one common CFG plan. It seals route,
+  declaration, selected ordinal, independent case literal, arm literals, SSA
+  identity, identity-match certificate, and ABI digests.
+- `src/self_hosted/compiler/direct_mir_enum_value_match_plan_owner.pgy` --
+  exact enum declaration/value/match admission from persisted owners. It does
+  not consume display `expr0`, fixture names, or target syntax.
+- `src/self_hosted/compiler/direct_mir_enum_value_match_plan_mutation_owner.pgy`
+  -- repaired-digest negative binding selected ordinal to the enum ABI.
 - `src/self_hosted/air/mir_option_match_graph_fact_owner.pgy` -- exact persisted
   graph shapes for the Option constructor, `IsSome`, `UnwrapOption`, match
   subject, and both Log lanes.

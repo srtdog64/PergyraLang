@@ -5335,3 +5335,29 @@ When a tool lands or expands, update three things:
 
 Do **not** add peripheral audit tools to the substitution percentage.
 Their job is to keep the C compiler honest, not to replace it.
+
+## 2026-08-03 payload-free enum value/match substitution
+
+`enum_simple.pgy` now reaches the installed Pergyra-built driver as a real
+four-block identity-match CFG. The language enum index owns ordered variant
+identity and payload shape, the AIR certificate owns CFG/SSA evidence, and one
+target-neutral scalar-ordinal plan feeds both C and runtime-free LLVM. Both
+backends execute exact `2\n300`; five metamorphic positives and 34 independent
+negative mutations pass. The enum route is single-shot and cannot retry
+compile-time erasure, nominal, Option, scalar, legacy CFG, or native paths.
+
+The integration regression exposed an older ABI contract split. Since
+`cd886a6d`, assignment MIR carries its owned `Int` ABI, while direct branch,
+loop, and break consumers still required the field to be empty. Those consumers
+now require `Int`, `String` forgeries fail before publication, and all affected
+MIR identity pins were regenerated twice before update. The complete existing
+if/phi/reassign/nested/loop/range/break C/LLVM gate is green. The installed
+driver is 4,179,179 bytes, SHA-256
+`973C27FFAE2C3201D4988F7DA99C546663CB4116A430D60A0703B92263E44883`.
+
+The next executable manifest row is `role_operator_dispatch.pgy`: source-to-MIR
+is green at 5,112 bytes and SHA-256
+`02058EDCEFA3EBEB908449DA54EBB13680C9B560F9B0E8B7FAB7892F2B5C4D4C`,
+while both direct backends fail closed at multi-routine projection. Its first
+falsifier is exact role-dispatched output `123` without primitive-addition,
+fixture-name, row-order, source-text, or target-specific fallback.

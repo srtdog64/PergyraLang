@@ -12537,7 +12537,7 @@ reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" 'impor
 require_file "src/self_hosted/mir_lower/program_declaration_index_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/program_declaration_index_owner.pgy" 120
 require_file "src/self_hosted/mir_lower/program_enum_variant_index_owner.pgy"
-require_max_lines "src/self_hosted/mir_lower/program_enum_variant_index_owner.pgy" 140
+require_max_lines "src/self_hosted/mir_lower/program_enum_variant_index_owner.pgy" 240
 require_file "src/self_hosted/mir/declaration_callable_rows_owner.pgy"
 require_max_lines "src/self_hosted/mir/declaration_callable_rows_owner.pgy" 200
 require_max_lines "src/self_hosted/mir/declaration_rows_owner.pgy" 600
@@ -13631,7 +13631,7 @@ require_max_lines \
     "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 300
 require_file "src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy" 400
+    "src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy" 500
 require_file "src/self_hosted/air/mir_option_match_cfg_certificate_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/air/mir_option_match_cfg_certificate_fact_owner.pgy" 260
@@ -14822,16 +14822,16 @@ require_file "src/self_hosted/air/mir_cfg_certificate_owner.pgy"
 require_max_lines "src/self_hosted/air/mir_cfg_certificate_owner.pgy" 520
 require_file "src/self_hosted/air/mir_cfg_certificate_readiness_owner.pgy"
 require_max_lines \
-    "src/self_hosted/air/mir_cfg_certificate_readiness_owner.pgy" 180
+    "src/self_hosted/air/mir_cfg_certificate_readiness_owner.pgy" 200
 require_file "src/self_hosted/air/mir_cfg_certificate_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/air/mir_cfg_certificate_fact_owner.pgy" 230
 require_file "src/self_hosted/air/mir_cfg_certificate_value_owner.pgy"
 require_max_lines \
-    "src/self_hosted/air/mir_cfg_certificate_value_owner.pgy" 170
+    "src/self_hosted/air/mir_cfg_certificate_value_owner.pgy" 190
 require_file "src/self_hosted/air/mir_cfg_certificate_mutation_owner.pgy"
 require_max_lines \
-    "src/self_hosted/air/mir_cfg_certificate_mutation_owner.pgy" 140
+    "src/self_hosted/air/mir_cfg_certificate_mutation_owner.pgy" 180
 require_file "src/self_hosted/air/mir_cfg_identity_owner.pgy"
 require_max_lines "src/self_hosted/air/mir_cfg_identity_owner.pgy" 120
 require_file "src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy"
@@ -14985,6 +14985,83 @@ require_text "Makefile" \
     "self-host-one-mir-compile-time-declaration-literal-projection-test-smoke:"
 require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-compile-time-declaration-literal-projection-test-smoke"
+require_file \
+    "src/self_hosted/compiler/direct_mir_enum_value_match_route_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_enum_value_match_route_owner.pgy" 90
+require_file \
+    "src/self_hosted/compiler/direct_mir_payload_free_enum_abi_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_payload_free_enum_abi_owner.pgy" 100
+require_file \
+    "src/self_hosted/compiler/direct_mir_enum_value_match_plan_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_enum_value_match_plan_fact_owner.pgy" 120
+require_file \
+    "src/self_hosted/compiler/direct_mir_enum_value_match_plan_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_enum_value_match_plan_owner.pgy" 420
+require_file \
+    "src/self_hosted/compiler/direct_mir_enum_value_match_plan_mutation_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_enum_value_match_plan_mutation_owner.pgy" 70
+require_file \
+    "src/self_hosted/air/mir_identity_match_cfg_certificate_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/air/mir_identity_match_cfg_certificate_fact_owner.pgy" 220
+require_file \
+    "src/self_hosted/air/mir_identity_match_cfg_certificate_mutation_owner.pgy"
+require_max_lines \
+    "src/self_hosted/air/mir_identity_match_cfg_certificate_mutation_owner.pgy" 50
+require_file \
+    "tests/self_hosted/parity/one_mir_enum_value_match_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_enum_value_match_projection.sh" 160
+require_file \
+    "tests/self_hosted/parity/one_mir_enum_value_match_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_enum_value_match_mutations.py" 160
+enum_value_match_family_lines=$((
+    $(wc -l < src/self_hosted/compiler/direct_mir_enum_value_match_route_owner.pgy) +
+    $(wc -l < src/self_hosted/compiler/direct_mir_payload_free_enum_abi_owner.pgy) +
+    $(wc -l < src/self_hosted/compiler/direct_mir_enum_value_match_plan_fact_owner.pgy) +
+    $(wc -l < src/self_hosted/compiler/direct_mir_enum_value_match_plan_owner.pgy) +
+    $(wc -l < src/self_hosted/compiler/direct_mir_enum_value_match_plan_mutation_owner.pgy)
+))
+[[ "$enum_value_match_family_lines" -le 770 ]] || \
+    fail "enum value-match family exceeds 770 LOC ($enum_value_match_family_lines)"
+for enum_single_issuer in DirectMirEnumValueMatchRouteFactFromAdmitted \
+    DirectMirEnumValueMatchPlanFactFromOwners \
+    DirectMirPayloadFreeEnumAbiFactFromOrdinals; do
+    [[ "$(grep -R -F --include='*.pgy' "$enum_single_issuer(" \
+        src/self_hosted | wc -l | tr -d ' ')" -eq 2 ]] || \
+        fail "$enum_single_issuer must have one definition and one call"
+done
+require_text "src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy" \
+    "let enum_match: DirectMirEnumValueMatchPlanFact;"
+require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    "DirectMirEnumValueMatchRouteFactFromAdmitted(admitted)"
+require_text "src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy" \
+    "DirectMirEnumValueMatchPlanFactReady(plan.enum_match)"
+reject_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    "DirectMirEnumValueMatchPlanFactFromOwners("
+! grep -R -Eq --include='*.pgy' \
+    'DirectMirEnum[A-Za-z0-9_]*Emit(C|Llvm|LLVM)' src/self_hosted || \
+    fail "target-specific enum emitter returned"
+for enum_fixture_term in Direction South enum_simple; do
+    ! grep -Fq "$enum_fixture_term" \
+        src/self_hosted/compiler/direct_mir_enum_value_match_route_owner.pgy \
+        src/self_hosted/compiler/direct_mir_enum_value_match_plan_fact_owner.pgy \
+        src/self_hosted/compiler/direct_mir_enum_value_match_plan_owner.pgy \
+        src/self_hosted/air/mir_identity_match_cfg_certificate_fact_owner.pgy || \
+        fail "enum fixture identity leaked into an owner: $enum_fixture_term"
+done
+require_text "Makefile" "SELFHOST_ONE_MIR_ENUM_VALUE_MATCH_GATE ?="
+require_text "Makefile" '$(SELFHOST_ONE_MIR_ENUM_VALUE_MATCH_GATE)'
+require_text "Makefile" \
+    "self-host-one-mir-enum-value-match-projection-test-smoke:"
+require_text ".github/workflows/ci.yml" \
+    "self-host-one-mir-enum-value-match-projection-test-smoke"
 require_text \
     "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
     "ability_decl.pgy|ability|7"
@@ -15060,7 +15137,7 @@ require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
     'import "direct_mir_backend_emission_owner.pgy";'
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
-    'DirectMirCfgPlanFromAdmitted(admitted)'
+    'DirectMirCfgPlanFromAdmitted('
 require_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \
     'import "../air/mir_cfg_certificate_owner.pgy";'
 require_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \

@@ -1,6 +1,7 @@
 // Repaired-digest negative checks for the fixed target-neutral CFG plan.
 
 import "direct_mir_cfg_plan_value_owner.pgy";
+import "direct_mir_enum_value_match_plan_mutation_owner.pgy";
 
 func DirectMirCfgPlanMutationRejected(own plan: DirectMirCfgPlan) -> Bool {
     let bad_digest: DirectMirCfgPlan = DirectMirCfgPlanWithDigest(
@@ -26,12 +27,12 @@ func DirectMirCfgPlanMutationRejected(own plan: DirectMirCfgPlan) -> Bool {
             plan.valid, plan.schema, plan.revision, 0,
             plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
             bad_phi_digest, plan.nested_digest, plan.loop_digest,
-            plan.range_digest, plan.break_digest,
+            plan.range_digest, plan.break_digest, plan.enum_digest,
             plan.target_capability_schema,
             plan.target_capability_fingerprint, plan.entry_block,
             plan.true_block, bad_false_block, plan.merge_block,
             plan.phi_count, plan.nested, plan.loop_fact,
-            plan.range_fact, plan.break_fact, plan.shape
+            plan.range_fact, plan.break_fact, plan.enum_match, plan.shape
         );
         bad_phi_binding = DirectMirCfgPlanWithDigest(
             bad_phi_binding,
@@ -100,8 +101,22 @@ func DirectMirCfgPlanMutationRejected(own plan: DirectMirCfgPlan) -> Bool {
         bad_break_rejected = !DirectMirCfgPlanReady(bad_break_plan) &&
             DirectMirBreakCfgPlanFactMutationRejected(break_for_negative);
     }
+    let bad_enum_rejected: Bool = true;
+    if DirectMirEnumValueMatchPlanFactReady(plan.enum_match) {
+        let bad_enum: DirectMirEnumValueMatchPlanFact =
+            DirectMirEnumValueMatchPlanFactInvalidAbiSelection(
+                plan.enum_match
+            );
+        let bad_enum_plan: DirectMirCfgPlan =
+            DirectMirCfgPlanWithEnumMatch(plan, bad_enum);
+        bad_enum_plan = DirectMirCfgPlanWithDigest(
+            bad_enum_plan, DirectMirCfgPlanIdentityDigest(bad_enum_plan)
+        );
+        bad_enum_rejected = !DirectMirCfgPlanReady(bad_enum_plan) &&
+            DirectMirEnumValueMatchPlanFactMutationRejected(plan.enum_match);
+    }
     return !DirectMirCfgPlanReady(bad_digest) &&
         !DirectMirCfgPlanReady(bad_target) && bad_phi_binding_rejected &&
         bad_nested_rejected && bad_loop_rejected && bad_range_rejected &&
-        bad_break_rejected;
+        bad_break_rejected && bad_enum_rejected;
 }

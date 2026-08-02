@@ -539,7 +539,7 @@ func DirectMirBreakCfgCertificateFactFromIndex(
         increment_scalar.expr1 != phi.local_name ||
         increment_scalar.slot_anchor != "" ||
         !increment_scalar.abi_type_value_ready ||
-        increment_scalar.abi_type_name != "" ||
+        increment_scalar.abi_type_name != "Int" ||
         !decision_scalar.valid || decision_scalar.name != "branch" ||
         decision_scalar.result != "" || decision_scalar.arg0 != "" ||
         decision_scalar.arg1 != "" ||

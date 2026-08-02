@@ -6,6 +6,7 @@ import "artifact_zone_owner.pgy";
 import "direct_mir_loop_cfg_plan_fact_owner.pgy";
 import "direct_mir_range_cfg_plan_fact_owner.pgy";
 import "direct_mir_break_cfg_plan_fact_owner.pgy";
+import "direct_mir_enum_value_match_plan_fact_owner.pgy";
 import "../air/mir_cfg_certificate_owner.pgy";
 
 struct DirectMirCfgPlan {
@@ -21,6 +22,7 @@ struct DirectMirCfgPlan {
     let loop_digest: Int;
     let range_digest: Int;
     let break_digest: Int;
+    let enum_digest: Int;
     let target_capability_schema: String;
     let target_capability_fingerprint: Int;
     let entry_block: Int;
@@ -32,11 +34,12 @@ struct DirectMirCfgPlan {
     let loop_fact: DirectMirLoopCfgPlanFact;
     let range_fact: DirectMirRangeCfgPlanFact;
     let break_fact: DirectMirBreakCfgPlanFact;
+    let enum_match: DirectMirEnumValueMatchPlanFact;
     let shape: DirectMirCfgShapeFacts;
 }
 
 func DirectMirCfgPlanSchema() -> String {
-    return "pgy.selfhost.direct-mir-cfg-plan.v6";
+    return "pgy.selfhost.direct-mir-cfg-plan.v7";
 }
 
 func DirectMirCfgPlanIdentityDigest(ref plan: DirectMirCfgPlan) -> Int {
@@ -51,6 +54,7 @@ func DirectMirCfgPlanIdentityDigest(ref plan: DirectMirCfgPlan) -> Int {
     hash = DirectMirCfgHashInt(hash, plan.loop_digest);
     hash = DirectMirCfgHashInt(hash, plan.range_digest);
     hash = DirectMirCfgHashInt(hash, plan.break_digest);
+    hash = DirectMirCfgHashInt(hash, plan.enum_digest);
     hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
     hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
     hash = DirectMirCfgHashInt(hash, plan.entry_block);
@@ -70,6 +74,9 @@ func DirectMirCfgPlanIdentityDigest(ref plan: DirectMirCfgPlan) -> Int {
     hash = DirectMirCfgHashInt(
         hash, DirectMirBreakCfgPlanFactDigest(plan.break_fact)
     );
+    hash = DirectMirCfgHashInt(
+        hash, DirectMirEnumValueMatchPlanFactDigest(plan.enum_match)
+    );
     hash = DirectMirCfgHashInt(hash, DirectMirCfgShapeFactsDigest(plan.shape));
     return DirectMirCfgBoundedDigest(hash);
 }
@@ -78,6 +85,8 @@ func DirectMirCfgPlanReady(ref plan: DirectMirCfgPlan) -> Bool {
     let loop_ready: Bool = DirectMirLoopCfgPlanFactReady(plan.loop_fact);
     let range_ready: Bool = DirectMirRangeCfgPlanFactReady(plan.range_fact);
     let break_ready: Bool = DirectMirBreakCfgPlanFactReady(plan.break_fact);
+    let enum_ready: Bool =
+        DirectMirEnumValueMatchPlanFactReady(plan.enum_match);
     let nested_shape: Bool =
         plan.shape.kind == DirectMirCfgNestedConditionalShapeKind();
     let nested_ready: Bool =
@@ -123,8 +132,19 @@ func DirectMirCfgPlanReady(ref plan: DirectMirCfgPlan) -> Bool {
             plan.merge_block == plan.break_fact.certificate.header_block &&
             plan.phi_count == 1;
     }
+    let enum_binding_ready: Bool = !enum_ready &&
+        DirectMirEnumValueMatchPlanFactAbsent(plan.enum_match);
+    if enum_ready {
+        enum_binding_ready = plan.certificate_digest ==
+                plan.enum_match.certificate_digest &&
+            plan.entry_block == plan.enum_match.identity_match.entry_block &&
+            plan.true_block == plan.enum_match.identity_match.true_block &&
+            plan.false_block == plan.enum_match.identity_match.false_block &&
+            plan.merge_block == plan.enum_match.identity_match.merge_block &&
+            plan.phi_count == 0;
+    }
     let direct_false_fact: Bool = false;
-    if !loop_ready && !range_ready && !break_ready {
+    if !loop_ready && !range_ready && !break_ready && !enum_ready {
         direct_false_fact = nested_shape ||
             plan.shape.entry_result_name == plan.shape.false_result_name;
     }
@@ -163,8 +183,11 @@ func DirectMirCfgPlanReady(ref plan: DirectMirCfgPlan) -> Bool {
         plan.certificate_digest != 0 && plan.mir_digest != 0 &&
         plan.cfg_digest != 0 && phi_binding_ready && nested_binding_ready &&
         loop_binding_ready && range_binding_ready && break_binding_ready &&
+        enum_binding_ready &&
         !((loop_ready && range_ready) || (loop_ready && break_ready) ||
-            (range_ready && break_ready)) &&
+            (range_ready && break_ready) ||
+            (enum_ready &&
+                (nested_ready || loop_ready || range_ready || break_ready))) &&
         plan.nested_digest ==
             DirectMirNestedCfgCertificateFactDigest(plan.nested) &&
         plan.loop_digest == DirectMirLoopCfgPlanFactDigest(plan.loop_fact) &&
@@ -172,6 +195,8 @@ func DirectMirCfgPlanReady(ref plan: DirectMirCfgPlan) -> Bool {
             DirectMirRangeCfgPlanFactDigest(plan.range_fact) &&
         plan.break_digest ==
             DirectMirBreakCfgPlanFactDigest(plan.break_fact) &&
+        plan.enum_digest ==
+            DirectMirEnumValueMatchPlanFactDigest(plan.enum_match) &&
         plan.target_capability_schema == CompilerTargetCapabilitySchema() &&
         plan.target_capability_fingerprint ==
             CompilerTargetCapabilityFingerprint() &&
@@ -184,9 +209,9 @@ func DirectMirCfgPlanReady(ref plan: DirectMirCfgPlan) -> Bool {
         plan.true_block != plan.merge_block &&
         ((!direct_false_fact && !direct_false_edge) ||
             (direct_false_fact && direct_false_edge)) &&
-        (((loop_ready || range_ready || break_ready) &&
+        (((loop_ready || range_ready || break_ready || enum_ready) &&
             DirectMirCfgShapeFactsAbsent(plan.shape)) ||
-            (!loop_ready && !range_ready && !break_ready &&
+            (!loop_ready && !range_ready && !break_ready && !enum_ready &&
                 DirectMirCfgShapeFactsReady(plan.shape, plan.phi_count))) &&
         CompilerArtifactIdentityReady(
             CompilerEmittedCArtifactKind(), plan.revision, plan.plan_digest

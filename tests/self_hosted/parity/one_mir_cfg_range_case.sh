@@ -34,8 +34,8 @@ run_range_projected_and_compare() {
 }
 
 require_file "$SOURCE"; produce_one_mir; mir_digest="$(hash_file "$MIR_ARTIFACT")"
-[[ "$(wc -c <"$MIR_ARTIFACT" | tr -d ' ')" == 3197 && "$mir_digest" == \
-    02a683a087535bb5cd66031da03994b8c7a3b02012fdb825ea0722d35b161720 && \
+[[ "$(wc -c <"$MIR_ARTIFACT" | tr -d ' ')" == 3224 && "$mir_digest" == \
+    50c8fb7911a9dd199ad768c8a75a16a2f7812a20a67c505968967a0db269356f && \
     "$(grep -o '"id":[0-9]*,"reachable":true' "$MIR_ARTIFACT" | wc -l | tr -d ' ')" == 4 && \
     "$(grep -o '"kind":"phi"' "$MIR_ARTIFACT" | wc -l | tr -d ' ')" == 0 ]] ||
     fail "forloop producer identity or four-block/no-phi shape drifted"

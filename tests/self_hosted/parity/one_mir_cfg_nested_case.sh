@@ -18,8 +18,8 @@ grep -Fq -- 'DirectMirNestedCfgEmitC' "$NESTED_EMISSION_OWNER" &&
     fail "nested emission responsibility must retain both backends"
 
 require_file "$SOURCE"; produce_one_mir; mir_digest="$(hash_file "$MIR_ARTIFACT")"
-[[ "$(wc -c <"$MIR_ARTIFACT" | tr -d ' ')" == 3687 && "$mir_digest" == \
-    20e5b34b43bf7658331760cd1c5314aeb30bf8db7131686fe3fc79da8c6b3db0 && \
+[[ "$(wc -c <"$MIR_ARTIFACT" | tr -d ' ')" == 3714 && "$mir_digest" == \
+    f749590fcae2b8e4984eb9275930519de45f847a4352e8b8d1794bbff6eca85d && \
     "$(grep -o '"id":[0-9]*,"reachable":true' "$MIR_ARTIFACT" | wc -l | tr -d ' ')" == 5 && \
     "$(grep -o '"kind":"phi"' "$MIR_ARTIFACT" | wc -l | tr -d ' ')" == 0 ]] ||
     fail "nestedif producer identity or five-block/no-phi shape drifted"

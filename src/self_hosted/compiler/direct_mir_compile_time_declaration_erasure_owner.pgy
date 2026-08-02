@@ -82,9 +82,27 @@ func DirectMirCompileTimeDeclarationErasureSeal(
 func DirectMirCompileTimeDeclarationErasureRouteClaimed(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> Bool {
-    return !admitted.domain_topology_plan.present &&
-        JsonObjectFactCount(admitted.document.root) == 5 &&
-        !DirectMirExactObjectArrayCount(admitted.document.declarations, 0);
+    if admitted.domain_topology_plan.present ||
+        JsonObjectFactCount(admitted.document.root) != 5 {
+        return false;
+    }
+    let declarations: MirProgramDeclarationIndex =
+        admitted.domain_runtime_admission.declarations;
+    let row: Int = 0;
+    while row < ArrayLength(declarations.starts) {
+        if (row < ArrayLength(declarations.kinds) &&
+                CallableReceiverNominalKindOwnsCompileTimeContractOnly(
+                    declarations.kinds[row]
+                )) ||
+            (row < ArrayLength(declarations.nominal_kinds) &&
+                CallableReceiverNominalKindOwnsCompileTimeContractOnly(
+                    declarations.nominal_kinds[row]
+                )) {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
 }
 
 func DirectMirCompileTimeDeclarationErasureEmpty(

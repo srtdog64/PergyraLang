@@ -14,6 +14,7 @@ import "mir_nested_cfg_certificate_fact_owner.pgy";
 import "mir_loop_cfg_certificate_fact_owner.pgy";
 import "mir_range_cfg_certificate_fact_owner.pgy";
 import "mir_break_cfg_certificate_fact_owner.pgy";
+import "mir_identity_match_cfg_certificate_fact_owner.pgy";
 import "mir_cfg_certificate_fact_owner.pgy";
 import "mir_cfg_certificate_value_owner.pgy";
 import "mir_cfg_certificate_readiness_owner.pgy";
@@ -68,17 +69,23 @@ func DirectMirCfgCertificateFromIndex(
         DirectMirRangeCfgCertificateFactEmpty();
     let break_fact: DirectMirBreakCfgCertificateFact =
         DirectMirBreakCfgCertificateFactEmpty();
+    let identity_match: DirectMirIdentityMatchCfgCertificateFact =
+        DirectMirIdentityMatchCfgCertificateFactFromIndex(
+            admitted, index, use_facts
+        );
+    let identity_match_ready: Bool =
+        DirectMirIdentityMatchCfgCertificateFactReady(identity_match);
     if block_count == 6 {
         break_fact = DirectMirBreakCfgCertificateFactFromIndex(
             admitted, index, use_facts
         );
-    } else if block_count == 4 &&
+    } else if block_count == 4 && !identity_match_ready &&
         ArrayLength(index.loop_flow_summary_kinds) == 1 &&
         index.loop_flow_summary_kinds[0] == 1 {
         range_fact = DirectMirRangeCfgCertificateFactFromIndex(
             admitted, index, use_facts
         );
-    } else if block_count == 4 && true_block >= 0 &&
+    } else if block_count == 4 && !identity_match_ready && true_block >= 0 &&
         true_block < block_count && index.backedge_headers[true_block] == 1 {
         loop_fact = DirectMirLoopCfgCertificateFactFromIndex(
             admitted, index, use_facts
@@ -169,6 +176,13 @@ func DirectMirCfgCertificateFromIndex(
             merge_block != range_fact.header_block {
             Die("direct MIR range CFG outer role binding is invalid");
         }
+    } else if identity_match_ready {
+        if entry != identity_match.entry_block ||
+            true_block != identity_match.true_block ||
+            false_block != identity_match.false_block ||
+            merge_block != identity_match.merge_block {
+            Die("direct MIR identity-match CFG role binding is invalid");
+        }
     } else if nested_ready {
         if true_block != nested.branch_block ||
             false_block != nested.outer_merge_block ||
@@ -256,6 +270,15 @@ func DirectMirCfgCertificateFromIndex(
             phi_count != 0 {
             Die("direct MIR range CFG certificate instruction or phi count is invalid");
         }
+    } else if identity_match_ready {
+        if ArrayLength(index.instruction_facts.starts) != 5 ||
+            phi_count != 0 ||
+            index.block_instruction_counts[entry] != 3 ||
+            index.block_instruction_counts[true_block] != 1 ||
+            index.block_instruction_counts[false_block] != 1 ||
+            index.block_instruction_counts[merge_block] != 0 {
+            Die("direct MIR identity-match CFG instruction fact is invalid");
+        }
     } else if nested_ready {
         if ArrayLength(index.instruction_facts.starts) != 4 ||
             phi_count != 0 {
@@ -331,6 +354,9 @@ func DirectMirCfgCertificateFromIndex(
     let entry_global_block: Int =
         admitted.routines.routine_block_starts[0] + branch_block;
     let expected_branch_source: String = "AST_BINARY";
+    if identity_match_ready {
+        expected_branch_source = "AST_MATCH_CASE";
+    }
     if phi_count == 1 && !loop_ready && !break_ready {
         expected_branch_source = "AST_IDENTIFIER";
     }
@@ -358,7 +384,8 @@ func DirectMirCfgCertificateFromIndex(
         return DirectMirCfgCertificateEmpty();
     }
     let evidence_fact_count: Int = 1;
-    if nested_ready || loop_ready || range_ready || break_ready {
+    if nested_ready || loop_ready || range_ready || break_ready ||
+        identity_match_ready {
         evidence_fact_count = 2;
     }
     let certificate: DirectMirCfgCertificate = DirectMirCfgCertificate(
@@ -370,7 +397,7 @@ func DirectMirCfgCertificateFromIndex(
         block_count, ArrayLength(index.instruction_facts.starts),
         entry, true_block, false_block, merge_block,
         branch.instruction.global_row, nested, loop_fact, range_fact,
-        break_fact,
+        break_fact, identity_match,
         CompilerAirEvidenceMirTerminatorFact(), evidence_fact_count, 0, 0,
         true, true, phi_count, phi_digest, phi_local_name,
         phi_result_name, phi_true_incoming, phi_false_incoming

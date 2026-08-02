@@ -220,9 +220,10 @@ compile_artifacts() {
 
 run_and_compare() {
     local expected="$1" source_arg oracle_arg target
-    source_arg="$(pgy_path_for_compiler "$PGY" "$SOURCE")"
-    oracle_arg="$(pgy_path_for_compiler "$PGY" "$ORACLE_BIN")"
-    (cd "$ROOT_DIR" && "$PGY" "$source_arg" --backend=c -o "$oracle_arg" \
+    source_arg="$(root_relative "$SOURCE")"
+    oracle_arg="$(root_relative "$ORACLE_BIN")"
+    (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="*" "$PGY" \
+        "$source_arg" --backend=c -o "$oracle_arg" \
         >"$WORK_DIR/oracle.compile.log" 2>&1) || fail "native oracle compile failed"
     (cd "$ROOT_DIR" && "$ORACLE_BIN") | pgy_selfhost_normalize_text_artifact \
         >"$WORK_DIR/oracle.run"
@@ -276,8 +277,8 @@ expect_rejected_without_artifact branch_graph_use "$mutation" \
 
 SOURCE="$ROOT_DIR/src/self_hosted/mir_lower/fixture/if_else_assign.pgy"
 require_file "$SOURCE"; produce_one_mir; mir_digest="$(hash_file "$MIR_ARTIFACT")"
-[[ "$(wc -c <"$MIR_ARTIFACT" | tr -d ' ')" == 4916 && "$mir_digest" == \
-    da44b115d51ee8b83b6b2cc2d7443dfd22f6877368e86e7b3487646c0a4af393 ]] ||
+[[ "$(wc -c <"$MIR_ARTIFACT" | tr -d ' ')" == 4945 && "$mir_digest" == \
+    eab2e5ed0add2f519f9c06d683588ec819073f3b2dbb0fc653f60b65f43d56e1 ]] ||
     fail "if_else_assign producer identity drifted"
 project_one_target c "$C_ARTIFACT" "$mir_digest"
 project_one_target llvm "$LLVM_ARTIFACT" "$mir_digest"
@@ -296,5 +297,4 @@ mutation="$(make_mutation stale_result_ssa 's/"result":"value.5"/"result":"value
 expect_rejected_without_artifact stale_result_ssa "$mutation" 'phi.*result|result.*(use|SSA)|stale.*SSA'
 mutation="$(make_mutation merge_edge 's/],"succ_true":3}/],"succ_true":2}/' '],"succ_true":2}')"
 expect_rejected_without_artifact merge_edge "$mutation" 'CFG.*(merge|successor)|merge.*edge'
-
 source "$ROOT_DIR/tests/self_hosted/parity/one_mir_cfg_reassign_case.sh"

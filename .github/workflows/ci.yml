@@ -97,6 +97,7 @@ jobs:
           self-host-one-mir-passive-nominal-literal-projection-test-smoke
           self-host-one-mir-mutable-nominal-identity-projection-test-smoke
           self-host-one-mir-compile-time-declaration-literal-projection-test-smoke
+          self-host-one-mir-enum-value-match-projection-test-smoke
           self-host-one-mir-constructed-generic-member-projection-test-smoke
           self-host-one-mir-constructed-array-member-projection-test-smoke
           self-host-one-mir-constructed-record-array-member-projection-test-smoke

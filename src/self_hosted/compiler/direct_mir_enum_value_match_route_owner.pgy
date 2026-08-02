@@ -1,0 +1,77 @@
+// Single-shot declaration-family route for payload-free enum value/match CFG.
+//
+// Claim uses only captured declaration family identity. Exact cardinality,
+// kind agreement, payload shape, value graph and CFG are admission duties, so
+// a malformed enum-marked program cannot fall through to nominal, erasure,
+// scalar, Option or legacy CFG projection.
+
+import "../air/mir_cfg_identity_owner.pgy";
+import "../mir_lower/mir_json_input_owner.pgy";
+
+struct DirectMirEnumValueMatchRouteFact {
+    let valid: Bool;
+    let digest: Int;
+    let claimed: Bool;
+    let declaration_count: Int;
+    let enum_marked_count: Int;
+}
+
+func DirectMirEnumValueMatchRouteFactDigest(
+    ref fact: DirectMirEnumValueMatchRouteFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(619L, fact.declaration_count);
+    hash = DirectMirCfgHashInt(hash, fact.enum_marked_count);
+    if fact.claimed { hash = DirectMirCfgHashInt(hash, 1); }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirEnumValueMatchRouteFactReady(
+    ref fact: DirectMirEnumValueMatchRouteFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+        DirectMirEnumValueMatchRouteFactDigest(fact) ||
+        fact.declaration_count < 0 || fact.enum_marked_count < 0 ||
+        fact.enum_marked_count > fact.declaration_count {
+        return false;
+    }
+    return (fact.claimed && fact.enum_marked_count > 0) ||
+        (!fact.claimed && fact.enum_marked_count == 0);
+}
+
+func DirectMirEnumValueMatchRouteFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirEnumValueMatchRouteFact {
+    let declarations: MirProgramDeclarationIndex =
+        admitted.domain_runtime_admission.declarations;
+    let declaration_count: Int = ArrayLength(declarations.starts);
+    let enum_marked_count: Int = 0;
+    let row: Int = 0;
+    while row < declaration_count {
+        let marked: Bool = false;
+        if row < ArrayLength(declarations.kinds) &&
+            declarations.kinds[row] == "enum" {
+            marked = true;
+        }
+        if row < ArrayLength(declarations.nominal_kinds) &&
+            declarations.nominal_kinds[row] == "enum" {
+            marked = true;
+        }
+        if marked { enum_marked_count = enum_marked_count + 1; }
+        row = row + 1;
+    }
+    let fact: DirectMirEnumValueMatchRouteFact =
+        DirectMirEnumValueMatchRouteFact(
+            true, 0, enum_marked_count > 0,
+            declaration_count, enum_marked_count
+        );
+    let verified: DirectMirEnumValueMatchRouteFact =
+        DirectMirEnumValueMatchRouteFact(
+            fact.valid, DirectMirEnumValueMatchRouteFactDigest(fact),
+            fact.claimed, fact.declaration_count, fact.enum_marked_count
+        );
+    if !DirectMirEnumValueMatchRouteFactReady(verified) {
+        Die("direct MIR enum value-match route fact is invalid");
+    }
+    return verified;
+}

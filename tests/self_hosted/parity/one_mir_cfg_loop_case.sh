@@ -22,8 +22,8 @@ grep -Fq -- 'DirectMirLoopCfgEmitC' "$LOOP_EMISSION_OWNER" &&
     fail "loop emission responsibility must retain both backends"
 
 require_file "$SOURCE"; produce_one_mir; mir_digest="$(hash_file "$MIR_ARTIFACT")"
-[[ "$(wc -c <"$MIR_ARTIFACT" | tr -d ' ')" == 4692 && "$mir_digest" == \
-    c48c9f598969a01864371bac9f11609ccfaecf499444eb5e263eed8a57e50fb0 && \
+[[ "$(wc -c <"$MIR_ARTIFACT" | tr -d ' ')" == 4720 && "$mir_digest" == \
+    a42c1dc9279e847999df86fc9cfc7cf200a1f41c1b7050836c187e0baeecb53a && \
     "$(grep -o '"id":[0-9]*,"reachable":true' "$MIR_ARTIFACT" | wc -l | tr -d ' ')" == 4 && \
     "$(grep -o '"kind":"phi"' "$MIR_ARTIFACT" | wc -l | tr -d ' ')" == 1 ]] ||
     fail "whileloop producer identity or four-block/one-phi shape drifted"
@@ -103,6 +103,11 @@ expect_rejected_without_artifact stale_increment_use "$mutation" 'loop|SSA|use|i
 mutation="$(make_mutation stale_increment_result \
     's/"result":"i\.5"/"result":"i.6"/' '"result":"i.6"')"
 expect_rejected_without_artifact stale_increment_result "$mutation" 'loop|phi|SSA|increment'
+mutation="$(make_mutation increment_abi \
+    's/"result":"i\.5","arg0":"i","arg1":"local","slot_anchor":null,"abi_type_name":"Int"/"result":"i.5","arg0":"i","arg1":"local","slot_anchor":null,"abi_type_name":"String"/' \
+    '"result":"i.5","arg0":"i","arg1":"local","slot_anchor":null,"abi_type_name":"String"')"
+expect_rejected_without_artifact increment_abi "$mutation" \
+    'loop|increment|assignment|ABI|type'
 mutation="$(make_mutation missing_backedge \
     's/],"succ_true":1},{"id":3/],"succ_true":3},{"id":3/' \
     '],"succ_true":3},{"id":3')"

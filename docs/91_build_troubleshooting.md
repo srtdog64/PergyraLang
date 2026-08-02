@@ -4523,3 +4523,27 @@ gen2 codegen과 DRV-2 설치까지 재생성할 수 있다. 2026-08-03의 579.2�
 계측하지 않은 build에 이전 peak를 붙이지 않는다. 메모리는 매 편집마다 최적화
 목표로 쓰지 않고, semantic target을 닫은 integration boundary에서 최종 maximum을
 기록한다. 2.4 GiB attention과 3 GiB hard stop 정책은 그대로 유지한다.
+
+## MIR 생산자가 ABI fact를 강화한 뒤 CFG gate가 오래된 hash에서 멈추는 경우
+
+2026-08-03에 `if_else_assign`, `reassign_block`, `nestedif`, `whileloop`,
+`forloop`, `break_after_stmt`의 고정 hash가 한꺼번에 어긋났다. 단순한 비결정성이
+아니었다. `cd886a6d`에서 assignment MIR 생산자는 target local의 실제 타입을
+`abi_type_name: "Int"`로 운반하기 시작했지만 direct branch/loop/break 소비자는
+여전히 빈 ABI를 요구했다. 따라서 새 생산자는 결정적으로 새 MIR을 만들었고,
+옛 소비자는 그 MIR을 artifact 전에 거부했다.
+
+이 경우 hash만 갱신하면 안 된다.
+
+1. 설치 드라이버와 격리 빌드 드라이버 또는 같은 current-source 드라이버의 독립
+   두 실행으로 MIR byte equality를 확인한다.
+2. 생산자 변경 commit과 새 fact owner를 확인한다. 이번 경우 owner는 assignment
+   target type이고 소비자는 정확히 `Int`를 요구해야 했다.
+3. C와 LLVM의 실제 투영·compile·run을 모두 실행한다.
+4. 다른 타입(`String`)으로 ABI를 위조해 artifact publication 전에 거부되는지
+   branch, loop, break 각 소비자에서 확인한다.
+5. 그 증거가 모두 green인 뒤에만 size/hash identity pin을 갱신한다.
+
+현재 pin은 단순 snapshot이 아니라 “현재 생산자 identity + 현재 소비자 계약”을
+묶는 회귀 증거다. 생산자가 강화됐는데 소비자와 gate가 함께 이동하지 않으면 CI가
+조용히 죽어 있는 상태로 취급한다.

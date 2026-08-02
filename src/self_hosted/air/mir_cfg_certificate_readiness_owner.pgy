@@ -61,6 +61,18 @@ func DirectMirCfgCertificateReady(
         certificate.merge_block == certificate.nested.outer_merge_block &&
         certificate.branch_global_row !=
             certificate.nested.branch_global_row;
+    let identity_match_ready: Bool = certificate.block_count == 4 &&
+        DirectMirIdentityMatchCfgCertificateFactReady(
+            certificate.identity_match
+        ) && certificate.entry_block ==
+            certificate.identity_match.entry_block &&
+        certificate.true_block == certificate.identity_match.true_block &&
+        certificate.false_block == certificate.identity_match.false_block &&
+        certificate.merge_block == certificate.identity_match.merge_block &&
+        certificate.branch_global_row ==
+            certificate.identity_match.branch_global_row &&
+        certificate.phi_count == 0;
+    if identity_match_ready { expected_instruction_count = 5; }
     let nested_binding_ready: Bool = nested_ready;
     if certificate.block_count != 5 {
         nested_binding_ready =
@@ -80,6 +92,13 @@ func DirectMirCfgCertificateReady(
     if !break_ready {
         break_binding_ready =
             DirectMirBreakCfgCertificateFactAbsent(certificate.break_fact);
+    }
+    let identity_match_binding_ready: Bool = identity_match_ready;
+    if !identity_match_ready {
+        identity_match_binding_ready =
+            DirectMirIdentityMatchCfgCertificateFactAbsent(
+                certificate.identity_match
+            );
     }
     let direct_false_edge: Bool =
         !loop_ready && !range_ready && !break_ready &&
@@ -135,9 +154,11 @@ func DirectMirCfgCertificateReady(
         certificate.instruction_count == expected_instruction_count &&
         certificate.phi_digest == expected_phi_digest && phi_fields_ready &&
         nested_binding_ready && loop_binding_ready && range_binding_ready &&
-        break_binding_ready &&
+        break_binding_ready && identity_match_binding_ready &&
         !((loop_ready && range_ready) || (loop_ready && break_ready) ||
-            (range_ready && break_ready)) &&
+            (range_ready && break_ready) ||
+            (identity_match_ready &&
+                (nested_ready || loop_ready || range_ready || break_ready))) &&
         certificate.entry_block >= 0 &&
         certificate.true_block >= 0 && certificate.false_block >= 0 &&
         certificate.merge_block >= 0 &&
@@ -151,8 +172,10 @@ func DirectMirCfgCertificateReady(
         certificate.evidence_kind ==
             CompilerAirEvidenceMirTerminatorFact() &&
         ((!nested_ready && !loop_ready && !range_ready && !break_ready &&
+            !identity_match_ready &&
             certificate.evidence_fact_count == 1) ||
-            ((nested_ready || loop_ready || range_ready || break_ready) &&
+            ((nested_ready || loop_ready || range_ready || break_ready ||
+                identity_match_ready) &&
                 certificate.evidence_fact_count == 2)) &&
         certificate.fallback_count == 0 &&
         certificate.drift_count == 0 && certificate.strict_evidence &&

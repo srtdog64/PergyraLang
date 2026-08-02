@@ -333,7 +333,7 @@ func DirectMirCfgAssignmentArmFromBlock(
         scalar.result != result_name || scalar.arg0 != local_name ||
         scalar.arg1 != "local" || scalar.expr1 != local_name ||
         scalar.slot_anchor != "" || !scalar.abi_type_value_ready ||
-        scalar.abi_type_name != "" ||
+        scalar.abi_type_name != "Int" ||
         !MirSsaNameMatches(result_name, local_name, false) {
         return DirectMirCfgAssignmentArmFactEmpty();
     }

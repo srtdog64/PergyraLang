@@ -286,7 +286,7 @@ func DirectMirLoopCfgCertificateFactFromIndex(
         increment_scalar.expr1 != phi.local_name ||
         increment_scalar.slot_anchor != "" ||
         !increment_scalar.abi_type_value_ready ||
-        increment_scalar.abi_type_name != "" {
+        increment_scalar.abi_type_name != "Int" {
         Die("direct MIR loop CFG SSA use or increment fact is invalid");
     }
     let fact: DirectMirLoopCfgCertificateFact =

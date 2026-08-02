@@ -6,6 +6,7 @@ import "direct_mir_scalar_graph_admission_owner.pgy";
 import "direct_mir_cfg_plan_owner.pgy";
 import "direct_mir_backend_emission_owner.pgy";
 import "direct_mir_compile_time_declaration_erasure_owner.pgy";
+import "direct_mir_enum_value_match_route_owner.pgy";
 import "direct_mir_literal_log_plan_owner.pgy";
 import "direct_mir_literal_log_emission_owner.pgy";
 import "direct_mir_array_int_plan_owner.pgy";
@@ -21,6 +22,50 @@ import "runtime_call_abi_structured_fact_owner.pgy";
 import "abi_layout_row_owner.pgy";
 import "domain_topology_graph_plan_consumer_owner.pgy";
 import "../mir_lower/mir_json_input_owner.pgy";
+
+func CompileAdmittedDirectMirCfgPayloadForTarget(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref enum_route: DirectMirEnumValueMatchRouteFact,
+    target_projection: CompilerTargetProjectionFact
+) -> String {
+    let is_c: Bool = CompilerTargetProjectionFactReadyFor(
+        target_projection, CompilerTargetCpuCProjection()
+    );
+    let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
+        target_projection, CompilerTargetCpuLlvmProjection()
+    );
+    if !is_c && !is_llvm {
+        Die("direct MIR CFG projection rejected the target fact");
+    }
+    let formatted_print: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFormattedPrintFact();
+    if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
+        Die("direct MIR CFG runtime ABI owner is incomplete");
+    }
+    let plan: DirectMirCfgPlan = DirectMirCfgPlanFromAdmitted(
+        admitted, enum_route
+    );
+    if !DirectMirCfgPlanReady(plan) {
+        Die("direct MIR CFG verified plan identity is invalid before emission");
+    }
+    let line_format: String = StringRuntimeCStringLineFormat();
+    if DirectMirEnumValueMatchPlanFactReady(plan.enum_match) ||
+        DirectMirLoopCfgPlanFactReady(plan.loop_fact) ||
+        DirectMirRangeCfgPlanFactReady(plan.range_fact) ||
+        DirectMirBreakCfgPlanFactReady(plan.break_fact) ||
+        plan.shape.kind == DirectMirCfgPhiMergeShapeKind() {
+        line_format = StringRuntimeCIntLineFormat();
+    } else if plan.shape.kind != DirectMirCfgLiteralArmShapeKind() &&
+            plan.shape.kind != DirectMirCfgNestedConditionalShapeKind() {
+        Die("direct MIR CFG projection shape has no runtime ABI format");
+    }
+    if is_llvm {
+        return DirectMirCfgEmitLlvm(plan, formatted_print, line_format);
+    }
+    return DirectMirCfgEmitC(
+        plan, formatted_print, line_format, CompilerAbiLayoutIntCValueType()
+    );
+}
 
 func CompileAdmittedDirectMirForTarget(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -49,12 +94,19 @@ func CompileAdmittedDirectMirForTarget(
             MirProgramRoutineIndexBlockInstructionCountAt(
                 admitted.routines, 0, 0
             );
-        let nominal_literal_route: DirectMirNominalLiteralRouteFact =
-            DirectMirNominalLiteralRouteFactFromAdmitted(admitted);
-        let literal_log_route: Bool =
-            DirectMirCompileTimeDeclarationErasureRouteClaimed(admitted) ||
-            (block_count == 1 && instruction_count == 1);
-        if nominal_literal_route.claimed {
+        let enum_route: DirectMirEnumValueMatchRouteFact =
+            DirectMirEnumValueMatchRouteFactFromAdmitted(admitted);
+        if enum_route.claimed {
+            payload = CompileAdmittedDirectMirCfgPayloadForTarget(
+                admitted, enum_route, target_projection
+            );
+        } else {
+            let nominal_literal_route: DirectMirNominalLiteralRouteFact =
+                DirectMirNominalLiteralRouteFactFromAdmitted(admitted);
+            let literal_log_route: Bool =
+                DirectMirCompileTimeDeclarationErasureRouteClaimed(admitted) ||
+                (block_count == 1 && instruction_count == 1);
+            if nominal_literal_route.claimed {
             payload = CompileAdmittedDirectMirNominalLiteral(
                 admitted, nominal_literal_route, target_projection
             );
@@ -135,39 +187,12 @@ func CompileAdmittedDirectMirForTarget(
             }
         } else if block_count == 3 || block_count == 4 || block_count == 5 ||
             block_count == 6 {
-            let formatted_print: CompilerRuntimeCallAbiFact =
-                CompilerRuntimeCallAbiFormattedPrintFact();
-            if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
-                Die("direct MIR CFG runtime ABI owner is incomplete");
-            }
-            let plan: DirectMirCfgPlan =
-                DirectMirCfgPlanFromAdmitted(admitted);
-            if !DirectMirCfgPlanReady(plan) {
-                Die("direct MIR CFG verified plan identity is invalid before emission");
-            }
-            let line_format: String = StringRuntimeCStringLineFormat();
-            if DirectMirLoopCfgPlanFactReady(plan.loop_fact) ||
-                DirectMirRangeCfgPlanFactReady(plan.range_fact) ||
-                DirectMirBreakCfgPlanFactReady(plan.break_fact) ||
-                plan.shape.kind == DirectMirCfgPhiMergeShapeKind() {
-                line_format = StringRuntimeCIntLineFormat();
-            } else if plan.shape.kind != DirectMirCfgLiteralArmShapeKind() &&
-                    plan.shape.kind !=
-                        DirectMirCfgNestedConditionalShapeKind() {
-                Die("direct MIR CFG projection shape has no runtime ABI format");
-            }
-            if is_llvm {
-                payload = DirectMirCfgEmitLlvm(
-                    plan, formatted_print, line_format
-                );
-            } else {
-                payload = DirectMirCfgEmitC(
-                    plan, formatted_print, line_format,
-                    CompilerAbiLayoutIntCValueType()
-                );
-            }
+            payload = CompileAdmittedDirectMirCfgPayloadForTarget(
+                admitted, enum_route, target_projection
+            );
         } else {
             Die("direct MIR backend projection rejected unsupported CFG shape");
+        }
         }
     } else {
         Die("direct MIR backend projection rejected missing routines");

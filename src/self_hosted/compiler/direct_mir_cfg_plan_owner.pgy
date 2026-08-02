@@ -8,13 +8,32 @@ import "direct_mir_cfg_plan_fact_owner.pgy";
 import "direct_mir_cfg_plan_value_owner.pgy";
 import "direct_mir_cfg_plan_mutation_owner.pgy";
 import "direct_mir_nested_cfg_shape_owner.pgy";
+import "direct_mir_enum_value_match_plan_owner.pgy";
 import "../air/mir_cfg_certificate_owner.pgy";
 import "../air/mir_cfg_certificate_mutation_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
 
-func DirectMirCfgPlanFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput) -> DirectMirCfgPlan {
+func DirectMirCfgPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref enum_route: DirectMirEnumValueMatchRouteFact
+) -> DirectMirCfgPlan {
     let block_count: Int = admitted.routines.routine_block_counts[0];
-    if !DirectMirCfgProgramEnvelopeReady(admitted) ||
+    let standard_envelope: Bool = DirectMirCfgProgramEnvelopeReady(admitted);
+    let enum_envelope: Bool = false;
+    if DirectMirEnumValueMatchRouteFactReady(enum_route) &&
+        enum_route.claimed {
+        let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            admitted.routines.source_json, admitted.routines.starts[0],
+            admitted.routines.ends[0]
+        );
+        enum_envelope = DirectMirProgramCommonEnvelopeReady(admitted) &&
+            !admitted.domain_topology_plan.present &&
+            enum_route.declaration_count == 1 &&
+            JsonArrayObjectFactCount(admitted.document.declarations) == 1 &&
+            DirectMirRoutineHasNoUnsupportedFactsExceptLoop(routine);
+    }
+    if !DirectMirEnumValueMatchRouteFactReady(enum_route) ||
+        (!standard_envelope && !enum_envelope) ||
         (block_count != 3 && block_count != 4 && block_count != 5 &&
             block_count != 6) {
         Die("direct MIR CFG block inventory or program structure is invalid");
@@ -49,6 +68,9 @@ func DirectMirCfgPlanFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput
             certificate, certificate.certificate_digest
         );
     if !DirectMirCfgCertificateReady(certificate) {
+        if enum_route.claimed {
+            Die("direct MIR enum value-match CFG certificate is invalid");
+        }
         if certificate.valid {
             Die("direct MIR CFG issued certificate identity or fixed binding is invalid");
         }
@@ -70,7 +92,20 @@ func DirectMirCfgPlanFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput
         DirectMirRangeCfgPlanFactEmpty();
     let break_plan: DirectMirBreakCfgPlanFact =
         DirectMirBreakCfgPlanFactEmpty();
-    if DirectMirBreakCfgCertificateFactReady(certificate.break_fact) {
+    let enum_plan: DirectMirEnumValueMatchPlanFact =
+        DirectMirEnumValueMatchPlanFactEmpty();
+    if DirectMirIdentityMatchCfgCertificateFactReady(
+        certificate.identity_match
+    ) {
+        if !enum_route.claimed {
+            Die("direct MIR identity-match CFG lacks its enum route claim");
+        }
+        enum_plan = DirectMirEnumValueMatchPlanFactFromOwners(
+            admitted, enum_route, certificate, use_facts
+        );
+    } else if enum_route.claimed {
+        Die("direct MIR enum route cannot retry a legacy CFG shape");
+    } else if DirectMirBreakCfgCertificateFactReady(certificate.break_fact) {
         let break_shape: DirectMirBreakCfgShapeFact =
             DirectMirBreakCfgShapeFactFromOwners(
                 admitted, index, use_facts, certificate.break_fact
@@ -120,6 +155,9 @@ func DirectMirCfgPlanFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput
         shape_ready = DirectMirCfgShapeFactsAbsent(shape) &&
             DirectMirBreakCfgPlanFactReady(break_plan);
     }
+    if DirectMirEnumValueMatchPlanFactReady(enum_plan) {
+        shape_ready = DirectMirCfgShapeFactsAbsent(shape);
+    }
     if !shape_ready {
         if DirectMirLoopCfgCertificateFactReady(certificate.loop_fact) {
             Die("direct MIR loop CFG condition, Log, increment, or graph facts are invalid");
@@ -137,12 +175,13 @@ func DirectMirCfgPlanFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput
         certificate.certificate_digest, certificate.mir_digest,
         certificate.cfg_digest, certificate.phi_digest,
         certificate.nested.digest, loop_plan.digest, range_plan.digest,
-        break_plan.digest,
+        break_plan.digest, enum_plan.digest,
         CompilerTargetCapabilitySchema(),
         CompilerTargetCapabilityFingerprint(), certificate.entry_block,
         certificate.true_block, certificate.false_block,
         certificate.merge_block, certificate.phi_count,
-        certificate.nested, loop_plan, range_plan, break_plan, shape
+        certificate.nested, loop_plan, range_plan, break_plan, enum_plan,
+        shape
     );
     let verified: DirectMirCfgPlan = DirectMirCfgPlanWithDigest(
         plan, DirectMirCfgPlanIdentityDigest(plan)

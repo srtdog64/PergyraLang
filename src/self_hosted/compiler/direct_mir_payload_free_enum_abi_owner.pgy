@@ -1,0 +1,79 @@
+// Target-neutral runtime ABI for one payload-free enum value.
+//
+// Declaration order owns the ordinal. No target may invent an aggregate
+// layout, payload storage, tag helper, or backend-local enum representation.
+
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirPayloadFreeEnumAbiFact {
+    let valid: Bool;
+    let digest: Int;
+    let representation: String;
+    let abi_type_name: String;
+    let variant_count: Int;
+    let selected_ordinal: Int;
+    let scalar_materialization_count: Int;
+    let payload_count: Int;
+    let aggregate_layout_count: Int;
+    let payload_storage_count: Int;
+    let runtime_helper_count: Int;
+}
+
+func DirectMirPayloadFreeEnumAbiFactEmpty(
+) -> DirectMirPayloadFreeEnumAbiFact {
+    return DirectMirPayloadFreeEnumAbiFact(
+        false, 0, "", "", 0, 0 - 1, 0, 0, 0, 0, 0
+    );
+}
+
+func DirectMirPayloadFreeEnumAbiFactDigest(
+    ref fact: DirectMirPayloadFreeEnumAbiFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(641L, fact.representation);
+    hash = DirectMirCfgHashString(hash, fact.abi_type_name);
+    hash = DirectMirCfgHashInt(hash, fact.variant_count);
+    hash = DirectMirCfgHashInt(hash, fact.selected_ordinal);
+    hash = DirectMirCfgHashInt(hash, fact.scalar_materialization_count);
+    hash = DirectMirCfgHashInt(hash, fact.payload_count);
+    hash = DirectMirCfgHashInt(hash, fact.aggregate_layout_count);
+    hash = DirectMirCfgHashInt(hash, fact.payload_storage_count);
+    hash = DirectMirCfgHashInt(hash, fact.runtime_helper_count);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirPayloadFreeEnumAbiFactReady(
+    ref fact: DirectMirPayloadFreeEnumAbiFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirPayloadFreeEnumAbiFactDigest(fact) &&
+        fact.representation == "scalar-ordinal" &&
+        fact.abi_type_name == "Int" && fact.variant_count > 0 &&
+        fact.selected_ordinal >= 0 &&
+        fact.selected_ordinal < fact.variant_count &&
+        fact.scalar_materialization_count == 1 &&
+        fact.payload_count == 0 && fact.aggregate_layout_count == 0 &&
+        fact.payload_storage_count == 0 && fact.runtime_helper_count == 0;
+}
+
+func DirectMirPayloadFreeEnumAbiFactFromOrdinals(
+    variant_count: Int, selected_ordinal: Int
+) -> DirectMirPayloadFreeEnumAbiFact {
+    let raw: DirectMirPayloadFreeEnumAbiFact =
+        DirectMirPayloadFreeEnumAbiFact(
+            true, 0, "scalar-ordinal", "Int", variant_count,
+            selected_ordinal, 1, 0, 0, 0, 0
+        );
+    let fact: DirectMirPayloadFreeEnumAbiFact =
+        DirectMirPayloadFreeEnumAbiFact(
+            raw.valid, DirectMirPayloadFreeEnumAbiFactDigest(raw),
+            raw.representation, raw.abi_type_name, raw.variant_count,
+            raw.selected_ordinal, raw.scalar_materialization_count,
+            raw.payload_count, raw.aggregate_layout_count,
+            raw.payload_storage_count, raw.runtime_helper_count
+        );
+    if !DirectMirPayloadFreeEnumAbiFactReady(fact) {
+        return DirectMirPayloadFreeEnumAbiFactEmpty();
+    }
+    return fact;
+}

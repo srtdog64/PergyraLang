@@ -5,6 +5,7 @@ import "mir_nested_cfg_certificate_fact_owner.pgy";
 import "mir_loop_cfg_certificate_fact_owner.pgy";
 import "mir_range_cfg_certificate_fact_owner.pgy";
 import "mir_break_cfg_certificate_fact_owner.pgy";
+import "mir_identity_match_cfg_certificate_fact_owner.pgy";
 
 struct DirectMirCfgCertificate {
     let valid: Bool;
@@ -28,6 +29,7 @@ struct DirectMirCfgCertificate {
     let loop_fact: DirectMirLoopCfgCertificateFact;
     let range_fact: DirectMirRangeCfgCertificateFact;
     let break_fact: DirectMirBreakCfgCertificateFact;
+    let identity_match: DirectMirIdentityMatchCfgCertificateFact;
     let evidence_kind: String;
     let evidence_fact_count: Int;
     let fallback_count: Int;
@@ -43,9 +45,9 @@ struct DirectMirCfgCertificate {
 }
 
 func DirectMirCfgCertificateSchema() -> String {
-    return "pgy.selfhost.air.mir-cfg-certificate.v6";
+    return "pgy.selfhost.air.mir-cfg-certificate.v7";
 }
-func DirectMirCfgCertificateRevision() -> Int { return 6; }
+func DirectMirCfgCertificateRevision() -> Int { return 7; }
 
 func DirectMirCfgCertificateEmpty() -> DirectMirCfgCertificate {
     return DirectMirCfgCertificate(
@@ -54,7 +56,8 @@ func DirectMirCfgCertificateEmpty() -> DirectMirCfgCertificate {
         DirectMirNestedCfgCertificateFactEmpty(),
         DirectMirLoopCfgCertificateFactEmpty(),
         DirectMirRangeCfgCertificateFactEmpty(),
-        DirectMirBreakCfgCertificateFactEmpty(), "", 0, 0, 0,
+        DirectMirBreakCfgCertificateFactEmpty(),
+        DirectMirIdentityMatchCfgCertificateFactEmpty(), "", 0, 0, 0,
         false, false, 0, 0, "", "", "", ""
     );
 }
@@ -89,6 +92,12 @@ func DirectMirCfgCertificateIdentityDigest(
     );
     hash = DirectMirCfgHashInt(
         hash, DirectMirBreakCfgCertificateFactDigest(certificate.break_fact)
+    );
+    hash = DirectMirCfgHashInt(
+        hash,
+        DirectMirIdentityMatchCfgCertificateFactDigest(
+            certificate.identity_match
+        )
     );
     hash = DirectMirCfgHashString(hash, certificate.evidence_kind);
     hash = DirectMirCfgHashInt(hash, certificate.evidence_fact_count);

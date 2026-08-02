@@ -2,6 +2,7 @@
 // Kept separate from issuance so certificate construction remains cohesive.
 
 import "mir_cfg_certificate_owner.pgy";
+import "mir_identity_match_cfg_certificate_mutation_owner.pgy";
 
 func DirectMirCfgCertificateMutationRejected(
     own certificate: DirectMirCfgCertificate
@@ -10,7 +11,10 @@ func DirectMirCfgCertificateMutationRejected(
     if DirectMirNestedCfgCertificateFactReady(certificate.nested) ||
         DirectMirLoopCfgCertificateFactReady(certificate.loop_fact) ||
         DirectMirRangeCfgCertificateFactReady(certificate.range_fact) ||
-        DirectMirBreakCfgCertificateFactReady(certificate.break_fact) {
+        DirectMirBreakCfgCertificateFactReady(certificate.break_fact) ||
+        DirectMirIdentityMatchCfgCertificateFactReady(
+            certificate.identity_match
+        ) {
         expected_evidence_count = 2;
     }
     let bad_digest: DirectMirCfgCertificate =
@@ -125,9 +129,32 @@ func DirectMirCfgCertificateMutationRejected(
                 break_for_negative
             );
     }
+    let bad_identity_match_rejected: Bool = true;
+    if DirectMirIdentityMatchCfgCertificateFactReady(
+        certificate.identity_match
+    ) {
+        let bad_identity_match: DirectMirIdentityMatchCfgCertificateFact =
+            DirectMirIdentityMatchCfgCertificateFactInvalidEntryLog(
+                certificate.identity_match
+            );
+        let bad_identity_certificate: DirectMirCfgCertificate =
+            DirectMirCfgCertificateWithIdentityMatch(
+                certificate, bad_identity_match
+            );
+        bad_identity_certificate = DirectMirCfgCertificateWithDigest(
+            bad_identity_certificate,
+            DirectMirCfgCertificateIdentityDigest(bad_identity_certificate)
+        );
+        bad_identity_match_rejected =
+            !DirectMirCfgCertificateReady(bad_identity_certificate) &&
+            DirectMirIdentityMatchCfgCertificateFactMutationRejected(
+                certificate.identity_match
+            );
+    }
     return !DirectMirCfgCertificateReady(bad_digest) &&
         !DirectMirCfgCertificateReady(missing_evidence) &&
         !DirectMirCfgCertificateReady(fallback) &&
         !DirectMirCfgCertificateReady(drift) && bad_nested_rejected &&
-        bad_loop_rejected && bad_range_rejected && bad_break_rejected;
+        bad_loop_rejected && bad_range_rejected && bad_break_rejected &&
+        bad_identity_match_rejected;
 }

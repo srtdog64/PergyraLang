@@ -1,0 +1,97 @@
+// Optional enum-value child of the one target-neutral direct CFG plan.
+
+import "direct_mir_enum_value_match_route_owner.pgy";
+import "direct_mir_payload_free_enum_abi_owner.pgy";
+import "../air/mir_identity_match_cfg_certificate_fact_owner.pgy";
+import "../mir_lower/ssa_identity_owner.pgy";
+
+struct DirectMirEnumValueMatchPlanFact {
+    let valid: Bool;
+    let digest: Int;
+    let route: DirectMirEnumValueMatchRouteFact;
+    let certificate_digest: Int;
+    let identity_match: DirectMirIdentityMatchCfgCertificateFact;
+    let declaration_digest: Int;
+    let declaration_name: String;
+    let selected_variant_name: String;
+    let local_name: String;
+    let result_name: String;
+    let selected_ordinal: Int;
+    let match_literal: String;
+    let true_literal: String;
+    let false_literal: String;
+    let abi: DirectMirPayloadFreeEnumAbiFact;
+}
+
+func DirectMirEnumValueMatchPlanFactEmpty(
+) -> DirectMirEnumValueMatchPlanFact {
+    return DirectMirEnumValueMatchPlanFact(
+        false, 0, DirectMirEnumValueMatchRouteFact(false, 0, false, 0, 0),
+        0, DirectMirIdentityMatchCfgCertificateFactEmpty(), 0, "", "",
+        "", "", 0 - 1, "", "", "",
+        DirectMirPayloadFreeEnumAbiFactEmpty()
+    );
+}
+
+func DirectMirEnumValueMatchPlanFactDigest(
+    ref fact: DirectMirEnumValueMatchPlanFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(
+        643L, DirectMirEnumValueMatchRouteFactDigest(fact.route)
+    );
+    hash = DirectMirCfgHashInt(hash, fact.certificate_digest);
+    hash = DirectMirCfgHashInt(
+        hash,
+        DirectMirIdentityMatchCfgCertificateFactDigest(fact.identity_match)
+    );
+    hash = DirectMirCfgHashInt(hash, fact.declaration_digest);
+    hash = DirectMirCfgHashString(hash, fact.declaration_name);
+    hash = DirectMirCfgHashString(hash, fact.selected_variant_name);
+    hash = DirectMirCfgHashString(hash, fact.local_name);
+    hash = DirectMirCfgHashString(hash, fact.result_name);
+    hash = DirectMirCfgHashInt(hash, fact.selected_ordinal);
+    hash = DirectMirCfgHashString(hash, fact.match_literal);
+    hash = DirectMirCfgHashString(hash, fact.true_literal);
+    hash = DirectMirCfgHashString(hash, fact.false_literal);
+    hash = DirectMirCfgHashInt(
+        hash, DirectMirPayloadFreeEnumAbiFactDigest(fact.abi)
+    );
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirEnumValueMatchPlanFactReady(
+    ref fact: DirectMirEnumValueMatchPlanFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirEnumValueMatchPlanFactDigest(fact) &&
+        DirectMirEnumValueMatchRouteFactReady(fact.route) &&
+        fact.route.claimed && fact.certificate_digest != 0 &&
+        DirectMirIdentityMatchCfgCertificateFactReady(fact.identity_match) &&
+        fact.declaration_digest != 0 && fact.declaration_name != "" &&
+        fact.selected_variant_name != "" && fact.local_name != "" &&
+        MirSsaNameMatches(fact.result_name, fact.local_name, false) &&
+        fact.selected_ordinal >= 0 && fact.match_literal != "" &&
+        ToString(ToInt(fact.match_literal)) == fact.match_literal &&
+        fact.true_literal != "" &&
+        ToString(ToInt(fact.true_literal)) == fact.true_literal &&
+        fact.false_literal != "" &&
+        ToString(ToInt(fact.false_literal)) == fact.false_literal &&
+        DirectMirPayloadFreeEnumAbiFactReady(fact.abi) &&
+        fact.abi.selected_ordinal == fact.selected_ordinal &&
+        fact.identity_match.local_name == fact.local_name &&
+        fact.identity_match.result_name == fact.result_name;
+}
+
+func DirectMirEnumValueMatchPlanFactAbsent(
+    ref fact: DirectMirEnumValueMatchPlanFact
+) -> Bool {
+    return !fact.valid && fact.digest == 0 && !fact.route.valid &&
+        fact.certificate_digest == 0 &&
+        DirectMirIdentityMatchCfgCertificateFactAbsent(fact.identity_match) &&
+        fact.declaration_digest == 0 && fact.declaration_name == "" &&
+        fact.selected_variant_name == "" && fact.local_name == "" &&
+        fact.result_name == "" && fact.selected_ordinal < 0 &&
+        fact.match_literal == "" && fact.true_literal == "" &&
+        fact.false_literal == "" && !fact.abi.valid && fact.abi.digest == 0;
+}

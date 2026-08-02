@@ -1,0 +1,31 @@
+// Repaired-digest negative proof for identity-match CFG evidence.
+
+import "mir_identity_match_cfg_certificate_fact_owner.pgy";
+
+func DirectMirIdentityMatchCfgCertificateFactInvalidEntryLog(
+    fact: DirectMirIdentityMatchCfgCertificateFact
+) -> DirectMirIdentityMatchCfgCertificateFact {
+    let raw: DirectMirIdentityMatchCfgCertificateFact =
+        DirectMirIdentityMatchCfgCertificateFact(
+            fact.valid, 0, fact.entry_block, fact.true_block,
+            fact.false_block, fact.merge_block, fact.definition_global_row,
+            fact.entry_log_global_row + 1, fact.branch_global_row,
+            fact.true_log_global_row, fact.false_log_global_row,
+            fact.local_name, fact.result_name
+        );
+    return DirectMirIdentityMatchCfgCertificateFact(
+        raw.valid, DirectMirIdentityMatchCfgCertificateFactDigest(raw),
+        raw.entry_block, raw.true_block, raw.false_block, raw.merge_block,
+        raw.definition_global_row, raw.entry_log_global_row,
+        raw.branch_global_row, raw.true_log_global_row,
+        raw.false_log_global_row, raw.local_name, raw.result_name
+    );
+}
+
+func DirectMirIdentityMatchCfgCertificateFactMutationRejected(
+    fact: DirectMirIdentityMatchCfgCertificateFact
+) -> Bool {
+    let invalid: DirectMirIdentityMatchCfgCertificateFact =
+        DirectMirIdentityMatchCfgCertificateFactInvalidEntryLog(fact);
+    return !DirectMirIdentityMatchCfgCertificateFactReady(invalid);
+}

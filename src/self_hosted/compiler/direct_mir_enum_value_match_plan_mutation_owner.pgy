@@ -1,0 +1,49 @@
+// Repaired-digest negative proof for the enum child of the CFG plan.
+
+import "direct_mir_enum_value_match_plan_fact_owner.pgy";
+
+func DirectMirEnumValueMatchPlanFactInvalidAbiSelection(
+    fact: DirectMirEnumValueMatchPlanFact
+) -> DirectMirEnumValueMatchPlanFact {
+    let abi_raw: DirectMirPayloadFreeEnumAbiFact =
+        DirectMirPayloadFreeEnumAbiFact(
+            fact.abi.valid, 0, fact.abi.representation,
+            fact.abi.abi_type_name, fact.abi.variant_count,
+            fact.abi.selected_ordinal + 1,
+            fact.abi.scalar_materialization_count, fact.abi.payload_count,
+            fact.abi.aggregate_layout_count, fact.abi.payload_storage_count,
+            fact.abi.runtime_helper_count
+        );
+    let bad_abi: DirectMirPayloadFreeEnumAbiFact =
+        DirectMirPayloadFreeEnumAbiFact(
+            abi_raw.valid, DirectMirPayloadFreeEnumAbiFactDigest(abi_raw),
+            abi_raw.representation, abi_raw.abi_type_name,
+            abi_raw.variant_count, abi_raw.selected_ordinal,
+            abi_raw.scalar_materialization_count, abi_raw.payload_count,
+            abi_raw.aggregate_layout_count, abi_raw.payload_storage_count,
+            abi_raw.runtime_helper_count
+        );
+    let raw: DirectMirEnumValueMatchPlanFact =
+        DirectMirEnumValueMatchPlanFact(
+            fact.valid, 0, fact.route, fact.certificate_digest,
+            fact.identity_match, fact.declaration_digest,
+            fact.declaration_name, fact.selected_variant_name,
+            fact.local_name, fact.result_name, fact.selected_ordinal,
+            fact.match_literal, fact.true_literal, fact.false_literal, bad_abi
+        );
+    return DirectMirEnumValueMatchPlanFact(
+        raw.valid, DirectMirEnumValueMatchPlanFactDigest(raw), raw.route,
+        raw.certificate_digest, raw.identity_match, raw.declaration_digest,
+        raw.declaration_name, raw.selected_variant_name, raw.local_name,
+        raw.result_name, raw.selected_ordinal, raw.match_literal,
+        raw.true_literal, raw.false_literal, raw.abi
+    );
+}
+
+func DirectMirEnumValueMatchPlanFactMutationRejected(
+    fact: DirectMirEnumValueMatchPlanFact
+) -> Bool {
+    let invalid: DirectMirEnumValueMatchPlanFact =
+        DirectMirEnumValueMatchPlanFactInvalidAbiSelection(fact);
+    return !DirectMirEnumValueMatchPlanFactReady(invalid);
+}
