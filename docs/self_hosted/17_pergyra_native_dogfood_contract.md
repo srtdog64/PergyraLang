@@ -24,7 +24,7 @@ Pergyra의 self-host는 두 조건을 모두 만족해야 한다.
 
 ## 현재 관측된 상태
 
-2026-07-30 현재 사용자에게 설치되는 self-host 진입점과 full bootstrap
+2026-08-02 현재 사용자에게 설치되는 self-host 진입점과 full bootstrap
 artifact 진입점은 서로 다른 `Main`이지만, source-to-MIR 실행 owner는 하나다.
 
 - `bin/pgy --self-driver`는 `src/compiler/self_host_driver.c`의 sibling launcher를
@@ -113,6 +113,7 @@ declaration census는 gate가 다시 생성하는 관측값이며, import surfac
 | `struct` | `REACHABLE` supporting construct | production typed 계산에 사용되지만 독립 C-path 대체 등급은 아님 |
 | `class`, `object`, `vessel` | `SURFACE` | 두 active action call chain의 소비 없음 |
 | `tobject` | `REACHABLE`, not `SUBSTITUTING` | production action의 receipt와 failure가 typed variant로 Main까지 전달되고 양쪽 payload가 후속 판정/진단에 소비된다 |
+| 입력 기능의 passive/mutable nominal literal direct-MIR slice | `SUBSTITUTING` | class/object/tobject value carriage와 subject/vessel stable mutable identity가 한 route/admission 뒤 배타 plan으로 installed C/LLVM exact 12/7/13을 실행한다. 이는 compiler 조직의 vessel/action/intent grade를 올리지 않는다. |
 | 입력 기능의 `binding slot` admission/runtime slice | `SUBSTITUTING` | production self source -> admitted MIR -> general C가 exact binding constructor와 projection assignment를 실행하고 native C/LLVM parity 및 valid-ID wrong-kind negatives를 통과한다 |
 | 입력 기능의 typed intent transition MIR -> self C | `SUBSTITUTING` | admitted v2 Pergyra plan consumer가 old typed direct/rollback consumer를 대체한다. compiler-root intent 증거는 아니다. |
 | `subject`, `action`, `zone`, `world` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR과 source-to-MIR 두 slice가 production에서 invoke되고 typed outcome이 소비된다. 그러나 새 C-owned semantic path를 대체한 것은 아니다. |

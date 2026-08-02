@@ -119,6 +119,22 @@ compiler replacement. The next observed falsifier is the 2,785-byte
 `nominal_vessel.pgy` MIR, rejected by both targets at subject identity
 admission; it requires exact `13` while preserving vessel semantic identity.
 
+Checkpoint `89951491` closes that vessel falsifier without a vessel-specific
+family. Subject and vessel now share one target-neutral mutable nominal identity
+plan while retaining exact declaration/type/field identity. C uses one storage
+plus one stable pointer and LLVM uses one alloca/GEP/store/load field chain;
+installed C/LLVM execute exact `7` and `13`. Six positive pairs, 33 C negatives,
+14 LLVM sentinels, passive tobject regression and final hard/component contracts
+are green. The bounded kind allow-list lives only in the semantic carriage
+policy, and shared routing cannot recreate subject/vessel spelling dispatch.
+This remains a bounded target-specific `SUBSTITUTING` slice, not whole compiler
+or compiler-root intent replacement. The next observed falsifier is the
+1,563-byte `ability_decl.pgy` MIR
+(`679EA54CDA224A2832603B48A8FD7A747B5944328AEECBAEF31C01401A0D81EF`),
+rejected by both targets before artifact creation at the current declaration-
+free string-hello admission. It requires explicit compile-time declaration
+erasure and general integer literal execution, not silent declaration loss.
+
 ## Verified
 
 Front-end self-hosts on both backends in LLVM-enabled builds.

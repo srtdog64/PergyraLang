@@ -6,6 +6,37 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-02 - Vessel joins the common mutable identity path
+
+- Landed executable checkpoint `89951491`. The 2,791-byte subject MIR and
+  2,785-byte vessel MIR retain distinct semantic identities while one
+  target-neutral mutable nominal identity plan drives both C and LLVM. Installed
+  paths execute exact `7` and `13`.
+- The former subject-only plan, target projection and emitters are promoted to
+  responsibility-named mutable identity owners. C emits one storage and one
+  `T *const`; LLVM emits exactly one alloca, GEP, store and load through the
+  same field pointer. Neither backend performs aggregate copy.
+- One shared route/admission still seals declaration, graph, instruction,
+  SSA/use, reachability and actual-capture ABI absence. A read-only audit found
+  and closed the remaining duplicate kind allow-list: the semantic carriage
+  policy now alone owns the bounded subject/vessel literal frontier, and
+  declaration/route/projection raw spelling dispatch is negative-gated.
+- The focused gate passes six positive target pairs, 33 C negatives and 14 LLVM
+  sentinels. Passive tobject exact `12`, final hard/component contracts and
+  installed public C/runtime-free LLVM compile/run are green. Mutable owners
+  occupy 300/384 lines; shared/passive families remain 812/900 and 258/320.
+- The installed driver is 4,123,408 bytes with SHA-256
+  `2C40D5752E89AB635F675F2A16454C0D95EE0A8D09B807B9A704CA760EE14D94`.
+  Its 587-second build restored a deleted LLVM configuration stamp and is not
+  an incremental performance sample. Pressure, full CI, Coq/Rocq and current-
+  source fixed point were not rerun.
+- The next active falsifier is `ability_decl.pgy`. Its 1,563-byte MIR
+  (`679EA54CDA224A2832603B48A8FD7A747B5944328AEECBAEF31C01401A0D81EF`)
+  is produced once and rejected by both targets at the declaration-free,
+  string-only hello boundary. It must execute exact `7` through an explicit
+  compile-time ability-erasure receipt and general literal projection, without
+  an ability-specific emitter or arbitrary declaration loss.
+
 ## 2026-08-02 - Subject literals gain stable mutable identity
 
 - Landed executable checkpoint `e52e07da`. The 2,791-byte self MIR for

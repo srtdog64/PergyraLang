@@ -1,38 +1,31 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-08-02 inferred generic return/assignment
+## Active self-host context — 2026-08-02 ability declaration erasure
 
-- Executable checkpoint `1f4b086b` closes bounded
-  `generic_struct_field_inferred_value_flow.pgy`. One 7,200-byte self MIR with
-  SHA-256
-  `056D80DC722F2134B4100D7F2F627770E4E11E162F414DC6123DEF48BD1DC0F3`
-  drives C and LLVM through one target-neutral plan. Both preserve one real
-  `Identity_Int` definition, two inferred calls, a real `Pair` aggregate and
-  member reads, and print exact `42`.
-- The inferred specialization owner admits exactly two uniform Value-lane rows
-  at ordinals `{0,1}` without weakening the prior exact-four explicit owner.
-  Two-routine structural classification reads specialization cardinality once;
-  a rejected inferred plan cannot retry plain or Option nominal projection.
-- One focused gate reuses the same MIR for both targets, proves routine/spec/
-  combined-order and opaque-owner-renumber artifact equality, and rejects 32
-  generic, specialization, graph, ABI, SSA, and member-path mutations before
-  publication. Native's empty specialization table is common graph/ABI evidence
-  only.
-- Installed driver: 3,834,473 bytes, SHA-256
-  `DCFA39E2737DF101684E093CC9B88A8EDD5210451DAA01924D8E4C05714113E4`;
-  current-source rebuild 101.7 seconds, memory not measured. Inferred/explicit
-  generic, Array/nested argument, plain/Option nominal, hard contract, and full
-  component inventory gates are green. Full CI, Coq, bootstrap seed, and
-  current-source fixed point were not rerun.
-- The sole next executable rung is
-  `generic_return_assignment_inferred_flow.pgy`, expected output `41`. Its
-  6,994-byte self MIR with SHA-256
-  `1B108D7A782BFC4491C217570F4D70D527E7CD6565370C742C69FCEA04580DBC`
-  has `Identity<T>`, `ReturnIdentity`, `Main`, zero declarations, and two
-  `Identity_Int` receipts split across Atom return and Value assignment lanes.
-  Both direct targets currently fail before publication in the Array argument
-  envelope. The next plan must preserve the return call, reassignment SSA, and
-  final call without loosening either landed specialization owner.
+- Resume authority remains the top card in `docs/current_work_handoff.md`.
+  Executable checkpoint `89951491` closes `nominal_subject.pgy` exact `7` and
+  `nominal_vessel.pgy` exact `13` through one mutable nominal identity plan.
+- The shared route/admission owns declaration, graph, instruction, SSA/use,
+  reachability and actual-capture ABI absence. The semantic carriage policy is
+  the only bounded subject/vessel allow-list owner; no compiler router or
+  emitter dispatches on those spellings.
+- C uses one stable pointer identity. LLVM uses one alloca/GEP/store/load field
+  chain. Six positive pairs, 33 C negatives, 14 LLVM sentinels, passive tobject
+  regression, hard/component contracts and installed C/LLVM gates are green.
+- Installed driver: 4,123,408 bytes, SHA-256
+  `2C40D5752E89AB635F675F2A16454C0D95EE0A8D09B807B9A704CA760EE14D94`.
+  The 587-second rebuild included native LLVM configuration recovery and is not
+  an incremental self-host performance sample. Memory was not measured.
+- The sole next executable rung is `ability_decl.pgy`, expected output `7`.
+  Its 1,563-byte self MIR has SHA-256
+  `679EA54CDA224A2832603B48A8FD7A747B5944328AEECBAEF31C01401A0D81EF`.
+  Both direct targets fail without an artifact at the current zero-declaration,
+  string-only hello admission.
+- The next plan must seal the exact ability declaration/method contract as an
+  explicit compile-time erasure and compose it with a general literal-Log
+  projection. It must not ignore arbitrary declarations, create an
+  ability-specific emitter, recover semantics from source/expr0, invent runtime
+  layout, or retry hello/scalar/native paths after a claimed failure.
 
 ## Historical self-host ledger — inactive navigation evidence
 

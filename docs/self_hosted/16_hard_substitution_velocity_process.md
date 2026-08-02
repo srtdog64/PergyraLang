@@ -1069,6 +1069,20 @@ gates are green. The next rung is `nominal_vessel.pgy` exact `13`; promote the
 stable-identity owner only where obligations match, and do not add a vessel
 mini-compiler. `action` remains downstream of that identity frontier.
 
+Mutable-nominal-identity executable delta, 2026-08-02: checkpoint `89951491`
+replaces `nominal_vessel.pgy` exact `13` while preserving the existing subject
+exact `7`. A single promoted mutable identity family consumes the common
+nominal route/admission; C uses one stable pointer and LLVM uses one exact
+alloca/GEP/store/load chain. The semantic carriage policy is the sole bounded
+subject/vessel allow-list owner, and declaration/route/projection/emitter raw
+kind dispatch is negative-gated. Six positive pairs, 33 C negatives, 14 LLVM
+sentinels, passive regression, final hard/component and installed C/LLVM gates
+are green. This is executable replacement progress. The next rung is
+`ability_decl.pgy` exact `7`: replace the declaration-free string-hello bypass
+with an explicit compile-time ability-erasure receipt plus a general literal
+projection. Do not add an ability-specific backend or silently discard other
+declarations. Root-intent takeover remains a separate downstream rung.
+
 ## 7. Fifteen-Day Correction
 
 The previous roughly fifteen-day interval delivered substantial owner, gate,

@@ -320,6 +320,21 @@ but both targets reject it at subject identity admission. The next delta must
 preserve vessel identity, execute exact 13 through the same obligations where
 valid, and must not add a vessel-specific mini-compiler.
 
+Mutable nominal identity update (2026-08-02): executable checkpoint `89951491`
+closes `nominal_vessel.pgy` together with the existing subject slice. The
+subject-only plan/target/emitter family is promoted into one mutable nominal
+identity family; subject and vessel preserve their distinct semantic names but
+share the same one-storage/one-stable-pointer obligations. C and LLVM execute
+exact 7/13. Six positive pairs, 33 C negatives, 14 LLVM sentinels, passive
+tobject regression, final hard/component contracts and installed C/LLVM paths
+are green. The semantic carriage policy alone owns the bounded subject/vessel
+allow-list; declaration, route, projection and emitters cannot recreate it.
+The next executable falsifier is `ability_decl.pgy`: its 1,563-byte self MIR is
+produced once, but both direct targets reject the declaration-bearing integer
+Log at the zero-declaration/string-hello boundary. The next delta must use an
+explicit compile-time ability-erasure receipt plus a general literal projection,
+not an ability-specific backend.
+
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
 toolchain/preflight clarity, release/debug hygiene, memory/string bounds audit,

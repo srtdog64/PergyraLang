@@ -2,40 +2,39 @@
 
 마지막 업데이트: 2026-08-02
 
-## 활성 우선순위 — vessel stable identity 실행 경로 치환
+## 활성 우선순위 — ability declaration erasure와 literal 실행
 
-- 실행 체크포인트 `e52e07da`에서 `nominal_subject.pgy`의 실제 stable mutable
-  identity 경로를 닫았다. 같은 2,791-byte self MIR이 C와 LLVM을 만들고 둘 다
-  exact `7`을 실행한다. C는 storage 하나와 `T *const` 하나를 만들고 같은
-  포인터로 write/read한다. LLVM은 같은 field pointer에서 정확히 한
-  `alloca -> GEP -> store/load`를 수행한다.
+- 실행 체크포인트 `89951491`에서 `nominal_subject.pgy`와
+  `nominal_vessel.pgy`를 하나의 mutable nominal identity owner로 닫았다. 같은
+  target-neutral plan이 subject exact `7`과 vessel exact `13`을 C/LLVM에서
+  실행하며 종류별 미니컴파일러는 없다.
 - Nominal route와 공용 `ProgramAdmission`은 각각 한 번만 실행된다. Declaration,
-  constructor/member graph, instruction envelope, unique SSA definition/use,
-  reachability와 actual-capture ABI absence를 공용으로 봉인한 뒤 기존 semantic
-  carriage owner가 passive value와 stable identity plan을 배타적으로 선택한다.
-- Subject focused gate는 coherent rename, exact `7`/`73`, value-host 표현 분리,
-  34 C negatives와 14 LLVM sentinels를 통과한다. Tobject exact `12` 회귀도 같은
-  34/14 surface에서 green이다. Subject 실패 뒤 passive/scalar retry, aggregate
-  copy, MIR 재독해, 두 번째 route/admission은 negative gate로 막았다.
-- 현재 드라이버는 4,123,248 bytes, SHA-256
-  `F8E1260E65DA4B2CF621B9D3EB7AF0778495BC6914D68A61F75E2A2FFE428BC1`다.
-  Shared nominal owners는 `810/900`, passive value owners는 `258/320`, subject
-  identity owners는 `299/384`이며 개별 cap과 exact 파일 inventory도 통과한다.
+  graph, instruction, SSA/use, reachability와 actual-capture ABI absence를 봉인한
+  뒤 semantic carriage owner가 value와 mutable identity를 배타 선택한다.
+  Subject/vessel bounded allow-list도 이 owner 한 곳에만 있다.
+- C는 storage 하나와 `T *const` 하나를 만들고 같은 포인터로 write/read한다.
+  LLVM은 정확히 한 `alloca`, GEP, store, load를 같은 field SSA에 수행한다.
+  Focused gate는 두 exact 결과, 6 positive pairs, 33 C negatives와 14 LLVM
+  sentinels를 통과한다. Passive tobject exact `12` 회귀도 green이다.
+- 현재 드라이버는 4,123,408 bytes, SHA-256
+  `2C40D5752E89AB635F675F2A16454C0D95EE0A8D09B807B9A704CA760EE14D94`다.
+  Shared/passive/mutable family는 각각 `812/900`, `258/320`, `300/384`이며
+  개별 cap과 exact 파일 inventory를 통과한다.
 - Final hard/component contract, installed public C와 runtime-free LLVM 경로,
-  current-source driver build가 green이다. Full CI, Coq/Rocq, bootstrap fixpoint,
-  current-source gen2==gen3와 pressure는 재실행하지 않았다. 마지막 유효 peak는
-  `8bd92069`의 private 1.937 GiB다.
-- 다음 실제 C-owned 경로는 `nominal_vessel.pgy`다. Source-to-MIR은 한 번
-  성공하며 결과는 2,785 bytes, SHA-256
-  `37472A654ACCEDA0ED4530642E0EBB774BE0729A17EDE158AE34054273596F7D`다.
-  Direct C/LLVM은 artifact 전에 subject identity admission에서 거부하고,
-  의도한 출력은 exact `13`이다.
-- `vessel` 의미를 subject/class로 지우지 않고 기존 mutable-identity carriage를
-  소비한다. Subject와 vessel의 의무가 같을 때만 identity plan/target/emitter를
-  공용 owner로 승격하며 vessel 전용 미니컴파일러를 만들지 않는다. HP/fixture
-  분기, value copy, passive-plan 확장, C-only reconstruction, scalar/native
-  fallback을 금지한다. 기존 subject exact `7`을 보존한 채 vessel exact `13`과
-  identity/carriage/allocation/field/graph/use 변조 거부가 다음 falsifier다.
+  current-source driver build가 green이다. 587초 rebuild는 삭제된 LLVM config
+  stamp를 포함한 native 재구성이므로 증분 성능 표본이 아니다. Full CI,
+  Coq/Rocq, bootstrap fixpoint, current-source gen2==gen3와 pressure는 재실행하지
+  않았다. 마지막 유효 peak는 `8bd92069`의 private 1.937 GiB다.
+- 다음 실제 C-owned 경로는 `ability_decl.pgy`다. Source-to-MIR은 한 번 성공해
+  1,563 bytes, SHA-256
+  `679EA54CDA224A2832603B48A8FD7A747B5944328AEECBAEF31C01401A0D81EF`를
+  만들지만 C/LLVM은 artifact 전에 기존 hello admission에서 거부한다.
+- 다음 owner는 complete ability method signature를 compile-time-only erasure로
+  봉인하고 일반 one-instruction literal-Log projection과 조합해야 한다. 임의
+  declaration 무시, ability/fixture 이름 분기, ability 전용 emitter, runtime
+  layout 발명, source/expr0 재파싱, hello/scalar/native retry를 금지한다. Exact
+  `7` 실행과 declaration/method/contract/graph 변조의 pre-artifact 거부가 다음
+  falsifier다.
 
 ## 비활성 진행 기록 archive
 
