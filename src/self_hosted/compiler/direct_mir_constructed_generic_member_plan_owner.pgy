@@ -1,0 +1,132 @@
+// One target-neutral plan joining calls, Option ABI, SSA, and representation.
+
+import "direct_mir_constructed_generic_member_option_abi_admission_owner.pgy";
+import "direct_mir_constructed_generic_member_representation_owner.pgy";
+import "target_capability_owner.pgy";
+import "artifact_zone_owner.pgy";
+import "../mir_lower/ssa_identity_owner.pgy";
+
+struct DirectMirConstructedGenericMemberPlan {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let digest: Int;
+    let target_capability_schema: String;
+    let target_capability_fingerprint: Int;
+    let identity: DirectMirConstructedGenericMemberProgramIdentity;
+    let representation: DirectMirInferredGenericMemberRepresentationFact;
+    let option_abi: DirectMirOptionMatchAbiFact;
+    let receiver_value: String;
+    let result_value: String;
+    let value_carriage: String;
+}
+
+func DirectMirConstructedGenericMemberPlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-constructed-generic-member-plan.v1";
+}
+
+func DirectMirConstructedGenericMemberCarriage() -> String {
+    return "some_to_nested_member_option_to_checked_unwrap";
+}
+
+func DirectMirConstructedGenericMemberPlanDigest(
+    ref plan: DirectMirConstructedGenericMemberPlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(389L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
+    hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
+    hash = DirectMirCfgHashInt(hash, plan.identity.digest);
+    hash = DirectMirCfgHashInt(hash, plan.representation.digest);
+    hash = DirectMirCfgHashInt(hash, plan.option_abi.digest);
+    hash = DirectMirCfgHashString(hash, plan.receiver_value);
+    hash = DirectMirCfgHashString(hash, plan.result_value);
+    hash = DirectMirCfgHashString(hash, plan.value_carriage);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirConstructedGenericMemberPlanReady(
+    ref plan: DirectMirConstructedGenericMemberPlan
+) -> Bool {
+    return plan.valid &&
+        plan.schema == DirectMirConstructedGenericMemberPlanSchema() &&
+        plan.revision == CompilerArtifactPlanRevision() && plan.digest != 0 &&
+        plan.digest == DirectMirConstructedGenericMemberPlanDigest(plan) &&
+        plan.target_capability_schema == CompilerTargetCapabilitySchema() &&
+        plan.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        DirectMirConstructedGenericMemberProgramIdentityReady(plan.identity) &&
+        DirectMirInferredGenericMemberRepresentationFactReady(
+            plan.representation
+        ) && DirectMirOptionMatchAbiFactReady(plan.option_abi) &&
+        plan.representation.type_name == plan.identity.declaration.name &&
+        plan.representation.field_name ==
+            plan.identity.declaration.field_name &&
+        plan.representation.field_type ==
+            plan.identity.declaration.field_type &&
+        plan.representation.receiver_carriage ==
+            plan.identity.constructed_method.receiver_carriage &&
+        plan.representation.receiver_carriage ==
+            plan.identity.identity_method.receiver_carriage &&
+        plan.option_abi.type_name ==
+            plan.identity.specialization.outer_generic_actual &&
+        plan.option_abi.type_name == CompilerAbiLayoutOptionIntTypeName() &&
+        MirSsaNameMatches(
+            plan.receiver_value, plan.identity.main_graph.receiver_local, false
+        ) && MirSsaNameMatches(
+            plan.result_value, plan.identity.main_graph.result_local, false
+        ) && plan.identity.method_graph.construction_policy ==
+            "some_construct" && plan.identity.method_graph.identity_policy ==
+            "identity_return" && plan.identity.main_graph.unwrap_policy ==
+            "checked_some_extract" && plan.value_carriage ==
+            DirectMirConstructedGenericMemberCarriage();
+}
+
+func DirectMirConstructedGenericMemberPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirThreeRoutineClassificationFact
+) -> DirectMirConstructedGenericMemberPlan {
+    let identity: DirectMirConstructedGenericMemberProgramIdentity =
+        DirectMirConstructedGenericMemberProgramIdentityFromAdmitted(
+            admitted, classification
+        );
+    let methods: DirectMirConstructedGenericMemberMethodInstructions =
+        DirectMirConstructedGenericMemberMethodInstructionsFromProgram(
+            admitted, identity
+        );
+    let main: DirectMirConstructedGenericMemberMainInstructions =
+        DirectMirConstructedGenericMemberMainInstructionsFromProgram(
+            admitted, identity
+        );
+    let representation: DirectMirInferredGenericMemberRepresentationFact =
+        DirectMirConstructedGenericMemberRepresentationFromProgram(
+            identity, methods, main
+        );
+    let option_abi: DirectMirOptionMatchAbiFact =
+        DirectMirConstructedGenericMemberOptionAbiFromResult(
+            admitted.routines.source_json, main
+        );
+    let plan: DirectMirConstructedGenericMemberPlan =
+        DirectMirConstructedGenericMemberPlan(
+            true, DirectMirConstructedGenericMemberPlanSchema(),
+            CompilerArtifactPlanRevision(), 0,
+            CompilerTargetCapabilitySchema(),
+            CompilerTargetCapabilityFingerprint(), identity, representation,
+            option_abi, main.constructor.result, main.result.result,
+            DirectMirConstructedGenericMemberCarriage()
+        );
+    let verified: DirectMirConstructedGenericMemberPlan =
+        DirectMirConstructedGenericMemberPlan(
+            plan.valid, plan.schema, plan.revision,
+            DirectMirConstructedGenericMemberPlanDigest(plan),
+            plan.target_capability_schema,
+            plan.target_capability_fingerprint, plan.identity,
+            plan.representation, plan.option_abi, plan.receiver_value,
+            plan.result_value, plan.value_carriage
+        );
+    if !DirectMirConstructedGenericMemberPlanReady(verified) {
+        Die("direct MIR constructed generic member plan is invalid");
+    }
+    return verified;
+}

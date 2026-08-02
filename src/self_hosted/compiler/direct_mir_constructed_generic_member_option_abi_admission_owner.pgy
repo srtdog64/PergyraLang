@@ -1,0 +1,33 @@
+// One-way admission of the Main result's carried canonical Option<Int> ABI.
+
+import "direct_mir_constructed_generic_member_main_instruction_owner.pgy";
+import "direct_mir_option_match_abi_capture_owner.pgy";
+import "../mir_lower/abi_layout_admission_fact_owner.pgy";
+
+func DirectMirConstructedGenericMemberOptionAbiFromResult(
+    json: String,
+    ref main: DirectMirConstructedGenericMemberMainInstructions
+) -> DirectMirOptionMatchAbiFact {
+    if !DirectMirConstructedGenericMemberMainInstructionsReady(main) {
+        Die("direct MIR constructed member Option ABI input is invalid");
+    }
+    let capture: MirRoutineInstructionScalarCapture = main.result;
+    let admitted: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            json, capture.abi_type_name, capture.abi_type_value_ready,
+            capture.abi_type_start, capture.abi_type_end,
+            capture.abi_layout_id_start, capture.abi_layout_id_end,
+            capture.abi_layout_required_start,
+            capture.abi_layout_required_end, capture.abi_layout_start,
+            capture.abi_layout_end
+        );
+    if !IsSome(admitted) {
+        Die("direct MIR constructed member Option ABI receipt is missing");
+    }
+    let fact: DirectMirOptionMatchAbiFact =
+        DirectMirOptionMatchAbiFactFromCapture(UnwrapOption(admitted));
+    if !DirectMirOptionMatchAbiFactReady(fact) {
+        Die("direct MIR constructed member Option ABI identity is invalid");
+    }
+    return fact;
+}

@@ -516,6 +516,23 @@ require_file \
     "tests/self_hosted/parity/one_mir_inferred_generic_member_projection.sh"
 require_file \
     "tests/self_hosted/parity/one_mir_inferred_generic_member_mutations.py"
+require_text ".github/workflows/ci.yml" \
+    'self-host-one-mir-constructed-generic-member-projection-test-smoke'
+require_text "Makefile" \
+    'self-host-one-mir-constructed-generic-member-projection-test-smoke: self-host-compiler'
+require_file \
+    "tests/self_hosted/parity/one_mir_constructed_generic_member_projection.sh"
+require_file \
+    "tests/self_hosted/parity/one_mir_constructed_generic_member_mutations.py"
+require_text \
+    "src/self_hosted/compiler/direct_mir_three_routine_classification_owner.pgy" \
+    'DirectMirThreeRoutineConstructedGenericMember()'
+require_text \
+    "src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" \
+    'CompileAdmittedDirectMirConstructedGenericMember('
+require_text \
+    "src/self_hosted/compiler/direct_mir_constructed_generic_member_plan_owner.pgy" \
+    'some_to_nested_member_option_to_checked_unwrap'
 require_text \
     "src/self_hosted/compiler/direct_mir_two_routine_classification_owner.pgy" \
     'DirectMirTwoRoutineInferredGenericMember()'

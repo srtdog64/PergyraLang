@@ -94,6 +94,7 @@ jobs:
           self-host-one-mir-inferred-generic-nominal-projection-test-smoke
           self-host-one-mir-inferred-generic-scalar-projection-test-smoke
           self-host-one-mir-inferred-generic-member-projection-test-smoke
+          self-host-one-mir-constructed-generic-member-projection-test-smoke
           self-host-default-c-compile-replacement-test-smoke
           self-host-default-llvm-replacement-test-smoke
 

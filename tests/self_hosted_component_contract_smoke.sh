@@ -14281,6 +14281,66 @@ require_text \
 require_text \
     "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
     "src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy"
+for constructed_member_owner in \
+    direct_mir_three_routine_classification_owner.pgy \
+    direct_mir_three_routine_classification_fact_owner.pgy \
+    direct_mir_three_routine_constructed_member_shape_owner.pgy \
+    direct_mir_three_routine_projection_owner.pgy \
+    direct_mir_constructed_generic_member_program_admission_owner.pgy \
+    direct_mir_constructed_generic_member_declaration_fact_owner.pgy \
+    direct_mir_constructed_generic_member_signature_fact_owner.pgy \
+    direct_mir_constructed_generic_member_specialization_fact_owner.pgy \
+    direct_mir_constructed_generic_member_substitution_owner.pgy \
+    direct_mir_constructed_generic_member_method_graph_fact_owner.pgy \
+    direct_mir_constructed_generic_member_main_graph_fact_owner.pgy \
+    direct_mir_constructed_generic_member_program_identity_owner.pgy \
+    direct_mir_constructed_generic_member_method_instruction_owner.pgy \
+    direct_mir_constructed_generic_member_main_instruction_owner.pgy \
+    direct_mir_constructed_generic_member_option_abi_admission_owner.pgy \
+    direct_mir_constructed_generic_member_representation_owner.pgy \
+    direct_mir_constructed_generic_member_plan_owner.pgy \
+    direct_mir_constructed_generic_member_c_emission_owner.pgy \
+    direct_mir_constructed_generic_member_llvm_emission_owner.pgy \
+    direct_mir_constructed_generic_member_projection_owner.pgy; do
+    require_file "src/self_hosted/compiler/$constructed_member_owner"
+    require_max_lines \
+        "src/self_hosted/compiler/$constructed_member_owner" 220
+done
+require_file \
+    "tests/self_hosted/parity/one_mir_constructed_generic_member_projection.sh"
+require_file \
+    "tests/self_hosted/parity/one_mir_constructed_generic_member_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_constructed_generic_member_projection.sh" 170
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_constructed_generic_member_mutations.py" 350
+require_text \
+    "src/self_hosted/compiler/direct_mir_three_routine_classification_owner.pgy" \
+    "DirectMirThreeRoutineConstructedGenericMember()"
+require_text \
+    "src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" \
+    "CompileAdmittedDirectMirConstructedGenericMember("
+require_text \
+    "src/self_hosted/compiler/direct_mir_constructed_generic_member_plan_owner.pgy" \
+    "some_to_nested_member_option_to_checked_unwrap"
+require_text \
+    "tests/self_hosted/parity/one_mir_constructed_generic_member_projection.sh" \
+    "Produce source MIR once"
+require_text \
+    "tests/self_hosted/parity/one_mir_constructed_generic_member_projection.sh" \
+    "two heterogeneous member specializations"
+require_text "Makefile" \
+    "SELFHOST_ONE_MIR_CONSTRUCTED_GENERIC_MEMBER_GATE ?="
+require_text "Makefile" \
+    '$(SELFHOST_ONE_MIR_CONSTRUCTED_GENERIC_MEMBER_GATE)'
+require_text ".github/workflows/ci.yml" \
+    "self-host-one-mir-constructed-generic-member-projection-test-smoke"
+require_text \
+    "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
+    "src/self_hosted/mir_lower/fixture/generic_member_constructed_return_flow.pgy"
+require_text \
+    "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
+    "src/self_hosted/mir_lower/fixture/generic_member_constructed_return_flow.pgy"
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240

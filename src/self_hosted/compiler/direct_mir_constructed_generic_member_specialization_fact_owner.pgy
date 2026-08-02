@@ -1,0 +1,182 @@
+// Exact row-order-independent heterogeneous member specialization pair.
+
+import "direct_mir_generic_specialization_fact_owner.pgy";
+import "direct_mir_inferred_generic_member_array_shape_owner.pgy";
+
+struct DirectMirConstructedGenericMemberSpecializationFact {
+    let valid: Bool;
+    let digest: Int;
+    let owner: String;
+    let source_owner_syntax_id: Int;
+    let outer_callable: String;
+    let outer_symbol: String;
+    let outer_generic_param: String;
+    let outer_generic_actual: String;
+    let inner_callable: String;
+    let inner_symbol: String;
+    let inner_generic_param: String;
+    let inner_generic_actual: String;
+}
+
+func InvalidDirectMirConstructedGenericMemberSpecializationFact(
+) -> DirectMirConstructedGenericMemberSpecializationFact {
+    return DirectMirConstructedGenericMemberSpecializationFact(
+        false, 0, "", 0, "", "", "", "", "", "", "", ""
+    );
+}
+
+func DirectMirConstructedGenericMemberSpecializationDigest(
+    ref fact: DirectMirConstructedGenericMemberSpecializationFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(367L, fact.owner);
+    hash = DirectMirCfgHashInt(hash, fact.source_owner_syntax_id);
+    hash = DirectMirCfgHashString(hash, fact.outer_callable);
+    hash = DirectMirCfgHashString(hash, fact.outer_symbol);
+    hash = DirectMirCfgHashString(hash, fact.outer_generic_param);
+    hash = DirectMirCfgHashString(hash, fact.outer_generic_actual);
+    hash = DirectMirCfgHashString(hash, fact.inner_callable);
+    hash = DirectMirCfgHashString(hash, fact.inner_symbol);
+    hash = DirectMirCfgHashString(hash, fact.inner_generic_param);
+    hash = DirectMirCfgHashString(hash, fact.inner_generic_actual);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirConstructedGenericMemberSpecializationFactReady(
+    ref fact: DirectMirConstructedGenericMemberSpecializationFact
+) -> Bool {
+    let outer_actuals: Array<String> = [];
+    let inner_actuals: Array<String> = [];
+    ArrayPush(outer_actuals, fact.outer_generic_actual);
+    ArrayPush(inner_actuals, fact.inner_generic_actual);
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirConstructedGenericMemberSpecializationDigest(fact) &&
+        fact.owner != "" && fact.source_owner_syntax_id > 0 &&
+        fact.outer_callable != "" && fact.inner_callable != "" &&
+        fact.outer_callable != fact.inner_callable &&
+        fact.outer_generic_param != "" && fact.inner_generic_param != "" &&
+        fact.outer_generic_actual == CompilerAbiLayoutOptionIntTypeName() &&
+        fact.inner_generic_actual == CompilerAbiLayoutIntTypeName() &&
+        fact.outer_symbol == CompilerSymbolCGenericSpecializationName(
+            CompilerSymbolCQualifiedName(fact.owner, fact.outer_callable),
+            outer_actuals
+        ) && fact.inner_symbol == CompilerSymbolCGenericSpecializationName(
+            CompilerSymbolCQualifiedName(fact.owner, fact.inner_callable),
+            inner_actuals
+        );
+}
+
+func DirectMirConstructedGenericMemberSpecializationFactFromDocument(
+    ref root: JsonObjectFactTable
+) -> DirectMirConstructedGenericMemberSpecializationFact {
+    let table: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
+        root, "generic_method_specializations"
+    );
+    if !DirectMirInferredGenericMemberExactObjectArrayCount(table, 2) {
+        return InvalidDirectMirConstructedGenericMemberSpecializationFact();
+    }
+    let seen: Array<Bool> = [false, false];
+    let owner: String = "";
+    let source_owner: Int = 0;
+    let callables: Array<String> = [];
+    let symbols: Array<String> = [];
+    let params: Array<String> = [];
+    let actuals: Array<String> = [];
+    ArrayPush(callables, "");
+    ArrayPush(callables, "");
+    ArrayPush(symbols, "");
+    ArrayPush(symbols, "");
+    ArrayPush(params, "");
+    ArrayPush(params, "");
+    ArrayPush(actuals, "");
+    ArrayPush(actuals, "");
+    let row_i: Int = 0;
+    while row_i < 2 {
+        let row: JsonObjectFactTable = JsonArrayObjectFactAt(table, row_i);
+        let owner_id_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            row, "source_owner_syntax_id"
+        );
+        let lane_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            row, "source_lane"
+        );
+        let ordinal_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            row, "source_call_ordinal"
+        );
+        let target_opt: Option<String> = JsonObjectFactStringFieldOpt(
+            row, "target_kind"
+        );
+        let owner_opt: Option<String> = JsonObjectFactStringFieldOpt(row, "owner");
+        let callable_opt: Option<String> = JsonObjectFactStringFieldOpt(
+            row, "callable"
+        );
+        let symbol_opt: Option<String> = JsonObjectFactStringFieldOpt(
+            row, "specialized_symbol"
+        );
+        let param_bounds: Array<Int> = [0, 0];
+        let actual_bounds: Array<Int> = [0, 0];
+        let param: String = DirectMirGenericSpecializationSingleString(
+            row, "generic_params"
+        );
+        let actual: String = DirectMirGenericSpecializationSingleString(
+            row, "generic_actuals"
+        );
+        if JsonObjectFactCount(row) != 9 || !IsSome(owner_id_opt) ||
+            !IsSome(lane_opt) || !IsSome(ordinal_opt) || !IsSome(target_opt) ||
+            !IsSome(owner_opt) || !IsSome(callable_opt) ||
+            !IsSome(symbol_opt) || UnwrapOption(target_opt) != "member" ||
+            UnwrapOption(owner_opt) == "" || param == "" || actual == "" ||
+            !JsonObjectFactArrayBounds(row, "generic_params", param_bounds) ||
+            !JsonObjectFactArrayBounds(row, "generic_actuals", actual_bounds) ||
+            !DirectMirInferredGenericMemberExactStringArrayCount(
+                row.json, param_bounds[0], param_bounds[1], 1
+            ) || !DirectMirInferredGenericMemberExactStringArrayCount(
+                row.json, actual_bounds[0], actual_bounds[1], 1
+            ) {
+            return InvalidDirectMirConstructedGenericMemberSpecializationFact();
+        }
+        let owner_text: String = UnwrapOption(owner_id_opt);
+        let lane_text: String = UnwrapOption(lane_opt);
+        let ordinal_text: String = UnwrapOption(ordinal_opt);
+        let owner_id: Int = ToInt(owner_text);
+        let lane: Int = ToInt(lane_text);
+        let ordinal: Int = ToInt(ordinal_text);
+        if ToString(owner_id) != owner_text || owner_id <= 0 ||
+            ToString(lane) != lane_text || lane != AstExpressionLaneValue() ||
+            ToString(ordinal) != ordinal_text || ordinal < 0 || ordinal > 1 ||
+            seen[ordinal] {
+            return InvalidDirectMirConstructedGenericMemberSpecializationFact();
+        }
+        ArraySet(seen, ordinal, true);
+        if owner == "" {
+            owner = UnwrapOption(owner_opt);
+            source_owner = owner_id;
+        } else if owner != UnwrapOption(owner_opt) || source_owner != owner_id {
+            return InvalidDirectMirConstructedGenericMemberSpecializationFact();
+        }
+        ArraySet(callables, ordinal, UnwrapOption(callable_opt));
+        ArraySet(symbols, ordinal, UnwrapOption(symbol_opt));
+        ArraySet(params, ordinal, param);
+        ArraySet(actuals, ordinal, actual);
+        row_i = row_i + 1;
+    }
+    let fact: DirectMirConstructedGenericMemberSpecializationFact =
+        DirectMirConstructedGenericMemberSpecializationFact(
+            true, 0, owner, source_owner,
+            callables[0], symbols[0], params[0], actuals[0],
+            callables[1], symbols[1], params[1], actuals[1]
+        );
+    let verified: DirectMirConstructedGenericMemberSpecializationFact =
+        DirectMirConstructedGenericMemberSpecializationFact(
+            fact.valid,
+            DirectMirConstructedGenericMemberSpecializationDigest(fact),
+            fact.owner, fact.source_owner_syntax_id,
+            fact.outer_callable, fact.outer_symbol,
+            fact.outer_generic_param, fact.outer_generic_actual,
+            fact.inner_callable, fact.inner_symbol,
+            fact.inner_generic_param, fact.inner_generic_actual
+        );
+    if !DirectMirConstructedGenericMemberSpecializationFactReady(verified) {
+        return InvalidDirectMirConstructedGenericMemberSpecializationFact();
+    }
+    return verified;
+}

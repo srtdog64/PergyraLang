@@ -1,0 +1,153 @@
+// LLVM emission from the same plan and selected Option ABI as C.
+
+import "direct_mir_constructed_generic_member_plan_owner.pgy";
+import "direct_mir_option_match_abi_projection_owner.pgy";
+import "direct_mir_llvm_text_format_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "symbol_table_owner.pgy";
+
+func DirectMirConstructedGenericMemberEmitLlvm(
+    ref plan: DirectMirConstructedGenericMemberPlan,
+    ref abi: DirectMirOptionMatchAbiProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirConstructedGenericMemberPlanReady(plan) ||
+        !DirectMirOptionMatchAbiProjectionReadyFor(
+            abi, CompilerTargetCpuLlvmProjection()
+        ) || !formatted_print.ok || formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" {
+        Die("direct MIR constructed member LLVM projection facts are invalid");
+    }
+    let type_name: String = CompilerSymbolCIdentifier(
+        plan.representation.type_name
+    );
+    let outer_symbol: String = CompilerSymbolCIdentifier(
+        plan.identity.specialization.outer_symbol
+    );
+    let inner_symbol: String = CompilerSymbolCIdentifier(
+        plan.identity.specialization.inner_symbol
+    );
+    let receiver_parameter: String = CompilerSymbolCIdentifier(
+        plan.identity.constructed_method.receiver_name
+    );
+    let inner_value_parameter: String = CompilerSymbolCIdentifier(
+        plan.identity.constructed_method.value_param.name
+    );
+    let outer_value_parameter: String = CompilerSymbolCIdentifier(
+        plan.identity.identity_method.value_param.name
+    );
+    if type_name == "" || outer_symbol == "" || inner_symbol == "" ||
+        outer_symbol == inner_symbol || receiver_parameter == "" ||
+        inner_value_parameter == "" || outer_value_parameter == "" ||
+        receiver_parameter == inner_value_parameter ||
+        receiver_parameter == outer_value_parameter {
+        Die("direct MIR constructed member LLVM symbols are invalid");
+    }
+    let payload: String = DirectMirScalarLlvmFormatPayload(line_format);
+    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
+    let graph: DirectMirConstructedGenericMemberMainGraphFact =
+        plan.identity.main_graph;
+    let aggregate: String = abi.llvm_aggregate_type;
+    let output: String = "%";
+    output = Concat(output, type_name);
+    output = Concat(output, " = type { i32 }\n\n@.pgy.int.line.format = private unnamed_addr constant [");
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, payload);
+    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n\ndefine internal ");
+    output = Concat(output, aggregate);
+    output = Concat(output, " @");
+    output = Concat(output, inner_symbol);
+    output = Concat(output, "(%");
+    output = Concat(output, type_name);
+    output = Concat(output, " %");
+    output = Concat(output, receiver_parameter);
+    output = Concat(output, ", ");
+    output = Concat(output, abi.llvm_value_type);
+    output = Concat(output, " %");
+    output = Concat(output, inner_value_parameter);
+    output = Concat(output, ") {\nentry:\n  %tagged = insertvalue ");
+    output = Concat(output, aggregate);
+    output = Concat(output, " poison, ");
+    output = Concat(output, abi.llvm_tag_type);
+    output = Concat(output, " ");
+    output = Concat(output, plan.option_abi.some_tag);
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(abi.tag_index));
+    output = Concat(output, "\n  %wrapped = insertvalue ");
+    output = Concat(output, aggregate);
+    output = Concat(output, " %tagged, ");
+    output = Concat(output, abi.llvm_value_type);
+    output = Concat(output, " %");
+    output = Concat(output, inner_value_parameter);
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(abi.value_index));
+    output = Concat(output, "\n  ret ");
+    output = Concat(output, aggregate);
+    output = Concat(output, " %wrapped\n}\n\ndefine internal ");
+    output = Concat(output, aggregate);
+    output = Concat(output, " @");
+    output = Concat(output, outer_symbol);
+    output = Concat(output, "(%");
+    output = Concat(output, type_name);
+    output = Concat(output, " %");
+    output = Concat(output, receiver_parameter);
+    output = Concat(output, ", ");
+    output = Concat(output, aggregate);
+    output = Concat(output, " %");
+    output = Concat(output, outer_value_parameter);
+    output = Concat(output, ") {\nentry:\n  ret ");
+    output = Concat(output, aggregate);
+    output = Concat(output, " %");
+    output = Concat(output, outer_value_parameter);
+    output = Concat(output, "\n}\n\ndefine i32 @main() {\nentry:\n  %receiver = insertvalue %");
+    output = Concat(output, type_name);
+    output = Concat(output, " poison, i32 ");
+    output = Concat(output, ToString(graph.marker_value));
+    output = Concat(output, ", 0\n  %inner = call ");
+    output = Concat(output, aggregate);
+    output = Concat(output, " @");
+    output = Concat(output, inner_symbol);
+    output = Concat(output, "(%");
+    output = Concat(output, type_name);
+    output = Concat(output, " %receiver, ");
+    output = Concat(output, abi.llvm_value_type);
+    output = Concat(output, " ");
+    output = Concat(output, ToString(graph.argument_value));
+    output = Concat(output, ")\n  %result = call ");
+    output = Concat(output, aggregate);
+    output = Concat(output, " @");
+    output = Concat(output, outer_symbol);
+    output = Concat(output, "(%");
+    output = Concat(output, type_name);
+    output = Concat(output, " %receiver, ");
+    output = Concat(output, aggregate);
+    output = Concat(output, " %inner)\n  %tag = extractvalue ");
+    output = Concat(output, aggregate);
+    output = Concat(output, " %result, ");
+    output = Concat(output, ToString(abi.tag_index));
+    output = Concat(output, "\n  %is_some = icmp eq ");
+    output = Concat(output, abi.llvm_tag_type);
+    output = Concat(output, " %tag, ");
+    output = Concat(output, plan.option_abi.some_tag);
+    output = Concat(output, "\n  br i1 %is_some, label %unwrap.ok, label %unwrap.none\n\nunwrap.ok:\n  %value = extractvalue ");
+    output = Concat(output, aggregate);
+    output = Concat(output, " %result, ");
+    output = Concat(output, ToString(abi.value_index));
+    output = Concat(output, "\n  %print = ");
+    output = Concat(output, abi.llvm_print_extension);
+    output = Concat(output, " ");
+    output = Concat(output, abi.llvm_value_type);
+    output = Concat(output, " %value to ");
+    output = Concat(output, abi.llvm_print_type);
+    output = Concat(output, "\n  %logged = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.int.line.format, ");
+    output = Concat(output, abi.llvm_print_type);
+    output = Concat(output, " %print)\n  ret i32 0\n\nunwrap.none:\n  ret i32 1\n}\n");
+    return output;
+}

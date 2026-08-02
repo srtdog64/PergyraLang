@@ -1,0 +1,30 @@
+// Target selection after one constructed-member plan is admitted.
+
+import "direct_mir_constructed_generic_member_c_emission_owner.pgy";
+import "direct_mir_constructed_generic_member_llvm_emission_owner.pgy";
+
+func CompileAdmittedDirectMirConstructedGenericMember(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirThreeRoutineClassificationFact,
+    target_projection: CompilerTargetProjectionFact,
+    is_llvm: Bool,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    let plan: DirectMirConstructedGenericMemberPlan =
+        DirectMirConstructedGenericMemberPlanFromAdmitted(
+            admitted, classification
+        );
+    let abi: DirectMirOptionMatchAbiProjection =
+        DirectMirOptionMatchAbiProjectionFromFact(
+            plan.option_abi, target_projection
+        );
+    if is_llvm {
+        return DirectMirConstructedGenericMemberEmitLlvm(
+            plan, abi, formatted_print, line_format
+        );
+    }
+    return DirectMirConstructedGenericMemberEmitC(
+        plan, abi, formatted_print, line_format
+    );
+}

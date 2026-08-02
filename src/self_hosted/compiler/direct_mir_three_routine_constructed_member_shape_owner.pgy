@@ -1,0 +1,84 @@
+// Exact class/method shape selected by the constructed-member classifier.
+
+import "direct_mir_scalar_graph_admission_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirThreeRoutineConstructedMemberShapeFact {
+    let valid: Bool;
+    let digest: Int;
+    let declaration_kind: String;
+    let nominal_kind: String;
+    let method_routine_count: Int;
+}
+
+func InvalidDirectMirThreeRoutineConstructedMemberShapeFact(
+) -> DirectMirThreeRoutineConstructedMemberShapeFact {
+    return DirectMirThreeRoutineConstructedMemberShapeFact(
+        false, 0, "", "", 0
+    );
+}
+
+func DirectMirThreeRoutineConstructedMemberShapeDigest(
+    ref fact: DirectMirThreeRoutineConstructedMemberShapeFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(353L, fact.declaration_kind);
+    hash = DirectMirCfgHashString(hash, fact.nominal_kind);
+    hash = DirectMirCfgHashInt(hash, fact.method_routine_count);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirThreeRoutineConstructedMemberShapeFactReady(
+    ref fact: DirectMirThreeRoutineConstructedMemberShapeFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirThreeRoutineConstructedMemberShapeDigest(fact) &&
+        fact.declaration_kind == "class" && fact.nominal_kind == "class" &&
+        fact.method_routine_count == 2;
+}
+
+func DirectMirThreeRoutineConstructedMemberShapeFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirThreeRoutineConstructedMemberShapeFact {
+    let declarations: MirProgramDeclarationIndex =
+        admitted.domain_runtime_admission.declarations;
+    if MirProgramRoutineIndexCount(admitted.routines) != 3 ||
+        !MirProgramRoutineIndexStructureReady(admitted.routines) ||
+        !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 {
+        return InvalidDirectMirThreeRoutineConstructedMemberShapeFact();
+    }
+    let method_count: Int = 0;
+    let function_count: Int = 0;
+    let row: Int = 0;
+    while row < 3 {
+        if admitted.routines.kinds[row] == "method" &&
+            admitted.routines.owners[row] == declarations.names[0] {
+            method_count = method_count + 1;
+        } else if admitted.routines.kinds[row] == "function" &&
+            admitted.routines.owners[row] == "" {
+            function_count = function_count + 1;
+        } else {
+            return InvalidDirectMirThreeRoutineConstructedMemberShapeFact();
+        }
+        row = row + 1;
+    }
+    if method_count != 2 || function_count != 1 {
+        return InvalidDirectMirThreeRoutineConstructedMemberShapeFact();
+    }
+    let fact: DirectMirThreeRoutineConstructedMemberShapeFact =
+        DirectMirThreeRoutineConstructedMemberShapeFact(
+            true, 0, declarations.kinds[0],
+            declarations.nominal_kinds[0], method_count
+        );
+    let verified: DirectMirThreeRoutineConstructedMemberShapeFact =
+        DirectMirThreeRoutineConstructedMemberShapeFact(
+            fact.valid,
+            DirectMirThreeRoutineConstructedMemberShapeDigest(fact),
+            fact.declaration_kind, fact.nominal_kind,
+            fact.method_routine_count
+        );
+    if !DirectMirThreeRoutineConstructedMemberShapeFactReady(verified) {
+        return InvalidDirectMirThreeRoutineConstructedMemberShapeFact();
+    }
+    return verified;
+}

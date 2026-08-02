@@ -15,6 +15,7 @@ CC="${CC:-cc}"
 WORK_DIR="$ROOT_DIR/.tmp/self_hosted/default_llvm_installed"
 SOURCE="src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy"
 MEMBER_SOURCE="src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy"
+CONSTRUCTED_MEMBER_SOURCE="src/self_hosted/mir_lower/fixture/generic_member_constructed_return_flow.pgy"
 COUNT_FILE="$WORK_DIR/count.txt"
 COUNT_FILE_FOR_DRIVER="$COUNT_FILE"
 
@@ -59,14 +60,17 @@ printf '7\n11\n5\n' >"$WORK_DIR/real.expected"
 cmp -s "$WORK_DIR/real.expected" "$WORK_DIR/real-program.out" ||
     fail "installed self-host LLVM artifact produced the wrong Option nominal output"
 
-(cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN &&
-    "$PGY" "$MEMBER_SOURCE" --backend=llvm \
-        -o ".tmp/self_hosted/default_llvm_installed/member-program$suffix") \
-    >"$WORK_DIR/member.out" 2>"$WORK_DIR/member.err"
-"$WORK_DIR/member-program$suffix" | tr -d '\r' >"$WORK_DIR/member-program.out"
-printf '41\n' >"$WORK_DIR/member.expected"
-cmp -s "$WORK_DIR/member.expected" "$WORK_DIR/member-program.out" ||
-    fail "installed self-host LLVM artifact lost inferred generic member flow"
+for member_case in "$MEMBER_SOURCE|member|41" \
+    "$CONSTRUCTED_MEMBER_SOURCE|constructed-member|43"; do
+    IFS='|' read -r member_source member_stem member_expected <<< "$member_case"
+    (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN && "$PGY" "$member_source" \
+        --backend=llvm -o ".tmp/self_hosted/default_llvm_installed/$member_stem-program$suffix") \
+        >"$WORK_DIR/$member_stem.out" 2>"$WORK_DIR/$member_stem.err"
+    "$WORK_DIR/$member_stem-program$suffix" | tr -d '\r' >"$WORK_DIR/$member_stem-program.out"
+    printf '%s\n' "$member_expected" >"$WORK_DIR/$member_stem.expected"
+    cmp -s "$WORK_DIR/$member_stem.expected" "$WORK_DIR/$member_stem-program.out" ||
+        fail "installed self-host LLVM artifact lost $member_stem flow"
+done
 
 cp "$PGY" "$WORK_DIR/counting-install/pgy$suffix"
 "$CC" -std=c11 -Wall -Wextra -Werror \

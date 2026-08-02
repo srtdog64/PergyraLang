@@ -1,0 +1,87 @@
+// Structured bodies for one Some-returning and one identity generic method.
+
+import "direct_mir_inferred_generic_member_graph_fact_owner.pgy";
+
+struct DirectMirConstructedGenericMemberMethodGraphFact {
+    let valid: Bool;
+    let digest: Int;
+    let constructed_value_parameter: String;
+    let identity_value_parameter: String;
+    let construction_target: String;
+    let construction_policy: String;
+    let identity_policy: String;
+}
+
+func DirectMirConstructedGenericMemberMethodGraphDigest(
+    ref fact: DirectMirConstructedGenericMemberMethodGraphFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(
+        373L, fact.constructed_value_parameter
+    );
+    hash = DirectMirCfgHashString(hash, fact.identity_value_parameter);
+    hash = DirectMirCfgHashString(hash, fact.construction_target);
+    hash = DirectMirCfgHashString(hash, fact.construction_policy);
+    hash = DirectMirCfgHashString(hash, fact.identity_policy);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirConstructedGenericMemberMethodGraphFactReady(
+    ref fact: DirectMirConstructedGenericMemberMethodGraphFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirConstructedGenericMemberMethodGraphDigest(fact) &&
+        fact.constructed_value_parameter != "" &&
+        fact.identity_value_parameter != "" &&
+        fact.construction_target == "Some" &&
+        fact.construction_policy == "some_construct" &&
+        fact.identity_policy == "identity_return";
+}
+
+func DirectMirConstructedGenericMemberSomeReturnReady(
+    ref sequence: MirExpressionGraphSequence
+) -> Bool {
+    if !sequence.ok || sequence.ready_node_count != 4 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 3 ||
+        !DirectMirGenericNominalExactTopologyReady(
+            sequence,
+            [AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+             AstExpressionNodeLeaf(), AstExpressionNodeCallArgument()],
+            [0,0,0,1], [0,0,0,2], ["","Some","",""], 3
+        ) {
+        return false;
+    }
+    let value: String = sequence.arena.node_texts[2];
+    return value != "" && sequence.arena.node_texts[0] == "Some" &&
+        sequence.arena.node_texts[1] == "Some()" &&
+        sequence.arena.node_texts[3] ==
+            Concat("Some(", Concat(value, ")"));
+}
+
+func DirectMirConstructedGenericMemberMethodGraphFactFromSequences(
+    ref constructed_return: MirExpressionGraphSequence,
+    ref identity_return: MirExpressionGraphSequence
+) -> DirectMirConstructedGenericMemberMethodGraphFact {
+    if !DirectMirConstructedGenericMemberSomeReturnReady(constructed_return) ||
+        !DirectMirGenericNominalIdentityReturnShapeReady(identity_return) {
+        Die("direct MIR constructed member method graph is invalid");
+    }
+    let fact: DirectMirConstructedGenericMemberMethodGraphFact =
+        DirectMirConstructedGenericMemberMethodGraphFact(
+            true, 0, constructed_return.arena.node_texts[2],
+            identity_return.arena.node_texts[0], "Some",
+            "some_construct", "identity_return"
+        );
+    let verified: DirectMirConstructedGenericMemberMethodGraphFact =
+        DirectMirConstructedGenericMemberMethodGraphFact(
+            fact.valid,
+            DirectMirConstructedGenericMemberMethodGraphDigest(fact),
+            fact.constructed_value_parameter,
+            fact.identity_value_parameter, fact.construction_target,
+            fact.construction_policy, fact.identity_policy
+        );
+    if !DirectMirConstructedGenericMemberMethodGraphFactReady(verified) {
+        Die("direct MIR constructed member method graph fact is invalid");
+    }
+    return verified;
+}

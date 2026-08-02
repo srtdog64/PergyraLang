@@ -1,0 +1,17 @@
+// Constructed generic substitution fact for the three-routine member slice.
+
+import "direct_mir_constructed_generic_member_specialization_fact_owner.pgy";
+
+func DirectMirConstructedGenericMemberSubstitutionReady(
+    ref specialization: DirectMirConstructedGenericMemberSpecializationFact
+) -> Bool {
+    let concrete: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(
+            specialization.outer_generic_actual
+        );
+    return concrete.ok && concrete.canonical_name ==
+        specialization.outer_generic_actual &&
+        concrete.nominal_base_name == "Option" &&
+        ArrayLength(concrete.actual_type_names) == 1 &&
+        concrete.actual_type_names[0] == specialization.inner_generic_actual;
+}

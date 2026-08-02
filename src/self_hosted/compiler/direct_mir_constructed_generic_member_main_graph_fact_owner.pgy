@@ -1,0 +1,193 @@
+// Exact constructor, heterogeneous nested member call, and checked unwrap graph.
+
+import "direct_mir_inferred_generic_member_graph_fact_owner.pgy";
+
+struct DirectMirConstructedGenericMemberMainGraphFact {
+    let valid: Bool;
+    let digest: Int;
+    let owner: String;
+    let outer_method: String;
+    let outer_target: String;
+    let inner_method: String;
+    let inner_target: String;
+    let receiver_local: String;
+    let result_local: String;
+    let marker_value: Int;
+    let argument_value: Int;
+    let unwrap_policy: String;
+}
+
+func DirectMirConstructedGenericMemberMainGraphDigest(
+    ref fact: DirectMirConstructedGenericMemberMainGraphFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(379L, fact.owner);
+    hash = DirectMirCfgHashString(hash, fact.outer_method);
+    hash = DirectMirCfgHashString(hash, fact.outer_target);
+    hash = DirectMirCfgHashString(hash, fact.inner_method);
+    hash = DirectMirCfgHashString(hash, fact.inner_target);
+    hash = DirectMirCfgHashString(hash, fact.receiver_local);
+    hash = DirectMirCfgHashString(hash, fact.result_local);
+    hash = DirectMirCfgHashInt(hash, fact.marker_value);
+    hash = DirectMirCfgHashInt(hash, fact.argument_value);
+    hash = DirectMirCfgHashString(hash, fact.unwrap_policy);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirConstructedGenericMemberMainGraphFactReady(
+    ref fact: DirectMirConstructedGenericMemberMainGraphFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirConstructedGenericMemberMainGraphDigest(fact) &&
+        fact.owner != "" && fact.outer_method != "" &&
+        fact.inner_method != "" && fact.outer_method != fact.inner_method &&
+        fact.outer_target == CompilerSymbolCQualifiedName(
+            fact.owner, fact.outer_method
+        ) && fact.inner_target == CompilerSymbolCQualifiedName(
+            fact.owner, fact.inner_method
+        ) && fact.receiver_local != "" && fact.result_local != "" &&
+        fact.receiver_local != fact.result_local &&
+        fact.unwrap_policy == "checked_some_extract";
+}
+
+func DirectMirConstructedGenericMemberNestedCallReady(
+    ref sequence: MirExpressionGraphSequence,
+    receiver: String, outer_method: String, outer_target: String,
+    inner_method: String, inner_target: String
+) -> Bool {
+    let kinds: Array<Int> = [];
+    ArrayPush(kinds, AstExpressionNodeLeaf());
+    ArrayPush(kinds, AstExpressionNodeLeaf());
+    ArrayPush(kinds, AstExpressionNodeMemberAccess());
+    ArrayPush(kinds, AstExpressionNodeCall());
+    ArrayPush(kinds, AstExpressionNodeLeaf());
+    ArrayPush(kinds, AstExpressionNodeLeaf());
+    ArrayPush(kinds, AstExpressionNodeMemberAccess());
+    ArrayPush(kinds, AstExpressionNodeCall());
+    ArrayPush(kinds, AstExpressionNodeIntegerLiteral());
+    ArrayPush(kinds, AstExpressionNodeCallArgument());
+    ArrayPush(kinds, AstExpressionNodeCallArgument());
+    let lefts: Array<Int> = [0,0,0,2,0,0,4,6,0,7,3];
+    let rights: Array<Int> = [0,0,1,0,0,0,5,0,0,8,9];
+    if !sequence.ok || sequence.ready_node_count != 11 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 10 ||
+        receiver == "" || outer_method == "" || inner_method == "" ||
+        outer_method == inner_method || outer_target == "" ||
+        inner_target == "" || outer_target == inner_target {
+        return false;
+    }
+    let row: Int = 0;
+    while row < 11 {
+        if sequence.arena.topology.node_kinds[row] != kinds[row] ||
+            sequence.arena.topology.left_children[row] != lefts[row] ||
+            sequence.arena.topology.right_children[row] != rights[row] {
+            return false;
+        }
+        let expected_target: String = "";
+        let expected_kind: Int = SemanticCallTargetNone();
+        if row == 3 {
+            expected_kind = SemanticCallTargetMember();
+            expected_target = outer_target;
+        } else if row == 7 {
+            expected_kind = SemanticCallTargetMember();
+            expected_target = inner_target;
+        }
+        if sequence.arena.call_target_kinds[row] != expected_kind ||
+            sequence.arena.call_target_names[row] != expected_target {
+            return false;
+        }
+        row = row + 1;
+    }
+    let outer_access: String = Concat(receiver, Concat(".", outer_method));
+    let inner_access: String = Concat(receiver, Concat(".", inner_method));
+    let argument: String = sequence.arena.node_texts[8];
+    let inner: String = Concat(inner_access, Concat("(", Concat(argument, ")")));
+    let outer: String = Concat(outer_access, Concat("(", Concat(inner, ")")));
+    return sequence.arena.node_texts[0] == receiver &&
+        sequence.arena.node_texts[1] == outer_method &&
+        sequence.arena.node_texts[2] == outer_access &&
+        sequence.arena.node_texts[3] == Concat(outer_access, "()") &&
+        sequence.arena.node_texts[4] == receiver &&
+        sequence.arena.node_texts[5] == inner_method &&
+        sequence.arena.node_texts[6] == inner_access &&
+        sequence.arena.node_texts[7] == Concat(inner_access, "()") &&
+        sequence.arena.node_texts[9] == inner &&
+        sequence.arena.node_texts[10] == outer;
+}
+
+func DirectMirConstructedGenericMemberOutputReady(
+    ref sequence: MirExpressionGraphSequence
+) -> Bool {
+    if !DirectMirGenericNominalExactTopologyReady(
+        sequence,
+        [AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+         AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+         AstExpressionNodeLeaf(), AstExpressionNodeCallArgument(),
+         AstExpressionNodeCallArgument()],
+        [0,0,0,2,0,3,1], [0,0,0,0,0,4,5],
+        ["","ToString","","UnwrapOption","","",""], 6
+    ) {
+        return false;
+    }
+    let result: String = sequence.arena.node_texts[4];
+    let unwrap: String = Concat("UnwrapOption(", Concat(result, ")"));
+    return result != "" && sequence.arena.node_texts[0] == "ToString" &&
+        sequence.arena.node_texts[1] == "ToString()" &&
+        sequence.arena.node_texts[2] == "UnwrapOption" &&
+        sequence.arena.node_texts[3] == "UnwrapOption()" &&
+        sequence.arena.node_texts[5] == unwrap &&
+        sequence.arena.node_texts[6] ==
+            Concat("ToString(", Concat(unwrap, ")"));
+}
+
+func DirectMirConstructedGenericMemberMainGraphFactFromSequences(
+    ref constructor: MirExpressionGraphSequence,
+    ref nested_call: MirExpressionGraphSequence,
+    ref output: MirExpressionGraphSequence
+) -> DirectMirConstructedGenericMemberMainGraphFact {
+    if !constructor.ok || constructor.ready_node_count != 4 ||
+        !nested_call.ok || nested_call.ready_node_count != 11 ||
+        !DirectMirConstructedGenericMemberOutputReady(output) {
+        Die("direct MIR constructed member Main graph input is incomplete");
+    }
+    let owner: String = constructor.arena.call_target_names[1];
+    let receiver: String = nested_call.arena.node_texts[0];
+    let outer_method: String = nested_call.arena.node_texts[1];
+    let outer_target: String = nested_call.arena.call_target_names[3];
+    let inner_method: String = nested_call.arena.node_texts[5];
+    let inner_target: String = nested_call.arena.call_target_names[7];
+    if !DirectMirGenericNominalExactTopologyReady(
+            constructor,
+            [AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+             AstExpressionNodeIntegerLiteral(), AstExpressionNodeCallArgument()],
+            [0,0,0,1], [0,0,0,2], ["",owner,"",""], 3
+        ) || constructor.arena.node_texts[0] != owner ||
+        !DirectMirConstructedGenericMemberNestedCallReady(
+            nested_call, receiver, outer_method, outer_target,
+            inner_method, inner_target
+        ) {
+        Die("direct MIR constructed member Main graph topology is invalid");
+    }
+    let fact: DirectMirConstructedGenericMemberMainGraphFact =
+        DirectMirConstructedGenericMemberMainGraphFact(
+            true, 0, owner, outer_method, outer_target,
+            inner_method, inner_target, receiver,
+            output.arena.node_texts[4],
+            DirectMirInferredGenericMemberCanonicalIntAt(constructor, 2),
+            DirectMirInferredGenericMemberCanonicalIntAt(nested_call, 8),
+            "checked_some_extract"
+        );
+    let verified: DirectMirConstructedGenericMemberMainGraphFact =
+        DirectMirConstructedGenericMemberMainGraphFact(
+            fact.valid,
+            DirectMirConstructedGenericMemberMainGraphDigest(fact),
+            fact.owner, fact.outer_method, fact.outer_target,
+            fact.inner_method, fact.inner_target, fact.receiver_local,
+            fact.result_local, fact.marker_value, fact.argument_value,
+            fact.unwrap_policy
+        );
+    if !DirectMirConstructedGenericMemberMainGraphFactReady(verified) {
+        Die("direct MIR constructed member Main graph fact is invalid");
+    }
+    return verified;
+}

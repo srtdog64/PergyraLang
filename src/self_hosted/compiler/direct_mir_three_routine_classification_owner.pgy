@@ -1,61 +1,7 @@
 // One structural decision for all bounded three-routine direct-MIR programs.
 import "direct_mir_scalar_graph_admission_owner.pgy";
 import "direct_mir_three_routine_shape_owner.pgy";
-import "../air/mir_cfg_identity_owner.pgy";
-struct DirectMirThreeRoutineClassificationFact {
-    let valid: Bool;
-    let digest: Int;
-    let kind: String;
-    let declaration_count: Int;
-    let specialization_count: Int;
-    let generic_routine_count: Int;
-}
-
-func DirectMirThreeRoutineArrayArgument() -> String {
-    return "declaration-free";
-}
-
-func DirectMirThreeRoutineGenericNominal() -> String {
-    return "single-nominal";
-}
-
-func DirectMirThreeRoutineInferredGenericScalar() -> String {
-    return "declaration-free-inferred-generic";
-}
-
-func DirectMirThreeRoutineStructArgument() -> String {
-    return "double-nominal";
-}
-
-func DirectMirThreeRoutineClassificationFactDigest(
-    ref fact: DirectMirThreeRoutineClassificationFact
-) -> Int {
-    if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(197L, fact.kind);
-    hash = DirectMirCfgHashInt(hash, fact.declaration_count);
-    hash = DirectMirCfgHashInt(hash, fact.specialization_count);
-    hash = DirectMirCfgHashInt(hash, fact.generic_routine_count);
-    return DirectMirCfgBoundedDigest(hash);
-}
-
-func DirectMirThreeRoutineClassificationFactReady(
-    ref fact: DirectMirThreeRoutineClassificationFact
-) -> Bool {
-    return fact.valid && fact.digest != 0 && fact.digest ==
-        DirectMirThreeRoutineClassificationFactDigest(fact) &&
-        ((fact.kind == DirectMirThreeRoutineArrayArgument() &&
-          fact.declaration_count == 0 && fact.specialization_count == 0 &&
-          fact.generic_routine_count == 0) ||
-         (fact.kind == DirectMirThreeRoutineInferredGenericScalar() &&
-          fact.declaration_count == 0 && fact.specialization_count == 2 &&
-          fact.generic_routine_count == 1) ||
-         (fact.kind == DirectMirThreeRoutineGenericNominal() &&
-          fact.declaration_count == 1 && fact.specialization_count == 4 &&
-          fact.generic_routine_count == 1) ||
-         (fact.kind == DirectMirThreeRoutineStructArgument() &&
-          fact.declaration_count == 2 && fact.specialization_count == 0 &&
-          fact.generic_routine_count == 0));
-}
+import "direct_mir_three_routine_classification_fact_owner.pgy";
 
 func DirectMirThreeRoutineClassificationFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput
@@ -76,6 +22,8 @@ func DirectMirThreeRoutineClassificationFromAdmitted(
     let specialization_count: Int = JsonArrayObjectFactCount(specializations);
     let generic_routine_count: Int =
         DirectMirThreeRoutineGenericRoutineCount(admitted.routines);
+    let constructed_shape: DirectMirThreeRoutineConstructedMemberShapeFact =
+        InvalidDirectMirThreeRoutineConstructedMemberShapeFact();
     let kind: String = "";
     if declarations == 0 && specialization_count == 0 &&
         generic_routine_count == 0 {
@@ -86,6 +34,16 @@ func DirectMirThreeRoutineClassificationFromAdmitted(
     } else if declarations == 1 && specialization_count == 4 &&
         generic_routine_count == 1 {
         kind = DirectMirThreeRoutineGenericNominal();
+    } else if declarations == 1 && specialization_count == 2 &&
+        generic_routine_count == 2 {
+        constructed_shape =
+            DirectMirThreeRoutineConstructedMemberShapeFromAdmitted(admitted);
+        if !DirectMirThreeRoutineConstructedMemberShapeFactReady(
+            constructed_shape
+        ) {
+            Die("direct MIR constructed member structural shape is invalid");
+        }
+        kind = DirectMirThreeRoutineConstructedGenericMember();
     } else if declarations == 2 && specialization_count == 0 &&
         generic_routine_count == 0 {
         kind = DirectMirThreeRoutineStructArgument();
@@ -95,13 +53,13 @@ func DirectMirThreeRoutineClassificationFromAdmitted(
     let fact: DirectMirThreeRoutineClassificationFact =
         DirectMirThreeRoutineClassificationFact(
             true, 0, kind, declarations,
-            specialization_count, generic_routine_count
+            specialization_count, generic_routine_count, constructed_shape
         );
     let verified: DirectMirThreeRoutineClassificationFact =
         DirectMirThreeRoutineClassificationFact(
             fact.valid, DirectMirThreeRoutineClassificationFactDigest(fact),
             fact.kind, fact.declaration_count, fact.specialization_count,
-            fact.generic_routine_count
+            fact.generic_routine_count, fact.constructed_member_shape
         );
     if !DirectMirThreeRoutineClassificationFactReady(verified) {
         Die("direct MIR three-routine classification is invalid");
