@@ -1,0 +1,53 @@
+// LLVM emission from the same mixed-lane inferred scalar plan as C.
+
+import "direct_mir_inferred_generic_scalar_plan_owner.pgy";
+import "direct_mir_llvm_text_format_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "symbol_table_owner.pgy";
+
+func DirectMirInferredGenericScalarEmitLlvm(
+    ref plan: DirectMirInferredGenericScalarPlan,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirInferredGenericScalarPlanReady(plan) ||
+        !formatted_print.ok || formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" {
+        Die("direct MIR inferred scalar LLVM projection facts are invalid");
+    }
+    let graph: DirectMirInferredGenericScalarGraphFact = plan.identity.graph;
+    let specialized: String = CompilerSymbolCIdentifier(
+        plan.identity.specialization.specialized_symbol
+    );
+    let wrapper: String = CompilerSymbolCIdentifier(graph.wrapper_name);
+    if specialized == "" || wrapper == "" || specialized == wrapper {
+        Die("direct MIR inferred scalar LLVM symbols are invalid");
+    }
+    let payload: String = DirectMirScalarLlvmFormatPayload(line_format);
+    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
+    let output: String = "@.pgy.int.line.format = private unnamed_addr constant [";
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, payload);
+    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n\ndefine internal i32 @");
+    output = Concat(output, specialized);
+    output = Concat(output, "(i32 %identity_value) {\nentry:\n  ret i32 %identity_value\n}\n\ndefine internal i32 @");
+    output = Concat(output, wrapper);
+    output = Concat(output, "(i32 %return_value) {\nentry:\n  %pgy.identity = call i32 @");
+    output = Concat(output, specialized);
+    output = Concat(output, "(i32 %return_value)\n  ret i32 %pgy.identity\n}\n\ndefine i32 @main() {\nentry:\n  %pgy.initial = add i32 0, ");
+    output = Concat(output, ToString(plan.initial_value));
+    output = Concat(output, "\n  %pgy.latest = call i32 @");
+    output = Concat(output, specialized);
+    output = Concat(output, "(i32 ");
+    output = Concat(output, ToString(plan.assigned_value));
+    output = Concat(output, ")\n  %pgy.returned = call i32 @");
+    output = Concat(output, wrapper);
+    output = Concat(output, "(i32 %pgy.latest)\n  %pgy.print = sext i32 %pgy.returned to i64\n  %pgy.logged = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.int.line.format, i64 %pgy.print)\n  ret i32 0\n}\n");
+    return output;
+}

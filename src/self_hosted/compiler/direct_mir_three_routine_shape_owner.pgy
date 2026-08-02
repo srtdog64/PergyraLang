@@ -1,0 +1,20 @@
+// Structural generic-routine cardinality for the three-routine classifier.
+
+import "../mir_lower/program_routine_index_owner.pgy";
+
+func DirectMirThreeRoutineGenericRoutineCount(
+    ref routines: MirProgramRoutineIndex
+) -> Int {
+    if MirProgramRoutineIndexCount(routines) != 3 ||
+        !MirProgramRoutineIndexStructureReady(routines) { return 0 - 1; }
+    let count: Int = 0;
+    let row: Int = 0;
+    while row < 3 {
+        let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
+            routines.source_json, routines.starts[row], routines.ends[row]
+        );
+        if ArrayLength(header.generic_names) > 0 { count = count + 1; }
+        row = row + 1;
+    }
+    return count;
+}

@@ -1,0 +1,57 @@
+// Normalized proof that four typed scalar instructions own no physical layout.
+
+import "direct_mir_inferred_generic_scalar_instruction_admission_owner.pgy";
+
+struct DirectMirInferredGenericScalarAbiFact {
+    let valid: Bool;
+    let digest: Int;
+    let generic_type: String;
+    let scalar_type: String;
+    let typed_receipt_count: Int;
+    let null_receipt_count: Int;
+}
+
+func DirectMirInferredGenericScalarAbiFactDigest(
+    ref fact: DirectMirInferredGenericScalarAbiFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(277L, fact.generic_type);
+    hash = DirectMirCfgHashString(hash, fact.scalar_type);
+    hash = DirectMirCfgHashInt(hash, fact.typed_receipt_count);
+    hash = DirectMirCfgHashInt(hash, fact.null_receipt_count);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirInferredGenericScalarAbiFactReady(
+    ref fact: DirectMirInferredGenericScalarAbiFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirInferredGenericScalarAbiFactDigest(fact) &&
+        fact.generic_type != "" &&
+        fact.scalar_type == CompilerAbiLayoutIntTypeName() &&
+        fact.typed_receipt_count == 4 && fact.null_receipt_count == 1;
+}
+
+func DirectMirInferredGenericScalarAbiFactFromInstructions(
+    ref identity: DirectMirInferredGenericScalarProgramIdentity,
+    ref instructions: DirectMirInferredGenericScalarInstructionAdmission
+) -> DirectMirInferredGenericScalarAbiFact {
+    if !DirectMirInferredGenericScalarInstructionAdmissionReady(instructions) {
+        Die("direct MIR inferred scalar ABI inputs are invalid");
+    }
+    let fact: DirectMirInferredGenericScalarAbiFact =
+        DirectMirInferredGenericScalarAbiFact(
+            true, 0, identity.generic_template.generic_name,
+            CompilerAbiLayoutIntTypeName(), 4, 1
+        );
+    let verified: DirectMirInferredGenericScalarAbiFact =
+        DirectMirInferredGenericScalarAbiFact(
+            fact.valid, DirectMirInferredGenericScalarAbiFactDigest(fact),
+            fact.generic_type, fact.scalar_type, fact.typed_receipt_count,
+            fact.null_receipt_count
+        );
+    if !DirectMirInferredGenericScalarAbiFactReady(verified) {
+        Die("direct MIR inferred scalar ABI fact is invalid");
+    }
+    return verified;
+}

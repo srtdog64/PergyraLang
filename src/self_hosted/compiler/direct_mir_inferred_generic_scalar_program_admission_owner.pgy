@@ -1,0 +1,58 @@
+// Exclusive envelope for declaration-free mixed-lane inferred scalar flow.
+
+import "direct_mir_three_routine_classification_owner.pgy";
+import "direct_mir_generic_routine_program_envelope_owner.pgy";
+
+func DirectMirInferredGenericScalarProgramEnvelopeReady(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirThreeRoutineClassificationFact
+) -> Bool {
+    let specializations: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(
+            admitted.document.root, "generic_method_specializations"
+        );
+    if !DirectMirThreeRoutineClassificationFactReady(classification) ||
+        classification.kind != DirectMirThreeRoutineInferredGenericScalar() ||
+        classification.declaration_count != 0 ||
+        classification.specialization_count != 2 ||
+        !admitted.document.valid || admitted.domain_topology_plan.present ||
+        admitted.document.routines.json != admitted.routines.source_json ||
+        JsonObjectFactCount(admitted.document.root) != 5 ||
+        !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
+        JsonArrayObjectFactCount(admitted.document.declarations) != 0 ||
+        !JsonArrayObjectFactTableReady(specializations) ||
+        JsonArrayObjectFactCount(specializations) != 2 ||
+        !JsonArrayObjectFactTableReady(
+            admitted.document.parallel_capture_boundaries
+        ) || JsonArrayObjectFactCount(
+            admitted.document.parallel_capture_boundaries
+        ) != 0 || !MirProgramRoutineIndexStructureReady(admitted.routines) ||
+        MirProgramRoutineIndexCount(admitted.routines) != 3 {
+        return false;
+    }
+    let generic_rows: Int = 0;
+    let row: Int = 0;
+    while row < 3 {
+        if admitted.routines.kinds[row] != "function" ||
+            admitted.routines.owners[row] != "" ||
+            admitted.routines.routine_block_counts[row] != 1 {
+            return false;
+        }
+        let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.ends[row]
+        );
+        if !DirectMirGenericRoutineProgramEnvelopeReady(routine) {
+            return false;
+        }
+        let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
+            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.ends[row]
+        );
+        if ArrayLength(header.generic_names) == 1 {
+            generic_rows = generic_rows + 1;
+        }
+        row = row + 1;
+    }
+    return generic_rows == 1;
+}

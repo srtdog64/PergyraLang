@@ -1,0 +1,68 @@
+// C emission from the mixed-lane inferred scalar plan only.
+
+import "direct_mir_inferred_generic_scalar_plan_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "symbol_table_owner.pgy";
+
+func DirectMirInferredGenericScalarEmitC(
+    ref plan: DirectMirInferredGenericScalarPlan,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirInferredGenericScalarPlanReady(plan) ||
+        !formatted_print.ok || formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" {
+        Die("direct MIR inferred scalar C projection facts are invalid");
+    }
+    let graph: DirectMirInferredGenericScalarGraphFact = plan.identity.graph;
+    let specialized: String = CompilerSymbolCIdentifier(
+        plan.identity.specialization.specialized_symbol
+    );
+    let generic_parameter: String = CompilerSymbolCIdentifier(
+        graph.generic_parameter_name
+    );
+    let wrapper: String = CompilerSymbolCIdentifier(graph.wrapper_name);
+    let wrapper_parameter: String = CompilerSymbolCIdentifier(
+        graph.wrapper_parameter_name
+    );
+    let local: String = CompilerSymbolCIdentifier(graph.local_name);
+    if specialized == "" || generic_parameter == "" || wrapper == "" ||
+        wrapper_parameter == "" || local == "" || specialized == wrapper {
+        Die("direct MIR inferred scalar C symbols are invalid");
+    }
+    let output: String = "#include <stdint.h>\n#include <stdio.h>\n\nstatic int32_t ";
+    output = Concat(output, specialized);
+    output = Concat(output, "(int32_t ");
+    output = Concat(output, generic_parameter);
+    output = Concat(output, ") {\n    return ");
+    output = Concat(output, generic_parameter);
+    output = Concat(output, ";\n}\n\nstatic int32_t ");
+    output = Concat(output, wrapper);
+    output = Concat(output, "(int32_t ");
+    output = Concat(output, wrapper_parameter);
+    output = Concat(output, ") {\n    return ");
+    output = Concat(output, specialized);
+    output = Concat(output, "(");
+    output = Concat(output, wrapper_parameter);
+    output = Concat(output, ");\n}\n\nint main(void) {\n    int32_t ");
+    output = Concat(output, local);
+    output = Concat(output, " = ");
+    output = Concat(output, ToString(plan.initial_value));
+    output = Concat(output, ";\n    ");
+    output = Concat(output, local);
+    output = Concat(output, " = ");
+    output = Concat(output, specialized);
+    output = Concat(output, "(");
+    output = Concat(output, ToString(plan.assigned_value));
+    output = Concat(output, ");\n    ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (long long)");
+    output = Concat(output, wrapper);
+    output = Concat(output, "(");
+    output = Concat(output, local);
+    output = Concat(output, "));\n    return 0;\n}\n");
+    return output;
+}

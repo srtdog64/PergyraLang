@@ -5,6 +5,7 @@ import "direct_mir_array_argument_emission_owner.pgy";
 import "direct_mir_struct_argument_c_emission_owner.pgy";
 import "direct_mir_struct_argument_llvm_emission_owner.pgy";
 import "direct_mir_generic_struct_value_flow_projection_owner.pgy";
+import "direct_mir_inferred_generic_scalar_projection_owner.pgy";
 
 func CompileAdmittedDirectMirThreeRoutine(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -15,6 +16,11 @@ func CompileAdmittedDirectMirThreeRoutine(
 ) -> String {
     let classification: DirectMirThreeRoutineClassificationFact =
         DirectMirThreeRoutineClassificationFromAdmitted(admitted);
+    if classification.kind == DirectMirThreeRoutineInferredGenericScalar() {
+        return CompileAdmittedDirectMirInferredGenericScalar(
+            admitted, classification, is_llvm, formatted_print, line_format
+        );
+    }
     if classification.kind == DirectMirThreeRoutineArrayArgument() {
         let plan: DirectMirArrayArgumentPlan =
             DirectMirArrayArgumentPlanFromAdmitted(admitted);

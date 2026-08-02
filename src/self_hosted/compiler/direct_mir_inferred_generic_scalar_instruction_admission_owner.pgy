@@ -1,0 +1,217 @@
+// Instruction, SSA, assignment-target, and scalar ABI admission.
+
+import "direct_mir_inferred_generic_scalar_program_identity_owner.pgy";
+import "direct_mir_instruction_abi_absence_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+import "../mir_lower/routine_result_definition_fact_owner.pgy";
+
+struct DirectMirInferredGenericScalarInstructionAdmission {
+    let valid: Bool;
+    let generic_return: MirRoutineInstructionScalarCapture;
+    let wrapper_return: MirRoutineInstructionScalarCapture;
+    let initial: MirRoutineInstructionScalarCapture;
+    let assignment: MirRoutineInstructionScalarCapture;
+    let output: MirRoutineInstructionScalarCapture;
+}
+
+func DirectMirInferredGenericScalarInstructionCapture(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    routine_row: Int, instruction_row: Int
+) -> MirRoutineInstructionScalarCapture {
+    let global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, routine_row, 0, instruction_row
+    );
+    if global < 0 { Die("direct MIR inferred scalar instruction is missing"); }
+    return MirRoutineInstructionFactBundleAtGlobal(
+        index.instruction_facts, global
+    );
+}
+
+func DirectMirInferredGenericScalarExpectedUse(
+    ref uses: MirRoutineInstructionUseFacts,
+    global_row: Int, expected: String
+) -> Bool {
+    let count: Int = MirRoutineInstructionUseCountAtGlobal(uses, global_row);
+    if expected == "" { return count == 0; }
+    let value: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, global_row, 0
+    );
+    return count == 1 && IsSome(value) && UnwrapOption(value) == expected;
+}
+
+func DirectMirInferredGenericScalarInstructionAdmissionReady(
+    ref fact: DirectMirInferredGenericScalarInstructionAdmission
+) -> Bool {
+    return fact.valid && fact.generic_return.valid &&
+        fact.wrapper_return.valid && fact.initial.valid &&
+        fact.assignment.valid && fact.output.valid &&
+        fact.generic_return.result == "" && fact.wrapper_return.result == "" &&
+        fact.initial.result != "" && fact.assignment.result != "" &&
+        fact.initial.result != fact.assignment.result && fact.output.result == "";
+}
+
+func DirectMirInferredGenericScalarInstructionAdmissionFromProgram(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref identity: DirectMirInferredGenericScalarProgramIdentity
+) -> DirectMirInferredGenericScalarInstructionAdmission {
+    let main_row: Int = identity.entrypoint.row;
+    let wrapper_row: Int = identity.wrapper.row;
+    let generic_row: Int = identity.generic_template.row;
+    let main_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, main_row
+    );
+    let wrapper_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, wrapper_row
+    );
+    let generic_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, generic_row
+    );
+    let main_uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, main_row);
+    let wrapper_uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, wrapper_row);
+    let generic_uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, generic_row);
+    let indexes_ready: Bool = main_index.valid && wrapper_index.valid &&
+        generic_index.valid && ArrayLength(main_index.block_reachable) == 1 &&
+        ArrayLength(wrapper_index.block_reachable) == 1 &&
+        ArrayLength(generic_index.block_reachable) == 1 &&
+        main_index.block_reachable[0] && wrapper_index.block_reachable[0] &&
+        generic_index.block_reachable[0] &&
+        MirRoutineFactIndexBlockIsTerminal(main_index, 0) &&
+        MirRoutineFactIndexBlockIsTerminal(wrapper_index, 0) &&
+        MirRoutineFactIndexBlockIsTerminal(generic_index, 0) &&
+        main_index.block_has_conditional_branch[0] == 0 &&
+        wrapper_index.block_has_conditional_branch[0] == 0 &&
+        generic_index.block_has_conditional_branch[0] == 0;
+    if !indexes_ready || ArrayLength(main_index.source_local_names) != 1 ||
+        ArrayLength(main_index.source_local_types) != 1 ||
+        main_index.source_local_names[0] != identity.graph.local_name ||
+        main_index.source_local_types[0] != CompilerAbiLayoutIntTypeName() ||
+        !MirRoutineInstructionUseFactsReady(main_uses, 3) ||
+        !MirRoutineInstructionUseFactsReady(wrapper_uses, 1) ||
+        !MirRoutineInstructionUseFactsReady(generic_uses, 1) {
+        Die("direct MIR inferred scalar routine facts are invalid");
+    }
+    let generic_return: MirRoutineInstructionScalarCapture =
+        DirectMirInferredGenericScalarInstructionCapture(
+            admitted, generic_index, generic_row, 0
+        );
+    let wrapper_return: MirRoutineInstructionScalarCapture =
+        DirectMirInferredGenericScalarInstructionCapture(
+            admitted, wrapper_index, wrapper_row, 0
+        );
+    let initial: MirRoutineInstructionScalarCapture =
+        DirectMirInferredGenericScalarInstructionCapture(
+            admitted, main_index, main_row, 0
+        );
+    let assignment: MirRoutineInstructionScalarCapture =
+        DirectMirInferredGenericScalarInstructionCapture(
+            admitted, main_index, main_row, 1
+        );
+    let output: MirRoutineInstructionScalarCapture =
+        DirectMirInferredGenericScalarInstructionCapture(
+            admitted, main_index, main_row, 2
+        );
+    let globals: Array<Int> = [
+        MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, generic_row, 0, 0
+        ), MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, wrapper_row, 0, 0
+        ), MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, main_row, 0, 0
+        ), MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, main_row, 0, 1
+        ), MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, main_row, 0, 2
+        )
+    ];
+    let assignment_expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions, globals[3]
+        );
+    let assignment_target: MirExpressionGraphSequence =
+        DirectMirArrayIntGraphFromExpressionFact(
+            admitted.routines.source_json, assignment_expression, 1
+        );
+    let output_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[globals[4]],
+        admitted.routines.instruction_ends[globals[4]]
+    );
+    if admitted.routines.instruction_kinds[globals[0]] != "return" ||
+        admitted.routines.instruction_source_types[globals[0]] !=
+            "AST_IDENTIFIER" ||
+        admitted.routines.instruction_kinds[globals[1]] != "return" ||
+        admitted.routines.instruction_source_types[globals[1]] != "AST_CALL" ||
+        admitted.routines.instruction_kinds[globals[2]] != "def" ||
+        admitted.routines.instruction_source_types[globals[2]] !=
+            "AST_LET_DECL" ||
+        admitted.routines.instruction_kinds[globals[3]] != "def" ||
+        admitted.routines.instruction_source_types[globals[3]] !=
+            "AST_ASSIGNMENT" ||
+        admitted.routines.instruction_kinds[globals[4]] != "stmt" ||
+        admitted.routines.instruction_source_types[globals[4]] != "AST_CALL" ||
+        generic_return.name != "return" || wrapper_return.name != "return" ||
+        initial.name != "ssa-def" || assignment.name != "ssa-def" ||
+        output.name != "stmt" || generic_return.arg0 != "" ||
+        generic_return.arg1 != "" || wrapper_return.arg0 != "" ||
+        wrapper_return.arg1 != "" ||
+        !DirectMirInstructionHasNoPhysicalAbi(
+            admitted.routines.source_json, generic_return,
+            identity.generic_template.generic_name
+        ) || !DirectMirInstructionHasNoPhysicalAbi(
+            admitted.routines.source_json, wrapper_return,
+            CompilerAbiLayoutIntTypeName()
+        ) || !DirectMirInstructionHasNoPhysicalAbi(
+            admitted.routines.source_json, initial,
+            CompilerAbiLayoutIntTypeName()
+        ) || !DirectMirInstructionHasNoPhysicalAbi(
+            admitted.routines.source_json, assignment,
+            CompilerAbiLayoutIntTypeName()
+        ) || initial.arg0 != identity.graph.local_name || initial.arg1 != "" ||
+        initial.expr1 != CompilerAbiLayoutIntTypeName() ||
+        assignment.arg0 != identity.graph.local_name ||
+        assignment.arg1 != "local" ||
+        assignment.expr1 != identity.graph.local_name ||
+        !DirectMirArrayIntAssignmentTargetReady(
+            assignment_target, identity.graph.local_name
+        ) || output.arg0 != "Log" || output.arg1 != "" ||
+        !DirectMirLogInstructionEnvelopeReady(output_object, "2") {
+        Die("direct MIR inferred scalar instruction identity is invalid");
+    }
+    if !DirectMirInferredGenericScalarExpectedUse(
+            generic_uses, globals[0], ""
+        ) || !DirectMirInferredGenericScalarExpectedUse(
+            wrapper_uses, globals[1], ""
+        ) || !DirectMirInferredGenericScalarExpectedUse(
+            main_uses, globals[2], ""
+        ) || !DirectMirInferredGenericScalarExpectedUse(
+            main_uses, globals[3], ""
+        ) || !DirectMirInferredGenericScalarExpectedUse(
+            main_uses, globals[4], assignment.result
+        ) {
+        Die("direct MIR inferred scalar SSA use is invalid");
+    }
+    let results: Array<String> = [initial.result, assignment.result];
+    let row: Int = 0;
+    while row < 2 {
+        let definition: MirRoutineResultDefinitionFact =
+            MirRoutineFactIndexUniqueResultDefinition(main_index, results[row]);
+        if !MirRoutineResultDefinitionFactReady(definition) ||
+            definition.global_row != globals[row + 2] {
+            Die("direct MIR inferred scalar result definition is invalid");
+        }
+        row = row + 1;
+    }
+    let fact: DirectMirInferredGenericScalarInstructionAdmission =
+        DirectMirInferredGenericScalarInstructionAdmission(
+            true, generic_return, wrapper_return, initial, assignment, output
+        );
+    if !DirectMirInferredGenericScalarInstructionAdmissionReady(fact) {
+        Die("direct MIR inferred scalar instruction admission is invalid");
+    }
+    return fact;
+}

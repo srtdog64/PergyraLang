@@ -1,0 +1,25 @@
+// Target selection after one mixed-lane inferred scalar plan is admitted.
+
+import "direct_mir_inferred_generic_scalar_c_emission_owner.pgy";
+import "direct_mir_inferred_generic_scalar_llvm_emission_owner.pgy";
+
+func CompileAdmittedDirectMirInferredGenericScalar(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirThreeRoutineClassificationFact,
+    is_llvm: Bool,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    let plan: DirectMirInferredGenericScalarPlan =
+        DirectMirInferredGenericScalarPlanFromAdmitted(
+            admitted, classification
+        );
+    if is_llvm {
+        return DirectMirInferredGenericScalarEmitLlvm(
+            plan, formatted_print, line_format
+        );
+    }
+    return DirectMirInferredGenericScalarEmitC(
+        plan, formatted_print, line_format
+    );
+}

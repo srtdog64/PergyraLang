@@ -1,0 +1,134 @@
+// Exact generic return, assignment, wrapper, and output call graph identity.
+
+import "direct_mir_generic_nominal_graph_shape_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirInferredGenericScalarGraphFact {
+    let valid: Bool;
+    let digest: Int;
+    let generic_callable: String;
+    let generic_parameter_name: String;
+    let wrapper_name: String;
+    let wrapper_parameter_name: String;
+    let local_name: String;
+    let initial_value: Int;
+    let assigned_value: Int;
+}
+
+func DirectMirInferredGenericScalarCanonicalIntAt(
+    ref sequence: MirExpressionGraphSequence, row: Int
+) -> Int {
+    if row < 0 || row >= ArrayLength(sequence.arena.node_texts) ||
+        sequence.arena.topology.node_kinds[row] !=
+            AstExpressionNodeIntegerLiteral() {
+        Die("direct MIR inferred scalar integer node is invalid");
+    }
+    let value: String = sequence.arena.node_texts[row];
+    if value == "" || ToString(ToInt(value)) != value {
+        Die("direct MIR inferred scalar integer is not canonical");
+    }
+    return ToInt(value);
+}
+
+func DirectMirInferredGenericScalarCallShapeReady(
+    ref sequence: MirExpressionGraphSequence,
+    callable: String, argument_kind: Int
+) -> Bool {
+    return callable != "" && DirectMirGenericNominalExactTopologyReady(
+        sequence, [AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+        argument_kind, AstExpressionNodeCallArgument()],
+        [0,0,0,1], [0,0,0,2], ["",callable,"",""], 3
+    );
+}
+
+func DirectMirInferredGenericScalarOutputShapeReady(
+    ref sequence: MirExpressionGraphSequence, wrapper: String
+) -> Bool {
+    return wrapper != "" && DirectMirGenericNominalExactTopologyReady(
+        sequence, [AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+        AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+        AstExpressionNodeLeaf(), AstExpressionNodeCallArgument(),
+        AstExpressionNodeCallArgument()],
+        [0,0,0,2,0,3,1], [0,0,0,0,0,4,5],
+        ["","ToString","",wrapper,"","",""], 6
+    );
+}
+
+func DirectMirInferredGenericScalarGraphFactDigest(
+    ref fact: DirectMirInferredGenericScalarGraphFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(269L, fact.generic_callable);
+    hash = DirectMirCfgHashString(hash, fact.generic_parameter_name);
+    hash = DirectMirCfgHashString(hash, fact.wrapper_name);
+    hash = DirectMirCfgHashString(hash, fact.wrapper_parameter_name);
+    hash = DirectMirCfgHashString(hash, fact.local_name);
+    hash = DirectMirCfgHashInt(hash, fact.initial_value);
+    hash = DirectMirCfgHashInt(hash, fact.assigned_value);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirInferredGenericScalarGraphFactReady(
+    ref fact: DirectMirInferredGenericScalarGraphFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirInferredGenericScalarGraphFactDigest(fact) &&
+        fact.generic_callable != "" && fact.generic_callable != "Main" &&
+        fact.generic_parameter_name != "" && fact.wrapper_name != "" &&
+        fact.wrapper_name != fact.generic_callable && fact.wrapper_name != "Main" &&
+        fact.wrapper_parameter_name != "" && fact.local_name != "";
+}
+
+func DirectMirInferredGenericScalarGraphFactFromSequences(
+    ref generic_return: MirExpressionGraphSequence,
+    ref wrapper_return: MirExpressionGraphSequence,
+    ref initial: MirExpressionGraphSequence,
+    ref assignment: MirExpressionGraphSequence,
+    ref output: MirExpressionGraphSequence
+) -> DirectMirInferredGenericScalarGraphFact {
+    if !wrapper_return.ok || wrapper_return.ready_node_count != 4 ||
+        !assignment.ok || assignment.ready_node_count != 4 ||
+        !output.ok || output.ready_node_count != 7 {
+        Die("direct MIR inferred scalar graph input is incomplete");
+    }
+    let callable: String = wrapper_return.arena.call_target_names[1];
+    let wrapper: String = output.arena.call_target_names[3];
+    if !DirectMirGenericNominalIdentityReturnShapeReady(generic_return) ||
+        !DirectMirInferredGenericScalarCallShapeReady(
+            wrapper_return, callable, AstExpressionNodeLeaf()
+        ) || !DirectMirGenericNominalExactTopologyReady(
+            initial, [AstExpressionNodeIntegerLiteral()], [0], [0], [""], 0
+        ) || !DirectMirInferredGenericScalarCallShapeReady(
+            assignment, callable, AstExpressionNodeIntegerLiteral()
+        ) || !DirectMirInferredGenericScalarOutputShapeReady(output, wrapper) {
+        Die("direct MIR inferred scalar graph topology is invalid");
+    }
+    if wrapper_return.arena.node_texts[0] != callable ||
+        assignment.arena.node_texts[0] != callable ||
+        generic_return.arena.node_texts[0] == "" ||
+        wrapper_return.arena.node_texts[2] == "" ||
+        output.arena.node_texts[0] != "ToString" ||
+        output.arena.node_texts[2] != wrapper ||
+        output.arena.node_texts[4] == "" {
+        Die("direct MIR inferred scalar graph identity is invalid");
+    }
+    let fact: DirectMirInferredGenericScalarGraphFact =
+        DirectMirInferredGenericScalarGraphFact(
+            true, 0, callable, generic_return.arena.node_texts[0],
+            wrapper, wrapper_return.arena.node_texts[2],
+            output.arena.node_texts[4],
+            DirectMirInferredGenericScalarCanonicalIntAt(initial, 0),
+            DirectMirInferredGenericScalarCanonicalIntAt(assignment, 2)
+        );
+    let verified: DirectMirInferredGenericScalarGraphFact =
+        DirectMirInferredGenericScalarGraphFact(
+            fact.valid, DirectMirInferredGenericScalarGraphFactDigest(fact),
+            fact.generic_callable, fact.generic_parameter_name,
+            fact.wrapper_name, fact.wrapper_parameter_name, fact.local_name,
+            fact.initial_value, fact.assigned_value
+        );
+    if !DirectMirInferredGenericScalarGraphFactReady(verified) {
+        Die("direct MIR inferred scalar graph fact is invalid");
+    }
+    return verified;
+}

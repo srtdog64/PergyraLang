@@ -1,0 +1,192 @@
+// Row-order-independent identity for mixed-lane generic scalar flow.
+
+import "direct_mir_inferred_generic_scalar_program_admission_owner.pgy";
+import "direct_mir_inferred_generic_scalar_graph_fact_owner.pgy";
+import "direct_mir_mixed_lane_generic_specialization_fact_owner.pgy";
+import "direct_mir_generic_routine_signature_fact_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+
+struct DirectMirInferredGenericScalarProgramIdentity {
+    let valid: Bool;
+    let digest: Int;
+    let entrypoint: DirectMirRoutineSignatureFact;
+    let wrapper: DirectMirRoutineSignatureFact;
+    let generic_template: DirectMirGenericRoutineSignatureFact;
+    let specialization: DirectMirMixedLaneGenericSpecializationFact;
+    let graph: DirectMirInferredGenericScalarGraphFact;
+}
+
+func DirectMirInferredGenericScalarProgramIdentityDigest(
+    ref identity: DirectMirInferredGenericScalarProgramIdentity
+) -> Int {
+    if !identity.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(271L, identity.entrypoint.digest);
+    hash = DirectMirCfgHashInt(hash, identity.wrapper.digest);
+    hash = DirectMirCfgHashInt(hash, identity.generic_template.digest);
+    hash = DirectMirCfgHashInt(hash, identity.specialization.digest);
+    hash = DirectMirCfgHashInt(hash, identity.graph.digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirInferredGenericScalarProgramIdentityReady(
+    ref identity: DirectMirInferredGenericScalarProgramIdentity
+) -> Bool {
+    if !identity.valid || identity.digest == 0 || identity.digest !=
+        DirectMirInferredGenericScalarProgramIdentityDigest(identity) ||
+        !DirectMirRoutineSignatureFactReady(identity.entrypoint) ||
+        !DirectMirRoutineSignatureFactReady(identity.wrapper) ||
+        !DirectMirGenericRoutineSignatureFactReady(
+            identity.generic_template
+        ) || !DirectMirMixedLaneGenericSpecializationFactReady(
+            identity.specialization
+        ) || !DirectMirInferredGenericScalarGraphFactReady(identity.graph) {
+        return false;
+    }
+    let graph: DirectMirInferredGenericScalarGraphFact = identity.graph;
+    let generic: DirectMirGenericRoutineSignatureFact =
+        identity.generic_template;
+    let specialization: DirectMirMixedLaneGenericSpecializationFact =
+        identity.specialization;
+    return identity.entrypoint.name == "Main" &&
+        identity.entrypoint.return_type == "Void" &&
+        identity.entrypoint.param_count == 0 &&
+        identity.wrapper.name == graph.wrapper_name &&
+        identity.wrapper.return_type == CompilerAbiLayoutIntTypeName() &&
+        identity.wrapper.param_count == 1 &&
+        identity.wrapper.param.name == graph.wrapper_parameter_name &&
+        identity.wrapper.param.type_name == CompilerAbiLayoutIntTypeName() &&
+        identity.wrapper.param.carriage == "value" &&
+        identity.wrapper.param.resource == "none" &&
+        identity.wrapper.param.pass_shape == "direct" &&
+        !identity.wrapper.param.abi_required &&
+        generic.name == graph.generic_callable &&
+        generic.param.name == graph.generic_parameter_name &&
+        generic.generic_name == specialization.generic_param &&
+        specialization.callable == graph.generic_callable &&
+        specialization.generic_actual == CompilerAbiLayoutIntTypeName() &&
+        identity.entrypoint.row != identity.wrapper.row &&
+        identity.entrypoint.row != generic.row &&
+        identity.wrapper.row != generic.row &&
+        identity.entrypoint.source_syntax_id != identity.wrapper.source_syntax_id &&
+        identity.entrypoint.source_syntax_id != generic.source_syntax_id &&
+        identity.wrapper.source_syntax_id != generic.source_syntax_id;
+}
+
+func DirectMirInferredGenericScalarInstructionGraph(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    routine_row: Int, instruction_row: Int
+) -> MirExpressionGraphSequence {
+    let global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, routine_row, 0, instruction_row
+    );
+    if global < 0 {
+        Die("direct MIR inferred scalar instruction routing failed");
+    }
+    let expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions, global
+        );
+    return DirectMirArrayIntGraphFromExpressionFact(
+        admitted.routines.source_json, expression, 0
+    );
+}
+
+func DirectMirInferredGenericScalarUniqueRoutineRow(
+    ref routines: MirProgramRoutineIndex, name: String
+) -> Int {
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < MirProgramRoutineIndexCount(routines) {
+        if routines.names[row] == name {
+            if found >= 0 {
+                Die("direct MIR inferred scalar routine is duplicated");
+            }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirInferredGenericScalarProgramIdentityFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirThreeRoutineClassificationFact
+) -> DirectMirInferredGenericScalarProgramIdentity {
+    if !DirectMirInferredGenericScalarProgramEnvelopeReady(
+        admitted, classification
+    ) {
+        Die("direct MIR inferred scalar program envelope is invalid");
+    }
+    let specialization: DirectMirMixedLaneGenericSpecializationFact =
+        DirectMirMixedLaneGenericSpecializationFactFromDocument(
+            admitted.document.root
+        );
+    if !DirectMirMixedLaneGenericSpecializationFactReady(specialization) {
+        Die("direct MIR inferred scalar specialization receipt is invalid");
+    }
+    let main_row: Int = DirectMirInferredGenericScalarUniqueRoutineRow(
+        admitted.routines, "Main"
+    );
+    let generic_row: Int = DirectMirInferredGenericScalarUniqueRoutineRow(
+        admitted.routines, specialization.callable
+    );
+    if main_row < 0 || generic_row < 0 || main_row == generic_row ||
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, main_row, 0
+        ) != 3 || MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, generic_row, 0
+        ) != 1 {
+        Die("direct MIR inferred scalar routine cardinality is invalid");
+    }
+    let output: MirExpressionGraphSequence =
+        DirectMirInferredGenericScalarInstructionGraph(admitted, main_row, 2);
+    if !output.ok || output.ready_node_count != 7 {
+        Die("direct MIR inferred scalar output graph is missing");
+    }
+    let wrapper_row: Int = DirectMirInferredGenericScalarUniqueRoutineRow(
+        admitted.routines, output.arena.call_target_names[3]
+    );
+    if wrapper_row < 0 || wrapper_row == main_row || wrapper_row == generic_row ||
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, wrapper_row, 0
+        ) != 1 {
+        Die("direct MIR inferred scalar wrapper is invalid");
+    }
+    let generic_return: MirExpressionGraphSequence =
+        DirectMirInferredGenericScalarInstructionGraph(
+            admitted, generic_row, 0
+        );
+    let wrapper_return: MirExpressionGraphSequence =
+        DirectMirInferredGenericScalarInstructionGraph(
+            admitted, wrapper_row, 0
+        );
+    let initial: MirExpressionGraphSequence =
+        DirectMirInferredGenericScalarInstructionGraph(admitted, main_row, 0);
+    let assignment: MirExpressionGraphSequence =
+        DirectMirInferredGenericScalarInstructionGraph(admitted, main_row, 1);
+    let graph: DirectMirInferredGenericScalarGraphFact =
+        DirectMirInferredGenericScalarGraphFactFromSequences(
+            generic_return, wrapper_return, initial, assignment, output
+        );
+    let identity: DirectMirInferredGenericScalarProgramIdentity =
+        DirectMirInferredGenericScalarProgramIdentity(
+            true, 0,
+            DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 3),
+            DirectMirRoutineSignatureFactAt(admitted.routines, wrapper_row, 1),
+            DirectMirGenericRoutineSignatureFactAt(
+                admitted.routines, generic_row
+            ), specialization, graph
+        );
+    let verified: DirectMirInferredGenericScalarProgramIdentity =
+        DirectMirInferredGenericScalarProgramIdentity(
+            identity.valid,
+            DirectMirInferredGenericScalarProgramIdentityDigest(identity),
+            identity.entrypoint, identity.wrapper,
+            identity.generic_template, identity.specialization,
+            identity.graph
+        );
+    if !DirectMirInferredGenericScalarProgramIdentityReady(verified) {
+        Die("direct MIR inferred scalar program identity is invalid");
+    }
+    return verified;
+}

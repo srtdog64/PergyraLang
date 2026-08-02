@@ -1,0 +1,113 @@
+// Target-neutral mixed-lane generic return and assignment execution plan.
+
+import "direct_mir_inferred_generic_scalar_abi_fact_owner.pgy";
+import "target_capability_owner.pgy";
+import "artifact_zone_owner.pgy";
+import "../mir_lower/ssa_identity_owner.pgy";
+
+struct DirectMirInferredGenericScalarPlan {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let digest: Int;
+    let target_capability_schema: String;
+    let target_capability_fingerprint: Int;
+    let identity: DirectMirInferredGenericScalarProgramIdentity;
+    let abi: DirectMirInferredGenericScalarAbiFact;
+    let local_name: String;
+    let initial_result: String;
+    let latest_result: String;
+    let initial_value: Int;
+    let assigned_value: Int;
+    let value_carriage: String;
+}
+
+func DirectMirInferredGenericScalarPlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-inferred-generic-scalar-plan.v1";
+}
+
+func DirectMirInferredGenericScalarCarriage() -> String {
+    return "mixed_lane_inferred_generic_return_assignment_by_value";
+}
+
+func DirectMirInferredGenericScalarPlanDigest(
+    ref plan: DirectMirInferredGenericScalarPlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(281L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
+    hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
+    hash = DirectMirCfgHashInt(hash, plan.identity.digest);
+    hash = DirectMirCfgHashInt(hash, plan.abi.digest);
+    hash = DirectMirCfgHashString(hash, plan.local_name);
+    hash = DirectMirCfgHashString(hash, plan.initial_result);
+    hash = DirectMirCfgHashString(hash, plan.latest_result);
+    hash = DirectMirCfgHashInt(hash, plan.initial_value);
+    hash = DirectMirCfgHashInt(hash, plan.assigned_value);
+    hash = DirectMirCfgHashString(hash, plan.value_carriage);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirInferredGenericScalarPlanReady(
+    ref plan: DirectMirInferredGenericScalarPlan
+) -> Bool {
+    return plan.valid &&
+        plan.schema == DirectMirInferredGenericScalarPlanSchema() &&
+        plan.revision == CompilerArtifactPlanRevision() && plan.digest != 0 &&
+        plan.digest == DirectMirInferredGenericScalarPlanDigest(plan) &&
+        plan.target_capability_schema == CompilerTargetCapabilitySchema() &&
+        plan.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        DirectMirInferredGenericScalarProgramIdentityReady(plan.identity) &&
+        DirectMirInferredGenericScalarAbiFactReady(plan.abi) &&
+        plan.local_name == plan.identity.graph.local_name &&
+        plan.initial_value == plan.identity.graph.initial_value &&
+        plan.assigned_value == plan.identity.graph.assigned_value &&
+        MirSsaNameMatches(plan.initial_result, plan.local_name, false) &&
+        MirSsaNameMatches(plan.latest_result, plan.local_name, false) &&
+        plan.initial_result != plan.latest_result &&
+        plan.value_carriage == DirectMirInferredGenericScalarCarriage();
+}
+
+func DirectMirInferredGenericScalarPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirThreeRoutineClassificationFact
+) -> DirectMirInferredGenericScalarPlan {
+    let identity: DirectMirInferredGenericScalarProgramIdentity =
+        DirectMirInferredGenericScalarProgramIdentityFromAdmitted(
+            admitted, classification
+        );
+    let instructions: DirectMirInferredGenericScalarInstructionAdmission =
+        DirectMirInferredGenericScalarInstructionAdmissionFromProgram(
+            admitted, identity
+        );
+    let abi: DirectMirInferredGenericScalarAbiFact =
+        DirectMirInferredGenericScalarAbiFactFromInstructions(
+            identity, instructions
+        );
+    let plan: DirectMirInferredGenericScalarPlan =
+        DirectMirInferredGenericScalarPlan(
+            true, DirectMirInferredGenericScalarPlanSchema(),
+            CompilerArtifactPlanRevision(), 0,
+            CompilerTargetCapabilitySchema(),
+            CompilerTargetCapabilityFingerprint(), identity, abi,
+            identity.graph.local_name, instructions.initial.result,
+            instructions.assignment.result, identity.graph.initial_value,
+            identity.graph.assigned_value,
+            DirectMirInferredGenericScalarCarriage()
+        );
+    let verified: DirectMirInferredGenericScalarPlan =
+        DirectMirInferredGenericScalarPlan(
+            plan.valid, plan.schema, plan.revision,
+            DirectMirInferredGenericScalarPlanDigest(plan),
+            plan.target_capability_schema,
+            plan.target_capability_fingerprint, plan.identity, plan.abi,
+            plan.local_name, plan.initial_result, plan.latest_result,
+            plan.initial_value, plan.assigned_value, plan.value_carriage
+        );
+    if !DirectMirInferredGenericScalarPlanReady(verified) {
+        Die("direct MIR inferred scalar plan is invalid");
+    }
+    return verified;
+}

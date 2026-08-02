@@ -491,6 +491,23 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_inferred_generic_nominal_plan_owner.pgy" \
     'inferred_generic_scalar_calls_into_nominal_value_by_value'
+require_text ".github/workflows/ci.yml" \
+    'self-host-one-mir-inferred-generic-scalar-projection-test-smoke'
+require_text "Makefile" \
+    'self-host-one-mir-inferred-generic-scalar-projection-test-smoke: self-host-compiler'
+require_file \
+    "tests/self_hosted/parity/one_mir_inferred_generic_scalar_projection.sh"
+require_file \
+    "tests/self_hosted/parity/one_mir_inferred_generic_scalar_mutations.py"
+require_text \
+    "src/self_hosted/compiler/direct_mir_three_routine_classification_owner.pgy" \
+    'DirectMirThreeRoutineInferredGenericScalar()'
+require_text \
+    "src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" \
+    'CompileAdmittedDirectMirInferredGenericScalar('
+require_text \
+    "src/self_hosted/compiler/direct_mir_inferred_generic_scalar_plan_owner.pgy" \
+    'mixed_lane_inferred_generic_return_assignment_by_value'
 require_text \
     "src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" \
     'classification.kind == DirectMirThreeRoutineGenericNominal()'

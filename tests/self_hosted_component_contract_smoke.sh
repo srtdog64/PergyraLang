@@ -14155,6 +14155,69 @@ require_text "Makefile" "SELFHOST_ONE_MIR_INFERRED_GENERIC_NOMINAL_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_INFERRED_GENERIC_NOMINAL_GATE)'
 require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-inferred-generic-nominal-projection-test-smoke"
+for inferred_scalar_owner_cap in \
+    direct_mir_three_routine_shape_owner.pgy:40 \
+    direct_mir_three_routine_classification_owner.pgy:110 \
+    direct_mir_three_routine_projection_owner.pgy:80 \
+    direct_mir_mixed_lane_generic_specialization_fact_owner.pgy:180 \
+    direct_mir_inferred_generic_scalar_program_admission_owner.pgy:80 \
+    direct_mir_inferred_generic_scalar_graph_fact_owner.pgy:170 \
+    direct_mir_inferred_generic_scalar_program_identity_owner.pgy:220 \
+    direct_mir_inferred_generic_scalar_instruction_admission_owner.pgy:230 \
+    direct_mir_inferred_generic_scalar_abi_fact_owner.pgy:80 \
+    direct_mir_inferred_generic_scalar_plan_owner.pgy:140 \
+    direct_mir_inferred_generic_scalar_c_emission_owner.pgy:100 \
+    direct_mir_inferred_generic_scalar_llvm_emission_owner.pgy:90 \
+    direct_mir_inferred_generic_scalar_projection_owner.pgy:40; do
+    inferred_scalar_owner="${inferred_scalar_owner_cap%%:*}"
+    inferred_scalar_cap="${inferred_scalar_owner_cap##*:}"
+    require_file "src/self_hosted/compiler/$inferred_scalar_owner"
+    require_max_lines \
+        "src/self_hosted/compiler/$inferred_scalar_owner" "$inferred_scalar_cap"
+done
+require_file \
+    "tests/self_hosted/parity/one_mir_inferred_generic_scalar_projection.sh"
+require_file \
+    "tests/self_hosted/parity/one_mir_inferred_generic_scalar_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_inferred_generic_scalar_projection.sh" 180
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_inferred_generic_scalar_mutations.py" 280
+require_text \
+    "src/self_hosted/compiler/direct_mir_three_routine_classification_owner.pgy" \
+    "DirectMirThreeRoutineInferredGenericScalar()"
+require_text \
+    "src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" \
+    "CompileAdmittedDirectMirInferredGenericScalar("
+require_text \
+    "src/self_hosted/compiler/direct_mir_mixed_lane_generic_specialization_fact_owner.pgy" \
+    "JsonArrayObjectFactCount(table) != 2"
+require_text \
+    "src/self_hosted/compiler/direct_mir_mixed_lane_generic_specialization_fact_owner.pgy" \
+    "ordinal != 0 || seen[lane]"
+require_text \
+    "src/self_hosted/compiler/direct_mir_inferred_generic_scalar_plan_owner.pgy" \
+    "mixed_lane_inferred_generic_return_assignment_by_value"
+require_text \
+    "tests/self_hosted/parity/one_mir_inferred_generic_scalar_projection.sh" \
+    "gate must produce source MIR exactly once"
+require_text \
+    "tests/self_hosted/parity/one_mir_inferred_generic_scalar_projection.sh" \
+    "one specialization definition and two calls"
+require_text \
+    "tests/self_hosted/parity/one_mir_inferred_generic_scalar_projection.sh" \
+    "C/LLVM exact 41"
+require_text \
+    "tests/self_hosted/parity/one_mir_inferred_generic_scalar_projection.sh" \
+    "routine-order-rotate"
+require_text \
+    "tests/self_hosted/parity/one_mir_inferred_generic_scalar_projection.sh" \
+    "retried Array argument projection"
+require_text "Makefile" \
+    "SELFHOST_ONE_MIR_INFERRED_GENERIC_SCALAR_GATE ?="
+require_text "Makefile" '$(SELFHOST_ONE_MIR_INFERRED_GENERIC_SCALAR_GATE)'
+require_text ".github/workflows/ci.yml" \
+    "self-host-one-mir-inferred-generic-scalar-projection-test-smoke"
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240
