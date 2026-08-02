@@ -24,38 +24,55 @@ hash_file() { sha256sum "$1" | cut -d' ' -f1; }
 require_file() { [[ -f "$1" ]] || fail "missing $1"; }
 
 assert_owner_ratchet() {
-    local total=0 owner cap lines
+    local shared_total=0 passive_total=0 owner cap lines
     while IFS='|' read -r owner cap; do
         lines="$(wc -l < "$owner" | tr -d ' ')"
         [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}=$lines/$cap"
-        total=$((total + lines))
+        shared_total=$((shared_total + lines))
     done <<EOF
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_declaration_fact_owner.pgy|180
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal_graph_fact_owner.pgy|150
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal_program_identity_owner.pgy|200
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal_route_fact_owner.pgy|90
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal_instruction_envelope_owner.pgy|100
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal_abi_absence_owner.pgy|120
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal_program_admission_owner.pgy|220
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_declaration_fact_owner.pgy|180
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_graph_fact_owner.pgy|150
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_program_identity_owner.pgy|200
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_route_fact_owner.pgy|110
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_instruction_envelope_owner.pgy|100
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_abi_absence_owner.pgy|120
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_program_admission_owner.pgy|220
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_projection_owner.pgy|110
+EOF
+    local shared_inventory=("$ROOT_DIR"/src/self_hosted/compiler/direct_mir_nominal_literal_*.pgy)
+    [[ "${#shared_inventory[@]}" -eq 8 ]] || fail "shared nominal literal owner inventory drifted"
+    [[ "$shared_total" -le 900 ]] || fail "shared nominal literal owner cap exceeded: $shared_total/900"
+    while IFS='|' read -r owner cap; do
+        lines="$(wc -l < "$owner" | tr -d ' ')"
+        [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}=$lines/$cap"
+        passive_total=$((passive_total + lines))
+    done <<EOF
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal_plan_owner.pgy|140
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal_target_projection_owner.pgy|60
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal_c_emission_owner.pgy|90
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal_llvm_emission_owner.pgy|90
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal_projection_owner.pgy|50
 EOF
-    [[ "$total" -le 1024 ]] || fail "passive nominal owner family cap exceeded: $total/1024"
+    local passive_inventory=("$ROOT_DIR"/src/self_hosted/compiler/direct_mir_passive_nominal_literal_*.pgy)
+    [[ "${#passive_inventory[@]}" -eq 4 ]] || fail "passive nominal owner inventory drifted"
+    [[ "$passive_total" -le 320 ]] || fail "passive nominal owner cap exceeded: $passive_total/320"
     [[ "$(wc -l < "$ROOT_DIR/src/self_hosted/compiler/direct_mir_exact_json_array_cardinality_owner.pgy" | tr -d ' ')" -le 90 ]] || fail "exact JSON-array cardinality owner hard cap exceeded"
     [[ ! -e "$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_array_shape_owner.pgy" ]] || fail "retired inferred-family array-shape owner reappeared"
     ! grep -R -Eq 'DirectMirInferredGenericMemberExact(Object|String)ArrayCount' "$ROOT_DIR/src/self_hosted/compiler" || fail "exact JSON-array cardinality retained a family-local owner"
-    [[ "$(grep -Fc 'DirectMirPassiveNominalLiteralRouteFactFromAdmitted(admitted)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy")" -eq 1 ]] || fail "passive nominal classification is not single-shot"
-    ! grep -R -Fq 'DirectMirPassiveNominalLiteralProgramCandidate' "$ROOT_DIR/src/self_hosted/compiler" || fail "passive nominal route was re-evaluated in admission"
-    grep -Fq 'CompileAdmittedDirectMirPassiveNominalLiteral(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" || fail "passive nominal projection is not routed"
-    [[ "$(grep -Ec 'PlanFromAdmitted\(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal_projection_owner.pgy")" -eq 1 ]] || fail "passive nominal projection retried a planner"
+    [[ "$(grep -R -F 'DirectMirNominalLiteralRouteFactFromAdmitted(' "$ROOT_DIR/src/self_hosted/compiler" | wc -l | tr -d ' ')" -eq 2 ]] || fail "nominal literal route constructor escaped one definition and one call"
+    [[ "$(grep -R -F 'DirectMirNominalLiteralProgramAdmissionFromAdmitted(' "$ROOT_DIR/src/self_hosted/compiler" | wc -l | tr -d ' ')" -eq 2 ]] || fail "nominal literal admission escaped one definition and one call"
+    [[ "$(grep -Fc 'DirectMirNominalLiteralRouteFactFromAdmitted(admitted)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy")" -eq 1 ]] || fail "nominal literal classification is not single-shot"
+    ! grep -R -Eq 'NominalLiteralProgramCandidate|SubjectIdentityProgramCandidate' "$ROOT_DIR/src/self_hosted/compiler" || fail "nominal literal route was re-evaluated"
+    grep -Fq 'CompileAdmittedDirectMirNominalLiteral(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" || fail "nominal literal projection is not routed"
+    [[ "$(grep -Ec 'PassiveNominalLiteralPlanFromAdmission\(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_projection_owner.pgy")" -eq 1 ]] || fail "passive nominal projection retried a planner"
+    ! grep -R -Fq 'CompileAdmittedDirectMirPassiveNominalLiteral' "$ROOT_DIR/src/self_hosted/compiler" || fail "retired passive-only composition root reappeared"
     grep -Fq 'typed_nominal_physical_abi_absent' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal_plan_owner.pgy" || fail "typed ABI absence is not explicit"
     grep -Fq 'typed_nominal_abi_absence.digest' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal_plan_owner.pgy" || fail "plan is not sealed to captured ABI absence"
-    grep -Fq 'DirectMirExactObjectArrayCount(methods, 0)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_declaration_fact_owner.pgy" || fail "non-object declaration tail is not rejected"
+    grep -Fq 'DirectMirExactObjectArrayCount(methods, 0)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_declaration_fact_owner.pgy" || fail "non-object declaration tail is not rejected"
     ! grep -Eq 'construction_shape|field_read_shape' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal_target_projection_owner.pgy" || fail "target projection duplicated emitter syntax authority"
-    ! grep -Fq 'direct_mir_nominal_declaration_abi_fact_owner.pgy' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal"* || fail "passive nominal plan imported physical struct ABI"
+    ! grep -Fq 'direct_mir_nominal_declaration_abi_fact_owner.pgy' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal"* "$ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal"* || fail "nominal literal path imported physical struct ABI"
+    for retired in direct_mir_passive_nominal_declaration_fact_owner.pgy direct_mir_passive_nominal_literal_route_fact_owner.pgy direct_mir_passive_nominal_literal_graph_fact_owner.pgy direct_mir_passive_nominal_literal_program_identity_owner.pgy direct_mir_passive_nominal_literal_instruction_envelope_owner.pgy direct_mir_passive_nominal_literal_abi_absence_owner.pgy direct_mir_passive_nominal_literal_program_admission_owner.pgy direct_mir_passive_nominal_literal_projection_owner.pgy; do
+        [[ ! -e "$ROOT_DIR/src/self_hosted/compiler/$retired" ]] || fail "retired passive-only common owner reappeared: $retired"
+    done
     local emitter
     for emitter in direct_mir_passive_nominal_literal_c_emission_owner.pgy direct_mir_passive_nominal_literal_llvm_emission_owner.pgy; do
         ! grep -Eq 'MirMachineLayerAdmittedJsonInput|MirExpressionGraphSequence|JsonObjectFact' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter reopened MIR"
@@ -81,7 +98,7 @@ reject_mutation() {
         fail "$target accepted passive nominal mutation: $name"
     fi
     [[ ! -e "$output" ]] || fail "$target emitted before rejecting $name"
-    grep -Fq 'passive nominal' "$output.stdout" "$output.stderr" || fail "$target rejection lost passive nominal owner: $name"
+    grep -Eq 'nominal literal|subject identity' "$output.stdout" "$output.stderr" || fail "$target rejection lost nominal owner: $name"
     ! grep -Fq 'unsupported scalar facts' "$output.stdout" "$output.stderr" || fail "$target retried scalar after passive nominal admission: $name"
 }
 
@@ -131,8 +148,13 @@ for host in host-object host-class; do
     cmp -s "$WORK_DIR/baseline.c" "$WORK_DIR/$host.c" || fail "C representation drifted for $host"
     cmp -s "$WORK_DIR/baseline.ll" "$WORK_DIR/$host.ll" || fail "LLVM representation drifted for $host"
 done
+project "$WORK_DIR/host-subject.json" c "$WORK_DIR/host-subject.c"
+project "$WORK_DIR/host-subject.json" llvm "$WORK_DIR/host-subject.ll"
+grep -Fq 'PlayerDto *const _pgy_subject_0 = &_pgy_subject_storage_0;' "$WORK_DIR/host-subject.c" || fail "subject route fell back to passive C value representation"
+grep -Fq '%pgy.subject.0 = alloca %PlayerDto' "$WORK_DIR/host-subject.ll" || fail "subject route fell back to passive LLVM value representation"
+compile_and_expect host-subject 12
 
-for mutation in kind-drift host-subject declaration-name-drift declaration-id-zero field-name-drift field-type-drift field-kind-drift field-id-collision method-tail entrypoint-drift return-drift source-local-type-drift constructor-type-drift constructor-field-drift constructor-edge-drift constructor-noncanonical-int definition-result-drift definition-local-drift definition-arg-type-drift definition-expr-type-drift definition-abi-forged instruction-tail missing-use stale-use member-receiver-drift member-name-drift member-edge-drift unreachable; do reject_mutation "$mutation"; done
-for mutation in kind-drift host-subject field-type-drift constructor-edge-drift definition-expr-type-drift definition-abi-forged instruction-tail stale-use member-name-drift; do reject_mutation "$mutation" llvm; done
+for mutation in kind-drift nominal-kind-drift host-vessel declaration-name-drift declaration-id-zero field-name-drift field-type-drift field-kind-drift field-id-collision method-tail entrypoint-drift return-drift source-local-name-drift source-local-type-drift constructor-type-drift constructor-field-drift constructor-edge-drift constructor-noncanonical-int definition-result-drift definition-local-drift definition-arg-type-drift definition-expr-type-drift definition-abi-type-drift definition-abi-forged instruction-tail duplicate-identity-definition second-source-local missing-use duplicate-use stale-use member-receiver-drift member-name-drift member-edge-drift unreachable; do reject_mutation "$mutation"; done
+for mutation in kind-drift nominal-kind-drift host-vessel field-type-drift source-local-name-drift constructor-edge-drift definition-expr-type-drift definition-abi-type-drift definition-abi-forged instruction-tail duplicate-identity-definition duplicate-use stale-use member-name-drift; do reject_mutation "$mutation" llvm; done
 
-echo "[$LABEL] PASS: tobject exact 12, real C/LLVM construction+read, four variants, 28 C negatives, 9 LLVM sentinels (sha256=$mir_digest)"
+echo "[$LABEL] PASS: tobject exact 12, real C/LLVM construction+read, subject representation split, 34 C negatives, 14 LLVM sentinels (sha256=$mir_digest)"

@@ -1,4 +1,4 @@
-"""Semantic parity, variants, and falsifiers for passive nominal literals."""
+"""Semantic parity, variants, and falsifiers for method-free nominal literals."""
 
 import copy
 import json
@@ -32,8 +32,9 @@ def graph(document, row):
 
 
 def semantic_kind(row, native=False):
-    if native and row["kind"] == "class" and row["nominal_kind"] == "tobject":
-        return "tobject"
+    if native and row["kind"] == "class" and row["nominal_kind"] in (
+            "tobject", "subject", "vessel"):
+        return row["nominal_kind"]
     return row["kind"]
 
 
@@ -119,16 +120,24 @@ def replace_strings(value, replacements):
 
 
 def semantic_rename(document):
+    base = declaration(baseline)
+    base_type = base["name"]
+    base_field = base["fields"][0]["name"]
+    base_local = routine(baseline)["source_locals"][0]["name"]
     replace_strings(document, [
-        ("PlayerDto", "Packet"), ("score", "value"), ("dto", "packet")
+        (base_type, "Packet"), (base_field, "value"),
+        (base_local, "packet")
     ])
 
 
 def literal_seventy_three(document):
+    base = declaration(document)
+    type_name = base["name"]
+    field_name = base["fields"][0]["name"]
     nodes = graph(document, 0)["nodes"]
     nodes[3]["text"] = "73"
-    nodes[4]["text"] = "score: 73"
-    nodes[5]["text"] = "PlayerDto { score: 73 }"
+    nodes[4]["text"] = f"{field_name}: 73"
+    nodes[5]["text"] = f"{type_name} {{ {field_name}: 73 }}"
     instructions(document)[0]["expr0"] = nodes[5]["text"]
 
 
@@ -136,13 +145,28 @@ def forge_abi(document):
     row = instructions(document)[0]
     row["abi_layout_id"] = 9
     row["abi_layout_required"] = True
-    row["abi_layout"] = {"type_name": "PlayerDto", "layout_id": 9}
+    row["abi_layout"] = {
+        "type_name": declaration(document)["name"], "layout_id": 9
+    }
 
 
 def append_instruction(document):
     row = copy.deepcopy(instructions(document)[1])
     row["id"] = 2
     instructions(document).append(row)
+
+
+def append_identity_definition(document):
+    row = copy.deepcopy(instructions(document)[0])
+    row["id"] = 2
+    row["result"] = f"{row['arg0']}.2"
+    instructions(document).insert(1, row)
+
+
+def append_source_local(document):
+    source_local = copy.deepcopy(routine(document)["source_locals"][0])
+    source_local["name"] = f"{source_local['name']}_copy"
+    routine(document)["source_locals"].append(source_local)
 
 
 emit("semantic-rename", semantic_rename)
@@ -153,10 +177,18 @@ emit("host-object", lambda d: (
 emit("host-class", lambda d: (
     declaration(d).__setitem__("kind", "class"),
     declaration(d).__setitem__("nominal_kind", "class")))
+emit("host-tobject", lambda d: (
+    declaration(d).__setitem__("kind", "tobject"),
+    declaration(d).__setitem__("nominal_kind", "tobject")))
 emit("kind-drift", lambda d: declaration(d).__setitem__("kind", "class"))
+emit("nominal-kind-drift", lambda d: declaration(d).__setitem__(
+    "nominal_kind", "class"))
 emit("host-subject", lambda d: (
     declaration(d).__setitem__("kind", "subject"),
     declaration(d).__setitem__("nominal_kind", "subject")))
+emit("host-vessel", lambda d: (
+    declaration(d).__setitem__("kind", "vessel"),
+    declaration(d).__setitem__("nominal_kind", "vessel")))
 emit("declaration-name-drift", lambda d: declaration(d).__setitem__("name", "Other"))
 emit("declaration-id-zero", lambda d: declaration(d).__setitem__("source_syntax_id", 0))
 emit("field-name-drift", lambda d: field(d).__setitem__("name", "other"))
@@ -167,6 +199,7 @@ emit("field-id-collision", lambda d: field(d).__setitem__(
 emit("method-tail", lambda d: declaration(d)["methods"].append(7))
 emit("entrypoint-drift", lambda d: routine(d).__setitem__("name", "Start"))
 emit("return-drift", lambda d: routine(d).__setitem__("return", "Int"))
+emit("source-local-name-drift", lambda d: routine(d)["source_locals"][0].__setitem__("name", "other"))
 emit("source-local-type-drift", lambda d: routine(d)["source_locals"][0].__setitem__("type", "Long"))
 emit("constructor-type-drift", lambda d: graph(d, 0)["nodes"][0].__setitem__("text", "Other"))
 emit("constructor-field-drift", lambda d: graph(d, 0)["nodes"][2].__setitem__("text", "other"))
@@ -176,10 +209,16 @@ emit("definition-result-drift", lambda d: instructions(d)[0].__setitem__("result
 emit("definition-local-drift", lambda d: instructions(d)[0].__setitem__("arg0", "other"))
 emit("definition-arg-type-drift", lambda d: instructions(d)[0].__setitem__("arg1", "Other"))
 emit("definition-expr-type-drift", lambda d: instructions(d)[0].__setitem__("expr1", "Other"))
+emit("definition-abi-type-drift", lambda d: instructions(d)[0].__setitem__("abi_type_name", "Other"))
 emit("definition-abi-forged", forge_abi)
 emit("instruction-tail", append_instruction)
+emit("duplicate-identity-definition", append_identity_definition)
+emit("second-source-local", append_source_local)
 emit("missing-use", lambda d: instructions(d)[1].__setitem__("uses", []))
-emit("stale-use", lambda d: instructions(d)[1].__setitem__("uses", ["dto.2"]))
+emit("duplicate-use", lambda d: instructions(d)[1].__setitem__(
+    "uses", [instructions(d)[0]["result"], instructions(d)[0]["result"]]))
+emit("stale-use", lambda d: instructions(d)[1].__setitem__(
+    "uses", [f"{instructions(d)[0]['arg0']}.2"]))
 emit("member-receiver-drift", lambda d: graph(d, 1)["nodes"][0].__setitem__("text", "other"))
 emit("member-name-drift", lambda d: graph(d, 1)["nodes"][1].__setitem__("text", "other"))
 emit("member-edge-drift", lambda d: graph(d, 1)["nodes"][2].__setitem__("right", 0))

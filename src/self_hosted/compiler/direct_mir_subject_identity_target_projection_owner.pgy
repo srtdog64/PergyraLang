@@ -1,0 +1,64 @@
+// Target-bound capability/representation projection for one stable identity.
+// Exact C and LLVM syntax remains owned by the selected emitter.
+import "direct_mir_subject_identity_plan_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+struct DirectMirSubjectIdentityTargetProjection {
+    let valid: Bool;
+    let target_projection: String;
+    let target_capability_fingerprint: Int;
+    let representation: String;
+    let storage_count: Int;
+    let stable_pointer_count: Int;
+    let stable_address: Bool;
+    let mutable_pointee: Bool;
+}
+
+func DirectMirSubjectIdentityTargetProjectionReadyFor(
+    ref projection: DirectMirSubjectIdentityTargetProjection,
+    expected_target: String
+) -> Bool {
+    return projection.valid &&
+        projection.target_projection == expected_target &&
+        projection.target_capability_fingerprint != 0 &&
+        projection.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        projection.representation ==
+            "compiler_private_single_i32_stable_address" &&
+        projection.storage_count == 1 &&
+        projection.stable_pointer_count == 1 &&
+        projection.stable_address && projection.mutable_pointee &&
+        (expected_target == CompilerTargetCpuCProjection() ||
+         expected_target == CompilerTargetCpuLlvmProjection());
+}
+
+func DirectMirSubjectIdentityTargetProjectionFromPlan(
+    ref plan: DirectMirSubjectIdentityPlan,
+    ref target: CompilerTargetProjectionFact
+) -> DirectMirSubjectIdentityTargetProjection {
+    if !DirectMirSubjectIdentityPlanReady(plan) ||
+        plan.storage_count != 1 || plan.stable_pointer_count != 1 ||
+        !plan.pointer_stable || !plan.pointee_mutable {
+        Die("direct MIR subject identity target plan is invalid");
+    }
+    let target_ready: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuCProjection()
+    ) || CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuLlvmProjection()
+    );
+    if !target_ready {
+        Die("direct MIR subject identity target is unsupported");
+    }
+    let projection: DirectMirSubjectIdentityTargetProjection =
+        DirectMirSubjectIdentityTargetProjection(
+            true, target.projection, target.target_capability_fingerprint,
+            "compiler_private_single_i32_stable_address", 1, 1,
+            true, true
+        );
+    if !DirectMirSubjectIdentityTargetProjectionReadyFor(
+        projection, target.projection
+    ) {
+        Die("direct MIR subject identity target projection is invalid");
+    }
+    return projection;
+}

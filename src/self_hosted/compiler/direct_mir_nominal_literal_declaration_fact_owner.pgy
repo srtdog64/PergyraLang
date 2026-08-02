@@ -1,10 +1,10 @@
-// Source identity for one value-carried passive nominal declaration.
+// Shared source identity for one method-free nominal literal declaration.
 import "../mir_lower/program_declaration_index_owner.pgy";
 import "direct_mir_exact_json_array_cardinality_owner.pgy";
 import "../semantic/callable_receiver_carriage_policy_owner.pgy";
 import "../air/mir_cfg_identity_owner.pgy";
 
-struct DirectMirPassiveNominalDeclarationFact {
+struct DirectMirNominalLiteralDeclarationFact {
     let valid: Bool;
     let digest: Int;
     let kind: String;
@@ -13,16 +13,28 @@ struct DirectMirPassiveNominalDeclarationFact {
     let field_name: String;
     let field_type: String;
     let field_source_syntax_id: Int;
+    let receiver_carriage: String;
 }
 
-func DirectMirPassiveNominalKindReady(kind: String) -> Bool {
-    // struct owns a physical layout; enum and identity carriers use other plans.
+func DirectMirNominalLiteralFrontierKindReady(kind: String) -> Bool {
+    // Struct owns a physical layout; enum construction uses another plan.
     return kind != "struct" && kind != "enum" &&
-        CallableReceiverNominalKindUsesValue(kind);
+        (CallableReceiverNominalKindUsesValue(kind) || kind == "subject" ||
+         kind == "vessel");
 }
 
-func DirectMirPassiveNominalDeclarationFactDigest(
-    ref fact: DirectMirPassiveNominalDeclarationFact
+func DirectMirNominalLiteralExpectedCarriage(kind: String) -> String {
+    if CallableReceiverNominalKindUsesValue(kind) {
+        return CallableReceiverCarriageValue();
+    }
+    if CallableReceiverNominalKindUsesMutableIdentity(kind) {
+        return CallableReceiverCarriageMutableIdentity();
+    }
+    return "";
+}
+
+func DirectMirNominalLiteralDeclarationFactDigest(
+    ref fact: DirectMirNominalLiteralDeclarationFact
 ) -> Int {
     if !fact.valid { return 0; }
     let hash: Long = DirectMirCfgHashString(547L, fact.kind);
@@ -31,27 +43,31 @@ func DirectMirPassiveNominalDeclarationFactDigest(
     hash = DirectMirCfgHashString(hash, fact.field_name);
     hash = DirectMirCfgHashString(hash, fact.field_type);
     hash = DirectMirCfgHashInt(hash, fact.field_source_syntax_id);
+    hash = DirectMirCfgHashString(hash, fact.receiver_carriage);
     return DirectMirCfgBoundedDigest(hash);
 }
 
-func DirectMirPassiveNominalDeclarationFactReady(
-    ref fact: DirectMirPassiveNominalDeclarationFact
+func DirectMirNominalLiteralDeclarationFactReady(
+    ref fact: DirectMirNominalLiteralDeclarationFact
 ) -> Bool {
     return fact.valid && fact.digest != 0 && fact.digest ==
-        DirectMirPassiveNominalDeclarationFactDigest(fact) &&
-        DirectMirPassiveNominalKindReady(fact.kind) && fact.name != "" &&
+        DirectMirNominalLiteralDeclarationFactDigest(fact) &&
+        DirectMirNominalLiteralFrontierKindReady(fact.kind) &&
+        fact.receiver_carriage ==
+            DirectMirNominalLiteralExpectedCarriage(fact.kind) &&
+        fact.name != "" &&
         fact.source_syntax_id > 0 && fact.field_name != "" &&
         fact.field_type == CompilerAbiLayoutIntTypeName() &&
         fact.field_source_syntax_id > 0 &&
         fact.field_source_syntax_id != fact.source_syntax_id;
 }
 
-func DirectMirPassiveNominalDeclarationFactFromIndex(
+func DirectMirNominalLiteralDeclarationFactFromIndex(
     json: String, ref declarations: MirProgramDeclarationIndex
-) -> DirectMirPassiveNominalDeclarationFact {
-    let invalid: DirectMirPassiveNominalDeclarationFact =
-        DirectMirPassiveNominalDeclarationFact(
-            false, 0, "", "", 0, "", "", 0
+) -> DirectMirNominalLiteralDeclarationFact {
+    let invalid: DirectMirNominalLiteralDeclarationFact =
+        DirectMirNominalLiteralDeclarationFact(
+            false, 0, "", "", 0, "", "", 0, ""
         );
     if !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 {
         return invalid;
@@ -84,7 +100,7 @@ func DirectMirPassiveNominalDeclarationFactFromIndex(
         UnwrapOption(kind) != declarations.kinds[0] ||
         UnwrapOption(nominal_kind) != declarations.nominal_kinds[0] ||
         UnwrapOption(name) != declarations.names[0] ||
-        !DirectMirPassiveNominalKindReady(UnwrapOption(kind)) ||
+        !DirectMirNominalLiteralFrontierKindReady(UnwrapOption(kind)) ||
         !DirectMirExactObjectArrayCount(fields, 1) ||
         !DirectMirExactObjectArrayCount(methods, 0) {
         return invalid;
@@ -117,19 +133,21 @@ func DirectMirPassiveNominalDeclarationFactFromIndex(
         ) {
         return invalid;
     }
-    let fact: DirectMirPassiveNominalDeclarationFact =
-        DirectMirPassiveNominalDeclarationFact(
+    let fact: DirectMirNominalLiteralDeclarationFact =
+        DirectMirNominalLiteralDeclarationFact(
             true, 0, UnwrapOption(kind), UnwrapOption(name),
             ToInt(UnwrapOption(syntax)), UnwrapOption(field_name),
-            UnwrapOption(field_type), ToInt(UnwrapOption(field_syntax))
+            UnwrapOption(field_type), ToInt(UnwrapOption(field_syntax)),
+            DirectMirNominalLiteralExpectedCarriage(UnwrapOption(kind))
         );
-    let verified: DirectMirPassiveNominalDeclarationFact =
-        DirectMirPassiveNominalDeclarationFact(
-            fact.valid, DirectMirPassiveNominalDeclarationFactDigest(fact),
+    let verified: DirectMirNominalLiteralDeclarationFact =
+        DirectMirNominalLiteralDeclarationFact(
+            fact.valid, DirectMirNominalLiteralDeclarationFactDigest(fact),
             fact.kind, fact.name, fact.source_syntax_id, fact.field_name,
-            fact.field_type, fact.field_source_syntax_id
+            fact.field_type, fact.field_source_syntax_id,
+            fact.receiver_carriage
         );
-    if !DirectMirPassiveNominalDeclarationFactReady(verified) {
+    if !DirectMirNominalLiteralDeclarationFactReady(verified) {
         return invalid;
     }
     return verified;

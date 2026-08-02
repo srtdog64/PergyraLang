@@ -1,10 +1,10 @@
-// Exact definition envelope and use cardinality for this execution rung.
+// Exact definition envelope and use cardinality for nominal literal flows.
 import "direct_mir_scalar_graph_admission_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
 
-func DirectMirPassiveNominalDefinitionEnvelopeReady(
+func DirectMirNominalLiteralDefinitionEnvelopeReady(
     ref instruction: JsonObjectFactTable,
-    ref program: DirectMirPassiveNominalLiteralProgramFact,
+    ref program: DirectMirNominalLiteralProgramFact,
     result_value: String
 ) -> Bool {
     return JsonObjectFactTableReady(instruction) &&
@@ -44,7 +44,7 @@ func DirectMirPassiveNominalDefinitionEnvelopeReady(
         ) && DirectMirObjectArrayEmpty(instruction, "destructure_bindings");
 }
 
-func DirectMirPassiveNominalLiteralExpectedUse(
+func DirectMirNominalLiteralExpectedUse(
     ref uses: MirRoutineInstructionUseFacts,
     global_row: Int, expected: String
 ) -> Bool {

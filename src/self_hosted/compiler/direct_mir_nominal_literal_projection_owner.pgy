@@ -1,0 +1,61 @@
+// Exclusive value/identity plan selection after one shared admission.
+import "direct_mir_passive_nominal_literal_c_emission_owner.pgy";
+import "direct_mir_passive_nominal_literal_llvm_emission_owner.pgy";
+import "direct_mir_subject_identity_c_emission_owner.pgy";
+import "direct_mir_subject_identity_llvm_emission_owner.pgy";
+import "direct_mir_nominal_literal_program_admission_owner.pgy";
+import "direct_mir_nominal_literal_route_fact_owner.pgy";
+
+func CompileAdmittedDirectMirNominalLiteral(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref route: DirectMirNominalLiteralRouteFact,
+    target: CompilerTargetProjectionFact
+) -> String {
+    if !DirectMirNominalLiteralRouteFactReady(route) || !route.claimed {
+        Die("direct MIR nominal literal projection route is invalid");
+    }
+    let admission: DirectMirNominalLiteralProgramAdmission =
+        DirectMirNominalLiteralProgramAdmissionFromAdmitted(admitted, route);
+    let formatted_print: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFormattedPrintFact();
+    let line_format: String = StringRuntimeCIntLineFormat();
+    let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuLlvmProjection()
+    );
+    let is_c: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuCProjection()
+    );
+    if !is_c && !is_llvm {
+        Die("direct MIR nominal literal projection target is invalid");
+    }
+    if DirectMirNominalLiteralRouteUsesMutableIdentity(route) {
+        let subject_plan: DirectMirSubjectIdentityPlan =
+            DirectMirSubjectIdentityPlanFromAdmission(admission);
+        let subject_projection: DirectMirSubjectIdentityTargetProjection =
+            DirectMirSubjectIdentityTargetProjectionFromPlan(
+                subject_plan, target
+            );
+        if is_llvm {
+            return DirectMirSubjectIdentityEmitLlvm(
+                subject_plan, subject_projection, formatted_print, line_format
+            );
+        }
+        return DirectMirSubjectIdentityEmitC(
+            subject_plan, subject_projection, formatted_print, line_format
+        );
+    }
+    let value_plan: DirectMirPassiveNominalLiteralPlan =
+        DirectMirPassiveNominalLiteralPlanFromAdmission(admission);
+    let value_projection: DirectMirPassiveNominalLiteralTargetProjection =
+        DirectMirPassiveNominalLiteralTargetProjectionFromPlan(
+            value_plan, target
+        );
+    if is_llvm {
+        return DirectMirPassiveNominalLiteralEmitLlvm(
+            value_plan, value_projection, formatted_print, line_format
+        );
+    }
+    return DirectMirPassiveNominalLiteralEmitC(
+        value_plan, value_projection, formatted_print, line_format
+    );
+}

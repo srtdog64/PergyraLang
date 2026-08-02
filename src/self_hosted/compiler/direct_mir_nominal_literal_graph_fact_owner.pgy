@@ -1,8 +1,8 @@
-// Exact constructor and field-read graph identity for one passive nominal.
-import "direct_mir_passive_nominal_declaration_fact_owner.pgy";
+// Exact constructor and field-read graph identity for one nominal literal.
+import "direct_mir_nominal_literal_declaration_fact_owner.pgy";
 import "direct_mir_generic_nominal_graph_shape_owner.pgy";
 
-struct DirectMirPassiveNominalLiteralGraphFact {
+struct DirectMirNominalLiteralGraphFact {
     let valid: Bool;
     let digest: Int;
     let type_name: String;
@@ -11,8 +11,8 @@ struct DirectMirPassiveNominalLiteralGraphFact {
     let literal_value: Int;
 }
 
-func DirectMirPassiveNominalLiteralGraphFactDigest(
-    ref fact: DirectMirPassiveNominalLiteralGraphFact
+func DirectMirNominalLiteralGraphFactDigest(
+    ref fact: DirectMirNominalLiteralGraphFact
 ) -> Int {
     if !fact.valid { return 0; }
     let hash: Long = DirectMirCfgHashString(557L, fact.type_name);
@@ -22,20 +22,20 @@ func DirectMirPassiveNominalLiteralGraphFactDigest(
     return DirectMirCfgBoundedDigest(hash);
 }
 
-func DirectMirPassiveNominalLiteralGraphFactReady(
-    ref fact: DirectMirPassiveNominalLiteralGraphFact
+func DirectMirNominalLiteralGraphFactReady(
+    ref fact: DirectMirNominalLiteralGraphFact
 ) -> Bool {
     return fact.valid && fact.digest != 0 && fact.digest ==
-        DirectMirPassiveNominalLiteralGraphFactDigest(fact) &&
+        DirectMirNominalLiteralGraphFactDigest(fact) &&
         fact.type_name != "" && fact.field_name != "" &&
         fact.local_name != "";
 }
 
-func DirectMirPassiveNominalLiteralGraphFactFromSequences(
-    ref declaration: DirectMirPassiveNominalDeclarationFact,
+func DirectMirNominalLiteralGraphFactFromSequences(
+    ref declaration: DirectMirNominalLiteralDeclarationFact,
     ref constructor: MirExpressionGraphSequence,
     ref field_read: MirExpressionGraphSequence
-) -> DirectMirPassiveNominalLiteralGraphFact {
+) -> DirectMirNominalLiteralGraphFact {
     let constructor_ready: Bool = DirectMirGenericNominalExactTopologyReady(
         constructor,
         [AstExpressionNodeLeaf(), AstExpressionNodeStructLiteral(),
@@ -49,9 +49,9 @@ func DirectMirPassiveNominalLiteralGraphFactFromSequences(
          AstExpressionNodeMemberAccess()],
         [0,0,0], [0,0,1], ["","",""], 2
     );
-    if !DirectMirPassiveNominalDeclarationFactReady(declaration) ||
+    if !DirectMirNominalLiteralDeclarationFactReady(declaration) ||
         !constructor_ready || !read_ready {
-        Die("direct MIR passive nominal literal graph topology is invalid");
+        Die("direct MIR nominal literal graph topology is invalid");
     }
     let literal: String = constructor.arena.node_texts[3];
     let local: String = field_read.arena.node_texts[0];
@@ -69,21 +69,21 @@ func DirectMirPassiveNominalLiteralGraphFactFromSequences(
         field_read.arena.node_texts[2] != Concat(
             local, Concat(".", declaration.field_name)
         ) {
-        Die("direct MIR passive nominal literal graph identity is invalid");
+        Die("direct MIR nominal literal graph identity is invalid");
     }
-    let fact: DirectMirPassiveNominalLiteralGraphFact =
-        DirectMirPassiveNominalLiteralGraphFact(
+    let fact: DirectMirNominalLiteralGraphFact =
+        DirectMirNominalLiteralGraphFact(
             true, 0, declaration.name, declaration.field_name,
             local, ToInt(literal)
         );
-    let verified: DirectMirPassiveNominalLiteralGraphFact =
-        DirectMirPassiveNominalLiteralGraphFact(
-            fact.valid, DirectMirPassiveNominalLiteralGraphFactDigest(fact),
+    let verified: DirectMirNominalLiteralGraphFact =
+        DirectMirNominalLiteralGraphFact(
+            fact.valid, DirectMirNominalLiteralGraphFactDigest(fact),
             fact.type_name, fact.field_name, fact.local_name,
             fact.literal_value
         );
-    if !DirectMirPassiveNominalLiteralGraphFactReady(verified) {
-        Die("direct MIR passive nominal literal graph fact is invalid");
+    if !DirectMirNominalLiteralGraphFactReady(verified) {
+        Die("direct MIR nominal literal graph fact is invalid");
     }
     return verified;
 }

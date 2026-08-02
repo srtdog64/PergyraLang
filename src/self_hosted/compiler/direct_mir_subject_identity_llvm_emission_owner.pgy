@@ -1,0 +1,49 @@
+// LLVM syntax for the same stable mutable subject identity plan as C.
+import "direct_mir_subject_identity_target_projection_owner.pgy";
+import "direct_mir_llvm_text_format_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "symbol_table_owner.pgy";
+
+func DirectMirSubjectIdentityEmitLlvm(
+    ref plan: DirectMirSubjectIdentityPlan,
+    ref projection: DirectMirSubjectIdentityTargetProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirSubjectIdentityPlanReady(plan) ||
+        !DirectMirSubjectIdentityTargetProjectionReadyFor(
+            projection, CompilerTargetCpuLlvmProjection()
+        ) || !formatted_print.ok || formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" {
+        Die("direct MIR subject identity LLVM projection facts are invalid");
+    }
+    let type_name: String = CompilerSymbolCIdentifier(
+        plan.admission.program.declaration.name
+    );
+    if type_name == "" {
+        Die("direct MIR subject identity LLVM symbol is invalid");
+    }
+    let payload: String = DirectMirScalarLlvmFormatPayload(line_format);
+    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
+    let output: String = "%";
+    output = Concat(output, type_name);
+    output = Concat(output, " = type { i32 }\n\n@.pgy.int.line.format = private unnamed_addr constant [");
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, payload);
+    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n\ndefine i32 @main() {\nentry:\n  %pgy.subject.0 = alloca %");
+    output = Concat(output, type_name);
+    output = Concat(output, "\n  %pgy.subject.field.0 = getelementptr inbounds %");
+    output = Concat(output, type_name);
+    output = Concat(output, ", ptr %pgy.subject.0, i32 0, i32 0\n  store i32 ");
+    output = Concat(
+        output, ToString(plan.admission.program.graph.literal_value)
+    );
+    output = Concat(output, ", ptr %pgy.subject.field.0\n  %pgy.member.0 = load i32, ptr %pgy.subject.field.0\n  %pgy.print = sext i32 %pgy.member.0 to i64\n  %pgy.logged = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.int.line.format, i64 %pgy.print)\n  ret i32 0\n}\n");
+    return output;
+}

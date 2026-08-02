@@ -1,5 +1,5 @@
 // Target-neutral value plan from one sealed passive nominal admission.
-import "direct_mir_passive_nominal_literal_program_admission_owner.pgy";
+import "direct_mir_nominal_literal_program_admission_owner.pgy";
 import "direct_mir_closed_module_call_abi_owner.pgy";
 import "artifact_zone_owner.pgy";
 
@@ -8,7 +8,7 @@ struct DirectMirPassiveNominalLiteralPlan {
     let schema: String;
     let revision: Int;
     let digest: Int;
-    let admission: DirectMirPassiveNominalLiteralProgramAdmission;
+    let admission: DirectMirNominalLiteralProgramAdmission;
     let abi_provenance: String;
     let abi_evidence_id: Int;
     let representation: String;
@@ -50,7 +50,12 @@ func DirectMirPassiveNominalLiteralPlanReady(
         plan.schema == DirectMirPassiveNominalLiteralPlanSchema() &&
         plan.revision == CompilerArtifactPlanRevision() && plan.digest != 0 &&
         plan.digest == DirectMirPassiveNominalLiteralPlanDigest(plan) &&
-        DirectMirPassiveNominalLiteralProgramAdmissionReady(plan.admission) &&
+        DirectMirNominalLiteralProgramAdmissionReady(plan.admission) &&
+        plan.admission.program.declaration.receiver_carriage ==
+            CallableReceiverCarriageValue() &&
+        CallableReceiverNominalKindUsesValue(
+            plan.admission.program.declaration.kind
+        ) &&
         plan.abi_provenance ==
             DirectMirPassiveNominalLiteralAbiProvenance() &&
         plan.abi_evidence_id > 0 && plan.abi_evidence_id ==
@@ -62,14 +67,17 @@ func DirectMirPassiveNominalLiteralPlanReady(
         DirectMirClosedModuleCallAbiFactReady(plan.call_abi);
 }
 
-func DirectMirPassiveNominalLiteralPlanFromAdmitted(
-    ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref route: DirectMirPassiveNominalLiteralRouteFact
+func DirectMirPassiveNominalLiteralPlanFromAdmission(
+    ref admission: DirectMirNominalLiteralProgramAdmission
 ) -> DirectMirPassiveNominalLiteralPlan {
-    let admission: DirectMirPassiveNominalLiteralProgramAdmission =
-        DirectMirPassiveNominalLiteralProgramAdmissionFromAdmitted(
-            admitted, route
-        );
+    if !DirectMirNominalLiteralProgramAdmissionReady(admission) ||
+        admission.program.declaration.receiver_carriage !=
+            CallableReceiverCarriageValue() ||
+        !CallableReceiverNominalKindUsesValue(
+            admission.program.declaration.kind
+        ) {
+        Die("direct MIR passive nominal literal value admission is invalid");
+    }
     let call_abi: DirectMirClosedModuleCallAbiFact =
         DirectMirClosedModuleCallAbiFactFromOwner();
     let plan: DirectMirPassiveNominalLiteralPlan =

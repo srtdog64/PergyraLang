@@ -1,6 +1,6 @@
-// One sealed routing claim for the passive/identity nominal literal frontier.
-import "direct_mir_passive_nominal_declaration_fact_owner.pgy";
-struct DirectMirPassiveNominalLiteralRouteFact {
+// One sealed routing claim for the value/identity nominal literal frontier.
+import "direct_mir_nominal_literal_declaration_fact_owner.pgy";
+struct DirectMirNominalLiteralRouteFact {
     let valid: Bool;
     let digest: Int;
     let claimed: Bool;
@@ -8,12 +8,11 @@ struct DirectMirPassiveNominalLiteralRouteFact {
     let nominal_kind: String;
     let name: String;
 }
-func DirectMirPassiveNominalLiteralRouteKind(kind: String) -> Bool {
-    return DirectMirPassiveNominalKindReady(kind) || kind == "subject" ||
-        kind == "vessel";
+func DirectMirNominalLiteralRouteKind(kind: String) -> Bool {
+    return DirectMirNominalLiteralFrontierKindReady(kind);
 }
-func DirectMirPassiveNominalLiteralRouteFactDigest(
-    ref fact: DirectMirPassiveNominalLiteralRouteFact
+func DirectMirNominalLiteralRouteFactDigest(
+    ref fact: DirectMirNominalLiteralRouteFact
 ) -> Int {
     if !fact.valid { return 0; }
     let hash: Long = DirectMirCfgHashInt(541L, 0);
@@ -23,23 +22,28 @@ func DirectMirPassiveNominalLiteralRouteFactDigest(
     hash = DirectMirCfgHashString(hash, fact.name);
     return DirectMirCfgBoundedDigest(hash);
 }
-func DirectMirPassiveNominalLiteralRouteFactReady(
-    ref fact: DirectMirPassiveNominalLiteralRouteFact
+func DirectMirNominalLiteralRouteFactReady(
+    ref fact: DirectMirNominalLiteralRouteFact
 ) -> Bool {
     if !fact.valid || fact.digest == 0 || fact.digest !=
-        DirectMirPassiveNominalLiteralRouteFactDigest(fact) {
+        DirectMirNominalLiteralRouteFactDigest(fact) {
         return false;
     }
     if !fact.claimed {
         return fact.kind == "" && fact.nominal_kind == "" && fact.name == "";
     }
-    return (DirectMirPassiveNominalLiteralRouteKind(fact.kind) ||
-            DirectMirPassiveNominalLiteralRouteKind(fact.nominal_kind)) &&
-        fact.name != "";
+    return DirectMirNominalLiteralRouteKind(fact.kind) &&
+        fact.kind == fact.nominal_kind && fact.name != "";
 }
-func DirectMirPassiveNominalLiteralRouteFactFromAdmitted(
+func DirectMirNominalLiteralRouteUsesMutableIdentity(
+    ref fact: DirectMirNominalLiteralRouteFact
+) -> Bool {
+    return DirectMirNominalLiteralRouteFactReady(fact) && fact.claimed &&
+        CallableReceiverNominalKindUsesMutableIdentity(fact.kind);
+}
+func DirectMirNominalLiteralRouteFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput
-) -> DirectMirPassiveNominalLiteralRouteFact {
+) -> DirectMirNominalLiteralRouteFact {
     let rows: JsonArrayObjectFactTable = admitted.document.declarations;
     let kind: String = "";
     let nominal_kind: String = "";
@@ -61,22 +65,22 @@ func DirectMirPassiveNominalLiteralRouteFactFromAdmitted(
         if IsSome(name_fact) { name = UnwrapOption(name_fact); }
     }
     let claimed: Bool = name != "" &&
-        (DirectMirPassiveNominalLiteralRouteKind(kind) ||
-         DirectMirPassiveNominalLiteralRouteKind(nominal_kind));
+        (DirectMirNominalLiteralRouteKind(kind) ||
+         DirectMirNominalLiteralRouteKind(nominal_kind));
     if !claimed {
         kind = "";
         nominal_kind = "";
         name = "";
     }
-    let fact: DirectMirPassiveNominalLiteralRouteFact =
-        DirectMirPassiveNominalLiteralRouteFact(
+    let fact: DirectMirNominalLiteralRouteFact =
+        DirectMirNominalLiteralRouteFact(
             true, 0, claimed, kind, nominal_kind, name);
-    let verified: DirectMirPassiveNominalLiteralRouteFact =
-        DirectMirPassiveNominalLiteralRouteFact(
-            fact.valid, DirectMirPassiveNominalLiteralRouteFactDigest(fact),
+    let verified: DirectMirNominalLiteralRouteFact =
+        DirectMirNominalLiteralRouteFact(
+            fact.valid, DirectMirNominalLiteralRouteFactDigest(fact),
             fact.claimed, fact.kind, fact.nominal_kind, fact.name);
-    if !DirectMirPassiveNominalLiteralRouteFactReady(verified) {
-        Die("direct MIR passive nominal literal route fact is invalid");
+    if !DirectMirNominalLiteralRouteFactReady(verified) {
+        Die("direct MIR nominal literal route fact is invalid");
     }
     return verified;
 }

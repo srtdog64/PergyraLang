@@ -1,20 +1,20 @@
-// Program envelope and joined declaration/routine/graph identity.
-import "direct_mir_passive_nominal_literal_graph_fact_owner.pgy";
-import "direct_mir_passive_nominal_literal_route_fact_owner.pgy";
+// Shared program envelope and joined declaration/routine/graph identity.
+import "direct_mir_nominal_literal_graph_fact_owner.pgy";
+import "direct_mir_nominal_literal_route_fact_owner.pgy";
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_scalar_graph_admission_owner.pgy";
 import "direct_mir_exact_json_array_cardinality_owner.pgy";
 
-struct DirectMirPassiveNominalLiteralProgramFact {
+struct DirectMirNominalLiteralProgramFact {
     let valid: Bool;
     let digest: Int;
-    let declaration: DirectMirPassiveNominalDeclarationFact;
+    let declaration: DirectMirNominalLiteralDeclarationFact;
     let entrypoint: DirectMirRoutineSignatureFact;
-    let graph: DirectMirPassiveNominalLiteralGraphFact;
+    let graph: DirectMirNominalLiteralGraphFact;
 }
 
-func DirectMirPassiveNominalLiteralProgramFactDigest(
-    ref fact: DirectMirPassiveNominalLiteralProgramFact
+func DirectMirNominalLiteralProgramFactDigest(
+    ref fact: DirectMirNominalLiteralProgramFact
 ) -> Int {
     if !fact.valid { return 0; }
     let hash: Long = DirectMirCfgHashInt(563L, fact.declaration.digest);
@@ -23,14 +23,14 @@ func DirectMirPassiveNominalLiteralProgramFactDigest(
     return DirectMirCfgBoundedDigest(hash);
 }
 
-func DirectMirPassiveNominalLiteralProgramFactReady(
-    ref fact: DirectMirPassiveNominalLiteralProgramFact
+func DirectMirNominalLiteralProgramFactReady(
+    ref fact: DirectMirNominalLiteralProgramFact
 ) -> Bool {
     return fact.valid && fact.digest != 0 && fact.digest ==
-        DirectMirPassiveNominalLiteralProgramFactDigest(fact) &&
-        DirectMirPassiveNominalDeclarationFactReady(fact.declaration) &&
+        DirectMirNominalLiteralProgramFactDigest(fact) &&
+        DirectMirNominalLiteralDeclarationFactReady(fact.declaration) &&
         DirectMirRoutineSignatureFactReady(fact.entrypoint) &&
-        DirectMirPassiveNominalLiteralGraphFactReady(fact.graph) &&
+        DirectMirNominalLiteralGraphFactReady(fact.graph) &&
         fact.entrypoint.name == "Main" &&
         fact.entrypoint.return_type == "Void" &&
         fact.entrypoint.param_count == 0 &&
@@ -41,7 +41,7 @@ func DirectMirPassiveNominalLiteralProgramFactReady(
             fact.declaration.field_source_syntax_id;
 }
 
-func DirectMirPassiveNominalLiteralGraphAt(
+func DirectMirNominalLiteralGraphAt(
     ref admitted: MirMachineLayerAdmittedJsonInput, global_row: Int
 ) -> MirExpressionGraphSequence {
     let expression: MirProgramInstructionExpressionFact =
@@ -52,17 +52,17 @@ func DirectMirPassiveNominalLiteralGraphAt(
         admitted.routines.source_json, expression, 0
     );
     if !expression.valid || !graph.valid {
-        Die("direct MIR passive nominal literal expression graph is missing");
+        Die("direct MIR nominal literal expression graph is missing");
     }
     return MirExpressionGraphSequenceAppend(
         MirExpressionGraphSequenceEmpty(), graph
     );
 }
 
-func DirectMirPassiveNominalLiteralProgramFactFromAdmitted(
+func DirectMirNominalLiteralProgramFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref route: DirectMirPassiveNominalLiteralRouteFact
-) -> DirectMirPassiveNominalLiteralProgramFact {
+    ref route: DirectMirNominalLiteralRouteFact
+) -> DirectMirNominalLiteralProgramFact {
     let specializations: JsonArrayObjectFactTable =
         JsonObjectFactArrayObjectTable(
             admitted.document.root, "generic_method_specializations"
@@ -76,7 +76,7 @@ func DirectMirPassiveNominalLiteralProgramFactFromAdmitted(
     if !admitted.document.valid || admitted.domain_topology_plan.present ||
         admitted.document.routines.json != admitted.routines.source_json ||
         JsonObjectFactCount(admitted.document.root) != 5 ||
-        !DirectMirPassiveNominalLiteralRouteFactReady(route) ||
+        !DirectMirNominalLiteralRouteFactReady(route) ||
         !route.claimed || MirProgramRoutineIndexCount(admitted.routines) != 1 ||
         !DirectMirExactObjectArrayCount(admitted.document.declarations, 1) ||
         !DirectMirExactObjectArrayCount(
@@ -94,10 +94,10 @@ func DirectMirPassiveNominalLiteralProgramFactFromAdmitted(
         admitted.routines.names[0] != "Main" ||
         !JsonObjectFactTableReady(routine) ||
         !DirectMirRoutineHasNoUnsupportedFacts(routine) {
-        Die("direct MIR passive nominal literal program envelope is invalid");
+        Die("direct MIR nominal literal program envelope is invalid");
     }
-    let declaration: DirectMirPassiveNominalDeclarationFact =
-        DirectMirPassiveNominalDeclarationFactFromIndex(
+    let declaration: DirectMirNominalLiteralDeclarationFact =
+        DirectMirNominalLiteralDeclarationFactFromIndex(
             admitted.routines.source_json, declarations
         );
     let entrypoint: DirectMirRoutineSignatureFact =
@@ -108,31 +108,31 @@ func DirectMirPassiveNominalLiteralProgramFactFromAdmitted(
     let second: Int = MirProgramRoutineIndexGlobalInstructionRow(
         admitted.routines, 0, 0, 1
     );
-    if !DirectMirPassiveNominalDeclarationFactReady(declaration) ||
+    if !DirectMirNominalLiteralDeclarationFactReady(declaration) ||
         declaration.kind != route.kind || route.kind != route.nominal_kind ||
         declaration.name != route.name ||
         !DirectMirRoutineSignatureFactReady(entrypoint) || first < 0 || second < 0 {
-        Die("direct MIR passive nominal literal program identity is invalid");
+        Die("direct MIR nominal literal program identity is invalid");
     }
     let constructor: MirExpressionGraphSequence =
-        DirectMirPassiveNominalLiteralGraphAt(admitted, first);
+        DirectMirNominalLiteralGraphAt(admitted, first);
     let field_read: MirExpressionGraphSequence =
-        DirectMirPassiveNominalLiteralGraphAt(admitted, second);
-    let graph: DirectMirPassiveNominalLiteralGraphFact =
-        DirectMirPassiveNominalLiteralGraphFactFromSequences(
+        DirectMirNominalLiteralGraphAt(admitted, second);
+    let graph: DirectMirNominalLiteralGraphFact =
+        DirectMirNominalLiteralGraphFactFromSequences(
             declaration, constructor, field_read
         );
-    let fact: DirectMirPassiveNominalLiteralProgramFact =
-        DirectMirPassiveNominalLiteralProgramFact(
+    let fact: DirectMirNominalLiteralProgramFact =
+        DirectMirNominalLiteralProgramFact(
             true, 0, declaration, entrypoint, graph
         );
-    let verified: DirectMirPassiveNominalLiteralProgramFact =
-        DirectMirPassiveNominalLiteralProgramFact(
-            fact.valid, DirectMirPassiveNominalLiteralProgramFactDigest(fact),
+    let verified: DirectMirNominalLiteralProgramFact =
+        DirectMirNominalLiteralProgramFact(
+            fact.valid, DirectMirNominalLiteralProgramFactDigest(fact),
             fact.declaration, fact.entrypoint, fact.graph
         );
-    if !DirectMirPassiveNominalLiteralProgramFactReady(verified) {
-        Die("direct MIR passive nominal literal identity is invalid");
+    if !DirectMirNominalLiteralProgramFactReady(verified) {
+        Die("direct MIR nominal literal identity is invalid");
     }
     return verified;
 }

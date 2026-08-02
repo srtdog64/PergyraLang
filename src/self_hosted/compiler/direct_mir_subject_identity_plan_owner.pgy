@@ -1,0 +1,133 @@
+// Target-neutral stable mutable identity plan from one shared nominal admission.
+import "direct_mir_nominal_literal_program_admission_owner.pgy";
+import "direct_mir_closed_module_call_abi_owner.pgy";
+import "artifact_zone_owner.pgy";
+
+struct DirectMirSubjectIdentityPlan {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let digest: Int;
+    let admission: DirectMirNominalLiteralProgramAdmission;
+    let abi_provenance: String;
+    let abi_evidence_id: Int;
+    let identity_evidence_id: Int;
+    let representation: String;
+    let receiver_carriage: String;
+    let storage_lifetime: String;
+    let storage_count: Int;
+    let stable_pointer_count: Int;
+    let pointer_stable: Bool;
+    let pointee_mutable: Bool;
+    let member_write_via_pointer: Bool;
+    let member_read_via_pointer: Bool;
+    let call_abi: DirectMirClosedModuleCallAbiFact;
+}
+
+func DirectMirSubjectIdentityPlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-subject-identity-plan.v1";
+}
+
+func DirectMirSubjectIdentityAbiProvenance() -> String {
+    return "typed_nominal_physical_abi_absent_compiler_private_identity";
+}
+
+func DirectMirSubjectIdentityPlanDigest(
+    ref plan: DirectMirSubjectIdentityPlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(587L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashInt(hash, plan.admission.digest);
+    hash = DirectMirCfgHashString(hash, plan.abi_provenance);
+    hash = DirectMirCfgHashInt(hash, plan.abi_evidence_id);
+    hash = DirectMirCfgHashInt(hash, plan.identity_evidence_id);
+    hash = DirectMirCfgHashString(hash, plan.representation);
+    hash = DirectMirCfgHashString(hash, plan.receiver_carriage);
+    hash = DirectMirCfgHashString(hash, plan.storage_lifetime);
+    hash = DirectMirCfgHashInt(hash, plan.storage_count);
+    hash = DirectMirCfgHashInt(hash, plan.stable_pointer_count);
+    if plan.pointer_stable { hash = DirectMirCfgHashInt(hash, 1); }
+    if plan.pointee_mutable { hash = DirectMirCfgHashInt(hash, 1); }
+    if plan.member_write_via_pointer {
+        hash = DirectMirCfgHashInt(hash, 1);
+    }
+    if plan.member_read_via_pointer {
+        hash = DirectMirCfgHashInt(hash, 1);
+    }
+    hash = DirectMirCfgHashInt(
+        hash, plan.call_abi.target_capability_fingerprint
+    );
+    hash = DirectMirCfgHashString(hash, plan.call_abi.scope);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirSubjectIdentityPlanReady(
+    ref plan: DirectMirSubjectIdentityPlan
+) -> Bool {
+    return plan.valid && plan.schema == DirectMirSubjectIdentityPlanSchema() &&
+        plan.revision == CompilerArtifactPlanRevision() && plan.digest != 0 &&
+        plan.digest == DirectMirSubjectIdentityPlanDigest(plan) &&
+        DirectMirNominalLiteralProgramAdmissionReady(plan.admission) &&
+        plan.admission.program.declaration.kind == "subject" &&
+        plan.admission.program.declaration.receiver_carriage ==
+            CallableReceiverCarriageMutableIdentity() &&
+        CallableReceiverNominalKindUsesMutableIdentity(
+            plan.admission.program.declaration.kind
+        ) && plan.abi_provenance ==
+            DirectMirSubjectIdentityAbiProvenance() &&
+        plan.abi_evidence_id ==
+            plan.admission.typed_nominal_abi_absence.digest &&
+        plan.identity_evidence_id > 0 && plan.identity_evidence_id ==
+            plan.admission.typed_nominal_abi_absence.result_capture_digest &&
+        plan.representation ==
+            "compiler_private_single_int_subject_identity" &&
+        plan.receiver_carriage == CallableReceiverCarriageMutableIdentity() &&
+        plan.storage_lifetime == "main_stack_stable_identity_no_escape" &&
+        plan.storage_count == 1 && plan.stable_pointer_count == 1 &&
+        plan.pointer_stable && plan.pointee_mutable &&
+        plan.member_write_via_pointer && plan.member_read_via_pointer &&
+        DirectMirClosedModuleCallAbiFactReady(plan.call_abi);
+}
+
+func DirectMirSubjectIdentityPlanFromAdmission(
+    ref admission: DirectMirNominalLiteralProgramAdmission
+) -> DirectMirSubjectIdentityPlan {
+    if !DirectMirNominalLiteralProgramAdmissionReady(admission) ||
+        admission.program.declaration.kind != "subject" ||
+        admission.program.declaration.receiver_carriage !=
+            CallableReceiverCarriageMutableIdentity() ||
+        !CallableReceiverNominalKindUsesMutableIdentity(
+            admission.program.declaration.kind
+        ) {
+        Die("direct MIR subject identity admission is invalid");
+    }
+    let call_abi: DirectMirClosedModuleCallAbiFact =
+        DirectMirClosedModuleCallAbiFactFromOwner();
+    let plan: DirectMirSubjectIdentityPlan = DirectMirSubjectIdentityPlan(
+        true, DirectMirSubjectIdentityPlanSchema(),
+        CompilerArtifactPlanRevision(), 0, admission,
+        DirectMirSubjectIdentityAbiProvenance(),
+        admission.typed_nominal_abi_absence.digest,
+        admission.typed_nominal_abi_absence.result_capture_digest,
+        "compiler_private_single_int_subject_identity",
+        CallableReceiverCarriageMutableIdentity(),
+        "main_stack_stable_identity_no_escape", 1, 1,
+        true, true, true, true, call_abi
+    );
+    let verified: DirectMirSubjectIdentityPlan = DirectMirSubjectIdentityPlan(
+        plan.valid, plan.schema, plan.revision,
+        DirectMirSubjectIdentityPlanDigest(plan), plan.admission,
+        plan.abi_provenance, plan.abi_evidence_id,
+        plan.identity_evidence_id, plan.representation,
+        plan.receiver_carriage, plan.storage_lifetime,
+        plan.storage_count, plan.stable_pointer_count,
+        plan.pointer_stable, plan.pointee_mutable,
+        plan.member_write_via_pointer, plan.member_read_via_pointer,
+        plan.call_abi
+    );
+    if !DirectMirSubjectIdentityPlanReady(verified) {
+        Die("direct MIR subject identity plan is invalid");
+    }
+    return verified;
+}

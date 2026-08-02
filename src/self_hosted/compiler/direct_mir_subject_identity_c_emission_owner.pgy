@@ -1,0 +1,53 @@
+// C syntax for one stable mutable subject identity plan.
+import "direct_mir_subject_identity_target_projection_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "symbol_table_owner.pgy";
+
+func DirectMirSubjectIdentityEmitC(
+    ref plan: DirectMirSubjectIdentityPlan,
+    ref projection: DirectMirSubjectIdentityTargetProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirSubjectIdentityPlanReady(plan) ||
+        !DirectMirSubjectIdentityTargetProjectionReadyFor(
+            projection, CompilerTargetCpuCProjection()
+        ) || !formatted_print.ok || formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" {
+        Die("direct MIR subject identity C projection facts are invalid");
+    }
+    let type_name: String = CompilerSymbolCIdentifier(
+        plan.admission.program.declaration.name
+    );
+    let field_name: String = CompilerSymbolCIdentifier(
+        plan.admission.program.declaration.field_name
+    );
+    if type_name == "" || field_name == "" {
+        Die("direct MIR subject identity C symbols are invalid");
+    }
+    let output: String = "#include <stdint.h>\n#include <stdio.h>\n\n";
+    output = Concat(output, "typedef struct {\n    int32_t ");
+    output = Concat(output, field_name);
+    output = Concat(output, ";\n} ");
+    output = Concat(output, type_name);
+    output = Concat(output, ";\n\nint main(void) {\n    ");
+    output = Concat(output, type_name);
+    output = Concat(output, " _pgy_subject_storage_0;\n    ");
+    output = Concat(output, type_name);
+    output = Concat(output, " *const _pgy_subject_0 = &_pgy_subject_storage_0;\n    _pgy_subject_0->");
+    output = Concat(output, field_name);
+    output = Concat(output, " = ");
+    output = Concat(
+        output, ToString(plan.admission.program.graph.literal_value)
+    );
+    output = Concat(output, ";\n    int32_t _pgy_member_0 = _pgy_subject_0->");
+    output = Concat(output, field_name);
+    output = Concat(output, ";\n    ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (long long)_pgy_member_0);");
+    output = Concat(output, "\n    return 0;\n}\n");
+    return output;
+}

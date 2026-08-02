@@ -57,6 +57,7 @@ cmp -s "$WORK_DIR/real.expected" "$WORK_DIR/real-program.out" ||
     fail "installed self-host C artifact produced the wrong Option nominal binary"
 
 for member_case in "$FIXTURE_DIR/generic_member_inferred_flow.pgy|member|41" "$FIXTURE_DIR/nominal_tobject.pgy|passive-nominal|12" \
+    "$FIXTURE_DIR/nominal_subject.pgy|subject|7" \
     "$FIXTURE_DIR/generic_vessel_member_inferred_flow.pgy|vessel-member|42" \
     "$FIXTURE_DIR/generic_member_constructed_return_flow.pgy|constructed-member|43" \
     "$FIXTURE_DIR/generic_member_array_return_flow.pgy|constructed-array-member|44" \
@@ -70,7 +71,6 @@ for member_case in "$FIXTURE_DIR/generic_member_inferred_flow.pgy|member|41" "$F
     cmp -s "$WORK_DIR/$member_stem.expected" "$WORK_DIR/$member_stem-program.out" ||
         fail "installed self-host C artifact lost $member_stem flow"
 done
-
 cp "$PGY" "$WORK_DIR/counting-install/pgy$suffix"
 "$CC" -std=c11 -Wall -Wextra -Werror \
     "$ROOT_DIR/tests/self_hosted/parity/fixture/counting_self_host_c_driver.c" \
