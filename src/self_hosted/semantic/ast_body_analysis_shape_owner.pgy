@@ -135,6 +135,7 @@ func SemanticAstRoleRowsAdmittedReady(
         row = row + 1;
     }
     if method_start != ArrayLength(facts.method_node_ids) ||
+        method_start != ArrayLength(facts.method_ability_names) ||
         impl_start != ArrayLength(facts.impl_ability_names) {
         return false;
     }

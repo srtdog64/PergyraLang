@@ -1,0 +1,312 @@
+// Exact semantic resolution of one role-backed scalar operator node.
+
+import "role_operator_vocabulary_owner.pgy";
+import "ast_role_fact_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+import "ast_expression_graph_scalar_type_owner.pgy";
+
+struct SemanticRoleOperatorSignatureShape {
+    ok: Bool;
+    rhs_type_name: String;
+    return_type_name: String;
+}
+
+struct SemanticRoleOperatorResolution {
+    ok: Bool;
+    applies: Bool;
+    target_name: String;
+    result_type_name: String;
+    left_type_name: String;
+    right_type_name: String;
+}
+
+func SemanticExpressionGraphRoleOperatorTargetsReady(
+    ref graph: SemanticExpressionGraphFacts,
+    require_result_type: Bool
+) -> Bool {
+    if !graph.ok || !SemanticExpressionGraphArenaReady(graph.arena) {
+        return false;
+    }
+    let node_id: Int = 0;
+    while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        let target_kind: Int = graph.arena.call_target_kinds[node_id];
+        if target_kind == SemanticCallTargetRoleOperator() {
+            let identity: SemanticRoleOperatorTargetIdentity =
+                SemanticRoleOperatorTargetIdentityFromName(
+                    graph.arena.call_target_names[node_id]
+                );
+            if !identity.ok || !SemanticRoleOperatorKindSupported(
+                graph.arena.topology.node_kinds[node_id]
+            ) || (require_result_type &&
+                graph.arena.call_return_type_names[node_id] == "") {
+                return false;
+            }
+        }
+        node_id = node_id + 1;
+    }
+    return true;
+}
+
+func SemanticRoleOperatorSignatureShapeAt(
+    signatures: SemanticAstFunctionSignatureFacts,
+    signature_index: Int
+) -> SemanticRoleOperatorSignatureShape {
+    let param_count: Option<Int> = SemanticAstFunctionParamCountAt(
+        signatures, signature_index
+    );
+    let return_type: Option<String> = SemanticAstFunctionReturnTypeAt(
+        signatures, signature_index
+    );
+    if !IsSome(param_count) || !IsSome(return_type) ||
+        UnwrapOption(return_type) == "" {
+        return SemanticRoleOperatorSignatureShape(false, "", "");
+    }
+    let self_count: Int = 0;
+    let rhs_count: Int = 0;
+    let rhs_type: String = "";
+    let i: Int = 0;
+    while i < UnwrapOption(param_count) {
+        let name: Option<String> = SemanticAstFunctionParamNameAt(
+            signatures, signature_index, i
+        );
+        let type_name: Option<String> = SemanticAstFunctionParamTypeAt(
+            signatures, signature_index, i
+        );
+        if !IsSome(name) || !IsSome(type_name) {
+            return SemanticRoleOperatorSignatureShape(false, "", "");
+        }
+        if UnwrapOption(name) == "self" {
+            self_count = self_count + 1;
+        } else {
+            rhs_count = rhs_count + 1;
+            rhs_type = UnwrapOption(type_name);
+        }
+        i = i + 1;
+    }
+    if self_count != 1 || rhs_count != 1 || rhs_type == "" {
+        return SemanticRoleOperatorSignatureShape(false, "", "");
+    }
+    return SemanticRoleOperatorSignatureShape(
+        true, rhs_type, UnwrapOption(return_type)
+    );
+}
+
+func SemanticRoleOperatorAbilitySignatureIndex(
+    roles: SemanticAstRoleFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    ability_name: String,
+    method_name: String
+) -> Option<Int> {
+    let ability_index: Option<Int> = SemanticAstAbilityIndexForName(
+        roles, ability_name
+    );
+    if !IsSome(ability_index) { return None; }
+    let method_count: Option<Int> = SemanticAstAbilityMethodCountAt(
+        roles, UnwrapOption(ability_index)
+    );
+    if !IsSome(method_count) { return None; }
+    let found: Int = -1;
+    let i: Int = 0;
+    while i < UnwrapOption(method_count) {
+        let method_node: Option<Int> = SemanticAstAbilityMethodNodeAt(
+            roles, UnwrapOption(ability_index), i
+        );
+        if !IsSome(method_node) { return None; }
+        let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+            signatures, UnwrapOption(method_node)
+        );
+        if !IsSome(signature) { return None; }
+        let name: Option<String> = SemanticAstFunctionNameAt(
+            signatures, UnwrapOption(signature)
+        );
+        if !IsSome(name) { return None; }
+        if UnwrapOption(name) == method_name {
+            if found >= 0 { return None; }
+            found = UnwrapOption(signature);
+        }
+        i = i + 1;
+    }
+    if found < 0 { return None; }
+    return Some(found);
+}
+
+func SemanticRoleOperatorResolutionForNode(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    roles: SemanticAstRoleFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> SemanticRoleOperatorResolution {
+    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, node_id
+    );
+    if !IsSome(kind_opt) {
+        return SemanticRoleOperatorResolution(
+            false, false, "", "", "", ""
+        );
+    }
+    let kind: Int = UnwrapOption(kind_opt);
+    if !SemanticRoleOperatorKindSupported(kind) {
+        return SemanticRoleOperatorResolution(
+            true, false, "", "", "", ""
+        );
+    }
+    let left_node: Option<Int> = SemanticExpressionGraphLeftChild(
+        graph, node_id
+    );
+    let right_node: Option<Int> = SemanticExpressionGraphRightChild(
+        graph, node_id
+    );
+    if !IsSome(left_node) || !IsSome(right_node) {
+        return SemanticRoleOperatorResolution(
+            false, false, "", "", "", ""
+        );
+    }
+    let left_type: String = SemanticExpressionGraphScalarTypeName(
+        graph, UnwrapOption(left_node), constructors, names, types,
+        function_names, function_returns
+    );
+    let right_type: String = SemanticExpressionGraphScalarTypeName(
+        graph, UnwrapOption(right_node), constructors, names, types,
+        function_names, function_returns
+    );
+    if left_type == "" || left_type == "Unknown" || right_type == "" ||
+        right_type == "Unknown" {
+        if graph.arena.call_target_kinds[node_id] ==
+            SemanticCallTargetRoleOperator() {
+            return SemanticRoleOperatorResolution(
+                false, false, "", "", left_type, right_type
+            );
+        }
+        return SemanticRoleOperatorResolution(
+            true, false, "", "", left_type, right_type
+        );
+    }
+
+    let match_count: Int = 0;
+    let matched_target: String = "";
+    let matched_return: String = "";
+    let malformed_candidate: Bool = false;
+    let role_index: Int = 0;
+    while role_index < SemanticAstRoleCount(roles) {
+        let role_type: Option<String> = SemanticAstRoleTargetTypeAt(
+            roles, role_index
+        );
+        let role_name: Option<String> = SemanticAstRoleNameAt(
+            roles, role_index
+        );
+        if !IsSome(role_type) || !IsSome(role_name) {
+            return SemanticRoleOperatorResolution(
+                false, false, "", "", left_type, right_type
+            );
+        }
+        if UnwrapOption(role_type) == left_type {
+            let method_count: Option<Int> = SemanticAstRoleMethodCountAt(
+                roles, role_index
+            );
+            if !IsSome(method_count) {
+                return SemanticRoleOperatorResolution(
+                    false, false, "", "", left_type, right_type
+                );
+            }
+            let method_index: Int = 0;
+            while method_index < UnwrapOption(method_count) {
+                let method_node: Option<Int> = SemanticAstRoleMethodNodeAt(
+                    roles, role_index, method_index
+                );
+                let ability_name: Option<String> =
+                    SemanticAstRoleMethodAbilityNameAt(
+                        roles, role_index, method_index
+                    );
+                if !IsSome(method_node) || !IsSome(ability_name) {
+                    return SemanticRoleOperatorResolution(
+                        false, false, "", "", left_type, right_type
+                    );
+                }
+                let signature: Option<Int> =
+                    SemanticAstFunctionSignatureIndexForNode(
+                        signatures, UnwrapOption(method_node)
+                    );
+                if !IsSome(signature) {
+                    return SemanticRoleOperatorResolution(
+                        false, false, "", "", left_type, right_type
+                    );
+                }
+                let method_name: Option<String> = SemanticAstFunctionNameAt(
+                    signatures, UnwrapOption(signature)
+                );
+                let owner_name: Option<String> =
+                    SemanticAstFunctionOwnerNameAt(
+                        signatures, UnwrapOption(signature)
+                    );
+                if !IsSome(method_name) || !IsSome(owner_name) {
+                    return SemanticRoleOperatorResolution(
+                        false, false, "", "", left_type, right_type
+                    );
+                }
+                if SemanticRoleOperatorMethodNameMatches(
+                    kind, UnwrapOption(method_name)
+                ) {
+                    let role_shape: SemanticRoleOperatorSignatureShape =
+                        SemanticRoleOperatorSignatureShapeAt(
+                            signatures, UnwrapOption(signature)
+                        );
+                    let ability_signature: Option<Int> =
+                        SemanticRoleOperatorAbilitySignatureIndex(
+                            roles, signatures, UnwrapOption(ability_name),
+                            UnwrapOption(method_name)
+                        );
+                    let ability_shape: SemanticRoleOperatorSignatureShape =
+                        SemanticRoleOperatorSignatureShape(false, "", "");
+                    if IsSome(ability_signature) {
+                        ability_shape = SemanticRoleOperatorSignatureShapeAt(
+                            signatures, UnwrapOption(ability_signature)
+                        );
+                    }
+                    let target_name: String =
+                        SemanticRoleOperatorTargetName(
+                            UnwrapOption(role_name),
+                            UnwrapOption(ability_name),
+                            UnwrapOption(method_name)
+                        );
+                    if UnwrapOption(owner_name) != UnwrapOption(role_name) ||
+                        !SemanticAstRoleImplementsAbility(
+                            roles, UnwrapOption(role_name),
+                            UnwrapOption(ability_name)
+                        ) || !role_shape.ok || !ability_shape.ok ||
+                        role_shape.rhs_type_name != right_type ||
+                        ability_shape.rhs_type_name !=
+                            role_shape.rhs_type_name ||
+                        ability_shape.return_type_name !=
+                            role_shape.return_type_name || target_name == "" {
+                        malformed_candidate = true;
+                    } else {
+                        match_count = match_count + 1;
+                        matched_target = target_name;
+                        matched_return = role_shape.return_type_name;
+                    }
+                }
+                method_index = method_index + 1;
+            }
+        }
+        role_index = role_index + 1;
+    }
+    if malformed_candidate || match_count > 1 {
+        return SemanticRoleOperatorResolution(
+            false, false, "", "", left_type, right_type
+        );
+    }
+    if match_count == 0 {
+        return SemanticRoleOperatorResolution(
+            true, false, "", "", left_type, right_type
+        );
+    }
+    return SemanticRoleOperatorResolution(
+        true, true, matched_target, matched_return,
+        left_type, right_type
+    );
+}

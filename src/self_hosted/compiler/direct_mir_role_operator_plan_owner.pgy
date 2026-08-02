@@ -1,0 +1,517 @@
+// Target-neutral execution plan for one role-backed scalar operator call.
+
+import "artifact_zone_owner.pgy";
+import "target_capability_owner.pgy";
+import "direct_mir_role_operator_declaration_fact_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "abi_layout_row_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+import "../mir_lower/routine_result_definition_fact_owner.pgy";
+
+struct DirectMirRoleOperatorPlan {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let digest: Int;
+    let target_capability_schema: String;
+    let target_capability_fingerprint: Int;
+    let declaration: DirectMirRoleOperatorDeclarationFact;
+    let entrypoint_row: Int;
+    let method_row: Int;
+    let method_source_syntax_id: Int;
+    let receiver_carriage: String;
+    let operator_kind: Int;
+    let target_name: String;
+    let lhs_name: String;
+    let lhs_result: String;
+    let lhs_literal: Int;
+    let rhs_name: String;
+    let rhs_result: String;
+    let rhs_literal: Int;
+    let method_return_literal: Int;
+}
+
+func DirectMirRoleOperatorPlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-role-operator-plan.v1";
+}
+
+func DirectMirRoleOperatorProgramCandidate(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    let declarations: MirProgramDeclarationIndex =
+        admitted.routines.declarations;
+    if !declarations.valid || MirProgramRoutineIndexCount(
+        admitted.routines
+    ) != 2 {
+        return false;
+    }
+    let row: Int = 0;
+    while row < MirProgramDeclarationIndexCount(declarations) {
+        if declarations.kinds[row] == "role" ||
+            declarations.nominal_kinds[row] == "role" {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirRoleOperatorRoutineEnvelopeReady(
+    ref routine: JsonObjectFactTable
+) -> Bool {
+    return DirectMirObjectArrayEmpty(routine, "generics") &&
+        !JsonObjectFactHasField(
+            routine, "function_param_flow_summary_count"
+        ) && !JsonObjectFactHasField(
+            routine, "function_param_flow_summaries"
+        ) && DirectMirObjectArrayEmpty(routine, "resource_flow_symbols") &&
+        DirectMirObjectArrayEmpty(routine, "loop_flow_summaries") &&
+        DirectMirObjectArrayEmpty(routine, "loop_flow_states") &&
+        DirectMirObjectArrayEmpty(routine, "iteration_type_facts") &&
+        DirectMirObjectArrayEmpty(routine, "destructure_type_facts") &&
+        DirectMirObjectNumberEquals(
+            routine, "resource_flow_symbol_count", "0"
+        ) && DirectMirObjectNumberEquals(
+            routine, "loop_flow_summary_count", "0"
+        ) && DirectMirObjectNumberEquals(
+            routine, "loop_flow_state_count", "0"
+        ) && DirectMirObjectNumberEquals(
+            routine, "iteration_type_fact_count", "0"
+        ) && DirectMirObjectNumberEquals(
+            routine, "destructure_type_fact_count", "0"
+        );
+}
+
+func DirectMirRoleOperatorParamReady(
+    ref param: JsonObjectFactTable,
+    expected_name: String,
+    expected_type: String,
+    type_is_null: Bool
+) -> Bool {
+    let name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        param.json, param.start, param.end, "name"
+    );
+    let type_name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        param.json, param.start, param.end, "type"
+    );
+    let abi_type: Option<String> = MirObjectUniqueStringFactAtBounds(
+        param.json, param.start, param.end, "abi_type_name"
+    );
+    return JsonObjectFactTableReady(param) &&
+        JsonObjectFactCount(param) == 9 && IsSome(name) &&
+        UnwrapOption(name) == expected_name &&
+        ((type_is_null &&
+            DirectMirObjectFieldKindEquals(param, "type", "null") &&
+            DirectMirObjectFieldKindEquals(
+                param, "abi_type_name", "null"
+            )) || (!type_is_null && IsSome(type_name) && IsSome(abi_type) &&
+            UnwrapOption(type_name) == expected_type &&
+            UnwrapOption(abi_type) == expected_type)) &&
+        JsonObjectFactStringFieldEquals(param, "carriage", "value") &&
+        JsonObjectFactStringFieldEquals(param, "resource", "none") &&
+        JsonObjectFactStringFieldEquals(param, "pass", "direct") &&
+        DirectMirObjectNumberEquals(param, "abi_layout_id", "0") &&
+        JsonObjectBoolFieldEqualsWithin(
+            param.json, param.start, param.end,
+            "abi_layout_required", false
+        ) && DirectMirObjectFieldKindEquals(param, "abi_layout", "null");
+}
+
+func DirectMirRoleOperatorMethodRoutineReady(
+    ref routines: MirProgramRoutineIndex,
+    row: Int,
+    ref declaration: DirectMirRoleOperatorDeclarationFact
+) -> Bool {
+    if !MirProgramRoutineIndexRowReady(routines, row) ||
+        routines.kinds[row] != "method" ||
+        routines.owners[row] != declaration.role_name ||
+        routines.names[row] != declaration.method_name ||
+        routines.receiver_carriages[row] != "mutable-identity" ||
+        routines.owner_declaration_rows[row] != declaration.role_row ||
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            routines, row, 0
+        ) != 1 {
+        return false;
+    }
+    let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        routines.source_json, routines.starts[row], routines.ends[row]
+    );
+    let return_type: Option<String> = MirObjectUniqueStringFactAtBounds(
+        routine.json, routine.start, routine.end, "return"
+    );
+    let params: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(routine, "params");
+    if !DirectMirRoleOperatorRoutineEnvelopeReady(routine) ||
+        !IsSome(return_type) ||
+        UnwrapOption(return_type) != declaration.return_type ||
+        !DirectMirExactObjectArrayCount(params, 2) {
+        return false;
+    }
+    let receiver_param: JsonObjectFactTable =
+        JsonArrayObjectFactAt(params, 0);
+    let rhs_param: JsonObjectFactTable = JsonArrayObjectFactAt(params, 1);
+    return DirectMirRoleOperatorParamReady(
+            receiver_param, "self", "", true
+        ) && DirectMirRoleOperatorParamReady(
+            rhs_param, declaration.rhs_name, declaration.rhs_type, false
+        );
+}
+
+func DirectMirRoleOperatorPlanDigest(
+    ref plan: DirectMirRoleOperatorPlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(727L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
+    hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
+    hash = DirectMirCfgHashInt(hash, plan.declaration.digest);
+    hash = DirectMirCfgHashInt(hash, plan.method_source_syntax_id);
+    hash = DirectMirCfgHashString(hash, plan.receiver_carriage);
+    hash = DirectMirCfgHashInt(hash, plan.operator_kind);
+    hash = DirectMirCfgHashString(hash, plan.target_name);
+    hash = DirectMirCfgHashString(hash, plan.lhs_name);
+    hash = DirectMirCfgHashString(hash, plan.lhs_result);
+    hash = DirectMirCfgHashInt(hash, plan.lhs_literal);
+    hash = DirectMirCfgHashString(hash, plan.rhs_name);
+    hash = DirectMirCfgHashString(hash, plan.rhs_result);
+    hash = DirectMirCfgHashInt(hash, plan.rhs_literal);
+    hash = DirectMirCfgHashInt(hash, plan.method_return_literal);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirRoleOperatorPlanReady(
+    ref plan: DirectMirRoleOperatorPlan
+) -> Bool {
+    return plan.valid && plan.schema == DirectMirRoleOperatorPlanSchema() &&
+        plan.revision == CompilerArtifactPlanRevision() && plan.digest != 0 &&
+        plan.digest == DirectMirRoleOperatorPlanDigest(plan) &&
+        plan.target_capability_schema == CompilerTargetCapabilitySchema() &&
+        plan.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        DirectMirRoleOperatorDeclarationFactReady(plan.declaration) &&
+        plan.entrypoint_row >= 0 && plan.method_row >= 0 &&
+        plan.entrypoint_row != plan.method_row &&
+        plan.method_source_syntax_id > 0 &&
+        plan.method_source_syntax_id !=
+            plan.declaration.role_source_syntax_id &&
+        plan.receiver_carriage == "mutable-identity" &&
+        SemanticRoleOperatorKindSupported(plan.operator_kind) &&
+        SemanticRoleOperatorMethodNameMatches(
+            plan.operator_kind, plan.declaration.method_name
+        ) && plan.target_name == SemanticRoleOperatorTargetName(
+            plan.declaration.role_name, plan.declaration.ability_name,
+            plan.declaration.method_name
+        ) && plan.declaration.receiver_type ==
+            CompilerAbiLayoutIntTypeName() &&
+        plan.declaration.rhs_type == CompilerAbiLayoutIntTypeName() &&
+        plan.declaration.return_type == CompilerAbiLayoutIntTypeName() &&
+        plan.lhs_name != "" && plan.rhs_name != "" &&
+        plan.lhs_name != plan.rhs_name &&
+        MirSsaNameMatches(plan.lhs_result, plan.lhs_name, false) &&
+        MirSsaNameMatches(plan.rhs_result, plan.rhs_name, false);
+}
+
+func DirectMirRoleOperatorReturnLiteral(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref method_index: MirRoutineFactIndex,
+    ref method_uses: MirRoutineInstructionUseFacts,
+    method_row: Int,
+    expected_type: String
+) -> Int {
+    let global_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, method_row, 0, 0
+    );
+    if global_row < 0 || MirRoutineInstructionUseCountAtGlobal(
+        method_uses, global_row
+    ) != 0 {
+        Die("direct MIR role operator method return routing is invalid");
+    }
+    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[global_row],
+        admitted.routines.instruction_ends[global_row]
+    );
+    let capture: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            method_index.instruction_facts, global_row
+        );
+    if !capture.valid ||
+        !DirectMirObjectNumberEquals(instruction, "id", "0") ||
+        admitted.routines.instruction_kinds[global_row] != "return" ||
+        admitted.routines.instruction_source_types[global_row] !=
+            "AST_IDENTIFIER" || capture.name != "return" ||
+        capture.result != "" ||
+        capture.arg0 != "" || capture.arg1 != "" ||
+        capture.slot_anchor != "" || capture.abi_type_name != expected_type ||
+        !capture.abi_type_value_ready ||
+        !DirectMirObjectNumberEquals(
+            instruction, "abi_layout_id", "0"
+        ) || !JsonObjectBoolFieldEqualsWithin(
+            instruction.json, instruction.start, instruction.end,
+            "abi_layout_required", false
+        ) || !DirectMirObjectFieldKindEquals(
+            instruction, "abi_layout", "null"
+        ) || !DirectMirObjectFieldKindEquals(
+            instruction, "expr0", "string"
+        ) || !DirectMirObjectFieldKindEquals(
+            instruction, "expr1", "null"
+        ) || !DirectMirObjectFieldKindEquals(
+            instruction, "expr1_graph", "null"
+        ) || !DirectMirObjectFieldKindEquals(
+            instruction, "machine_layer", "null"
+        ) || !DirectMirObjectArrayEmpty(instruction, "match_patterns") ||
+        !DirectMirObjectArrayEmpty(instruction, "match_bindings") ||
+        !DirectMirObjectArrayEmpty(instruction, "match_binding_types") ||
+        !DirectMirObjectArrayEmpty(instruction, "destructure_bindings") {
+        Die("direct MIR role operator method return instruction is invalid");
+    }
+    let expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions, global_row
+        );
+    let graph: JsonObjectFactTable =
+        MirProgramInstructionExpressionGraphTable(
+            admitted.routines.source_json, expression, 0
+        );
+    let sequence: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceAppend(
+            MirExpressionGraphSequenceEmpty(), graph
+        );
+    if !sequence.ok || sequence.ready_node_count != 1 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 0 ||
+        sequence.arena.topology.node_kinds[0] !=
+            AstExpressionNodeIntegerLiteral() ||
+        sequence.arena.call_target_kinds[0] != SemanticCallTargetNone() ||
+        sequence.arena.call_target_names[0] != "" ||
+        ToString(ToInt(sequence.arena.node_texts[0])) !=
+            sequence.arena.node_texts[0] {
+        Die("direct MIR role operator method return graph is invalid");
+    }
+    return ToInt(sequence.arena.node_texts[0]);
+}
+
+func DirectMirRoleOperatorPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirRoleOperatorPlan {
+    let generic_specializations: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(
+            admitted.document.root, "generic_method_specializations"
+        );
+    if !DirectMirRoleOperatorProgramCandidate(admitted) ||
+        admitted.domain_topology_plan.present ||
+        JsonObjectFactCount(admitted.document.root) != 5 ||
+        !DirectMirExactObjectArrayCount(
+            admitted.document.parallel_capture_boundaries, 0
+        ) || !DirectMirExactObjectArrayCount(generic_specializations, 0) {
+        Die("direct MIR role operator program envelope is invalid");
+    }
+    let main_row: Int = -1;
+    let row: Int = 0;
+    while row < 2 {
+        if admitted.routines.kinds[row] == "function" &&
+            admitted.routines.owners[row] == "" &&
+            admitted.routines.names[row] == "Main" {
+            if main_row >= 0 {
+                Die("direct MIR role operator entrypoint is duplicated");
+            }
+            main_row = row;
+        }
+        row = row + 1;
+    }
+    if main_row < 0 || !DirectMirRoutineNoParamSignatureReady(
+        admitted.routines, main_row, "Void", 3
+    ) {
+        Die("direct MIR role operator entrypoint signature is invalid");
+    }
+    let main_routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json, admitted.routines.starts[main_row],
+        admitted.routines.ends[main_row]
+    );
+    let main_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, main_row
+    );
+    let main_uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, main_row);
+    if !DirectMirRoutineHasNoUnsupportedFacts(main_routine) ||
+        !main_index.valid || ArrayLength(main_index.block_reachable) != 1 ||
+        !main_index.block_reachable[0] ||
+        !MirRoutineFactIndexBlockIsTerminal(main_index, 0) ||
+        main_index.block_has_conditional_branch[0] != 0 ||
+        ArrayLength(main_index.source_local_names) != 2 ||
+        ArrayLength(main_index.source_local_types) != 2 ||
+        main_index.source_local_types[0] != CompilerAbiLayoutIntTypeName() ||
+        main_index.source_local_types[1] != CompilerAbiLayoutIntTypeName() ||
+        !MirRoutineInstructionUseFactsReady(main_uses, 3) {
+        Die("direct MIR role operator entrypoint facts are invalid");
+    }
+    let globals: Array<Int> = [];
+    let captures: Array<MirRoutineInstructionScalarCapture> = [];
+    row = 0;
+    while row < 3 {
+        let global_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, main_row, 0, row
+        );
+        if global_row < 0 { Die("direct MIR role operator routing is invalid"); }
+        ArrayPush(globals, global_row);
+        ArrayPush(captures, MirRoutineInstructionFactBundleAtGlobal(
+            main_index.instruction_facts, global_row
+        ));
+        row = row + 1;
+    }
+    let left_definition: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[globals[0]],
+        admitted.routines.instruction_ends[globals[0]]
+    );
+    let right_definition: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[globals[1]],
+        admitted.routines.instruction_ends[globals[1]]
+    );
+    let log_instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[globals[2]],
+        admitted.routines.instruction_ends[globals[2]]
+    );
+    let first_literal: String = DirectMirScalarDefinitionLiteral(
+        left_definition, "0", main_index.source_local_names[0],
+        captures[0].result
+    );
+    let second_literal: String = DirectMirScalarDefinitionLiteral(
+        right_definition, "1", main_index.source_local_names[1],
+        captures[1].result
+    );
+    if !DirectMirLogInstructionEnvelopeReady(log_instruction, "2") ||
+        MirRoutineInstructionUseCountAtGlobal(main_uses, globals[0]) != 0 ||
+        MirRoutineInstructionUseCountAtGlobal(main_uses, globals[1]) != 0 {
+        Die("direct MIR role operator caller instructions are invalid");
+    }
+    let log_expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions, globals[2]
+        );
+    let log_graph_table: JsonObjectFactTable =
+        MirProgramInstructionExpressionGraphTable(
+            admitted.routines.source_json, log_expression, 0
+        );
+    let log_graph: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceAppend(
+            MirExpressionGraphSequenceEmpty(), log_graph_table
+        );
+    if !log_graph.ok || log_graph.ready_node_count != 3 ||
+        ArrayLength(log_graph.roots) != 1 || log_graph.roots[0] != 2 ||
+        log_graph.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        log_graph.arena.topology.node_kinds[1] != AstExpressionNodeLeaf() ||
+        !SemanticRoleOperatorKindSupported(
+            log_graph.arena.topology.node_kinds[2]
+        ) || log_graph.arena.topology.left_children[2] != 0 ||
+        log_graph.arena.topology.right_children[2] != 1 ||
+        log_graph.arena.call_target_kinds[0] != SemanticCallTargetNone() ||
+        log_graph.arena.call_target_kinds[1] != SemanticCallTargetNone() ||
+        log_graph.arena.call_target_kinds[2] !=
+            SemanticCallTargetRoleOperator() ||
+        log_graph.arena.call_target_names[0] != "" ||
+        log_graph.arena.call_target_names[1] != "" ||
+        log_graph.arena.call_target_names[2] == "" {
+        Die("direct MIR role operator caller graph is invalid");
+    }
+    let target: SemanticRoleOperatorTargetIdentity =
+        SemanticRoleOperatorTargetIdentityFromName(
+            log_graph.arena.call_target_names[2]
+        );
+    let declaration: DirectMirRoleOperatorDeclarationFact =
+        DirectMirRoleOperatorDeclarationFactFromAdmitted(admitted, target);
+    let lhs_local_row: Int = DirectMirScalarLocalRow(
+        main_index.source_local_names, log_graph.arena.node_texts[0]
+    );
+    let rhs_local_row: Int = DirectMirScalarLocalRow(
+        main_index.source_local_names, log_graph.arena.node_texts[1]
+    );
+    if lhs_local_row < 0 || rhs_local_row < 0 ||
+        lhs_local_row == rhs_local_row || !DirectMirScalarUsesMatch(
+            main_uses, globals[2], captures[lhs_local_row].result,
+            captures[rhs_local_row].result
+        ) {
+        Die("direct MIR role operator caller use facts are invalid");
+    }
+    let method_row_opt: Option<Int> = MirProgramRoutineIndexFindMethodRow(
+        admitted.routines, declaration.role_name, declaration.method_name
+    );
+    if !IsSome(method_row_opt) {
+        Die("direct MIR role operator routine target is missing");
+    }
+    let method_row: Int = UnwrapOption(method_row_opt);
+    let method_match_count: Int = 0;
+    row = 0;
+    while row < 2 {
+        if admitted.routines.kinds[row] == "method" &&
+            admitted.routines.owners[row] == declaration.role_name &&
+            admitted.routines.names[row] == declaration.method_name {
+            method_match_count = method_match_count + 1;
+        }
+        row = row + 1;
+    }
+    if method_match_count != 1 || method_row == main_row ||
+        !DirectMirRoleOperatorMethodRoutineReady(
+            admitted.routines, method_row, declaration
+        ) {
+        Die("direct MIR role operator routine signature is invalid");
+    }
+    let method_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, method_row
+    );
+    let method_uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, method_row);
+    if !method_index.valid ||
+        ArrayLength(method_index.block_reachable) != 1 ||
+        !method_index.block_reachable[0] ||
+        !MirRoutineFactIndexBlockIsTerminal(method_index, 0) ||
+        method_index.block_has_conditional_branch[0] != 0 ||
+        ArrayLength(method_index.source_local_names) != 0 ||
+        !MirRoutineInstructionUseFactsReady(method_uses, 1) {
+        Die("direct MIR role operator method CFG facts are invalid");
+    }
+    let method_literal: Int = DirectMirRoleOperatorReturnLiteral(
+        admitted, method_index, method_uses, method_row,
+        declaration.return_type
+    );
+    let method_source: Int = ToInt(
+        admitted.routines.source_syntax_ids[method_row]
+    );
+    let lhs_literal: Int = ToInt(first_literal);
+    let rhs_literal: Int = ToInt(second_literal);
+    if lhs_local_row == 1 {
+        lhs_literal = ToInt(second_literal);
+    }
+    if rhs_local_row == 0 {
+        rhs_literal = ToInt(first_literal);
+    }
+    let plan: DirectMirRoleOperatorPlan = DirectMirRoleOperatorPlan(
+        true, DirectMirRoleOperatorPlanSchema(),
+        CompilerArtifactPlanRevision(), 0, CompilerTargetCapabilitySchema(),
+        CompilerTargetCapabilityFingerprint(), declaration, main_row,
+        method_row, method_source,
+        admitted.routines.receiver_carriages[method_row],
+        log_graph.arena.topology.node_kinds[2],
+        log_graph.arena.call_target_names[2],
+        log_graph.arena.node_texts[0], captures[lhs_local_row].result,
+        lhs_literal, log_graph.arena.node_texts[1],
+        captures[rhs_local_row].result, rhs_literal, method_literal
+    );
+    let verified: DirectMirRoleOperatorPlan = DirectMirRoleOperatorPlan(
+        plan.valid, plan.schema, plan.revision,
+        DirectMirRoleOperatorPlanDigest(plan),
+        plan.target_capability_schema, plan.target_capability_fingerprint,
+        plan.declaration, plan.entrypoint_row, plan.method_row,
+        plan.method_source_syntax_id, plan.receiver_carriage,
+        plan.operator_kind, plan.target_name, plan.lhs_name,
+        plan.lhs_result, plan.lhs_literal, plan.rhs_name,
+        plan.rhs_result, plan.rhs_literal, plan.method_return_literal
+    );
+    if !DirectMirRoleOperatorPlanReady(verified) {
+        Die("direct MIR role operator plan identity is invalid");
+    }
+    return verified;
+}

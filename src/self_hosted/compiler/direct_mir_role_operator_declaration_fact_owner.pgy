@@ -1,0 +1,283 @@
+// Exact role/ability/impl-method declaration join for direct MIR dispatch.
+
+import "direct_mir_exact_json_array_cardinality_owner.pgy";
+import "direct_mir_scalar_graph_admission_owner.pgy";
+import "../mir_lower/declaration_method_contract_fact_owner.pgy";
+import "../semantic/role_operator_vocabulary_owner.pgy";
+
+struct DirectMirRoleOperatorMethodDeclarationFact {
+    let valid: Bool;
+    let name: String;
+    let rhs_name: String;
+    let rhs_type: String;
+    let return_type: String;
+}
+
+struct DirectMirRoleOperatorDeclarationFact {
+    let valid: Bool;
+    let digest: Int;
+    let role_row: Int;
+    let ability_row: Int;
+    let erased_nominal_row: Int;
+    let role_name: String;
+    let ability_name: String;
+    let method_name: String;
+    let receiver_type: String;
+    let rhs_name: String;
+    let rhs_type: String;
+    let return_type: String;
+    let role_source_syntax_id: Int;
+    let ability_source_syntax_id: Int;
+    let erased_source_syntax_id: Int;
+}
+
+func DirectMirRoleOperatorMethodDeclarationFromTable(
+    ref method: JsonObjectFactTable,
+    expected_name: String
+) -> DirectMirRoleOperatorMethodDeclarationFact {
+    let invalid: DirectMirRoleOperatorMethodDeclarationFact =
+        DirectMirRoleOperatorMethodDeclarationFact(
+            false, "", "", "", ""
+        );
+    let name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        method.json, method.start, method.end, "name"
+    );
+    let return_type: Option<String> = MirObjectUniqueStringFactAtBounds(
+        method.json, method.start, method.end, "return"
+    );
+    let callable_kind: Option<String> = MirObjectUniqueStringFactAtBounds(
+        method.json, method.start, method.end, "callable_kind"
+    );
+    let params: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
+        method, "params"
+    );
+    let contract: MirDeclarationMethodContractFact =
+        MirDeclarationMethodContractFactFromBounds(
+            method.json, method.start, method.end
+        );
+    if !JsonObjectFactTableReady(method) ||
+        JsonObjectFactCount(method) != 5 || !IsSome(name) ||
+        UnwrapOption(name) != expected_name || !IsSome(return_type) ||
+        UnwrapOption(return_type) == "" || !IsSome(callable_kind) ||
+        UnwrapOption(callable_kind) != "function" || !contract.valid ||
+        contract.callable_kind != "function" ||
+        ArrayLength(contract.requires_bases) != 0 ||
+        contract.within_zone != "" || contract.causes_name != "" ||
+        ArrayLength(contract.authorized_by_names) != 0 ||
+        contract.caps_present || ArrayLength(contract.cap_names) != 0 ||
+        contract.effects_present || ArrayLength(contract.effect_names) != 0 ||
+        !DirectMirExactObjectArrayCount(params, 2) {
+        return invalid;
+    }
+    let receiver: JsonObjectFactTable = JsonArrayObjectFactAt(params, 0);
+    let rhs: JsonObjectFactTable = JsonArrayObjectFactAt(params, 1);
+    let receiver_name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        receiver.json, receiver.start, receiver.end, "name"
+    );
+    let rhs_name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        rhs.json, rhs.start, rhs.end, "name"
+    );
+    let rhs_type: Option<String> = MirObjectUniqueStringFactAtBounds(
+        rhs.json, rhs.start, rhs.end, "type"
+    );
+    if JsonObjectFactCount(receiver) != 2 ||
+        JsonObjectFactCount(rhs) != 2 || !IsSome(receiver_name) ||
+        UnwrapOption(receiver_name) != "self" ||
+        !DirectMirObjectFieldKindEquals(receiver, "type", "null") ||
+        !IsSome(rhs_name) || UnwrapOption(rhs_name) == "" ||
+        UnwrapOption(rhs_name) == "self" || !IsSome(rhs_type) ||
+        UnwrapOption(rhs_type) == "" {
+        return invalid;
+    }
+    return DirectMirRoleOperatorMethodDeclarationFact(
+        true, UnwrapOption(name), UnwrapOption(rhs_name),
+        UnwrapOption(rhs_type), UnwrapOption(return_type)
+    );
+}
+
+func DirectMirRoleOperatorDeclarationFactDigest(
+    ref fact: DirectMirRoleOperatorDeclarationFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(719L, fact.role_name);
+    hash = DirectMirCfgHashString(hash, fact.ability_name);
+    hash = DirectMirCfgHashString(hash, fact.method_name);
+    hash = DirectMirCfgHashString(hash, fact.receiver_type);
+    hash = DirectMirCfgHashString(hash, fact.rhs_name);
+    hash = DirectMirCfgHashString(hash, fact.rhs_type);
+    hash = DirectMirCfgHashString(hash, fact.return_type);
+    hash = DirectMirCfgHashInt(hash, fact.role_source_syntax_id);
+    hash = DirectMirCfgHashInt(hash, fact.ability_source_syntax_id);
+    hash = DirectMirCfgHashInt(hash, fact.erased_source_syntax_id);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirRoleOperatorDeclarationFactReady(
+    ref fact: DirectMirRoleOperatorDeclarationFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirRoleOperatorDeclarationFactDigest(fact) &&
+        fact.role_row >= 0 && fact.ability_row >= 0 &&
+        fact.erased_nominal_row >= 0 && fact.role_row != fact.ability_row &&
+        fact.role_row != fact.erased_nominal_row &&
+        fact.ability_row != fact.erased_nominal_row &&
+        fact.role_name != "" && fact.ability_name != "" &&
+        fact.method_name != "" && fact.receiver_type != "" &&
+        fact.rhs_name != "" && fact.rhs_name != "self" &&
+        fact.rhs_type != "" && fact.return_type != "" &&
+        fact.role_source_syntax_id > 0 &&
+        fact.ability_source_syntax_id > 0 &&
+        fact.erased_source_syntax_id > 0 &&
+        SemanticRoleOperatorTargetName(
+            fact.role_name, fact.ability_name, fact.method_name
+        ) != "";
+}
+
+func DirectMirRoleOperatorDeclarationFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    target: SemanticRoleOperatorTargetIdentity
+) -> DirectMirRoleOperatorDeclarationFact {
+    let declarations: MirProgramDeclarationIndex =
+        admitted.routines.declarations;
+    if !target.ok || !declarations.valid ||
+        MirProgramDeclarationIndexCount(declarations) != 3 ||
+        !DirectMirExactObjectArrayCount(admitted.document.declarations, 3) {
+        Die("direct MIR role operator declaration inventory is invalid");
+    }
+    let role_row: Int = -1;
+    let ability_row: Int = -1;
+    let erased_row: Int = -1;
+    let row: Int = 0;
+    while row < 3 {
+        if declarations.kinds[row] == "role" &&
+            declarations.nominal_kinds[row] == "role" &&
+            declarations.names[row] == target.role_name {
+            if role_row >= 0 { Die("direct MIR role operator role is duplicated"); }
+            role_row = row;
+        } else if declarations.kinds[row] == "ability" &&
+            declarations.nominal_kinds[row] == "ability" &&
+            declarations.names[row] == target.ability_name {
+            if ability_row >= 0 {
+                Die("direct MIR role operator ability is duplicated");
+            }
+            ability_row = row;
+        } else {
+            if erased_row >= 0 || declarations.kinds[row] != "subject" ||
+                declarations.nominal_kinds[row] != "subject" ||
+                declarations.names[row] == "" {
+                Die("direct MIR role operator erased declaration is invalid");
+            }
+            erased_row = row;
+        }
+        row = row + 1;
+    }
+    if role_row < 0 || ability_row < 0 || erased_row < 0 {
+        Die("direct MIR role operator declaration identity is incomplete");
+    }
+    let role: JsonObjectFactTable = JsonArrayObjectFactAt(
+        admitted.document.declarations, role_row
+    );
+    let ability: JsonObjectFactTable = JsonArrayObjectFactAt(
+        admitted.document.declarations, ability_row
+    );
+    let erased: JsonObjectFactTable = JsonArrayObjectFactAt(
+        admitted.document.declarations, erased_row
+    );
+    let role_source: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        role.json, role.start, role.end, "source_syntax_id"
+    );
+    let ability_source: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        ability.json, ability.start, ability.end, "source_syntax_id"
+    );
+    let erased_source: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        erased.json, erased.start, erased.end, "source_syntax_id"
+    );
+    let receiver_type: Option<String> = MirObjectUniqueStringFactAtBounds(
+        role.json, role.start, role.end, "for_type"
+    );
+    let role_methods: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(role, "methods");
+    let ability_methods: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(ability, "methods");
+    let impls: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(role, "impls");
+    if !IsSome(role_source) || !IsSome(ability_source) ||
+        !IsSome(erased_source) || !IsSome(receiver_type) ||
+        !MirProgramDeclarationFieldIdentityPositiveDecimal(
+            UnwrapOption(role_source)
+        ) || !MirProgramDeclarationFieldIdentityPositiveDecimal(
+            UnwrapOption(ability_source)
+        ) || !MirProgramDeclarationFieldIdentityPositiveDecimal(
+            UnwrapOption(erased_source)
+        ) || UnwrapOption(receiver_type) == "" ||
+        !DirectMirObjectArrayEmpty(role, "fields") ||
+        !DirectMirObjectArrayEmpty(ability, "fields") ||
+        !DirectMirObjectArrayEmpty(erased, "methods") ||
+        !DirectMirExactObjectArrayCount(role_methods, 1) ||
+        !DirectMirExactObjectArrayCount(ability_methods, 1) ||
+        !DirectMirExactObjectArrayCount(impls, 1) {
+        Die("direct MIR role operator declaration schema is invalid");
+    }
+    let role_method_row: JsonObjectFactTable =
+        JsonArrayObjectFactAt(role_methods, 0);
+    let ability_method_row: JsonObjectFactTable =
+        JsonArrayObjectFactAt(ability_methods, 0);
+    let role_method: DirectMirRoleOperatorMethodDeclarationFact =
+        DirectMirRoleOperatorMethodDeclarationFromTable(
+            role_method_row, target.method_name
+        );
+    let ability_method: DirectMirRoleOperatorMethodDeclarationFact =
+        DirectMirRoleOperatorMethodDeclarationFromTable(
+            ability_method_row, target.method_name
+        );
+    if !role_method.valid || !ability_method.valid ||
+        role_method.rhs_type != ability_method.rhs_type ||
+        role_method.return_type != ability_method.return_type {
+        Die("direct MIR role operator method declarations disagree");
+    }
+    let impl: JsonObjectFactTable = JsonArrayObjectFactAt(impls, 0);
+    let impl_ability: JsonObjectFactTable = JsonObjectFactObjectTable(
+        impl, "ability"
+    );
+    let impl_base: Option<String> = MirObjectUniqueStringFactAtBounds(
+        impl_ability.json, impl_ability.start, impl_ability.end, "base"
+    );
+    let method_start: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        impl.json, impl.start, impl.end, "method_start"
+    );
+    let method_count: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        impl.json, impl.start, impl.end, "method_count"
+    );
+    if !JsonObjectFactTableReady(impl) || JsonObjectFactCount(impl) != 3 ||
+        !JsonObjectFactTableReady(impl_ability) ||
+        JsonObjectFactCount(impl_ability) != 2 || !IsSome(impl_base) ||
+        UnwrapOption(impl_base) != target.ability_name ||
+        !DirectMirObjectArrayEmpty(impl_ability, "actuals") ||
+        !IsSome(method_start) || UnwrapOption(method_start) != "0" ||
+        !IsSome(method_count) || UnwrapOption(method_count) != "1" {
+        Die("direct MIR role operator impl-method range is invalid");
+    }
+    let fact: DirectMirRoleOperatorDeclarationFact =
+        DirectMirRoleOperatorDeclarationFact(
+            true, 0, role_row, ability_row, erased_row,
+            target.role_name, target.ability_name, target.method_name,
+            UnwrapOption(receiver_type), role_method.rhs_name,
+            role_method.rhs_type,
+            role_method.return_type, ToInt(UnwrapOption(role_source)),
+            ToInt(UnwrapOption(ability_source)),
+            ToInt(UnwrapOption(erased_source))
+        );
+    let verified: DirectMirRoleOperatorDeclarationFact =
+        DirectMirRoleOperatorDeclarationFact(
+            fact.valid, DirectMirRoleOperatorDeclarationFactDigest(fact),
+            fact.role_row, fact.ability_row, fact.erased_nominal_row,
+            fact.role_name, fact.ability_name, fact.method_name,
+            fact.receiver_type, fact.rhs_name, fact.rhs_type, fact.return_type,
+            fact.role_source_syntax_id, fact.ability_source_syntax_id,
+            fact.erased_source_syntax_id
+        );
+    if !DirectMirRoleOperatorDeclarationFactReady(verified) {
+        Die("direct MIR role operator declaration fact is invalid");
+    }
+    return verified;
+}

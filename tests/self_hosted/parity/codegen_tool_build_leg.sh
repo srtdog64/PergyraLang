@@ -73,9 +73,9 @@ compile_tool_backend() {
 
     echo "[self-host-parity:codegen] compiling codegen tool backend=$backend..."
     if ! run_native_capture "$ROOT_DIR" "$compile_out" "$compile_err" "$PGY" \
-        "$(pgy_path_for_compiler "$PGY" "$TOOL_SOURCE")" \
+        "$(path_relative_to_root "$TOOL_SOURCE")" \
         --backend="$backend" \
-        -o "$(pgy_path_for_compiler "$PGY" "$tool_bin")"; then
+        -o "$(path_relative_to_root "$tool_bin")"; then
         rm -f "$stamp"
         cat "$compile_out" "$compile_err" > "$compile_log"
         if [[ "$backend" == "llvm" ]] \

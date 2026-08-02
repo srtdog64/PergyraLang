@@ -40,6 +40,13 @@ func SemanticExpressionGraphScalarTypeName(
     );
     if !IsSome(kind_opt) { return "Unknown"; }
     let kind: Int = UnwrapOption(kind_opt);
+    if graph.arena.call_target_kinds[root_id] ==
+        SemanticCallTargetRoleOperator() {
+        let role_result: String =
+            graph.arena.call_return_type_names[root_id];
+        if role_result != "" { return role_result; }
+        return "Unknown";
+    }
     if kind == AstExpressionNodeIntegerLiteral() { return "Int"; }
     if kind == AstExpressionNodeLongLiteral() { return "Long"; }
     if kind == AstExpressionNodeFloatLiteral() { return "Float"; }

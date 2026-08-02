@@ -12,8 +12,8 @@ run_role_operator_parity() {
     local oracle_compile_out="$ABS_BUILD/${base}_oracle_compile.out"
     local oracle_compile_err="$ABS_BUILD/${base}_oracle_compile.err"
     if ! run_native_capture "$ROOT_DIR" "$oracle_compile_out" "$oracle_compile_err" "$PGY" \
-        "$(pgy_path_for_compiler "$PGY" "$ROLE_SOURCE")" --backend=c \
-        -o "$(pgy_path_for_compiler "$PGY" "$oracle_exe")"; then
+        "$(path_relative_to_root "$ROLE_SOURCE")" --backend=c \
+        -o "$(path_relative_to_root "$oracle_exe")"; then
         echo "[self-host-parity:codegen] role operator oracle failed to build" >&2
         cat "$oracle_compile_out" "$oracle_compile_err" >&2
         exit 1

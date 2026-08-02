@@ -199,6 +199,7 @@ func SelfMirExpressionCallTargetKindName(kind: Int) -> String {
     if kind == SemanticCallTargetDirect() { return "direct"; }
     if kind == SemanticCallTargetNamespace() { return "namespace"; }
     if kind == SemanticCallTargetMember() { return "member"; }
+    if kind == SemanticCallTargetRoleOperator() { return "role_operator"; }
     return "";
 }
 

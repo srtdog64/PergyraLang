@@ -395,6 +395,11 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_body_type_bundle_owner.pgy` -- canonical
   one-pass assembly of initializer, iteration, assignment, and statement type
   facts plus readiness diagnostics consumed by driver and codegen projections.
+- `src/self_hosted/semantic/ast_body_role_operator_resolution_owner.pgy` --
+  body-level role-operator target overlay. It first detects whether the admitted
+  declarations contain any role operator, resolves only that reached family,
+  and otherwise checks that no carried role target escaped without rebuilding
+  or revalidating the cumulative expression graph.
 - `src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_owner.pgy` --
   graph-wide body-type readiness admission performed once at the driver seam;
   downstream codegen consumes its fixed-size receipt instead of revalidating
@@ -482,6 +487,18 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_role_fact_owner.pgy` -- artifact-bound role
   declaration identity, name, target type, ability generic constraint rows,
   and owned method `NodeId` rows.
+- `src/self_hosted/semantic/ast_role_artifact_match_owner.pgy` -- exact
+  reconstruction-free cross-seal between role rows and the admitted parser
+  artifact, including method ranges and aligned ability names.
+- `src/self_hosted/semantic/role_operator_vocabulary_owner.pgy` -- canonical
+  self-host role-operator kind, alias, method-name, suffix, and encoded target
+  identity vocabulary. Semantic graph admission and legacy self-host codegen
+  consume this owner instead of maintaining private operator tables.
+- `src/self_hosted/semantic/role_operator_resolution_owner.pgy` -- exact
+  expression-node role-operator resolution from admitted ability, role, impl,
+  method signature, receiver, and graph facts. It publishes the carried target
+  identity; operator spelling or a sole visible role cannot substitute for the
+  join.
 - `src/self_hosted/semantic/ast_ability_generic_bound_verdict_owner.pgy` --
   ordered ability-bound validation for canonical generic defaults against
   role implementation facts; it does not re-read source text.
@@ -1958,6 +1975,25 @@ inventory must not become a second fact-family owner registry.
   four-field Array storage projection. It owns internal linkage and allocator
   spelling for the selected target; family emitters retain element-specific
   input/output and nominal ABI projection but may not re-own flow constants.
+- `src/self_hosted/compiler/direct_mir_role_operator_declaration_fact_owner.pgy`
+  -- exact role/ability/impl/method declaration admission from the carried MIR
+  rows, including method identity, target type, signature, and role range
+  cross-seals. It does not infer a target from names or row order.
+- `src/self_hosted/compiler/direct_mir_role_operator_plan_owner.pgy` -- one
+  target-neutral role-call plan joining the producer-carried operator target,
+  exact-one `self` signature, receiver/rhs/result types, method routine,
+  literal result, caller use, CFG, and target capability. Claimed failure cannot
+  retry primitive arithmetic or another multi-routine family.
+- `src/self_hosted/compiler/direct_mir_role_operator_abi_projection_owner.pgy`
+  -- selected-target call ABI view derived from the target-neutral plan and the
+  canonical `Int` ABI: C `long long` or LLVM `i64`, alignment 8, direct receiver
+  pointer, and direct scalar argument/return. The unselected target mapping is
+  absent.
+- `src/self_hosted/compiler/direct_mir_role_operator_emission_owner.pgy` --
+  role-family projection boundary and final C/textual LLVM consumers. It issues
+  the fixed role-call plan, selects one ABI view, and then gives only those
+  facts to the chosen emitter. The LLVM method is internal; neither emitter
+  reads MIR, expression text, or role vocabulary.
 - `src/self_hosted/compiler/direct_mir_constructed_record_array_member_array_abi_absence_owner.pgy`
   -- sealed `Array<Point>` result evidence derived from the admitted MIR ABI
   receipt. It binds the typed result capture to physical-layout absence and

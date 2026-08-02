@@ -27,7 +27,7 @@ func ZoneAuthorityProbeRoles() -> SemanticAstRoleFacts {
     let strings: Array<String> = [];
     return SemanticAstRoleFacts(
         true, 8,
-        ints, strings, strings, ints, ints, ints,
+        ints, strings, strings, ints, ints, ints, strings,
         ints, ints, strings,
         [1], ["Runnable"],
         [0], [0], strings, strings, strings,

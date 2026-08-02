@@ -8359,7 +8359,7 @@ require_text "src/self_hosted/semantic/ast_role_fact_owner.pgy" "struct Semantic
 require_text "src/self_hosted/semantic/ast_role_fact_owner.pgy" "func SemanticAstRoleIndexForNode"
 require_text "src/self_hosted/semantic/ast_role_fact_owner.pgy" "func SemanticAstRoleAncestorNodeId"
 require_text "src/self_hosted/semantic/ast_role_fact_owner.pgy" "func SemanticAstRoleMethodNodeAt"
-require_text "src/self_hosted/semantic/ast_role_fact_owner.pgy" "func SemanticAstRoleFactsMatchArtifact"
+require_text "src/self_hosted/semantic/ast_role_artifact_match_owner.pgy" "func SemanticAstRoleFactsMatchArtifact"
 require_text "src/self_hosted/codegen/input/semantic_role_codegen_view_owner.pgy" "func CodegenSemanticRoleNameOrDie"
 require_text "src/self_hosted/codegen/input/semantic_role_codegen_view_owner.pgy" "func CodegenSemanticRoleIs"
 require_text "src/self_hosted/codegen/input/semantic_role_codegen_view_owner.pgy" "func CodegenSemanticRoleTargetTypeOrDie"
@@ -15062,6 +15062,76 @@ require_text "Makefile" \
     "self-host-one-mir-enum-value-match-projection-test-smoke:"
 require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-enum-value-match-projection-test-smoke"
+require_file \
+    "src/self_hosted/semantic/role_operator_vocabulary_owner.pgy"
+require_max_lines \
+    "src/self_hosted/semantic/role_operator_vocabulary_owner.pgy" 220
+require_file \
+    "src/self_hosted/semantic/role_operator_resolution_owner.pgy"
+require_max_lines \
+    "src/self_hosted/semantic/role_operator_resolution_owner.pgy" 340
+require_file \
+    "src/self_hosted/compiler/direct_mir_role_operator_declaration_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_role_operator_declaration_fact_owner.pgy" 310
+require_file \
+    "src/self_hosted/compiler/direct_mir_role_operator_plan_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_role_operator_plan_owner.pgy" 560
+require_file \
+    "src/self_hosted/compiler/direct_mir_role_operator_abi_projection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_role_operator_abi_projection_owner.pgy" 140
+require_file \
+    "src/self_hosted/compiler/direct_mir_role_operator_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_role_operator_emission_owner.pgy" 150
+require_file \
+    "tests/self_hosted/parity/one_mir_role_operator_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_role_operator_projection.sh" 220
+require_file \
+    "tests/self_hosted/parity/one_mir_role_operator_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_role_operator_mutations.py" 220
+role_operator_family_lines=$((
+    $(wc -l < src/self_hosted/compiler/direct_mir_role_operator_declaration_fact_owner.pgy) +
+    $(wc -l < src/self_hosted/compiler/direct_mir_role_operator_plan_owner.pgy) +
+    $(wc -l < src/self_hosted/compiler/direct_mir_role_operator_abi_projection_owner.pgy) +
+    $(wc -l < src/self_hosted/compiler/direct_mir_role_operator_emission_owner.pgy)
+))
+[[ "$role_operator_family_lines" -le 1200 ]] || \
+    fail "role operator direct family exceeds 1200 LOC ($role_operator_family_lines)"
+for role_operator_single_issuer in DirectMirRoleOperatorPlanFromAdmitted \
+    DirectMirRoleOperatorAbiProjectionFromPlan; do
+    [[ "$(grep -R -F --include='*.pgy' "$role_operator_single_issuer(" \
+        src/self_hosted | wc -l | tr -d ' ')" -eq 2 ]] || \
+        fail "$role_operator_single_issuer must have one definition and one call"
+done
+require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
+    "SemanticRoleOperatorKindSupported(kind)"
+require_text "src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy" \
+    "SemanticRoleOperatorKindForMethodName(mname)"
+reject_text "src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy" \
+    'mname == "Add"'
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    'if kind == "role_operator"'
+require_text "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
+    "DirectMirRoleOperatorProgramCandidate(admitted)"
+for role_fixture_term in IntMath Arithmetic Hero role_operator_dispatch; do
+    ! grep -Fq "$role_fixture_term" \
+        src/self_hosted/compiler/direct_mir_role_operator_declaration_fact_owner.pgy \
+        src/self_hosted/compiler/direct_mir_role_operator_plan_owner.pgy \
+        src/self_hosted/compiler/direct_mir_role_operator_abi_projection_owner.pgy \
+        src/self_hosted/compiler/direct_mir_role_operator_emission_owner.pgy || \
+        fail "role fixture identity leaked into an owner: $role_fixture_term"
+done
+require_text "Makefile" "SELFHOST_ONE_MIR_ROLE_OPERATOR_GATE ?="
+require_text "Makefile" '$(SELFHOST_ONE_MIR_ROLE_OPERATOR_GATE)'
+require_text "Makefile" \
+    "self-host-one-mir-role-operator-projection-test-smoke:"
+require_text ".github/workflows/ci.yml" \
+    "self-host-one-mir-role-operator-projection-test-smoke"
 require_text \
     "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
     "ability_decl.pgy|ability|7"

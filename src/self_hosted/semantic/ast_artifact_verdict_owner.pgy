@@ -10,7 +10,7 @@ import "ast_local_binding_fact_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
 import "ast_statement_fact_owner.pgy";
 import "ast_enum_fact_owner.pgy";
-import "ast_role_fact_owner.pgy";
+import "ast_role_artifact_match_owner.pgy";
 import "ast_ability_generic_bound_verdict_owner.pgy";
 import "ast_expression_surface_fact_owner.pgy";
 import "ast_expression_call_target_capture_owner.pgy";

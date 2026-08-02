@@ -11,6 +11,7 @@ import "ast_expression_graph_generic_call_owner.pgy";
 import "ast_domain_query_protocol_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "callable_resolution_owner.pgy";
+import "role_operator_resolution_owner.pgy";
 
 struct SemanticExpressionCallReturnProjection {
     ok: Bool;
@@ -121,6 +122,7 @@ func SemanticAstAnalysisResolveCallReturnTypes(
         analysis.function_tables;
     let node_count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
     if !SemanticExpressionGraphCarriedCallTargetsReady(graph) ||
+        !SemanticExpressionGraphRoleOperatorTargetsReady(graph, true) ||
         !SemanticAstExpressionFunctionTableFactsReady(function_tables) ||
         !SemanticAstGenericSpecializationFactsReady(generic_specializations) ||
         ArrayLength(graph.arena.call_return_type_names) != node_count {
@@ -131,12 +133,17 @@ func SemanticAstAnalysisResolveCallReturnTypes(
     let call_return_types: Array<String> = [];
     let node_id: Int = 0;
     while node_id < node_count {
-        if graph.arena.call_return_type_names[node_id] != "" {
+        let type_name: String = "";
+        if graph.arena.call_target_kinds[node_id] ==
+            SemanticCallTargetRoleOperator() {
+            type_name = Concat(
+                "", graph.arena.call_return_type_names[node_id]
+            );
+        } else if graph.arena.call_return_type_names[node_id] != "" {
             ArrayDropOwnedStrings(call_return_types);
             return false;
-        }
-        let type_name: String = "";
-        if graph.arena.topology.node_kinds[node_id] == AstExpressionNodeCall() {
+        } else if graph.arena.topology.node_kinds[node_id] ==
+            AstExpressionNodeCall() {
             let projection: SemanticExpressionCallReturnProjection =
                 SemanticExpressionCallReturnProjectionAt(
                     graph, node_id, signatures, function_tables,

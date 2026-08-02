@@ -6,6 +6,7 @@ import "../input/semantic_role_codegen_view_owner.pgy";
 import "../input/semantic_nominal_codegen_view_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
+import "../../semantic/role_operator_vocabulary_owner.pgy";
 
 func CollectRoleOperators(
     roles: SemanticAstRoleFacts,
@@ -32,17 +33,27 @@ func CollectRoleOperators(
             let mname: String = CodegenSemanticFunctionNameOrDie(
                 signatures, signature_index
             );
-            if for_type == "Int" && mname == "Add" {
+            let operator_kind: Option<Int> =
+                SemanticRoleOperatorKindForMethodName(mname);
+            if for_type != "" && IsSome(operator_kind) {
+                let suffix: Option<String> = SemanticRoleOperatorSuffix(
+                    UnwrapOption(operator_kind)
+                );
+                if !IsSome(suffix) {
+                    Die("semantic role operator suffix is missing");
+                }
                 let role_method: String = CompilerSymbolCRoleOperatorName(
-                    role_name, "Add"
+                    role_name, mname
                 );
                 let adapter: String = CompilerSymbolCOperatorAdapterName(
-                    for_type, "add"
+                    for_type, UnwrapOption(suffix)
                 );
                 let c_type: String = AbiLayoutCValueType(
                     for_type, dependency_env
                 );
-                ArrayPush(rows, Concat("Int+=op:", Concat(adapter, "|")));
+                ArrayPush(rows, Concat(
+                    for_type, Concat("+=op:", Concat(adapter, "|"))
+                ));
                 ArrayPush(blocks, Concat(
                     "static inline ", Concat(c_type, Concat(
                         " ", Concat(adapter, Concat("(", Concat(

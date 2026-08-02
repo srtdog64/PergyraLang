@@ -1,0 +1,140 @@
+// C and textual LLVM emission from one verified role-operator plan.
+
+import "direct_mir_role_operator_abi_projection_owner.pgy";
+import "direct_mir_llvm_text_format_owner.pgy";
+
+func CompileAdmittedDirectMirRoleOperatorForTarget(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    target_projection: CompilerTargetProjectionFact,
+    is_llvm: Bool,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    let plan: DirectMirRoleOperatorPlan =
+        DirectMirRoleOperatorPlanFromAdmitted(admitted);
+    let abi: DirectMirRoleOperatorAbiProjection =
+        DirectMirRoleOperatorAbiProjectionFromPlan(plan, target_projection);
+    if is_llvm {
+        return DirectMirRoleOperatorEmitLlvm(
+            plan, abi, formatted_print, line_format);
+    }
+    return DirectMirRoleOperatorEmitC(plan, abi, formatted_print, line_format);
+}
+
+func DirectMirRoleOperatorEmitC(
+    ref plan: DirectMirRoleOperatorPlan,
+    ref abi: DirectMirRoleOperatorAbiProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirRoleOperatorPlanReady(plan) ||
+        !DirectMirRoleOperatorAbiProjectionReadyFor(
+            abi, CompilerTargetCpuCProjection()
+        ) || !formatted_print.ok ||
+        formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" {
+        Die("direct MIR role operator C projection facts are invalid");
+    }
+    let output: String =
+        "#include <stdint.h>\n#include <stdio.h>\n\n";
+    output = Concat(output,
+        "static ");
+    output = Concat(output, abi.c_value_type);
+    output = Concat(output, " pgy_direct_role_operator_method(");
+    output = Concat(output, abi.c_value_type);
+    output = Concat(output, " *self, ");
+    output = Concat(output, abi.c_value_type);
+    output = Concat(output, " rhs) {\n");
+    output = Concat(output,
+        "    (void)self;\n    (void)rhs;\n    return ");
+    output = Concat(output, ToString(plan.method_return_literal));
+    output = Concat(output, ";\n}\n\nint main(void) {\n    ");
+    output = Concat(output, abi.c_value_type);
+    output = Concat(output, " pgy_lhs = ");
+    output = Concat(output, ToString(plan.lhs_literal));
+    output = Concat(output, ";\n    ");
+    output = Concat(output, abi.c_value_type);
+    output = Concat(output, " pgy_rhs = ");
+    output = Concat(output, ToString(plan.rhs_literal));
+    output = Concat(output,
+        ";\n    ");
+    output = Concat(output, abi.c_value_type);
+    output = Concat(output, " pgy_receiver = pgy_lhs;\n    ");
+    output = Concat(output, abi.c_value_type);
+    output = Concat(output,
+        " pgy_result = pgy_direct_role_operator_method(");
+    output = Concat(output, "&pgy_receiver, pgy_rhs);\n    ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", pgy_result);\n    return 0;\n}\n");
+    return output;
+}
+
+func DirectMirRoleOperatorEmitLlvm(
+    ref plan: DirectMirRoleOperatorPlan,
+    ref abi: DirectMirRoleOperatorAbiProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirRoleOperatorPlanReady(plan) ||
+        !DirectMirRoleOperatorAbiProjectionReadyFor(
+            abi, CompilerTargetCpuLlvmProjection()
+        ) || !formatted_print.ok ||
+        formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" {
+        Die("direct MIR role operator LLVM projection facts are invalid");
+    }
+    let format_payload: String =
+        DirectMirScalarLlvmFormatPayload(line_format);
+    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
+    let output: String =
+        "@.pgy.int.line.format = private unnamed_addr constant [";
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, format_payload);
+    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output,
+        "(ptr, ...)\n\ndefine internal ");
+    output = Concat(output, abi.llvm_value_type);
+    output = Concat(output, " @pgy.direct.role.operator.method(");
+    output = Concat(output,
+        "ptr %self, ");
+    output = Concat(output, abi.llvm_value_type);
+    output = Concat(output, " %rhs) {\nentry:\n  ret ");
+    output = Concat(output, abi.llvm_value_type);
+    output = Concat(output, " ");
+    output = Concat(output, ToString(plan.method_return_literal));
+    output = Concat(output, "\n}\n\ndefine i32 @main() {\nentry:\n");
+    output = Concat(output,
+        "  %pgy.receiver = alloca ");
+    output = Concat(output, abi.llvm_value_type);
+    output = Concat(output, ", align ");
+    output = Concat(output, ToString(abi.llvm_value_align));
+    output = Concat(output, "\n  store ");
+    output = Concat(output, abi.llvm_value_type);
+    output = Concat(output, " ");
+    output = Concat(output, ToString(plan.lhs_literal));
+    output = Concat(output,
+        ", ptr %pgy.receiver, align ");
+    output = Concat(output, ToString(abi.llvm_value_align));
+    output = Concat(output, "\n  %pgy.result = call ");
+    output = Concat(output, abi.llvm_value_type);
+    output = Concat(output, " ");
+    output = Concat(output,
+        "@pgy.direct.role.operator.method(ptr %pgy.receiver, ");
+    output = Concat(output, abi.llvm_value_type);
+    output = Concat(output, " ");
+    output = Concat(output, ToString(plan.rhs_literal));
+    output = Concat(output,
+        ")\n  %pgy.log = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.int.line.format, ");
+    output = Concat(output, abi.llvm_print_type);
+    output = Concat(output, " %pgy.result)\n");
+    output = Concat(output, "  ret i32 0\n}\n");
+    return output;
+}

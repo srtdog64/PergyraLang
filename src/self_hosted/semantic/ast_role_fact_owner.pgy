@@ -15,6 +15,9 @@ struct SemanticAstRoleFacts {
     method_starts: Array<Int>;
     method_counts: Array<Int>;
     method_node_ids: Array<Int>;
+    // Parallel to method_node_ids.  A role method is callable only through
+    // the impl-ability identity captured at its declaration parent.
+    method_ability_names: Array<String>;
     impl_starts: Array<Int>;
     impl_counts: Array<Int>;
     impl_ability_names: Array<String>;
@@ -122,6 +125,36 @@ func SemanticAstRoleAncestorNodeId(
     return None;
 }
 
+func SemanticAstRoleMethodAbilityName(
+    arena: AstArena,
+    method_node_id: Int
+) -> Option<String> {
+    let parent: Option<Int> = TypedAstArenaParentId(arena, method_node_id);
+    let remaining: Int = TypedAstArenaNodeCount(arena);
+    while IsSome(parent) && remaining > 0 {
+        let parent_id: Int = UnwrapOption(parent);
+        if TypedAstArenaNodeKindIs(
+            arena, parent_id, TypedAstKindImplAbilityTag()
+        ) {
+            let ability: Option<String> = TypedAstArenaAtomText(
+                arena, parent_id
+            );
+            if !IsSome(ability) || UnwrapOption(ability) == "" {
+                return None;
+            }
+            return Some(SemanticCanonicalTypeName(UnwrapOption(ability)));
+        }
+        if TypedAstArenaNodeKindIs(
+            arena, parent_id, TypedAstKindRoleDeclTag()
+        ) {
+            return None;
+        }
+        parent = TypedAstArenaParentId(arena, parent_id);
+        remaining = remaining - 1;
+    }
+    return None;
+}
+
 func SemanticAstRoleFactsFromArtifact(
     artifact: AstTreeArtifact
 ) -> SemanticAstRoleFacts {
@@ -131,6 +164,7 @@ func SemanticAstRoleFactsFromArtifact(
     let method_starts: Array<Int> = [];
     let method_counts: Array<Int> = [];
     let method_node_ids: Array<Int> = [];
+    let method_ability_names: Array<String> = [];
     let impl_starts: Array<Int> = [];
     let impl_counts: Array<Int> = [];
     let impl_ability_names: Array<String> = [];
@@ -175,7 +209,19 @@ func SemanticAstRoleFactsFromArtifact(
                             artifact.arena, candidate
                         );
                         if IsSome(owner) && UnwrapOption(owner) == node_id {
-                            ArrayPush(method_node_ids, candidate);
+                            let method_ability: Option<String> =
+                                SemanticAstRoleMethodAbilityName(
+                                    artifact.arena, candidate
+                                );
+                            if !IsSome(method_ability) {
+                                ok = false;
+                            } else {
+                                ArrayPush(method_node_ids, candidate);
+                                ArrayPush(
+                                    method_ability_names,
+                                    UnwrapOption(method_ability)
+                                );
+                            }
                         }
                     } else if IsSome(candidate_parent) &&
                         UnwrapOption(candidate_parent) == node_id &&
@@ -276,7 +322,7 @@ func SemanticAstRoleFactsFromArtifact(
     }
     return SemanticAstRoleFacts(
         ok, artifact.count, role_node_ids, names, target_types,
-        method_starts, method_counts, method_node_ids,
+        method_starts, method_counts, method_node_ids, method_ability_names,
         impl_starts, impl_counts, impl_ability_names,
         ability_node_ids, ability_names,
         ability_generic_starts, ability_generic_counts,
@@ -376,6 +422,23 @@ func SemanticAstRoleTargetTypeForMethodNode(
         role_index = role_index + 1;
     }
     return None;
+}
+
+func SemanticAstRoleMethodAbilityNameAt(
+    facts: SemanticAstRoleFacts,
+    role_index: Int,
+    method_index: Int
+) -> Option<String> {
+    if !facts.ok || role_index < 0 ||
+        role_index >= SemanticAstRoleCount(facts) || method_index < 0 ||
+        method_index >= facts.method_counts[role_index] {
+        return None;
+    }
+    let flat: Int = facts.method_starts[role_index] + method_index;
+    if flat < 0 || flat >= ArrayLength(facts.method_ability_names) {
+        return None;
+    }
+    return Some(facts.method_ability_names[flat]);
 }
 
 func SemanticAstRoleImplAbilityCountAt(
@@ -489,110 +552,4 @@ func SemanticAstRoleImplementsAbility(
         i = i + 1;
     }
     return false;
-}
-
-func SemanticAstRoleFactsMatchArtifact(
-    artifact: AstTreeArtifact,
-    facts: SemanticAstRoleFacts
-) -> Bool {
-    let rebuilt: SemanticAstRoleFacts = SemanticAstRoleFactsFromArtifact(artifact);
-    let count: Int = SemanticAstRoleCount(facts);
-    if !facts.ok || !rebuilt.ok || facts.artifact_node_count != artifact.count ||
-        SemanticAstRoleCount(rebuilt) != count ||
-        ArrayLength(facts.method_node_ids) != ArrayLength(rebuilt.method_node_ids) ||
-        ArrayLength(facts.impl_starts) != count ||
-        ArrayLength(facts.impl_counts) != count ||
-        ArrayLength(facts.impl_ability_names) !=
-            ArrayLength(rebuilt.impl_ability_names) ||
-        SemanticAstAbilityCount(facts) != SemanticAstAbilityCount(rebuilt) ||
-        ArrayLength(facts.ability_generic_names) !=
-            ArrayLength(rebuilt.ability_generic_names) ||
-        ArrayLength(facts.ability_generic_constraint_type_names) !=
-            ArrayLength(rebuilt.ability_generic_constraint_type_names) ||
-        ArrayLength(facts.ability_method_node_ids) !=
-            ArrayLength(rebuilt.ability_method_node_ids) {
-        return false;
-    }
-    let i: Int = 0;
-    while i < count {
-        if facts.role_node_ids[i] != rebuilt.role_node_ids[i] ||
-            facts.names[i] != rebuilt.names[i] ||
-            facts.target_type_names[i] != rebuilt.target_type_names[i] ||
-            facts.method_starts[i] != rebuilt.method_starts[i] ||
-            facts.method_counts[i] != rebuilt.method_counts[i] ||
-            facts.impl_starts[i] != rebuilt.impl_starts[i] ||
-            facts.impl_counts[i] != rebuilt.impl_counts[i] {
-            return false;
-        }
-        i = i + 1;
-    }
-    let method_index: Int = 0;
-    while method_index < ArrayLength(facts.method_node_ids) {
-        if facts.method_node_ids[method_index] != rebuilt.method_node_ids[method_index] {
-            return false;
-        }
-        method_index = method_index + 1;
-    }
-    let impl_index: Int = 0;
-    while impl_index < ArrayLength(facts.impl_ability_names) {
-        if facts.impl_ability_names[impl_index] !=
-            rebuilt.impl_ability_names[impl_index] {
-            return false;
-        }
-        impl_index = impl_index + 1;
-    }
-    let ability_index: Int = 0;
-    while ability_index < SemanticAstAbilityCount(facts) {
-        if facts.ability_node_ids[ability_index] !=
-                rebuilt.ability_node_ids[ability_index] ||
-            facts.ability_names[ability_index] !=
-                rebuilt.ability_names[ability_index] ||
-            facts.ability_generic_starts[ability_index] !=
-                rebuilt.ability_generic_starts[ability_index] ||
-            facts.ability_generic_counts[ability_index] !=
-                rebuilt.ability_generic_counts[ability_index] ||
-            facts.ability_method_starts[ability_index] !=
-                rebuilt.ability_method_starts[ability_index] ||
-            facts.ability_method_counts[ability_index] !=
-                rebuilt.ability_method_counts[ability_index] {
-            return false;
-        }
-        ability_index = ability_index + 1;
-    }
-    let generic_index: Int = 0;
-    while generic_index < ArrayLength(facts.ability_generic_names) {
-        if facts.ability_generic_names[generic_index] !=
-                rebuilt.ability_generic_names[generic_index] ||
-            facts.ability_generic_constraint_type_names[generic_index] !=
-                rebuilt.ability_generic_constraint_type_names[generic_index] ||
-            facts.ability_generic_default_type_names[generic_index] !=
-                rebuilt.ability_generic_default_type_names[generic_index] {
-            return false;
-        }
-        generic_index = generic_index + 1;
-    }
-    method_index = 0;
-    while method_index < ArrayLength(facts.ability_method_node_ids) {
-        if facts.ability_method_node_ids[method_index] !=
-            rebuilt.ability_method_node_ids[method_index] {
-            return false;
-        }
-        method_index = method_index + 1;
-    }
-    return true;
-}
-
-func SemanticAstRoleFactsContractReady() -> Bool {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Role: IntMath for Int\n    Impl ability: Arithmetic\n      Function: Add\n        Parameters:\n          self\n          rhs: Int\n        Returns: Int\n        Body:\n          Block:\n            Return: 123\n"
-    );
-    let facts: SemanticAstRoleFacts = SemanticAstRoleFactsFromArtifact(artifact);
-    let method: Option<Int> = SemanticAstRoleMethodNodeAt(facts, 0, 0);
-    return SemanticAstRoleFactsMatchArtifact(artifact, facts) &&
-        SemanticAstRoleCount(facts) == 1 &&
-        IsSome(SemanticAstRoleNameAt(facts, 0)) &&
-        UnwrapOption(SemanticAstRoleNameAt(facts, 0)) == "IntMath" &&
-        IsSome(SemanticAstRoleTargetTypeAt(facts, 0)) &&
-        UnwrapOption(SemanticAstRoleTargetTypeAt(facts, 0)) == "Int" &&
-        IsSome(method);
 }

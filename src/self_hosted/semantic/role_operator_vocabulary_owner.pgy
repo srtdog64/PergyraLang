@@ -1,0 +1,204 @@
+// Language-semantic vocabulary for role-backed scalar operators.
+//
+// This owner maps parser graph kinds to admitted method spellings.  Semantic
+// resolution, C emission, MIR persistence, and direct backends consume it;
+// they may not grow private Add/Sub/... alias tables.
+
+import "../hir/ast_expression_graph_owner.pgy";
+
+func SemanticRoleOperatorKindCount() -> Int {
+    return 11;
+}
+
+func SemanticRoleOperatorKindAt(index: Int) -> Int {
+    if index == 0 { return AstExpressionNodeAdd(); }
+    if index == 1 { return AstExpressionNodeSubtract(); }
+    if index == 2 { return AstExpressionNodeMultiply(); }
+    if index == 3 { return AstExpressionNodeDivide(); }
+    if index == 4 { return AstExpressionNodeModulo(); }
+    if index == 5 { return AstExpressionNodeEquality(); }
+    if index == 6 { return AstExpressionNodeInequality(); }
+    if index == 7 { return AstExpressionNodeLess(); }
+    if index == 8 { return AstExpressionNodeLessEqual(); }
+    if index == 9 { return AstExpressionNodeGreater(); }
+    if index == 10 { return AstExpressionNodeGreaterEqual(); }
+    return 0 - 1;
+}
+
+func SemanticRoleOperatorKindSupported(kind: Int) -> Bool {
+    let index: Int = 0;
+    while index < SemanticRoleOperatorKindCount() {
+        if SemanticRoleOperatorKindAt(index) == kind { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+func SemanticRoleOperatorMethodNameMatches(
+    kind: Int,
+    name: String
+) -> Bool {
+    if kind == AstExpressionNodeAdd() {
+        return name == "Add" || name == "add" ||
+            name == "OperatorAdd" || name == "operator_add";
+    }
+    if kind == AstExpressionNodeSubtract() {
+        return name == "Sub" || name == "sub" ||
+            name == "Subtract" || name == "subtract" ||
+            name == "OperatorSub" || name == "operator_sub";
+    }
+    if kind == AstExpressionNodeMultiply() {
+        return name == "Mul" || name == "mul" ||
+            name == "Multiply" || name == "multiply" ||
+            name == "OperatorMul" || name == "operator_mul";
+    }
+    if kind == AstExpressionNodeDivide() {
+        return name == "Div" || name == "div" ||
+            name == "Divide" || name == "divide" ||
+            name == "OperatorDiv" || name == "operator_div";
+    }
+    if kind == AstExpressionNodeModulo() {
+        return name == "Mod" || name == "mod" ||
+            name == "Modulo" || name == "modulo" ||
+            name == "OperatorMod" || name == "operator_mod";
+    }
+    if kind == AstExpressionNodeEquality() {
+        return name == "Eq" || name == "eq" ||
+            name == "Equal" || name == "equal" ||
+            name == "Equals" || name == "equals" ||
+            name == "OperatorEq" || name == "operator_eq";
+    }
+    if kind == AstExpressionNodeInequality() {
+        return name == "Ne" || name == "ne" ||
+            name == "NotEqual" || name == "notEqual" ||
+            name == "NotEquals" || name == "notEquals" ||
+            name == "OperatorNe" || name == "operator_ne";
+    }
+    if kind == AstExpressionNodeLess() {
+        return name == "Lt" || name == "lt" ||
+            name == "LessThan" || name == "lessThan" ||
+            name == "OperatorLt" || name == "operator_lt";
+    }
+    if kind == AstExpressionNodeLessEqual() {
+        return name == "Le" || name == "le" ||
+            name == "LessEqual" || name == "lessEqual" ||
+            name == "LessThanOrEqual" || name == "lessThanOrEqual" ||
+            name == "OperatorLe" || name == "operator_le";
+    }
+    if kind == AstExpressionNodeGreater() {
+        return name == "Gt" || name == "gt" ||
+            name == "GreaterThan" || name == "greaterThan" ||
+            name == "OperatorGt" || name == "operator_gt";
+    }
+    if kind == AstExpressionNodeGreaterEqual() {
+        return name == "Ge" || name == "ge" ||
+            name == "GreaterEqual" || name == "greaterEqual" ||
+            name == "GreaterThanOrEqual" || name == "greaterThanOrEqual" ||
+            name == "OperatorGe" || name == "operator_ge";
+    }
+    return false;
+}
+
+func SemanticRoleOperatorKindForMethodName(
+    name: String
+) -> Option<Int> {
+    let index: Int = 0;
+    while index < SemanticRoleOperatorKindCount() {
+        let kind: Int = SemanticRoleOperatorKindAt(index);
+        if SemanticRoleOperatorMethodNameMatches(kind, name) {
+            return Some(kind);
+        }
+        index = index + 1;
+    }
+    return None;
+}
+
+func SemanticRoleOperatorSuffix(kind: Int) -> Option<String> {
+    if kind == AstExpressionNodeAdd() { return Some("add"); }
+    if kind == AstExpressionNodeSubtract() { return Some("sub"); }
+    if kind == AstExpressionNodeMultiply() { return Some("mul"); }
+    if kind == AstExpressionNodeDivide() { return Some("div"); }
+    if kind == AstExpressionNodeModulo() { return Some("mod"); }
+    if kind == AstExpressionNodeEquality() { return Some("eq"); }
+    if kind == AstExpressionNodeInequality() { return Some("ne"); }
+    if kind == AstExpressionNodeLess() { return Some("lt"); }
+    if kind == AstExpressionNodeLessEqual() { return Some("le"); }
+    if kind == AstExpressionNodeGreater() { return Some("gt"); }
+    if kind == AstExpressionNodeGreaterEqual() { return Some("ge"); }
+    return None;
+}
+
+struct SemanticRoleOperatorTargetIdentity {
+    ok: Bool;
+    role_name: String;
+    ability_name: String;
+    method_name: String;
+}
+
+func SemanticRoleOperatorTargetName(
+    role_name: String,
+    ability_name: String,
+    method_name: String
+) -> String {
+    if role_name == "" || ability_name == "" || method_name == "" ||
+        StringIndexOf(role_name, ".") >= 0 ||
+        StringIndexOf(ability_name, ".") >= 0 ||
+        StringIndexOf(method_name, ".") >= 0 {
+        return "";
+    }
+    return Concat(role_name, Concat(
+        ".", Concat(ability_name, Concat(".", method_name))
+    ));
+}
+
+func SemanticRoleOperatorTargetIdentityFromName(
+    name: String
+) -> SemanticRoleOperatorTargetIdentity {
+    let first: Int = StringIndexOf(name, ".");
+    if first <= 0 || first + 1 >= StringLength(name) {
+        return SemanticRoleOperatorTargetIdentity(false, "", "", "");
+    }
+    let tail: String = Substring(
+        name, first + 1, StringLength(name) - first - 1
+    );
+    let second: Int = StringIndexOf(tail, ".");
+    if second <= 0 || second + 1 >= StringLength(tail) {
+        return SemanticRoleOperatorTargetIdentity(false, "", "", "");
+    }
+    let role_name: String = Substring(name, 0, first);
+    let ability_name: String = Substring(tail, 0, second);
+    let method_name: String = Substring(
+        tail, second + 1, StringLength(tail) - second - 1
+    );
+    let canonical: String = SemanticRoleOperatorTargetName(
+        role_name, ability_name, method_name
+    );
+    return SemanticRoleOperatorTargetIdentity(
+        canonical == name, role_name, ability_name, method_name
+    );
+}
+
+func SemanticRoleOperatorVocabularyContractReady() -> Bool {
+    let identity: SemanticRoleOperatorTargetIdentity =
+        SemanticRoleOperatorTargetIdentityFromName(
+            SemanticRoleOperatorTargetName(
+                "IntMath", "Arithmetic", "Add"
+            )
+        );
+    return SemanticRoleOperatorMethodNameMatches(
+            AstExpressionNodeAdd(), "Add"
+        ) && SemanticRoleOperatorMethodNameMatches(
+            AstExpressionNodeAdd(), "operator_add"
+        ) && !SemanticRoleOperatorMethodNameMatches(
+            AstExpressionNodeAdd(), "Subtract"
+        ) && IsSome(SemanticRoleOperatorKindForMethodName("Add")) &&
+        UnwrapOption(SemanticRoleOperatorKindForMethodName("Add")) ==
+            AstExpressionNodeAdd() &&
+        !IsSome(SemanticRoleOperatorKindForMethodName("Unknown")) &&
+        identity.ok && identity.role_name == "IntMath" &&
+        identity.ability_name == "Arithmetic" &&
+        identity.method_name == "Add" &&
+        !SemanticRoleOperatorTargetIdentityFromName(
+            "IntMath.Add"
+        ).ok;
+}

@@ -1,0 +1,114 @@
+// Target-bound call ABI for one verified scalar role-operator plan.
+
+import "direct_mir_role_operator_plan_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+struct DirectMirRoleOperatorAbiProjection {
+    let valid: Bool;
+    let target_projection: String;
+    let target_capability_fingerprint: Int;
+    let receiver_pass_mode: String;
+    let rhs_pass_mode: String;
+    let return_pass_mode: String;
+    let c_value_type: String;
+    let c_print_type: String;
+    let llvm_value_type: String;
+    let llvm_print_type: String;
+    let llvm_value_align: Int;
+}
+
+func DirectMirRoleOperatorReceiverPassMode() -> String {
+    return "direct-pointer";
+}
+
+func DirectMirRoleOperatorScalarPassMode() -> String {
+    return "direct";
+}
+
+func DirectMirRoleOperatorLlvmIntType() -> String {
+    return "i64";
+}
+
+func DirectMirRoleOperatorLlvmIntAlign() -> Int {
+    return 8;
+}
+
+func DirectMirRoleOperatorAbiProjectionReadyFor(
+    ref projection: DirectMirRoleOperatorAbiProjection,
+    expected_target: String
+) -> Bool {
+    if !projection.valid || !CompilerTargetProjectionKnown(expected_target) ||
+        projection.target_projection != expected_target ||
+        projection.target_capability_fingerprint !=
+            CompilerTargetCapabilityFingerprint() ||
+        projection.receiver_pass_mode !=
+            DirectMirRoleOperatorReceiverPassMode() ||
+        projection.rhs_pass_mode !=
+            DirectMirRoleOperatorScalarPassMode() ||
+        projection.return_pass_mode !=
+            DirectMirRoleOperatorScalarPassMode() {
+        return false;
+    }
+    if expected_target == CompilerTargetCpuCProjection() {
+        return projection.c_value_type == CompilerAbiLayoutIntCValueType() &&
+            projection.c_print_type == CompilerAbiLayoutIntCValueType() &&
+            projection.llvm_value_type == "" &&
+            projection.llvm_print_type == "" &&
+            projection.llvm_value_align == 0;
+    }
+    return expected_target == CompilerTargetCpuLlvmProjection() &&
+        projection.c_value_type == "" && projection.c_print_type == "" &&
+        projection.llvm_value_type == DirectMirRoleOperatorLlvmIntType() &&
+        projection.llvm_print_type ==
+            DirectMirRoleOperatorLlvmIntType() &&
+        projection.llvm_value_align == DirectMirRoleOperatorLlvmIntAlign();
+}
+
+func DirectMirRoleOperatorAbiProjectionFromPlan(
+    ref plan: DirectMirRoleOperatorPlan,
+    target: CompilerTargetProjectionFact
+) -> DirectMirRoleOperatorAbiProjection {
+    let is_c: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuCProjection()
+    );
+    let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuLlvmProjection()
+    );
+    if !DirectMirRoleOperatorPlanReady(plan) || (!is_c && !is_llvm) {
+        Die("direct MIR role operator ABI has no target projection");
+    }
+    let projection: DirectMirRoleOperatorAbiProjection =
+        DirectMirRoleOperatorAbiProjection(
+            true, target.projection, target.target_capability_fingerprint,
+            DirectMirRoleOperatorReceiverPassMode(),
+            DirectMirRoleOperatorScalarPassMode(),
+            DirectMirRoleOperatorScalarPassMode(),
+            "", "", "", "", 0
+        );
+    if is_c {
+        projection = DirectMirRoleOperatorAbiProjection(
+            true, target.projection, target.target_capability_fingerprint,
+            DirectMirRoleOperatorReceiverPassMode(),
+            DirectMirRoleOperatorScalarPassMode(),
+            DirectMirRoleOperatorScalarPassMode(),
+            CompilerAbiLayoutIntCValueType(),
+            CompilerAbiLayoutIntCValueType(), "", "", 0
+        );
+    } else {
+        projection = DirectMirRoleOperatorAbiProjection(
+            true, target.projection, target.target_capability_fingerprint,
+            DirectMirRoleOperatorReceiverPassMode(),
+            DirectMirRoleOperatorScalarPassMode(),
+            DirectMirRoleOperatorScalarPassMode(), "", "",
+            DirectMirRoleOperatorLlvmIntType(),
+            DirectMirRoleOperatorLlvmIntType(),
+            DirectMirRoleOperatorLlvmIntAlign()
+        );
+    }
+    if !DirectMirRoleOperatorAbiProjectionReadyFor(
+        projection, target.projection
+    ) {
+        Die("direct MIR role operator target ABI is invalid");
+    }
+    return projection;
+}

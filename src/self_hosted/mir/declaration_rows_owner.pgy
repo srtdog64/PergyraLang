@@ -264,11 +264,18 @@ func SelfMirDeclarationsFromAnalysis(
             if !IsSome(ability_index) {
                 return SelfMirDeclarationRowsEmpty();
             }
-            let impl_method_count: Int = analysis.roles.ability_method_counts[
-                UnwrapOption(ability_index)
-            ];
-            if impl_method_count < 0 ||
-                impl_method_cursor + impl_method_count > method_count {
+            let expected_method_count: Int =
+                analysis.roles.ability_method_counts[
+                    UnwrapOption(ability_index)
+                ];
+            let impl_method_count: Int = 0;
+            while impl_method_cursor + impl_method_count < method_count &&
+                analysis.roles.method_ability_names[
+                    method_start + impl_method_cursor + impl_method_count
+                ] == ability_name {
+                impl_method_count = impl_method_count + 1;
+            }
+            if impl_method_count != expected_method_count {
                 return SelfMirDeclarationRowsEmpty();
             }
             ArrayPush(

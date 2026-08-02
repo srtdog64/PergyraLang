@@ -10,6 +10,7 @@ import "ast_initializer_iteration_refinement_owner.pgy";
 import "ast_expression_place_fact_owner.pgy";
 import "ast_initializer_type_function_table_bridge_owner.pgy";
 import "ast_iteration_graph_root_owner.pgy";
+import "ast_body_role_operator_resolution_owner.pgy";
 struct SemanticAstBodyTypeBundle {
     verdict: SemanticAstBodyVerdict;
     initializer_types: SemanticAstInitializerTypeFacts;
@@ -25,17 +26,11 @@ func SemanticAstBodyTypeBundleAdmissionError(
     let empty_ints: Array<Int> = [];
     let empty_strings: Array<String> = [];
     return SemanticAstBodyTypeBundle(
-        SemanticAstBodyVerdictError(
-            "body_analysis_admission", message, -1
-        ),
+        SemanticAstBodyVerdictError("body_analysis_admission", message, -1),
         SemanticAstInitializerTypeStructuralError(artifact),
         SemanticAstIterationTypeStructuralError(artifact),
-        SemanticAstAssignmentTypeStructuralError(
-            artifact, "BodyAnalysisAdmission"
-        ),
-        SemanticAstStatementTypeStructuralError(
-            artifact, "BodyAnalysisAdmission"
-        ),
+        SemanticAstAssignmentTypeStructuralError(artifact, "BodyAnalysisAdmission"),
+        SemanticAstStatementTypeStructuralError(artifact, "BodyAnalysisAdmission"),
         SemanticAstGenericSpecializationError(
             "body_analysis_admission", message,
             empty_ints, empty_ints, empty_ints, empty_ints, empty_strings
@@ -78,8 +73,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
     let call_targets_resolved: Bool =
         SemanticAstAnalysisResolveCallTargetsFromAdmittedBody(
             artifact, analysis, base_initializer_types.inferred_type_names,
-            iteration_types, function_tables
-        );
+            iteration_types, function_tables);
     SemanticAstBodyTypeStage(observe_pressure, "call-targets:done");
     SemanticAstBodyTypeStage(observe_pressure, "initializer-refine:start");
     let initializer_types: SemanticAstInitializerTypeFacts =
@@ -87,14 +81,19 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, analysis.expression_surfaces,
             analysis.enums, analysis.function_scopes, analysis.statements,
-            base_initializer_types, iteration_types, function_tables
-        );
+            base_initializer_types, iteration_types, function_tables);
     SemanticAstBodyTypeStage(observe_pressure, "initializer-refine:done");
+    SemanticAstBodyTypeStage(observe_pressure, "role-operators:start");
+    let role_operators_resolved: Bool =
+        SemanticAstAnalysisResolveRoleOperatorTargetsFromAdmittedBody(
+            artifact, analysis, initializer_types.inferred_type_names,
+            iteration_types, function_tables);
+    SemanticAstBodyTypeStage(observe_pressure, "role-operators:done");
     SemanticAstBodyTypeStage(observe_pressure, "expression-places:start");
     let expression_places_resolved: Bool =
         SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
-            artifact, analysis, initializer_types, iteration_types, function_tables
-        );
+            artifact, analysis, initializer_types, iteration_types,
+            function_tables);
     SemanticAstBodyTypeStage(observe_pressure, "expression-places:done");
     SemanticAstBodyTypeStage(observe_pressure, "assignment:start");
     let assignment_types: SemanticAstAssignmentTypeFacts =
@@ -137,6 +136,10 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
             "semantic call target rows are incomplete after body fixpoint",
             -1
         );
+    } else if verdict.ok && !role_operators_resolved {
+        verdict = SemanticAstBodyVerdictError(
+            "role_operator_target_unresolved",
+            "semantic role-operator target rows are incomplete", -1);
     } else if verdict.ok && !expression_places_resolved {
         verdict = SemanticAstBodyVerdictError(
             "expression_place_unresolved",
@@ -240,6 +243,7 @@ func SemanticAstBodyTypeBundleReadinessError(
     if !SemanticExpressionGraphCarriedCallTargetsReady(
         analysis.expression_surfaces.expression_graph
     ) { return "call_target_rows"; }
+    if !SemanticExpressionGraphRoleOperatorTargetsReady(analysis.expression_surfaces.expression_graph, true) { return "role_operator_target_rows"; }
     if !SemanticExpressionGraphPlaceKindsReady(
         analysis.expression_surfaces.expression_graph
     ) { return "expression_place_rows"; }

@@ -226,9 +226,9 @@ compile_backend_output_comparator() {
     local compile_err="$ABS_BUILD/backend_output_comparator.compile.err"
 
     if ! run_native_capture "$ROOT_DIR" "$compile_out" "$compile_err" "$PGY" \
-        "$(pgy_path_for_compiler "$PGY" "$COMPARATOR_SOURCE")" \
+        "$(path_relative_to_root "$COMPARATOR_SOURCE")" \
         --backend=c \
-        -o "$(pgy_path_for_compiler "$PGY" "$COMPARATOR_BIN")"; then
+        -o "$(path_relative_to_root "$COMPARATOR_BIN")"; then
         echo "[self-host-parity:codegen] backend output comparator failed to build" >&2
         cat "$compile_out" "$compile_err" >&2
         exit 1
@@ -342,9 +342,9 @@ check_oracle_drift() {
     local oracle_compile_out="$ABS_BUILD/${base}_oracle_compile.out"
     local oracle_compile_err="$ABS_BUILD/${base}_oracle_compile.err"
     if ! run_native_capture "$ROOT_DIR" "$oracle_compile_out" "$oracle_compile_err" "$PGY" \
-        "$(pgy_path_for_compiler "$PGY" "$src")" \
+        "$(path_relative_to_root "$src")" \
         --backend=c \
-        -o "$(pgy_path_for_compiler "$PGY" "$oracle_exe")"; then
+        -o "$(path_relative_to_root "$oracle_exe")"; then
         echo "[self-host-parity:codegen] $base: C-backend oracle failed to build" >&2
         cat "$oracle_compile_out" "$oracle_compile_err" >&2
         exit 1
@@ -388,9 +388,9 @@ run_native_cyclic_declaration_reject() {
 
     set +e
     run_native_capture "$ROOT_DIR" "$reject_out" "$reject_err" "$PGY" \
-        "$(pgy_path_for_compiler "$PGY" "$source")" \
+        "$(path_relative_to_root "$source")" \
         --backend=c \
-        -o "$(pgy_path_for_compiler "$PGY" "$reject_exe")"
+        -o "$(path_relative_to_root "$reject_exe")"
     reject_rc="$?"
     set -e
     if [[ "$reject_rc" -eq 0 ]]; then

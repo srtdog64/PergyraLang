@@ -5,6 +5,7 @@
 // production can replace that bridge without changing semantic/codegen views.
 
 import "expression_normalization_owner.pgy";
+import "role_operator_vocabulary_owner.pgy";
 import "../hir/ast_expression_graph_owner.pgy";
 
 struct SemanticExpressionGraphArena {
@@ -132,6 +133,7 @@ func SemanticCallTargetNone() -> Int { return 0; }
 func SemanticCallTargetNamespace() -> Int { return 1; }
 func SemanticCallTargetMember() -> Int { return 2; }
 func SemanticCallTargetDirect() -> Int { return 3; }
+func SemanticCallTargetRoleOperator() -> Int { return 4; }
 
 func SemanticExpressionGraphFactsEmpty() -> SemanticExpressionGraphFacts {
     let roots: Array<Int> = [];
@@ -278,6 +280,11 @@ func SemanticExpressionGraphArenaReady(
             call_target_kind == SemanticCallTargetNamespace() ||
             call_target_kind == SemanticCallTargetMember() {
             if call_target_name == "" || kind != AstExpressionNodeCall() {
+                return false;
+            }
+        } else if call_target_kind == SemanticCallTargetRoleOperator() {
+            if call_target_name == "" ||
+                !SemanticRoleOperatorKindSupported(kind) {
                 return false;
             }
         } else {

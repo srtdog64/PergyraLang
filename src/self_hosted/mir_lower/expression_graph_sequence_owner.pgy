@@ -2,6 +2,7 @@
 
 import "../lib/json_fact_table.pgy";
 import "../semantic/ast_expression_surface_fact_owner.pgy";
+import "../semantic/role_operator_vocabulary_owner.pgy";
 import "expression_graph_persisted_shape_owner.pgy";
 import "expression_graph_persisted_read_owner.pgy";
 struct MirExpressionGraphSequence {
@@ -78,6 +79,7 @@ func MirExpressionCallTargetKindCode(kind: String) -> Option<Int> {
         return Some(SemanticCallTargetNamespace());
     }
     if kind == "member" { return Some(SemanticCallTargetMember()); }
+    if kind == "role_operator" { return Some(SemanticCallTargetRoleOperator()); }
     return None;
 }
 
@@ -190,7 +192,12 @@ func MirExpressionGraphSequenceAppend(
                 target_kind == SemanticCallTargetNamespace() ||
                 target_kind == SemanticCallTargetMember()) &&
                 (node.target_name == "" ||
-                    UnwrapOption(kind_opt) != AstExpressionNodeCall())) {
+                    UnwrapOption(kind_opt) != AstExpressionNodeCall())) ||
+            (target_kind == SemanticCallTargetRoleOperator() &&
+                (node.target_name == "" ||
+                    !SemanticRoleOperatorKindSupported(
+                        UnwrapOption(kind_opt)
+                    ))) {
             return MirExpressionGraphSequenceError(sequence);
         }
         let kind: Int = UnwrapOption(kind_opt);
