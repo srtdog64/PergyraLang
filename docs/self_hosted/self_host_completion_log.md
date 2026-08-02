@@ -6,6 +6,51 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-02 - Option-of-nominal value flow reaches installed C and LLVM
+
+- Closed `option_struct_value_flow.pgy` as a bounded two-routine aggregate
+  value-flow slice. One 19,072-byte self-host MIR with SHA-256
+  `085E72BD8626B2F09BD60AA9055A5619A8875EBFA491C072A5A631DAC9A2275E`
+  drives a real `BuildPair(Int) -> Option<Pair>`, Some/None/Some replacement,
+  explicit unwraps, and a separate chained unwrap-member read. C and LLVM both
+  print exact `7\n11\n5`.
+- Native and self producers derive `Option<Pair>` from the static Option tag
+  contract and the program-owned `Pair` declaration. `Pair` is size 8/align 4,
+  ID `674136663`; `Option<Pair>` is size 12/align 4, ID `798450640`, with tag at
+  offset 0 and value at offset 4. Runtime helper and inner-C-type fields remain
+  null.
+- Added one nominal classifier and cardinality envelope before target choice.
+  Plain and Option nominal plans remain responsibility-named and exclusive;
+  Option rejection cannot fall through to the earlier plain-struct owner.
+- One target-neutral identity/graph/instruction/ABI plan feeds real aggregate-
+  by-value C and LLVM emitters. Neither emitter reopens JSON/expression graphs,
+  substitutes `Option<Int>`, reconstructs offsets, calls runtime Option helpers,
+  or hard-codes the three expected outputs.
+- The focused gate compares native/self outer and inner receipts, reuses one
+  source MIR for both targets, proves routine-order equality, and runs nineteen
+  C negatives plus one LLVM repaired-tag sentinel before artifact publication.
+  The previous plain-`Pair` gate and installed public C/LLVM compile/run remain
+  green.
+- Bootstrap exposed and closed a receipt-boundary regression. A nominal struct
+  with a non-fixed field such as `String` has `required==0` and must keep the
+  neutral receipt `(kind=0,row=-1,id=0)`; declaration name equality alone cannot
+  promote it to a physical ABI fact. The TestHarness manifest then compiled and
+  the current bootstrap seed completed in 416.6 seconds.
+- Hard substitution and full component gates pass. The current-source driver
+  rebuilt in 101.9 seconds; its 3,759,056-byte binary has SHA-256
+  `E97277EE7F01B56A02F4F905B1A34BF2D93948CECB62585CF333A3B96A044ECD`.
+  Memory was intentionally not measured. Full CI, Coq, and current-source
+  gen2==gen3 fixed point were not rerun.
+- Documentation quality and the single-Gate-SoT check pass. The broader SoT
+  authority-edge gate still reports the pre-existing duplicate Coq fact IDs;
+  they are outside this executable rung and were not silently reported green.
+- Next observed falsifier is `generic_struct_field_value_flow.pgy`. Installed
+  self-host C compiles it and prints `7`, but installed LLVM fails closed before
+  artifact publication with `direct MIR multi-routine projection rejected`.
+  The next owner must join the exact `Identity<T>`/`Identity<Int>` specialization
+  and call identity with the existing `Pair` receipt in one three-routine,
+  target-neutral plan; flattening or C-only reconstruction is forbidden.
+
 ## 2026-08-02 - Named-struct return and local value ABI reach installed C/LLVM
 
 - Closed `struct_literal_value_flow.pgy` as a bounded two-routine aggregate

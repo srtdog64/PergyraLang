@@ -6,60 +6,67 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — carry nested `Option<Pair>` aggregate ABI
+## Active self-host context — carry explicit-generic nominal value flow
 
-- Executable checkpoint: `cd886a6d` on `main`, one commit ahead of
+- Executable checkpoint: `1068f93d` on `main`, one commit ahead of
   `origin/main` before this documentation update. The installed sibling driver
-  is 3,690,605 bytes with SHA-256
-  `4B303BA7C112BC7B4F4727722E694D429DF9C3EA280BCEF1AAB90DAF6B6B40F4`.
-  `make self-host-compiler` refreshed the seed and driver in 506.2 seconds;
-  memory was intentionally not pressure-measured.
-- Closed frontier: `struct_literal_value_flow.pgy` now travels through one
-  self-host source-to-MIR production. The same 11,441-byte MIR, SHA-256
-  `02E615CD4D27588964807881FC7CC19DDCA2E3BF5318EF688AE0E2ED1B5F5F53`,
-  drives real `BuildPair(Int) -> Pair`, mutable `pair` replacement, returned
-  aggregate storage, and member reads in C and LLVM. Both programs print exact
-  `11`; installed public C and LLVM compile/run use this target-specific
-  `SUBSTITUTING` path.
-- Native MIR resolves static ABI first and then a unique program-owned nominal
-  declaration. Self MIR carries an instruction-owned declaration row and layout
-  ID for aggregate return and definition facts. The JSON writer consumes that
-  receipt; it no longer recovers nominal ABI from expression text or scans the
-  declaration inventory at the writer boundary.
-- One row-order-independent program/graph/plan owner preserves the real call,
-  the native residual assignment versus self SSA identity, and the latest
-  `pair.2` use. C returns `Pair` by value; LLVM returns `%Pair` by value. Neither
-  backend reconstructs offsets, flattens the result to `11`, or retries the
-  declaration-free Array-return owner.
+  is 3,759,056 bytes with SHA-256
+  `E97277EE7F01B56A02F4F905B1A34BF2D93948CECB62585CF333A3B96A044ECD`.
+  Its current-source rebuild took 101.9 seconds. The current bootstrap seed
+  completed in 416.6 seconds; neither run was pressure-measured.
+- Closed frontier: `option_struct_value_flow.pgy` now travels through one
+  19,072-byte self-host MIR, SHA-256
+  `085E72BD8626B2F09BD60AA9055A5619A8875EBFA491C072A5A631DAC9A2275E`.
+  The same MIR drives real `BuildPair(Int) -> Option<Pair>`, mutable Some/None/
+  Some state, explicit unwraps, a separate chained unwrap-member read, and exact
+  `7\n11\n5` in C and LLVM. Installed public C and LLVM compile/run use this
+  bounded target-specific `SUBSTITUTING` path.
+- Native and self producers compose one derived wrapper receipt from the static
+  Option tag contract and the program-owned `Pair` layout. `Pair` is size 8,
+  align 4, ID `674136663`; `Option<Pair>` is size 12, align 4, ID `798450640`,
+  with tag at 0 and payload at 4. Runtime helper and inner-C-type fields remain
+  null; backends cannot recover either layout from type or expression text.
+- One nominal classifier is created before backend selection. Plain `Pair` and
+  `Option<Pair>` share the cardinality/envelope owner but have distinct plans;
+  Option rejection cannot retry the plain owner. One target-neutral Option plan
+  feeds real aggregate-by-value C and LLVM emission.
+- A bootstrap regression exposed the required boundary: a nominal declaration
+  with no fixed physical layout, such as
+  `CompilerCompletenessCheckTarget { path: String }`, carries the neutral receipt
+  `(kind=0,row=-1,id=0)`. Only declaration-owned `required==1` layouts may carry
+  nominal or Option-nominal receipt IDs. The current TestHarness manifest and
+  seed generation pass this rule.
 - Latest green: native compiler build; focused native/self ABI parity; exact
-  C/LLVM `11`; routine permutation equality; thirteen pre-artifact negatives;
-  installed public C and LLVM compile/run; hard substitution contract; full
-  component ratchet; and final current-source self-host driver build. Full CI,
-  Coq adequacy, and current-source gen2==gen3 fixed point were not rerun.
-- Active objective: compile and execute
-  `src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy`. It has one
-  `Pair` declaration, `BuildPair(Int) -> Option<Pair>`, three mutable Option
-  states, explicit and chained unwraps, and should print `7`, `11`, and `5`.
-- First observed failure: source-to-MIR succeeds once and emits a 17,637-byte
-  artifact with SHA-256
-  `580E55AB8D4A902F18303959F36D74A59CBEC61DB1A585F5AEA5CBE5E53AEFB6`.
-  Direct C then fails closed before artifact publication. The nested `Pair`
-  receipt exists on unwrapped `Pair` definitions, but `Option<Pair>` return and
-  local definitions carry `abi_layout_id=0` and
-  `abi_layout_required=false`.
-- Fact owner: one reconstructible `Option<Pair>` ABI receipt composed from the
-  existing Option ABI contract and the program-owned `Pair` declaration row.
-  Last legitimate consumer is a target-neutral option-aggregate value-flow plan
-  feeding the selected C or LLVM projection.
-- Forbidden fallback: treating `Option<Pair>` as scalar or as `Option<Int>`,
-  guessing payload/tag offsets in a backend, reopening source spelling to find
-  `Pair`, routing the program through the plain-struct value-flow owner after
-  classification, flattening `BuildPair` or `UnwrapOption`, or retaining both
-  old and new reads.
-- Next falsifier: native/self nested-ABI parity; one source MIR reused by both
-  backends; exact `7\n11\n5`; routine permutation stability; and pre-artifact
-  rejection of Option tag/payload layout, inner declaration receipt, return and
-  latest-local carriage, unwrap uses, call target, and chained member access.
+  C/LLVM `7\n11\n5`; routine permutation; twenty pre-artifact negative runs;
+  previous plain-`Pair` regression; installed public C and LLVM compile/run;
+  hard substitution contract; full component ratchet; current-source driver
+  build; and bootstrap seed generation. Full CI, Coq adequacy, and current-source
+  gen2==gen3 fixed point were not rerun.
+- Documentation quality and the single-Gate-SoT check are green. The broader
+  `sot-authority-edge-test-smoke` remains red on duplicate Coq fact authorities
+  that predate `1068f93d`: `SFAbiLayoutRows` x3,
+  `SFDirectMirCallParameterGraph` x2, `SFDirectMirCallReturnGraph` x2,
+  `SFDirectMirCfgCertificate` x2, and `SFDirectMirCfgProjectionPlan` x3. This
+  Option rung did not rewrite those unrelated registry identities or claim that
+  gate as green.
+- Active objective: close
+  `src/self_hosted/mir_lower/fixture/generic_struct_field_value_flow.pgy` as the
+  next single executable rung. Installed self-host C compiles it in 1.2 seconds
+  and the program prints `7`; installed LLVM currently fails closed before
+  artifact publication with `direct MIR multi-routine projection rejected`.
+- Fact owner: exact `Identity<T>` formal and `Identity<Int>` specialization/
+  call-target facts joined with the existing program-owned `Pair` receipt and
+  three row-order-independent routine identities. The last legitimate consumer
+  is one target-neutral explicit-generic nominal value-flow plan feeding the
+  selected C or LLVM projection.
+- Forbidden fallback: flattening `Identity<Int>` or `BuildPair`, selecting a
+  specialization from source spelling, copying the working C projection into a
+  separate LLVM reconstruction, row-order/name shortcuts, retrying the closed
+  two-routine nominal plans, or re-entering native semantic/codegen owners.
+- Next falsifier: one source MIR reused by C and LLVM, exact `7`, routine-order
+  permutation, and pre-artifact rejection of generic formal/actual identity,
+  specialized callee target, aggregate argument/return receipt, latest result
+  use, member path, and repaired layout mutations.
 - Memory policy remains one execution per changed semantic target followed by
   the final maximum only. Attention begins at 2.4 GiB and the hard stop is
   3 GiB; no threshold crossing was measured or inferred in this rung.

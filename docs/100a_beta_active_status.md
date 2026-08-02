@@ -90,6 +90,24 @@ publication. The JSON producer and both backends are negative-gated against
 type-spelling or expression-text layout recovery. Installed public C and LLVM
 compile/run use this bounded target-specific `SUBSTITUTING` frontier.
 
+Direct LLVM Option-of-nominal value-flow update (2026-08-02):
+`option_struct_value_flow.pgy` now composes the static Option tag contract with
+the exact program-owned `Pair` receipt. One target-neutral plan preserves a real
+`BuildPair(Int) -> Option<Pair>` return, Some/None/Some replacement, explicit
+unwraps, and an independent chained unwrap-member read. C and LLVM both print
+`7`, `11`, and `5`; routine permutation is artifact-equal and twenty negative
+executions reject missing/corrupt outer and inner receipts, repaired geometry,
+stale uses, unresolved calls, and flattened unwrap/member paths before output.
+The nominal classifier runs once and cannot retry the plain-struct plan after an
+Option rejection. Installed public C and LLVM use this bounded target-specific
+`SUBSTITUTING` frontier.
+
+The producer distinguishes nominal identity from physical ABI ownership.
+Declarations whose layout is not required, including a struct containing
+`String`, retain the neutral instruction receipt `(kind=0,row=-1,id=0)`; only
+`required==1` declarations may carry nominal or Option-nominal layout IDs. The
+current TestHarness manifest and bootstrap seed gate this boundary.
+
 Installed LLVM substitution update (2026-08-01): plain public LLVM binary
 requests use the sibling Pergyra-built driver for exactly one source-to-MIR
 production and one direct LLVM projection. `clang -x ir` is the only final host
@@ -99,12 +117,13 @@ runtime cases fail without publishing a new or stale binary. This is executable
 `SUBSTITUTING` evidence for the sealed runtime-free Option, local `Array<Int>`,
 the bounded two-routine Array return, and three-routine Array parameter
 frontiers, including the bounded three-routine nominal-struct parameter slice.
-The bounded nominal-struct return/local value-flow slice is also substituting;
-this is not evidence for general, heap-backed, runtime-bearing, or arbitrary
-multi-routine programs. The next falsifier is `option_struct_value_flow.pgy`:
-its unwrapped `Pair` definitions have physical receipts, but `Option<Pair>`
-return and local definitions still lack a reconstructible nested ABI receipt
-and must fail closed rather than invite backend tag/payload reconstruction.
+The bounded nominal-struct and Option-of-nominal return/local value-flow slices
+are also substituting; this is not evidence for general, heap-backed,
+runtime-bearing, generic, or arbitrary multi-routine programs. The next
+falsifier is `generic_struct_field_value_flow.pgy`: installed self-host C prints
+`7`, while installed LLVM fails closed before publication because the direct
+multi-routine projection does not yet own the explicit `Identity<Int>`
+specialization and three-routine nominal value-flow plan.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:

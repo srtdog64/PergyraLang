@@ -4126,3 +4126,72 @@ fixture projection이나 이미 설치된 driver의 보통 compile/run 수치로
 maximum만 기록하며, 2.4 GiB attention과 3 GiB hard stop을 넘을 때 반복 owned
 operation부터 조사한다. 이번 506.2초 실행은 메모리를 측정하지 않았으므로 과거
 3 GiB peak나 다른 build의 RSS를 붙이지 않는다.
+
+## `Option<Pair>`가 inner `Pair`만 알고 wrapper ABI는 모르는 경우
+
+`option_struct_value_flow.pgy`의 첫 self MIR은 unwrap 결과인 `Pair`에는 size 8,
+align 4, ID `674136663`을 운반했지만 return/local의 `Option<Pair>`에는 ID 0과
+`required=false`를 기록했다. Backend가 `Option<Int>`를 복사하거나 type spelling을
+분해해 tag/payload offset을 만들면 wrapper ABI가 backend-local 권위가 된다.
+
+수정 규칙은 다음과 같다.
+
+- Static Option ABI owner는 tag 이름, offset/size/align, representation,
+  discriminant와 Some/None tag만 소유한다.
+- Program nominal owner는 inner `Pair`의 size/align/field layout을 소유한다.
+- Producer가 두 사실을 declaration row에서 한 번 결합해 size 12, align 4,
+  tag@0, value@4, ID `798450640`인 `Option<Pair>` receipt를 발행한다.
+- Instruction은 wrapper kind, exact declaration row와 layout ID를 운반한다. JSON
+  writer와 C/LLVM emitter는 type/expression text나 declaration inventory를 다시
+  읽지 않는다.
+- Nominal classifier는 Option과 plain을 한 번만 구분한다. Option plan이 실패한
+  뒤 plain-struct plan으로 재시도하지 않는다.
+
+Focused gate는 한 source MIR을 C/LLVM이 공유하고 exact `7\n11\n5`, routine
+permutation, outer 5개/inner 2개 receipt와 tag/payload/call/use/member 변조 20회가
+artifact 발행 전에 닫히는지 확인한다. Installed C/LLVM도 같은 fixture를 사용한다.
+
+## Bootstrap manifest가 nominal ABI receipt 오류로 멈추는 경우
+
+증상은 `make self-host-codegen-bootstrap-seed-test-smoke`가 세대 생성 전에 다음
+진단으로 멈추는 것이다.
+
+```text
+MIR instruction ABI receipt rows are invalid
+```
+
+2026-08-02 회귀에서 `CompilerCompletenessCheckTarget { path: String }`은 nominal
+declaration이지만 고정 물리 ABI를 갖지 않아 native MIR의
+`abi_layout_required=false`, ID 0이 정상이었다. 새 producer가 exact name match만
+보고 18개 instruction을 nominal kind 1로 승격한 뒤 ID 0을 오류로 처리했다.
+
+판정 규칙은 declaration 존재와 physical receipt 존재를 분리한다.
+
+- `required==1`: kind 1(nominal) 또는 2(Option nominal), exact declaration row,
+  nonzero layout ID를 요구한다.
+- `required==0`: 중립 tuple `(kind=0,row=-1,id=0)`를 유지한다.
+- String nominal ABI를 억지로 추가하거나 unknown layout을 추정하지 않는다.
+- Producer와 verifier가 같은 required 조건을 교차 봉인하고, TestHarness manifest
+  compile과 bootstrap seed를 positive regression으로 유지한다.
+
+수정 뒤 manifest의 receipt/ABI 배열은 모두 2,669행으로 일치하고 `ready=1`이며,
+current-source bootstrap seed가 416.6초에 완주했다. 이 시간은 일반 프로그램
+컴파일 성능이 아니라 bootstrap integration 비용이다.
+
+## PowerShell에서 MSYS Make가 `tr`, `rm`, `gcc`를 찾지 못하는 경우
+
+전체 액세스나 승인 문제로 오해하지 않는다. Windows PowerShell에서
+`C:\msys64\usr\bin\make.exe`를 직접 실행하면 이 설치의 UCRT64 경로가
+상속되지 않아 Make 내부 `/usr/bin/bash`가 도구를 찾지 못할 수 있다. 설정 stamp가
+먼저 갱신되면 이후 정상 호출에서도 전체 native object 재빌드가 한 번 발생한다.
+
+이 환경의 재현 가능한 호출은 MSYS 로그인 셸 안에서 UCRT64와 `/usr/bin`을 먼저
+소유시키는 것이다.
+
+```powershell
+& 'C:\msys64\usr\bin\bash.exe' -lc `
+  'export PATH=/ucrt64/bin:/usr/bin:$PATH; cd /d/PergyraLang && make <target>'
+```
+
+환경 경계 때문에 일어난 전체 재빌드 시간은 focused gate나 일반 self-host program
+compile 시간에 합산하지 않는다.

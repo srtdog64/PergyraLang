@@ -2,37 +2,39 @@
 
 마지막 업데이트: 2026-08-02
 
-## 활성 우선순위 — nested `Option<Pair>` aggregate ABI carriage
+## 활성 우선순위 — explicit-generic nominal value flow
 
-- 실행 체크포인트 `cd886a6d`는 `struct_literal_value_flow.pgy`를 닫았다. 하나의
-  11,441-byte self-host MIR이 실제 `BuildPair(Int) -> Pair`, mutable `pair`
-  replacement와 returned aggregate/member use를 C와 LLVM으로 투영하고 모두
-  정확히 `11`을 출력한다. Public installed C/LLVM compile/run도 이
-  target-specific `SUBSTITUTING` 경로를 사용한다.
-- Native와 self producer는 aggregate return 및 local definition마다 `Pair`
-  declaration의 완전한 8/4 receipt와 ID `674136663`을 운반한다. JSON writer와
-  backend는 type spelling이나 expression text로 layout을 복원하지 않는다.
-- Target-neutral program/graph/plan은 실제 `BuildPair(pair.right)` call, native
-  residual assignment와 self SSA의 의미상 대응, 최신 `pair.2` use를 봉인한다.
-  C와 LLVM은 `Pair`를 실제 aggregate value로 반환하며 상수 `11`로 평탄화하지
-  않는다.
-- Focused gate는 native/self parity, exact `11`, routine permutation과 13개
-  pre-artifact negative를 검증했다. Native compiler, installed C/LLVM, hard
-  contract, full component ratchet, 최종 self-host driver build도 green이다.
-- 설치 드라이버는 3,690,605 bytes, SHA-256
-  `4B303BA7C112BC7B4F4727722E694D429DF9C3EA280BCEF1AAB90DAF6B6B40F4`다.
-  Seed와 driver를 함께 갱신한 `make self-host-compiler`는 506.2초였고 메모리는
-  계측하지 않았다.
-- 다음 활성 fixture는 `option_struct_value_flow.pgy`이며 예상 출력은
-  `7\n11\n5`다. 17,637-byte MIR, SHA-256
-  `580E55AB8D4A902F18303959F36D74A59CBEC61DB1A585F5AEA5CBE5E53AEFB6` 생성은
-  성공하지만 direct C는 artifact 전에 fail-closed한다. Unwrapped `Pair`에는
-  receipt가 있지만 `Option<Pair>` return/local은 `abi_layout_id=0`이고
-  `abi_layout_required=false`다.
-- 다음 owner는 기존 Option ABI와 program-owned `Pair` declaration을 결합한
-  reconstructible nested receipt다. Backend tag/payload 추론, `Option<Int>` 재사용,
-  source spelling 재탐색, plain-struct owner 재시도, `BuildPair`/unwrap flattening,
-  old/new dual read를 금지한다.
+- 실행 체크포인트 `1068f93d`는 `option_struct_value_flow.pgy`를 닫았다. 하나의
+  19,072-byte self-host MIR, SHA-256
+  `085E72BD8626B2F09BD60AA9055A5619A8875EBFA491C072A5A631DAC9A2275E`가 실제
+  `BuildPair(Int) -> Option<Pair>`, Some/None/Some replacement, explicit unwrap과
+  별도 chained unwrap-member를 C/LLVM으로 투영한다. 두 실행 결과와 installed
+  public C/LLVM 결과는 정확히 `7\n11\n5`다.
+- `Pair` receipt는 size 8/align 4/ID `674136663`, derived `Option<Pair>`는 size
+  12/align 4/ID `798450640`이다. Static Option tag owner와 program-owned inner
+  declaration을 producer에서 한 번 결합하며, backend는 tag/payload offset이나
+  runtime helper를 추론하지 않는다.
+- 하나의 two-routine nominal classifier가 plain과 Option nominal을 먼저 나눈다.
+  Option candidate가 거부된 뒤 plain-struct plan을 retry할 수 없고, 하나의
+  target-neutral plan만 선택된 C/LLVM emitter로 전달된다.
+- Focused gate는 native/self receipt parity, exact output, routine permutation과
+  C 19개 + LLVM sentinel 1개의 pre-artifact negative 실행을 검증했다. 기존 plain
+  `Pair`, installed C/LLVM, hard contract, full component ratchet, current-source
+  driver build와 416.6초 bootstrap seed도 green이다.
+- Bootstrap manifest가 가진 `CompilerCompletenessCheckTarget { path: String }`은
+  nominal이지만 고정 ABI가 아니므로 중립 receipt `(kind=0,row=-1,id=0)`를 유지한다.
+  `required==1`인 declaration만 nominal/Option-nominal receipt를 발행하도록 producer와
+  verifier를 교차 봉인했다.
+- 설치 드라이버는 3,759,056 bytes, SHA-256
+  `E97277EE7F01B56A02F4F905B1A34BF2D93948CECB62585CF333A3B96A044ECD`다.
+  Current-source rebuild는 101.9초였고 메모리는 계측하지 않았다.
+- 다음 활성 fixture는 `generic_struct_field_value_flow.pgy`다. Installed self-host C는
+  1.2초에 컴파일되고 exact `7`을 실행하지만, installed LLVM은 artifact 전에
+  `direct MIR multi-routine projection rejected`로 fail-closed한다.
+- 다음 owner는 `Identity<T>` formal과 `Identity<Int>` specialization/call identity,
+  기존 `Pair` ABI, 세 routine의 row-order-independent identity를 결합한 하나의
+  target-neutral generic nominal plan이다. Generic call/BuildPair flattening, source
+  spelling specialization, C-only 복제, 이전 two-routine plan retry를 금지한다.
 - Full CI, Coq adequacy, current-source gen2==gen3 fixed point는 이번 checkpoint에서
   재실행하지 않았다. 메모리는 semantic target의 final maximum만 기록하며
   2.4/3 GiB attention/hard-stop 정책을 유지한다.
