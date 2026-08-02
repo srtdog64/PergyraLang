@@ -1,0 +1,155 @@
+// Exact internal single-Int value-class declaration and generic method row.
+
+import "../mir_lower/declaration_method_contract_fact_owner.pgy";
+import "../mir_lower/program_declaration_index_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+import "direct_mir_inferred_generic_member_array_shape_owner.pgy";
+
+struct DirectMirInferredGenericMemberDeclarationFact {
+    let valid: Bool;
+    let digest: Int;
+    let row: Int;
+    let name: String;
+    let source_syntax_id: Int;
+    let field_name: String;
+    let field_type: String;
+    let field_source_syntax_id: Int;
+    let method_name: String;
+    let method_return_type: String;
+}
+
+func InvalidDirectMirInferredGenericMemberDeclarationFact(
+) -> DirectMirInferredGenericMemberDeclarationFact {
+    return DirectMirInferredGenericMemberDeclarationFact(
+        false, 0, 0 - 1, "", 0, "", "", 0, "", ""
+    );
+}
+
+func DirectMirInferredGenericMemberDeclarationFactDigest(
+    ref fact: DirectMirInferredGenericMemberDeclarationFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(313L, fact.name);
+    hash = DirectMirCfgHashInt(hash, fact.source_syntax_id);
+    hash = DirectMirCfgHashString(hash, fact.field_name);
+    hash = DirectMirCfgHashString(hash, fact.field_type);
+    hash = DirectMirCfgHashInt(hash, fact.field_source_syntax_id);
+    hash = DirectMirCfgHashString(hash, fact.method_name);
+    hash = DirectMirCfgHashString(hash, fact.method_return_type);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirInferredGenericMemberDeclarationFactReady(
+    ref fact: DirectMirInferredGenericMemberDeclarationFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirInferredGenericMemberDeclarationFactDigest(fact) &&
+        fact.row >= 0 && fact.name != "" && fact.source_syntax_id > 0 &&
+        fact.field_name != "" &&
+        fact.field_type == CompilerAbiLayoutIntTypeName() &&
+        fact.field_source_syntax_id > 0 &&
+        fact.field_source_syntax_id != fact.source_syntax_id &&
+        fact.method_name != "" && fact.method_name != "Main" &&
+        fact.method_return_type != "";
+}
+
+func DirectMirInferredGenericMemberEmptyFunctionContractReady(
+    ref contract: MirDeclarationMethodContractFact
+) -> Bool {
+    return contract.valid && contract.diagnostic == "" &&
+        contract.callable_kind == "function" &&
+        ArrayLength(contract.requires_bases) == 0 &&
+        ArrayLength(contract.requires_actual_starts) == 0 &&
+        ArrayLength(contract.requires_actual_counts) == 0 &&
+        ArrayLength(contract.requires_actual_names) == 0 &&
+        contract.within_zone == "" && contract.causes_name == "" &&
+        ArrayLength(contract.authorized_by_names) == 0 &&
+        !contract.caps_present && ArrayLength(contract.cap_names) == 0 &&
+        !contract.effects_present && ArrayLength(contract.effect_names) == 0;
+}
+
+func DirectMirInferredGenericMemberDeclarationFactFromDocument(
+    json: String,
+    ref declarations: MirProgramDeclarationIndex
+) -> DirectMirInferredGenericMemberDeclarationFact {
+    if !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 ||
+        declarations.kinds[0] != "class" ||
+        declarations.nominal_kinds[0] != "class" {
+        return InvalidDirectMirInferredGenericMemberDeclarationFact();
+    }
+    let declaration: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        json, declarations.starts[0], declarations.ends[0]
+    );
+    let name_opt: Option<String> = JsonObjectFactStringFieldOpt(
+        declaration, "name"
+    );
+    let syntax_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+        declaration, "source_syntax_id"
+    );
+    let fields: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
+        declaration, "fields"
+    );
+    let methods: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
+        declaration, "methods"
+    );
+    if !JsonObjectFactTableReady(declaration) ||
+        JsonObjectFactCount(declaration) != 6 || !IsSome(name_opt) ||
+        !IsSome(syntax_opt) || UnwrapOption(name_opt) != declarations.names[0] ||
+        !JsonArrayObjectFactTableReady(fields) ||
+        !DirectMirInferredGenericMemberExactObjectArrayCount(fields, 1) ||
+        !JsonArrayObjectFactTableReady(methods) ||
+        !DirectMirInferredGenericMemberExactObjectArrayCount(methods, 1) {
+        return InvalidDirectMirInferredGenericMemberDeclarationFact();
+    }
+    let field: JsonObjectFactTable = JsonArrayObjectFactAt(fields, 0);
+    let field_name: Option<String> = JsonObjectFactStringFieldOpt(field, "name");
+    let field_type: Option<String> = JsonObjectFactStringFieldOpt(field, "type");
+    let field_kind: Option<String> = JsonObjectFactStringFieldOpt(
+        field, "field_kind"
+    );
+    let field_syntax: Option<String> = JsonObjectFactNumberFieldOpt(
+        field, "source_syntax_id"
+    );
+    let method: JsonObjectFactTable = JsonArrayObjectFactAt(methods, 0);
+    let method_name: Option<String> = JsonObjectFactStringFieldOpt(
+        method, "name"
+    );
+    let method_return: Option<String> = JsonObjectFactStringFieldOpt(
+        method, "return"
+    );
+    let callable_kind: Option<String> = JsonObjectFactStringFieldOpt(
+        method, "callable_kind"
+    );
+    let contract: MirDeclarationMethodContractFact =
+        MirDeclarationMethodContractFactFromBounds(
+            json, method.start, method.end
+        );
+    if JsonObjectFactCount(field) != 4 || !IsSome(field_name) ||
+        !IsSome(field_type) || !IsSome(field_kind) || !IsSome(field_syntax) ||
+        UnwrapOption(field_kind) != "field" ||
+        JsonObjectFactCount(method) != 4 || !IsSome(method_name) ||
+        !IsSome(method_return) || !IsSome(callable_kind) ||
+        UnwrapOption(callable_kind) != "function" ||
+        !DirectMirInferredGenericMemberEmptyFunctionContractReady(contract) {
+        return InvalidDirectMirInferredGenericMemberDeclarationFact();
+    }
+    let fact: DirectMirInferredGenericMemberDeclarationFact =
+        DirectMirInferredGenericMemberDeclarationFact(
+            true, 0, 0, UnwrapOption(name_opt), ToInt(UnwrapOption(syntax_opt)),
+            UnwrapOption(field_name), UnwrapOption(field_type),
+            ToInt(UnwrapOption(field_syntax)), UnwrapOption(method_name),
+            UnwrapOption(method_return)
+        );
+    let verified: DirectMirInferredGenericMemberDeclarationFact =
+        DirectMirInferredGenericMemberDeclarationFact(
+            fact.valid,
+            DirectMirInferredGenericMemberDeclarationFactDigest(fact),
+            fact.row, fact.name, fact.source_syntax_id, fact.field_name,
+            fact.field_type, fact.field_source_syntax_id, fact.method_name,
+            fact.method_return_type
+        );
+    if !DirectMirInferredGenericMemberDeclarationFactReady(verified) {
+        return InvalidDirectMirInferredGenericMemberDeclarationFact();
+    }
+    return verified;
+}

@@ -508,6 +508,30 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_inferred_generic_scalar_plan_owner.pgy" \
     'mixed_lane_inferred_generic_return_assignment_by_value'
+require_text ".github/workflows/ci.yml" \
+    'self-host-one-mir-inferred-generic-member-projection-test-smoke'
+require_text "Makefile" \
+    'self-host-one-mir-inferred-generic-member-projection-test-smoke: self-host-compiler'
+require_file \
+    "tests/self_hosted/parity/one_mir_inferred_generic_member_projection.sh"
+require_file \
+    "tests/self_hosted/parity/one_mir_inferred_generic_member_mutations.py"
+require_text \
+    "src/self_hosted/compiler/direct_mir_two_routine_classification_owner.pgy" \
+    'DirectMirTwoRoutineInferredGenericMember()'
+require_text \
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
+    'CompileAdmittedDirectMirInferredGenericMember('
+require_text \
+    "src/self_hosted/compiler/direct_mir_inferred_generic_member_representation_fact_owner.pgy" \
+    'internal_single_int_value_class'
+require_text \
+    "src/self_hosted/compiler/direct_mir_inferred_generic_member_plan_owner.pgy" \
+    'nested_inferred_generic_member_calls_on_value_receiver'
+require_text "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
+    'src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy'
+require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
+    'src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy'
 require_text \
     "src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" \
     'classification.kind == DirectMirThreeRoutineGenericNominal()'

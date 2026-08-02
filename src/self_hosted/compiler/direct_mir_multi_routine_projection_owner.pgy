@@ -3,6 +3,7 @@ import "direct_mir_array_return_emission_owner.pgy";
 import "direct_mir_two_routine_nominal_projection_owner.pgy";
 import "direct_mir_two_routine_classification_owner.pgy";
 import "direct_mir_inferred_generic_nominal_projection_owner.pgy";
+import "direct_mir_inferred_generic_member_projection_owner.pgy";
 import "direct_mir_three_routine_projection_owner.pgy";
 func CompileAdmittedDirectMirMultiRoutineForTarget(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -48,6 +49,12 @@ func CompileAdmittedDirectMirMultiRoutineForTarget(
         if two_routine.kind ==
             DirectMirTwoRoutineInferredGenericNominal() {
             return CompileAdmittedDirectMirInferredGenericNominal(
+                admitted, two_routine, is_llvm, formatted_print, line_format
+            );
+        }
+        if two_routine.kind ==
+            DirectMirTwoRoutineInferredGenericMember() {
+            return CompileAdmittedDirectMirInferredGenericMember(
                 admitted, two_routine, is_llvm, formatted_print, line_format
             );
         }

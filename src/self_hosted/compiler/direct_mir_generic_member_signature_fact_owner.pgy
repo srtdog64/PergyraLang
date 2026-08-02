@@ -1,0 +1,180 @@
+// Strict one-formal generic method signature with a value receiver.
+
+import "direct_mir_routine_param_fact_owner.pgy";
+import "direct_mir_scalar_graph_admission_owner.pgy";
+import "direct_mir_inferred_generic_member_array_shape_owner.pgy";
+import "../mir_lower/program_routine_index_owner.pgy";
+import "../mir_lower/routine_inventory_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirGenericMemberSignatureFact {
+    let valid: Bool;
+    let digest: Int;
+    let row: Int;
+    let owner: String;
+    let name: String;
+    let source_syntax_id: Int;
+    let receiver_carriage: String;
+    let receiver_name: String;
+    let generic_name: String;
+    let return_type: String;
+    let value_param: DirectMirRoutineParamFact;
+}
+
+func InvalidDirectMirGenericMemberSignatureFact(
+) -> DirectMirGenericMemberSignatureFact {
+    return DirectMirGenericMemberSignatureFact(
+        false, 0, 0 - 1, "", "", 0, "", "", "", "",
+        InvalidDirectMirRoutineParamFact()
+    );
+}
+
+func DirectMirGenericMemberSignatureFactDigest(
+    ref fact: DirectMirGenericMemberSignatureFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(307L, fact.owner);
+    hash = DirectMirCfgHashString(hash, fact.name);
+    hash = DirectMirCfgHashInt(hash, fact.source_syntax_id);
+    hash = DirectMirCfgHashString(hash, fact.receiver_carriage);
+    hash = DirectMirCfgHashString(hash, fact.receiver_name);
+    hash = DirectMirCfgHashString(hash, fact.generic_name);
+    hash = DirectMirCfgHashString(hash, fact.return_type);
+    hash = DirectMirCfgHashInt(hash, fact.value_param.digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirGenericMemberSignatureFactReady(
+    ref fact: DirectMirGenericMemberSignatureFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirGenericMemberSignatureFactDigest(fact) && fact.row >= 0 &&
+        fact.owner != "" && fact.name != "" && fact.name != "Main" &&
+        fact.source_syntax_id > 0 && fact.receiver_carriage == "value" &&
+        fact.receiver_name == "self" && fact.generic_name != "" &&
+        fact.return_type == fact.generic_name &&
+        DirectMirRoutineParamFactReady(fact.value_param) &&
+        fact.value_param.type_name == fact.generic_name &&
+        fact.value_param.carriage == "value" &&
+        fact.value_param.resource == "none" &&
+        fact.value_param.pass_shape == "direct" &&
+        !fact.value_param.abi_required;
+}
+
+func DirectMirGenericMemberReceiverParamReady(
+    ref object: JsonObjectFactTable
+) -> Bool {
+    return JsonObjectFactTableReady(object) &&
+        JsonObjectFactCount(object) == 9 &&
+        JsonObjectFactStringFieldEquals(object, "name", "self") &&
+        DirectMirObjectFieldKindEquals(object, "type", "null") &&
+        JsonObjectFactStringFieldEquals(object, "carriage", "value") &&
+        JsonObjectFactStringFieldEquals(object, "resource", "none") &&
+        JsonObjectFactStringFieldEquals(object, "pass", "direct") &&
+        DirectMirObjectFieldKindEquals(object, "abi_type_name", "null") &&
+        DirectMirObjectNumberEquals(object, "abi_layout_id", "0") &&
+        JsonObjectBoolFieldEqualsWithin(
+            object.json, object.start, object.end,
+            "abi_layout_required", false
+        ) && DirectMirObjectFieldKindEquals(object, "abi_layout", "null");
+}
+
+func DirectMirGenericMemberSignatureFactAt(
+    ref routines: MirProgramRoutineIndex, row: Int
+) -> DirectMirGenericMemberSignatureFact {
+    if row < 0 || !MirProgramRoutineIndexRowReady(routines, row) ||
+        routines.kinds[row] != "method" || routines.owners[row] == "" ||
+        routines.routine_block_counts[row] != 1 ||
+        MirProgramRoutineIndexBlockInstructionCountAt(routines, row, 0) != 1 {
+        return InvalidDirectMirGenericMemberSignatureFact();
+    }
+    let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        routines.source_json, routines.starts[row], routines.ends[row]
+    );
+    let receiver_opt: Option<String> = JsonObjectFactStringFieldOpt(
+        routine, "receiver_carriage"
+    );
+    let return_opt: Option<String> = JsonObjectFactStringFieldOpt(
+        routine, "return"
+    );
+    let generic_bounds: Array<Int> = [0, 0];
+    let param_bounds: Array<Int> = [0, 0];
+    if !IsSome(receiver_opt) || !IsSome(return_opt) ||
+        UnwrapOption(receiver_opt) != "value" ||
+        !MirObjectArrayBoundsAtBounds(
+            routines.source_json, routines.starts[row], routines.ends[row],
+            "generics", generic_bounds
+        ) || !DirectMirInferredGenericMemberExactStringArrayCount(
+            routines.source_json, generic_bounds[0], generic_bounds[1], 1
+        ) || !MirObjectArrayBoundsAtBounds(
+            routines.source_json, routines.starts[row], routines.ends[row],
+            "params", param_bounds
+        ) {
+        return InvalidDirectMirGenericMemberSignatureFact();
+    }
+    let params: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(
+        routines.source_json, param_bounds[0], param_bounds[1]
+    );
+    if !DirectMirInferredGenericMemberExactObjectArrayCount(params, 2) {
+        return InvalidDirectMirGenericMemberSignatureFact();
+    }
+    let first_bounds: Array<Int> = [0, 0];
+    let second_bounds: Array<Int> = [0, 0];
+    if !JsonArrayNextObjectBounds(
+            routines.source_json, param_bounds[0] + 1,
+            param_bounds[1], first_bounds
+        ) || !JsonArrayNextObjectBounds(
+            routines.source_json, first_bounds[1],
+            param_bounds[1], second_bounds
+        ) {
+        return InvalidDirectMirGenericMemberSignatureFact();
+    }
+    let receiver: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        routines.source_json, first_bounds[0], first_bounds[1]
+    );
+    let value_param: DirectMirRoutineParamFact =
+        DirectMirRoutineParamFactFromBounds(
+            routines.source_json, second_bounds[0], second_bounds[1]
+        );
+    let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
+        routines.source_json, routines.starts[row], routines.ends[row]
+    );
+    if !DirectMirGenericMemberReceiverParamReady(receiver) ||
+        !DirectMirRoutineParamFactReady(value_param) ||
+        ArrayLength(header.generic_names) != 1 ||
+        ArrayLength(header.param_names) != 2 ||
+        ArrayLength(header.param_types) != 2 ||
+        ArrayLength(header.param_carriages) != 2 ||
+        ArrayLength(header.param_resources) != 2 ||
+        ArrayLength(header.param_pass_shapes) != 2 ||
+        header.param_names[0] != "self" ||
+        header.param_names[1] != value_param.name ||
+        header.param_types[0] != "" ||
+        header.param_types[1] != value_param.type_name ||
+        header.param_carriages[0] != "value" ||
+        header.param_carriages[1] != value_param.carriage ||
+        header.param_resources[0] != "none" ||
+        header.param_resources[1] != value_param.resource ||
+        header.param_pass_shapes[0] != "direct" ||
+        header.param_pass_shapes[1] != value_param.pass_shape ||
+        header.return_type != UnwrapOption(return_opt) {
+        return InvalidDirectMirGenericMemberSignatureFact();
+    }
+    let fact: DirectMirGenericMemberSignatureFact =
+        DirectMirGenericMemberSignatureFact(
+            true, 0, row, routines.owners[row], routines.names[row],
+            ToInt(routines.source_syntax_ids[row]), "value", "self",
+            header.generic_names[0], header.return_type, value_param
+        );
+    let verified: DirectMirGenericMemberSignatureFact =
+        DirectMirGenericMemberSignatureFact(
+            fact.valid, DirectMirGenericMemberSignatureFactDigest(fact),
+            fact.row, fact.owner, fact.name, fact.source_syntax_id,
+            fact.receiver_carriage, fact.receiver_name, fact.generic_name,
+            fact.return_type, fact.value_param
+        );
+    if !DirectMirGenericMemberSignatureFactReady(verified) {
+        return InvalidDirectMirGenericMemberSignatureFact();
+    }
+    return verified;
+}

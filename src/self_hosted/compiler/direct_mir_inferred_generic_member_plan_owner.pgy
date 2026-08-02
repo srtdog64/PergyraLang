@@ -1,0 +1,110 @@
+// Target-neutral plan for nested inferred calls on one value receiver.
+
+import "direct_mir_inferred_generic_member_representation_fact_owner.pgy";
+import "target_capability_owner.pgy";
+import "artifact_zone_owner.pgy";
+import "../mir_lower/ssa_identity_owner.pgy";
+struct DirectMirInferredGenericMemberPlan {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let digest: Int;
+    let target_capability_schema: String;
+    let target_capability_fingerprint: Int;
+    let identity: DirectMirInferredGenericMemberProgramIdentity;
+    let representation: DirectMirInferredGenericMemberRepresentationFact;
+    let receiver_value: String;
+    let result_value: String;
+    let value_carriage: String;
+}
+func DirectMirInferredGenericMemberPlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-inferred-generic-member-plan.v1";
+}
+
+func DirectMirInferredGenericMemberCarriage() -> String {
+    return "nested_inferred_generic_member_calls_on_value_receiver";
+}
+
+func DirectMirInferredGenericMemberPlanDigest(
+    ref plan: DirectMirInferredGenericMemberPlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(347L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
+    hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
+    hash = DirectMirCfgHashInt(hash, plan.identity.digest);
+    hash = DirectMirCfgHashInt(hash, plan.representation.digest);
+    hash = DirectMirCfgHashString(hash, plan.receiver_value);
+    hash = DirectMirCfgHashString(hash, plan.result_value);
+    hash = DirectMirCfgHashString(hash, plan.value_carriage);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirInferredGenericMemberPlanReady(
+    ref plan: DirectMirInferredGenericMemberPlan
+) -> Bool {
+    return plan.valid &&
+        plan.schema == DirectMirInferredGenericMemberPlanSchema() &&
+        plan.revision == CompilerArtifactPlanRevision() && plan.digest != 0 &&
+        plan.digest == DirectMirInferredGenericMemberPlanDigest(plan) &&
+        plan.target_capability_schema == CompilerTargetCapabilitySchema() &&
+        plan.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        DirectMirInferredGenericMemberProgramIdentityReady(plan.identity) &&
+        DirectMirInferredGenericMemberRepresentationFactReady(
+            plan.representation
+        ) && plan.representation.type_name == plan.identity.declaration.name &&
+        plan.representation.field_name ==
+            plan.identity.declaration.field_name &&
+        plan.representation.field_type ==
+            plan.identity.declaration.field_type &&
+        plan.representation.receiver_carriage ==
+            plan.identity.generic_method.receiver_carriage &&
+        MirSsaNameMatches(
+            plan.receiver_value,
+            plan.identity.graph.receiver_local_name, false
+        ) && MirSsaNameMatches(
+            plan.result_value, plan.identity.graph.result_local_name, false
+        ) && plan.value_carriage == DirectMirInferredGenericMemberCarriage();
+}
+
+func DirectMirInferredGenericMemberPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirTwoRoutineClassificationFact
+) -> DirectMirInferredGenericMemberPlan {
+    let identity: DirectMirInferredGenericMemberProgramIdentity =
+        DirectMirInferredGenericMemberProgramIdentityFromAdmitted(
+            admitted, classification
+        );
+    let instructions: DirectMirInferredGenericMemberInstructionAdmission =
+        DirectMirInferredGenericMemberInstructionAdmissionFromProgram(
+            admitted, identity
+        );
+    let representation: DirectMirInferredGenericMemberRepresentationFact =
+        DirectMirInferredGenericMemberRepresentationFactFromInstructions(
+            identity, instructions
+        );
+    let plan: DirectMirInferredGenericMemberPlan =
+        DirectMirInferredGenericMemberPlan(
+            true, DirectMirInferredGenericMemberPlanSchema(),
+            CompilerArtifactPlanRevision(), 0,
+            CompilerTargetCapabilitySchema(),
+            CompilerTargetCapabilityFingerprint(), identity, representation,
+            instructions.constructor.result, instructions.nested_call.result,
+            DirectMirInferredGenericMemberCarriage()
+        );
+    let verified: DirectMirInferredGenericMemberPlan =
+        DirectMirInferredGenericMemberPlan(
+            plan.valid, plan.schema, plan.revision,
+            DirectMirInferredGenericMemberPlanDigest(plan),
+            plan.target_capability_schema,
+            plan.target_capability_fingerprint, plan.identity,
+            plan.representation, plan.receiver_value, plan.result_value,
+            plan.value_carriage
+        );
+    if !DirectMirInferredGenericMemberPlanReady(verified) {
+        Die("direct MIR inferred generic member plan is invalid");
+    }
+    return verified;
+}

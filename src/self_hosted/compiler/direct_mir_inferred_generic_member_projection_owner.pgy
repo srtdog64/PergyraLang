@@ -1,0 +1,25 @@
+// Target selection after one inferred generic member plan is admitted.
+
+import "direct_mir_inferred_generic_member_c_emission_owner.pgy";
+import "direct_mir_inferred_generic_member_llvm_emission_owner.pgy";
+
+func CompileAdmittedDirectMirInferredGenericMember(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirTwoRoutineClassificationFact,
+    is_llvm: Bool,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    let plan: DirectMirInferredGenericMemberPlan =
+        DirectMirInferredGenericMemberPlanFromAdmitted(
+            admitted, classification
+        );
+    if is_llvm {
+        return DirectMirInferredGenericMemberEmitLlvm(
+            plan, formatted_print, line_format
+        );
+    }
+    return DirectMirInferredGenericMemberEmitC(
+        plan, formatted_print, line_format
+    );
+}

@@ -2,7 +2,7 @@
 // Specialization cardinality is read once so a rejected interpretation cannot
 // retry the other projection family.
 
-import "direct_mir_two_routine_nominal_program_admission_owner.pgy";
+import "direct_mir_two_routine_shape_owner.pgy";
 import "../air/mir_cfg_identity_owner.pgy";
 
 struct DirectMirTwoRoutineClassificationFact {
@@ -10,14 +10,19 @@ struct DirectMirTwoRoutineClassificationFact {
     let digest: Int;
     let kind: Int;
     let specialization_count: Int;
+    let shape: DirectMirTwoRoutineShapeFact;
 }
 
 func DirectMirTwoRoutineClosedNominal() -> Int { return 1; }
 func DirectMirTwoRoutineInferredGenericNominal() -> Int { return 2; }
+func DirectMirTwoRoutineInferredGenericMember() -> Int { return 3; }
 
 func InvalidDirectMirTwoRoutineClassificationFact(
 ) -> DirectMirTwoRoutineClassificationFact {
-    return DirectMirTwoRoutineClassificationFact(false, 0, 0, 0);
+    return DirectMirTwoRoutineClassificationFact(
+        false, 0, 0, 0,
+        DirectMirTwoRoutineShapeFact(false, 0, "", "", 0, 0)
+    );
 }
 
 func DirectMirTwoRoutineClassificationDigest(
@@ -26,6 +31,7 @@ func DirectMirTwoRoutineClassificationDigest(
     if !fact.valid { return 0; }
     let hash: Long = DirectMirCfgHashInt(229L, fact.kind);
     hash = DirectMirCfgHashInt(hash, fact.specialization_count);
+    hash = DirectMirCfgHashInt(hash, fact.shape.digest);
     return DirectMirCfgBoundedDigest(hash);
 }
 
@@ -34,10 +40,22 @@ func DirectMirTwoRoutineClassificationFactReady(
 ) -> Bool {
     return fact.valid && fact.digest != 0 && fact.digest ==
         DirectMirTwoRoutineClassificationDigest(fact) &&
+        DirectMirTwoRoutineShapeFactReady(fact.shape) &&
         ((fact.kind == DirectMirTwoRoutineClosedNominal() &&
-          fact.specialization_count == 0) ||
+          fact.specialization_count == 0 &&
+          fact.shape.declaration_kind == "struct" &&
+          fact.shape.generic_routine_count == 0 &&
+          fact.shape.method_routine_count == 0) ||
          (fact.kind == DirectMirTwoRoutineInferredGenericNominal() &&
-          fact.specialization_count == 2));
+          fact.specialization_count == 2 &&
+          fact.shape.declaration_kind == "struct" &&
+          fact.shape.generic_routine_count == 1 &&
+          fact.shape.method_routine_count == 0) ||
+         (fact.kind == DirectMirTwoRoutineInferredGenericMember() &&
+          fact.specialization_count == 2 &&
+          fact.shape.declaration_kind == "class" &&
+          fact.shape.generic_routine_count == 1 &&
+          fact.shape.method_routine_count == 1));
 }
 
 func DirectMirTwoRoutineClassificationFromAdmitted(
@@ -47,25 +65,32 @@ func DirectMirTwoRoutineClassificationFromAdmitted(
         JsonObjectFactArrayObjectTable(
             admitted.document.root, "generic_method_specializations"
         );
-    if !DirectMirTwoRoutineNominalProgramCandidate(admitted) ||
+    let shape: DirectMirTwoRoutineShapeFact =
+        DirectMirTwoRoutineShapeFactFromAdmitted(admitted);
+    if !DirectMirTwoRoutineShapeFactReady(shape) ||
         !JsonArrayObjectFactTableReady(specializations) {
         return InvalidDirectMirTwoRoutineClassificationFact();
     }
     let count: Int = JsonArrayObjectFactCount(specializations);
     let kind: Int = 0;
-    if count == 0 {
+    if count == 0 && shape.declaration_kind == "struct" &&
+        shape.generic_routine_count == 0 && shape.method_routine_count == 0 {
         kind = DirectMirTwoRoutineClosedNominal();
-    } else if count == 2 {
+    } else if count == 2 && shape.declaration_kind == "struct" &&
+        shape.generic_routine_count == 1 && shape.method_routine_count == 0 {
         kind = DirectMirTwoRoutineInferredGenericNominal();
+    } else if count == 2 && shape.declaration_kind == "class" &&
+        shape.generic_routine_count == 1 && shape.method_routine_count == 1 {
+        kind = DirectMirTwoRoutineInferredGenericMember();
     } else {
         return InvalidDirectMirTwoRoutineClassificationFact();
     }
     let fact: DirectMirTwoRoutineClassificationFact =
-        DirectMirTwoRoutineClassificationFact(true, 0, kind, count);
+        DirectMirTwoRoutineClassificationFact(true, 0, kind, count, shape);
     let verified: DirectMirTwoRoutineClassificationFact =
         DirectMirTwoRoutineClassificationFact(
             fact.valid, DirectMirTwoRoutineClassificationDigest(fact),
-            fact.kind, fact.specialization_count
+            fact.kind, fact.specialization_count, fact.shape
         );
     if !DirectMirTwoRoutineClassificationFactReady(verified) {
         return InvalidDirectMirTwoRoutineClassificationFact();

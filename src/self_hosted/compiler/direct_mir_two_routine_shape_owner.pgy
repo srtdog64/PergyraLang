@@ -1,0 +1,78 @@
+// One structural receipt for bounded two-routine nominal routing.
+
+import "direct_mir_two_routine_nominal_program_admission_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirTwoRoutineShapeFact {
+    let valid: Bool;
+    let digest: Int;
+    let declaration_kind: String;
+    let nominal_kind: String;
+    let generic_routine_count: Int;
+    let method_routine_count: Int;
+}
+
+func DirectMirTwoRoutineShapeFactDigest(
+    ref fact: DirectMirTwoRoutineShapeFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(283L, fact.declaration_kind);
+    hash = DirectMirCfgHashString(hash, fact.nominal_kind);
+    hash = DirectMirCfgHashInt(hash, fact.generic_routine_count);
+    hash = DirectMirCfgHashInt(hash, fact.method_routine_count);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirTwoRoutineShapeFactReady(
+    ref fact: DirectMirTwoRoutineShapeFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirTwoRoutineShapeFactDigest(fact) &&
+        (fact.declaration_kind == "struct" ||
+         fact.declaration_kind == "class") &&
+        fact.nominal_kind == fact.declaration_kind &&
+        fact.generic_routine_count >= 0 &&
+        fact.generic_routine_count <= 2 &&
+        fact.method_routine_count >= 0 && fact.method_routine_count <= 2;
+}
+
+func DirectMirTwoRoutineShapeFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirTwoRoutineShapeFact {
+    let declarations: MirProgramDeclarationIndex =
+        admitted.domain_runtime_admission.declarations;
+    if !DirectMirTwoRoutineNominalProgramCandidate(admitted) ||
+        !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 ||
+        !MirProgramRoutineIndexStructureReady(admitted.routines) {
+        return DirectMirTwoRoutineShapeFact(false, 0, "", "", 0, 0);
+    }
+    let generic_count: Int = 0;
+    let method_count: Int = 0;
+    let row: Int = 0;
+    while row < 2 {
+        let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
+            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.ends[row]
+        );
+        if ArrayLength(header.generic_names) > 0 {
+            generic_count = generic_count + 1;
+        }
+        if admitted.routines.kinds[row] == "method" {
+            method_count = method_count + 1;
+        }
+        row = row + 1;
+    }
+    let fact: DirectMirTwoRoutineShapeFact = DirectMirTwoRoutineShapeFact(
+        true, 0, declarations.kinds[0], declarations.nominal_kinds[0],
+        generic_count, method_count
+    );
+    let verified: DirectMirTwoRoutineShapeFact = DirectMirTwoRoutineShapeFact(
+        fact.valid, DirectMirTwoRoutineShapeFactDigest(fact),
+        fact.declaration_kind, fact.nominal_kind,
+        fact.generic_routine_count, fact.method_routine_count
+    );
+    if !DirectMirTwoRoutineShapeFactReady(verified) {
+        return DirectMirTwoRoutineShapeFact(false, 0, "", "", 0, 0);
+    }
+    return verified;
+}

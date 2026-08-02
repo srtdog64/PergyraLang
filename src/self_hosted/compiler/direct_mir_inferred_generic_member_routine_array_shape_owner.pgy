@@ -1,0 +1,43 @@
+// Exact array closure for the two routines in the inferred member plan.
+
+import "direct_mir_inferred_generic_member_array_shape_owner.pgy";
+import "../mir_lower/program_routine_index_owner.pgy";
+
+func DirectMirInferredGenericMemberRoutineArrayShapeReady(
+    ref routines: MirProgramRoutineIndex, row: Int,
+    generic_count: Int, param_count: Int, local_count: Int
+) -> Bool {
+    if row < 0 || !MirProgramRoutineIndexRowReady(routines, row) ||
+        generic_count < 0 || param_count < 0 || local_count < 0 {
+        return false;
+    }
+    let generic_bounds: Array<Int> = [0, 0];
+    let param_bounds: Array<Int> = [0, 0];
+    let local_bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayBoundsAtBounds(
+            routines.source_json, routines.starts[row], routines.ends[row],
+            "generics", generic_bounds
+        ) || !MirObjectArrayBoundsAtBounds(
+            routines.source_json, routines.starts[row], routines.ends[row],
+            "params", param_bounds
+        ) || !MirObjectArrayBoundsAtBounds(
+            routines.source_json, routines.starts[row], routines.ends[row],
+            "source_locals", local_bounds
+        ) || !DirectMirInferredGenericMemberExactStringArrayCount(
+            routines.source_json, generic_bounds[0], generic_bounds[1],
+            generic_count
+        ) {
+        return false;
+    }
+    let params: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(
+        routines.source_json, param_bounds[0], param_bounds[1]
+    );
+    let locals: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(
+        routines.source_json, local_bounds[0], local_bounds[1]
+    );
+    return DirectMirInferredGenericMemberExactObjectArrayCount(
+            params, param_count
+        ) && DirectMirInferredGenericMemberExactObjectArrayCount(
+            locals, local_count
+        );
+}

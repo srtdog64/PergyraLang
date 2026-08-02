@@ -1,0 +1,180 @@
+// Semantic identity for one inferred generic value-receiver member program.
+
+import "direct_mir_inferred_generic_member_program_admission_owner.pgy";
+import "direct_mir_inferred_generic_member_declaration_fact_owner.pgy";
+import "direct_mir_inferred_generic_member_graph_fact_owner.pgy";
+import "direct_mir_inferred_generic_member_specialization_fact_owner.pgy";
+import "direct_mir_generic_member_signature_fact_owner.pgy";
+import "direct_mir_inferred_generic_member_routine_array_shape_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "symbol_table_owner.pgy";
+struct DirectMirInferredGenericMemberProgramIdentity {
+    let valid: Bool;
+    let digest: Int;
+    let entrypoint: DirectMirRoutineSignatureFact;
+    let generic_method: DirectMirGenericMemberSignatureFact;
+    let specialization: DirectMirInferredGenericMemberSpecializationFact;
+    let declaration: DirectMirInferredGenericMemberDeclarationFact;
+    let graph: DirectMirInferredGenericMemberGraphFact;
+}
+func DirectMirInferredGenericMemberProgramIdentityDigest(
+    ref identity: DirectMirInferredGenericMemberProgramIdentity
+) -> Int {
+    if !identity.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(331L, identity.entrypoint.digest);
+    hash = DirectMirCfgHashInt(hash, identity.generic_method.digest);
+    hash = DirectMirCfgHashInt(hash, identity.specialization.digest);
+    hash = DirectMirCfgHashInt(hash, identity.declaration.digest);
+    hash = DirectMirCfgHashInt(hash, identity.graph.digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+func DirectMirInferredGenericMemberProgramIdentityReady(
+    ref identity: DirectMirInferredGenericMemberProgramIdentity
+) -> Bool {
+    if !identity.valid || identity.digest == 0 || identity.digest !=
+        DirectMirInferredGenericMemberProgramIdentityDigest(identity) ||
+        !DirectMirRoutineSignatureFactReady(identity.entrypoint) ||
+        !DirectMirGenericMemberSignatureFactReady(identity.generic_method) ||
+        !DirectMirInferredGenericMemberSpecializationFactReady(
+            identity.specialization
+        ) || !DirectMirInferredGenericMemberDeclarationFactReady(
+            identity.declaration
+        ) || !DirectMirInferredGenericMemberGraphFactReady(identity.graph) {
+        return false;
+    }
+    let method: DirectMirGenericMemberSignatureFact =
+        identity.generic_method;
+    let specialization: DirectMirInferredGenericMemberSpecializationFact =
+        identity.specialization;
+    let declaration: DirectMirInferredGenericMemberDeclarationFact =
+        identity.declaration;
+    let graph: DirectMirInferredGenericMemberGraphFact = identity.graph;
+    return identity.entrypoint.name == "Main" &&
+        identity.entrypoint.return_type == "Void" &&
+        identity.entrypoint.param_count == 0 &&
+        method.owner == declaration.name &&
+        method.name == declaration.method_name &&
+        method.return_type == declaration.method_return_type &&
+        method.generic_name == specialization.generic_param &&
+        method.value_param.name == graph.value_parameter_name &&
+        specialization.owner == declaration.name &&
+        specialization.callable == method.name &&
+        specialization.generic_actual == CompilerAbiLayoutIntTypeName() &&
+        graph.owner == declaration.name && graph.method == method.name &&
+        graph.member_target == CompilerSymbolCQualifiedName(
+            declaration.name, method.name
+        ) && graph.receiver_parameter_name == method.receiver_name &&
+        identity.entrypoint.row != method.row &&
+        identity.entrypoint.source_syntax_id != method.source_syntax_id &&
+        identity.entrypoint.source_syntax_id !=
+            declaration.source_syntax_id &&
+        identity.entrypoint.source_syntax_id !=
+            declaration.field_source_syntax_id &&
+        declaration.source_syntax_id != method.source_syntax_id &&
+        declaration.field_source_syntax_id != method.source_syntax_id;
+}
+func DirectMirInferredGenericMemberInstructionGraph(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    routine_row: Int, instruction_row: Int
+) -> MirExpressionGraphSequence {
+    let global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, routine_row, 0, instruction_row
+    );
+    if global < 0 {
+        Die("direct MIR inferred member instruction routing failed");
+    }
+    let expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions, global
+        );
+    return DirectMirArrayIntGraphFromExpressionFact(
+        admitted.routines.source_json, expression, 0
+    );
+}
+func DirectMirInferredGenericMemberUniqueRoutineRow(
+    ref routines: MirProgramRoutineIndex, name: String
+) -> Int {
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < MirProgramRoutineIndexCount(routines) {
+        if routines.names[row] == name {
+            if found >= 0 {
+                Die("direct MIR inferred member routine is duplicated");
+            }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+func DirectMirInferredGenericMemberProgramIdentityFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirTwoRoutineClassificationFact
+) -> DirectMirInferredGenericMemberProgramIdentity {
+    if !DirectMirInferredGenericMemberProgramEnvelopeReady(
+        admitted, classification
+    ) {
+        Die("direct MIR inferred generic member envelope is invalid");
+    }
+    let specialization: DirectMirInferredGenericMemberSpecializationFact =
+        DirectMirInferredGenericMemberSpecializationFactFromDocument(
+            admitted.document.root
+        );
+    if !DirectMirInferredGenericMemberSpecializationFactReady(specialization) {
+        Die("direct MIR inferred member specialization receipt is invalid");
+    }
+    let main_row: Int = DirectMirInferredGenericMemberUniqueRoutineRow(
+        admitted.routines, "Main"
+    );
+    let method_row: Int = DirectMirInferredGenericMemberUniqueRoutineRow(
+        admitted.routines, specialization.callable
+    );
+    if main_row < 0 || method_row < 0 || main_row == method_row ||
+        !DirectMirInferredGenericMemberRoutineArrayShapeReady(
+            admitted.routines, main_row, 0, 0, 2
+        ) || !DirectMirInferredGenericMemberRoutineArrayShapeReady(
+            admitted.routines, method_row, 1, 2, 0
+        ) ||
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, main_row, 0
+        ) != 3 || MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, method_row, 0
+        ) != 1 {
+        Die("direct MIR inferred member routine cardinality is invalid");
+    }
+    let method_return: MirExpressionGraphSequence =
+        DirectMirInferredGenericMemberInstructionGraph(
+            admitted, method_row, 0
+        );
+    let constructor: MirExpressionGraphSequence =
+        DirectMirInferredGenericMemberInstructionGraph(admitted, main_row, 0);
+    let nested_call: MirExpressionGraphSequence =
+        DirectMirInferredGenericMemberInstructionGraph(admitted, main_row, 1);
+    let output: MirExpressionGraphSequence =
+        DirectMirInferredGenericMemberInstructionGraph(admitted, main_row, 2);
+    let identity: DirectMirInferredGenericMemberProgramIdentity =
+        DirectMirInferredGenericMemberProgramIdentity(
+            true, 0,
+            DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 3),
+            DirectMirGenericMemberSignatureFactAt(
+                admitted.routines, method_row
+            ), specialization,
+            DirectMirInferredGenericMemberDeclarationFactFromDocument(
+                admitted.document.root.json,
+                admitted.domain_runtime_admission.declarations
+            ), DirectMirInferredGenericMemberGraphFactFromSequences(
+                method_return, constructor, nested_call, output
+            )
+        );
+    let verified: DirectMirInferredGenericMemberProgramIdentity =
+        DirectMirInferredGenericMemberProgramIdentity(
+            identity.valid,
+            DirectMirInferredGenericMemberProgramIdentityDigest(identity),
+            identity.entrypoint, identity.generic_method,
+            identity.specialization, identity.declaration, identity.graph
+        );
+    if !DirectMirInferredGenericMemberProgramIdentityReady(verified) {
+        Die("direct MIR inferred generic member identity is invalid");
+    }
+    return verified;
+}

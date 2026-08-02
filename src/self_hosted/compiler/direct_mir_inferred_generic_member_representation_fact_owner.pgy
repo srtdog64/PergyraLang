@@ -1,0 +1,73 @@
+// Internal representation fact for one single-Int value class.
+// It is not a physical ABI or interoperability layout receipt.
+
+import "direct_mir_inferred_generic_member_instruction_admission_owner.pgy";
+
+struct DirectMirInferredGenericMemberRepresentationFact {
+    let valid: Bool;
+    let digest: Int;
+    let type_name: String;
+    let field_name: String;
+    let field_type: String;
+    let representation: String;
+    let receiver_carriage: String;
+}
+
+func DirectMirInferredGenericMemberRepresentation() -> String {
+    return "internal_single_int_value_class";
+}
+
+func DirectMirInferredGenericMemberRepresentationFactDigest(
+    ref fact: DirectMirInferredGenericMemberRepresentationFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(337L, fact.type_name);
+    hash = DirectMirCfgHashString(hash, fact.field_name);
+    hash = DirectMirCfgHashString(hash, fact.field_type);
+    hash = DirectMirCfgHashString(hash, fact.representation);
+    hash = DirectMirCfgHashString(hash, fact.receiver_carriage);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirInferredGenericMemberRepresentationFactReady(
+    ref fact: DirectMirInferredGenericMemberRepresentationFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirInferredGenericMemberRepresentationFactDigest(fact) &&
+        fact.type_name != "" && fact.field_name != "" &&
+        fact.field_type == CompilerAbiLayoutIntTypeName() &&
+        fact.representation ==
+            DirectMirInferredGenericMemberRepresentation() &&
+        fact.receiver_carriage == "value";
+}
+
+func DirectMirInferredGenericMemberRepresentationFactFromInstructions(
+    ref identity: DirectMirInferredGenericMemberProgramIdentity,
+    ref instructions: DirectMirInferredGenericMemberInstructionAdmission
+) -> DirectMirInferredGenericMemberRepresentationFact {
+    if !DirectMirInferredGenericMemberProgramIdentityReady(identity) ||
+        !DirectMirInferredGenericMemberInstructionAdmissionReady(instructions) ||
+        identity.generic_method.receiver_carriage != "value" ||
+        instructions.constructor.abi_layout_id_start < 0 ||
+        instructions.constructor.abi_layout_required_start < 0 ||
+        instructions.constructor.abi_layout_start < 0 {
+        Die("direct MIR inferred member representation input is invalid");
+    }
+    let fact: DirectMirInferredGenericMemberRepresentationFact =
+        DirectMirInferredGenericMemberRepresentationFact(
+            true, 0, identity.declaration.name,
+            identity.declaration.field_name, identity.declaration.field_type,
+            DirectMirInferredGenericMemberRepresentation(), "value"
+        );
+    let verified: DirectMirInferredGenericMemberRepresentationFact =
+        DirectMirInferredGenericMemberRepresentationFact(
+            fact.valid,
+            DirectMirInferredGenericMemberRepresentationFactDigest(fact),
+            fact.type_name, fact.field_name, fact.field_type,
+            fact.representation, fact.receiver_carriage
+        );
+    if !DirectMirInferredGenericMemberRepresentationFactReady(verified) {
+        Die("direct MIR inferred member representation fact is invalid");
+    }
+    return verified;
+}

@@ -1,0 +1,71 @@
+// Exact raw-array closure for the bounded generic member MIR envelope.
+// Count-only scans are insufficient because they stop before a non-row tail.
+
+import "../lib/json_fact_table.pgy";
+
+func DirectMirInferredGenericMemberArrayCursorAtEnd(
+    json: String, cursor: Int, array_end: Int
+) -> Bool {
+    let next: Int = JsonSkipWhitespaceWithin(json, cursor, array_end);
+    return next < array_end &&
+        JsonCharCodeAt(json, array_end, next) == JsonAsciiCode("]");
+}
+
+func DirectMirInferredGenericMemberExactObjectArrayCount(
+    ref table: JsonArrayObjectFactTable, expected: Int
+) -> Bool {
+    if !JsonArrayObjectFactTableReady(table) || expected < 0 {
+        return false;
+    }
+    let cursor: Int = table.start + 1;
+    let bounds: Array<Int> = [0, 0];
+    let row: Int = 0;
+    while row < expected {
+        if !JsonArrayNextObjectBounds(
+            table.json, cursor, table.end, bounds
+        ) {
+            return false;
+        }
+        cursor = bounds[1];
+        row = row + 1;
+    }
+    return DirectMirInferredGenericMemberArrayCursorAtEnd(
+        table.json, cursor, table.end
+    );
+}
+
+func DirectMirInferredGenericMemberExactStringArrayCount(
+    json: String, array_open: Int, array_end: Int, expected: Int
+) -> Bool {
+    if array_open < 0 || array_end <= array_open || expected < 0 ||
+        JsonCharCodeAt(json, array_end, array_open) != JsonAsciiCode("[") {
+        return false;
+    }
+    let cursor: Int = array_open + 1;
+    let row: Int = 0;
+    while row < expected {
+        cursor = JsonSkipWhitespaceWithin(json, cursor, array_end);
+        if row > 0 {
+            if cursor >= array_end ||
+                JsonCharCodeAt(json, array_end, cursor) != JsonAsciiCode(",") {
+                return false;
+            }
+            cursor = JsonSkipWhitespaceWithin(
+                json, cursor + 1, array_end
+            );
+        }
+        if cursor >= array_end ||
+            JsonCharCodeAt(json, array_end, cursor) != JsonAsciiCode("\"") {
+            return false;
+        }
+        let end_opt: Option<Int> = JsonStringEndWithin(
+            json, cursor, array_end
+        );
+        if !IsSome(end_opt) { return false; }
+        cursor = UnwrapOption(end_opt);
+        row = row + 1;
+    }
+    return DirectMirInferredGenericMemberArrayCursorAtEnd(
+        json, cursor, array_end
+    );
+}

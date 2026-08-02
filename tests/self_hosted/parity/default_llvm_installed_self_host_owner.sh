@@ -14,6 +14,7 @@ SELF_DRIVER="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"
 CC="${CC:-cc}"
 WORK_DIR="$ROOT_DIR/.tmp/self_hosted/default_llvm_installed"
 SOURCE="src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy"
+MEMBER_SOURCE="src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy"
 COUNT_FILE="$WORK_DIR/count.txt"
 COUNT_FILE_FOR_DRIVER="$COUNT_FILE"
 
@@ -57,6 +58,15 @@ mkdir -p "$WORK_DIR/counting-install" "$WORK_DIR/missing-install"
 printf '7\n11\n5\n' >"$WORK_DIR/real.expected"
 cmp -s "$WORK_DIR/real.expected" "$WORK_DIR/real-program.out" ||
     fail "installed self-host LLVM artifact produced the wrong Option nominal output"
+
+(cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN &&
+    "$PGY" "$MEMBER_SOURCE" --backend=llvm \
+        -o ".tmp/self_hosted/default_llvm_installed/member-program$suffix") \
+    >"$WORK_DIR/member.out" 2>"$WORK_DIR/member.err"
+"$WORK_DIR/member-program$suffix" | tr -d '\r' >"$WORK_DIR/member-program.out"
+printf '41\n' >"$WORK_DIR/member.expected"
+cmp -s "$WORK_DIR/member.expected" "$WORK_DIR/member-program.out" ||
+    fail "installed self-host LLVM artifact lost inferred generic member flow"
 
 cp "$PGY" "$WORK_DIR/counting-install/pgy$suffix"
 "$CC" -std=c11 -Wall -Wextra -Werror \

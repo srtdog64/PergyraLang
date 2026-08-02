@@ -1,0 +1,174 @@
+// Exact constructor, nested member-call, and output graph identity.
+
+import "direct_mir_generic_nominal_graph_shape_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirInferredGenericMemberGraphFact {
+    let valid: Bool;
+    let digest: Int;
+    let owner: String;
+    let method: String;
+    let member_target: String;
+    let receiver_parameter_name: String;
+    let value_parameter_name: String;
+    let receiver_local_name: String;
+    let result_local_name: String;
+    let marker_value: Int;
+    let argument_value: Int;
+}
+
+func DirectMirInferredGenericMemberCanonicalIntAt(
+    ref sequence: MirExpressionGraphSequence, row: Int
+) -> Int {
+    if row < 0 || row >= ArrayLength(sequence.arena.node_texts) ||
+        sequence.arena.topology.node_kinds[row] !=
+            AstExpressionNodeIntegerLiteral() {
+        Die("direct MIR inferred member integer node is invalid");
+    }
+    let value: String = sequence.arena.node_texts[row];
+    if value == "" || ToString(ToInt(value)) != value {
+        Die("direct MIR inferred member integer is not canonical");
+    }
+    return ToInt(value);
+}
+
+func DirectMirInferredGenericMemberNestedCallReady(
+    ref sequence: MirExpressionGraphSequence,
+    receiver: String, method: String, target: String
+) -> Bool {
+    let kinds: Array<Int> = [
+        AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+        AstExpressionNodeMemberAccess(), AstExpressionNodeCall(),
+        AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+        AstExpressionNodeMemberAccess(), AstExpressionNodeCall(),
+        AstExpressionNodeIntegerLiteral(), AstExpressionNodeCallArgument(),
+        AstExpressionNodeCallArgument()
+    ];
+    let lefts: Array<Int> = [0,0,0,2,0,0,4,6,0,7,3];
+    let rights: Array<Int> = [0,0,1,0,0,0,5,0,0,8,9];
+    if !sequence.ok || sequence.ready_node_count != 11 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 10 ||
+        receiver == "" || method == "" || target == "" {
+        return false;
+    }
+    let row: Int = 0;
+    while row < 11 {
+        if sequence.arena.topology.node_kinds[row] != kinds[row] ||
+            sequence.arena.topology.left_children[row] != lefts[row] ||
+            sequence.arena.topology.right_children[row] != rights[row] {
+            return false;
+        }
+        if row == 3 || row == 7 {
+            if sequence.arena.call_target_kinds[row] !=
+                    SemanticCallTargetMember() ||
+                sequence.arena.call_target_names[row] != target {
+                return false;
+            }
+        } else if sequence.arena.call_target_kinds[row] !=
+                SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[row] != "" {
+            return false;
+        }
+        row = row + 1;
+    }
+    let member_text: String = Concat(receiver, Concat(".", method));
+    let call_text: String = Concat(member_text, "()");
+    let argument_text: String = sequence.arena.node_texts[8];
+    let inner_text: String = Concat(
+        member_text, Concat("(", Concat(argument_text, ")"))
+    );
+    let outer_text: String = Concat(
+        member_text, Concat("(", Concat(inner_text, ")"))
+    );
+    return sequence.arena.node_texts[0] == receiver &&
+        sequence.arena.node_texts[1] == method &&
+        sequence.arena.node_texts[2] == member_text &&
+        sequence.arena.node_texts[3] == call_text &&
+        sequence.arena.node_texts[4] == receiver &&
+        sequence.arena.node_texts[5] == method &&
+        sequence.arena.node_texts[6] == member_text &&
+        sequence.arena.node_texts[7] == call_text &&
+        sequence.arena.node_texts[9] == inner_text &&
+        sequence.arena.node_texts[10] == outer_text;
+}
+
+func DirectMirInferredGenericMemberGraphFactDigest(
+    ref fact: DirectMirInferredGenericMemberGraphFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(317L, fact.owner);
+    hash = DirectMirCfgHashString(hash, fact.method);
+    hash = DirectMirCfgHashString(hash, fact.member_target);
+    hash = DirectMirCfgHashString(hash, fact.receiver_parameter_name);
+    hash = DirectMirCfgHashString(hash, fact.value_parameter_name);
+    hash = DirectMirCfgHashString(hash, fact.receiver_local_name);
+    hash = DirectMirCfgHashString(hash, fact.result_local_name);
+    hash = DirectMirCfgHashInt(hash, fact.marker_value);
+    hash = DirectMirCfgHashInt(hash, fact.argument_value);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirInferredGenericMemberGraphFactReady(
+    ref fact: DirectMirInferredGenericMemberGraphFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirInferredGenericMemberGraphFactDigest(fact) &&
+        fact.owner != "" && fact.method != "" && fact.member_target != "" &&
+        fact.receiver_parameter_name == "self" &&
+        fact.value_parameter_name != "" && fact.receiver_local_name != "" &&
+        fact.result_local_name != "" &&
+        fact.receiver_local_name != fact.result_local_name;
+}
+
+func DirectMirInferredGenericMemberGraphFactFromSequences(
+    ref method_return: MirExpressionGraphSequence,
+    ref constructor: MirExpressionGraphSequence,
+    ref nested_call: MirExpressionGraphSequence,
+    ref output: MirExpressionGraphSequence
+) -> DirectMirInferredGenericMemberGraphFact {
+    if !DirectMirGenericNominalIdentityReturnShapeReady(method_return) ||
+        !constructor.ok || constructor.ready_node_count != 4 ||
+        !nested_call.ok || nested_call.ready_node_count != 11 ||
+        !output.ok || output.ready_node_count != 4 {
+        Die("direct MIR inferred member graph input is incomplete");
+    }
+    let owner: String = constructor.arena.call_target_names[1];
+    let receiver: String = nested_call.arena.node_texts[0];
+    let method: String = nested_call.arena.node_texts[1];
+    let target: String = nested_call.arena.call_target_names[3];
+    let result: String = output.arena.node_texts[2];
+    if !DirectMirGenericNominalExactTopologyReady(
+            constructor, [AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+            AstExpressionNodeIntegerLiteral(), AstExpressionNodeCallArgument()],
+            [0,0,0,1], [0,0,0,2], ["",owner,"",""], 3
+        ) || constructor.arena.node_texts[0] != owner ||
+        !DirectMirInferredGenericMemberNestedCallReady(
+            nested_call, receiver, method, target
+        ) || !DirectMirGenericNominalExactTopologyReady(
+            output, [AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+            AstExpressionNodeLeaf(), AstExpressionNodeCallArgument()],
+            [0,0,0,1], [0,0,0,2], ["","ToString","",""], 3
+        ) || output.arena.node_texts[0] != "ToString" ||
+        method_return.arena.node_texts[0] == "" || result == "" {
+        Die("direct MIR inferred member graph topology is invalid");
+    }
+    let fact: DirectMirInferredGenericMemberGraphFact =
+        DirectMirInferredGenericMemberGraphFact(
+            true, 0, owner, method, target, "self",
+            method_return.arena.node_texts[0], receiver, result,
+            DirectMirInferredGenericMemberCanonicalIntAt(constructor, 2),
+            DirectMirInferredGenericMemberCanonicalIntAt(nested_call, 8)
+        );
+    let verified: DirectMirInferredGenericMemberGraphFact =
+        DirectMirInferredGenericMemberGraphFact(
+            fact.valid, DirectMirInferredGenericMemberGraphFactDigest(fact),
+            fact.owner, fact.method, fact.member_target,
+            fact.receiver_parameter_name, fact.value_parameter_name,
+            fact.receiver_local_name, fact.result_local_name,
+            fact.marker_value, fact.argument_value
+        );
+    if !DirectMirInferredGenericMemberGraphFactReady(verified) {
+        Die("direct MIR inferred member graph fact is invalid");
+    }
+    return verified;
+}
