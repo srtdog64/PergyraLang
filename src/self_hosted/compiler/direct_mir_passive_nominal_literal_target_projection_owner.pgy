@@ -1,0 +1,54 @@
+// Target-bound representation of one sealed passive nominal value plan.
+// This owner admits capability/representation only; each emitter owns syntax.
+import "direct_mir_passive_nominal_literal_plan_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+struct DirectMirPassiveNominalLiteralTargetProjection {
+    let valid: Bool;
+    let target_projection: String;
+    let target_capability_fingerprint: Int;
+    let representation: String;
+}
+
+func DirectMirPassiveNominalLiteralTargetProjectionReadyFor(
+    ref projection: DirectMirPassiveNominalLiteralTargetProjection,
+    expected_target: String
+) -> Bool {
+    return projection.valid &&
+        projection.target_projection == expected_target &&
+        projection.target_capability_fingerprint !=
+            0 && projection.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        projection.representation == "named_single_i32_aggregate" &&
+        (expected_target == CompilerTargetCpuCProjection() ||
+         expected_target == CompilerTargetCpuLlvmProjection());
+}
+
+func DirectMirPassiveNominalLiteralTargetProjectionFromPlan(
+    ref plan: DirectMirPassiveNominalLiteralPlan,
+    ref target: CompilerTargetProjectionFact
+) -> DirectMirPassiveNominalLiteralTargetProjection {
+    if !DirectMirPassiveNominalLiteralPlanReady(plan) ||
+        plan.value_carriage != "aggregate_value" {
+        Die("direct MIR passive nominal target plan is invalid");
+    }
+    let target_ready: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuCProjection()
+    ) || CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuLlvmProjection()
+    );
+    if !target_ready {
+        Die("direct MIR passive nominal target is unsupported");
+    }
+    let projection: DirectMirPassiveNominalLiteralTargetProjection =
+        DirectMirPassiveNominalLiteralTargetProjection(
+            true, target.projection, target.target_capability_fingerprint,
+            "named_single_i32_aggregate"
+        );
+    if !DirectMirPassiveNominalLiteralTargetProjectionReadyFor(
+        projection, target.projection
+    ) {
+        Die("direct MIR passive nominal target projection is invalid");
+    }
+    return projection;
+}

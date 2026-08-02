@@ -517,6 +517,87 @@ require_file \
 require_file \
     "tests/self_hosted/parity/one_mir_inferred_generic_member_mutations.py"
 require_text ".github/workflows/ci.yml" \
+    'self-host-one-mir-passive-nominal-literal-projection-test-smoke'
+require_text "Makefile" \
+    'self-host-one-mir-passive-nominal-literal-projection-test-smoke: self-host-compiler'
+require_text "Makefile" \
+    '$(SELFHOST_ONE_MIR_PASSIVE_NOMINAL_LITERAL_GATE)'
+require_file \
+    "tests/self_hosted/parity/one_mir_passive_nominal_literal_projection.sh"
+require_file \
+    "tests/self_hosted/parity/one_mir_passive_nominal_literal_mutations.py"
+for passive_nominal_owner in \
+    direct_mir_passive_nominal_declaration_fact_owner.pgy \
+    direct_mir_passive_nominal_literal_graph_fact_owner.pgy \
+    direct_mir_passive_nominal_literal_program_identity_owner.pgy \
+    direct_mir_passive_nominal_literal_route_fact_owner.pgy \
+    direct_mir_passive_nominal_literal_instruction_envelope_owner.pgy \
+    direct_mir_passive_nominal_literal_abi_absence_owner.pgy \
+    direct_mir_passive_nominal_literal_program_admission_owner.pgy \
+    direct_mir_passive_nominal_literal_plan_owner.pgy \
+    direct_mir_passive_nominal_literal_target_projection_owner.pgy \
+    direct_mir_passive_nominal_literal_c_emission_owner.pgy \
+    direct_mir_passive_nominal_literal_llvm_emission_owner.pgy \
+    direct_mir_passive_nominal_literal_projection_owner.pgy; do
+    require_file "src/self_hosted/compiler/$passive_nominal_owner"
+done
+require_file \
+    "src/self_hosted/compiler/direct_mir_exact_json_array_cardinality_owner.pgy"
+[[ "$(wc -l < src/self_hosted/compiler/direct_mir_exact_json_array_cardinality_owner.pgy)" -le 90 ]] || \
+    fail "exact JSON-array cardinality owner hard cap exceeded"
+[[ ! -e src/self_hosted/compiler/direct_mir_inferred_generic_member_array_shape_owner.pgy ]] || \
+    fail "retired inferred-family array-shape owner reappeared"
+! grep -R -Eq 'DirectMirInferredGenericMemberExact(Object|String)ArrayCount' \
+    src/self_hosted/compiler || \
+    fail "exact JSON-array cardinality retained a family-local owner"
+passive_nominal_total=0
+for passive_nominal_owner in \
+    src/self_hosted/compiler/direct_mir_passive_nominal*.pgy; do
+    passive_nominal_total=$((passive_nominal_total + $(wc -l < "$passive_nominal_owner")))
+done
+[[ "$passive_nominal_total" -le 1024 ]] || \
+    fail "passive nominal owner family cap exceeded: $passive_nominal_total/1024"
+[[ "$(grep -Fc 'DirectMirPassiveNominalLiteralRouteFactFromAdmitted(admitted)' \
+    src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy)" -eq 1 ]] || \
+    fail "passive nominal classification is not single-shot"
+! grep -R -Fq 'DirectMirPassiveNominalLiteralProgramCandidate' \
+    src/self_hosted/compiler || \
+    fail "passive nominal route was re-evaluated in admission"
+require_text \
+    "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    'CompileAdmittedDirectMirPassiveNominalLiteral('
+require_text \
+    "src/self_hosted/compiler/direct_mir_passive_nominal_literal_plan_owner.pgy" \
+    'typed_nominal_physical_abi_absent'
+require_text \
+    "src/self_hosted/compiler/direct_mir_passive_nominal_literal_plan_owner.pgy" \
+    'typed_nominal_abi_absence.digest'
+require_text \
+    "src/self_hosted/compiler/direct_mir_passive_nominal_literal_abi_absence_owner.pgy" \
+    'result_capture_digest'
+require_text \
+    "src/self_hosted/compiler/direct_mir_passive_nominal_declaration_fact_owner.pgy" \
+    'DirectMirExactObjectArrayCount(methods, 0)'
+require_text \
+    "src/self_hosted/compiler/direct_mir_passive_nominal_literal_target_projection_owner.pgy" \
+    'each emitter owns syntax'
+for passive_nominal_ratchet in \
+    '%pgy.nominal.0 = insertvalue %PlayerDto poison, i32 12, 0' \
+    '%pgy.member.0 = extractvalue %PlayerDto %pgy.nominal.0, 0' \
+    definition-local-drift definition-arg-type-drift \
+    definition-expr-type-drift instruction-tail kind-drift method-tail host-subject \
+    'scalar after passive nominal admission'; do
+    require_text \
+        "tests/self_hosted/parity/one_mir_passive_nominal_literal_projection.sh" \
+        "$passive_nominal_ratchet"
+done
+require_text \
+    "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
+    'nominal_tobject.pgy|passive-nominal|12'
+require_text \
+    "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
+    '$PASSIVE_NOMINAL_SOURCE|passive-nominal|12'
+require_text ".github/workflows/ci.yml" \
     'self-host-one-mir-constructed-generic-member-projection-test-smoke'
 require_text "Makefile" \
     'self-host-one-mir-constructed-generic-member-projection-test-smoke: self-host-compiler'

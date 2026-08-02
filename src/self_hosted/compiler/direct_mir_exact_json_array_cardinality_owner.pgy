@@ -1,9 +1,8 @@
-// Exact raw-array closure for the bounded generic member MIR envelope.
-// Count-only scans are insufficient because they stop before a non-row tail.
+// Exact raw JSON array cardinality, including non-object tail rejection.
 
 import "../lib/json_fact_table.pgy";
 
-func DirectMirInferredGenericMemberArrayCursorAtEnd(
+func DirectMirExactJsonArrayCursorAtEnd(
     json: String, cursor: Int, array_end: Int
 ) -> Bool {
     let next: Int = JsonSkipWhitespaceWithin(json, cursor, array_end);
@@ -11,7 +10,7 @@ func DirectMirInferredGenericMemberArrayCursorAtEnd(
         JsonCharCodeAt(json, array_end, next) == JsonAsciiCode("]");
 }
 
-func DirectMirInferredGenericMemberExactObjectArrayCount(
+func DirectMirExactObjectArrayCount(
     ref table: JsonArrayObjectFactTable, expected: Int
 ) -> Bool {
     if !JsonArrayObjectFactTableReady(table) || expected < 0 {
@@ -29,12 +28,12 @@ func DirectMirInferredGenericMemberExactObjectArrayCount(
         cursor = bounds[1];
         row = row + 1;
     }
-    return DirectMirInferredGenericMemberArrayCursorAtEnd(
+    return DirectMirExactJsonArrayCursorAtEnd(
         table.json, cursor, table.end
     );
 }
 
-func DirectMirInferredGenericMemberExactStringArrayCount(
+func DirectMirExactStringArrayCount(
     json: String, array_open: Int, array_end: Int, expected: Int
 ) -> Bool {
     if array_open < 0 || array_end <= array_open || expected < 0 ||
@@ -65,7 +64,5 @@ func DirectMirInferredGenericMemberExactStringArrayCount(
         cursor = UnwrapOption(end_opt);
         row = row + 1;
     }
-    return DirectMirInferredGenericMemberArrayCursorAtEnd(
-        json, cursor, array_end
-    );
+    return DirectMirExactJsonArrayCursorAtEnd(json, cursor, array_end);
 }

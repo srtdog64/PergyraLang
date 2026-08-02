@@ -1,7 +1,7 @@
 // One exact row-order-independent pair before Option/Array family projection.
 
 import "direct_mir_generic_specialization_fact_owner.pgy";
-import "direct_mir_inferred_generic_member_array_shape_owner.pgy";
+import "direct_mir_exact_json_array_cardinality_owner.pgy";
 import "../semantic/ast_type_name_canonical_owner.pgy";
 
 struct DirectMirConstructedMemberSpecializationPairFact {
@@ -98,7 +98,7 @@ func DirectMirConstructedMemberSpecializationPairFromDocumentForInner(
     let table: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
         root, "generic_method_specializations"
     );
-    if !DirectMirInferredGenericMemberExactObjectArrayCount(table, 2) {
+    if !DirectMirExactObjectArrayCount(table, 2) {
         return InvalidDirectMirConstructedMemberSpecializationPairFact();
     }
     let seen: Array<Bool> = [false, false];
@@ -145,9 +145,9 @@ func DirectMirConstructedMemberSpecializationPairFromDocumentForInner(
             UnwrapOption(owner_opt) == "" || param == "" || actual == "" ||
             !JsonObjectFactArrayBounds(row, "generic_params", param_bounds) ||
             !JsonObjectFactArrayBounds(row, "generic_actuals", actual_bounds) ||
-            !DirectMirInferredGenericMemberExactStringArrayCount(
+            !DirectMirExactStringArrayCount(
                 row.json, param_bounds[0], param_bounds[1], 1
-            ) || !DirectMirInferredGenericMemberExactStringArrayCount(
+            ) || !DirectMirExactStringArrayCount(
                 row.json, actual_bounds[0], actual_bounds[1], 1
             ) {
             return InvalidDirectMirConstructedMemberSpecializationPairFact();

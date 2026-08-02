@@ -1,0 +1,82 @@
+// One sealed routing claim for the passive/identity nominal literal frontier.
+import "direct_mir_passive_nominal_declaration_fact_owner.pgy";
+struct DirectMirPassiveNominalLiteralRouteFact {
+    let valid: Bool;
+    let digest: Int;
+    let claimed: Bool;
+    let kind: String;
+    let nominal_kind: String;
+    let name: String;
+}
+func DirectMirPassiveNominalLiteralRouteKind(kind: String) -> Bool {
+    return DirectMirPassiveNominalKindReady(kind) || kind == "subject" ||
+        kind == "vessel";
+}
+func DirectMirPassiveNominalLiteralRouteFactDigest(
+    ref fact: DirectMirPassiveNominalLiteralRouteFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(541L, 0);
+    if fact.claimed { hash = DirectMirCfgHashInt(hash, 1); }
+    hash = DirectMirCfgHashString(hash, fact.kind);
+    hash = DirectMirCfgHashString(hash, fact.nominal_kind);
+    hash = DirectMirCfgHashString(hash, fact.name);
+    return DirectMirCfgBoundedDigest(hash);
+}
+func DirectMirPassiveNominalLiteralRouteFactReady(
+    ref fact: DirectMirPassiveNominalLiteralRouteFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+        DirectMirPassiveNominalLiteralRouteFactDigest(fact) {
+        return false;
+    }
+    if !fact.claimed {
+        return fact.kind == "" && fact.nominal_kind == "" && fact.name == "";
+    }
+    return (DirectMirPassiveNominalLiteralRouteKind(fact.kind) ||
+            DirectMirPassiveNominalLiteralRouteKind(fact.nominal_kind)) &&
+        fact.name != "";
+}
+func DirectMirPassiveNominalLiteralRouteFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirPassiveNominalLiteralRouteFact {
+    let rows: JsonArrayObjectFactTable = admitted.document.declarations;
+    let kind: String = "";
+    let nominal_kind: String = "";
+    let name: String = "";
+    if JsonArrayObjectFactTableReady(rows) &&
+        JsonArrayObjectFactCount(rows) == 1 {
+        let declaration: JsonObjectFactTable = JsonArrayObjectFactAt(rows, 0);
+        let kind_fact: Option<String> = MirObjectUniqueStringFactAtBounds(
+            declaration.json, declaration.start, declaration.end, "kind");
+        let nominal_fact: Option<String> = MirObjectUniqueStringFactAtBounds(
+            declaration.json, declaration.start, declaration.end,
+            "nominal_kind");
+        let name_fact: Option<String> = MirObjectUniqueStringFactAtBounds(
+            declaration.json, declaration.start, declaration.end, "name");
+        if IsSome(kind_fact) { kind = UnwrapOption(kind_fact); }
+        if IsSome(nominal_fact) {
+            nominal_kind = UnwrapOption(nominal_fact);
+        }
+        if IsSome(name_fact) { name = UnwrapOption(name_fact); }
+    }
+    let claimed: Bool = name != "" &&
+        (DirectMirPassiveNominalLiteralRouteKind(kind) ||
+         DirectMirPassiveNominalLiteralRouteKind(nominal_kind));
+    if !claimed {
+        kind = "";
+        nominal_kind = "";
+        name = "";
+    }
+    let fact: DirectMirPassiveNominalLiteralRouteFact =
+        DirectMirPassiveNominalLiteralRouteFact(
+            true, 0, claimed, kind, nominal_kind, name);
+    let verified: DirectMirPassiveNominalLiteralRouteFact =
+        DirectMirPassiveNominalLiteralRouteFact(
+            fact.valid, DirectMirPassiveNominalLiteralRouteFactDigest(fact),
+            fact.claimed, fact.kind, fact.nominal_kind, fact.name);
+    if !DirectMirPassiveNominalLiteralRouteFactReady(verified) {
+        Die("direct MIR passive nominal literal route fact is invalid");
+    }
+    return verified;
+}

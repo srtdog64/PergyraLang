@@ -2,7 +2,7 @@
 
 import "direct_mir_routine_param_fact_owner.pgy";
 import "direct_mir_scalar_graph_admission_owner.pgy";
-import "direct_mir_inferred_generic_member_array_shape_owner.pgy";
+import "direct_mir_exact_json_array_cardinality_owner.pgy";
 import "../mir_lower/program_routine_index_owner.pgy";
 import "../mir_lower/routine_inventory_owner.pgy";
 import "../air/mir_cfg_identity_owner.pgy";
@@ -110,7 +110,7 @@ func DirectMirGenericMemberSignatureFactAt(
         !MirObjectArrayBoundsAtBounds(
             routines.source_json, routines.starts[row], routines.ends[row],
             "generics", generic_bounds
-        ) || !DirectMirInferredGenericMemberExactStringArrayCount(
+        ) || !DirectMirExactStringArrayCount(
             routines.source_json, generic_bounds[0], generic_bounds[1], 1
         ) || !MirObjectArrayBoundsAtBounds(
             routines.source_json, routines.starts[row], routines.ends[row],
@@ -121,7 +121,7 @@ func DirectMirGenericMemberSignatureFactAt(
     let params: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(
         routines.source_json, param_bounds[0], param_bounds[1]
     );
-    if !DirectMirInferredGenericMemberExactObjectArrayCount(params, 2) {
+    if !DirectMirExactObjectArrayCount(params, 2) {
         return InvalidDirectMirGenericMemberSignatureFact();
     }
     let first_bounds: Array<Int> = [0, 0];

@@ -1,7 +1,7 @@
 // Exact row-order-independent receipt for two inferred member calls.
 
 import "direct_mir_generic_specialization_fact_owner.pgy";
-import "direct_mir_inferred_generic_member_array_shape_owner.pgy";
+import "direct_mir_exact_json_array_cardinality_owner.pgy";
 struct DirectMirInferredGenericMemberSpecializationFact {
     let valid: Bool;
     let digest: Int;
@@ -54,7 +54,7 @@ func DirectMirInferredGenericMemberSpecializationFactFromDocument(
         root, "generic_method_specializations"
     );
     if !JsonArrayObjectFactTableReady(table) ||
-        !DirectMirInferredGenericMemberExactObjectArrayCount(table, 2) {
+        !DirectMirExactObjectArrayCount(table, 2) {
         return InvalidDirectMirInferredGenericMemberSpecializationFact();
     }
     let seen: Array<Bool> = [false, false];
@@ -104,9 +104,9 @@ func DirectMirInferredGenericMemberSpecializationFactFromDocument(
             UnwrapOption(owner_opt) == "" || param == "" || actual == "" ||
             !JsonObjectFactArrayBounds(row, "generic_params", param_bounds) ||
             !JsonObjectFactArrayBounds(row, "generic_actuals", actual_bounds) ||
-            !DirectMirInferredGenericMemberExactStringArrayCount(
+            !DirectMirExactStringArrayCount(
                 row.json, param_bounds[0], param_bounds[1], 1
-            ) || !DirectMirInferredGenericMemberExactStringArrayCount(
+            ) || !DirectMirExactStringArrayCount(
                 row.json, actual_bounds[0], actual_bounds[1], 1
             ) {
             return InvalidDirectMirInferredGenericMemberSpecializationFact();

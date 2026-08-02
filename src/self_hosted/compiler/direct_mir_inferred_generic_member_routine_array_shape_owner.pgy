@@ -1,6 +1,6 @@
 // Exact array closure for the two routines in the inferred member plan.
 
-import "direct_mir_inferred_generic_member_array_shape_owner.pgy";
+import "direct_mir_exact_json_array_cardinality_owner.pgy";
 import "../mir_lower/program_routine_index_owner.pgy";
 
 func DirectMirInferredGenericMemberRoutineArrayShapeReady(
@@ -23,7 +23,7 @@ func DirectMirInferredGenericMemberRoutineArrayShapeReady(
         ) || !MirObjectArrayBoundsAtBounds(
             routines.source_json, routines.starts[row], routines.ends[row],
             "source_locals", local_bounds
-        ) || !DirectMirInferredGenericMemberExactStringArrayCount(
+        ) || !DirectMirExactStringArrayCount(
             routines.source_json, generic_bounds[0], generic_bounds[1],
             generic_count
         ) {
@@ -35,9 +35,9 @@ func DirectMirInferredGenericMemberRoutineArrayShapeReady(
     let locals: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(
         routines.source_json, local_bounds[0], local_bounds[1]
     );
-    return DirectMirInferredGenericMemberExactObjectArrayCount(
+    return DirectMirExactObjectArrayCount(
             params, param_count
-        ) && DirectMirInferredGenericMemberExactObjectArrayCount(
+        ) && DirectMirExactObjectArrayCount(
             locals, local_count
         );
 }

@@ -1,0 +1,57 @@
+// Exact definition envelope and use cardinality for this execution rung.
+import "direct_mir_scalar_graph_admission_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+
+func DirectMirPassiveNominalDefinitionEnvelopeReady(
+    ref instruction: JsonObjectFactTable,
+    ref program: DirectMirPassiveNominalLiteralProgramFact,
+    result_value: String
+) -> Bool {
+    return JsonObjectFactTableReady(instruction) &&
+        JsonObjectFactCount(instruction) == 25 &&
+        DirectMirObjectNumberEquals(instruction, "id", "0") &&
+        JsonObjectFactStringFieldEquals(instruction, "kind", "def") &&
+        JsonObjectFactStringFieldEquals(instruction, "name", "ssa-def") &&
+        JsonObjectFactStringFieldEquals(
+            instruction, "result", result_value
+        ) && JsonObjectFactStringFieldEquals(
+            instruction, "arg0", program.graph.local_name
+        ) && JsonObjectFactStringFieldEquals(
+            instruction, "arg1", program.declaration.name
+        ) && DirectMirObjectFieldKindEquals(
+            instruction, "slot_anchor", "null"
+        ) && JsonObjectFactStringFieldEquals(
+            instruction, "abi_type_name", program.declaration.name
+        ) && DirectMirObjectFieldKindEquals(instruction, "expr0", "string") &&
+        DirectMirObjectFieldKindEquals(
+            instruction, "expr0_graph", "object"
+        ) && JsonObjectFactStringFieldEquals(
+            instruction, "expr1", program.declaration.name
+        ) && DirectMirObjectFieldKindEquals(
+            instruction, "expr1_graph", "null"
+        ) && JsonObjectFactStringFieldEquals(
+            instruction, "source_type", "AST_LET_DECL"
+        ) && JsonObjectFactStringFieldEquals(
+            instruction, "machine_contact_kind", ""
+        ) && DirectMirObjectFieldKindEquals(
+            instruction, "machine_layer", "null"
+        ) && DirectMirObjectArrayEmpty(instruction, "match_patterns") &&
+        DirectMirObjectFieldKindEquals(instruction, "match_variant", "null") &&
+        DirectMirObjectArrayEmpty(instruction, "match_bindings") &&
+        DirectMirObjectArrayEmpty(instruction, "match_binding_types") &&
+        DirectMirObjectFieldKindEquals(
+            instruction, "destructure_element_type", "null"
+        ) && DirectMirObjectArrayEmpty(instruction, "destructure_bindings");
+}
+
+func DirectMirPassiveNominalLiteralExpectedUse(
+    ref uses: MirRoutineInstructionUseFacts,
+    global_row: Int, expected: String
+) -> Bool {
+    let count: Int = MirRoutineInstructionUseCountAtGlobal(uses, global_row);
+    if expected == "" { return count == 0; }
+    let value: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, global_row, 0
+    );
+    return count == 1 && IsSome(value) && UnwrapOption(value) == expected;
+}

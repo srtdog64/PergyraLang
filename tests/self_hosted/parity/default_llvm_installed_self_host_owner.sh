@@ -16,6 +16,7 @@ WORK_DIR="$ROOT_DIR/.tmp/self_hosted/default_llvm_installed"
 SOURCE="src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy"
 MEMBER_SOURCE="src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy"
 VESSEL_MEMBER_SOURCE="src/self_hosted/mir_lower/fixture/generic_vessel_member_inferred_flow.pgy"
+PASSIVE_NOMINAL_SOURCE="src/self_hosted/mir_lower/fixture/nominal_tobject.pgy"
 CONSTRUCTED_MEMBER_SOURCE="src/self_hosted/mir_lower/fixture/generic_member_constructed_return_flow.pgy"
 CONSTRUCTED_ARRAY_MEMBER_SOURCE="src/self_hosted/mir_lower/fixture/generic_member_array_return_flow.pgy"
 CONSTRUCTED_RECORD_ARRAY_MEMBER_SOURCE="src/self_hosted/mir_lower/fixture/generic_member_record_array_return_flow.pgy"
@@ -65,6 +66,7 @@ cmp -s "$WORK_DIR/real.expected" "$WORK_DIR/real-program.out" ||
 
 for member_case in "$MEMBER_SOURCE|member|41" \
     "$VESSEL_MEMBER_SOURCE|vessel-member|42" \
+    "$PASSIVE_NOMINAL_SOURCE|passive-nominal|12" \
     "$CONSTRUCTED_MEMBER_SOURCE|constructed-member|43" \
     "$CONSTRUCTED_ARRAY_MEMBER_SOURCE|constructed-array-member|44" \
     "$CONSTRUCTED_RECORD_ARRAY_MEMBER_SOURCE|constructed-record-array-member|45"; do

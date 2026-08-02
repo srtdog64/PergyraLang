@@ -2,7 +2,7 @@
 
 import "direct_mir_three_routine_classification_owner.pgy";
 import "direct_mir_generic_routine_program_envelope_owner.pgy";
-import "direct_mir_inferred_generic_member_array_shape_owner.pgy";
+import "direct_mir_exact_json_array_cardinality_owner.pgy";
 
 func DirectMirConstructedGenericMemberProgramEnvelopeReady(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -27,11 +27,11 @@ func DirectMirConstructedGenericMemberProgramEnvelopeReady(
         declarations.kinds[0] != "class" ||
         declarations.nominal_kinds[0] != "class" ||
         !JsonArrayObjectFactTableReady(specializations) ||
-        !DirectMirInferredGenericMemberExactObjectArrayCount(
+        !DirectMirExactObjectArrayCount(
             specializations, 2
         ) || !JsonArrayObjectFactTableReady(
             admitted.document.parallel_capture_boundaries
-        ) || !DirectMirInferredGenericMemberExactObjectArrayCount(
+        ) || !DirectMirExactObjectArrayCount(
             admitted.document.parallel_capture_boundaries, 0
         ) || !MirProgramRoutineIndexStructureReady(admitted.routines) {
         return false;

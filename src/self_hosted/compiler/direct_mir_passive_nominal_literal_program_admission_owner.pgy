@@ -1,0 +1,144 @@
+// Reachability, instruction, SSA-use, and sealed ABI-absence admission.
+import "direct_mir_passive_nominal_literal_program_identity_owner.pgy";
+import "direct_mir_passive_nominal_literal_instruction_envelope_owner.pgy";
+import "direct_mir_passive_nominal_literal_abi_absence_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_result_definition_fact_owner.pgy";
+import "../mir_lower/ssa_identity_owner.pgy";
+
+struct DirectMirPassiveNominalLiteralProgramAdmission {
+    let valid: Bool;
+    let digest: Int;
+    let program: DirectMirPassiveNominalLiteralProgramFact;
+    let definition: MirRoutineInstructionScalarCapture;
+    let output: MirRoutineInstructionScalarCapture;
+    let typed_nominal_abi_absence:
+        DirectMirPassiveNominalLiteralAbiAbsenceFact;
+}
+
+func DirectMirPassiveNominalLiteralProgramAdmissionDigest(
+    ref fact: DirectMirPassiveNominalLiteralProgramAdmission
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(571L, fact.program.digest);
+    hash = DirectMirCfgHashInt(
+        hash, DirectMirPassiveNominalLiteralCaptureDigest(fact.definition)
+    );
+    hash = DirectMirCfgHashInt(
+        hash, DirectMirPassiveNominalLiteralCaptureDigest(fact.output)
+    );
+    hash = DirectMirCfgHashInt(hash, fact.typed_nominal_abi_absence.digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirPassiveNominalLiteralProgramAdmissionReady(
+    ref fact: DirectMirPassiveNominalLiteralProgramAdmission
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirPassiveNominalLiteralProgramAdmissionDigest(fact) &&
+        DirectMirPassiveNominalLiteralProgramFactReady(fact.program) &&
+        fact.definition.valid && fact.output.valid &&
+        MirSsaNameMatches(
+            fact.definition.result, fact.program.graph.local_name, false
+        ) && fact.output.result == "" &&
+        DirectMirPassiveNominalLiteralAbiAbsenceFactReady(
+            fact.typed_nominal_abi_absence
+        ) && fact.typed_nominal_abi_absence.type_name ==
+            fact.program.declaration.name &&
+        fact.typed_nominal_abi_absence.result_name == fact.definition.result &&
+        fact.typed_nominal_abi_absence.result_capture_digest ==
+            DirectMirPassiveNominalLiteralCaptureDigest(fact.definition);
+}
+
+func DirectMirPassiveNominalLiteralProgramAdmissionFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref route: DirectMirPassiveNominalLiteralRouteFact
+) -> DirectMirPassiveNominalLiteralProgramAdmission {
+    let program: DirectMirPassiveNominalLiteralProgramFact =
+        DirectMirPassiveNominalLiteralProgramFactFromAdmitted(admitted, route);
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, 0
+    );
+    let uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, 0);
+    let first: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, 0, 0, 0
+    );
+    let second: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, 0, 0, 1
+    );
+    if !DirectMirPassiveNominalLiteralProgramFactReady(program) ||
+        !index.valid || ArrayLength(index.block_reachable) != 1 ||
+        !index.block_reachable[0] ||
+        !MirRoutineFactIndexBlockIsTerminal(index, 0) ||
+        index.block_has_conditional_branch[0] != 0 ||
+        ArrayLength(index.source_local_names) != 1 ||
+        ArrayLength(index.source_local_types) != 1 ||
+        index.source_local_names[0] != program.graph.local_name ||
+        index.source_local_types[0] != program.declaration.name ||
+        !MirRoutineInstructionUseFactsReady(uses, 2) || first < 0 ||
+        second < 0 {
+        Die("direct MIR passive nominal literal routine facts are invalid");
+    }
+    let definition: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, first
+        );
+    let output: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, second
+        );
+    let definition_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[first],
+        admitted.routines.instruction_ends[first]
+    );
+    let output_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[second],
+        admitted.routines.instruction_ends[second]
+    );
+    if !definition.valid || !output.valid ||
+        admitted.routines.instruction_kinds[first] != "def" ||
+        admitted.routines.instruction_source_types[first] != "AST_LET_DECL" ||
+        admitted.routines.instruction_kinds[second] != "stmt" ||
+        admitted.routines.instruction_source_types[second] != "AST_CALL" ||
+        !MirSsaNameMatches(
+            definition.result, program.graph.local_name, false
+        ) || !DirectMirPassiveNominalDefinitionEnvelopeReady(
+            definition_object, program, definition.result
+        ) || JsonObjectFactCount(output_object) != 25 ||
+        !DirectMirLogInstructionEnvelopeReady(output_object, "1") ||
+        !DirectMirPassiveNominalLiteralExpectedUse(uses, first, "") ||
+        !DirectMirPassiveNominalLiteralExpectedUse(
+            uses, second, definition.result
+        ) {
+        Die("direct MIR passive nominal literal instruction facts are invalid");
+    }
+    let result_definition: MirRoutineResultDefinitionFact =
+        MirRoutineFactIndexUniqueResultDefinition(index, definition.result);
+    if !MirRoutineResultDefinitionFactReady(result_definition) ||
+        result_definition.global_row != first {
+        Die("direct MIR passive nominal literal SSA identity is invalid");
+    }
+    let abi_absence: DirectMirPassiveNominalLiteralAbiAbsenceFact =
+        DirectMirPassiveNominalLiteralAbiAbsenceFromSealedDefinition(
+            admitted.routines.source_json, definition,
+            program.declaration.name
+        );
+    let fact: DirectMirPassiveNominalLiteralProgramAdmission =
+        DirectMirPassiveNominalLiteralProgramAdmission(
+            true, 0, program, definition, output, abi_absence
+        );
+    let verified: DirectMirPassiveNominalLiteralProgramAdmission =
+        DirectMirPassiveNominalLiteralProgramAdmission(
+            fact.valid,
+            DirectMirPassiveNominalLiteralProgramAdmissionDigest(fact),
+            fact.program, fact.definition, fact.output,
+            fact.typed_nominal_abi_absence
+        );
+    if !DirectMirPassiveNominalLiteralProgramAdmissionReady(verified) {
+        Die("direct MIR passive nominal literal admission is invalid");
+    }
+    return verified;
+}

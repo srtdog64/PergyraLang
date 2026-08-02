@@ -1,7 +1,7 @@
 // Exact generic value-receiver signature for T or Array<T> returns.
 
 import "direct_mir_generic_member_signature_fact_owner.pgy";
-import "direct_mir_inferred_generic_member_array_shape_owner.pgy";
+import "direct_mir_exact_json_array_cardinality_owner.pgy";
 import "../semantic/ast_type_name_canonical_owner.pgy";
 
 struct DirectMirConstructedArrayMemberSignatureFact {
@@ -96,7 +96,7 @@ func DirectMirConstructedArrayMemberSignatureFactAt(
         !MirObjectArrayBoundsAtBounds(
             routines.source_json, routines.starts[row], routines.ends[row],
             "generics", generic_bounds
-        ) || !DirectMirInferredGenericMemberExactStringArrayCount(
+        ) || !DirectMirExactStringArrayCount(
             routines.source_json, generic_bounds[0], generic_bounds[1], 1
         ) || !MirObjectArrayBoundsAtBounds(
             routines.source_json, routines.starts[row], routines.ends[row],
@@ -109,7 +109,7 @@ func DirectMirConstructedArrayMemberSignatureFactAt(
     );
     let first_bounds: Array<Int> = [0, 0];
     let second_bounds: Array<Int> = [0, 0];
-    if !DirectMirInferredGenericMemberExactObjectArrayCount(params, 2) ||
+    if !DirectMirExactObjectArrayCount(params, 2) ||
         !JsonArrayNextObjectBounds(
             routines.source_json, param_bounds[0] + 1,
             param_bounds[1], first_bounds

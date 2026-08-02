@@ -1,0 +1,49 @@
+// LLVM emission from the same sealed passive nominal value plan as C.
+import "direct_mir_passive_nominal_literal_target_projection_owner.pgy";
+import "direct_mir_llvm_text_format_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "symbol_table_owner.pgy";
+
+func DirectMirPassiveNominalLiteralEmitLlvm(
+    ref plan: DirectMirPassiveNominalLiteralPlan,
+    ref projection: DirectMirPassiveNominalLiteralTargetProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirPassiveNominalLiteralPlanReady(plan) ||
+        !DirectMirPassiveNominalLiteralTargetProjectionReadyFor(
+            projection, CompilerTargetCpuLlvmProjection()
+        ) || !formatted_print.ok || formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" {
+        Die("direct MIR passive nominal LLVM projection facts are invalid");
+    }
+    let type_name: String = CompilerSymbolCIdentifier(
+        plan.admission.program.declaration.name
+    );
+    if type_name == "" {
+        Die("direct MIR passive nominal LLVM symbol is invalid");
+    }
+    let payload: String = DirectMirScalarLlvmFormatPayload(line_format);
+    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
+    let output: String = "%";
+    output = Concat(output, type_name);
+    output = Concat(output, " = type { i32 }\n\n@.pgy.int.line.format = private unnamed_addr constant [");
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, payload);
+    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n\ndefine i32 @main() {\nentry:\n  %pgy.nominal.0 = insertvalue %");
+    output = Concat(output, type_name);
+    output = Concat(output, " poison, i32 ");
+    output = Concat(
+        output, ToString(plan.admission.program.graph.literal_value)
+    );
+    output = Concat(output, ", 0\n  %pgy.member.0 = extractvalue %");
+    output = Concat(output, type_name);
+    output = Concat(output, " %pgy.nominal.0, 0\n  %pgy.print = sext i32 %pgy.member.0 to i64\n  %pgy.logged = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.int.line.format, i64 %pgy.print)\n  ret i32 0\n}\n");
+    return output;
+}

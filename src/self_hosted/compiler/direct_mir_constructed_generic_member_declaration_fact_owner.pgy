@@ -1,6 +1,7 @@
 // Exact one-field class declaration with two unique empty-contract methods.
 
 import "direct_mir_inferred_generic_member_declaration_fact_owner.pgy";
+import "direct_mir_exact_json_array_cardinality_owner.pgy";
 
 struct DirectMirConstructedGenericMemberDeclarationFact {
     let valid: Bool;
@@ -110,8 +111,8 @@ func DirectMirConstructedGenericMemberDeclarationFactAtDocument(
         JsonObjectFactCount(declaration) != 6 || !IsSome(name_opt) ||
         !IsSome(syntax_opt) || UnwrapOption(name_opt) !=
             declarations.names[declaration_row] ||
-        !DirectMirInferredGenericMemberExactObjectArrayCount(fields, 1) ||
-        !DirectMirInferredGenericMemberExactObjectArrayCount(methods, 2) {
+        !DirectMirExactObjectArrayCount(fields, 1) ||
+        !DirectMirExactObjectArrayCount(methods, 2) {
         return InvalidDirectMirConstructedGenericMemberDeclarationFact();
     }
     let field: JsonObjectFactTable = JsonArrayObjectFactAt(fields, 0);

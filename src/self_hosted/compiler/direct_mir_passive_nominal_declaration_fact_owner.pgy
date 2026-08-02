@@ -1,0 +1,136 @@
+// Source identity for one value-carried passive nominal declaration.
+import "../mir_lower/program_declaration_index_owner.pgy";
+import "direct_mir_exact_json_array_cardinality_owner.pgy";
+import "../semantic/callable_receiver_carriage_policy_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirPassiveNominalDeclarationFact {
+    let valid: Bool;
+    let digest: Int;
+    let kind: String;
+    let name: String;
+    let source_syntax_id: Int;
+    let field_name: String;
+    let field_type: String;
+    let field_source_syntax_id: Int;
+}
+
+func DirectMirPassiveNominalKindReady(kind: String) -> Bool {
+    // struct owns a physical layout; enum and identity carriers use other plans.
+    return kind != "struct" && kind != "enum" &&
+        CallableReceiverNominalKindUsesValue(kind);
+}
+
+func DirectMirPassiveNominalDeclarationFactDigest(
+    ref fact: DirectMirPassiveNominalDeclarationFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(547L, fact.kind);
+    hash = DirectMirCfgHashString(hash, fact.name);
+    hash = DirectMirCfgHashInt(hash, fact.source_syntax_id);
+    hash = DirectMirCfgHashString(hash, fact.field_name);
+    hash = DirectMirCfgHashString(hash, fact.field_type);
+    hash = DirectMirCfgHashInt(hash, fact.field_source_syntax_id);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirPassiveNominalDeclarationFactReady(
+    ref fact: DirectMirPassiveNominalDeclarationFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirPassiveNominalDeclarationFactDigest(fact) &&
+        DirectMirPassiveNominalKindReady(fact.kind) && fact.name != "" &&
+        fact.source_syntax_id > 0 && fact.field_name != "" &&
+        fact.field_type == CompilerAbiLayoutIntTypeName() &&
+        fact.field_source_syntax_id > 0 &&
+        fact.field_source_syntax_id != fact.source_syntax_id;
+}
+
+func DirectMirPassiveNominalDeclarationFactFromIndex(
+    json: String, ref declarations: MirProgramDeclarationIndex
+) -> DirectMirPassiveNominalDeclarationFact {
+    let invalid: DirectMirPassiveNominalDeclarationFact =
+        DirectMirPassiveNominalDeclarationFact(
+            false, 0, "", "", 0, "", "", 0
+        );
+    if !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 {
+        return invalid;
+    }
+    let declaration: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        json, declarations.starts[0], declarations.ends[0]
+    );
+    let kind: Option<String> = MirObjectUniqueStringFactAtBounds(
+        json, declaration.start, declaration.end, "kind"
+    );
+    let nominal_kind: Option<String> = MirObjectUniqueStringFactAtBounds(
+        json, declaration.start, declaration.end, "nominal_kind"
+    );
+    let name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        json, declaration.start, declaration.end, "name"
+    );
+    let syntax: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        json, declaration.start, declaration.end, "source_syntax_id"
+    );
+    let fields: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
+        declaration, "fields"
+    );
+    let methods: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
+        declaration, "methods"
+    );
+    if !JsonObjectFactTableReady(declaration) ||
+        JsonObjectFactCount(declaration) != 6 || !IsSome(kind) ||
+        !IsSome(nominal_kind) || !IsSome(name) || !IsSome(syntax) ||
+        UnwrapOption(kind) != UnwrapOption(nominal_kind) ||
+        UnwrapOption(kind) != declarations.kinds[0] ||
+        UnwrapOption(nominal_kind) != declarations.nominal_kinds[0] ||
+        UnwrapOption(name) != declarations.names[0] ||
+        !DirectMirPassiveNominalKindReady(UnwrapOption(kind)) ||
+        !DirectMirExactObjectArrayCount(fields, 1) ||
+        !DirectMirExactObjectArrayCount(methods, 0) {
+        return invalid;
+    }
+    let field: JsonObjectFactTable = JsonArrayObjectFactAt(fields, 0);
+    let field_name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        json, field.start, field.end, "name"
+    );
+    let field_type: Option<String> = MirObjectUniqueStringFactAtBounds(
+        json, field.start, field.end, "type"
+    );
+    let field_kind: Option<String> = MirObjectUniqueStringFactAtBounds(
+        json, field.start, field.end, "field_kind"
+    );
+    let field_syntax: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        json, field.start, field.end, "source_syntax_id"
+    );
+    if !JsonObjectFactTableReady(field) || JsonObjectFactCount(field) != 4 ||
+        !IsSome(field_name) || !IsSome(field_type) || !IsSome(field_kind) ||
+        !IsSome(field_syntax) || UnwrapOption(field_kind) != "field" ||
+        UnwrapOption(field_type) != CompilerAbiLayoutIntTypeName() ||
+        ArrayLength(declarations.field_identities.field_names) != 1 ||
+        !MirProgramDeclarationFieldIdentityMatches(
+            declarations.field_identities, UnwrapOption(name),
+            UnwrapOption(field_name), UnwrapOption(field_syntax), "field"
+        ) || !MirProgramDeclarationFieldIdentityMatchesType(
+            declarations.field_identities, UnwrapOption(name),
+            UnwrapOption(field_name), UnwrapOption(field_syntax),
+            CompilerAbiLayoutIntTypeName()
+        ) {
+        return invalid;
+    }
+    let fact: DirectMirPassiveNominalDeclarationFact =
+        DirectMirPassiveNominalDeclarationFact(
+            true, 0, UnwrapOption(kind), UnwrapOption(name),
+            ToInt(UnwrapOption(syntax)), UnwrapOption(field_name),
+            UnwrapOption(field_type), ToInt(UnwrapOption(field_syntax))
+        );
+    let verified: DirectMirPassiveNominalDeclarationFact =
+        DirectMirPassiveNominalDeclarationFact(
+            fact.valid, DirectMirPassiveNominalDeclarationFactDigest(fact),
+            fact.kind, fact.name, fact.source_syntax_id, fact.field_name,
+            fact.field_type, fact.field_source_syntax_id
+        );
+    if !DirectMirPassiveNominalDeclarationFactReady(verified) {
+        return invalid;
+    }
+    return verified;
+}

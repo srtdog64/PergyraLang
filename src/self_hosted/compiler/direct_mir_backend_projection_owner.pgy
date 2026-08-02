@@ -8,6 +8,8 @@ import "direct_mir_backend_emission_owner.pgy";
 import "direct_mir_array_int_plan_owner.pgy";
 import "direct_mir_array_int_abi_projection_owner.pgy";
 import "direct_mir_array_int_emission_owner.pgy";
+import "direct_mir_passive_nominal_literal_projection_owner.pgy";
+import "direct_mir_passive_nominal_literal_route_fact_owner.pgy";
 import "direct_mir_multi_routine_projection_owner.pgy";
 import "direct_mir_option_match_cfg_plan_owner.pgy";
 import "direct_mir_option_match_cfg_emission_owner.pgy";
@@ -44,7 +46,13 @@ func CompileAdmittedDirectMirForTarget(
             MirProgramRoutineIndexBlockInstructionCountAt(
                 admitted.routines, 0, 0
             );
-        if block_count == 1 && instruction_count == 1 {
+        let passive_nominal_route: DirectMirPassiveNominalLiteralRouteFact =
+            DirectMirPassiveNominalLiteralRouteFactFromAdmitted(admitted);
+        if passive_nominal_route.claimed {
+            payload = CompileAdmittedDirectMirPassiveNominalLiteral(
+                admitted, passive_nominal_route, target_projection
+            );
+        } else if block_count == 1 && instruction_count == 1 {
             let hello: DirectMirHelloProjection =
                 DirectMirHelloProjectionFromAdmitted(admitted);
             if !hello.valid {

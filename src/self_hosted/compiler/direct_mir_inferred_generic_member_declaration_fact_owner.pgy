@@ -3,7 +3,7 @@
 import "../mir_lower/declaration_method_contract_fact_owner.pgy";
 import "../mir_lower/program_declaration_index_owner.pgy";
 import "../air/mir_cfg_identity_owner.pgy";
-import "direct_mir_inferred_generic_member_array_shape_owner.pgy";
+import "direct_mir_exact_json_array_cardinality_owner.pgy";
 import "direct_mir_inferred_generic_member_host_kind_fact_owner.pgy";
 
 struct DirectMirInferredGenericMemberDeclarationFact {
@@ -108,9 +108,9 @@ func DirectMirInferredGenericMemberDeclarationFactFromDocument(
         JsonObjectFactCount(declaration) != 6 || !IsSome(name_opt) ||
         !IsSome(syntax_opt) || UnwrapOption(name_opt) != declarations.names[0] ||
         !JsonArrayObjectFactTableReady(fields) ||
-        !DirectMirInferredGenericMemberExactObjectArrayCount(fields, 1) ||
+        !DirectMirExactObjectArrayCount(fields, 1) ||
         !JsonArrayObjectFactTableReady(methods) ||
-        !DirectMirInferredGenericMemberExactObjectArrayCount(methods, 1) {
+        !DirectMirExactObjectArrayCount(methods, 1) {
         return InvalidDirectMirInferredGenericMemberDeclarationFact();
     }
     let field: JsonObjectFactTable = JsonArrayObjectFactAt(fields, 0);

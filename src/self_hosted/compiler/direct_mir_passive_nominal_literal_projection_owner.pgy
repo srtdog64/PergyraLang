@@ -1,0 +1,32 @@
+// Exclusive target selection after passive nominal family admission.
+import "direct_mir_passive_nominal_literal_c_emission_owner.pgy";
+import "direct_mir_passive_nominal_literal_llvm_emission_owner.pgy";
+
+func CompileAdmittedDirectMirPassiveNominalLiteral(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref route: DirectMirPassiveNominalLiteralRouteFact,
+    target: CompilerTargetProjectionFact
+) -> String {
+    let plan: DirectMirPassiveNominalLiteralPlan =
+        DirectMirPassiveNominalLiteralPlanFromAdmitted(admitted, route);
+    let projection: DirectMirPassiveNominalLiteralTargetProjection =
+        DirectMirPassiveNominalLiteralTargetProjectionFromPlan(plan, target);
+    let formatted_print: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFormattedPrintFact();
+    let line_format: String = StringRuntimeCIntLineFormat();
+    if CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuLlvmProjection()
+    ) {
+        return DirectMirPassiveNominalLiteralEmitLlvm(
+            plan, projection, formatted_print, line_format
+        );
+    }
+    if !CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuCProjection()
+    ) {
+        Die("direct MIR passive nominal projection target is invalid");
+    }
+    return DirectMirPassiveNominalLiteralEmitC(
+        plan, projection, formatted_print, line_format
+    );
+}

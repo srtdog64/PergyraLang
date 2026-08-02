@@ -1,0 +1,81 @@
+// Sealed evidence that the typed nominal result has no physical MIR layout.
+import "direct_mir_instruction_abi_absence_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirPassiveNominalLiteralAbiAbsenceFact {
+    let valid: Bool;
+    let digest: Int;
+    let type_name: String;
+    let result_name: String;
+    let result_capture_digest: Int;
+    let physical_abi_absent: Bool;
+}
+
+func DirectMirPassiveNominalLiteralCaptureDigest(
+    ref capture: MirRoutineInstructionScalarCapture
+) -> Int {
+    if !capture.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(567L, capture.name);
+    hash = DirectMirCfgHashString(hash, capture.result);
+    hash = DirectMirCfgHashString(hash, capture.expr0);
+    hash = DirectMirCfgHashString(hash, capture.expr1);
+    hash = DirectMirCfgHashString(hash, capture.arg0);
+    hash = DirectMirCfgHashString(hash, capture.arg1);
+    hash = DirectMirCfgHashString(hash, capture.slot_anchor);
+    hash = DirectMirCfgHashString(hash, capture.abi_type_name);
+    hash = DirectMirCfgHashString(hash, capture.kind);
+    hash = DirectMirCfgHashString(hash, capture.source_type);
+    hash = DirectMirCfgHashString(hash, capture.match_variant);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirPassiveNominalLiteralAbiAbsenceDigest(
+    ref fact: DirectMirPassiveNominalLiteralAbiAbsenceFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(569L, fact.type_name);
+    hash = DirectMirCfgHashString(hash, fact.result_name);
+    hash = DirectMirCfgHashInt(hash, fact.result_capture_digest);
+    if fact.physical_abi_absent {
+        hash = DirectMirCfgHashInt(hash, 1);
+    } else {
+        hash = DirectMirCfgHashInt(hash, 0);
+    }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirPassiveNominalLiteralAbiAbsenceFactReady(
+    ref fact: DirectMirPassiveNominalLiteralAbiAbsenceFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirPassiveNominalLiteralAbiAbsenceDigest(fact) &&
+        fact.type_name != "" && fact.result_name != "" &&
+        fact.result_capture_digest != 0 && fact.physical_abi_absent;
+}
+
+func DirectMirPassiveNominalLiteralAbiAbsenceFromSealedDefinition(
+    json: String, ref definition: MirRoutineInstructionScalarCapture,
+    expected_type: String
+) -> DirectMirPassiveNominalLiteralAbiAbsenceFact {
+    let physical_abi_absent: Bool = DirectMirInstructionHasNoPhysicalAbi(
+        json, definition, expected_type
+    );
+    let fact: DirectMirPassiveNominalLiteralAbiAbsenceFact =
+        DirectMirPassiveNominalLiteralAbiAbsenceFact(
+            true, 0, expected_type, definition.result,
+            DirectMirPassiveNominalLiteralCaptureDigest(definition),
+            physical_abi_absent
+        );
+    let verified: DirectMirPassiveNominalLiteralAbiAbsenceFact =
+        DirectMirPassiveNominalLiteralAbiAbsenceFact(
+            fact.valid, DirectMirPassiveNominalLiteralAbiAbsenceDigest(fact),
+            fact.type_name, fact.result_name, fact.result_capture_digest,
+            fact.physical_abi_absent
+        );
+    if !definition.valid || definition.expr1 != expected_type ||
+        definition.abi_type_name != expected_type ||
+        !DirectMirPassiveNominalLiteralAbiAbsenceFactReady(verified) {
+        Die("direct MIR passive nominal literal ABI absence is invalid");
+    }
+    return verified;
+}

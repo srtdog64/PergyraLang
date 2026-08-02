@@ -1,0 +1,96 @@
+// Target-neutral value plan from one sealed passive nominal admission.
+import "direct_mir_passive_nominal_literal_program_admission_owner.pgy";
+import "direct_mir_closed_module_call_abi_owner.pgy";
+import "artifact_zone_owner.pgy";
+
+struct DirectMirPassiveNominalLiteralPlan {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let digest: Int;
+    let admission: DirectMirPassiveNominalLiteralProgramAdmission;
+    let abi_provenance: String;
+    let abi_evidence_id: Int;
+    let representation: String;
+    let value_carriage: String;
+    let storage_lifetime: String;
+    let call_abi: DirectMirClosedModuleCallAbiFact;
+}
+func DirectMirPassiveNominalLiteralPlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-passive-nominal-literal-plan.v1";
+}
+
+func DirectMirPassiveNominalLiteralAbiProvenance() -> String {
+    return "typed_nominal_physical_abi_absent";
+}
+
+func DirectMirPassiveNominalLiteralPlanDigest(
+    ref plan: DirectMirPassiveNominalLiteralPlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(577L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashInt(hash, plan.admission.digest);
+    hash = DirectMirCfgHashString(hash, plan.abi_provenance);
+    hash = DirectMirCfgHashInt(hash, plan.abi_evidence_id);
+    hash = DirectMirCfgHashString(hash, plan.representation);
+    hash = DirectMirCfgHashString(hash, plan.value_carriage);
+    hash = DirectMirCfgHashString(hash, plan.storage_lifetime);
+    hash = DirectMirCfgHashInt(
+        hash, plan.call_abi.target_capability_fingerprint
+    );
+    hash = DirectMirCfgHashString(hash, plan.call_abi.scope);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirPassiveNominalLiteralPlanReady(
+    ref plan: DirectMirPassiveNominalLiteralPlan
+) -> Bool {
+    return plan.valid &&
+        plan.schema == DirectMirPassiveNominalLiteralPlanSchema() &&
+        plan.revision == CompilerArtifactPlanRevision() && plan.digest != 0 &&
+        plan.digest == DirectMirPassiveNominalLiteralPlanDigest(plan) &&
+        DirectMirPassiveNominalLiteralProgramAdmissionReady(plan.admission) &&
+        plan.abi_provenance ==
+            DirectMirPassiveNominalLiteralAbiProvenance() &&
+        plan.abi_evidence_id > 0 && plan.abi_evidence_id ==
+            plan.admission.typed_nominal_abi_absence.digest &&
+        plan.representation ==
+            "internal_single_int_passive_nominal_value" &&
+        plan.value_carriage == "aggregate_value" &&
+        plan.storage_lifetime == "main_stack_no_escape" &&
+        DirectMirClosedModuleCallAbiFactReady(plan.call_abi);
+}
+
+func DirectMirPassiveNominalLiteralPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref route: DirectMirPassiveNominalLiteralRouteFact
+) -> DirectMirPassiveNominalLiteralPlan {
+    let admission: DirectMirPassiveNominalLiteralProgramAdmission =
+        DirectMirPassiveNominalLiteralProgramAdmissionFromAdmitted(
+            admitted, route
+        );
+    let call_abi: DirectMirClosedModuleCallAbiFact =
+        DirectMirClosedModuleCallAbiFactFromOwner();
+    let plan: DirectMirPassiveNominalLiteralPlan =
+        DirectMirPassiveNominalLiteralPlan(
+            true, DirectMirPassiveNominalLiteralPlanSchema(),
+            CompilerArtifactPlanRevision(), 0, admission,
+            DirectMirPassiveNominalLiteralAbiProvenance(),
+            admission.typed_nominal_abi_absence.digest,
+            "internal_single_int_passive_nominal_value", "aggregate_value",
+            "main_stack_no_escape", call_abi
+        );
+    let verified: DirectMirPassiveNominalLiteralPlan =
+        DirectMirPassiveNominalLiteralPlan(
+            plan.valid, plan.schema, plan.revision,
+            DirectMirPassiveNominalLiteralPlanDigest(plan), plan.admission,
+            plan.abi_provenance, plan.abi_evidence_id,
+            plan.representation, plan.value_carriage,
+            plan.storage_lifetime, plan.call_abi
+        );
+    if !DirectMirPassiveNominalLiteralPlanReady(verified) {
+        Die("direct MIR passive nominal literal plan is invalid");
+    }
+    return verified;
+}

@@ -1,0 +1,89 @@
+// Exact constructor and field-read graph identity for one passive nominal.
+import "direct_mir_passive_nominal_declaration_fact_owner.pgy";
+import "direct_mir_generic_nominal_graph_shape_owner.pgy";
+
+struct DirectMirPassiveNominalLiteralGraphFact {
+    let valid: Bool;
+    let digest: Int;
+    let type_name: String;
+    let field_name: String;
+    let local_name: String;
+    let literal_value: Int;
+}
+
+func DirectMirPassiveNominalLiteralGraphFactDigest(
+    ref fact: DirectMirPassiveNominalLiteralGraphFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(557L, fact.type_name);
+    hash = DirectMirCfgHashString(hash, fact.field_name);
+    hash = DirectMirCfgHashString(hash, fact.local_name);
+    hash = DirectMirCfgHashInt(hash, fact.literal_value);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirPassiveNominalLiteralGraphFactReady(
+    ref fact: DirectMirPassiveNominalLiteralGraphFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirPassiveNominalLiteralGraphFactDigest(fact) &&
+        fact.type_name != "" && fact.field_name != "" &&
+        fact.local_name != "";
+}
+
+func DirectMirPassiveNominalLiteralGraphFactFromSequences(
+    ref declaration: DirectMirPassiveNominalDeclarationFact,
+    ref constructor: MirExpressionGraphSequence,
+    ref field_read: MirExpressionGraphSequence
+) -> DirectMirPassiveNominalLiteralGraphFact {
+    let constructor_ready: Bool = DirectMirGenericNominalExactTopologyReady(
+        constructor,
+        [AstExpressionNodeLeaf(), AstExpressionNodeStructLiteral(),
+         AstExpressionNodeStructFieldName(), AstExpressionNodeIntegerLiteral(),
+         AstExpressionNodeStructFieldBinding(), AstExpressionNodeStructField()],
+        [0,0,0,0,2,1], [0,0,0,0,3,4], ["","","","","",""], 5
+    );
+    let read_ready: Bool = DirectMirGenericNominalExactTopologyReady(
+        field_read,
+        [AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+         AstExpressionNodeMemberAccess()],
+        [0,0,0], [0,0,1], ["","",""], 2
+    );
+    if !DirectMirPassiveNominalDeclarationFactReady(declaration) ||
+        !constructor_ready || !read_ready {
+        Die("direct MIR passive nominal literal graph topology is invalid");
+    }
+    let literal: String = constructor.arena.node_texts[3];
+    let local: String = field_read.arena.node_texts[0];
+    let binding: String = Concat(
+        declaration.field_name, Concat(": ", literal)
+    );
+    if literal == "" || ToString(ToInt(literal)) != literal || local == "" ||
+        constructor.arena.node_texts[0] != declaration.name ||
+        constructor.arena.node_texts[1] != Concat(declaration.name, " { }") ||
+        constructor.arena.node_texts[2] != declaration.field_name ||
+        constructor.arena.node_texts[4] != binding ||
+        constructor.arena.node_texts[5] != Concat(
+            declaration.name, Concat(" { ", Concat(binding, " }"))
+        ) || field_read.arena.node_texts[1] != declaration.field_name ||
+        field_read.arena.node_texts[2] != Concat(
+            local, Concat(".", declaration.field_name)
+        ) {
+        Die("direct MIR passive nominal literal graph identity is invalid");
+    }
+    let fact: DirectMirPassiveNominalLiteralGraphFact =
+        DirectMirPassiveNominalLiteralGraphFact(
+            true, 0, declaration.name, declaration.field_name,
+            local, ToInt(literal)
+        );
+    let verified: DirectMirPassiveNominalLiteralGraphFact =
+        DirectMirPassiveNominalLiteralGraphFact(
+            fact.valid, DirectMirPassiveNominalLiteralGraphFactDigest(fact),
+            fact.type_name, fact.field_name, fact.local_name,
+            fact.literal_value
+        );
+    if !DirectMirPassiveNominalLiteralGraphFactReady(verified) {
+        Die("direct MIR passive nominal literal graph fact is invalid");
+    }
+    return verified;
+}

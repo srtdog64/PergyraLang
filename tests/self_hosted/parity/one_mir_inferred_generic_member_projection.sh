@@ -36,7 +36,7 @@ assert_owner_ratchet() {
     done <<EOF
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_two_routine_shape_owner.pgy|80
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_two_routine_classification_owner.pgy|120
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_array_shape_owner.pgy|80
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_exact_json_array_cardinality_owner.pgy|90
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_routine_array_shape_owner.pgy|50
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_program_admission_owner.pgy|70
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_specialization_fact_owner.pgy|160
