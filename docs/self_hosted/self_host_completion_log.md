@@ -6,6 +6,39 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-02 - Passive vessel generic members reach C and LLVM
+
+- Landed executable checkpoint `ceb43938`. The existing inferred
+  generic-member family now accepts exact passive `class` and `vessel` host
+  identities without a vessel-specific plan or emitter. Declaration identity
+  carries the host digest, routine identity cross-seals host to receiver
+  carriage, and one target projection owns value versus pointer pass shape.
+- The same 6,527-byte self MIR with SHA-256
+  `367AA5B544912E9735B42F9C16222A6424432D88FD308CAC6258E823D0229DD5`
+  drives both targets. C emits `Cell *self`, one initialized `Cell` local and
+  two calls with the same address. LLVM emits one initialized stack `Cell` and
+  two calls with the same pointer. Both installed public paths execute exact
+  `42`; the existing class path remains exact `41`.
+- The focused gate passes six order invariants, five class variants, 81 C
+  negatives and nine LLVM sentinels. It pins receiver state initialization,
+  unsupported host, class/vessel carriage mismatch, ABI forgery, stale SSA use,
+  specialization drift, single-shot classification and no alternate planner.
+  Hard/component and installed C/LLVM gates are green.
+- Native MIR retains its compatibility encoding `kind=class,
+  nominal_kind=vessel`, while self MIR preserves `vessel/vessel`. A named
+  test-only canonicalization compares nominal semantics; production never
+  lowers vessel to class or treats that bridge as raw host-kind parity.
+- Current-source parse/codegen/host compile/source smoke installed a
+  4,085,980-byte driver with SHA-256
+  `282BC5B8DDFED182390A7926726478341870AD17A1A63CD42205EFFEF5A35A5F`.
+  Pressure, full CI, Coq/Rocq and bootstrap/fixpoint were not rerun.
+- The next executable falsifier is `nominal_tobject.pgy`. Its 2,857-byte self
+  MIR (`41A07B3035C6DACA292E21CDFB68E8D3EFC34DDB7E4C6973869702D5E4E40BCF`)
+  currently fails both targets at the one-block scalar boundary. Reuse generic
+  nominal declaration/graph/ABI facts, preserve `tobject` identity and exact
+  construction/field-read output `12`, and forbid fixture/name dispatch,
+  tobject-only emitters, scalar retry and native fallback.
+
 ## 2026-08-02 - Aggregate value flow is promoted; vessel execution is next
 
 - Landed code checkpoint `e24d5652` as the second and final consecutive

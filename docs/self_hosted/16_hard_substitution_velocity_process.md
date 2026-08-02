@@ -1029,6 +1029,17 @@ needed. This is executable substitution breadth that exercises the already
 owned facts; the full 217-fixture matrix and released/default replacement
 remain open.
 
+Passive-vessel executable delta, 2026-08-02: checkpoint `ceb43938` extends the
+bounded inferred generic-member path from class/value carriage to the exact
+vessel/mutable-identity pair without adding another family. Declaration host,
+routine receiver carriage, representation and selected target ABI are joined
+once; C and LLVM preserve an initialized stable receiver and execute exact
+`42`. Class exact `41`, host/carriage/ABI/SSA mutations, single-shot routing,
+installed public paths and structural contracts remain green. This counts as
+executable replacement progress. The next rung is the single-routine
+`nominal_tobject.pgy` construction/field-read path, not a general nominal query
+engine or another SoT-only cleanup.
+
 ## 7. Fifteen-Day Correction
 
 The previous roughly fifteen-day interval delivered substantial owner, gate,

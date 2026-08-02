@@ -6,78 +6,65 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — vessel generic-member executable replacement
+## Active self-host context — tobject nominal value execution
 
-- Executable checkpoint: `e24d5652` on `main`; documentation is the only
-  intended dirty state during this handoff refresh. The current Pergyra-built
-  driver is 4,077,599 bytes with SHA-256
-  `A8F0F563A79CB87CDEB2052742FDA0472980CA67A4700FCF7B13C2F73E5140C6`.
-- The second and final consecutive SoT-only ratchet is closed. Constructed
-  `Array<Int>` and `Array<Point>` plans now consume one target-neutral
-  `DirectMirAggregateValueFlowFact` and one selected
-  `DirectMirAggregateValueFlowTargetProjection`. Wrapper representation,
-  element/Array identity, real ABI provenance, caller-owned single storage,
-  index, construction/identity, allocator/lifetime/carriage and the
-  closed-module call receipt are no longer re-owned by either family or its
-  C/LLVM emitter.
-- ABI provenance remains intentionally asymmetric and exact. `Array<Int>` uses
-  its captured physical Array receipt. `Array<Point>` uses
-  `DirectMirConstructedRecordArrayAbiAbsenceFact`, which validates the admitted
-  MIR receipt `(layout_id=0, required=false, layout=null)`, binds the typed
-  result capture, and supplies that exact digest as
-  `aggregate_flow.abi_evidence_id`. `point_abi.digest` remains only the nominal
-  `Point` element ABI and is not accepted as Array-absence evidence.
-- Artifact bytes are unchanged by the promotion: Array<Int> C is 1,332 bytes
-  (`73A724D56100BC9B5F851F29934524349CB31273B6A5E2FE71E62568356942E6`)
-  and LLVM is 1,628 bytes
-  (`45B8DB294F2D282203C64BD04CCCFB34003B868C74F697E002843FE8C94E3B1F`);
-  Array<Point> C is 1,780 bytes
-  (`34991B2A1D4C2150EAAF6E60020A9B1836E6E94858423E76E4EF784306BC28BA`)
-  and LLVM is 1,782 bytes
-  (`9EEAC586ED480688EA053E8F06CE73153B30427152EFEBCBACC1200E1B4CB629`).
-  The focused gates execute exact `44` and `45`, retain
-  six/seven invariants and three variants each, and reject 27/35 C negatives
-  plus 7/10 LLVM sentinels.
-- Latest green: hard self-host contract, both focused C/LLVM gates, full
-  component contract, installed public C compile/run, installed runtime-free
-  LLVM compile/run, current-source parse/codegen, equivalent release host
-  compile and installed source smoke, shell syntax, and diff checks. The build
-  wrapper's final GCC command was not green in this Codex runner because its
-  nested shell resolved the temporary directory to protected `C:\Windows`;
-  compiling the same generated C with the same release flags and a repository
-  temp directory succeeded in 66.9 seconds. Full CI, Coq/Rocq adequacy,
-  bootstrap seed/fixpoint, and current-source gen2==gen3 were not run. The
-  unrelated duplicate-Coq-fact `sot-authority-edge-test-smoke` remains a known
-  red and is not claimed green; this change adds no protocol or proof identity.
+- Executable checkpoint: `ceb43938` on `main`; documentation is the only
+  intended dirty state during this handoff refresh. The Pergyra-built driver is
+  4,085,980 bytes with SHA-256
+  `282BC5B8DDFED182390A7926726478341870AD17A1A63CD42205EFFEF5A35A5F`.
+- Closed executable rung: the same 6,527-byte vessel MIR
+  (`367AA5B544912E9735B42F9C16222A6424432D88FD308CAC6258E823D0229DD5`)
+  now drives the existing inferred generic-member plan and both target
+  emitters. C emits `Cell *self` and passes `&(_pgy_receiver_0)` twice; LLVM
+  emits one `alloca %Cell`, initializes it once, and passes the same `ptr %box`
+  twice. Both binaries execute exact `42`.
+- Host identity is not erased. `class` remains value-carried and `vessel`
+  remains mutable-identity-carried. The declaration digest contains one
+  admitted host fact, program identity cross-seals it to the routine receiver
+  carriage, and one target projection owns aggregate-value versus pointer
+  formal/local/call shapes. No vessel-specific plan/emitter, fixture/type-name
+  dispatch, planner retry, or native fallback was added. Existing class C/LLVM
+  artifacts remain exact `41` through the same owner path.
+- Focused evidence is green: six order invariants, five class variants, 81 C
+  negatives and nine LLVM sentinels, including class/vessel carriage mismatch,
+  unsupported host, receiver ABI forgery, stale use and specialization drift.
+  Hard self-host contract, full component contract, installed public C
+  compile/run, installed runtime-free LLVM compile/run, current-source
+  parse/codegen/host compile/source smoke, Python/shell syntax and diff checks
+  are green. Full CI, Coq/Rocq adequacy, bootstrap fixpoint and current-source
+  gen2==gen3 were not run. The unrelated duplicate-Coq-fact
+  `sot-authority-edge-test-smoke` remains a known red.
+- Native MIR still serializes this legacy host as `kind=class,
+  nominal_kind=vessel`; self MIR preserves `vessel/vessel`. The parity test
+  normalizes that native compatibility encoding only for semantic comparison.
+  The self-host compiler path does not lower vessel identity to class.
 - Last valid pressure evidence remains checkpoint `8bd92069`: 104.381 seconds,
   peak private 1.937 GiB and working set 1.836 GiB. The current driver was not
-  pressure-measured, so no older peak is attributed to it. Memory remains a
-  final-maximum signal with 2.4 GiB attention and 3 GiB hard stop, not a
-  per-edit objective.
+  pressure-measured. Memory stays a final-maximum signal with 2.4 GiB attention
+  and 3 GiB hard stop, not a per-edit objective.
 - Active objective: replace the next real C-owned path for
-  `src/self_hosted/mir_lower/fixture/generic_vessel_member_inferred_flow.pgy`.
-  Current source-to-MIR succeeds once: 6,527 bytes, SHA-256
-  `367AA5B544912E9735B42F9C16222A6424432D88FD308CAC6258E823D0229DD5`.
-  Both direct C and LLVM currently fail closed before artifact publication with
-  `CODEGEN ERROR: direct MIR two-routine classification is invalid`.
-- Objective card: preserve one semantic generic-member identity across passive
-  `class` and `vessel` hosts; priority is existing owner reuse, one-shot host
-  classification, deletion of the C bypass for this slice, then exact artifact
-  parity. The production entrypoint is installed
-  `pgy-self-driver --mir-json-backend={c,llvm}` through
-  `CompileAdmittedDirectMirMultiRoutineForTarget`. The reached fact owner is
-  `direct_mir_two_routine_classification_owner.pgy`; the last legitimate
-  orchestration consumer is the existing inferred generic-member plan and
-  projection.
-- Forbidden fallback: type-name or fixture-name dispatch, a vessel-specific
-  emitter/plan, retrying another planner after classification, weakening class
-  identity into syntax-text matching, or native C semantic/backend re-entry.
-- Next falsifier: the same self MIR must drive the existing real generic-member
-  definition and nested calls under C and LLVM and execute exact `42`.
-  Class/vessel host-kind mutation, unresolved member/specialization, stale SSA
-  use, and planner-retry negatives must fail before artifact creation. This
-  next commit must be executable replacement progress, not a third SoT-only
-  cleanup.
+  `src/self_hosted/mir_lower/fixture/nominal_tobject.pgy`. Its source-to-MIR
+  succeeds once: 2,857 bytes, SHA-256
+  `41A07B3035C6DACA292E21CDFB68E8D3EFC34DDB7E4C6973869702D5E4E40BCF`.
+  Both direct targets currently fail before artifact publication with
+  `CODEGEN ERROR: direct MIR backend projection rejected unsupported scalar
+  facts`; the intended output is exact `12`.
+- Objective card: preserve `tobject` as a transfer-boundary nominal identity;
+  priority is reuse of the existing nominal declaration/graph/ABI facts, one
+  generic passive-nominal literal plan, no C bypass, then exact C/LLVM parity.
+  The production entrypoint is installed
+  `pgy-self-driver --mir-json-backend={c,llvm}`. The reached orchestration owner
+  is `direct_mir_backend_projection_owner.pgy`; the fact seam is the admitted
+  nominal declaration plus constructor/field-read SSA graph, and the last
+  legitimate consumers are the selected C/LLVM emitters.
+- Forbidden fallback: a `PlayerDto` or fixture-name branch, a tobject-only
+  mini-compiler, treating `tobject` as `struct`/`class`, source-text field
+  recovery, constant-folding away construction/read, retrying the scalar
+  planner after nominal admission, or native semantic/backend re-entry.
+- Next falsifier: one self MIR must preserve a real `PlayerDto` construction and
+  `.score` read in both targets and execute exact `12`. Host-kind, field/type,
+  constructor target/edge, result/use, declaration identity and planner-retry
+  mutations must reject before artifact creation.
 
 ## Historical checkpoint archive — inactive evidence
 

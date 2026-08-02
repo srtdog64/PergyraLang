@@ -2,45 +2,36 @@
 
 마지막 업데이트: 2026-08-02
 
-## 활성 우선순위 — vessel generic-member 실행 경로 치환
+## 활성 우선순위 — tobject nominal value 실행 경로 치환
 
-- 실행 체크포인트 `e24d5652`에서 두 번째이자 마지막 연속 SoT 승격을 닫았다.
-  Constructed `Array<Int>`와 `Array<Point>`는 이제 하나의 target-neutral
-  `DirectMirAggregateValueFlowFact`와 선택된 target projection을 소비한다.
-  두 family plan/emitter가 representation, storage/index, call receipt,
-  allocator/lifetime/carriage를 다시 결정하는 경로는 negative-gated다.
-- ABI provenance를 합치지 않았다. `Array<Int>`는 실제 captured physical ABI
-  receipt를 사용한다. `Array<Point>`는 새 absence owner가 admitted MIR의
-  `layout_id=0`, `required=false`, `layout=null`을 검증하고 typed result capture와
-  결합한 digest를 `aggregate_flow.abi_evidence_id`로 전달한다. `point_abi.digest`는
-  Point 원소 ABI일 뿐 Array 부재 증거가 아니다.
-- 두 lane의 C/LLVM artifact는 승격 전과 byte-equal이다. Focused gate는 exact
-  `44`/`45`, 여섯/일곱 invariants, 각 세 variants, 27/35 C negatives와 7/10 LLVM
-  sentinels를 통과했다. Hard contract, full component, installed public C와
-  runtime-free LLVM compile/run도 green이다.
-- 현재 설치 드라이버는 4,077,599 bytes, SHA-256
-  `A8F0F563A79CB87CDEB2052742FDA0472980CA67A4700FCF7B13C2F73E5140C6`다.
-  Current-source parse/codegen과 동일 release-flag host compile/source smoke는
-  성공했다. Codex runner의 nested build shell은 GCC temp를 보호된 `C:\Windows`로
-  해석해 wrapper 마지막 단계가 red였으며, repo temp를 지정한 동일 C 직접
-  compile은 66.9초였다. Pressure는 재지 않았다. Full CI, Coq/Rocq adequacy,
-  bootstrap fixpoint와 current-source gen2==gen3도 재실행하지 않았다.
-- 첨부 8월 2일 architecture review의 topology-specific mini-compiler 경고는 이번
-  공통 value-flow 승격으로 받아들였다. Pair/Array<Point> 미구현과 3.65MB driver
-  평가는 관찰 HEAD `bac9b3f1` 기준이라 현재 사실에는 그대로 적용하지 않는다.
-  portable external call ABI와 general aggregate legalization은 여전히 열린 문제다.
-- 다음 objective는 실제 C-owned 실행 경로 치환이다.
-  `generic_vessel_member_inferred_flow.pgy`의 source-to-MIR은 성공하며 결과는
-  6,527 bytes, SHA-256
-  `367AA5B544912E9735B42F9C16222A6424432D88FD308CAC6258E823D0229DD5`다.
-  현재 direct C와 LLVM은 모두 artifact 전에
-  `direct MIR two-routine classification is invalid`로 fail-closed한다.
-- 기존 inferred generic-member owner를 passive `vessel Cell`에도 재사용하되
-  class/vessel host identity는 명시적으로 보존한다. Fixture/type-name dispatch,
-  vessel 전용 plan/emitter, 실패 후 다른 planner retry, native C fallback은 금지한다.
-  같은 MIR이 C/LLVM의 실제 generic-member definition과 nested calls를 거쳐 exact
-  `42`를 실행하고 host-kind/target/use negatives가 artifact 전에 거부되는 것이
-  다음 falsifier다. 다음 커밋은 반드시 executable replacement delta여야 한다.
+- 실행 체크포인트 `ceb43938`에서 passive vessel generic-member 경로를 닫았다.
+  같은 6,527-byte self MIR이 기존 공용 plan/emitter를 통해 C와 LLVM을 만들고
+  둘 다 exact `42`를 실행한다. Class는 value-carried exact `41`, vessel은
+  mutable-identity-carried exact `42`로 서로 다른 host identity를 보존한다.
+- Declaration digest가 host fact를 소유하고 routine receiver carriage와
+  교차 봉인한다. 선택된 target projection만 aggregate-value/pointer formal,
+  local storage와 call shape를 결정한다. Vessel 전용 plan/emitter, fixture/type
+  이름 dispatch, 다른 planner retry와 native fallback은 없다.
+- Focused gate는 여섯 order invariants, 다섯 class variants, 81 C negatives와
+  9 LLVM sentinels를 통과한다. Receiver state 초기화, class/vessel carriage
+  mismatch, unsupported host, ABI forgery, stale SSA use, specialization drift와
+  single-shot classifier를 고정했다. Hard/component와 installed public C/LLVM도
+  green이다.
+- 현재 설치 드라이버는 4,085,980 bytes, SHA-256
+  `282BC5B8DDFED182390A7926726478341870AD17A1A63CD42205EFFEF5A35A5F`다.
+  Current-source parse/codegen/host compile/source smoke는 성공했다. Pressure,
+  full CI, Coq/Rocq, bootstrap fixpoint와 current-source gen2==gen3는 재실행하지
+  않았다. 마지막 유효 peak는 `8bd92069`의 private 1.937 GiB다.
+- 다음 실제 C-owned 경로는 `nominal_tobject.pgy`다. Source-to-MIR은 한 번
+  성공하며 결과는 2,857 bytes, SHA-256
+  `41A07B3035C6DACA292E21CDFB68E8D3EFC34DDB7E4C6973869702D5E4E40BCF`다.
+  Direct C와 LLVM은 모두 artifact 전에 `unsupported scalar facts`로 거부하며
+  의도한 출력은 exact `12`다.
+- 기존 nominal declaration/graph/ABI owner를 재사용해 하나의 generic passive-
+  nominal literal plan을 만든다. `tobject`를 struct/class로 낮추거나 PlayerDto/
+  fixture 이름으로 분기하거나 construction/field read를 상수화하거나 scalar
+  planner/native backend로 재시도해서는 안 된다. Host/field/type/constructor/
+  result/use 변조가 artifact 전에 거부되는 것이 다음 falsifier다.
 
 ## 비활성 진행 기록 archive
 

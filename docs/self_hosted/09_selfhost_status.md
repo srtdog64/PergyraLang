@@ -78,6 +78,17 @@ seed also matched the native oracle for sample C, MIR production, and bounded
 MIR consumption, then passed the complete scalar/CFG chain through v74.
 Released/default replacement remains 0%.
 
+Focused evidence on 2026-08-02 advances the installed direct-MIR targets to a
+passive vessel generic member. Checkpoint `ceb43938` preserves one distinct
+`vessel/mutable-identity` host fact through the existing inferred-member plan,
+then selects pointer receiver ABI for C and LLVM. The same 6,527-byte self MIR
+executes exact `42` in both installed public paths; the existing class/value
+path remains exact `41`. Host/carriage/ABI/SSA/no-retry negatives, hard and
+component contracts are green. This is target-specific `SUBSTITUTING` evidence
+for that bounded slice, not whole-compiler replacement. The next observed
+falsifier is `nominal_tobject.pgy`, whose 2,857-byte self MIR is produced but
+rejected by both direct targets before artifact creation.
+
 ## Verified
 
 Front-end self-hosts on both backends in LLVM-enabled builds.

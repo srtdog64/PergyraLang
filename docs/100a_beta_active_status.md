@@ -288,6 +288,21 @@ currently rejected by the two-routine classifier on both direct targets. The
 next delta must reuse the existing generic-member plan/emitter and execute
 exact 42 without a vessel-specific family or native fallback.
 
+Passive vessel member update (2026-08-02): executable checkpoint `ceb43938`
+closes that falsifier. One existing generic-member plan now preserves exact
+`class/value` and `vessel/mutable-identity` host/carriage pairs. C uses an
+initialized stable `Cell` address for the formal and both nested calls; LLVM
+uses one initialized stack `Cell` and the same pointer for both calls. The same
+self MIR executes exact 42 in both installed public paths, while class remains
+exact 41. Focused host/carriage/ABI/SSA/no-retry negatives, hard/component and
+installed C/LLVM gates are green. No vessel-specific plan/emitter or native
+fallback was added. The active executable falsifier is now
+`nominal_tobject.pgy`: its 2,857-byte self MIR reaches the one-block backend
+owner but both targets reject it as unsupported scalar facts. The next delta
+must reuse nominal declaration/graph/ABI facts, preserve a real tobject
+construction and field read, execute exact 12, and add no tobject-named
+mini-compiler.
+
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
 toolchain/preflight clarity, release/debug hygiene, memory/string bounds audit,
