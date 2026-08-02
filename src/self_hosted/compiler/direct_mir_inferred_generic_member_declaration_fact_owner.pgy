@@ -4,10 +4,12 @@ import "../mir_lower/declaration_method_contract_fact_owner.pgy";
 import "../mir_lower/program_declaration_index_owner.pgy";
 import "../air/mir_cfg_identity_owner.pgy";
 import "direct_mir_inferred_generic_member_array_shape_owner.pgy";
+import "direct_mir_inferred_generic_member_host_kind_fact_owner.pgy";
 
 struct DirectMirInferredGenericMemberDeclarationFact {
     let valid: Bool;
     let digest: Int;
+    let host: DirectMirInferredGenericMemberHostKindFact;
     let row: Int;
     let name: String;
     let source_syntax_id: Int;
@@ -21,7 +23,9 @@ struct DirectMirInferredGenericMemberDeclarationFact {
 func InvalidDirectMirInferredGenericMemberDeclarationFact(
 ) -> DirectMirInferredGenericMemberDeclarationFact {
     return DirectMirInferredGenericMemberDeclarationFact(
-        false, 0, 0 - 1, "", 0, "", "", 0, "", ""
+        false, 0,
+        DirectMirInferredGenericMemberHostKindFact(false, 0, ""),
+        0 - 1, "", 0, "", "", 0, "", ""
     );
 }
 
@@ -29,7 +33,8 @@ func DirectMirInferredGenericMemberDeclarationFactDigest(
     ref fact: DirectMirInferredGenericMemberDeclarationFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(313L, fact.name);
+    let hash: Long = DirectMirCfgHashInt(313L, fact.host.digest);
+    hash = DirectMirCfgHashString(hash, fact.name);
     hash = DirectMirCfgHashInt(hash, fact.source_syntax_id);
     hash = DirectMirCfgHashString(hash, fact.field_name);
     hash = DirectMirCfgHashString(hash, fact.field_type);
@@ -44,6 +49,7 @@ func DirectMirInferredGenericMemberDeclarationFactReady(
 ) -> Bool {
     return fact.valid && fact.digest != 0 && fact.digest ==
         DirectMirInferredGenericMemberDeclarationFactDigest(fact) &&
+        DirectMirInferredGenericMemberHostKindFactReady(fact.host) &&
         fact.row >= 0 && fact.name != "" && fact.source_syntax_id > 0 &&
         fact.field_name != "" &&
         fact.field_type == CompilerAbiLayoutIntTypeName() &&
@@ -72,9 +78,15 @@ func DirectMirInferredGenericMemberDeclarationFactFromDocument(
     json: String,
     ref declarations: MirProgramDeclarationIndex
 ) -> DirectMirInferredGenericMemberDeclarationFact {
-    if !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 ||
-        declarations.kinds[0] != "class" ||
-        declarations.nominal_kinds[0] != "class" {
+    if !declarations.valid ||
+        MirProgramDeclarationIndexCount(declarations) != 1 {
+        return InvalidDirectMirInferredGenericMemberDeclarationFact();
+    }
+    let host: DirectMirInferredGenericMemberHostKindFact =
+        DirectMirInferredGenericMemberHostKindFactFromDeclaration(
+            declarations.kinds[0], declarations.nominal_kinds[0]
+        );
+    if !DirectMirInferredGenericMemberHostKindFactReady(host) {
         return InvalidDirectMirInferredGenericMemberDeclarationFact();
     }
     let declaration: JsonObjectFactTable = JsonObjectFactTableFromBounds(
@@ -135,7 +147,8 @@ func DirectMirInferredGenericMemberDeclarationFactFromDocument(
     }
     let fact: DirectMirInferredGenericMemberDeclarationFact =
         DirectMirInferredGenericMemberDeclarationFact(
-            true, 0, 0, UnwrapOption(name_opt), ToInt(UnwrapOption(syntax_opt)),
+            true, 0, host, 0, UnwrapOption(name_opt),
+            ToInt(UnwrapOption(syntax_opt)),
             UnwrapOption(field_name), UnwrapOption(field_type),
             ToInt(UnwrapOption(field_syntax)), UnwrapOption(method_name),
             UnwrapOption(method_return)
@@ -144,7 +157,7 @@ func DirectMirInferredGenericMemberDeclarationFactFromDocument(
         DirectMirInferredGenericMemberDeclarationFact(
             fact.valid,
             DirectMirInferredGenericMemberDeclarationFactDigest(fact),
-            fact.row, fact.name, fact.source_syntax_id, fact.field_name,
+            fact.host, fact.row, fact.name, fact.source_syntax_id, fact.field_name,
             fact.field_type, fact.field_source_syntax_id, fact.method_name,
             fact.method_return_type
         );

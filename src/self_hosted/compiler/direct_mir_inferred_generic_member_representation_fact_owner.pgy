@@ -1,4 +1,4 @@
-// Internal representation fact for one single-Int value class.
+// Internal representation fact for one single-Int admitted member host.
 // It is not a physical ABI or interoperability layout receipt.
 
 import "direct_mir_inferred_generic_member_instruction_admission_owner.pgy";
@@ -15,6 +15,22 @@ struct DirectMirInferredGenericMemberRepresentationFact {
 
 func DirectMirInferredGenericMemberRepresentation() -> String {
     return "internal_single_int_value_class";
+}
+
+func DirectMirInferredGenericMemberVesselRepresentation() -> String {
+    return "internal_single_int_mutable_identity_vessel";
+}
+
+func DirectMirInferredGenericMemberRepresentationForHost(
+    ref host: DirectMirInferredGenericMemberHostKindFact
+) -> String {
+    if !DirectMirInferredGenericMemberHostKindFactReady(host) {
+        Die("direct MIR inferred member host representation is invalid");
+    }
+    if CallableReceiverNominalKindUsesMutableIdentity(host.kind) {
+        return DirectMirInferredGenericMemberVesselRepresentation();
+    }
+    return DirectMirInferredGenericMemberRepresentation();
 }
 
 func DirectMirInferredGenericMemberRepresentationFactDigest(
@@ -36,9 +52,13 @@ func DirectMirInferredGenericMemberRepresentationFactReady(
         DirectMirInferredGenericMemberRepresentationFactDigest(fact) &&
         fact.type_name != "" && fact.field_name != "" &&
         fact.field_type == CompilerAbiLayoutIntTypeName() &&
-        fact.representation ==
-            DirectMirInferredGenericMemberRepresentation() &&
-        fact.receiver_carriage == "value";
+        ((fact.representation ==
+              DirectMirInferredGenericMemberRepresentation() &&
+          fact.receiver_carriage == CallableReceiverCarriageValue()) ||
+         (fact.representation ==
+              DirectMirInferredGenericMemberVesselRepresentation() &&
+          fact.receiver_carriage ==
+              CallableReceiverCarriageMutableIdentity()));
 }
 
 func DirectMirInferredGenericMemberRepresentationFactFromInstructions(
@@ -47,7 +67,10 @@ func DirectMirInferredGenericMemberRepresentationFactFromInstructions(
 ) -> DirectMirInferredGenericMemberRepresentationFact {
     if !DirectMirInferredGenericMemberProgramIdentityReady(identity) ||
         !DirectMirInferredGenericMemberInstructionAdmissionReady(instructions) ||
-        identity.generic_method.receiver_carriage != "value" ||
+        !DirectMirInferredGenericMemberHostCarriageReady(
+            identity.declaration.host,
+            identity.generic_method.receiver_carriage
+        ) ||
         instructions.constructor.abi_layout_id_start < 0 ||
         instructions.constructor.abi_layout_required_start < 0 ||
         instructions.constructor.abi_layout_start < 0 {
@@ -57,7 +80,9 @@ func DirectMirInferredGenericMemberRepresentationFactFromInstructions(
         DirectMirInferredGenericMemberRepresentationFact(
             true, 0, identity.declaration.name,
             identity.declaration.field_name, identity.declaration.field_type,
-            DirectMirInferredGenericMemberRepresentation(), "value"
+            DirectMirInferredGenericMemberRepresentationForHost(
+                identity.declaration.host
+            ), identity.generic_method.receiver_carriage
         );
     let verified: DirectMirInferredGenericMemberRepresentationFact =
         DirectMirInferredGenericMemberRepresentationFact(

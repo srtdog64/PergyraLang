@@ -1,0 +1,83 @@
+// Target ABI shape selected from the admitted host/carriage pair.
+
+import "direct_mir_inferred_generic_member_host_kind_fact_owner.pgy";
+
+struct DirectMirMemberReceiverTargetProjection {
+    let valid: Bool;
+    let digest: Int;
+    let is_llvm: Bool;
+    let host: DirectMirInferredGenericMemberHostKindFact;
+    let carriage: String;
+    let formal_shape: String;
+    let local_shape: String;
+    let call_shape: String;
+}
+
+func DirectMirMemberReceiverTargetProjectionDigest(
+    ref fact: DirectMirMemberReceiverTargetProjection
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(521L, fact.host.digest);
+    hash = DirectMirCfgHashString(hash, fact.carriage);
+    hash = DirectMirCfgHashString(hash, fact.formal_shape);
+    hash = DirectMirCfgHashString(hash, fact.local_shape);
+    hash = DirectMirCfgHashString(hash, fact.call_shape);
+    if fact.is_llvm { hash = DirectMirCfgHashInt(hash, 1); }
+    else { hash = DirectMirCfgHashInt(hash, 0); }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirMemberReceiverTargetProjectionReady(
+    ref fact: DirectMirMemberReceiverTargetProjection
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+        DirectMirMemberReceiverTargetProjectionDigest(fact) ||
+        !DirectMirInferredGenericMemberHostCarriageReady(
+            fact.host, fact.carriage
+        ) {
+        return false;
+    }
+    if fact.carriage == CallableReceiverCarriageValue() {
+        return fact.formal_shape == "aggregate-value" &&
+            fact.local_shape == "aggregate-value" &&
+            fact.call_shape == "aggregate-value";
+    }
+    return fact.carriage == CallableReceiverCarriageMutableIdentity() &&
+        fact.formal_shape == "pointer" &&
+        fact.local_shape == "stable-stack-address" &&
+        fact.call_shape == "pointer";
+}
+
+func DirectMirMemberReceiverTargetProjectionFromFacts(
+    ref host: DirectMirInferredGenericMemberHostKindFact,
+    carriage: String, is_llvm: Bool
+) -> DirectMirMemberReceiverTargetProjection {
+    if !DirectMirInferredGenericMemberHostCarriageReady(host, carriage) {
+        Die("direct MIR member receiver target facts are invalid");
+    }
+    let pointer: Bool = carriage ==
+        CallableReceiverCarriageMutableIdentity();
+    let formal_shape: String = "aggregate-value";
+    let local_shape: String = "aggregate-value";
+    let call_shape: String = "aggregate-value";
+    if pointer {
+        formal_shape = "pointer";
+        local_shape = "stable-stack-address";
+        call_shape = "pointer";
+    }
+    let fact: DirectMirMemberReceiverTargetProjection =
+        DirectMirMemberReceiverTargetProjection(
+            true, 0, is_llvm, host, carriage,
+            formal_shape, local_shape, call_shape
+        );
+    let verified: DirectMirMemberReceiverTargetProjection =
+        DirectMirMemberReceiverTargetProjection(
+            fact.valid, DirectMirMemberReceiverTargetProjectionDigest(fact),
+            fact.is_llvm, fact.host, fact.carriage, fact.formal_shape,
+            fact.local_shape, fact.call_shape
+        );
+    if !DirectMirMemberReceiverTargetProjectionReady(verified) {
+        Die("direct MIR member receiver target projection is invalid");
+    }
+    return verified;
+}

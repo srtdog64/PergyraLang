@@ -4,6 +4,7 @@ import "direct_mir_inferred_generic_member_plan_owner.pgy";
 import "direct_mir_llvm_text_format_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "symbol_table_owner.pgy";
+import "direct_mir_member_receiver_target_projection_owner.pgy";
 
 func DirectMirInferredGenericMemberEmitLlvm(
     ref plan: DirectMirInferredGenericMemberPlan,
@@ -34,6 +35,33 @@ func DirectMirInferredGenericMemberEmitLlvm(
         receiver_parameter == value_parameter {
         Die("direct MIR inferred member LLVM symbols are invalid");
     }
+    let receiver_abi: DirectMirMemberReceiverTargetProjection =
+        DirectMirMemberReceiverTargetProjectionFromFacts(
+            plan.identity.declaration.host,
+            plan.representation.receiver_carriage, true
+        );
+    let receiver_formal: String = Concat(
+        "%", Concat(type_name, Concat(" %", receiver_parameter))
+    );
+    let receiver_local: String = Concat(
+        "%box = insertvalue %", Concat(type_name, Concat(
+            " poison, i32 ", Concat(ToString(graph.marker_value), ", 0")
+        ))
+    );
+    let receiver_operand: String = Concat("%", Concat(type_name, " %box"));
+    if receiver_abi.formal_shape == "pointer" {
+        receiver_formal = Concat("ptr %", receiver_parameter);
+        receiver_local = Concat("%box = alloca %", Concat(type_name, Concat(
+            ", align 4\n  %box.field.0 = getelementptr inbounds %",
+            Concat(type_name, Concat(
+                ", ptr %box, i32 0, i32 0\n  store i32 ", Concat(
+                    ToString(graph.marker_value),
+                    ", ptr %box.field.0, align 4"
+                )
+            ))
+        )));
+        receiver_operand = "ptr %box";
+    }
     let payload: String = DirectMirScalarLlvmFormatPayload(line_format);
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
     let output: String = "%";
@@ -46,29 +74,25 @@ func DirectMirInferredGenericMemberEmitLlvm(
     output = Concat(output, formatted_print.symbol);
     output = Concat(output, "(ptr, ...)\n\ndefine internal i32 @");
     output = Concat(output, method_symbol);
-    output = Concat(output, "(%");
-    output = Concat(output, type_name);
-    output = Concat(output, " %");
-    output = Concat(output, receiver_parameter);
+    output = Concat(output, "(");
+    output = Concat(output, receiver_formal);
     output = Concat(output, ", i32 %");
     output = Concat(output, value_parameter);
     output = Concat(output, ") {\nentry:\n  ret i32 %");
     output = Concat(output, value_parameter);
-    output = Concat(output, "\n}\n\ndefine i32 @main() {\nentry:\n  %box = insertvalue %");
-    output = Concat(output, type_name);
-    output = Concat(output, " poison, i32 ");
-    output = Concat(output, ToString(graph.marker_value));
-    output = Concat(output, ", 0\n  %inner = call i32 @");
+    output = Concat(output, "\n}\n\ndefine i32 @main() {\nentry:\n  ");
+    output = Concat(output, receiver_local);
+    output = Concat(output, "\n  %inner = call i32 @");
     output = Concat(output, method_symbol);
-    output = Concat(output, "(%");
-    output = Concat(output, type_name);
-    output = Concat(output, " %box, i32 ");
+    output = Concat(output, "(");
+    output = Concat(output, receiver_operand);
+    output = Concat(output, ", i32 ");
     output = Concat(output, ToString(graph.argument_value));
     output = Concat(output, ")\n  %result = call i32 @");
     output = Concat(output, method_symbol);
-    output = Concat(output, "(%");
-    output = Concat(output, type_name);
-    output = Concat(output, " %box, i32 %inner)\n  %pgy.print = sext i32 %result to i64\n  %pgy.logged = call i32 (ptr, ...) @");
+    output = Concat(output, "(");
+    output = Concat(output, receiver_operand);
+    output = Concat(output, ", i32 %inner)\n  %pgy.print = sext i32 %result to i64\n  %pgy.logged = call i32 (ptr, ...) @");
     output = Concat(output, formatted_print.symbol);
     output = Concat(output, "(ptr @.pgy.int.line.format, i64 %pgy.print)\n  ret i32 0\n}\n");
     return output;

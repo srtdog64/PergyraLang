@@ -1,0 +1,58 @@
+// Admitted passive host kind and its callable receiver-carriage contract.
+
+import "../semantic/callable_receiver_carriage_policy_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirInferredGenericMemberHostKindFact {
+    let valid: Bool;
+    let digest: Int;
+    let kind: String;
+}
+
+func DirectMirInferredGenericMemberHostKindKnown(kind: String) -> Bool {
+    return kind == "class" || kind == "vessel";
+}
+
+func DirectMirInferredGenericMemberHostKindFactDigest(
+    ref fact: DirectMirInferredGenericMemberHostKindFact
+) -> Int {
+    if !fact.valid { return 0; }
+    return DirectMirCfgBoundedDigest(DirectMirCfgHashString(509L, fact.kind));
+}
+
+func DirectMirInferredGenericMemberHostKindFactReady(
+    ref fact: DirectMirInferredGenericMemberHostKindFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirInferredGenericMemberHostKindFactDigest(fact) &&
+        DirectMirInferredGenericMemberHostKindKnown(fact.kind);
+}
+
+func DirectMirInferredGenericMemberHostKindFactFromDeclaration(
+    kind: String, nominal_kind: String
+) -> DirectMirInferredGenericMemberHostKindFact {
+    let fact: DirectMirInferredGenericMemberHostKindFact =
+        DirectMirInferredGenericMemberHostKindFact(true, 0, kind);
+    let verified: DirectMirInferredGenericMemberHostKindFact =
+        DirectMirInferredGenericMemberHostKindFact(
+            fact.valid,
+            DirectMirInferredGenericMemberHostKindFactDigest(fact),
+            fact.kind
+        );
+    if kind != nominal_kind ||
+        !DirectMirInferredGenericMemberHostKindFactReady(verified) {
+        return DirectMirInferredGenericMemberHostKindFact(false, 0, "");
+    }
+    return verified;
+}
+
+func DirectMirInferredGenericMemberHostCarriageReady(
+    ref host: DirectMirInferredGenericMemberHostKindFact,
+    carriage: String
+) -> Bool {
+    return DirectMirInferredGenericMemberHostKindFactReady(host) &&
+        ((CallableReceiverNominalKindUsesValue(host.kind) &&
+          carriage == CallableReceiverCarriageValue()) ||
+         (CallableReceiverNominalKindUsesMutableIdentity(host.kind) &&
+          carriage == CallableReceiverCarriageMutableIdentity()));
+}

@@ -3,6 +3,7 @@
 import "direct_mir_inferred_generic_member_plan_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "symbol_table_owner.pgy";
+import "direct_mir_member_receiver_target_projection_owner.pgy";
 
 func DirectMirInferredGenericMemberEmitC(
     ref plan: DirectMirInferredGenericMemberPlan,
@@ -36,6 +37,18 @@ func DirectMirInferredGenericMemberEmitC(
         receiver_parameter == value_parameter {
         Die("direct MIR inferred member C symbols are invalid");
     }
+    let receiver_abi: DirectMirMemberReceiverTargetProjection =
+        DirectMirMemberReceiverTargetProjectionFromFacts(
+            plan.identity.declaration.host,
+            plan.representation.receiver_carriage, false
+        );
+    let receiver_formal: String = Concat(type_name, " ");
+    let receiver_operand: String = "_pgy_receiver_0";
+    if receiver_abi.formal_shape == "pointer" {
+        receiver_formal = Concat(type_name, " *");
+        receiver_operand = "&(_pgy_receiver_0)";
+    }
+    receiver_formal = Concat(receiver_formal, receiver_parameter);
     let output: String = "#include <stdint.h>\n#include <stdio.h>\n\n";
     output = Concat(output, "typedef struct {\n    int32_t ");
     output = Concat(output, field_name);
@@ -44,9 +57,7 @@ func DirectMirInferredGenericMemberEmitC(
     output = Concat(output, ";\n\nstatic int32_t ");
     output = Concat(output, method_symbol);
     output = Concat(output, "(");
-    output = Concat(output, type_name);
-    output = Concat(output, " ");
-    output = Concat(output, receiver_parameter);
+    output = Concat(output, receiver_formal);
     output = Concat(output, ", int32_t ");
     output = Concat(output, value_parameter);
     output = Concat(output, ") {\n    (void)");
@@ -62,7 +73,7 @@ func DirectMirInferredGenericMemberEmitC(
     output = Concat(output, "};\n    int32_t _pgy_inner_0 = ");
     output = Concat(output, method_symbol);
     output = Concat(output, "(");
-    output = Concat(output, "_pgy_receiver_0");
+    output = Concat(output, receiver_operand);
     output = Concat(output, ", ");
     output = Concat(output, ToString(graph.argument_value));
     output = Concat(output, ");\n    int32_t ");
@@ -70,7 +81,7 @@ func DirectMirInferredGenericMemberEmitC(
     output = Concat(output, " = ");
     output = Concat(output, method_symbol);
     output = Concat(output, "(");
-    output = Concat(output, "_pgy_receiver_0");
+    output = Concat(output, receiver_operand);
     output = Concat(output, ", _pgy_inner_0);\n    ");
     output = Concat(output, formatted_print.symbol);
     output = Concat(output, "(\"");

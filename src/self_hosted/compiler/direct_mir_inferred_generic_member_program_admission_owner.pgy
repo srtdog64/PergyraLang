@@ -15,9 +15,10 @@ func DirectMirInferredGenericMemberProgramEnvelopeReady(
             admitted.document.root, "generic_method_specializations"
         );
     if !DirectMirTwoRoutineClassificationFactReady(classification) ||
-        classification.kind != DirectMirTwoRoutineInferredGenericMember() ||
+        !DirectMirTwoRoutineInferredMemberKindMatches(
+            classification.kind, classification.shape.declaration_kind
+        ) ||
         classification.specialization_count != 2 ||
-        classification.shape.declaration_kind != "class" ||
         classification.shape.generic_routine_count != 1 ||
         classification.shape.method_routine_count != 1 ||
         !admitted.document.valid || admitted.domain_topology_plan.present ||
@@ -25,8 +26,9 @@ func DirectMirInferredGenericMemberProgramEnvelopeReady(
         JsonObjectFactCount(admitted.document.root) != 5 ||
         !DirectMirTwoRoutineNominalProgramCandidate(admitted) ||
         !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 ||
-        declarations.kinds[0] != "class" ||
-        declarations.nominal_kinds[0] != "class" ||
+        declarations.kinds[0] != classification.shape.declaration_kind ||
+        declarations.nominal_kinds[0] !=
+            classification.shape.declaration_kind ||
         !JsonArrayObjectFactTableReady(specializations) ||
         JsonArrayObjectFactCount(specializations) != 2 ||
         !JsonArrayObjectFactTableReady(

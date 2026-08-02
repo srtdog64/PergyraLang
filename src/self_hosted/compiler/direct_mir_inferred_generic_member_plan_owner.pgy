@@ -1,4 +1,4 @@
-// Target-neutral plan for nested inferred calls on one value receiver.
+// Target-neutral plan for nested inferred calls on one admitted receiver.
 
 import "direct_mir_inferred_generic_member_representation_fact_owner.pgy";
 import "target_capability_owner.pgy";
@@ -22,7 +22,7 @@ func DirectMirInferredGenericMemberPlanSchema() -> String {
 }
 
 func DirectMirInferredGenericMemberCarriage() -> String {
-    return "nested_inferred_generic_member_calls_on_value_receiver";
+    return "nested_inferred_generic_member_calls_on_admitted_receiver";
 }
 
 func DirectMirInferredGenericMemberPlanDigest(
@@ -61,6 +61,10 @@ func DirectMirInferredGenericMemberPlanReady(
             plan.identity.declaration.field_type &&
         plan.representation.receiver_carriage ==
             plan.identity.generic_method.receiver_carriage &&
+        plan.representation.representation ==
+            DirectMirInferredGenericMemberRepresentationForHost(
+                plan.identity.declaration.host
+            ) &&
         MirSsaNameMatches(
             plan.receiver_value,
             plan.identity.graph.receiver_local_name, false

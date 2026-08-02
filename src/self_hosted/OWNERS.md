@@ -1891,6 +1891,12 @@ inventory must not become a second fact-family owner registry.
   strict unique routine identity/signature facts shared by bounded
   multi-routine projections. Missing return facts and duplicate fields fail
   instead of defaulting.
+- `src/self_hosted/compiler/direct_mir_inferred_generic_member_host_kind_fact_owner.pgy`
+  -- passive generic-member host identity and the exact class/value or
+  vessel/mutable-identity receiver-carriage join.
+- `src/self_hosted/compiler/direct_mir_member_receiver_target_projection_owner.pgy`
+  -- selected C/LLVM formal, local-storage, and call pass shape derived from
+  the sealed host/carriage pair; emitters may render but not reclassify it.
 - `src/self_hosted/compiler/direct_mir_array_argument_graph_fact_owner.pgy` --
   exact typed nested-call and Array-literal argument graph; direct call targets
   come from expression facts rather than routine row order or source text.

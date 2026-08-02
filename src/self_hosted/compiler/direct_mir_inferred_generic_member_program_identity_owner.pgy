@@ -1,4 +1,4 @@
-// Semantic identity for one inferred generic value-receiver member program.
+// Semantic identity for one inferred generic member program.
 
 import "direct_mir_inferred_generic_member_program_admission_owner.pgy";
 import "direct_mir_inferred_generic_member_declaration_fact_owner.pgy";
@@ -55,6 +55,9 @@ func DirectMirInferredGenericMemberProgramIdentityReady(
         method.owner == declaration.name &&
         method.name == declaration.method_name &&
         method.return_type == declaration.method_return_type &&
+        DirectMirInferredGenericMemberHostCarriageReady(
+            declaration.host, method.receiver_carriage
+        ) &&
         method.generic_name == specialization.generic_param &&
         method.value_param.name == graph.value_parameter_name &&
         specialization.owner == declaration.name &&

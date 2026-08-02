@@ -4,28 +4,21 @@ import copy
 import json
 import pathlib
 import sys
-
-
 source = pathlib.Path(sys.argv[1])
 target = pathlib.Path(sys.argv[2])
 mode = sys.argv[3] if len(sys.argv) > 3 else "mutate"
 baseline = json.loads(source.read_text(encoding="utf-8"))
-
-
 def routine(document, name):
     rows = [row for row in document["routines"] if row["name"] == name]
     if len(rows) != 1:
         raise RuntimeError(f"expected one routine named {name}")
     return rows[0]
 
-
 def instructions(document, name):
     return routine(document, name)["blocks"][0]["instructions"]
 
-
 def graph(document, name, instruction):
     return instructions(document, name)[instruction]["expr0_graph"]
-
 
 def receipt(row):
     return {key: copy.deepcopy(row[key]) for key in (
@@ -50,12 +43,17 @@ def graph_shape(value):
     return {"root": value["root"], "nodes": nodes}
 
 
-def declaration_shape(document):
+def native_semantic_declaration_kind(row):
+    if row["kind"] == "class" and row["nominal_kind"] == "vessel":
+        return "vessel"
+    return row["kind"]
+def declaration_shape(document, native=False):
     if len(document["decls"]) != 1:
         raise RuntimeError("expected one declaration")
     row = document["decls"][0]
     return {
-        "kind": row["kind"], "nominal_kind": row["nominal_kind"],
+        "kind": native_semantic_declaration_kind(row) if native else row["kind"],
+        "nominal_kind": row["nominal_kind"],
         "name": row["name"],
         "fields": [{key: field[key] for key in ("name", "type", "field_kind")}
                    for field in row["fields"]],
@@ -79,8 +77,8 @@ def specialization_tuples(document, self_owned):
 
 if mode == "compare":
     oracle = json.loads(target.read_text(encoding="utf-8"))
-    if declaration_shape(baseline) != declaration_shape(oracle):
-        raise RuntimeError("native/self class declaration drifted")
+    if declaration_shape(baseline) != declaration_shape(oracle, native=True):
+        raise RuntimeError("native/self member nominal semantics drifted")
     for name in ("Echo", "Main"):
         left = routine(baseline, name)
         right = routine(oracle, name)
@@ -222,7 +220,9 @@ emit("argument-value-seventy-three", change_argument_value)
 emit("semantic-rename", semantic_rename)
 emit("collision-names", collision_names)
 emit("field-local-same-name", lambda d: field(d).__setitem__("name", "box"))
-
+emit("host-kind-subject", lambda d: (
+    declaration(d).__setitem__("kind", "subject"),
+    declaration(d).__setitem__("nominal_kind", "subject")))
 emit("declaration-kind-drift", lambda d: declaration(d).
      __setitem__("kind", "struct"))
 emit("nominal-kind-drift", lambda d: declaration(d).
@@ -249,6 +249,8 @@ emit("routine-owner-drift", lambda d: routine(d, "Echo").
      __setitem__("owner", "Other"))
 emit("receiver-carriage-drift", lambda d: routine(d, "Echo").
      __setitem__("receiver_carriage", "ref"))
+emit("receiver-carriage-value-drift", lambda d: routine(d, "Echo").
+     __setitem__("receiver_carriage", "value"))
 emit("missing-generic-formal", lambda d: routine(d, "Echo").
      __setitem__("generics", []))
 emit("duplicate-generic-formal", lambda d: routine(d, "Echo").

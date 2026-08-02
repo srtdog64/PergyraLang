@@ -1,4 +1,4 @@
-// Strict one-formal generic method signature with a value receiver.
+// Strict one-formal generic method signature with an admitted host carriage.
 
 import "direct_mir_routine_param_fact_owner.pgy";
 import "direct_mir_scalar_graph_admission_owner.pgy";
@@ -6,6 +6,7 @@ import "direct_mir_inferred_generic_member_array_shape_owner.pgy";
 import "../mir_lower/program_routine_index_owner.pgy";
 import "../mir_lower/routine_inventory_owner.pgy";
 import "../air/mir_cfg_identity_owner.pgy";
+import "direct_mir_inferred_generic_member_host_kind_fact_owner.pgy";
 
 struct DirectMirGenericMemberSignatureFact {
     let valid: Bool;
@@ -50,7 +51,10 @@ func DirectMirGenericMemberSignatureFactReady(
     return fact.valid && fact.digest != 0 && fact.digest ==
         DirectMirGenericMemberSignatureFactDigest(fact) && fact.row >= 0 &&
         fact.owner != "" && fact.name != "" && fact.name != "Main" &&
-        fact.source_syntax_id > 0 && fact.receiver_carriage == "value" &&
+        fact.source_syntax_id > 0 &&
+        (fact.receiver_carriage == CallableReceiverCarriageValue() ||
+         fact.receiver_carriage ==
+            CallableReceiverCarriageMutableIdentity()) &&
         fact.receiver_name == "self" && fact.generic_name != "" &&
         fact.return_type == fact.generic_name &&
         DirectMirRoutineParamFactReady(fact.value_param) &&
@@ -100,7 +104,9 @@ func DirectMirGenericMemberSignatureFactAt(
     let generic_bounds: Array<Int> = [0, 0];
     let param_bounds: Array<Int> = [0, 0];
     if !IsSome(receiver_opt) || !IsSome(return_opt) ||
-        UnwrapOption(receiver_opt) != "value" ||
+        (UnwrapOption(receiver_opt) != CallableReceiverCarriageValue() &&
+         UnwrapOption(receiver_opt) !=
+            CallableReceiverCarriageMutableIdentity()) ||
         !MirObjectArrayBoundsAtBounds(
             routines.source_json, routines.starts[row], routines.ends[row],
             "generics", generic_bounds
@@ -163,7 +169,8 @@ func DirectMirGenericMemberSignatureFactAt(
     let fact: DirectMirGenericMemberSignatureFact =
         DirectMirGenericMemberSignatureFact(
             true, 0, row, routines.owners[row], routines.names[row],
-            ToInt(routines.source_syntax_ids[row]), "value", "self",
+            ToInt(routines.source_syntax_ids[row]),
+            UnwrapOption(receiver_opt), "self",
             header.generic_names[0], header.return_type, value_param
         );
     let verified: DirectMirGenericMemberSignatureFact =

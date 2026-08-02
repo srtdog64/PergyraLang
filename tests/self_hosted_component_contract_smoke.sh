@@ -14220,20 +14220,22 @@ require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-inferred-generic-scalar-projection-test-smoke"
 for inferred_member_owner_cap in \
     direct_mir_two_routine_shape_owner.pgy:80 \
-    direct_mir_two_routine_classification_owner.pgy:100 \
+    direct_mir_two_routine_classification_owner.pgy:120 \
     direct_mir_inferred_generic_member_array_shape_owner.pgy:80 \
     direct_mir_inferred_generic_member_routine_array_shape_owner.pgy:50 \
     direct_mir_inferred_generic_member_program_admission_owner.pgy:70 \
     direct_mir_inferred_generic_member_specialization_fact_owner.pgy:160 \
-    direct_mir_generic_member_signature_fact_owner.pgy:180 \
-    direct_mir_inferred_generic_member_declaration_fact_owner.pgy:160 \
+    direct_mir_generic_member_signature_fact_owner.pgy:190 \
+    direct_mir_inferred_generic_member_declaration_fact_owner.pgy:170 \
+    direct_mir_inferred_generic_member_host_kind_fact_owner.pgy:60 \
     direct_mir_inferred_generic_member_graph_fact_owner.pgy:180 \
-    direct_mir_inferred_generic_member_program_identity_owner.pgy:180 \
+    direct_mir_inferred_generic_member_program_identity_owner.pgy:190 \
     direct_mir_inferred_generic_member_instruction_admission_owner.pgy:220 \
-    direct_mir_inferred_generic_member_representation_fact_owner.pgy:80 \
-    direct_mir_inferred_generic_member_plan_owner.pgy:110 \
+    direct_mir_inferred_generic_member_representation_fact_owner.pgy:100 \
+    direct_mir_inferred_generic_member_plan_owner.pgy:120 \
+    direct_mir_member_receiver_target_projection_owner.pgy:90 \
     direct_mir_inferred_generic_member_c_emission_owner.pgy:100 \
-    direct_mir_inferred_generic_member_llvm_emission_owner.pgy:80 \
+    direct_mir_inferred_generic_member_llvm_emission_owner.pgy:100 \
     direct_mir_inferred_generic_member_projection_owner.pgy:40; do
     inferred_member_owner="${inferred_member_owner_cap%%:*}"
     inferred_member_cap="${inferred_member_owner_cap##*:}"
@@ -14246,12 +14248,15 @@ require_file \
 require_file \
     "tests/self_hosted/parity/one_mir_inferred_generic_member_mutations.py"
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_inferred_generic_member_projection.sh" 160
+    "tests/self_hosted/parity/one_mir_inferred_generic_member_projection.sh" 200
 require_max_lines \
     "tests/self_hosted/parity/one_mir_inferred_generic_member_mutations.py" 360
 require_text \
     "src/self_hosted/compiler/direct_mir_two_routine_classification_owner.pgy" \
     "DirectMirTwoRoutineInferredGenericMember()"
+require_text \
+    "src/self_hosted/compiler/direct_mir_two_routine_classification_owner.pgy" \
+    "DirectMirTwoRoutineInferredGenericVesselMember()"
 require_text \
     "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
     "CompileAdmittedDirectMirInferredGenericMember("
@@ -14259,8 +14264,11 @@ require_text \
     "src/self_hosted/compiler/direct_mir_inferred_generic_member_representation_fact_owner.pgy" \
     "internal_single_int_value_class"
 require_text \
+    "src/self_hosted/compiler/direct_mir_inferred_generic_member_representation_fact_owner.pgy" \
+    "internal_single_int_mutable_identity_vessel"
+require_text \
     "src/self_hosted/compiler/direct_mir_inferred_generic_member_plan_owner.pgy" \
-    "nested_inferred_generic_member_calls_on_value_receiver"
+    "nested_inferred_generic_member_calls_on_admitted_receiver"
 require_text \
     "tests/self_hosted/parity/one_mir_inferred_generic_member_projection.sh" \
     "gate must produce source MIR exactly once"
@@ -14269,7 +14277,10 @@ require_text \
     "one method definition and two calls"
 require_text \
     "tests/self_hosted/parity/one_mir_inferred_generic_member_projection.sh" \
-    "C/LLVM exact 41"
+    "class exact 41 plus vessel exact 42"
+require_text \
+    "tests/self_hosted/parity/one_mir_inferred_generic_member_projection.sh" \
+    "generic_vessel_member_inferred_flow.pgy"
 require_text "Makefile" \
     "SELFHOST_ONE_MIR_INFERRED_GENERIC_MEMBER_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_INFERRED_GENERIC_MEMBER_GATE)'
@@ -14279,8 +14290,37 @@ require_text \
     "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
     "generic_member_inferred_flow.pgy"
 require_text \
+    "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
+    "generic_vessel_member_inferred_flow.pgy|vessel-member|42"
+require_text \
     "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
     "src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy"
+require_text \
+    "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
+    'generic_vessel_member_inferred_flow.pgy'
+require_text \
+    "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
+    '$VESSEL_MEMBER_SOURCE|vessel-member|42'
+for vessel_member_ratchet in \
+    'Cell_Echo_Int(Cell *self' 'Cell _pgy_receiver_0 = {0};' \
+    'Cell_Echo_Int(&(_pgy_receiver_0),' \
+    'define internal i32 @Cell_Echo_Int(ptr %self' \
+    '%box.field.0 = getelementptr inbounds %Cell' \
+    'store i32 0, ptr %box.field.0' '@Cell_Echo_Int(ptr %box,' \
+    host-kind-subject receiver-carriage-value-drift receiver-abi-forged \
+    nested-use-drift 'two-routine classification is not single-shot'; do
+    require_text \
+        "tests/self_hosted/parity/one_mir_inferred_generic_member_projection.sh" \
+        "$vessel_member_ratchet"
+done
+for vessel_member_emitter in \
+    direct_mir_inferred_generic_member_c_emission_owner.pgy \
+    direct_mir_inferred_generic_member_llvm_emission_owner.pgy; do
+    require_text "src/self_hosted/compiler/$vessel_member_emitter" \
+        'direct_mir_member_receiver_target_projection_owner.pgy'
+    require_text "src/self_hosted/compiler/$vessel_member_emitter" \
+        'DirectMirMemberReceiverTargetProjectionFromFacts('
+done
 for constructed_member_owner in \
     direct_mir_three_routine_classification_owner.pgy \
     direct_mir_three_routine_classification_fact_owner.pgy \

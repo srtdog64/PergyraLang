@@ -52,8 +52,9 @@ func CompileAdmittedDirectMirMultiRoutineForTarget(
                 admitted, two_routine, is_llvm, formatted_print, line_format
             );
         }
-        if two_routine.kind ==
-            DirectMirTwoRoutineInferredGenericMember() {
+        if DirectMirTwoRoutineInferredMemberKindMatches(
+            two_routine.kind, two_routine.shape.declaration_kind
+        ) {
             return CompileAdmittedDirectMirInferredGenericMember(
                 admitted, two_routine, is_llvm, formatted_print, line_format
             );

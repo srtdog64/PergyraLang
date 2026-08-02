@@ -12,8 +12,12 @@ DRIVER_BIN="$(pgy_select_optional_exe_binary "${PGY_SELFHOST_INFERRED_GENERIC_ME
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 WORK_DIR="${PGY_SELFHOST_INFERRED_GENERIC_MEMBER_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver/one_mir_inferred_generic_member}"
 SOURCE="$ROOT_DIR/src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy"
+VESSEL_SOURCE="$ROOT_DIR/src/self_hosted/mir_lower/fixture/generic_vessel_member_inferred_flow.pgy"
 MIR="$WORK_DIR/inferred-generic-member.one.mir.json"
 NATIVE_MIR="$WORK_DIR/inferred-generic-member.native.mir.json"
+VESSEL_DIR="$WORK_DIR/vessel"
+VESSEL_MIR="$VESSEL_DIR/inferred-generic-member.one.mir.json"
+VESSEL_NATIVE_MIR="$VESSEL_DIR/inferred-generic-member.native.mir.json"
 PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python || true)}"
 CC="${PGY_SELFHOST_CC:-gcc}"
 CLANG="${PGY_SELFHOST_CLANG:-clang}"
@@ -31,29 +35,36 @@ assert_owner_ratchet() {
         total=$((total + lines))
     done <<EOF
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_two_routine_shape_owner.pgy|80
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_two_routine_classification_owner.pgy|100
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_two_routine_classification_owner.pgy|120
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_array_shape_owner.pgy|80
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_routine_array_shape_owner.pgy|50
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_program_admission_owner.pgy|70
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_specialization_fact_owner.pgy|160
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_generic_member_signature_fact_owner.pgy|180
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_declaration_fact_owner.pgy|160
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_generic_member_signature_fact_owner.pgy|190
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_declaration_fact_owner.pgy|170
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_host_kind_fact_owner.pgy|60
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_graph_fact_owner.pgy|180
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_program_identity_owner.pgy|180
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_program_identity_owner.pgy|190
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_instruction_admission_owner.pgy|220
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_representation_fact_owner.pgy|80
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_plan_owner.pgy|110
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_representation_fact_owner.pgy|100
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_plan_owner.pgy|120
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_member_receiver_target_projection_owner.pgy|90
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_c_emission_owner.pgy|100
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_llvm_emission_owner.pgy|80
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_llvm_emission_owner.pgy|100
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_projection_owner.pgy|40
 EOF
-    [[ "$total" -le 1900 ]] || fail "inferred generic member owner family cap exceeded: $total/1900"
+    [[ "$total" -le 2100 ]] || fail "inferred generic member owner family cap exceeded: $total/2100"
     grep -Fq 'DirectMirTwoRoutineInferredGenericMember()' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_two_routine_classification_owner.pgy" || fail "member classification is not owned"
     grep -Fq 'CompileAdmittedDirectMirInferredGenericMember(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" || fail "member projection is not routed"
+    [[ "$(grep -Fc 'DirectMirTwoRoutineClassificationFromAdmitted(admitted)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy")" -eq 1 ]] || fail "two-routine classification is not single-shot"
+    [[ "$(grep -c '^import ' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_projection_owner.pgy")" -eq 2 ]] || fail "member target selection imported another planner"
+    [[ "$(grep -Ec 'PlanFromAdmitted\(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_projection_owner.pgy")" -eq 1 ]] || fail "member target selection retried another planner"
     grep -Fq 'internal_single_int_value_class' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_representation_fact_owner.pgy" || fail "internal value-class representation is not explicit"
+    grep -Fq 'internal_single_int_mutable_identity_vessel' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_representation_fact_owner.pgy" || fail "mutable-identity vessel representation is not explicit"
     for emitter in direct_mir_inferred_generic_member_c_emission_owner.pgy direct_mir_inferred_generic_member_llvm_emission_owner.pgy; do
         ! grep -Eq 'MirMachineLayerAdmittedJsonInput|MirExpressionGraphSequence|JsonObjectFact' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter reopened admitted MIR"
         ! grep -Fq 'CompilerSymbolCGenericSpecializationName' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter reconstructed the specialization symbol"
+        ! grep -Eq '"(class|vessel|Box|Cell)"|fixture' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter dispatched on a host or fixture spelling"
     done
 }
 
@@ -68,10 +79,10 @@ project() {
 }
 
 reject_mutation() {
-    local name="$1" target="${2:-c}" output
-    output="$WORK_DIR/$name.$target.artifact"
+    local name="$1" target="${2:-c}" input_dir="${3:-$WORK_DIR}" output
+    output="$input_dir/$name.$target.artifact"
     rm -f "$output" "$output.stdout" "$output.stderr"
-    if (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" "$(root_relative "$WORK_DIR/$name.json")" "$(root_relative "$output")" >"$output.stdout" 2>"$output.stderr"); then
+    if (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" "$(root_relative "$input_dir/$name.json")" "$(root_relative "$output")" >"$output.stdout" 2>"$output.stderr"); then
         fail "$target accepted inferred generic member mutation: $name"
     fi
     [[ ! -e "$output" ]] || fail "$target emitted before rejecting $name"
@@ -90,7 +101,7 @@ compile_and_expect() {
     cmp -s "$WORK_DIR/$stem.expected" "$WORK_DIR/$stem-llvm.out" || fail "LLVM output is not exact $expected"
 }
 
-for path in "$SOURCE" "$DRIVER_BIN" "$PGY"; do require_file "$path"; done
+for path in "$SOURCE" "$VESSEL_SOURCE" "$DRIVER_BIN" "$PGY"; do require_file "$path"; done
 [[ -n "$PYTHON_BIN" ]] || fail "python is required"
 command -v "$CC" >/dev/null || fail "missing C compiler"
 command -v "$CLANG" >/dev/null || fail "missing LLVM compiler"
@@ -143,4 +154,32 @@ cmp -s "$WORK_DIR/baseline.ll" "$WORK_DIR/collision-names.ll" || fail "LLVM sour
 
 for mutation in declaration-kind-drift nominal-kind-drift declaration-name-drift declaration-physical-layout field-name-empty field-type-drift field-kind-drift method-name-drift method-return-drift method-kind-drift method-contract-drift method-source-id-collision field-source-id-collision routine-owner-drift receiver-carriage-drift missing-generic-formal duplicate-generic-formal receiver-name-drift receiver-type-forged receiver-pass-drift receiver-abi-forged value-param-type-drift value-param-carriage-drift value-param-abi-drift routine-return-drift method-body-drift method-return-abi-drift method-generic-scalar-tail method-param-scalar-tail main-generic-scalar-tail main-param-scalar-tail source-local-scalar-tail field-scalar-tail method-scalar-tail parallel-scalar-tail missing-specialization extra-specialization duplicate-specialization-coordinate specialization-owner-zero specialization-owner-disagreement specialization-lane-drift specialization-target-drift specialization-owner-drift specialization-callable-drift specialization-symbol-drift specialization-formal-drift specialization-actual-drift specialization-scalar-tail specialization-formal-tail specialization-actual-tail constructor-target-drift constructor-edge-drift constructor-result-drift constructor-physical-layout nested-receiver-drift nested-method-drift inner-target-kind-drift outer-target-name-drift inner-argument-edge-drift outer-argument-edge-drift nested-root-drift nested-use-drift nested-result-drift output-local-drift output-edge-drift stale-output-use output-abi-drift source-local-type-drift unreachable-main unreachable-method; do reject_mutation "$mutation"; done
 for mutation in specialization-symbol-drift inner-target-kind-drift stale-output-use constructor-physical-layout; do reject_mutation "$mutation" llvm; done
-echo "[$LABEL] PASS: one MIR, value-receiver member inference, C/LLVM exact 41, five order invariants, five value/name/collision variants, 70 C negatives, 4 LLVM sentinels"
+
+mkdir -p "$VESSEL_DIR"
+(cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified "$(root_relative "$VESSEL_SOURCE")" "$(root_relative "$VESSEL_MIR")") || fail "source-to-MIR rejected vessel member fixture"
+(cd "$ROOT_DIR" && "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$VESSEL_SOURCE")" >"$VESSEL_NATIVE_MIR") || fail "native MIR oracle rejected vessel member fixture"
+"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_inferred_generic_member_mutations.py" "$VESSEL_MIR" "$VESSEL_NATIVE_MIR" compare || fail "native/self vessel nominal semantics drifted"
+"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_inferred_generic_member_mutations.py" "$VESSEL_MIR" "$VESSEL_DIR"
+vessel_digest="$(hash_file "$VESSEL_MIR")"
+project "$VESSEL_MIR" c "$VESSEL_DIR/baseline.c"
+project "$VESSEL_MIR" llvm "$VESSEL_DIR/baseline.ll"
+[[ "$(hash_file "$VESSEL_MIR")" == "$vessel_digest" ]] || fail "vessel projection mutated MIR"
+[[ "$(grep -Fo 'Cell_Echo_Int(' "$VESSEL_DIR/baseline.c" | wc -l)" -eq 3 ]] || fail "C lost one vessel method definition and two calls"
+grep -Fq 'Cell_Echo_Int(Cell *self, int32_t value)' "$VESSEL_DIR/baseline.c" || fail "C lost mutable-identity receiver formal"
+grep -Fq 'Cell _pgy_receiver_0 = {0};' "$VESSEL_DIR/baseline.c" || fail "C lost admitted receiver state initialization"
+[[ "$(grep -Fo 'Cell_Echo_Int(&(_pgy_receiver_0),' "$VESSEL_DIR/baseline.c" | wc -l)" -eq 2 ]] || fail "C lost the stable receiver address"
+! grep -Fq 'Cell_Echo_Int(_pgy_receiver_0,' "$VESSEL_DIR/baseline.c" || fail "C restored by-value vessel calls"
+grep -Fq 'define internal i32 @Cell_Echo_Int(ptr %self, i32 %value)' "$VESSEL_DIR/baseline.ll" || fail "LLVM lost pointer receiver formal"
+[[ "$(grep -Fo '%box = alloca %Cell' "$VESSEL_DIR/baseline.ll" | wc -l)" -eq 1 ]] || fail "LLVM lost unique stable receiver storage"
+grep -Fq '%box.field.0 = getelementptr inbounds %Cell, ptr %box, i32 0, i32 0' "$VESSEL_DIR/baseline.ll" || fail "LLVM lost admitted receiver field address"
+grep -Fq 'store i32 0, ptr %box.field.0, align 4' "$VESSEL_DIR/baseline.ll" || fail "LLVM lost admitted receiver state initialization"
+[[ "$(grep -Fo '@Cell_Echo_Int(ptr %box,' "$VESSEL_DIR/baseline.ll" | wc -l)" -eq 2 ]] || fail "LLVM lost shared receiver pointer calls"
+! grep -Fq '@Cell_Echo_Int(%Cell %box,' "$VESSEL_DIR/baseline.ll" || fail "LLVM restored aggregate-by-value vessel calls"
+compile_and_expect vessel/baseline 42
+project "$VESSEL_DIR/combined-order-swap.json" c "$VESSEL_DIR/combined-order-swap.c"
+project "$VESSEL_DIR/combined-order-swap.json" llvm "$VESSEL_DIR/combined-order-swap.ll"
+cmp -s "$VESSEL_DIR/baseline.c" "$VESSEL_DIR/combined-order-swap.c" || fail "C vessel artifact drifted under order swap"
+cmp -s "$VESSEL_DIR/baseline.ll" "$VESSEL_DIR/combined-order-swap.ll" || fail "LLVM vessel artifact drifted under order swap"
+for mutation in declaration-kind-drift nominal-kind-drift host-kind-subject routine-owner-drift receiver-carriage-value-drift receiver-pass-drift receiver-abi-forged constructor-physical-layout nested-use-drift stale-output-use specialization-symbol-drift; do reject_mutation "$mutation" c "$VESSEL_DIR"; done
+for mutation in host-kind-subject receiver-carriage-value-drift receiver-abi-forged nested-use-drift specialization-symbol-drift; do reject_mutation "$mutation" llvm "$VESSEL_DIR"; done
+echo "[$LABEL] PASS: one owner path, class exact 41 plus vessel exact 42, C/LLVM receiver ABI parity, six order invariants, five variants, 81 C negatives, 9 LLVM sentinels"
