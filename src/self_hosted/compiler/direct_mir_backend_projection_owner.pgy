@@ -5,6 +5,9 @@ import "target_projection_fact_owner.pgy";
 import "direct_mir_scalar_graph_admission_owner.pgy";
 import "direct_mir_cfg_plan_owner.pgy";
 import "direct_mir_backend_emission_owner.pgy";
+import "direct_mir_compile_time_declaration_erasure_owner.pgy";
+import "direct_mir_literal_log_plan_owner.pgy";
+import "direct_mir_literal_log_emission_owner.pgy";
 import "direct_mir_array_int_plan_owner.pgy";
 import "direct_mir_array_int_abi_projection_owner.pgy";
 import "direct_mir_array_int_emission_owner.pgy";
@@ -48,20 +51,22 @@ func CompileAdmittedDirectMirForTarget(
             );
         let nominal_literal_route: DirectMirNominalLiteralRouteFact =
             DirectMirNominalLiteralRouteFactFromAdmitted(admitted);
+        let literal_log_route: Bool =
+            DirectMirCompileTimeDeclarationErasureRouteClaimed(admitted) ||
+            (block_count == 1 && instruction_count == 1);
         if nominal_literal_route.claimed {
             payload = CompileAdmittedDirectMirNominalLiteral(
                 admitted, nominal_literal_route, target_projection
             );
-        } else if block_count == 1 && instruction_count == 1 {
-            let hello: DirectMirHelloProjection =
-                DirectMirHelloProjectionFromAdmitted(admitted);
-            if !hello.valid {
-                Die("direct MIR backend projection rejected unsupported or mutated hello facts");
-            }
+        } else if literal_log_route {
+            let literal_log: DirectMirLiteralLogPlan =
+                DirectMirLiteralLogPlanFromAdmitted(admitted);
             if is_llvm {
-                payload = DirectMirHelloEmitLlvm(hello);
+                payload = DirectMirLiteralLogEmitLlvm(literal_log);
             } else {
-                payload = DirectMirHelloEmitC(hello);
+                payload = DirectMirLiteralLogEmitC(
+                    literal_log, CompilerAbiLayoutIntCValueType()
+                );
             }
         } else if block_count == 1 {
             let formatted_print: CompilerRuntimeCallAbiFact =

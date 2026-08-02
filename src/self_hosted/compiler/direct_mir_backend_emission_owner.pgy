@@ -9,26 +9,6 @@ import "direct_mir_range_cfg_emission_owner.pgy";
 import "direct_mir_break_cfg_emission_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 
-func DirectMirHelloEmitC(projection: DirectMirHelloProjection) -> String {
-    let output: String = "#include <stdio.h>\n\nint main(void) {\n    puts(";
-    output = Concat(output, projection.literal);
-    output = Concat(output, ");\n    return 0;\n}\n");
-    return output;
-}
-
-func DirectMirHelloEmitLlvm(projection: DirectMirHelloProjection) -> String {
-    let constant_length: Int = StringLength(projection.content) + 1;
-    let output: String = "@.pgy.hello = private unnamed_addr constant [";
-    output = Concat(output, ToString(constant_length));
-    output = Concat(output, " x i8] c\"");
-    output = Concat(output, projection.content);
-    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @puts(ptr)\n\n");
-    output = Concat(output, "define i32 @main() {\nentry:\n");
-    output = Concat(output, "  %ignored = call i32 @puts(ptr @.pgy.hello)\n");
-    output = Concat(output, "  ret i32 0\n}\n");
-    return output;
-}
-
 func DirectMirScalarProjectionArraysReady(projection: DirectMirScalarBlockProjection) -> Bool {
     let local_count: Int = ArrayLength(projection.local_names);
     let log_count: Int = ArrayLength(projection.log_binary_kinds);

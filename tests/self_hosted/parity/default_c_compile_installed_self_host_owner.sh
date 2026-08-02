@@ -56,7 +56,7 @@ printf '7\n11\n5\n' >"$WORK_DIR/real.expected"
 cmp -s "$WORK_DIR/real.expected" "$WORK_DIR/real-program.out" ||
     fail "installed self-host C artifact produced the wrong Option nominal binary"
 
-for member_case in "$FIXTURE_DIR/generic_member_inferred_flow.pgy|member|41" "$FIXTURE_DIR/nominal_tobject.pgy|passive-nominal|12" \
+for member_case in "$FIXTURE_DIR/ability_decl.pgy|ability|7" "$FIXTURE_DIR/generic_member_inferred_flow.pgy|member|41" "$FIXTURE_DIR/nominal_tobject.pgy|passive-nominal|12" \
     "$FIXTURE_DIR/nominal_subject.pgy|subject|7" "$FIXTURE_DIR/nominal_vessel.pgy|vessel|13" \
     "$FIXTURE_DIR/generic_vessel_member_inferred_flow.pgy|vessel-member|42" \
     "$FIXTURE_DIR/generic_member_constructed_return_flow.pgy|constructed-member|43" \

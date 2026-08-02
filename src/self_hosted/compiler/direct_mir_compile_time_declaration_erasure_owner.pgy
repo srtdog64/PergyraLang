@@ -1,0 +1,256 @@
+// Compile-time declaration erasure receipt for the direct MIR backend.
+//
+// A nonempty plain-program declaration array is claimed here after the
+// runtime nominal route declines it. Only a complete compile-time contract
+// declaration may produce a zero-materialization receipt; malformed or
+// runtime-bearing declarations cannot retry a declaration-free projection.
+
+import "../mir_lower/declaration_method_contract_fact_owner.pgy";
+import "../mir_lower/error_owner.pgy";
+import "../mir_lower/mir_json_input_owner.pgy";
+import "../mir_lower/program_declaration_index_owner.pgy";
+import "../semantic/callable_receiver_carriage_policy_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+import "direct_mir_exact_json_array_cardinality_owner.pgy";
+
+struct DirectMirCompileTimeDeclarationErasureFact {
+    let valid: Bool;
+    let digest: Int;
+    let claimed: Bool;
+    let declaration_count: Int;
+    let semantic_digest: Int;
+    let kind: String;
+    let name: String;
+    let source_syntax_id: Int;
+    let method_count: Int;
+    let runtime_materialization_count: Int;
+    let runtime_layout_count: Int;
+    let runtime_symbol_count: Int;
+    let storage_count: Int;
+}
+
+func DirectMirCompileTimeDeclarationErasureFactDigest(
+    ref fact: DirectMirCompileTimeDeclarationErasureFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(607L, fact.declaration_count);
+    if fact.claimed { hash = DirectMirCfgHashInt(hash, 1); }
+    hash = DirectMirCfgHashInt(hash, fact.semantic_digest);
+    hash = DirectMirCfgHashString(hash, fact.kind);
+    hash = DirectMirCfgHashString(hash, fact.name);
+    hash = DirectMirCfgHashInt(hash, fact.source_syntax_id);
+    hash = DirectMirCfgHashInt(hash, fact.method_count);
+    hash = DirectMirCfgHashInt(hash, fact.runtime_materialization_count);
+    hash = DirectMirCfgHashInt(hash, fact.runtime_layout_count);
+    hash = DirectMirCfgHashInt(hash, fact.runtime_symbol_count);
+    hash = DirectMirCfgHashInt(hash, fact.storage_count);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirCompileTimeDeclarationErasureFactReady(
+    ref fact: DirectMirCompileTimeDeclarationErasureFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+        DirectMirCompileTimeDeclarationErasureFactDigest(fact) ||
+        fact.semantic_digest == 0 || fact.runtime_materialization_count != 0 ||
+        fact.runtime_layout_count != 0 || fact.runtime_symbol_count != 0 ||
+        fact.storage_count != 0 {
+        return false;
+    }
+    if fact.declaration_count == 0 {
+        return !fact.claimed && fact.kind == "" && fact.name == "" &&
+            fact.source_syntax_id == 0 && fact.method_count == 0;
+    }
+    return fact.declaration_count == 1 && fact.claimed &&
+        CallableReceiverNominalKindOwnsCompileTimeContractOnly(fact.kind) &&
+        fact.name != "" && fact.source_syntax_id > 0 &&
+        fact.method_count == 1;
+}
+
+func DirectMirCompileTimeDeclarationErasureSeal(
+    fact: DirectMirCompileTimeDeclarationErasureFact
+) -> DirectMirCompileTimeDeclarationErasureFact {
+    return DirectMirCompileTimeDeclarationErasureFact(
+        fact.valid, DirectMirCompileTimeDeclarationErasureFactDigest(fact),
+        fact.claimed, fact.declaration_count, fact.semantic_digest, fact.kind,
+        fact.name, fact.source_syntax_id, fact.method_count,
+        fact.runtime_materialization_count, fact.runtime_layout_count,
+        fact.runtime_symbol_count, fact.storage_count
+    );
+}
+
+func DirectMirCompileTimeDeclarationErasureRouteClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    return !admitted.domain_topology_plan.present &&
+        JsonObjectFactCount(admitted.document.root) == 5 &&
+        !DirectMirExactObjectArrayCount(admitted.document.declarations, 0);
+}
+
+func DirectMirCompileTimeDeclarationErasureEmpty(
+) -> DirectMirCompileTimeDeclarationErasureFact {
+    let fact: DirectMirCompileTimeDeclarationErasureFact =
+        DirectMirCompileTimeDeclarationErasureFact(
+            true, 0, false, 0, DirectMirCfgBoundedDigest(613L), "", "", 0,
+            0, 0, 0, 0, 0
+        );
+    return DirectMirCompileTimeDeclarationErasureSeal(fact);
+}
+
+func DirectMirErasureFieldKindEquals(
+    ref table: JsonObjectFactTable, field: String, expected: String
+) -> Bool {
+    let kind: Option<String> = JsonObjectFactValueKind(table, field);
+    return MirObjectFieldOccurrenceCountAtBounds(
+        table.json, table.start, table.end, field
+    ) == 1 && IsSome(kind) && UnwrapOption(kind) == expected;
+}
+
+func DirectMirCompileTimeDeclarationErasureFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirCompileTimeDeclarationErasureFact {
+    if DirectMirExactObjectArrayCount(admitted.document.declarations, 0) {
+        return DirectMirCompileTimeDeclarationErasureEmpty();
+    }
+    let declarations: MirProgramDeclarationIndex =
+        admitted.domain_runtime_admission.declarations;
+    if admitted.domain_topology_plan.present ||
+        JsonObjectFactCount(admitted.document.root) != 5 ||
+        !DirectMirExactObjectArrayCount(admitted.document.declarations, 1) ||
+        !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 {
+        Die("direct MIR compile-time declaration erasure requires exactly one declaration");
+    }
+    let declaration: JsonObjectFactTable = JsonArrayObjectFactAt(
+        admitted.document.declarations, 0
+    );
+    let kind: Option<String> = MirObjectUniqueStringFactAtBounds(
+        declaration.json, declaration.start, declaration.end, "kind"
+    );
+    let nominal_kind: Option<String> = MirObjectUniqueStringFactAtBounds(
+        declaration.json, declaration.start, declaration.end, "nominal_kind"
+    );
+    let name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        declaration.json, declaration.start, declaration.end, "name"
+    );
+    let syntax: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        declaration.json, declaration.start, declaration.end,
+        "source_syntax_id"
+    );
+    let fields: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
+        declaration, "fields"
+    );
+    let methods: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
+        declaration, "methods"
+    );
+    if !JsonObjectFactTableReady(declaration) ||
+        JsonObjectFactCount(declaration) != 6 || !IsSome(kind) ||
+        !IsSome(nominal_kind) || !IsSome(name) || !IsSome(syntax) ||
+        UnwrapOption(kind) != UnwrapOption(nominal_kind) ||
+        !CallableReceiverNominalKindOwnsCompileTimeContractOnly(
+            UnwrapOption(kind)
+        ) || UnwrapOption(name) == "" || UnwrapOption(syntax) == "" ||
+        ToString(ToInt(UnwrapOption(syntax))) != UnwrapOption(syntax) ||
+        ToInt(UnwrapOption(syntax)) <= 0 ||
+        declarations.kinds[0] != UnwrapOption(kind) ||
+        declarations.nominal_kinds[0] != UnwrapOption(nominal_kind) ||
+        declarations.names[0] != UnwrapOption(name) ||
+        MirObjectFieldOccurrenceCountAtBounds(
+            declaration.json, declaration.start, declaration.end, "fields"
+        ) != 1 || MirObjectFieldOccurrenceCountAtBounds(
+            declaration.json, declaration.start, declaration.end, "methods"
+        ) != 1 || !DirectMirExactObjectArrayCount(fields, 0) ||
+        !DirectMirExactObjectArrayCount(methods, 1) {
+        Die("direct MIR compile-time declaration erasure declaration schema is invalid");
+    }
+    let method: JsonObjectFactTable = JsonArrayObjectFactAt(methods, 0);
+    let method_name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        method.json, method.start, method.end, "name"
+    );
+    let return_type: Option<String> = MirObjectUniqueStringFactAtBounds(
+        method.json, method.start, method.end, "return"
+    );
+    let callable_kind: Option<String> = MirObjectUniqueStringFactAtBounds(
+        method.json, method.start, method.end, "callable_kind"
+    );
+    let contract: JsonObjectFactTable = JsonObjectFactObjectTable(
+        method, "contract"
+    );
+    let params: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
+        method, "params"
+    );
+    let contract_fact: MirDeclarationMethodContractFact =
+        MirDeclarationMethodContractFactFromBounds(
+            method.json, method.start, method.end
+        );
+    if !JsonObjectFactTableReady(method) || JsonObjectFactCount(method) != 5 ||
+        !IsSome(method_name) || UnwrapOption(method_name) == "" ||
+        !IsSome(return_type) || UnwrapOption(return_type) != "Int" ||
+        !IsSome(callable_kind) || UnwrapOption(callable_kind) != "function" ||
+        MirObjectFieldOccurrenceCountAtBounds(
+            method.json, method.start, method.end, "contract"
+        ) != 1 || MirObjectFieldOccurrenceCountAtBounds(
+            method.json, method.start, method.end, "params"
+        ) != 1 || !JsonObjectFactTableReady(contract) ||
+        JsonObjectFactCount(contract) != 8 || !contract_fact.valid ||
+        contract_fact.callable_kind != "function" ||
+        ArrayLength(contract_fact.requires_bases) != 0 ||
+        contract_fact.within_zone != "" || contract_fact.causes_name != "" ||
+        ArrayLength(contract_fact.authorized_by_names) != 0 ||
+        contract_fact.caps_present || ArrayLength(contract_fact.cap_names) != 0 ||
+        contract_fact.effects_present ||
+        ArrayLength(contract_fact.effect_names) != 0 ||
+        !DirectMirExactObjectArrayCount(params, 2) {
+        Die("direct MIR compile-time declaration erasure method contract is invalid");
+    }
+    let receiver: JsonObjectFactTable = JsonArrayObjectFactAt(params, 0);
+    let argument: JsonObjectFactTable = JsonArrayObjectFactAt(params, 1);
+    let receiver_name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        receiver.json, receiver.start, receiver.end, "name"
+    );
+    let argument_name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        argument.json, argument.start, argument.end, "name"
+    );
+    let argument_type: Option<String> = MirObjectUniqueStringFactAtBounds(
+        argument.json, argument.start, argument.end, "type"
+    );
+    if JsonObjectFactCount(receiver) != 2 || JsonObjectFactCount(argument) != 2 ||
+        !IsSome(receiver_name) || UnwrapOption(receiver_name) == "" ||
+        !DirectMirErasureFieldKindEquals(receiver, "type", "null") ||
+        !IsSome(argument_name) || UnwrapOption(argument_name) == "" ||
+        UnwrapOption(argument_name) == UnwrapOption(receiver_name) ||
+        !IsSome(argument_type) || UnwrapOption(argument_type) != "Int" {
+        Die("direct MIR compile-time declaration erasure parameter signature is invalid");
+    }
+    let semantic_hash: Long = DirectMirCfgHashString(617L, UnwrapOption(kind));
+    semantic_hash = DirectMirCfgHashString(semantic_hash, UnwrapOption(name));
+    semantic_hash = DirectMirCfgHashInt(
+        semantic_hash, ToInt(UnwrapOption(syntax))
+    );
+    semantic_hash = DirectMirCfgHashString(
+        semantic_hash, UnwrapOption(method_name)
+    );
+    semantic_hash = DirectMirCfgHashString(
+        semantic_hash, UnwrapOption(return_type)
+    );
+    semantic_hash = DirectMirCfgHashString(
+        semantic_hash, UnwrapOption(receiver_name)
+    );
+    semantic_hash = DirectMirCfgHashString(
+        semantic_hash, UnwrapOption(argument_name)
+    );
+    semantic_hash = DirectMirCfgHashString(
+        semantic_hash, UnwrapOption(argument_type)
+    );
+    let fact: DirectMirCompileTimeDeclarationErasureFact =
+        DirectMirCompileTimeDeclarationErasureFact(
+            true, 0, true, 1, DirectMirCfgBoundedDigest(semantic_hash),
+            UnwrapOption(kind), UnwrapOption(name),
+            ToInt(UnwrapOption(syntax)), 1, 0, 0, 0, 0
+        );
+    let verified: DirectMirCompileTimeDeclarationErasureFact =
+        DirectMirCompileTimeDeclarationErasureSeal(fact);
+    if !DirectMirCompileTimeDeclarationErasureFactReady(verified) {
+        Die("direct MIR compile-time declaration erasure receipt is invalid");
+    }
+    return verified;
+}

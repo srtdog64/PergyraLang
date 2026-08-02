@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Native compilation is oracle evidence only: one_admitted_graph_directly_drives_C_and_LLVM; typed formatted-print fact drives both direct backends.
+# One admitted graph directly drives C and LLVM; expected output is pinned
+# because the public C path is itself installed self-host substitution.
 set -euo pipefail
 if ! command -v dirname >/dev/null 2>&1 \
     || ! command -v tr >/dev/null 2>&1 \
@@ -15,8 +16,6 @@ source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_execution_action_gate.sh
 pgy_prepend_windows_runtime_paths
 
 LABEL="self-host-one-mir-dual-backend"
-PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
-PGY="$(pgy_select_optional_exe_binary "$PGY")"
 DRIVER_BUILD="${PGY_SELFHOST_DRIVER_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver/bootstrap}"
 DRIVER_BIN="${PGY_SELFHOST_ONE_MIR_DRIVER_BIN:-$DRIVER_BUILD/driver_seed.exe}"
 WORK_DIR="${PGY_SELFHOST_ONE_MIR_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver/one_mir_dual_backend}"
@@ -94,7 +93,6 @@ select_case() {
     LLVM_ARTIFACT="$WORK_DIR/$CASE.one.ll"
     C_BIN="$WORK_DIR/$CASE.one.c.exe"
     LLVM_BIN="$WORK_DIR/$CASE.one.llvm.exe"
-    ORACLE_BIN="$WORK_DIR/$CASE.oracle.exe"
 }
 
 run_projection() {
@@ -187,7 +185,7 @@ compile_artifacts() {
 }
 
 run_positive_case() {
-    local source_rel mir_rel mir_digest source_arg oracle_arg
+    local expected="$1" source_rel mir_rel mir_digest
     require_file "$SOURCE"
     rm -f "$MIR_ARTIFACT" "$C_ARTIFACT" "$LLVM_ARTIFACT"
     source_rel="$(pgy_selfhost_path_relative_to_root "$SOURCE")"
@@ -209,28 +207,20 @@ run_positive_case() {
     assert_mir_identity "$mir_digest"
     compile_artifacts
 
-    source_arg="$(pgy_path_for_compiler "$PGY" "$SOURCE")"
-    oracle_arg="$(pgy_path_for_compiler "$PGY" "$ORACLE_BIN")"
-    (cd "$ROOT_DIR" && "$PGY" "$source_arg" --backend=c -o "$oracle_arg" \
-        >"$WORK_DIR/$CASE.oracle.compile.log" 2>&1) ||
-        fail "$CASE native C oracle compile failed"
-    (cd "$ROOT_DIR" && "$ORACLE_BIN") | pgy_selfhost_normalize_text_artifact \
-        >"$WORK_DIR/$CASE.oracle.run"
+    printf '%s\n' "$expected" >"$WORK_DIR/$CASE.expected.run"
     (cd "$ROOT_DIR" && "$C_BIN") | pgy_selfhost_normalize_text_artifact \
         >"$WORK_DIR/$CASE.c.run"
     (cd "$ROOT_DIR" && "$LLVM_BIN") | pgy_selfhost_normalize_text_artifact \
         >"$WORK_DIR/$CASE.llvm.run"
     for target in c llvm; do
-        pgy_selfhost_compare_expected_text_artifact_file_with_owner \
-            "$LABEL:$CASE-$target-runtime" "$WORK_DIR" \
-            "$WORK_DIR/$CASE.oracle.run" "$WORK_DIR/$CASE.$target.run" \
-            "run_output"
+        cmp -s "$WORK_DIR/$CASE.expected.run" \
+            "$WORK_DIR/$CASE.$target.run" ||
+            fail "$CASE $target runtime output differs from its pinned result"
     done
     assert_mir_identity "$mir_digest"
     echo "[$LABEL] $CASE positive parity ok (sha256=$mir_digest)"
 }
 
-require_file "$PGY"
 require_file "$DRIVER_BIN"
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER_BIN" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
@@ -238,7 +228,7 @@ assert_direct_owner_ratchet
 mkdir -p "$WORK_DIR"
 
 select_case hello "$ROOT_DIR/examples/hello.pgy"
-run_positive_case
+run_positive_case 'Hello, Pergyra!'
 grep -Fq '"expr0_graph":{' "$MIR_ARTIFACT" || fail "hello graph missing"
 grep -Fq '"kind":"stmt"' "$MIR_ARTIFACT" || fail "hello kind missing"
 mutation="$(make_mutation expr0_graph \
@@ -249,12 +239,12 @@ mutation="$(make_mutation instruction_kind \
     's/"kind":"stmt"/"kind":"invalid-one-mir-gate"/g' \
     '"kind":"invalid-one-mir-gate"')"
 expect_rejected_without_artifact instruction_kind "$mutation" \
-    'instruction[^[:alnum:]]+kind|kind[^[:alnum:]]+instruction|invalid instruction'
+    'instruction[^[:alnum:]]+(kind|identity)|kind[^[:alnum:]]+instruction|invalid instruction'
 expect_rejected_without_artifact invalid_target "$MIR_ARTIFACT" \
     'target|backend' "--mir-json-backend=invalid"
 
 select_case let_log "$ROOT_DIR/src/self_hosted/mir_lower/fixture/let_log.pgy"
-run_positive_case
+run_positive_case '42'
 mutation="$(make_mutation local_result_identity \
     's/"result":"x\.1"/"result":"x.2"/' '"result":"x.2"')"
 expect_rejected_without_artifact local_result_identity "$mutation" \
@@ -280,9 +270,7 @@ expect_rejected_without_artifact tostring_call_target "$mutation" \
     'ToString call target|call target[^[:alnum:]]+ToString'
 
 select_case multilet "$ROOT_DIR/src/self_hosted/mir_lower/fixture/multilet.pgy"
-run_positive_case
-[[ "$(cat "$WORK_DIR/$CASE.oracle.run")" == $'35\n12' ]] ||
-    fail "multilet oracle did not produce 35 then 12"
+run_positive_case $'35\n12'
 mutation="$(make_mutation second_local_result_use \
     's/"result":"b\.1"/"result":"c.1"/' '"result":"c.1"')"
 expect_rejected_without_artifact second_local_result_use "$mutation" \

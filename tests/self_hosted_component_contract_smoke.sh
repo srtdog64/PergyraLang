@@ -14891,6 +14891,106 @@ require_file \
     "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" 600
+require_file \
+    "src/self_hosted/compiler/direct_mir_compile_time_declaration_erasure_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_compile_time_declaration_erasure_owner.pgy" 280
+require_file "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" 220
+require_file \
+    "src/self_hosted/compiler/direct_mir_literal_log_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_literal_log_emission_owner.pgy" 100
+require_file \
+    "tests/self_hosted/parity/one_mir_compile_time_declaration_literal_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_compile_time_declaration_literal_projection.sh" 130
+require_file \
+    "tests/self_hosted/parity/one_mir_compile_time_declaration_literal_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_compile_time_declaration_literal_mutations.py" 110
+literal_log_family_lines=$((
+    $(wc -l < src/self_hosted/compiler/direct_mir_compile_time_declaration_erasure_owner.pgy) +
+    $(wc -l < src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy) +
+    $(wc -l < src/self_hosted/compiler/direct_mir_literal_log_emission_owner.pgy)
+))
+[[ "$literal_log_family_lines" -le 560 ]] || \
+    fail "compile-time declaration/literal Log family exceeds 560 LOC ($literal_log_family_lines)"
+[[ "$(find src/self_hosted/compiler -maxdepth 1 -type f \
+    \( -name 'direct_mir_literal_log_*_owner.pgy' -o \
+       -name 'direct_mir_compile_time_declaration_erasure_owner.pgy' \) \
+    | wc -l | tr -d ' ')" -eq 3 ]] || \
+    fail "compile-time declaration/literal Log family inventory drifted"
+require_text \
+    "src/self_hosted/semantic/callable_receiver_carriage_policy_owner.pgy" \
+    "func CallableReceiverNominalKindOwnsCompileTimeContractOnly("
+for erasure_zero_fact in runtime_materialization_count runtime_layout_count \
+    runtime_symbol_count storage_count; do
+    require_text \
+        "src/self_hosted/compiler/direct_mir_compile_time_declaration_erasure_owner.pgy" \
+        "$erasure_zero_fact"
+done
+require_text \
+    "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    "DirectMirCompileTimeDeclarationErasureRouteClaimed(admitted)"
+require_text \
+    "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    "DirectMirLiteralLogPlanFromAdmitted(admitted)"
+require_text \
+    "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" \
+    "DirectMirCompileTimeDeclarationErasureFactReady(plan.erasure)"
+require_text \
+    "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" \
+    "MirProgramInstructionExpressionIndexAt("
+require_text \
+    "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" \
+    "CompilerRuntimeCallAbiFormattedPrintFact()"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" \
+    'JsonObjectFactStringFieldEquals(instruction, "expr0"'
+for literal_log_forbidden_name in Arithmetic Add ability_decl; do
+    reject_text \
+        "src/self_hosted/compiler/direct_mir_compile_time_declaration_erasure_owner.pgy" \
+        "$literal_log_forbidden_name"
+    reject_text "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" \
+        "$literal_log_forbidden_name"
+    reject_text \
+        "src/self_hosted/compiler/direct_mir_literal_log_emission_owner.pgy" \
+        "$literal_log_forbidden_name"
+done
+for literal_log_raw_emission_term in JsonObject JsonArray ExpressionGraph \
+    MirMachineLayerAdmittedJsonInput source_json BuildMir MirJson ability; do
+    reject_text \
+        "src/self_hosted/compiler/direct_mir_literal_log_emission_owner.pgy" \
+        "$literal_log_raw_emission_term"
+done
+! grep -R -Fq --include='*.pgy' 'DirectMirHelloProjectionFromAdmitted' \
+    src/self_hosted/compiler || fail "retired hello admission returned"
+! grep -R -Eq --include='*.pgy' 'DirectMirHelloEmit(C|Llvm)' \
+    src/self_hosted/compiler || fail "retired hello emission returned"
+for literal_log_single_issuer in \
+    DirectMirCompileTimeDeclarationErasureRouteClaimed \
+    DirectMirLiteralLogPlanFromAdmitted \
+    DirectMirLiteralLogEmitC DirectMirLiteralLogEmitLlvm; do
+    [[ "$(grep -R -F --include='*.pgy' "$literal_log_single_issuer(" \
+        src/self_hosted/compiler | wc -l | tr -d ' ')" -eq 2 ]] || \
+        fail "$literal_log_single_issuer must have one definition and one call"
+done
+require_text "Makefile" \
+    "SELFHOST_ONE_MIR_COMPILE_TIME_DECLARATION_LITERAL_GATE ?="
+require_text "Makefile" \
+    '$(SELFHOST_ONE_MIR_COMPILE_TIME_DECLARATION_LITERAL_GATE)'
+require_text "Makefile" \
+    "self-host-one-mir-compile-time-declaration-literal-projection-test-smoke:"
+require_text ".github/workflows/ci.yml" \
+    "self-host-one-mir-compile-time-declaration-literal-projection-test-smoke"
+require_text \
+    "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
+    "ability_decl.pgy|ability|7"
+require_text \
+    "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
+    "ability_decl.pgy|ability|7"
 require_file "src/self_hosted/mir_lower/routine_instruction_use_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/mir_lower/routine_instruction_use_fact_owner.pgy" 240

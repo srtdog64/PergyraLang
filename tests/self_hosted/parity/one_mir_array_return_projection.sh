@@ -86,7 +86,7 @@ EOF
         fail "root reads routine row zero before multi-routine classification"
     grep -Fq 'CompileAdmittedDirectMirMultiRoutineForTarget' "$backend" ||
         fail "backend does not delegate the multi-routine plan"
-    for term in DirectMirHelloProjectionFromAdmitted \
+    for term in DirectMirLiteralLogPlanFromAdmitted \
         DirectMirScalarBlockProjectionFromAdmitted \
         DirectMirArrayIntPlanFromAdmitted \
         DirectMirOptionMatchCfgPlanFromAdmitted DirectMirCfgPlanFromAdmitted; do

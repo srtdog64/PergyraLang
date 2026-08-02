@@ -1806,6 +1806,19 @@ inventory must not become a second fact-family owner registry.
   is the last artifact-producing `DirectMirCfgPlan` consumer and passes only
   normalized facts to a responsibility-specific emitter; it owns no MIR/AIR
   read path.
+- `src/self_hosted/compiler/direct_mir_compile_time_declaration_erasure_owner.pgy`
+  -- exact compile-time declaration admission and zero-runtime-materialization
+  receipt. A nonempty plain declaration array is claimed here after the
+  runtime nominal route declines it; malformed declarations cannot retry a
+  declaration-free path.
+- `src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy` -- one
+  target-neutral plan for a terminal one-instruction `Log` whose semantic
+  value is a canonical integer or safe string graph literal. It combines the
+  declaration-erasure receipt, routine/block/use identity and structured
+  formatted-print ABI without reparsing `expr0`.
+- `src/self_hosted/compiler/direct_mir_literal_log_emission_owner.pgy` -- C and
+  LLVM text emission from the verified literal-Log plan only. It cannot read
+  MIR declarations or create runtime nominal storage.
 - `src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy` -- target-neutral
   plan issuer. It derives the admitted bounded shape from typed owners and
   issues one verified plan; no full certificate survives issuance.

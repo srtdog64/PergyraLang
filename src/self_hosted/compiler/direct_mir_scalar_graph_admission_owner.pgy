@@ -115,7 +115,7 @@ func DirectMirAsciiLiteralContent(literal: String) -> Option<String> {
     return Some(Substring(literal, 1, length - 2));
 }
 
-func DirectMirProgramBaseEnvelopeReady(
+func DirectMirProgramCommonEnvelopeReady(
     ref admitted: MirMachineLayerAdmittedJsonInput) -> Bool {
     let json: String = admitted.routines.source_json;
     let generic_specializations: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
@@ -123,8 +123,7 @@ func DirectMirProgramBaseEnvelopeReady(
     let declaration_count: Int =
         JsonArrayObjectFactCount(admitted.document.declarations);
     let plain_envelope: Bool = !admitted.domain_topology_plan.present &&
-        JsonObjectFactCount(admitted.document.root) == 5 &&
-        declaration_count == 0;
+        JsonObjectFactCount(admitted.document.root) == 5;
     let topology_envelope: Bool = admitted.domain_topology_plan.present &&
         admitted.domain_topology_plan.valid &&
         admitted.domain_topology_plan.plan_digest != 0 &&
@@ -155,6 +154,15 @@ func DirectMirProgramBaseEnvelopeReady(
         JsonObjectFactStringFieldEquals(routine, "name", "Main") &&
         JsonObjectFactStringFieldEquals(routine, "kind", "function") &&
         JsonObjectFactStringFieldEquals(routine, "return", "Void");
+}
+
+func DirectMirProgramBaseEnvelopeReady(
+    ref admitted: MirMachineLayerAdmittedJsonInput) -> Bool {
+    if !DirectMirProgramCommonEnvelopeReady(admitted) { return false; }
+    let declaration_count: Int =
+        JsonArrayObjectFactCount(admitted.document.declarations);
+    return (!admitted.domain_topology_plan.present && declaration_count == 0) ||
+        (admitted.domain_topology_plan.present && declaration_count > 0);
 }
 
 func DirectMirProgramEnvelopeReady(
@@ -233,59 +241,6 @@ func DirectMirHelloGraphProjection(
         return DirectMirHelloProjectionEmpty();
     }
     return DirectMirHelloProjection(true, literal, UnwrapOption(content_opt));
-}
-
-func DirectMirHelloProjectionFromAdmitted(
-    ref admitted: MirMachineLayerAdmittedJsonInput) -> DirectMirHelloProjection {
-    let json: String = admitted.routines.source_json;
-    if !DirectMirProgramEnvelopeReady(admitted) ||
-        admitted.routines.routine_block_counts[0] != 1 ||
-        MirProgramRoutineIndexBlockInstructionCountAt(
-            admitted.routines, 0, 0
-        ) != 1 {
-        return DirectMirHelloProjectionEmpty();
-    }
-    let routine_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
-        admitted.routines, 0);
-    if !routine_index.valid ||
-        ArrayLength(routine_index.source_local_names) != 0 ||
-        ArrayLength(routine_index.source_local_types) != 0 {
-        return DirectMirHelloProjectionEmpty();
-    }
-    let block_row: Int = admitted.routines.routine_block_starts[0];
-    let block: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json, admitted.routines.block_starts[block_row],
-        admitted.routines.block_ends[block_row]);
-    if !JsonObjectFactTableReady(block) || JsonObjectFactCount(block) != 3 ||
-        !DirectMirObjectNumberEquals(block, "id", "0") ||
-        !JsonObjectBoolFieldEqualsWithin(
-            json, block.start, block.end, "reachable", true
-        ) {
-        return DirectMirHelloProjectionEmpty();
-    }
-    let instruction_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
-        admitted.routines, 0, 0, 0);
-    if instruction_row < 0 {
-        return DirectMirHelloProjectionEmpty();
-    }
-    if admitted.routines.instruction_kinds[instruction_row] != "stmt" {
-        Die("direct MIR backend projection rejected invalid instruction kind");
-    }
-    if admitted.routines.instruction_source_types[instruction_row] !=
-            "AST_CALL" {
-        return DirectMirHelloProjectionEmpty();
-    }
-    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json, admitted.routines.instruction_starts[instruction_row],
-        admitted.routines.instruction_ends[instruction_row]);
-    let use_facts: MirRoutineInstructionUseFacts =
-        BuildMirRoutineInstructionUseFacts(admitted.routines, 0);
-    if !MirRoutineInstructionUseFactsReady(use_facts, 1) ||
-        MirRoutineInstructionUseCountAtGlobal(use_facts, instruction_row) != 0 ||
-        !DirectMirLogInstructionEnvelopeReady(instruction, "0") {
-        return DirectMirHelloProjectionEmpty();
-    }
-    return DirectMirHelloGraphProjection(instruction);
 }
 
 func DirectMirScalarLocalRow(

@@ -1,0 +1,202 @@
+// Target-neutral one-instruction literal Log plan.
+//
+// The graph is semantic authority. expr0 remains a display envelope and is
+// never reparsed. A compile-time declaration receipt may differ while the
+// emitted runtime artifact remains identical.
+
+import "direct_mir_compile_time_declaration_erasure_owner.pgy";
+import "direct_mir_scalar_graph_admission_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_exact_json_array_cardinality_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "../mir_lower/error_owner.pgy";
+import "../mir_lower/mir_json_input_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+
+struct DirectMirLiteralLogPlan {
+    let valid: Bool;
+    let digest: Int;
+    let erasure: DirectMirCompileTimeDeclarationErasureFact;
+    let literal_kind: Int;
+    let literal: String;
+    let content: String;
+    let line_format: String;
+    let formatted_print: CompilerRuntimeCallAbiFact;
+}
+
+func DirectMirLiteralLogIntegerKind() -> Int { return 1; }
+func DirectMirLiteralLogStringKind() -> Int { return 2; }
+
+func DirectMirLiteralLogPlanDigest(ref plan: DirectMirLiteralLogPlan) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(631L, plan.erasure.digest);
+    hash = DirectMirCfgHashInt(hash, plan.literal_kind);
+    hash = DirectMirCfgHashString(hash, plan.literal);
+    hash = DirectMirCfgHashString(hash, plan.content);
+    hash = DirectMirCfgHashString(hash, plan.line_format);
+    hash = DirectMirCfgHashInt(
+        hash, plan.formatted_print.runtime_call_abi_id
+    );
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirLiteralLogPlanReady(ref plan: DirectMirLiteralLogPlan) -> Bool {
+    if !plan.valid || plan.digest == 0 ||
+        plan.digest != DirectMirLiteralLogPlanDigest(plan) ||
+        !DirectMirCompileTimeDeclarationErasureFactReady(plan.erasure) ||
+        !CompilerRuntimeCallAbiFlatFactOwnerReady(plan.formatted_print) {
+        return false;
+    }
+    if plan.literal_kind == DirectMirLiteralLogIntegerKind() {
+        return plan.literal != "" && ToString(ToInt(plan.literal)) ==
+            plan.literal && plan.content == "" &&
+            plan.line_format == StringRuntimeCIntLineFormat();
+    }
+    if plan.literal_kind != DirectMirLiteralLogStringKind() ||
+        plan.line_format != StringRuntimeCStringLineFormat() {
+        return false;
+    }
+    let content: Option<String> = DirectMirAsciiLiteralContent(plan.literal);
+    return IsSome(content) && UnwrapOption(content) == plan.content;
+}
+
+func DirectMirLiteralLogPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirLiteralLogPlan {
+    let erasure: DirectMirCompileTimeDeclarationErasureFact =
+        DirectMirCompileTimeDeclarationErasureFactFromAdmitted(admitted);
+    let specializations: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(
+            admitted.document.root, "generic_method_specializations"
+        );
+    let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json, admitted.routines.starts[0],
+        admitted.routines.ends[0]
+    );
+    let signature: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(admitted.routines, 0, 1);
+    if !DirectMirProgramCommonEnvelopeReady(admitted) ||
+        admitted.domain_topology_plan.present ||
+        JsonObjectFactCount(admitted.document.root) != 5 ||
+        !DirectMirExactObjectArrayCount(
+            admitted.document.declarations, erasure.declaration_count
+        ) || !DirectMirExactObjectArrayCount(
+            admitted.document.parallel_capture_boundaries, 0
+        ) || !DirectMirExactObjectArrayCount(specializations, 0) ||
+        !DirectMirRoutineHasNoUnsupportedFacts(routine) ||
+        !DirectMirRoutineSignatureFactReady(signature) ||
+        signature.name != "Main" || signature.return_type != "Void" ||
+        signature.param_count != 0 ||
+        (erasure.claimed &&
+         erasure.source_syntax_id == signature.source_syntax_id) ||
+        admitted.routines.routine_block_counts[0] != 1 ||
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, 0, 0
+        ) != 1 {
+        Die("direct MIR literal Log program envelope is invalid");
+    }
+    let routine_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, 0
+    );
+    let block_row: Int = admitted.routines.routine_block_starts[0];
+    let block: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.block_starts[block_row],
+        admitted.routines.block_ends[block_row]
+    );
+    let instructions: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(block, "instructions");
+    if !routine_index.valid ||
+        ArrayLength(routine_index.source_local_names) != 0 ||
+        ArrayLength(routine_index.source_local_types) != 0 ||
+        !MirRoutineFactIndexBlockIsTerminal(routine_index, 0) ||
+        !JsonObjectFactTableReady(block) || JsonObjectFactCount(block) != 3 ||
+        !DirectMirObjectNumberEquals(block, "id", "0") ||
+        !JsonObjectBoolFieldEqualsWithin(
+            block.json, block.start, block.end, "reachable", true
+        ) || !DirectMirExactObjectArrayCount(instructions, 1) {
+        Die("direct MIR literal Log block identity is invalid");
+    }
+    let instruction_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, 0, 0, 0
+    );
+    if instruction_row < 0 ||
+        admitted.routines.instruction_kinds[instruction_row] != "stmt" ||
+        admitted.routines.instruction_source_types[instruction_row] !=
+            "AST_CALL" {
+        Die("direct MIR literal Log instruction identity is invalid");
+    }
+    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[instruction_row],
+        admitted.routines.instruction_ends[instruction_row]
+    );
+    let uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, 0);
+    if JsonObjectFactCount(instruction) != 25 ||
+        !DirectMirLogInstructionEnvelopeReady(instruction, "0") ||
+        !MirRoutineInstructionUseFactsReady(uses, 1) ||
+        MirRoutineInstructionUseCountAtGlobal(uses, instruction_row) != 0 {
+        Die("direct MIR literal Log instruction envelope is invalid");
+    }
+    let expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions, instruction_row
+        );
+    let graph: JsonObjectFactTable = MirProgramInstructionExpressionGraphTable(
+        admitted.routines.source_json, expression, 0
+    );
+    let sequence: MirExpressionGraphSequence = MirExpressionGraphSequenceAppend(
+        MirExpressionGraphSequenceEmpty(), graph
+    );
+    if !expression.valid || !graph.valid || !sequence.ok ||
+        sequence.ready_node_count != 1 || ArrayLength(sequence.roots) != 1 ||
+        sequence.roots[0] != 0 ||
+        ArrayLength(sequence.arena.topology.node_kinds) != 1 ||
+        ArrayLength(sequence.arena.node_texts) != 1 ||
+        ArrayLength(sequence.arena.call_target_kinds) != 1 ||
+        sequence.arena.call_target_kinds[0] != SemanticCallTargetNone() ||
+        ArrayLength(sequence.arena.call_target_names) != 1 ||
+        sequence.arena.call_target_names[0] != "" {
+        Die("direct MIR literal Log expression graph is invalid");
+    }
+    let literal_kind: Int = 0;
+    let literal: String = sequence.arena.node_texts[0];
+    let content: String = "";
+    let line_format: String = "";
+    if sequence.arena.topology.node_kinds[0] ==
+            AstExpressionNodeIntegerLiteral() {
+        literal_kind = DirectMirLiteralLogIntegerKind();
+        if literal == "" || ToString(ToInt(literal)) != literal {
+            Die("direct MIR literal Log integer is not canonical");
+        }
+        line_format = StringRuntimeCIntLineFormat();
+    } else if sequence.arena.topology.node_kinds[0] ==
+            AstExpressionNodeStringLiteral() {
+        literal_kind = DirectMirLiteralLogStringKind();
+        let content_opt: Option<String> = DirectMirAsciiLiteralContent(literal);
+        if !IsSome(content_opt) {
+            Die("direct MIR literal Log string is not a safe literal");
+        }
+        content = UnwrapOption(content_opt);
+        line_format = StringRuntimeCStringLineFormat();
+    } else {
+        Die("direct MIR literal Log graph kind is unsupported");
+    }
+    let formatted_print: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFormattedPrintFact();
+    let plan: DirectMirLiteralLogPlan = DirectMirLiteralLogPlan(
+        true, 0, erasure, literal_kind, literal, content, line_format,
+        formatted_print
+    );
+    let verified: DirectMirLiteralLogPlan = DirectMirLiteralLogPlan(
+        plan.valid, DirectMirLiteralLogPlanDigest(plan), plan.erasure,
+        plan.literal_kind, plan.literal, plan.content, plan.line_format,
+        plan.formatted_print
+    );
+    if !DirectMirLiteralLogPlanReady(verified) {
+        Die("direct MIR literal Log verified plan is invalid");
+    }
+    return verified;
+}
