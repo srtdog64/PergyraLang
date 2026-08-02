@@ -4373,3 +4373,20 @@ Windows 변환까지 막으면 안 된다.
 
 이 실패 시간을 compiler build 성능이나 메모리 표본에 합산하지 않는다. 환경 경계가
 정상화된 호출만 측정 증거로 기록한다.
+
+## Self MIR의 Array literal 반환이 `AST_IDENTIFIER`로 나오는 경우
+
+`return [value];`의 native MIR은 `source_type=AST_ARRAY_LITERAL`인데 self MIR만
+`AST_IDENTIFIER`라면 backend admission을 느슨하게 만들지 않는다. 이는 배열 문법
+지원 부족이 아니라 value-return source kind를 expression text의 괄호/연산자 유무로만
+추측한 producer 결함이다. `[value]`에는 그 표식이 없어 identifier로 떨어질 수 있다.
+
+- 이미 admitted된 semantic expression graph의 root kind를 읽는다.
+- root가 array-literal spine이면 `AST_ARRAY_LITERAL`을 기록한다.
+- 기존 Array-return/constructed-Array consumer도 이 정확한 source fact를 요구한다.
+- native/self MIR 행 parity가 source type까지 일치하는지 focused gate로 확인한다.
+- consumer가 `AST_IDENTIFIER || AST_ARRAY_LITERAL`을 허용하거나 expression text의
+  `[` prefix를 다시 검사하도록 만들지 않는다.
+
+이 결함은 메모리나 host compiler 문제가 아니다. Producer source identity와 consumer
+gate를 함께 고친 뒤 current-source self-host driver를 다시 설치해야 한다.

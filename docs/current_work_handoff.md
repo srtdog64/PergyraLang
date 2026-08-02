@@ -6,78 +6,68 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — carry constructed Array member return flow
+## Active self-host context — carry constructed Array<Point> member flow
 
-- Executable checkpoint: `b4c432fd` on `main`, one commit ahead of the pushed
-  documentation checkpoint before this handoff refresh. The installed
-  Pergyra-built driver is 3,962,824 bytes with SHA-256
-  `757066982D5C2591C5272FFEDFDAD08711BAA2168C09BCE74F1B90DD5EBF535D`.
-  The successful current-source install invocation took 68.8 seconds and was
-  not pressure-measured; an earlier invocation emitted the same driver C but
-  failed only because a caller-wide MSYS argument-conversion override hid the
-  Windows path from GCC.
+- Executable checkpoint: `f1c675fa` on `main`; documentation is the only
+  intended dirty state during this handoff refresh. The installed Pergyra-built
+  driver is 4,006,944 bytes with SHA-256
+  `CA77CC6569C6F778DF4DBCE6BA01AE49A59D7F7562BD5F074D71C1E1C7C33391`.
+  The final current-source rebuild passed. It was not pressure-measured.
 - Closed frontier:
-  `src/self_hosted/mir_lower/fixture/generic_member_constructed_return_flow.pgy`.
-  Its one 9,309-byte self MIR with SHA-256
-  `343606FD159C30B155F1852A21DD1792E9D7FA0C13A7A2CD246C4B734E9736FA`
-  feeds both C and LLVM. Both artifacts retain real `Wrapper_Wrap_Int` and
-  `Wrapper_Echo_Option_Int_` definitions/calls, use the same value receiver,
-  carry the inner `Option<Int>` aggregate into the outer call, perform an
-  explicit tag check/extract, and execute exact `43`.
-- The exact three-routine class classifier is separate from the landed uniform
-  two-routine member owner. It seals declaration kind, nominal kind, two
-  specializations, two generic methods, one function, and the three-routine
-  envelope before routing. Once selected, failure returns directly and cannot
-  retry Array, nominal, scalar, struct, or two-routine interpretations.
-- Responsibility-named declaration, signature, heterogeneous-specialization,
-  constructed-type substitution, method graph, Main graph, instruction/SSA,
-  Option ABI, internal class representation, plan, and emission owners join at
-  one target-neutral plan. `Wrapper` retains the bounded
-  `internal_single_int_value_class` representation without a forged physical
-  ABI; only the materialized Main result owns the exact `Option<Int>` receipt.
-- The specialization and substitution facts cross-seal
-  `Wrap<T> -> Option<T>` with `T := Int`, `Echo<T> -> T` with
-  `T := Option<Int>`, the two carried symbols, the common positive opaque
-  source owner, Value lane, ordinals `{0,1}`, member targets, declaration
-  returns, and the Main result ABI. Generic formal names may change
-  independently when all owned facts move coherently.
-- The focused gate produces source MIR exactly once and reuses it for both
-  targets. It executes exact `43`, proves eight routine/declaration/
-  specialization/owner/formal-order invariants, five value/name variants, 40 C
-  negatives, and five LLVM sentinels. It also rejects pre-artifact ABI,
-  substitution, target, edge, reachability, scalar-tail, and reroute drift.
-- Latest green: the focused constructed-member gate; public installed C and
-  runtime-free LLVM compile/run including exact `43`; the previous inferred
-  member `41`, inferred scalar `41`, and inferred nominal `42` gates; hard
-  substitution contract; full component inventory; and diff checks. Full CI,
-  Coq adequacy, bootstrap seed/fixpoint, and current-source gen2==gen3 were not
-  run. The unrelated duplicate-Coq-ID `sot-authority-edge-test-smoke` remains a
-  known red and is not claimed green.
-- Active objective: close
   `src/self_hosted/mir_lower/fixture/generic_member_array_return_flow.pgy`.
-  Its observed self MIR is 9,225 bytes with SHA-256
-  `065C5F3B7E84F0CD6793B9605D8FE93790D89EF4F519207702E9EB841B4989C2`.
-  It carries `ArrayWrapper`, `Wrap<T>(self,value:T)->Array<T>`,
-  `Echo<T>(self,value:T)->T`, `Main`, and heterogeneous specializations
-  `ArrayWrapper_Wrap_Int` and `ArrayWrapper_Echo_Array_Int_`. Both targets
-  currently fail before publication with
-  `direct MIR constructed member specialization is invalid`; intended output
-  is exact `44`.
-- Fact owner for the next rung: preserve the exact three-routine identity while
-  giving `Array<T>` substitution, fixed `Array<Int>` ABI/storage/lifetime,
-  single-element construction, nested member carriage, indexing, and output
-  one joined plan. The last legitimate consumer remains the selected C or LLVM
-  emitter after one structural classification.
-- Forbidden fallback: broadening the Option-specific substitution/ABI owner,
-  parsing `Array<Int>` or symbols from source text in an emitter, flattening
-  `Wrap`, `Echo`, the array literal, or index zero into constant output,
-  inventing a physical layout for `ArrayWrapper`, retrying another planner, or
-  adding a generic query/cache architecture.
-- Next falsifier: the same MIR drives C and LLVM to exact `44`; routine,
-  declaration-method, specialization, local, owner, and formal permutations
-  preserve artifacts; element/length/capacity/owner fields, storage lifetime,
-  substitution, nested-call edges, index use, SSA, and reachability drift fail
-  before artifact publication.
+  Its final one-shot self MIR is 9,228 bytes with SHA-256
+  `D6DCE4F0584BF512CDA37FB0413DB2D596208C6776BEFC8FBE6081488764C20B`.
+  Native/self row parity is exact after the self MIR value-return owner was
+  corrected to classify `[value]` as `AST_ARRAY_LITERAL` rather than
+  `AST_IDENTIFIER`.
+- The structural three-routine classifier now reads one neutral heterogeneous
+  specialization pair and chooses exactly one semantic family. Option and
+  Array have separate strict signature, specialization, substitution, graph,
+  instruction, ABI, plan, and emitter owners. Neither family reparses the
+  specialization wire, and a failed family cannot retry the other.
+- Both C and LLVM retain real `ArrayWrapper_Wrap_Int` and
+  `ArrayWrapper_Echo_Array_Int_` definitions/calls. `Main` uniquely owns one
+  element of backing storage; `Wrap` receives its hidden pointer and builds the
+  admitted `{data,length,capacity,allocator}` shell, `Echo` carries that shell
+  by value, and `Main` loads index zero. There is no heap/runtime allocation,
+  callee-local returned storage, forged `ArrayWrapper` ABI, or constant-output
+  flattening. Both artifacts compile and execute exact `44`.
+- The shared `Array<Int>` ABI predicate now seals size/alignment, all four field
+  rows, runtime and inner C type, representation, null discriminant/niche, and
+  zero tags. The focused gate proves six order/formal invariants, two value/name
+  variants, 27 C negatives, and seven LLVM sentinels. Every new Pergyra owner is
+  at or below 220 lines and the focused family remains below its 2,100-line
+  aggregate cap.
+- Latest green: final current-source driver rebuild; the new constructed Array
+  focused gate; the previous constructed Option exact-`43` gate; the existing
+  caller-owned Array-return gate; installed public C and runtime-free LLVM
+  compile/run including exact `44`; hard substitution contract; full component
+  inventory; and diff checks. Full CI, Coq adequacy, bootstrap seed/fixpoint,
+  and current-source gen2==gen3 were not run. The unrelated duplicate-Coq-ID
+  `sot-authority-edge-test-smoke` remains a known red and is not claimed green.
+- Active objective: close
+  `src/self_hosted/mir_lower/fixture/generic_member_record_array_return_flow.pgy`.
+  Its observed self MIR is 11,952 bytes with SHA-256
+  `FA0EDC384115F1978C1AB25C8CC587CD9EE6370FAE5717E25DE54BD52EBEC3FF`.
+  It carries one `Point { x: Int }` struct, one `RecordArrayWrapper` class,
+  `Wrap<Point> -> Array<Point>`, `Echo<Array<Point>>`, five Main instructions,
+  Array indexing, field access, and intended exact output `45`. Both C and LLVM
+  currently reject before publication with
+  `direct MIR three-routine structural shape is unsupported`.
+- Fact owner for the next rung: add an exact mixed-declaration structural class,
+  then join the existing `Point` nominal ABI, `Array<Point>` ABI and caller
+  storage lifetime, heterogeneous member specializations, result/index/field
+  SSA, and output into one target-neutral plan. The last legitimate consumer is
+  the selected C or LLVM emitter after that single classification.
+- Forbidden fallback: broadening the single-class structural predicate,
+  treating `Point` as `Int`, reconstructing declarations or types from source
+  text in an emitter, using a heap/runtime default, flattening the nested calls
+  or `result[0].x` into `45`, retrying another planner, or adding a general
+  query/cache system.
+- Next falsifier: the same one-shot MIR drives C and LLVM to exact `45`; mixed
+  declaration/routine/specialization/local/formal permutations preserve the
+  artifact, while Point/Array ABI, storage owner, nested-call edges, index,
+  field projection, SSA, and reachability drift fail before publication.
 - Memory policy remains one execution per changed semantic target followed by
   the final maximum only. Attention begins at 2.4 GiB and the hard stop is
   3 GiB; no threshold crossing was measured or inferred in this rung.

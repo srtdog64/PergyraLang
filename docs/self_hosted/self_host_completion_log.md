@@ -6,6 +6,48 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-02 - Constructed Array member flow reaches C and LLVM
+
+- Closed `generic_member_array_return_flow.pgy` at code checkpoint `f1c675fa`.
+  Its final 9,228-byte self MIR has SHA-256
+  `D6DCE4F0584BF512CDA37FB0413DB2D596208C6776BEFC8FBE6081488764C20B`.
+  C and LLVM preserve real `ArrayWrapper_Wrap_Int` and
+  `ArrayWrapper_Echo_Array_Int_` definitions/calls and execute exact `44`.
+- Added one neutral, row-order-independent specialization-pair owner and one
+  exclusive Option/Array variant fact. Option and Array retain separate strict
+  projection owners; neither rereads the specialization wire or retries the
+  other after failure.
+- Added responsibility-named Array signature, specialization, substitution,
+  method/Main graph, program identity, instruction/SSA, ABI admission,
+  representation, plan, projection, and C/LLVM emission owners. Every new
+  Pergyra owner is at or below 220 lines. `Main` is the unique owner of fixed
+  backing storage; Wrap fills it through a hidden pointer and Echo carries the
+  Array shell by value. There is no callee-local returned storage, heap/runtime
+  fallback, forged `ArrayWrapper` physical ABI, or literal-output shortcut.
+- Strengthened the canonical `Array<Int>` ABI predicate to include null
+  discriminant/niche and zero tags. The focused gate executes native/self row
+  parity, six order/formal permutations, two value/name variants, 27 C
+  negatives, and seven LLVM sentinels. It also found and closed a real self MIR
+  drift: `[value]` returns now carry native-compatible `AST_ARRAY_LITERAL`
+  instead of the text-guessed `AST_IDENTIFIER`; the prior Array-return plan was
+  updated to consume the corrected fact.
+- Final current-source driver rebuild, constructed Option exact `43`, existing
+  Array-return, installed public C and runtime-free LLVM compile/run, hard
+  substitution contract, full component contract, and diff checks are green.
+  The installed driver is 4,006,944 bytes with SHA-256
+  `CA77CC6569C6F778DF4DBCE6BA01AE49A59D7F7562BD5F074D71C1E1C7C33391`.
+  Full CI, Coq adequacy, bootstrap seed/fixpoint, and current-source gen2==gen3
+  were not rerun.
+- Next falsifier is `generic_member_record_array_return_flow.pgy`. Its observed
+  11,952-byte self MIR has SHA-256
+  `FA0EDC384115F1978C1AB25C8CC587CD9EE6370FAE5717E25DE54BD52EBEC3FF`
+  and carries `Point`, `RecordArrayWrapper`, `Array<Point>`, nested specialized
+  member calls, index/field projection, and intended exact output `45`. Both
+  direct targets currently reject it before publication with
+  `direct MIR three-routine structural shape is unsupported`. The next plan
+  must own the exact mixed declaration class and Point/Array ABI/storage facts
+  without weakening the completed single-class path.
+
 ## 2026-08-02 - Constructed Option member flow reaches C and LLVM
 
 - Closed `generic_member_constructed_return_flow.pgy` at code checkpoint

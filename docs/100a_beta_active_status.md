@@ -204,6 +204,25 @@ Option-specific constructed-specialization owner. The next closure must own
 `Array<T>` substitution, fixed `Array<Int>` storage/lifetime, nested member
 carriage, and indexing without weakening the completed Option plan.
 
+Constructed Array member update (2026-08-02):
+`generic_member_array_return_flow.pgy` is now target-specific `SUBSTITUTING`
+through the installed self-host driver. Its final 9,228-byte self MIR drives
+real `ArrayWrapper_Wrap_Int` and `ArrayWrapper_Echo_Array_Int_` calls in C and
+LLVM and executes exact `44`. `Main` uniquely owns the one-element backing
+storage; Wrap fills it through a hidden pointer, Echo carries the admitted
+Array shell by value, and Main performs the real index/load. A neutral
+specialization-pair owner parses the wire once before an exclusive Option or
+Array projection, so neither family can retry or reopen the other. Native/self
+return-source identity is also aligned on `AST_ARRAY_LITERAL`. Six ordering and
+formal invariants, two value/name variants, 27 C negatives, seven LLVM
+sentinels, installed public C/LLVM, hard contract, and component inventory are
+green. The next falsifier is `generic_member_record_array_return_flow.pgy`:
+its 11,952-byte MIR adds a `Point` declaration and `Array<Point>` carriage, and
+both direct targets currently fail closed at the exact three-routine structural
+shape boundary. The next closure must own the mixed declaration class, Point
+and Array ABI facts, caller storage, nested calls, index and field projection
+without broadening the completed single-class path.
+
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
 toolchain/preflight clarity, release/debug hygiene, memory/string bounds audit,

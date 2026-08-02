@@ -2,43 +2,43 @@
 
 마지막 업데이트: 2026-08-02
 
-## 활성 우선순위 — constructed Array member return flow
+## 활성 우선순위 — constructed Array<Point> member return flow
 
-- 실행 체크포인트 `b4c432fd`는
-  `generic_member_constructed_return_flow.pgy`를 닫았다. 하나의 9,309-byte
-  self MIR, SHA-256
-  `343606FD159C30B155F1852A21DD1792E9D7FA0C13A7A2CD246C4B734E9736FA`가
-  C와 LLVM을 함께 구동한다. 두 artifact는 실제 `Wrapper_Wrap_Int`와
-  `Wrapper_Echo_Option_Int_` 정의/호출, 같은 value receiver, inner Option을 outer
-  argument로 넘기는 edge, 명시적 tag 검사와 value 추출을 보존하고 exact `43`을
-  출력한다. Public installed C/LLVM compile/run도 같은 경로로 exact `43`이다.
-- Exact three-routine class classifier는 기존 uniform two-routine owner와 분리돼
-  있다. Declaration/signature, heterogeneous specialization, constructed-type
-  substitution, method/Main graph, instruction/SSA, Option ABI, internal class
-  representation이 한 target-neutral plan에서 교차 봉인된다. `Wrapper`는 physical
-  ABI를 발명하지 않고 Main의 materialized `Option<Int>`만 정확한 ABI receipt를
-  갖는다.
-- Focused gate는 source MIR을 한 번만 만들고 C/LLVM이 재사용한다. Exact `43`, 여덟
-  order/owner/formal invariant, 다섯 value/name variant, C negative 40개, LLVM
-  sentinel 5개가 green이다. 기존 inferred member/scalar/nominal, public installed
-  C/LLVM, hard contract와 full component inventory도 함께 green이다.
-- 설치 드라이버는 3,962,824 bytes, SHA-256
-  `757066982D5C2591C5272FFEDFDAD08711BAA2168C09BCE74F1B90DD5EBF535D`다.
-  성공한 current-source install 호출은 68.8초였고 메모리는 계측하지 않았다. Full
-  CI, Coq adequacy, bootstrap fixpoint와 current-source gen2==gen3은 재실행하지
+- 실행 체크포인트 `f1c675fa`는
+  `generic_member_array_return_flow.pgy`를 닫았다. 최종 self MIR은 9,228 bytes,
+  SHA-256
+  `D6DCE4F0584BF512CDA37FB0413DB2D596208C6776BEFC8FBE6081488764C20B`다.
+  `[value]` 반환의 self MIR `source_type`도 native와 같은
+  `AST_ARRAY_LITERAL`로 교정됐다.
+- Specialization wire는 중립 pair owner가 한 번만 읽는다. 구조 분류 뒤 Option과
+  Array variant를 배타적으로 선택하고, 두 계열은 각각 strict signature,
+  substitution, graph, ABI, plan과 emitter를 갖는다. 실패 후 다른 계열을 재시도하는
+  fallback은 없다.
+- C/LLVM 모두 실제 `ArrayWrapper_Wrap_Int`와
+  `ArrayWrapper_Echo_Array_Int_`를 호출한다. `Main`만 1-element backing storage를
+  소유하고, Wrap은 hidden pointer로 aggregate를 만들며 Echo는 이를 by-value로
+  전달한다. Heap/runtime allocation이나 constant-output flattening 없이 두 artifact가
+  정확히 `44`를 출력한다.
+- Focused gate는 같은 MIR을 C/LLVM이 재사용하며 여섯 순서/formal invariant, 두
+  value/name variant, C negative 27개, LLVM sentinel 7개를 통과한다. 기존 Option
+  exact `43`, Array-return, public installed C/LLVM, hard contract와 full component
+  inventory도 green이다. 새 owner는 모두 220줄 이하이고 focused family도
+  2,100줄 cap 이하다.
+- 최종 설치 드라이버는 4,006,944 bytes, SHA-256
+  `CA77CC6569C6F778DF4DBCE6BA01AE49A59D7F7562BD5F074D71C1E1C7C33391`다.
+  Full CI, Coq adequacy, bootstrap fixpoint와 current-source gen2==gen3은 재실행하지
   않았다. 기존 duplicate Coq fact ID gate도 이번 green으로 숨기지 않는다.
-- 다음 활성 fixture는 `generic_member_array_return_flow.pgy`다. 관찰한 9,225-byte
-  self MIR, SHA-256
-  `065C5F3B7E84F0CD6793B9605D8FE93790D89EF4F519207702E9EB841B4989C2`는
-  `Wrap<T> -> Array<T>`, `Echo<Array<Int>>`, 실제 nested member flow와 index zero
-  출력을 운반한다. C/LLVM 모두 artifact 없이
-  `direct MIR constructed member specialization is invalid`에서 fail-closed하며 목표
-  출력은 exact `44`다.
-- 다음 owner는 Option owner를 느슨하게 확장하지 않는다. Exact three-routine
-  identity를 유지한 채 `Array<T>` substitution, 고정 `Array<Int>` ABI/storage/
-  lifetime, single-element construction, nested carriage, index use와 SSA를 별도
-  책임 owner에서 한 plan으로 결합한다. Source-text 복원, call/literal/index
-  flattening, `ArrayWrapper` physical ABI 발명과 다른 planner retry를 금지한다.
+- 다음 활성 fixture는 `generic_member_record_array_return_flow.pgy`다. 관찰한
+  11,952-byte self MIR, SHA-256
+  `FA0EDC384115F1978C1AB25C8CC587CD9EE6370FAE5717E25DE54BD52EBEC3FF`는
+  `Point { x: Int }`, `RecordArrayWrapper`, `Wrap<Point> -> Array<Point>`,
+  `Echo<Array<Point>>`, index/field projection과 목표 출력 exact `45`를 운반한다.
+  C/LLVM 모두 artifact 없이
+  `direct MIR three-routine structural shape is unsupported`에서 fail-closed한다.
+- 다음 owner는 기존 single-class classifier를 느슨하게 넓히지 않는다. Exact mixed
+  declaration shape와 기존 Point/Array ABI, caller-owned storage, nested member
+  carriage, index/field SSA를 한 plan으로 결합한다. Point를 Int로 평탄화하거나
+  source-text를 다시 읽거나 다른 planner를 retry하는 경로를 금지한다.
 - 메모리는 semantic target의 final maximum만 기록하며 2.4/3 GiB
   attention/hard-stop 정책을 유지한다.
 
