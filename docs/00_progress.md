@@ -2,42 +2,46 @@
 
 마지막 업데이트: 2026-08-02
 
-## 활성 우선순위 — explicit-generic nominal value flow
+## 활성 우선순위 — inferred-generic nominal value flow
 
-- 실행 체크포인트 `1068f93d`는 `option_struct_value_flow.pgy`를 닫았다. 하나의
-  19,072-byte self-host MIR, SHA-256
-  `085E72BD8626B2F09BD60AA9055A5619A8875EBFA491C072A5A631DAC9A2275E`가 실제
-  `BuildPair(Int) -> Option<Pair>`, Some/None/Some replacement, explicit unwrap과
-  별도 chained unwrap-member를 C/LLVM으로 투영한다. 두 실행 결과와 installed
-  public C/LLVM 결과는 정확히 `7\n11\n5`다.
-- `Pair` receipt는 size 8/align 4/ID `674136663`, derived `Option<Pair>`는 size
-  12/align 4/ID `798450640`이다. Static Option tag owner와 program-owned inner
-  declaration을 producer에서 한 번 결합하며, backend는 tag/payload offset이나
-  runtime helper를 추론하지 않는다.
-- 하나의 two-routine nominal classifier가 plain과 Option nominal을 먼저 나눈다.
-  Option candidate가 거부된 뒤 plain-struct plan을 retry할 수 없고, 하나의
-  target-neutral plan만 선택된 C/LLVM emitter로 전달된다.
-- Focused gate는 native/self receipt parity, exact output, routine permutation과
-  C 19개 + LLVM sentinel 1개의 pre-artifact negative 실행을 검증했다. 기존 plain
-  `Pair`, installed C/LLVM, hard contract, full component ratchet, current-source
-  driver build와 416.6초 bootstrap seed도 green이다.
-- Bootstrap manifest가 가진 `CompilerCompletenessCheckTarget { path: String }`은
-  nominal이지만 고정 ABI가 아니므로 중립 receipt `(kind=0,row=-1,id=0)`를 유지한다.
-  `required==1`인 declaration만 nominal/Option-nominal receipt를 발행하도록 producer와
-  verifier를 교차 봉인했다.
-- 설치 드라이버는 3,759,056 bytes, SHA-256
-  `E97277EE7F01B56A02F4F905B1A34BF2D93948CECB62585CF333A3B96A044ECD`다.
-  Current-source rebuild는 101.9초였고 메모리는 계측하지 않았다.
-- 다음 활성 fixture는 `generic_struct_field_value_flow.pgy`다. Installed self-host C는
-  1.2초에 컴파일되고 exact `7`을 실행하지만, installed LLVM은 artifact 전에
-  `direct MIR multi-routine projection rejected`로 fail-closed한다.
-- 다음 owner는 `Identity<T>` formal과 `Identity<Int>` specialization/call identity,
-  기존 `Pair` ABI, 세 routine의 row-order-independent identity를 결합한 하나의
-  target-neutral generic nominal plan이다. Generic call/BuildPair flattening, source
-  spelling specialization, C-only 복제, 이전 two-routine plan retry를 금지한다.
-- Full CI, Coq adequacy, current-source gen2==gen3 fixed point는 이번 checkpoint에서
-  재실행하지 않았다. 메모리는 semantic target의 final maximum만 기록하며
-  2.4/3 GiB attention/hard-stop 정책을 유지한다.
+- 실행 체크포인트 `32300bf0`는 `generic_struct_field_value_flow.pgy`를 닫았다.
+  하나의 14,014-byte self MIR, SHA-256
+  `1C41796E0C92FAB20EF56329913548138A715E53368330EDDE913D21801729B8`가 C와
+  LLVM을 함께 구동하며 실제 `Identity_Int` 정의 1개와 호출 4개, 실제
+  `BuildPair(Int) -> Pair`, aggregate insert/extract를 보존한다. 두 실행 결과는
+  정확히 `7`이다.
+- Self MIR의 specialization 4행은 모두 `(direct, Identity, T -> Int,
+  Identity_Int)`이고 Atom/Value lane의 ordinal 0/1 좌표가 중복 없이 존재한다.
+  Native MIR에는 이 행이 0개이므로 specialization oracle로 쓰지 않고 공통 graph와
+  `Pair` ABI parity에만 사용한다.
+- 세 routine은 declaration 수 0/1/2를 한 번 분류하는 전용 owner를 통과한다.
+  Root는 53줄이며 Array, generic nominal, nested struct를 순차 retry하지 않는다.
+  하나의 target-neutral plan만 strict generic template, specialization, graph, SSA,
+  `Pair` layout ID `674136663`을 결합해 C 또는 LLVM emitter로 전달한다.
+- Focused gate는 한 self MIR 재사용, exact `7`, routine/specialization permutation과
+  29개 pre-artifact negative를 검증한다. Emitter의 MIR/JSON 재개방,
+  specialization symbol 재조합, generic/BuildPair flattening, repaired layout과 stale
+  use/member path를 금지한다.
+- 최신 producer가 scalar return에 `abi_type_name=Int`를 운반하면서 기존 Array와
+  nested-struct plan의 잠복 결함도 드러났다. 물리 layout이 없다는 사실은 타입 이름이
+  없다는 뜻이 아니다. 두 plan은 이제 exact scalar type과
+  `(id=0,required=false,null)`을 함께 검증하며 해당 회귀 gate가 green이다.
+- 설치 드라이버는 3,805,954 bytes, SHA-256
+  `C46D58EC0F446F4080AE0AB42D8D7724FC2779E998B176CCA118C27FFB4D0110`다.
+  마지막 current-source rebuild는 101.7초였고 메모리는 계측하지 않았다.
+- 최신 green은 explicit-generic C/LLVM gate, 기존 Array/struct/Option 회귀,
+  hard contract, full component inventory와 current-source driver build다. Full CI,
+  Coq adequacy, bootstrap seed, current-source gen2==gen3은 재실행하지 않았다.
+- 다음 활성 fixture는 `generic_struct_field_inferred_value_flow.pgy`다. 현재
+  7,200-byte self MIR은 `Identity<T>`, `Main`, `Pair`, inferred `Identity(Int)`
+  specialization 2행을 운반하지만 C/LLVM 모두 two-routine nominal classification에서
+  artifact 전에 fail-closed한다. 목표 실행값은 exact `42`다.
+- 다음 owner는 4행 explicit owner를 느슨하게 넓히지 않는 별도 2행 inferred
+  specialization equivalence class, generic template, 두 graph call, `Pair` receipt와
+  two-routine identity를 하나의 plan으로 결합한다. Source-text inference, native의 빈
+  specialization table, `Identity_Int` flattening, plain nominal retry를 금지한다.
+- 메모리는 semantic target의 final maximum만 기록하며 2.4/3 GiB
+  attention/hard-stop 정책을 유지한다.
 
 ## 비활성 진행 기록 archive
 

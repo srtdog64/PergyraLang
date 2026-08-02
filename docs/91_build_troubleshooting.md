@@ -4178,6 +4178,63 @@ declaration이지만 고정 물리 ABI를 갖지 않아 native MIR의
 current-source bootstrap seed가 416.6초에 완주했다. 이 시간은 일반 프로그램
 컴파일 성능이 아니라 bootstrap integration 비용이다.
 
+## Explicit generic MIR이 C에서는 보이지만 direct C/LLVM plan에서 거부되는 경우
+
+`generic_struct_field_value_flow.pgy`의 self MIR은 `Identity<T>`와 네 개의
+`Identity<Int>` 호출, 그리고 네 specialization receipt를 운반한다. 기존
+multi-routine root는 declaration 수 1인 세-routine 프로그램을 소유하지 않아 두
+target 모두 artifact 전에 거부했다. Native MIR에는 동일 graph와 `Pair` ABI가 있지만
+specialization table은 비어 있다.
+
+이 경우 native의 빈 table을 정답으로 삼거나 `Identity<Int>` source text에서 symbol을
+복원하면 안 된다. 현재 판정 규칙은 다음과 같다.
+
+- Self MIR specialization table이 direct projection의 carried authority다. Native는 실제로
+  공통인 routine graph와 ABI parity에만 사용한다.
+- 네 행은 `(target kind, owner, callable, formal, actual, specialized symbol)`이 같은
+  uniform semantic class여야 하고, Atom/Value lane의 ordinal 0/1 좌표가 중복 없이
+  정확히 존재해야 한다.
+- MIR graph에도 동일한 direct callable과 actual을 가진 generic call이 정확히 네 개
+  있어야 한다. Emitter는 verified symbol만 소비하고 이름을 다시 조합하지 않는다.
+- `source_owner_syntax_id`는 현재 specialization table 밖의 graph receipt와 직접 join되지
+  않는다. 따라서 임의의 새 양수로 일관되게 renumber한 mutation까지 거부한다고
+  주장하지 않는다. Exact per-call provenance가 필요하면 producer protocol에 stable call
+  identity를 추가하는 별도 seam이 필요하다.
+- 세-routine root는 declaration 수로 한 번만 분류한다. Generic plan 실패 뒤 Array나
+  nested-struct plan을 retry하지 않는다.
+
+Focused gate는 한 14,014-byte self MIR로 C/LLVM exact `7`, 실제
+`Identity_Int` 정의 1개와 호출 4개, routine/specialization permutation과 29개
+pre-artifact negative를 검증한다.
+
+## `abi_layout_required=false`를 타입 없음으로 잘못 해석하는 경우
+
+Current-source driver를 다시 만든 뒤 기존 Array argument와 nested-struct argument gate가
+다음 진단으로 멈출 수 있다.
+
+```text
+direct MIR Array argument instruction ABI is invalid
+direct MIR struct argument instruction ABI is invalid
+```
+
+문제의 scalar return은 `abi_type_name=Int`, `abi_layout_id=0`,
+`abi_layout_required=false`, `abi_layout=null`이다. 이것은 typed scalar가 물리 aggregate
+layout을 필요로 하지 않는다는 뜻이지 타입 identity가 비어 있다는 뜻이 아니다. 기존
+plan은 “no physical ABI”를 `abi_type_name == ""`와 동일시해 최신 producer의 정상
+receipt를 거부했다.
+
+수정 규칙은 expected semantic type과 physical layout 유무를 분리하는 것이다.
+
+- `Main`의 Log statement처럼 값 ABI가 없는 instruction은 expected type `""`를
+  요구한다.
+- `Int`를 반환하는 user routine은 expected type `Int`를 유지한다.
+- 두 경우 모두 physical layout이 없다면 ID 0, required false, null layout을 정확히
+  요구한다.
+- Scalar type을 지우거나 임의의 aggregate layout을 추가해 gate를 통과시키지 않는다.
+
+수정 뒤 Array argument, nested-struct argument, explicit-generic, Option<Pair> C/LLVM
+focused gate가 함께 green인지 확인한다.
+
 ## PowerShell에서 MSYS Make가 `tr`, `rm`, `gcc`를 찾지 못하는 경우
 
 전체 액세스나 승인 문제로 오해하지 않는다. Windows PowerShell에서

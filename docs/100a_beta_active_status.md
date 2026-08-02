@@ -108,6 +108,25 @@ Declarations whose layout is not required, including a struct containing
 `required==1` declarations may carry nominal or Option-nominal layout IDs. The
 current TestHarness manifest and bootstrap seed gate this boundary.
 
+Direct LLVM explicit-generic nominal value-flow update (2026-08-02):
+`generic_struct_field_value_flow.pgy` now carries one strict
+`Identity<T>(value:T)->T` template, four uniform `T -> Int` specialization
+receipts, the exact program-owned `Pair` ABI, and three row-order-independent
+routine identities into one target-neutral plan. C and LLVM preserve one real
+`Identity_Int` definition, four calls, one real `BuildPair` definition/call,
+and aggregate insertion/extraction; both print exact `7`. Routine and
+specialization-row permutations are artifact-equal, and twenty-nine mutations
+reject generic header/body/ABI, specialization, call, receipt, repaired-layout,
+SSA-use, and member-path drift before publication. Native MIR has no
+specialization rows and is deliberately not used as a fallback oracle.
+
+The multi-routine root now delegates all three-routine programs to one
+declaration-cardinality classifier. A rejected generic nominal plan cannot be
+retried as an Array or nested-struct program. Rebuilding also exposed and
+closed a prior scalar receipt defect: a typed `Int` return with no physical
+layout preserves `abi_type_name=Int` while requiring layout ID zero, required
+false, and null layout.
+
 Installed LLVM substitution update (2026-08-01): plain public LLVM binary
 requests use the sibling Pergyra-built driver for exactly one source-to-MIR
 production and one direct LLVM projection. `clang -x ir` is the only final host
@@ -119,11 +138,12 @@ the bounded two-routine Array return, and three-routine Array parameter
 frontiers, including the bounded three-routine nominal-struct parameter slice.
 The bounded nominal-struct and Option-of-nominal return/local value-flow slices
 are also substituting; this is not evidence for general, heap-backed,
-runtime-bearing, generic, or arbitrary multi-routine programs. The next
-falsifier is `generic_struct_field_value_flow.pgy`: installed self-host C prints
-`7`, while installed LLVM fails closed before publication because the direct
-multi-routine projection does not yet own the explicit `Identity<Int>`
-specialization and three-routine nominal value-flow plan.
+runtime-bearing, or arbitrary multi-routine programs. The bounded explicit
+`Identity<Int>` nominal value-flow slice is now also substituting. The next
+falsifier is `generic_struct_field_inferred_value_flow.pgy`: its self MIR owns
+two inferred `Identity(Int)` specialization receipts, but both direct C and
+LLVM currently fail closed in two-routine nominal classification before
+artifact publication. The intended output is exact `42`.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:

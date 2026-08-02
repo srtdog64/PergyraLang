@@ -6,6 +6,47 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-02 - Explicit generic nominal value flow reaches C and LLVM
+
+- Closed `generic_struct_field_value_flow.pgy` at code checkpoint `32300bf0`.
+  One 14,014-byte self MIR with SHA-256
+  `1C41796E0C92FAB20EF56329913548138A715E53368330EDDE913D21801729B8`
+  drives both target projections. C and LLVM preserve one real `Identity_Int`
+  definition, four calls, one real `BuildPair(Int) -> Pair` definition/call,
+  aggregate insertion/extraction, and exact output `7`.
+- Added strict owners for the one-formal generic signature, four self-MIR
+  specialization receipts, exact generic/nominal graph topology, instruction
+  and SSA facts, `Pair` ABI receipts, and one target-neutral plan. Emitters do
+  not receive admitted MIR/JSON and consume the carried specialized symbol
+  instead of reconstructing it from source spelling.
+- Native MIR carries the same routine graph and `Pair` ABI but currently has an
+  empty specialization table. The gate therefore uses native only for common
+  graph/ABI parity. Self specialization rows form one uniform semantic class
+  with unique Atom/Value lane and ordinal coordinates and are cross-sealed to
+  exactly four graph calls.
+- Added one exclusive three-routine classifier: zero declarations selects the
+  Array argument path, one selects explicit-generic nominal flow, and two
+  selects nested-struct argument flow. The multi-routine root is now 53 lines;
+  a rejected branch cannot retry another three-routine interpretation.
+- The focused gate shares one source MIR between C and LLVM, proves routine and
+  specialization-row permutation equality, and runs twenty-eight C negatives
+  plus one LLVM specialization sentinel before artifact publication.
+- Rebuilding exposed and closed a pre-existing scalar receipt bug in Array and
+  nested-struct plans. `abi_type_name=Int` with layout ID zero, required false,
+  and null layout is a typed scalar with no physical layout; it is not an
+  absent type. Both prior focused gates pass after the correction.
+- Current-source driver build, explicit-generic/Array/nested-struct/Option
+  regressions, hard substitution, and full component inventory are green. The
+  installed 3,805,954-byte driver has SHA-256
+  `C46D58EC0F446F4080AE0AB42D8D7724FC2779E998B176CCA118C27FFB4D0110`;
+  its final rebuild took 101.7 seconds without memory measurement. Full CI,
+  Coq, bootstrap seed, and current-source gen2==gen3 were not rerun.
+- Next falsifier is `generic_struct_field_inferred_value_flow.pgy`. Its
+  7,200-byte self MIR has two routines, one `Pair`, and two inferred
+  `Identity(Int)` specialization rows. Direct C and LLVM both fail closed in
+  two-routine nominal classification; the next bounded target-neutral plan
+  must execute exact `42` without weakening the landed four-row explicit owner.
+
 ## 2026-08-02 - Option-of-nominal value flow reaches installed C and LLVM
 
 - Closed `option_struct_value_flow.pgy` as a bounded two-routine aggregate
