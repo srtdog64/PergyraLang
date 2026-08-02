@@ -4079,3 +4079,50 @@ storage를 재할당하면 이전 descriptor copy는 최신 pointer/capacity를 
 이 rung에서는 위 수정 뒤 DRV-2가 96.2초에 설치됐고 focused/installed/hard/component
 gate가 통과했다. Memory pressure는 측정하지 않았으므로 과거 peak를 이 binary에
 붙이지 않는다.
+
+## Named struct return/local이 declaration receipt 없이 backend에 도달하는 경우
+
+`struct_literal_value_flow.pgy`의 첫 MIR은 `Pair` declaration에 size 8, align 4,
+ID `674136663`을 갖고도 `BuildPair` return과 aggregate local definitions에는 그
+receipt를 싣지 않았다. Backend가 routine return spelling이나 let expression을 다시
+읽어 layout을 찾으면 producer와 backend가 이중 권위가 된다.
+
+현재 규칙은 다음과 같다.
+
+- Native producer는 static ABI lookup 뒤 unique program nominal declaration만
+  허용한다. 알려진 program ABI가 있는 return/def/assign은 exact receipt 누락 시
+  MIR validation에서 실패한다.
+- Self producer는 instruction마다 type name뿐 아니라 exact declaration row와
+  layout ID를 소유한다. JSON writer는 이 receipt만 소비하며 declaration inventory나
+  `expr1`을 fallback으로 다시 읽지 않는다.
+- Native residual assignment와 self SSA `pair.2`는 서로 다른 representation이다.
+  Gate는 둘을 같은 instruction shape로 위장하지 않고 latest semantic use와 exact
+  receipt를 교차 검증한다.
+- Source-to-MIR은 한 번만 수행한다. 같은 11,441-byte MIR을 C와 LLVM에 각각 한 번
+  투영하고, permutation과 negatives는 source graph를 재생성하지 않는다.
+- Plain-struct candidate가 분류된 뒤 declaration-free Array-return owner로 retry하거나
+  backend가 offset을 추측하면 실패한다.
+
+최종 focused gate는 exact `11`, routine permutation, 13개 pre-artifact negative를
+통과했고 installed C/LLVM 경로도 같은 frontier를 사용한다. 다음
+`option_struct_value_flow.pgy`는 unwrapped `Pair` receipt는 있지만 `Option<Pair>`
+return/local의 ID가 0이고 required false라 fail-closed한다. 이 경우 plain `Pair`
+owner를 넓히지 말고 Option ABI와 inner nominal declaration을 결합한 nested receipt를
+별도 소유해야 한다.
+
+## `make self-host-compiler` 8분을 일반 컴파일 속도로 해석하는 경우
+
+이번 최종 명령은 seed artifact와 Pergyra-built driver를 함께 갱신해 506.2초가
+걸렸다. 이는 사용자 프로그램 한 개의 일반 C/LLVM 컴파일 시간이 아니며, focused
+fixture projection이나 이미 설치된 driver의 보통 compile/run 수치로 재사용하면 안
+된다. 성능 보고는 다음 세 경계를 분리한다.
+
+- 일반 build: 설치된 self-host driver가 입력 하나를 MIR과 선택 backend artifact로
+  만드는 시간.
+- test build: parity, mutation, permutation, installed-path ratchet을 포함한 시간.
+- bootstrap/fixed point: seed, driver, gen2/gen3 또는 전체 통합을 갱신하는 시간.
+
+메모리도 같은 원칙을 따른다. 매 단계 반복 측정하지 않고 semantic target의 final
+maximum만 기록하며, 2.4 GiB attention과 3 GiB hard stop을 넘을 때 반복 owned
+operation부터 조사한다. 이번 506.2초 실행은 메모리를 측정하지 않았으므로 과거
+3 GiB peak나 다른 build의 RSS를 붙이지 않는다.

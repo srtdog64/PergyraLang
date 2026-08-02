@@ -79,6 +79,17 @@ and fifteen declaration/ABI/call/lifetime mutations fail before publication.
 Installed public C and LLVM compile/run use this frontier as bounded
 target-specific `SUBSTITUTING` evidence.
 
+Direct LLVM nominal-struct value-flow update (2026-08-02):
+`struct_literal_value_flow.pgy` now carries the exact program-owned `Pair`
+declaration receipt on its aggregate routine return and local definitions. One
+target-neutral row-order-independent plan preserves the real
+`BuildPair(pair.right)` call, the latest mutable value, and member reads. C and
+LLVM return the aggregate by value and both print `11`; thirteen receipt,
+declaration, call, latest-use, and member-path mutations fail before artifact
+publication. The JSON producer and both backends are negative-gated against
+type-spelling or expression-text layout recovery. Installed public C and LLVM
+compile/run use this bounded target-specific `SUBSTITUTING` frontier.
+
 Installed LLVM substitution update (2026-08-01): plain public LLVM binary
 requests use the sibling Pergyra-built driver for exactly one source-to-MIR
 production and one direct LLVM projection. `clang -x ir` is the only final host
@@ -88,11 +99,12 @@ runtime cases fail without publishing a new or stale binary. This is executable
 `SUBSTITUTING` evidence for the sealed runtime-free Option, local `Array<Int>`,
 the bounded two-routine Array return, and three-routine Array parameter
 frontiers, including the bounded three-routine nominal-struct parameter slice.
-It is not evidence for general, heap-backed, runtime-bearing, or arbitrary
-multi-routine programs. The next falsifier is `struct_literal_value_flow.pgy`:
-its `Pair` declaration has a physical receipt, but the aggregate routine return
-and local SSA definitions do not yet carry it and must fail closed rather than
-invite backend type-spelling reconstruction.
+The bounded nominal-struct return/local value-flow slice is also substituting;
+this is not evidence for general, heap-backed, runtime-bearing, or arbitrary
+multi-routine programs. The next falsifier is `option_struct_value_flow.pgy`:
+its unwrapped `Pair` definitions have physical receipts, but `Option<Pair>`
+return and local definitions still lack a reconstructible nested ABI receipt
+and must fail closed rather than invite backend tag/payload reconstruction.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:

@@ -2,32 +2,37 @@
 
 마지막 업데이트: 2026-08-02
 
-## 활성 우선순위 — named-struct return/local value ABI carriage
+## 활성 우선순위 — nested `Option<Pair>` aggregate ABI carriage
 
-- 실행 체크포인트 `a891851b`는 `struct_literal_call_argument.pgy`를 닫았다.
-  하나의 11,092-byte self-host MIR이 실제 `Twice`, `Width(Line)`, `Main`을 C와
-  LLVM으로 투영하고 모두 정확히 `6`을 출력한다. Public installed C/LLVM
-  compile/run도 이 target-specific `SUBSTITUTING` 경로를 사용한다.
-- Program-owned nominal layout owner가 `Vec2` 8/4, ID `669680999`와 nested
-  `Line` 16/4, ID `643231747`을 계산한다. `Line` formal parameter는 declaration의
-  전체 receipt를 운반하며 backend는 offset을 재구성하지 않는다.
-- Native/self는 field order/type/layout과 parameter schema를 교차 봉인한다.
-  Producer-local syntax ID의 숫자 동일성은 계약이 아니며 positive/local unique만
-  요구한다. Routine/declaration 순서를 함께 바꿔도 C/LLVM artifact는 byte-equal이다.
-- Focused gate는 exact `6`과 15개 pre-artifact negative를 검증했다. Installed
-  C/LLVM, hard contract, full component ratchet도 최종 소스에서 green이다.
-- 설치 드라이버는 3,655,177 bytes, SHA-256
-  `D8924C6F2C63ED69277EFBD42F86753BF0E03AF033D7962D3FD9F0222F5DDC8B`다.
-  Current-source rebuild는 96.2초였고 메모리는 계측하지 않았다.
-- 다음 활성 fixture는 `struct_literal_value_flow.pgy`이며 예상 출력은 `11`이다.
-  10,325-byte MIR 생성은 성공하지만 direct C는 Array-return envelope에서
-  fail-closed하고 artifact를 만들지 않는다. `Pair` declaration은 8/4 receipt와
-  ID `674136663`을 갖지만 `BuildPair` return 및 `pair.1`/`built.1` aggregate
-  definition에는 그 receipt가 없다.
-- 다음 owner는 declaration receipt를 routine return과 local SSA definition에
-  투영한다. Backend type-spelling 추론, expression-text assignment 복원,
-  `BuildPair(pair.right)` flattening, missing aggregate ABI의 scalar 취급,
-  Array-return 재시도, old/new dual read를 금지한다.
+- 실행 체크포인트 `cd886a6d`는 `struct_literal_value_flow.pgy`를 닫았다. 하나의
+  11,441-byte self-host MIR이 실제 `BuildPair(Int) -> Pair`, mutable `pair`
+  replacement와 returned aggregate/member use를 C와 LLVM으로 투영하고 모두
+  정확히 `11`을 출력한다. Public installed C/LLVM compile/run도 이
+  target-specific `SUBSTITUTING` 경로를 사용한다.
+- Native와 self producer는 aggregate return 및 local definition마다 `Pair`
+  declaration의 완전한 8/4 receipt와 ID `674136663`을 운반한다. JSON writer와
+  backend는 type spelling이나 expression text로 layout을 복원하지 않는다.
+- Target-neutral program/graph/plan은 실제 `BuildPair(pair.right)` call, native
+  residual assignment와 self SSA의 의미상 대응, 최신 `pair.2` use를 봉인한다.
+  C와 LLVM은 `Pair`를 실제 aggregate value로 반환하며 상수 `11`로 평탄화하지
+  않는다.
+- Focused gate는 native/self parity, exact `11`, routine permutation과 13개
+  pre-artifact negative를 검증했다. Native compiler, installed C/LLVM, hard
+  contract, full component ratchet, 최종 self-host driver build도 green이다.
+- 설치 드라이버는 3,690,605 bytes, SHA-256
+  `4B303BA7C112BC7B4F4727722E694D429DF9C3EA280BCEF1AAB90DAF6B6B40F4`다.
+  Seed와 driver를 함께 갱신한 `make self-host-compiler`는 506.2초였고 메모리는
+  계측하지 않았다.
+- 다음 활성 fixture는 `option_struct_value_flow.pgy`이며 예상 출력은
+  `7\n11\n5`다. 17,637-byte MIR, SHA-256
+  `580E55AB8D4A902F18303959F36D74A59CBEC61DB1A585F5AEA5CBE5E53AEFB6` 생성은
+  성공하지만 direct C는 artifact 전에 fail-closed한다. Unwrapped `Pair`에는
+  receipt가 있지만 `Option<Pair>` return/local은 `abi_layout_id=0`이고
+  `abi_layout_required=false`다.
+- 다음 owner는 기존 Option ABI와 program-owned `Pair` declaration을 결합한
+  reconstructible nested receipt다. Backend tag/payload 추론, `Option<Int>` 재사용,
+  source spelling 재탐색, plain-struct owner 재시도, `BuildPair`/unwrap flattening,
+  old/new dual read를 금지한다.
 - Full CI, Coq adequacy, current-source gen2==gen3 fixed point는 이번 checkpoint에서
   재실행하지 않았다. 메모리는 semantic target의 final maximum만 기록하며
   2.4/3 GiB attention/hard-stop 정책을 유지한다.

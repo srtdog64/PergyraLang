@@ -1,31 +1,35 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-08-02 named-struct return/local value ABI
+## Active self-host context — 2026-08-02 nested `Option<Pair>` aggregate ABI
 
-- Executable checkpoint `a891851b` closes bounded
-  `struct_literal_call_argument.pgy`. One 11,092-byte self-host MIR drives real
-  `Twice`, `Width(Line)`, and `Main` C/LLVM calls and exact output `6`; installed
-  public C and LLVM compile/run use the same sibling Pergyra-built driver.
-- Program-owned layout capture carries `Vec2` 8/4 ID `669680999` and nested
-  `Line` 16/4 ID `643231747`. The formal `Line` parameter cross-seals the exact
-  declaration receipt. Producer-local syntax IDs remain representation-local;
-  semantic field order/type/layout and positive/local uniqueness are gated.
+- Executable checkpoint `cd886a6d` closes bounded
+  `struct_literal_value_flow.pgy`. One 11,441-byte self-host MIR drives a real
+  `BuildPair(Int) -> Pair`, mutable local replacement, returned aggregate and
+  member reads in C/LLVM; both print exact `11`, and installed public C/LLVM
+  compile/run use the same sibling Pergyra-built driver.
+- Native and self producers attach the exact `Pair` declaration receipt to
+  aggregate return and definition facts. Instruction receipt ownership is
+  explicit; the JSON writer cannot recover a layout from expression text or a
+  declaration scan. Native residual assignment and self `pair.2` remain visibly
+  different representations joined by semantic use identity.
 - One row-order-independent target-neutral program/graph/plan feeds both
-  emitters. Fifteen ABI, declaration, call-edge, expression, and lifetime
-  mutations fail before artifact publication; backend layout guessing, call
+  emitters. Thirteen ABI, declaration, call-edge, latest-use, and member-path
+  mutations fail before artifact publication; backend layout guessing, constant
   flattening, Array retry, and native semantic/codegen re-entry are forbidden.
-- Installed driver: 3,655,177 bytes, SHA-256
-  `D8924C6F2C63ED69277EFBD42F86753BF0E03AF033D7962D3FD9F0222F5DDC8B`;
-  current-source DRV-2 rebuild 96.2 seconds, memory not measured.
-- The sole next executable rung is `struct_literal_value_flow.pgy`, expected
-  output `11`. Source-to-MIR succeeds as 10,325 bytes, SHA-256
-  `DBE394E18B092C43B4CDBC7E4DBE918485C678E3A1528D737753D64B1C9272F5`,
-  but direct C fails before artifact publication. `Pair` declaration ABI exists;
-  `BuildPair` return and the first/latest aggregate local definitions do not
-  carry it. The next change projects that one receipt onto those facts.
-- Latest green includes focused C/LLVM/permutation/15-negative execution,
-  installed C and LLVM, hard contract, and full component ratchet. Full CI,
-  Coq, and current-source fixed point were not rerun.
+- Installed driver: 3,690,605 bytes, SHA-256
+  `4B303BA7C112BC7B4F4727722E694D429DF9C3EA280BCEF1AAB90DAF6B6B40F4`;
+  seed-plus-driver rebuild 506.2 seconds, memory not measured.
+- The sole next executable rung is `option_struct_value_flow.pgy`, expected
+  output `7\n11\n5`. Source-to-MIR succeeds as 17,637 bytes, SHA-256
+  `580E55AB8D4A902F18303959F36D74A59CBEC61DB1A585F5AEA5CBE5E53AEFB6`,
+  but direct C fails before artifact publication. Unwrapped `Pair` definitions
+  carry ID `674136663`; `Option<Pair>` return and mutable locals carry no
+  reconstructible nested ABI receipt. The next change composes that receipt
+  from the existing Option contract and the program-owned `Pair` declaration.
+- Latest green includes native compiler build, focused C/LLVM/permutation/
+  13-negative execution, installed C and LLVM, hard contract, full component
+  ratchet, and final self-host driver build. Full CI, Coq, and current-source
+  fixed point were not rerun.
 
 ## Historical self-host ledger — inactive navigation evidence
 

@@ -6,6 +6,38 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-02 - Named-struct return and local value ABI reach installed C/LLVM
+
+- Closed `struct_literal_value_flow.pgy` as a bounded two-routine aggregate
+  value-flow slice. One 11,441-byte self-host MIR drives a real
+  `BuildPair(Int) -> Pair`, mutable `pair` replacement, returned aggregate and
+  member reads. C and LLVM both print exact `11`.
+- Native MIR resolves static ABI first and then a unique program nominal
+  declaration. Self MIR carries an instruction-owned declaration row and layout
+  ID for aggregate return and definition facts; the JSON writer consumes the
+  carried receipt instead of recovering it from expression text or rescanning
+  the declaration inventory.
+- Added a row-order-independent target-neutral program/graph/plan owner and
+  target-specific C/LLVM emitters. The native residual assignment and self SSA
+  representation remain explicit, joined by the latest semantic use rather
+  than a fake normalized instruction shape.
+- The focused gate reuses one source MIR for both backends, proves native/self
+  receipt parity and routine-permutation equality, runs real aggregate return
+  executables, and rejects thirteen receipt, declaration, call, latest-use, and
+  member-path mutations before artifact publication.
+- Native compiler, installed public C/LLVM, hard substitution contract, full
+  component ratchet, and final self-host driver build are green. The installed
+  3,690,605-byte driver has SHA-256
+  `4B303BA7C112BC7B4F4727722E694D429DF9C3EA280BCEF1AAB90DAF6B6B40F4`.
+  The seed-plus-driver build took 506.2 seconds; memory was not measured. Full
+  CI, Coq, and current-source gen2==gen3 fixed point were not rerun.
+- Next observed falsifier is `option_struct_value_flow.pgy`, expected
+  `7\n11\n5`. Its 17,637-byte MIR has SHA-256
+  `580E55AB8D4A902F18303959F36D74A59CBEC61DB1A585F5AEA5CBE5E53AEFB6`.
+  Direct C fails before output because `Option<Pair>` return and mutable local
+  facts lack a nested ABI receipt even though unwrapped `Pair` definitions own
+  the exact declaration receipt.
+
 ## 2026-08-02 - Named-struct parameter ABI reaches installed C and LLVM
 
 - Closed `struct_literal_call_argument.pgy` as a bounded three-routine nominal
