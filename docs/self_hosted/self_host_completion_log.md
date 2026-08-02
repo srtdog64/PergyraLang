@@ -6,6 +6,52 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-02 - Constructed Option member flow reaches C and LLVM
+
+- Closed `generic_member_constructed_return_flow.pgy` at code checkpoint
+  `b4c432fd`. One 9,309-byte self MIR with SHA-256
+  `343606FD159C30B155F1852A21DD1792E9D7FA0C13A7A2CD246C4B734E9736FA`
+  drives both targets. C and LLVM preserve real `Wrapper_Wrap_Int` and
+  `Wrapper_Echo_Option_Int_` definitions/calls, the shared value receiver,
+  inner-result-to-outer-argument carriage, checked Option tag/value extraction,
+  and exact output `43`. Public installed C and LLVM compile/run use the same
+  target-specific self-host frontier.
+- Added a separate exact-three class shape and classification fact. It admits
+  exactly one class declaration, two specialization rows, two generic methods,
+  one function, and three routines. It does not weaken the completed uniform
+  exact-two member owner, and a selected projection cannot retry Array,
+  nominal, scalar, struct, or two-routine interpretations.
+- Added responsibility-named declaration, signature, heterogeneous-
+  specialization, constructed-type substitution, method graph, Main graph,
+  instruction/SSA, Option ABI, internal representation, plan, projection, and
+  C/LLVM emission owners. The plan cross-seals `Wrap<T> -> Option<T>` at
+  `T := Int`, `Echo<T> -> T` at `T := Option<Int>`, both member symbols and
+  targets, one opaque Value-lane owner with ordinals `{0,1}`, and the physical
+  Main result ABI. `Wrapper` itself retains only the bounded
+  `internal_single_int_value_class` representation.
+- The focused gate creates one MIR and reuses it for C and LLVM. Exact `43`,
+  eight routine/declaration/specialization/owner/formal invariants, five value/
+  name variants, 40 C negatives, and five LLVM sentinels are green. Public
+  installed C/LLVM, previous inferred member/scalar/nominal, hard-contract, full
+  component-contract, and diff checks are green. Full CI, Coq adequacy,
+  bootstrap seed/fixpoint, and current-source gen2==gen3 were not rerun.
+- The installed Pergyra-built driver is 3,962,824 bytes with SHA-256
+  `757066982D5C2591C5272FFEDFDAD08711BAA2168C09BCE74F1B90DD5EBF535D`.
+  Its successful final install invocation took 68.8 seconds without pressure
+  measurement. A prior invocation generated the current driver C but failed at
+  GCC only because caller-wide `MSYS2_ARG_CONV_EXCL=*` disabled path conversion;
+  that environment failure is not a compiler performance sample.
+- Next falsifier is `generic_member_array_return_flow.pgy`. Its observed
+  9,225-byte self MIR has SHA-256
+  `065C5F3B7E84F0CD6793B9605D8FE93790D89EF4F519207702E9EB841B4989C2`
+  and carries `ArrayWrapper_Wrap_Int`,
+  `ArrayWrapper_Echo_Array_Int_`, one-element `Array<Int>` construction, nested
+  member carriage, index zero, and intended exact output `44`. Both direct
+  targets currently reject it before artifact publication at
+  `direct MIR constructed member specialization is invalid`. The next plan
+  must own Array substitution, ABI/storage/lifetime and indexing without
+  broadening the completed Option-specific owner.
+
 ## 2026-08-02 - Inferred generic member flow reaches C and LLVM
 
 - Closed `generic_member_inferred_flow.pgy` at code checkpoint `f01dd7a2`.

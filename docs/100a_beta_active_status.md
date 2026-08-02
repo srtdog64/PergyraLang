@@ -187,6 +187,23 @@ temporaries cannot collide with legal source locals. The next falsifier is
 exact output `43`. Both targets currently fail closed because no exact
 three-routine constructed-member owner exists.
 
+Constructed generic member update (2026-08-02):
+`generic_member_constructed_return_flow.pgy` is now target-specific
+`SUBSTITUTING` through the installed self-host driver. One 9,309-byte MIR drives
+real `Wrapper_Wrap_Int` and `Wrapper_Echo_Option_Int_` calls in C and LLVM,
+preserves `Some(Int) -> Echo(Option<Int>) -> checked unwrap`, and executes exact
+`43`. An exact three-routine classifier and separate declaration, signature,
+heterogeneous-specialization, substitution, graph, instruction/SSA, Option ABI,
+internal-representation, plan, and emitter owners prevent fallback to the
+uniform two-routine or unrelated planners. The focused gate proves eight order/
+identity invariants, five value/name variants, 40 C negatives, and five LLVM
+sentinels; public installed C/LLVM and adjacent inferred generic routes are
+green. The next falsifier is `generic_member_array_return_flow.pgy`: its
+9,225-byte MIR reaches both direct backends but fails before publication at the
+Option-specific constructed-specialization owner. The next closure must own
+`Array<T>` substitution, fixed `Array<Int>` storage/lifetime, nested member
+carriage, and indexing without weakening the completed Option plan.
+
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
 toolchain/preflight clarity, release/debug hygiene, memory/string bounds audit,

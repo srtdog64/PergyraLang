@@ -4345,3 +4345,31 @@ representation을 declaration/signature/receiver와 교차 봉인한다. 외부 
 `(class,class,2,1,1)`, plain/Option `(struct,struct,0,0,0)`, inferred direct nominal
 `(struct,struct,2,1,0)` 중 하나를 선택한 뒤 실패하면 다른 해석으로 retry하지 않는다.
 이 규칙은 malformed member artifact가 더 느슨한 기존 planner로 새는 것을 막는다.
+
+## Windows에서 self-host build가 존재하는 `driver.c`를 찾지 못하는 경우
+
+다음 오류는 parser/codegen 실패나 권한 문제가 아닐 수 있다.
+
+```text
+cc1.exe: fatal error: /d/PergyraLang/.tmp/self_hosted/compiler/bootstrap/driver.c:
+No such file or directory
+```
+
+`driver.c`가 실제로 생성돼 있는데 GCC만 못 찾는다면 caller 전체에 설정한
+`MSYS2_ARG_CONV_EXCL=*`를 먼저 확인한다. 이 값은 self-host driver에 repository-
+relative 인자를 보존할 때는 필요하지만, Git Bash가 GCC에 넘기는 `/d/...` 경로의
+Windows 변환까지 막으면 안 된다.
+
+- PowerShell에서 `MSYS2_ARG_CONV_EXCL=*`를 전역 설정한 뒤 build script를 호출하지
+  않는다.
+- `self_host_compiler_build.sh`가 필요한 self-driver invocation에만 해당 값을
+  국소 적용하도록 둔다.
+- PowerShell의 `bash`가 `C:\Windows\System32\bash.exe` 또는 WindowsApps의 WSL
+  launcher로 해석되면 `/mnt/d/...` chdir 단계에서 먼저 실패할 수 있다. 이 환경의
+  repository gate는 `C:\Program Files\Git\bin\bash.exe`를 명시해 실행한다.
+- 실패 뒤 `driver.c`, `driver.ast.txt`, `driver.emit.key`가 존재하는지 확인한다.
+  이미 fingerprint가 맞으면 다음 정상 호출은 emitted C를 재사용하고 compile/install
+  단계만 다시 수행한다.
+
+이 실패 시간을 compiler build 성능이나 메모리 표본에 합산하지 않는다. 환경 경계가
+정상화된 호출만 측정 증거로 기록한다.
