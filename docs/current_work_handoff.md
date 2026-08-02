@@ -6,73 +6,72 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — enum value and match CFG execution
+## Active self-host context — role operator dispatch execution
 
-- Executable checkpoint: `2dcbeba2` on `main`; documentation is the only
-  intended dirty state during this handoff refresh. The installed Pergyra-built
-  driver is 4,136,286 bytes with SHA-256
-  `C21D8135C3C90987814E2970CAC0BED0B1505DB1E0B33E7A4D5F8765BA8B718E`.
-- Closed executable rung: `ability_decl.pgy` now consumes one strict
-  compile-time declaration-erasure receipt and one target-neutral literal-Log
-  plan. C and runtime-free textual LLVM both execute exact `7`; the zero-
-  declaration form, coherent declaration/method/parameter rename, and `expr0`
-  display drift remain byte-equal within each backend.
-- The receipt proves exact-one declaration, nominal kind, positive syntax ID,
-  zero runtime fields, exact-one method, two exact parameters, `Int` return,
-  function kind, and a complete empty contract. It seals zero runtime layout,
-  symbol, storage, and materialization. The literal plan consumes the persisted
-  expression graph and structured formatted-print ABI; emitters cannot reopen
-  MIR or source text.
-- `DirectMirHelloProjectionFromAdmitted` and `DirectMirHelloEmit{C,Llvm}` are
-  removed from production. Twenty-five declaration/method/parameter/contract/
-  block/instruction/use/graph mutations reject before artifact creation. A
-  literal-73 graph executes exact `73`, proving the plan is not fixture-output
-  dispatch.
-- The three-file family is `538/560` LOC with individual caps and exact file
-  inventory. Component ratchets require a single issuer and forbid retired
-  hello entrypoints, fixture/type names, semantic use of `expr0`, emitter MIR
-  reads, and a second compile-time-erasure owner.
-- Latest green: focused ability C/LLVM parity; old one-MIR dual regression;
-  installed public C and runtime-free LLVM; hard self-host contract; component
-  contract; Python/Bash syntax and `git diff --check`. The old dual regression
-  now pins expected output instead of circularly calling public `pgy --backend=c`
-  after that public path became self-host substitution.
-- `make self-host-compiler` completed in 579.2 seconds because it rebuilt the
-  seed/parser/gen2 chain before installing DRV-2. A final seed-reusing direct
-  driver build completed in 114.2 seconds. Neither run measured pressure and
-  neither is a general compile-throughput benchmark.
-- The global Pergyra-likeness gate remains red at sentinel `29 > 22` and
-  zone-bound step `26 < 29`. This rung added none of the counted sentinel
-  patterns and changed no world/zone intent owner, so the active enum slice must
-  not loosen that unrelated baseline. The previously known duplicate-Coq-fact
-  gate is also not claimed green.
+- Executable checkpoint: `24c700e0d67c35b11aa677e3e1bd71f234fab274` on
+  `main`. The installed
+  Pergyra-built driver is 4,179,179 bytes with SHA-256
+  `973C27FFAE2C3201D4988F7DA99C546663CB4116A430D60A0703B92263E44883`.
+- Closed executable rung: `enum_simple.pgy` is `SUBSTITUTING`. Source-to-MIR
+  produces one 4,351-byte MIR identity with SHA-256
+  `538079F5BEA11E5A2ABB989D29DCC158108A506F73C0BAA2EFCB163946B62894`;
+  that same artifact drives C and runtime-free textual LLVM and both execute
+  exact `2\n300`.
+- The language-level enum variant index now owns declaration owner, spelling,
+  ordinal, payload count and ordered payload types. A general identity-match
+  AIR child owns the real four-block CFG and SSA use binding. One target-neutral
+  enum plan joins those facts with a scalar-ordinal ABI; it materializes no
+  aggregate, storage object or runtime helper. The common `DirectMirCfgPlan`
+  remains the only plan issuer and both existing target emitters consume it.
+- Enum routing claims the program before compile-time declaration erasure. Once
+  claimed, malformed enum input cannot retry erasure, nominal, Option, scalar,
+  legacy CFG or native paths. No fixture, enum, variant or expected-output name
+  appears in the owner family, and no target-specific enum planner/emitter was
+  introduced.
+- Focused installed-driver evidence covers exact C/LLVM execution, coherent
+  rename and display-only artifact equality, case/ordinal/arm-literal semantic
+  changes, and 34 pre-publication negatives across declaration schema, variant
+  identity/payload, definition/graph/SSA/use, pattern/binding, topology and arm
+  facts.
+- This rung also repaired a pre-existing producer/consumer split introduced by
+  `cd886a6d`: assignment MIR began carrying its owned `Int` ABI while direct
+  if/loop/break CFG consumers still required an empty ABI. The consumers now
+  require `Int`; three ABI-forgery negatives reject `String`. Deterministically
+  regenerated CFG identity pins were refreshed, and the complete if/phi/
+  reassign/nested/loop/range/break C/LLVM gate is green.
+- Latest green: current-source driver build and install (106.4 seconds), focused
+  enum C/LLVM gate, complete one-MIR CFG/AIR-plan regression, compile-time
+  declaration-erasure regression, hard self-host contract, component contract,
+  Python/Bash syntax and `git diff --check`. The earlier outer
+  `make self-host-compiler` invocation timed out after installing an artifact;
+  only the direct official builder result is claimed green.
 - Full CI, Coq/Rocq, pressure, bootstrap fixpoint and current-source gen2==gen3
   were not run. Last valid pressure evidence remains checkpoint `8bd92069`:
   104.381 seconds, peak private 1.937 GiB and working set 1.836 GiB. Memory is a
   final-maximum signal with 2.4 GiB attention and 3 GiB hard stop.
 - Active objective: replace the next manifest C-owned path,
-  `src/self_hosted/mir_lower/fixture/enum_simple.pgy`. Source-to-MIR succeeds
-  once and produces 4,351 bytes with SHA-256
-  `538079F5BEA11E5A2ABB989D29DCC158108A506F73C0BAA2EFCB163946B62894`.
-  It contains one payload-free four-variant enum and a four-block match CFG.
-  Both direct targets currently fail before artifact creation because the
-  declaration route overclaims it as compile-time-only erasure. The native
-  execution reference is exact `2\n300\n`.
-- Objective card: the production entrypoint remains installed
-  `pgy-self-driver --mir-json-backend={c,llvm}`. Existing enum declaration,
-  variant identity, expression graph, instruction/use and CFG facts own the
-  semantic input. One target-neutral enum-value + match-CFG plan is the new
-  owner, and selected C/LLVM emitters are its last legitimate consumers.
-- Forbidden fallback: `Direction`/`South`/fixture/output-constant dispatch,
-  target-specific enum planners or mini-compilers, treating the enum as erased
-  or as an invented runtime aggregate, source/`expr0` reparse, flattening the
-  match to constants, or scalar/CFG/native retry after the enum route claims it.
-- Next falsifier: the same admitted MIR must preserve variant ordinal `2`, the
-  actual four-block branch and selected case, and execute exact `2\n300\n` in
-  both targets. Declaration/variant ordinal, match pattern, successor,
-  reachability, SSA use, Log operand and target-plan mutations must fail before
-  publication. Root-intent takeover remains downstream and is not inferred
-  from declaration or action counts.
+  `src/self_hosted/mir_lower/fixture/role_operator_dispatch.pgy`. Installed
+  source-to-MIR succeeds and produces 5,112 bytes with SHA-256
+  `02058EDCEFA3EBEB908449DA54EBB13680C9B560F9B0E8B7FAB7892F2B5C4D4C`;
+  both direct targets currently fail closed with `direct MIR multi-routine
+  projection rejected the program graph`. The language-semantic result is
+  exact `123`, not primitive `1 + 2 == 3`.
+- Objective card: production entrypoint is installed
+  `pgy-self-driver --mir-json-backend={c,llvm}`. Ability/role declaration rows,
+  exact impl-method identity, the role-method routine, operator dispatch fact,
+  caller expression graph and use edge are the fact owners. The last legitimate
+  consumer is one target-neutral role-operator call plan feeding selected C or
+  LLVM emission.
+- Forbidden fallback: `IntMath`/`Arithmetic`/`Add`/fixture/output dispatch,
+  folding `a + b` as primitive arithmetic, copying a C-only role resolver into
+  LLVM, row-order or source/`expr0` reconstruction, a second operator registry,
+  or retrying a primitive/multi-routine/native path after the role route claims
+  the program.
+- Next falsifier: the same produced MIR must execute exact `123` in both targets
+  while declaration/routine row permutation remains semantically stable.
+  Missing or cross-wired ability, role, impl method, receiver type, operator
+  target, routine result, caller use and CFG facts must reject before artifact
+  publication. Do not generalize into a query engine or arbitrary role runtime.
 
 ## Historical checkpoint archive — inactive evidence
 
