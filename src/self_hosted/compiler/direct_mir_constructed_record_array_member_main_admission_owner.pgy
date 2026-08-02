@@ -3,6 +3,7 @@
 import "direct_mir_constructed_record_array_member_identity_owner.pgy";
 import "direct_mir_constructed_record_array_member_instruction_envelope_owner.pgy";
 import "direct_mir_inferred_generic_member_instruction_admission_owner.pgy";
+import "direct_mir_constructed_record_array_member_array_abi_absence_owner.pgy";
 
 struct DirectMirConstructedRecordArrayMemberMainAdmission {
     let valid: Bool;
@@ -11,6 +12,8 @@ struct DirectMirConstructedRecordArrayMemberMainAdmission {
     let result: MirRoutineInstructionScalarCapture;
     let first: MirRoutineInstructionScalarCapture;
     let output: MirRoutineInstructionScalarCapture;
+    let typed_array_abi_absence:
+        DirectMirConstructedRecordArrayAbiAbsenceFact;
 }
 
 func DirectMirConstructedRecordArrayMemberMainAdmissionReady(
@@ -20,7 +23,13 @@ func DirectMirConstructedRecordArrayMemberMainAdmissionReady(
         fact.result.valid && fact.first.valid && fact.output.valid &&
         fact.wrapper.result != "" && fact.point.result != "" &&
         fact.result.result != "" && fact.first.result != "" &&
-        fact.output.result == "";
+        fact.output.result == "" &&
+        DirectMirConstructedRecordArrayAbiAbsenceFactReady(
+            fact.typed_array_abi_absence
+        ) && fact.typed_array_abi_absence.type_name == fact.result.expr1 &&
+        fact.typed_array_abi_absence.result_name == fact.result.result &&
+        fact.typed_array_abi_absence.result_capture_digest ==
+            DirectMirConstructedRecordArrayCaptureDigest(fact.result);
 }
 
 func DirectMirConstructedRecordArrayUsesReady(
@@ -163,9 +172,6 @@ func DirectMirConstructedRecordArrayMemberMainAdmissionFromProgram(
         first.arg1 != identity.record.name || output.arg0 != "Log" ||
         output.arg1 != "" || !DirectMirInstructionHasNoPhysicalAbi(
             admitted.routines.source_json, wrapper, identity.wrapper.name
-        ) || !DirectMirInstructionHasNoPhysicalAbi(
-            admitted.routines.source_json, result,
-            identity.specialization.pair.outer_generic_actual
         ) || point.abi_type_name != identity.record.name ||
         first.abi_type_name != identity.record.name {
         Die("direct MIR constructed record Array Main instruction is invalid");
@@ -196,9 +202,16 @@ func DirectMirConstructedRecordArrayMemberMainAdmissionFromProgram(
         }
         definition_row = definition_row + 1;
     }
+    let typed_array_abi_absence:
+        DirectMirConstructedRecordArrayAbiAbsenceFact =
+        DirectMirConstructedRecordArrayAbiAbsenceFromSealedResult(
+            admitted.routines.source_json, result,
+            identity.specialization.pair.outer_generic_actual
+        );
     let fact: DirectMirConstructedRecordArrayMemberMainAdmission =
         DirectMirConstructedRecordArrayMemberMainAdmission(
-            true, wrapper, point, result, first, output
+            true, wrapper, point, result, first, output,
+            typed_array_abi_absence
         );
     if !DirectMirConstructedRecordArrayMemberMainAdmissionReady(fact) {
         Die("direct MIR constructed record Array Main admission is invalid");

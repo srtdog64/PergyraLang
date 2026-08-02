@@ -14357,6 +14357,8 @@ for constructed_array_member_owner in \
     direct_mir_array_storage_abi_projection_owner.pgy \
     direct_mir_array_storage_symbol_owner.pgy \
     direct_mir_array_storage_c_assertion_owner.pgy \
+    direct_mir_aggregate_value_flow_fact_owner.pgy \
+    direct_mir_aggregate_value_flow_target_projection_owner.pgy \
     direct_mir_constructed_array_member_representation_owner.pgy \
     direct_mir_constructed_array_member_plan_owner.pgy \
     direct_mir_constructed_array_member_c_emission_owner.pgy \
@@ -14373,15 +14375,15 @@ require_file \
 require_file \
     "tests/self_hosted/parity/one_mir_constructed_array_member_mutations.py"
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_constructed_array_member_projection.sh" 170
+    "tests/self_hosted/parity/one_mir_constructed_array_member_projection.sh" 180
 require_max_lines \
     "tests/self_hosted/parity/one_mir_constructed_array_member_mutations.py" 300
 require_text \
     "src/self_hosted/compiler/direct_mir_constructed_generic_member_projection_owner.pgy" \
     "DirectMirConstructedMemberVariantFromPair(pair)"
 require_text \
-    "src/self_hosted/compiler/direct_mir_constructed_array_member_plan_owner.pgy" \
-    "caller_owned_fixed_array_through_nested_member_by_value"
+    "src/self_hosted/compiler/direct_mir_aggregate_value_flow_fact_owner.pgy" \
+    "caller_owned_single_storage_nested_member_by_value"
 require_text \
     "src/self_hosted/compiler/direct_mir_array_int_abi_fact_owner.pgy" \
     'abi.niche_none_pattern == ""'
@@ -14406,6 +14408,7 @@ for constructed_record_array_member_owner in \
     direct_mir_constructed_record_array_member_identity_owner.pgy \
     direct_mir_constructed_record_array_member_instruction_envelope_owner.pgy \
     direct_mir_constructed_record_array_member_main_admission_owner.pgy \
+    direct_mir_constructed_record_array_member_array_abi_absence_owner.pgy \
     direct_mir_constructed_record_array_member_point_abi_owner.pgy \
     direct_mir_constructed_record_array_member_representation_owner.pgy \
     direct_mir_constructed_record_array_member_plan_join_owner.pgy \
@@ -14439,13 +14442,25 @@ require_text \
     "CompileAdmittedDirectMirConstructedRecordArrayMember("
 require_text \
     "src/self_hosted/compiler/direct_mir_constructed_record_array_member_plan_owner.pgy" \
-    "typed_array_abi_absence_then_target_nominal_projection"
+    "DirectMirAggregateValueFlowTypedArrayAbsenceNominalElementAbi()"
 require_text \
     "src/self_hosted/compiler/direct_mir_constructed_record_array_member_plan_owner.pgy" \
-    "caller_owned_fixed_record_array_through_nested_member_by_value"
+    "plan.main.typed_array_abi_absence.digest"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_constructed_record_array_member_plan_owner.pgy" \
+    "main.digest"
+require_text \
+    "src/self_hosted/compiler/direct_mir_constructed_record_array_member_array_abi_absence_owner.pgy" \
+    "DirectMirInstructionHasNoPhysicalAbi("
+require_text \
+    "src/self_hosted/compiler/direct_mir_constructed_record_array_member_array_abi_absence_owner.pgy" \
+    "fact.physical_abi_absent"
+require_text \
+    "src/self_hosted/compiler/direct_mir_aggregate_value_flow_fact_owner.pgy" \
+    "caller_owned_single_storage_nested_member_by_value"
 require_text \
     "src/self_hosted/compiler/direct_mir_constructed_array_member_plan_owner.pgy" \
-    'DirectMirClosedModuleCallAbiFactReady(plan.call_abi)'
+    'DirectMirAggregateValueFlowFactReady(plan.aggregate_flow)'
 require_text \
     "src/self_hosted/compiler/direct_mir_array_storage_symbol_owner.pgy" \
     'block_or_parameter'
@@ -14467,9 +14482,69 @@ for array_storage_consumer in \
     reject_text "src/self_hosted/compiler/$array_storage_consumer" \
         'direct_mir_array_storage_layout_contract_owner.pgy'
 done
+for aggregate_flow_consumer in \
+    direct_mir_constructed_array_member_plan_owner.pgy \
+    direct_mir_constructed_record_array_member_plan_owner.pgy; do
+    require_text "src/self_hosted/compiler/$aggregate_flow_consumer" \
+        'direct_mir_aggregate_value_flow_fact_owner.pgy'
+    reject_text "src/self_hosted/compiler/$aggregate_flow_consumer" \
+        'direct_mir_closed_module_call_abi_owner.pgy'
+    reject_text "src/self_hosted/compiler/$aggregate_flow_consumer" \
+        'DirectMirAggregateValueFlowFactSeal('
+    for aggregate_old_decision in \
+        'let representation: DirectMirInferredGenericMemberRepresentationFact;' \
+        'let call_abi: DirectMirClosedModuleCallAbiFact;' \
+        'let storage_count: Int;' 'let selected_index: Int;' \
+        'let value_carriage: String;' 'let array_abi_policy: String;' \
+        'let target_capability_schema: String;' \
+        'let target_capability_fingerprint: Int;' \
+        'target_capability_owner.pgy' \
+        'DirectMirConstructedArrayMemberCarriage' \
+        'DirectMirConstructedRecordArrayMemberCarriage' \
+        'DirectMirConstructedRecordArrayMemberAbiPolicy' \
+        'caller_owned_fixed_array_through_nested_member_by_value' \
+        'caller_owned_fixed_record_array_through_nested_member_by_value'; do
+        reject_text "src/self_hosted/compiler/$aggregate_flow_consumer" \
+            "$aggregate_old_decision"
+    done
+done
+for aggregate_forbidden_term in \
+    MirMachineLayerAdmittedJsonInput JsonObjectFact ClassificationFact \
+    target_projection CompilerTargetCpu; do
+    reject_text \
+        "src/self_hosted/compiler/direct_mir_aggregate_value_flow_fact_owner.pgy" \
+        "$aggregate_forbidden_term"
+done
 require_text \
-    "src/self_hosted/compiler/direct_mir_constructed_record_array_member_representation_owner.pgy" \
-    "DirectMirInferredGenericMemberRepresentation()"
+    "src/self_hosted/compiler/direct_mir_aggregate_value_flow_fact_owner.pgy" \
+    'if fact.call_abi.external_interop'
+require_text \
+    "src/self_hosted/compiler/direct_mir_aggregate_value_flow_target_projection_owner.pgy" \
+    'projection.flow.call_abi.target_capability_fingerprint'
+for aggregate_emitter in \
+    direct_mir_constructed_array_member_c_emission_owner.pgy \
+    direct_mir_constructed_array_member_llvm_emission_owner.pgy \
+    direct_mir_constructed_record_array_member_c_emission_owner.pgy \
+    direct_mir_constructed_record_array_member_llvm_emission_owner.pgy; do
+    require_text "src/self_hosted/compiler/$aggregate_emitter" \
+        'direct_mir_aggregate_value_flow_target_projection_owner.pgy'
+    for aggregate_reowned_term in \
+        'plan.representation' 'plan.call_abi' 'plan.storage_count' \
+        'plan.selected_index' 'plan.value_carriage' \
+        'plan.aggregate_flow.selected_index' 'define internal' '[1 x' \
+        'i64 1,' 'ptr null' ', 1, 1, NULL' '[0] ='; do
+        reject_text "src/self_hosted/compiler/$aggregate_emitter" \
+            "$aggregate_reowned_term"
+    done
+done
+for aggregate_representation_adapter in \
+    direct_mir_constructed_array_member_representation_owner.pgy \
+    direct_mir_constructed_record_array_member_representation_owner.pgy; do
+    require_text "src/self_hosted/compiler/$aggregate_representation_adapter" \
+        'DirectMirAggregateValueRepresentationFromSealedIdentity('
+    reject_text "src/self_hosted/compiler/$aggregate_representation_adapter" \
+        'DirectMirInferredGenericMemberRepresentation()'
+done
 require_text "Makefile" \
     "SELFHOST_ONE_MIR_CONSTRUCTED_RECORD_ARRAY_MEMBER_GATE ?="
 require_text "Makefile" \

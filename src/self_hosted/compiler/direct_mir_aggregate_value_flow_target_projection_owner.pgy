@@ -1,0 +1,80 @@
+// Target-bound emission view of one sealed aggregate value-flow fact.
+// Element spelling remains in the family ABI projection.
+
+import "direct_mir_aggregate_value_flow_fact_owner.pgy";
+import "direct_mir_array_storage_abi_projection_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+struct DirectMirAggregateValueFlowTargetProjection {
+    let valid: Bool;
+    let target_projection: String;
+    let target_capability_fingerprint: Int;
+    let flow: DirectMirAggregateValueFlowFact;
+    let storage: DirectMirArrayStorageAbiProjection;
+    let call_linkage: String;
+    let allocator_literal: String;
+    let storage_count: Int;
+    let selected_index: Int;
+}
+
+func DirectMirAggregateValueFlowTargetProjectionReadyFor(
+    ref projection: DirectMirAggregateValueFlowTargetProjection,
+    expected_target: String
+) -> Bool {
+    if !projection.valid ||
+        !DirectMirAggregateValueFlowFactReady(projection.flow) ||
+        !DirectMirArrayStorageAbiProjectionReadyFor(
+            projection.storage, expected_target
+        ) || projection.target_projection != expected_target ||
+        projection.target_projection != projection.storage.target_projection ||
+        projection.target_capability_fingerprint !=
+            projection.storage.target_capability_fingerprint ||
+        projection.target_capability_fingerprint !=
+            projection.flow.call_abi.target_capability_fingerprint ||
+        projection.storage_count != projection.flow.storage_count ||
+        projection.selected_index != projection.flow.selected_index {
+        return false;
+    }
+    if expected_target == CompilerTargetCpuCProjection() {
+        return projection.call_linkage == "static" &&
+            projection.allocator_literal == "NULL" &&
+            projection.flow.call_abi.c_classifier ==
+                "host_c_compiler_classified";
+    }
+    return expected_target == CompilerTargetCpuLlvmProjection() &&
+        projection.call_linkage == "internal" &&
+        projection.allocator_literal == "null" &&
+        projection.flow.call_abi.llvm_classifier ==
+            "llvm_default_internal_classified";
+}
+
+func DirectMirAggregateValueFlowTargetProjectionFromFacts(
+    ref flow: DirectMirAggregateValueFlowFact,
+    ref storage: DirectMirArrayStorageAbiProjection,
+    target_projection: String
+) -> DirectMirAggregateValueFlowTargetProjection {
+    let call_linkage: String = "";
+    let allocator_literal: String = "";
+    if target_projection == CompilerTargetCpuCProjection() {
+        call_linkage = "static";
+        allocator_literal = "NULL";
+    } else if target_projection == CompilerTargetCpuLlvmProjection() {
+        call_linkage = "internal";
+        allocator_literal = "null";
+    } else {
+        Die("direct MIR aggregate value-flow target is unsupported");
+    }
+    let projection: DirectMirAggregateValueFlowTargetProjection =
+        DirectMirAggregateValueFlowTargetProjection(
+            true, target_projection,
+            storage.target_capability_fingerprint, flow, storage,
+            call_linkage, allocator_literal,
+            flow.storage_count, flow.selected_index
+        );
+    if !DirectMirAggregateValueFlowTargetProjectionReadyFor(
+        projection, target_projection
+    ) {
+        Die("direct MIR aggregate value-flow target projection is invalid");
+    }
+    return projection;
+}

@@ -6,6 +6,7 @@ import "runtime_call_abi_structured_fact_owner.pgy";
 import "symbol_table_owner.pgy";
 import "direct_mir_array_storage_symbol_owner.pgy";
 import "direct_mir_array_storage_c_assertion_owner.pgy";
+import "direct_mir_aggregate_value_flow_target_projection_owner.pgy";
 
 func DirectMirConstructedArrayMemberEmitC(
     ref plan: DirectMirConstructedArrayMemberPlan,
@@ -21,11 +22,15 @@ func DirectMirConstructedArrayMemberEmitC(
         formatted_print.symbol == "" || line_format == "" {
         Die("direct MIR constructed Array member C facts are invalid");
     }
+    let flow_target: DirectMirAggregateValueFlowTargetProjection =
+        DirectMirAggregateValueFlowTargetProjectionFromFacts(
+            plan.aggregate_flow, abi.storage, CompilerTargetCpuCProjection()
+        );
     let type_name: String = CompilerSymbolCIdentifier(
-        plan.representation.type_name
+        plan.aggregate_flow.representation.type_name
     );
     let field_name: String = CompilerSymbolCIdentifier(
-        plan.representation.field_name
+        plan.aggregate_flow.representation.field_name
     );
     let outer_symbol: String = CompilerSymbolCIdentifier(
         plan.identity.specialization.outer_symbol
@@ -79,7 +84,8 @@ func DirectMirConstructedArrayMemberEmitC(
     output = Concat(output, DirectMirArrayStorageCAssertionBlock(
         abi.storage, abi.c_array_type
     ));
-    output = Concat(output, "static ");
+    output = Concat(output, flow_target.call_linkage);
+    output = Concat(output, " ");
     output = Concat(output, abi.c_array_type);
     output = Concat(output, " ");
     output = Concat(output, inner_symbol);
@@ -99,13 +105,23 @@ func DirectMirConstructedArrayMemberEmitC(
     output = Concat(output, receiver);
     output = Concat(output, ";\n    ");
     output = Concat(output, storage.name);
-    output = Concat(output, "[0] = ");
+    output = Concat(output, "[");
+    output = Concat(output, ToString(flow_target.selected_index));
+    output = Concat(output, "] = ");
     output = Concat(output, inner_value);
     output = Concat(output, ";\n    return (");
     output = Concat(output, abi.c_array_type);
     output = Concat(output, "){");
     output = Concat(output, storage.name);
-    output = Concat(output, ", 1, 1, NULL};\n}\n\nstatic ");
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(flow_target.storage_count));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(flow_target.storage_count));
+    output = Concat(output, ", ");
+    output = Concat(output, flow_target.allocator_literal);
+    output = Concat(output, "};\n}\n\n");
+    output = Concat(output, flow_target.call_linkage);
+    output = Concat(output, " ");
     output = Concat(output, abi.c_array_type);
     output = Concat(output, " ");
     output = Concat(output, outer_symbol);
@@ -129,7 +145,9 @@ func DirectMirConstructedArrayMemberEmitC(
     output = Concat(output, abi.c_element_type);
     output = Concat(output, " ");
     output = Concat(output, storage.name);
-    output = Concat(output, "[1];\n    ");
+    output = Concat(output, "[");
+    output = Concat(output, ToString(flow_target.storage_count));
+    output = Concat(output, "];\n    ");
     output = Concat(output, abi.c_array_type);
     output = Concat(output, " pgy_inner = ");
     output = Concat(output, inner_symbol);
@@ -148,7 +166,7 @@ func DirectMirConstructedArrayMemberEmitC(
     output = Concat(output, "\", (");
     output = Concat(output, abi.c_print_type);
     output = Concat(output, ")pgy_result.data[");
-    output = Concat(output, ToString(plan.selected_index));
+    output = Concat(output, ToString(flow_target.selected_index));
     output = Concat(output, "]);\n    return 0;\n}\n");
     return output;
 }

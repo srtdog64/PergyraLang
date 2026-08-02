@@ -2,8 +2,7 @@
 
 import "direct_mir_constructed_array_member_abi_admission_owner.pgy";
 import "direct_mir_constructed_array_member_representation_owner.pgy";
-import "direct_mir_closed_module_call_abi_owner.pgy";
-import "target_capability_owner.pgy";
+import "direct_mir_aggregate_value_flow_fact_owner.pgy";
 import "artifact_zone_owner.pgy";
 import "../mir_lower/ssa_identity_owner.pgy";
 
@@ -12,25 +11,15 @@ struct DirectMirConstructedArrayMemberPlan {
     let schema: String;
     let revision: Int;
     let digest: Int;
-    let target_capability_schema: String;
-    let target_capability_fingerprint: Int;
     let identity: DirectMirConstructedArrayMemberProgramIdentity;
-    let representation: DirectMirInferredGenericMemberRepresentationFact;
     let abi: MirAbiLayoutRowCapture;
-    let call_abi: DirectMirClosedModuleCallAbiFact;
+    let aggregate_flow: DirectMirAggregateValueFlowFact;
     let receiver_value: String;
     let result_value: String;
-    let storage_count: Int;
-    let selected_index: Int;
-    let value_carriage: String;
 }
 
 func DirectMirConstructedArrayMemberPlanSchema() -> String {
     return "pgy.selfhost.direct-mir-constructed-array-member-plan.v1";
-}
-
-func DirectMirConstructedArrayMemberCarriage() -> String {
-    return "caller_owned_fixed_array_through_nested_member_by_value";
 }
 
 func DirectMirConstructedArrayMemberPlanDigest(
@@ -39,22 +28,11 @@ func DirectMirConstructedArrayMemberPlanDigest(
     if !plan.valid { return 0; }
     let hash: Long = DirectMirCfgHashString(433L, plan.schema);
     hash = DirectMirCfgHashInt(hash, plan.revision);
-    hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
-    hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
     hash = DirectMirCfgHashInt(hash, plan.identity.digest);
-    hash = DirectMirCfgHashInt(hash, plan.representation.digest);
     hash = DirectMirCfgHashInt(hash, MirAbiLayoutIdFromCapture(plan.abi));
-    hash = DirectMirCfgHashInt(
-        hash, plan.call_abi.target_capability_fingerprint
-    );
-    hash = DirectMirCfgHashString(hash, plan.call_abi.scope);
-    hash = DirectMirCfgHashString(hash, plan.call_abi.c_classifier);
-    hash = DirectMirCfgHashString(hash, plan.call_abi.llvm_classifier);
+    hash = DirectMirCfgHashInt(hash, plan.aggregate_flow.digest);
     hash = DirectMirCfgHashString(hash, plan.receiver_value);
     hash = DirectMirCfgHashString(hash, plan.result_value);
-    hash = DirectMirCfgHashInt(hash, plan.storage_count);
-    hash = DirectMirCfgHashInt(hash, plan.selected_index);
-    hash = DirectMirCfgHashString(hash, plan.value_carriage);
     return DirectMirCfgBoundedDigest(hash);
 }
 
@@ -65,29 +43,37 @@ func DirectMirConstructedArrayMemberPlanReady(
         plan.schema == DirectMirConstructedArrayMemberPlanSchema() &&
         plan.revision == CompilerArtifactPlanRevision() && plan.digest != 0 &&
         plan.digest == DirectMirConstructedArrayMemberPlanDigest(plan) &&
-        plan.target_capability_schema == CompilerTargetCapabilitySchema() &&
-        plan.target_capability_fingerprint ==
-            CompilerTargetCapabilityFingerprint() &&
         DirectMirConstructedArrayMemberProgramIdentityReady(plan.identity) &&
-        DirectMirInferredGenericMemberRepresentationFactReady(
-            plan.representation
-        ) && DirectMirArrayIntCapturedAbiReady(plan.abi) &&
-        DirectMirClosedModuleCallAbiFactReady(plan.call_abi) &&
-        plan.representation.type_name == plan.identity.declaration.name &&
-        plan.representation.field_name == plan.identity.declaration.field_name &&
-        plan.representation.field_type == plan.identity.declaration.field_type &&
+        DirectMirArrayIntCapturedAbiReady(plan.abi) &&
+        DirectMirAggregateValueFlowFactReady(plan.aggregate_flow) &&
+        plan.aggregate_flow.wrapper_type == plan.identity.declaration.name &&
+        plan.aggregate_flow.wrapper_field ==
+            plan.identity.declaration.field_name &&
+        plan.aggregate_flow.wrapper_field_type ==
+            plan.identity.declaration.field_type &&
+        plan.aggregate_flow.element_type ==
+            plan.identity.specialization.inner_generic_actual &&
+        plan.aggregate_flow.array_type ==
+            plan.identity.specialization.outer_generic_actual &&
+        plan.aggregate_flow.abi_provenance ==
+            DirectMirAggregateValueFlowCapturedArrayAbi() &&
+        plan.aggregate_flow.array_layout_admission ==
+            "captured_physical_array_layout" &&
+        plan.aggregate_flow.abi_evidence_id ==
+            MirAbiLayoutIdFromCapture(plan.abi) &&
         MirSsaNameMatches(
             plan.receiver_value, plan.identity.main_graph.receiver_local, false
         ) && MirSsaNameMatches(
             plan.result_value, plan.identity.main_graph.result_local, false
-        ) && plan.storage_count == 1 && plan.selected_index == 0 &&
-        plan.identity.method_graph.element_count == plan.storage_count &&
-        plan.identity.main_graph.selected_index == plan.selected_index &&
+        ) && plan.identity.method_graph.element_count ==
+            plan.aggregate_flow.storage_count &&
+        plan.identity.main_graph.selected_index ==
+            plan.aggregate_flow.selected_index &&
         plan.identity.method_graph.construction_policy ==
-            "single_element_array_construct" &&
-        plan.identity.method_graph.identity_policy == "identity_return" &&
-        plan.identity.main_graph.output_policy == "fixed_array_index" &&
-        plan.value_carriage == DirectMirConstructedArrayMemberCarriage();
+            plan.aggregate_flow.construction_policy &&
+        plan.identity.method_graph.identity_policy ==
+            plan.aggregate_flow.identity_policy &&
+        plan.identity.main_graph.output_policy == "fixed_array_index";
 }
 
 func DirectMirConstructedArrayMemberPlanFromAdmitted(
@@ -115,31 +101,26 @@ func DirectMirConstructedArrayMemberPlanFromAdmitted(
         DirectMirConstructedArrayMemberAbiFromResult(
             admitted.routines.source_json, main
         );
-    let call_abi: DirectMirClosedModuleCallAbiFact =
-        DirectMirClosedModuleCallAbiFactFromOwner();
-    if !DirectMirClosedModuleCallAbiFactReady(call_abi) {
-        Die("direct MIR constructed Array call ABI scope is invalid");
-    }
+    let aggregate_flow: DirectMirAggregateValueFlowFact =
+        DirectMirAggregateValueFlowFactFromCapturedArrayAbi(
+            representation, identity.declaration.name,
+            identity.declaration.field_name, identity.declaration.field_type,
+            identity.specialization.inner_generic_actual,
+            identity.specialization.outer_generic_actual,
+            MirAbiLayoutIdFromCapture(abi)
+        );
     let plan: DirectMirConstructedArrayMemberPlan =
         DirectMirConstructedArrayMemberPlan(
             true, DirectMirConstructedArrayMemberPlanSchema(),
-            CompilerArtifactPlanRevision(), 0,
-            CompilerTargetCapabilitySchema(),
-            CompilerTargetCapabilityFingerprint(), identity, representation,
-            abi, call_abi, main.constructor.result, main.result.result,
-            identity.method_graph.element_count,
-            identity.main_graph.selected_index,
-            DirectMirConstructedArrayMemberCarriage()
+            CompilerArtifactPlanRevision(), 0, identity, abi,
+            aggregate_flow, main.constructor.result, main.result.result
         );
     let verified: DirectMirConstructedArrayMemberPlan =
         DirectMirConstructedArrayMemberPlan(
             plan.valid, plan.schema, plan.revision,
             DirectMirConstructedArrayMemberPlanDigest(plan),
-            plan.target_capability_schema, plan.target_capability_fingerprint,
-            plan.identity, plan.representation, plan.abi,
-            plan.call_abi,
-            plan.receiver_value, plan.result_value, plan.storage_count,
-            plan.selected_index, plan.value_carriage
+            plan.identity, plan.abi, plan.aggregate_flow,
+            plan.receiver_value, plan.result_value
         );
     if !DirectMirConstructedArrayMemberPlanReady(verified) {
         Die("direct MIR constructed Array member plan is invalid");

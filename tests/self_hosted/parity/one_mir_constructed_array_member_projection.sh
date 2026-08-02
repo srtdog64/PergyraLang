@@ -54,6 +54,11 @@ EOF
         require_file "$ROOT_DIR/src/self_hosted/compiler/$shared_owner"
         [[ "$(wc -l <"$ROOT_DIR/src/self_hosted/compiler/$shared_owner")" -le 140 ]] || fail "shared Array storage owner hard cap exceeded: $shared_owner"
     done
+    for aggregate_owner_cap in direct_mir_aggregate_value_flow_fact_owner.pgy:220 direct_mir_aggregate_value_flow_target_projection_owner.pgy:100; do
+        local aggregate_owner="${aggregate_owner_cap%%:*}" aggregate_cap="${aggregate_owner_cap##*:}"
+        require_file "$ROOT_DIR/src/self_hosted/compiler/$aggregate_owner"
+        [[ "$(wc -l <"$ROOT_DIR/src/self_hosted/compiler/$aggregate_owner")" -le "$aggregate_cap" ]] || fail "aggregate owner hard cap exceeded: $aggregate_owner"
+    done
     grep -Fq 'DirectMirConstructedMemberVariantFromPair(pair)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_projection_owner.pgy" || fail "one-shot family classification is not routed"
     grep -Fq 'CompileAdmittedDirectMirConstructedArrayMember(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_projection_owner.pgy" || fail "Array member projection is not routed"
     for projection in direct_mir_constructed_generic_member_specialization_fact_owner.pgy direct_mir_constructed_array_member_specialization_fact_owner.pgy; do
@@ -65,7 +70,14 @@ EOF
     done
     grep -Fq 'direct_mir_array_storage_abi_projection_owner.pgy' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy" || fail "Array<Int> target ABI bypassed the storage projection owner"
     ! grep -Fq 'direct_mir_array_storage_layout_contract_owner.pgy' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy" || fail "Array<Int> target ABI reopened the storage layout owner"
-    grep -Fq 'DirectMirClosedModuleCallAbiFactReady(plan.call_abi)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_plan_owner.pgy" || fail "Array<Int> plan lacks the closed-module call receipt"
+    grep -Fq 'DirectMirAggregateValueFlowFactReady(plan.aggregate_flow)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_plan_owner.pgy" || fail "Array<Int> plan bypassed the aggregate value-flow fact"
+    grep -Fq 'DirectMirAggregateValueFlowCapturedArrayAbi()' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_plan_owner.pgy" || fail "Array<Int> plan lost captured ABI provenance"
+    ! grep -Eq 'MirMachineLayerAdmittedJsonInput|JsonObjectFact|ClassificationFact|target_projection|CompilerTargetCpu' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_aggregate_value_flow_fact_owner.pgy" || fail "aggregate value-flow owner reopened family or target input"
+    ! grep -Fq 'direct_mir_closed_module_call_abi_owner.pgy' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_plan_owner.pgy" || fail "Array<Int> plan reconstructed the shared call receipt"
+    for emitter in direct_mir_constructed_array_member_c_emission_owner.pgy direct_mir_constructed_array_member_llvm_emission_owner.pgy; do
+        grep -Fq 'direct_mir_aggregate_value_flow_target_projection_owner.pgy' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter bypassed the aggregate target projection"
+        ! grep -Eq 'plan\.(representation|call_abi|storage_count|selected_index|value_carriage)|plan\.aggregate_flow\.selected_index|define internal|\[1 x|i64 1,|ptr null|, 1, 1, NULL|\[0\] =' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter re-owned aggregate decisions"
+    done
 }
 
 project() {
@@ -125,9 +137,16 @@ grep -Fq 'pgy_ai ArrayWrapper_Echo_Array_Int_(ArrayWrapper self, pgy_ai value)' 
 grep -Fq '_Static_assert(sizeof(pgy_ai) == 32' "$WORK_DIR/baseline.c" || fail "C lost Array storage size receipt"
 grep -Fq 'offsetof(pgy_ai, allocator) == 24' "$WORK_DIR/baseline.c" || fail "C lost Array allocator offset receipt"
 grep -Fq 'ArrayWrapper_Echo_Array_Int_(pgy_receiver, pgy_inner)' "$WORK_DIR/baseline.c" || fail "C flattened nested member flow"
+grep -Fq 'return (pgy_ai){_pgy_array_storage_0, 1, 1, NULL};' "$WORK_DIR/baseline.c" || fail "C lost complete four-field Array initializer"
 ! grep -Eq 'pgy_array_new_Int|malloc|free' "$WORK_DIR/baseline.c" || fail "C reintroduced runtime allocation"
 [[ "$(grep -Fc 'alloca [1 x i32]' "$WORK_DIR/baseline.ll")" -eq 1 ]] || fail "LLVM storage owner is not unique"
 grep -Fq '@ArrayWrapper_Wrap_Int(%ArrayWrapper %receiver, i32 44, ptr %array.data)' "$WORK_DIR/baseline.ll" || fail "LLVM lost hidden caller storage"
+grep -Fq '%array.0 = insertvalue { ptr, i64, i64, ptr } poison, ptr %pgy.array.storage, 0' "$WORK_DIR/baseline.ll" || fail "LLVM lost Array data slot"
+grep -Fq '%array.1 = insertvalue { ptr, i64, i64, ptr } %array.0, i64 1, 1' "$WORK_DIR/baseline.ll" || fail "LLVM lost Array length slot"
+grep -Fq '%array.2 = insertvalue { ptr, i64, i64, ptr } %array.1, i64 1, 2' "$WORK_DIR/baseline.ll" || fail "LLVM lost Array capacity slot"
+grep -Fq '%array.3 = insertvalue { ptr, i64, i64, ptr } %array.2, ptr null, 3' "$WORK_DIR/baseline.ll" || fail "LLVM lost Array allocator slot"
+grep -Fq 'ret { ptr, i64, i64, ptr } %array.3' "$WORK_DIR/baseline.ll" || fail "LLVM returned an incomplete Array shell"
+! grep -Fq '{ ptr, i64, i64 }' "$WORK_DIR/baseline.ll" || fail "LLVM regressed to a three-field Array"
 grep -Fq '@ArrayWrapper_Echo_Array_Int_(%ArrayWrapper %receiver, { ptr, i64, i64, ptr } %inner)' "$WORK_DIR/baseline.ll" || fail "LLVM flattened nested aggregate flow"
 grep -Fq '%result.data = extractvalue { ptr, i64, i64, ptr } %result, 0' "$WORK_DIR/baseline.ll" || fail "LLVM lost Array data extraction"
 ! grep -Eq '@pgy_|malloc|free' "$WORK_DIR/baseline.ll" || fail "LLVM reintroduced runtime allocation"

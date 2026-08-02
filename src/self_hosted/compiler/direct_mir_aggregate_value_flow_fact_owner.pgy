@@ -1,0 +1,201 @@
+// Target-neutral value-flow decision shared after family admission.
+// Family ABI provenance remains distinct and target spelling is not owned here.
+
+import "direct_mir_inferred_generic_member_representation_fact_owner.pgy";
+import "direct_mir_closed_module_call_abi_owner.pgy";
+import "artifact_zone_owner.pgy";
+
+struct DirectMirAggregateValueFlowFact {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let digest: Int;
+    let wrapper_type: String;
+    let wrapper_field: String;
+    let wrapper_field_type: String;
+    let element_type: String;
+    let array_type: String;
+    let abi_provenance: String;
+    let array_layout_admission: String;
+    let abi_evidence_id: Int;
+    let representation: DirectMirInferredGenericMemberRepresentationFact;
+    let call_abi: DirectMirClosedModuleCallAbiFact;
+    let storage_owner: String;
+    let storage_count: Int;
+    let selected_index: Int;
+    let construction_policy: String;
+    let identity_policy: String;
+    let allocator_provenance: String;
+    let storage_lifetime: String;
+    let value_carriage: String;
+}
+
+func DirectMirAggregateValueFlowFactSchema() -> String {
+    return "pgy.selfhost.direct-mir-aggregate-value-flow-fact.v1";
+}
+
+func DirectMirAggregateValueFlowCapturedArrayAbi() -> String {
+    return "captured_array_layout_receipt";
+}
+
+func DirectMirAggregateValueFlowTypedArrayAbsenceNominalElementAbi(
+) -> String {
+    return "typed_array_abi_absence_then_nominal_element_target_array_projection";
+}
+
+func DirectMirAggregateValueFlowFactDigest(
+    ref fact: DirectMirAggregateValueFlowFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(467L, fact.schema);
+    hash = DirectMirCfgHashInt(hash, fact.revision);
+    hash = DirectMirCfgHashString(hash, fact.wrapper_type);
+    hash = DirectMirCfgHashString(hash, fact.wrapper_field);
+    hash = DirectMirCfgHashString(hash, fact.wrapper_field_type);
+    hash = DirectMirCfgHashString(hash, fact.element_type);
+    hash = DirectMirCfgHashString(hash, fact.array_type);
+    hash = DirectMirCfgHashString(hash, fact.abi_provenance);
+    hash = DirectMirCfgHashString(hash, fact.array_layout_admission);
+    hash = DirectMirCfgHashInt(hash, fact.abi_evidence_id);
+    hash = DirectMirCfgHashInt(hash, fact.representation.digest);
+    hash = DirectMirCfgHashInt(
+        hash, fact.call_abi.target_capability_fingerprint
+    );
+    hash = DirectMirCfgHashString(hash, fact.call_abi.scope);
+    hash = DirectMirCfgHashString(hash, fact.call_abi.c_classifier);
+    hash = DirectMirCfgHashString(hash, fact.call_abi.llvm_classifier);
+    if fact.call_abi.external_interop {
+        hash = DirectMirCfgHashInt(hash, 1);
+    } else {
+        hash = DirectMirCfgHashInt(hash, 0);
+    }
+    hash = DirectMirCfgHashString(hash, fact.storage_owner);
+    hash = DirectMirCfgHashInt(hash, fact.storage_count);
+    hash = DirectMirCfgHashInt(hash, fact.selected_index);
+    hash = DirectMirCfgHashString(hash, fact.construction_policy);
+    hash = DirectMirCfgHashString(hash, fact.identity_policy);
+    hash = DirectMirCfgHashString(hash, fact.allocator_provenance);
+    hash = DirectMirCfgHashString(hash, fact.storage_lifetime);
+    hash = DirectMirCfgHashString(hash, fact.value_carriage);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirAggregateValueFlowFactReady(
+    ref fact: DirectMirAggregateValueFlowFact
+) -> Bool {
+    return fact.valid &&
+        fact.schema == DirectMirAggregateValueFlowFactSchema() &&
+        fact.revision == CompilerArtifactPlanRevision() && fact.digest != 0 &&
+        fact.digest == DirectMirAggregateValueFlowFactDigest(fact) &&
+        fact.wrapper_type != "" && fact.wrapper_field != "" &&
+        fact.wrapper_field_type != "" && fact.element_type != "" &&
+        fact.array_type != "" &&
+        ((fact.abi_provenance ==
+            DirectMirAggregateValueFlowCapturedArrayAbi() &&
+          fact.array_layout_admission ==
+            "captured_physical_array_layout") ||
+         (fact.abi_provenance ==
+            DirectMirAggregateValueFlowTypedArrayAbsenceNominalElementAbi() &&
+          fact.array_layout_admission ==
+            "typed_array_physical_abi_absent")) &&
+        fact.abi_evidence_id > 0 &&
+        DirectMirInferredGenericMemberRepresentationFactReady(
+            fact.representation
+        ) && fact.representation.type_name == fact.wrapper_type &&
+        fact.representation.field_name == fact.wrapper_field &&
+        fact.representation.field_type == fact.wrapper_field_type &&
+        DirectMirClosedModuleCallAbiFactReady(fact.call_abi) &&
+        fact.storage_owner == "caller" && fact.storage_count == 1 &&
+        fact.selected_index == 0 &&
+        fact.construction_policy == "single_element_array_construct" &&
+        fact.identity_policy == "identity_return" &&
+        fact.allocator_provenance == "null_non_owning" &&
+        fact.storage_lifetime == "main_stack_no_escape" &&
+        fact.value_carriage ==
+            "caller_owned_single_storage_nested_member_by_value";
+}
+
+func DirectMirAggregateValueRepresentationFromSealedIdentity(
+    wrapper_type: String, wrapper_field: String, wrapper_field_type: String
+) -> DirectMirInferredGenericMemberRepresentationFact {
+    let fact: DirectMirInferredGenericMemberRepresentationFact =
+        DirectMirInferredGenericMemberRepresentationFact(
+            true, 0, wrapper_type, wrapper_field, wrapper_field_type,
+            DirectMirInferredGenericMemberRepresentation(), "value"
+        );
+    let verified: DirectMirInferredGenericMemberRepresentationFact =
+        DirectMirInferredGenericMemberRepresentationFact(
+            fact.valid,
+            DirectMirInferredGenericMemberRepresentationFactDigest(fact),
+            fact.type_name, fact.field_name, fact.field_type,
+            fact.representation, fact.receiver_carriage
+        );
+    if !DirectMirInferredGenericMemberRepresentationFactReady(verified) {
+        Die("direct MIR aggregate value representation is invalid");
+    }
+    return verified;
+}
+
+func DirectMirAggregateValueFlowFactSeal(
+    ref representation: DirectMirInferredGenericMemberRepresentationFact,
+    wrapper_type: String, wrapper_field: String, wrapper_field_type: String,
+    element_type: String, array_type: String, abi_provenance: String,
+    array_layout_admission: String, abi_evidence_id: Int
+) -> DirectMirAggregateValueFlowFact {
+    let call_abi: DirectMirClosedModuleCallAbiFact =
+        DirectMirClosedModuleCallAbiFactFromOwner();
+    let fact: DirectMirAggregateValueFlowFact =
+        DirectMirAggregateValueFlowFact(
+            true, DirectMirAggregateValueFlowFactSchema(),
+            CompilerArtifactPlanRevision(), 0, wrapper_type, wrapper_field,
+            wrapper_field_type, element_type, array_type, abi_provenance,
+            array_layout_admission, abi_evidence_id, representation,
+            call_abi, "caller", 1, 0,
+            "single_element_array_construct", "identity_return",
+            "null_non_owning", "main_stack_no_escape",
+            "caller_owned_single_storage_nested_member_by_value"
+        );
+    let verified: DirectMirAggregateValueFlowFact =
+        DirectMirAggregateValueFlowFact(
+            fact.valid, fact.schema, fact.revision,
+            DirectMirAggregateValueFlowFactDigest(fact), fact.wrapper_type,
+            fact.wrapper_field, fact.wrapper_field_type, fact.element_type,
+            fact.array_type, fact.abi_provenance,
+            fact.array_layout_admission, fact.abi_evidence_id,
+            fact.representation, fact.call_abi,
+            fact.storage_owner, fact.storage_count,
+            fact.selected_index, fact.construction_policy,
+            fact.identity_policy, fact.allocator_provenance,
+            fact.storage_lifetime, fact.value_carriage
+        );
+    if !DirectMirAggregateValueFlowFactReady(verified) {
+        Die("direct MIR aggregate value-flow facts are invalid");
+    }
+    return verified;
+}
+
+func DirectMirAggregateValueFlowFactFromCapturedArrayAbi(
+    ref representation: DirectMirInferredGenericMemberRepresentationFact,
+    wrapper_type: String, wrapper_field: String, wrapper_field_type: String,
+    element_type: String, array_type: String, abi_evidence_id: Int
+) -> DirectMirAggregateValueFlowFact {
+    return DirectMirAggregateValueFlowFactSeal(
+        representation, wrapper_type, wrapper_field, wrapper_field_type,
+        element_type, array_type,
+        DirectMirAggregateValueFlowCapturedArrayAbi(),
+        "captured_physical_array_layout", abi_evidence_id
+    );
+}
+
+func DirectMirAggregateValueFlowFactFromTypedArrayAbsence(
+    ref representation: DirectMirInferredGenericMemberRepresentationFact,
+    wrapper_type: String, wrapper_field: String, wrapper_field_type: String,
+    element_type: String, array_type: String, abi_evidence_id: Int
+) -> DirectMirAggregateValueFlowFact {
+    return DirectMirAggregateValueFlowFactSeal(
+        representation, wrapper_type, wrapper_field, wrapper_field_type,
+        element_type, array_type,
+        DirectMirAggregateValueFlowTypedArrayAbsenceNominalElementAbi(),
+        "typed_array_physical_abi_absent", abi_evidence_id
+    );
+}

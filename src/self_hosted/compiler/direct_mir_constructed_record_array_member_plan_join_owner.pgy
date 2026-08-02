@@ -2,24 +2,6 @@
 
 import "direct_mir_constructed_record_array_member_main_admission_owner.pgy";
 
-func DirectMirConstructedRecordArrayCaptureDigest(
-    ref capture: MirRoutineInstructionScalarCapture
-) -> Int {
-    if !capture.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(467L, capture.name);
-    hash = DirectMirCfgHashString(hash, capture.result);
-    hash = DirectMirCfgHashString(hash, capture.expr0);
-    hash = DirectMirCfgHashString(hash, capture.expr1);
-    hash = DirectMirCfgHashString(hash, capture.arg0);
-    hash = DirectMirCfgHashString(hash, capture.arg1);
-    hash = DirectMirCfgHashString(hash, capture.slot_anchor);
-    hash = DirectMirCfgHashString(hash, capture.abi_type_name);
-    hash = DirectMirCfgHashString(hash, capture.kind);
-    hash = DirectMirCfgHashString(hash, capture.source_type);
-    hash = DirectMirCfgHashString(hash, capture.match_variant);
-    return DirectMirCfgBoundedDigest(hash);
-}
-
 func DirectMirConstructedRecordArrayProgramDigest(
     ref methods: DirectMirConstructedArrayMemberMethodInstructions,
     ref main: DirectMirConstructedRecordArrayMemberMainAdmission
@@ -43,6 +25,7 @@ func DirectMirConstructedRecordArrayProgramDigest(
         DirectMirConstructedRecordArrayCaptureDigest(main.first));
     hash = DirectMirCfgHashInt(hash,
         DirectMirConstructedRecordArrayCaptureDigest(main.output));
+    hash = DirectMirCfgHashInt(hash, main.typed_array_abi_absence.digest);
     return DirectMirCfgBoundedDigest(hash);
 }
 

@@ -1903,6 +1903,21 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_array_argument_emission_owner.pgy` --
   final C/LLVM consumers of that plan; both preserve the two real calls and
   reopen neither MIR nor a Pergyra runtime path.
+- `src/self_hosted/compiler/direct_mir_aggregate_value_flow_fact_owner.pgy` --
+  target-neutral aggregate value-flow authority shared after family admission.
+  It seals wrapper representation, element/Array identity, actual ABI evidence
+  provenance, caller-owned single storage, index, construction/identity,
+  allocator/lifetime/carriage, and the closed-module call receipt. It reads no
+  MIR/JSON/classification or target spelling.
+- `src/self_hosted/compiler/direct_mir_aggregate_value_flow_target_projection_owner.pgy`
+  -- selected C/LLVM emission view joining the sealed flow with the public
+  four-field Array storage projection. It owns internal linkage and allocator
+  spelling for the selected target; family emitters retain element-specific
+  input/output and nominal ABI projection but may not re-own flow constants.
+- `src/self_hosted/compiler/direct_mir_constructed_record_array_member_array_abi_absence_owner.pgy`
+  -- sealed `Array<Point>` result evidence derived from the admitted MIR ABI
+  receipt. It binds the typed result capture to physical-layout absence and
+  supplies that exact digest to the shared aggregate value-flow fact.
 - `src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy` --
   exclusive multi-routine direct-MIR projection boundary; rejection cannot
   retry hello, scalar, single-routine Array, Option, or CFG dispatch.

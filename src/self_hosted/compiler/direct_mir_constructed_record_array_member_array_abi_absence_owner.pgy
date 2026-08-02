@@ -1,0 +1,83 @@
+// Sealed evidence that one typed Array result has no physical MIR ABI layout.
+
+import "direct_mir_instruction_abi_absence_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirConstructedRecordArrayAbiAbsenceFact {
+    let valid: Bool;
+    let digest: Int;
+    let type_name: String;
+    let result_name: String;
+    let result_capture_digest: Int;
+    let physical_abi_absent: Bool;
+}
+
+func DirectMirConstructedRecordArrayCaptureDigest(
+    ref capture: MirRoutineInstructionScalarCapture
+) -> Int {
+    if !capture.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(467L, capture.name);
+    hash = DirectMirCfgHashString(hash, capture.result);
+    hash = DirectMirCfgHashString(hash, capture.expr0);
+    hash = DirectMirCfgHashString(hash, capture.expr1);
+    hash = DirectMirCfgHashString(hash, capture.arg0);
+    hash = DirectMirCfgHashString(hash, capture.arg1);
+    hash = DirectMirCfgHashString(hash, capture.slot_anchor);
+    hash = DirectMirCfgHashString(hash, capture.abi_type_name);
+    hash = DirectMirCfgHashString(hash, capture.kind);
+    hash = DirectMirCfgHashString(hash, capture.source_type);
+    hash = DirectMirCfgHashString(hash, capture.match_variant);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirConstructedRecordArrayAbiAbsenceDigest(
+    ref fact: DirectMirConstructedRecordArrayAbiAbsenceFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(487L, fact.type_name);
+    hash = DirectMirCfgHashString(hash, fact.result_name);
+    hash = DirectMirCfgHashInt(hash, fact.result_capture_digest);
+    if fact.physical_abi_absent {
+        hash = DirectMirCfgHashInt(hash, 1);
+    } else {
+        hash = DirectMirCfgHashInt(hash, 0);
+    }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirConstructedRecordArrayAbiAbsenceFactReady(
+    ref fact: DirectMirConstructedRecordArrayAbiAbsenceFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirConstructedRecordArrayAbiAbsenceDigest(fact) &&
+        fact.type_name != "" && fact.result_name != "" &&
+        fact.result_capture_digest != 0 && fact.physical_abi_absent;
+}
+
+func DirectMirConstructedRecordArrayAbiAbsenceFromSealedResult(
+    json: String, ref result: MirRoutineInstructionScalarCapture,
+    expected_type: String
+) -> DirectMirConstructedRecordArrayAbiAbsenceFact {
+    let physical_abi_absent: Bool = DirectMirInstructionHasNoPhysicalAbi(
+        json, result, expected_type
+    );
+    let fact: DirectMirConstructedRecordArrayAbiAbsenceFact =
+        DirectMirConstructedRecordArrayAbiAbsenceFact(
+            true, 0, expected_type, result.result,
+            DirectMirConstructedRecordArrayCaptureDigest(result),
+            physical_abi_absent
+        );
+    let verified: DirectMirConstructedRecordArrayAbiAbsenceFact =
+        DirectMirConstructedRecordArrayAbiAbsenceFact(
+            fact.valid,
+            DirectMirConstructedRecordArrayAbiAbsenceDigest(fact),
+            fact.type_name, fact.result_name, fact.result_capture_digest,
+            fact.physical_abi_absent
+        );
+    if !result.valid || result.expr1 != expected_type ||
+        result.abi_type_name != expected_type ||
+        !DirectMirConstructedRecordArrayAbiAbsenceFactReady(verified) {
+        Die("direct MIR constructed record Array ABI absence is invalid");
+    }
+    return verified;
+}

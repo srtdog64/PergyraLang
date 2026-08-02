@@ -2,7 +2,7 @@
 
 import "direct_mir_constructed_array_member_method_instruction_owner.pgy";
 import "direct_mir_constructed_array_member_main_instruction_owner.pgy";
-import "direct_mir_inferred_generic_member_representation_fact_owner.pgy";
+import "direct_mir_aggregate_value_flow_fact_owner.pgy";
 
 func DirectMirConstructedArrayMemberRepresentationFromProgram(
     ref identity: DirectMirConstructedArrayMemberProgramIdentity,
@@ -19,21 +19,8 @@ func DirectMirConstructedArrayMemberRepresentationFromProgram(
         main.constructor.abi_layout_start < 0 {
         Die("direct MIR constructed Array representation input is invalid");
     }
-    let fact: DirectMirInferredGenericMemberRepresentationFact =
-        DirectMirInferredGenericMemberRepresentationFact(
-            true, 0, identity.declaration.name,
-            identity.declaration.field_name, identity.declaration.field_type,
-            DirectMirInferredGenericMemberRepresentation(), "value"
-        );
-    let verified: DirectMirInferredGenericMemberRepresentationFact =
-        DirectMirInferredGenericMemberRepresentationFact(
-            fact.valid,
-            DirectMirInferredGenericMemberRepresentationFactDigest(fact),
-            fact.type_name, fact.field_name, fact.field_type,
-            fact.representation, fact.receiver_carriage
-        );
-    if !DirectMirInferredGenericMemberRepresentationFactReady(verified) {
-        Die("direct MIR constructed Array representation fact is invalid");
-    }
-    return verified;
+    return DirectMirAggregateValueRepresentationFromSealedIdentity(
+        identity.declaration.name, identity.declaration.field_name,
+        identity.declaration.field_type
+    );
 }
