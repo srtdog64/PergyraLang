@@ -20,8 +20,23 @@ func Main() -> Void {
     let env: CodegenTypeEnv = RoleReceiverEnv(carriage);
     if ArrayLength(args) > 0 && args[0] == "--missing-kind" {
         CodegenRoleReceiverBindingOrDie(
-            "MissingPlayer", carriage, env
+            "MissingPlayer", carriage, CallableReceiverCarriageNone(), env
         );
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == "--scalar-value" {
+        let scalar: CodegenRoleReceiverBinding =
+            CodegenRoleReceiverBindingOrDie(
+                "Int", carriage, CallableReceiverCarriageValue(), env
+            );
+        if scalar.pointer_identity || scalar.self_c_expression != "self" ||
+            !StringContains(
+                scalar.prologue,
+                "long long self = _pgy_raw_self ? *(long long *)_pgy_raw_self"
+            ) {
+            Exit(1);
+        }
+        Log("scalar-value");
         return;
     }
     if ArrayLength(args) > 0 && args[0] == "--temporary" {
@@ -34,7 +49,10 @@ func Main() -> Void {
         "PlayerDamageable_TakeDamage", "player", true, env
     );
     let binding: CodegenRoleReceiverBinding =
-        CodegenRoleReceiverBindingOrDie("Player", carriage, env);
+        CodegenRoleReceiverBindingOrDie(
+            "Player", carriage,
+            CallableReceiverCarriageMutableIdentity(), env
+        );
     if argument != "&(player)" || !binding.pointer_identity ||
         binding.self_c_expression != "(*self)" ||
         !StringContains(binding.prologue, "Player *self = (Player *)_pgy_raw_self;") {

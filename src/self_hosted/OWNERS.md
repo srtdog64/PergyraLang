@@ -1132,9 +1132,11 @@ inventory must not become a second fact-family owner registry.
   name scan.
 - `src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy` --
   callable-identity receiver carriage rows shared by C definitions,
-  prototypes, function environments, and member calls; MIR consumers exact-
-  join admitted source ID/owner/name rows while source entrypoints derive the
-  same fact from verified semantic declaration owners.
+  prototypes, function environments, and member calls; erased role rows also
+  bind the exact concrete target type and its distinct value-or-identity
+  carriage. MIR consumers exact-join admitted source ID/owner/name rows while
+  source entrypoints derive the same fact once from verified semantic nominal,
+  enum, role, and compiler ABI owners.
 - `src/self_hosted/codegen/input/domain_runtime_codegen_view_owner.pgy` --
   admitted C-target view of owner identity to exact runtime method prologue;
   lookup consumes the once-validated view without whole-table revalidation.
@@ -1176,7 +1178,9 @@ inventory must not become a second fact-family owner registry.
   stable-address materialization for mutable identity share one consumer.
 - `src/self_hosted/codegen/emission/role_receiver_binding_owner.pgy` --
   fail-closed concrete-self binding behind the erased direct-role method ABI;
-  semantic nominal kind chooses pointer identity versus value carriage.
+  it consumes the admitted concrete target carriage and only projects the C
+  value-copy or pointer-identity prologue. It does not reopen role declarations
+  or reconstruct the decision from type-environment nominal-kind strings.
 - `src/self_hosted/codegen/run/codegen_run_owner.pgy` -- codegen CLI run boundary.
 - `src/self_hosted/codegen/text/text_owner.pgy` -- codegen expression scanning and unsupported-surface policy.
 - `src/self_hosted/codegen/text/owned_string_join_owner.pgy` -- consuming join for codegen-owned text fragments; only the joined result survives.

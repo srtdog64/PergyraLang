@@ -8,6 +8,9 @@ receiver_call_owner="$ROOT_DIR/src/self_hosted/codegen/emission/member_call_rece
 receiver_semantic_call_owner="$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"
 
 for term in 'struct CodegenCallableReceiverFacts' \
+    'role_target_types: Array<String>' \
+    'role_target_carriages: Array<String>' \
+    'CodegenRoleReceiverTargetCarriageOrDie' \
     'CodegenCallableReceiverFactsFromAdmittedRowsOrDie' \
     'routine_source_syntax_ids[r] == facts.source_syntax_ids[i]' \
     'routine_receiver_carriages[found] != facts.carriages[i]' \
@@ -17,6 +20,10 @@ for term in 'struct CodegenCallableReceiverFacts' \
         return 1 2>/dev/null || exit 1
     }
 done
+if grep -Fq 'CodegenSemanticRoleReceiverType(' "$receiver_function_owner"; then
+    echo "[self-host-parity:driver-rung2] function emission re-read role targets" >&2
+    return 1 2>/dev/null || exit 1
+fi
 grep -Fq 'admitted.routines.receiver_carriages' "$receiver_bridge_owner" || {
     echo "[self-host-parity:driver-rung2] admitted receiver bridge drifted" >&2
     return 1 2>/dev/null || exit 1
@@ -126,16 +133,14 @@ PY
         return 1
     fi
 
-    if [[ ! -x "$role_probe_bin" ]]; then
-        (cd "$ROOT_DIR" && "$PGY" \
-            "$(pgy_path_for_compiler "$PGY" "$role_probe_source")" \
-            --backend=c -o "$(pgy_path_for_compiler "$PGY" "$role_probe_bin")" \
-            >"$role_probe_out.compile" 2>&1) || {
-            echo "[self-host-parity:driver-rung2] role receiver owner probe build failed" >&2
-            cat "$role_probe_out.compile" >&2
-            return 1
-        }
-    fi
+    (cd "$ROOT_DIR" && "$PGY" \
+        "$(pgy_path_for_compiler "$PGY" "$role_probe_source")" \
+        --backend=c -o "$(pgy_path_for_compiler "$PGY" "$role_probe_bin")" \
+        >"$role_probe_out.compile" 2>&1) || {
+        echo "[self-host-parity:driver-rung2] role receiver owner probe build failed" >&2
+        cat "$role_probe_out.compile" >&2
+        return 1
+    }
     "$role_probe_bin" >"$role_probe_out" 2>&1 || {
         echo "[self-host-parity:driver-rung2] stable erased role receiver failed" >&2
         cat "$role_probe_out" >&2
@@ -143,6 +148,15 @@ PY
     }
     grep -Fxq '&(player)' "$role_probe_out" || {
         echo "[self-host-parity:driver-rung2] erased role receiver lost stable address" >&2
+        return 1
+    }
+    "$role_probe_bin" --scalar-value >"$role_probe_out" 2>&1 || {
+        echo "[self-host-parity:driver-rung2] scalar role receiver binding failed" >&2
+        cat "$role_probe_out" >&2
+        return 1
+    }
+    grep -Fxq 'scalar-value' "$role_probe_out" || {
+        echo "[self-host-parity:driver-rung2] scalar role target was not value-bound" >&2
         return 1
     }
     local role_mode=""

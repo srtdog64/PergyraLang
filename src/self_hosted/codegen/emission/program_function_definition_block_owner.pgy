@@ -57,7 +57,7 @@ func CodegenProgramFunctionDefinitionBlock(
                         arena, cur[0]
                     );
                     let definition: String = EmitFunctionSet(
-                        count, arena, signatures, roles, receiver_facts,
+                        count, arena, signatures, receiver_facts,
                         local_bindings, assignments, statements, body_types,
                         expression_surfaces, specializations, cur, method_indent,
                         base_env, machine_startup, uses_args, domain_runtime
@@ -83,7 +83,7 @@ func CodegenProgramFunctionDefinitionBlock(
                         arena, cur[0]
                     );
                     let definition: String = EmitFunctionSet(
-                        count, arena, signatures, roles, receiver_facts,
+                        count, arena, signatures, receiver_facts,
                         local_bindings, assignments, statements, body_types,
                         expression_surfaces, specializations, cur, method_indent,
                         base_env, machine_startup, uses_args, domain_runtime
@@ -102,7 +102,7 @@ func CodegenProgramFunctionDefinitionBlock(
         } else if CodegenSemanticFunctionIs(signatures, cur[0]) &&
             cur_indent == f_indent {
             let definition: String = EmitFunctionSet(
-                count, arena, signatures, roles, receiver_facts,
+                count, arena, signatures, receiver_facts,
                 local_bindings, assignments, statements, body_types,
                 expression_surfaces, specializations, cur, f_indent,
                 base_env, machine_startup, uses_args, domain_runtime

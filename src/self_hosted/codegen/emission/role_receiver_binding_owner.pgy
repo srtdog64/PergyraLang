@@ -15,26 +15,22 @@ struct CodegenRoleReceiverBinding {
 func CodegenRoleReceiverBindingOrDie(
     target_type: String,
     receiver_carriage: String,
+    target_carriage: String,
     env: CodegenTypeEnv
 ) -> CodegenRoleReceiverBinding {
     if target_type == "" || receiver_carriage !=
         CallableReceiverCarriageMutableIdentity() {
         Die("role receiver target or erased carriage fact is invalid");
     }
-    if !LookupKindTypeRowPresent(env, target_type, "nk") {
-        Die("role receiver target nominal-kind fact is missing");
-    }
-    let nominal_kind: String = LookupKindType(env, target_type, "nk");
-    if !CallableReceiverNominalKindKnown(nominal_kind) ||
-        (!CallableReceiverNominalKindUsesMutableIdentity(nominal_kind) &&
-            !CallableReceiverNominalKindUsesValue(nominal_kind)) {
-        Die("role receiver target nominal-kind fact is invalid");
+    if target_carriage != CallableReceiverCarriageMutableIdentity() &&
+        target_carriage != CallableReceiverCarriageValue() {
+        Die("role receiver concrete target carriage fact is invalid");
     }
     let c_type: String = AbiLayoutCLocalType(target_type, env);
     let c_self: String = CompilerSymbolCBindingName("self");
     let raw_self: String = "_pgy_raw_self";
     let pointer_identity: Bool =
-        CallableReceiverNominalKindUsesMutableIdentity(nominal_kind);
+        target_carriage == CallableReceiverCarriageMutableIdentity();
     if pointer_identity {
         return CodegenRoleReceiverBinding(
             true, Concat("(*", Concat(c_self, ")")),

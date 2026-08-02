@@ -381,10 +381,14 @@ require_text \
     "CodegenCallableReceiverFactsFromAdmittedAnalysis(semantic_analysis)"
 for admitted_receiver_row_accessor in \
     "CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(" \
+    "CodegenCallableReceiverRoleTargetTypeForAdmittedSignatureOrDie(" \
+    "CodegenCallableReceiverRoleTargetCarriageForAdmittedSignatureOrDie(" \
     "CodegenCallableReceiverRoleErasedForAdmittedSignatureOrDie("; do
     require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
         "$admitted_receiver_row_accessor"
 done
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    "CodegenSemanticRoleReceiverType("
 for repeated_receiver_row_proof in \
     "CodegenCallableReceiverCarriageForSignatureOrDie(" \
     "CodegenCallableReceiverRoleErasedForSignatureOrDie(" \
@@ -473,11 +477,21 @@ require_text "src/self_hosted/OWNERS.md" \
 require_text "src/self_hosted/codegen/emission/role_receiver_binding_owner.pgy" \
     "func CodegenRoleReceiverBindingOrDie("
 require_text "src/self_hosted/codegen/emission/role_receiver_binding_owner.pgy" \
+    'target_carriage == CallableReceiverCarriageMutableIdentity()'
+reject_text "src/self_hosted/codegen/emission/role_receiver_binding_owner.pgy" \
     'LookupKindTypeRowPresent(env, target_type, "nk")'
+reject_text "src/self_hosted/codegen/emission/role_receiver_binding_owner.pgy" \
+    'target_type == "Int"'
 require_text "src/self_hosted/codegen/emission/role_receiver_binding_owner.pgy" \
     'Concat("(*", Concat(c_self, ")"))'
 require_text "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy" \
     "role-erased member call requires a stable receiver address"
+require_file \
+    "tests/self_hosted/parity/codegen_role_receiver_admission_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/codegen_role_receiver_admission_owner.sh" 180
+require_text "Makefile" \
+    "self-host-codegen-role-receiver-admission-test-smoke"
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "SemanticExpressionGraphPlaceKind("
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
@@ -8372,7 +8386,7 @@ require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "
 require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy" "func CodegenSemanticNominalFieldCountOrDie"
 require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy" "func CodegenSemanticNominalFieldNameOrDie"
 require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy" "func CodegenSemanticNominalFieldTypeOrDie"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/semantic_role_codegen_view_owner.pgy";'
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/semantic_role_codegen_view_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/semantic_nominal_codegen_view_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" "while i < SemanticAstNominalConstructorCount(facts)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaNominalNameOrDie"

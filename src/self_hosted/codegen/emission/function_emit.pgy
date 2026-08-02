@@ -3,7 +3,6 @@ import "../text/owned_string_join_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/semantic_signature_codegen_view_owner.pgy";
 import "../input/generic_specialization_codegen_view_owner.pgy";
-import "../input/semantic_role_codegen_view_owner.pgy";
 import "../input/semantic_nominal_codegen_view_owner.pgy";
 import "../input/callable_receiver_codegen_view_owner.pgy";
 import "../input/domain_runtime_codegen_view_owner.pgy";
@@ -17,7 +16,6 @@ import "role_receiver_binding_owner.pgy";
 import "stmt_emit.pgy";
 func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                    signatures: SemanticAstFunctionSignatureFacts,
-                   roles: SemanticAstRoleFacts,
                    receiver_facts: CodegenCallableReceiverFacts,
                    local_bindings: SemanticAstLocalBindingFacts,
                    assignments: SemanticAstAssignmentFacts,
@@ -54,10 +52,6 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     let env_state: Array<String> = [base_env.global_rows, ""];
     let prologue: String = "";
     let copyout: String = "";
-    let role_receiver_type: Option<String> = CodegenSemanticRoleReceiverType(
-        roles, function_node_id
-    );
-    let role_receiver: Bool = IsSome(role_receiver_type);
     let receiver_carriage: String =
         CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(
             receiver_facts, signature_index
@@ -71,14 +65,25 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         CodegenCallableReceiverRoleErasedForAdmittedSignatureOrDie(
             receiver_facts, signature_index
         );
-    if role_receiver != role_erased {
-        Die("callable receiver role-erasure fact is stale");
+    let role_receiver: Bool = role_erased;
+    let role_receiver_type: String = "";
+    let role_target_carriage: String = CallableReceiverCarriageNone();
+    if role_receiver {
+        role_receiver_type =
+            CodegenCallableReceiverRoleTargetTypeForAdmittedSignatureOrDie(
+                receiver_facts, signature_index
+            );
+        role_target_carriage =
+            CodegenCallableReceiverRoleTargetCarriageForAdmittedSignatureOrDie(
+                receiver_facts, signature_index
+            );
     }
     let role_binding: CodegenRoleReceiverBinding =
         CodegenRoleReceiverBinding(false, "", "");
     if role_receiver {
         role_binding = CodegenRoleReceiverBindingOrDie(
-            UnwrapOption(role_receiver_type), receiver_carriage, base_env
+            role_receiver_type, receiver_carriage, role_target_carriage,
+            base_env
         );
     }
     let mutable_identity_receiver: Bool =
@@ -129,8 +134,8 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             signatures, signature_index, param_n, generic_actuals
         );
         if p_name == "self" {
-            if IsSome(role_receiver_type) {
-                p_type = UnwrapOption(role_receiver_type);
+            if role_receiver {
+                p_type = role_receiver_type;
             }
         }
         let p_binding: CodegenFunctionValueBindingFact =
@@ -269,7 +274,6 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
 
 func EmitFunction(count: Int, arena: AstArena,
                    signatures: SemanticAstFunctionSignatureFacts,
-                   roles: SemanticAstRoleFacts,
                    receiver_facts: CodegenCallableReceiverFacts,
                    local_bindings: SemanticAstLocalBindingFacts,
                    assignments: SemanticAstAssignmentFacts,
@@ -281,7 +285,7 @@ func EmitFunction(count: Int, arena: AstArena,
                    ref domain_runtime: CodegenDomainRuntimeFacts) -> String {
     let no_actuals: Array<String> = [];
     return EmitFunctionWithSpecialization(
-        count, arena, signatures, roles, receiver_facts,
+        count, arena, signatures, receiver_facts,
         local_bindings, assignments,
         statements, body_types, expression_surfaces, cur, f_indent,
         base_env, uses_args, machine_startup, "", no_actuals, domain_runtime
