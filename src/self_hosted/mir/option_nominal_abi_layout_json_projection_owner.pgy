@@ -1,0 +1,43 @@
+// JSON projection for one already-verified Option<nominal> ABI receipt.
+
+import "option_nominal_abi_layout_fact_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func SelfMirJsonOptionNominalAbiLayout(
+    fact: SelfMirOptionNominalAbiLayoutFact
+) -> String {
+    if !SelfMirOptionNominalAbiLayoutFactReady(fact) {
+        return "";
+    }
+    let fields: Array<String> = [
+        JsonEmitObject([
+            JsonEmitFieldString("name", SelfMirOptionAbiTagFieldName()),
+            JsonEmitFieldNumber("offset", "0"),
+            JsonEmitFieldNumber("size", ToString(SelfMirOptionAbiTagSize())),
+            JsonEmitFieldNumber("align", ToString(SelfMirOptionAbiTagAlign()))
+        ]),
+        JsonEmitObject([
+            JsonEmitFieldString("name", SelfMirOptionAbiValueFieldName()),
+            JsonEmitFieldNumber("offset", ToString(fact.value_offset)),
+            JsonEmitFieldNumber("size", ToString(fact.value_size)),
+            JsonEmitFieldNumber("align", ToString(fact.value_align))
+        ])
+    ];
+    return JsonEmitObject([
+        JsonEmitFieldString("type", fact.type_name),
+        JsonEmitFieldNumber("size", ToString(fact.size)),
+        JsonEmitFieldNumber("align", ToString(fact.align)),
+        JsonEmitFieldRaw("fields", JsonEmitArray(fields)),
+        JsonEmitFieldRaw("runtime_fn", "null"),
+        JsonEmitFieldRaw("inner_c_type", "null"),
+        JsonEmitFieldNumber(
+            "representation", ToString(SelfMirOptionAbiRepresentation())
+        ),
+        JsonEmitFieldString(
+            "discriminant", SelfMirOptionAbiDiscriminant()
+        ),
+        JsonEmitFieldNumber("primary_tag", ToString(SelfMirOptionAbiSomeTag())),
+        JsonEmitFieldNumber("secondary_tag", ToString(SelfMirOptionAbiNoneTag())),
+        JsonEmitFieldRaw("niche_none_pattern", "null")
+    ]);
+}

@@ -1,0 +1,128 @@
+// Target-neutral plan for one sealed Option<nominal> aggregate value flow.
+
+import "direct_mir_option_struct_value_flow_abi_fact_owner.pgy";
+import "target_capability_owner.pgy";
+import "artifact_zone_owner.pgy";
+import "../mir_lower/ssa_identity_owner.pgy";
+
+struct DirectMirOptionStructValueFlowPlan {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let digest: Int;
+    let target_capability_schema: String;
+    let target_capability_fingerprint: Int;
+    let identity: DirectMirOptionStructValueFlowProgramIdentity;
+    let abi: DirectMirOptionStructValueFlowAbiFact;
+    let initial_result: String;
+    let none_result: String;
+    let latest_result: String;
+    let pair_result: String;
+    let built_result: String;
+    let unwrapped_result: String;
+    let value_carriage: String;
+    let unwrap_policy: String;
+}
+
+func DirectMirOptionStructValueFlowPlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-option-struct-value-flow-plan.v1";
+}
+
+func DirectMirOptionStructValueFlowCarriage() -> String {
+    return "explicit_tagged_nominal_values_by_value";
+}
+
+func DirectMirOptionStructValueFlowUnwrapPolicy() -> String {
+    return "proven_some_extract";
+}
+
+func DirectMirOptionStructValueFlowPlanDigest(
+    ref plan: DirectMirOptionStructValueFlowPlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(197L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
+    hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
+    hash = DirectMirCfgHashInt(hash, plan.identity.digest);
+    hash = DirectMirCfgHashInt(hash, plan.abi.digest);
+    hash = DirectMirCfgHashString(hash, plan.initial_result);
+    hash = DirectMirCfgHashString(hash, plan.none_result);
+    hash = DirectMirCfgHashString(hash, plan.latest_result);
+    hash = DirectMirCfgHashString(hash, plan.pair_result);
+    hash = DirectMirCfgHashString(hash, plan.built_result);
+    hash = DirectMirCfgHashString(hash, plan.unwrapped_result);
+    hash = DirectMirCfgHashString(hash, plan.value_carriage);
+    hash = DirectMirCfgHashString(hash, plan.unwrap_policy);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirOptionStructValueFlowPlanReady(
+    ref plan: DirectMirOptionStructValueFlowPlan
+) -> Bool {
+    let graph: DirectMirOptionStructValueFlowGraphFact = plan.identity.graph;
+    return plan.valid &&
+        plan.schema == DirectMirOptionStructValueFlowPlanSchema() &&
+        plan.revision == CompilerArtifactPlanRevision() && plan.digest != 0 &&
+        plan.digest == DirectMirOptionStructValueFlowPlanDigest(plan) &&
+        plan.target_capability_schema == CompilerTargetCapabilitySchema() &&
+        plan.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        DirectMirOptionStructValueFlowProgramIdentityReady(plan.identity) &&
+        DirectMirOptionStructValueFlowAbiFactReady(plan.abi) &&
+        MirSsaNameMatches(plan.initial_result, graph.option_local_name, false) &&
+        MirSsaNameMatches(plan.none_result, graph.option_local_name, false) &&
+        MirSsaNameMatches(plan.latest_result, graph.option_local_name, false) &&
+        plan.initial_result != plan.none_result &&
+        plan.none_result != plan.latest_result &&
+        MirSsaNameMatches(plan.pair_result, graph.pair_local_name, false) &&
+        MirSsaNameMatches(plan.built_result, graph.built_local_name, false) &&
+        MirSsaNameMatches(
+            plan.unwrapped_result, graph.unwrapped_local_name, false
+        ) && plan.value_carriage ==
+            DirectMirOptionStructValueFlowCarriage() &&
+        plan.unwrap_policy == DirectMirOptionStructValueFlowUnwrapPolicy();
+}
+
+func DirectMirOptionStructValueFlowPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirTwoRoutineNominalClassificationFact
+) -> DirectMirOptionStructValueFlowPlan {
+    let identity: DirectMirOptionStructValueFlowProgramIdentity =
+        DirectMirOptionStructValueFlowProgramIdentityFromAdmitted(
+            admitted, classification
+        );
+    let instructions: DirectMirOptionStructValueFlowInstructionAdmission =
+        DirectMirOptionStructValueFlowInstructionAdmissionFromProgram(
+            admitted, identity
+        );
+    let abi: DirectMirOptionStructValueFlowAbiFact =
+        DirectMirOptionStructValueFlowAbiFactFromInstructions(
+            admitted.routines.source_json, identity, instructions
+        );
+    let plan: DirectMirOptionStructValueFlowPlan =
+        DirectMirOptionStructValueFlowPlan(
+            true, DirectMirOptionStructValueFlowPlanSchema(),
+            CompilerArtifactPlanRevision(), 0, CompilerTargetCapabilitySchema(),
+            CompilerTargetCapabilityFingerprint(), identity, abi,
+            instructions.initial.result, instructions.none_value.result,
+            instructions.latest.result, instructions.pair.result,
+            instructions.built.result, instructions.unwrapped.result,
+            DirectMirOptionStructValueFlowCarriage(),
+            DirectMirOptionStructValueFlowUnwrapPolicy()
+        );
+    let verified: DirectMirOptionStructValueFlowPlan =
+        DirectMirOptionStructValueFlowPlan(
+            plan.valid, plan.schema, plan.revision,
+            DirectMirOptionStructValueFlowPlanDigest(plan),
+            plan.target_capability_schema,
+            plan.target_capability_fingerprint, plan.identity, plan.abi,
+            plan.initial_result, plan.none_result, plan.latest_result,
+            plan.pair_result, plan.built_result, plan.unwrapped_result,
+            plan.value_carriage, plan.unwrap_policy
+        );
+    if !DirectMirOptionStructValueFlowPlanReady(verified) {
+        Die("direct MIR Option nominal value-flow plan is invalid");
+    }
+    return verified;
+}

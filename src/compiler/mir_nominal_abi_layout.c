@@ -1,8 +1,10 @@
 #include "mir_nominal_abi_layout.h"
 
 #include "mir_abi_layout.h"
+#include "../common/string_compat.h"
 
 #include <limits.h>
+#include <stdlib.h>
 #include <string.h>
 
 static bool
@@ -117,6 +119,116 @@ mir_nominal_try_capture(MIRProgram *program, MIRDeclHeader *header)
     return header->abi_layout_present;
 }
 
+static bool
+mir_nominal_option_template_ready(const MIRTypeLayout *layout)
+{
+    return layout != NULL && layout->field_count == 2
+        && layout->fields[0].field_name != NULL
+        && layout->fields[1].field_name != NULL
+        && layout->fields[0].offset == 0
+        && layout->fields[0].field_size > 0
+        && layout->fields[0].field_align > 0
+        && layout->representation == MIR_ABI_REPR_EXPLICIT_TAG
+        && layout->discriminant_field_name != NULL
+        && strcmp(layout->fields[0].field_name,
+                  layout->discriminant_field_name) == 0;
+}
+
+static bool
+mir_nominal_option_type_matches_header(const MIRDeclHeader *header,
+                                       const char *type_name)
+{
+    size_t name_length;
+    size_t type_length;
+
+    if (header == NULL || header->name == NULL || type_name == NULL)
+        return false;
+    name_length = strlen(header->name);
+    type_length = strlen(type_name);
+    return type_length == name_length + 8
+        && memcmp(type_name, "Option<", 7) == 0
+        && memcmp(type_name + 7, header->name, name_length) == 0
+        && type_name[7 + name_length] == '>';
+}
+
+static bool
+mir_nominal_option_try_capture(MIRDeclHeader *header)
+{
+    MIRTypeLayout layout;
+    const MIRTypeLayout *template;
+    const MIRTypeLayout *payload;
+    char *type_name;
+    size_t name_length;
+    uint32_t tag_end;
+    uint32_t value_offset;
+    uint32_t value_end;
+    uint32_t wrapper_align;
+
+    if (header == NULL || header->name == NULL
+        || !header->abi_layout_present || header->abi_layout_id == 0)
+        return false;
+    template = mir_abi_lookup("Option<Int>");
+    if (!mir_nominal_option_template_ready(template))
+        return false;
+    payload = &header->abi_layout;
+    name_length = strlen(header->name);
+    if (name_length > SIZE_MAX - 9)
+        return false;
+    type_name = malloc(name_length + 9);
+    if (type_name == NULL)
+        return false;
+    memcpy(type_name, "Option<", 7);
+    memcpy(type_name + 7, header->name, name_length);
+    type_name[7 + name_length] = '>';
+    type_name[8 + name_length] = '\0';
+
+    if (template->fields[0].offset >
+            UINT32_MAX - template->fields[0].field_size) {
+        free(type_name);
+        return false;
+    }
+    tag_end = template->fields[0].offset
+        + template->fields[0].field_size;
+    wrapper_align = payload->align_bytes > template->fields[0].field_align
+        ? payload->align_bytes : template->fields[0].field_align;
+    if (!mir_nominal_align_up(tag_end, payload->align_bytes, &value_offset)
+        || value_offset > UINT32_MAX - payload->size_bytes) {
+        free(type_name);
+        return false;
+    }
+    value_end = value_offset + payload->size_bytes;
+    memset(&layout, 0, sizeof(layout));
+    layout.abi_type_name = type_name;
+    layout.size_bytes = value_end;
+    if (!mir_nominal_align_up(
+            layout.size_bytes, wrapper_align, &layout.size_bytes)) {
+        free(type_name);
+        return false;
+    }
+    layout.align_bytes = wrapper_align;
+    layout.field_count = 2;
+    layout.fields[0] = template->fields[0];
+    layout.fields[1].field_name = template->fields[1].field_name;
+    layout.fields[1].offset = value_offset;
+    layout.fields[1].field_size = payload->size_bytes;
+    layout.fields[1].field_align = payload->align_bytes;
+    layout.representation = template->representation;
+    layout.discriminant_field_name = template->discriminant_field_name;
+    layout.primary_tag_value = template->primary_tag_value;
+    layout.secondary_tag_value = template->secondary_tag_value;
+    layout.niche_none_pattern = template->niche_none_pattern;
+    header->option_abi_layout_id = mir_abi_layout_id(&layout);
+    if (header->option_abi_layout_id == 0) {
+        free(type_name);
+        return false;
+    }
+    header->option_abi_type_name = type_name;
+    header->option_abi_layout = layout;
+    header->option_abi_layout.abi_type_name = header->option_abi_type_name;
+    header->option_abi_layout_present = true;
+    return true;
+}
+
 bool
 mir_nominal_abi_layouts_capture(MIRProgram *program, char **error_message)
 {
@@ -128,6 +240,12 @@ mir_nominal_abi_layouts_capture(MIRProgram *program, char **error_message)
         return false;
     for (size_t i = 0; i < program->decl_header_count; i++) {
         MIRDeclHeader *header = &program->decl_headers[i];
+        free(header->option_abi_type_name);
+        header->option_abi_type_name = NULL;
+        header->option_abi_layout_present = false;
+        header->option_abi_layout_id = 0;
+        memset(&header->option_abi_layout, 0,
+               sizeof(header->option_abi_layout));
         header->abi_layout_present = false;
         header->abi_layout_id = 0;
         memset(&header->abi_layout, 0, sizeof(header->abi_layout));
@@ -154,6 +272,16 @@ mir_nominal_abi_layouts_capture(MIRProgram *program, char **error_message)
         if (progress == 0)
             break;
     }
+    for (size_t i = 0; i < program->decl_header_count; i++) {
+        MIRDeclHeader *header = &program->decl_headers[i];
+        if (header->abi_layout_present
+            && !mir_nominal_option_try_capture(header)) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "failed to capture nominal Option ABI layout receipt");
+            return false;
+        }
+    }
     return true;
 }
 
@@ -169,16 +297,102 @@ mir_decl_header_abi_layout(const MIRDeclHeader *header)
 }
 
 const MIRTypeLayout *
+mir_decl_header_option_abi_layout(const MIRDeclHeader *header)
+{
+    const MIRTypeLayout *template = mir_abi_lookup("Option<Int>");
+    const MIRTypeLayout *payload;
+    const MIRTypeLayout *layout;
+    uint32_t expected_align;
+    uint32_t expected_offset;
+    uint32_t expected_size;
+    uint32_t tag_end;
+
+    if (header == NULL || !header->option_abi_layout_present
+        || header->option_abi_type_name == NULL
+        || !mir_nominal_option_template_ready(template)
+        || !mir_nominal_option_type_matches_header(
+            header, header->option_abi_type_name)) {
+        return NULL;
+    }
+    payload = mir_decl_header_abi_layout(header);
+    layout = &header->option_abi_layout;
+    if (payload == NULL || layout->abi_type_name == NULL
+        || strcmp(layout->abi_type_name,
+                  header->option_abi_type_name) != 0
+        || template->fields[0].offset >
+            UINT32_MAX - template->fields[0].field_size) {
+        return NULL;
+    }
+    tag_end = template->fields[0].offset
+        + template->fields[0].field_size;
+    expected_align = payload->align_bytes > template->fields[0].field_align
+        ? payload->align_bytes : template->fields[0].field_align;
+    if (!mir_nominal_align_up(
+            tag_end, payload->align_bytes, &expected_offset)
+        || expected_offset > UINT32_MAX - payload->size_bytes
+        || !mir_nominal_align_up(expected_offset + payload->size_bytes,
+                                 expected_align, &expected_size)) {
+        return NULL;
+    }
+    if (layout->size_bytes != expected_size
+        || layout->align_bytes != expected_align
+        || layout->field_count != 2
+        || layout->fields[0].field_name == NULL
+        || strcmp(layout->fields[0].field_name,
+                  template->fields[0].field_name) != 0
+        || layout->fields[0].offset != template->fields[0].offset
+        || layout->fields[0].field_size != template->fields[0].field_size
+        || layout->fields[0].field_align != template->fields[0].field_align
+        || layout->fields[1].field_name == NULL
+        || strcmp(layout->fields[1].field_name,
+                  template->fields[1].field_name) != 0
+        || layout->fields[1].offset != expected_offset
+        || layout->fields[1].field_size != payload->size_bytes
+        || layout->fields[1].field_align != payload->align_bytes
+        || layout->runtime_fn != NULL || layout->inner_c_type != NULL
+        || layout->representation != template->representation
+        || layout->discriminant_field_name == NULL
+        || strcmp(layout->discriminant_field_name,
+                  template->discriminant_field_name) != 0
+        || layout->primary_tag_value != template->primary_tag_value
+        || layout->secondary_tag_value != template->secondary_tag_value
+        || layout->niche_none_pattern != template->niche_none_pattern
+        || header->option_abi_layout_id == 0
+        || header->option_abi_layout_id != mir_abi_layout_id(layout)) {
+        return NULL;
+    }
+    return layout;
+}
+
+const MIRTypeLayout *
 mir_program_abi_layout_for_type_name(const MIRProgram *program,
                                      const char *type_name)
 {
     const MIRTypeLayout *layout;
+    const MIRTypeLayout *found = NULL;
 
     if (type_name == NULL || type_name[0] == '\0')
         return NULL;
     layout = mir_abi_lookup(type_name);
     if (layout != NULL)
         return layout;
-    return mir_decl_header_abi_layout(
+    layout = mir_decl_header_abi_layout(
         mir_nominal_unique_struct(program, type_name));
+    if (layout != NULL)
+        return layout;
+    if (program == NULL)
+        return NULL;
+    for (size_t i = 0; i < program->decl_header_count; i++) {
+        const MIRDeclHeader *header = &program->decl_headers[i];
+        const MIRTypeLayout *option_layout;
+
+        if (header->option_abi_type_name == NULL
+            || strcmp(header->option_abi_type_name, type_name) != 0)
+            continue;
+        option_layout = mir_decl_header_option_abi_layout(header);
+        if (option_layout == NULL || found != NULL)
+            return NULL;
+        found = option_layout;
+    }
+    return found;
 }

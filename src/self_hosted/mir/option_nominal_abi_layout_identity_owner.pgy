@@ -1,0 +1,60 @@
+// Stable identity and complete-row contract for Option<nominal> ABI receipts.
+
+import "nominal_abi_layout_fact_owner.pgy";
+import "option_abi_layout_contract_owner.pgy";
+
+struct SelfMirOptionNominalAbiLayoutFact {
+    ready: Bool;
+    type_name: String;
+    declaration_row: Int;
+    layout_id: Int;
+    size: Int;
+    align: Int;
+    value_offset: Int;
+    value_size: Int;
+    value_align: Int;
+}
+
+func SelfMirOptionNominalAbiLayoutId(
+    type_name: String, size: Int, align: Int,
+    value_offset: Int, value_size: Int, value_align: Int
+) -> Int {
+    let hash: Long = 60621699L;
+    hash = MirAbiLayoutHashString(hash, type_name);
+    hash = MirAbiLayoutHashU32(hash, size as Long);
+    hash = MirAbiLayoutHashU32(hash, align as Long);
+    hash = MirAbiLayoutHashU32(hash, 2L);
+    hash = MirAbiLayoutHashString(hash, SelfMirOptionAbiTagFieldName());
+    hash = MirAbiLayoutHashU32(hash, 0L);
+    hash = MirAbiLayoutHashU32(hash, SelfMirOptionAbiTagSize() as Long);
+    hash = MirAbiLayoutHashU32(hash, SelfMirOptionAbiTagAlign() as Long);
+    hash = MirAbiLayoutHashString(hash, SelfMirOptionAbiValueFieldName());
+    hash = MirAbiLayoutHashU32(hash, value_offset as Long);
+    hash = MirAbiLayoutHashU32(hash, value_size as Long);
+    hash = MirAbiLayoutHashU32(hash, value_align as Long);
+    hash = MirAbiLayoutHashString(hash, "");
+    hash = MirAbiLayoutHashString(hash, "");
+    hash = MirAbiLayoutHashU32(
+        hash, SelfMirOptionAbiRepresentation() as Long
+    );
+    hash = MirAbiLayoutHashString(hash, SelfMirOptionAbiDiscriminant());
+    hash = MirAbiLayoutHashU32(hash, SelfMirOptionAbiSomeTag() as Long);
+    hash = MirAbiLayoutHashU32(hash, SelfMirOptionAbiNoneTag() as Long);
+    hash = MirAbiLayoutHashString(hash, "");
+    return (536870912L + (hash % MirAbiLayoutModulus())) as Int;
+}
+
+func SelfMirOptionNominalAbiLayoutFactReady(
+    fact: SelfMirOptionNominalAbiLayoutFact
+) -> Bool {
+    return fact.ready && fact.declaration_row >= 0 &&
+        fact.type_name != "" && fact.value_size > 0 && fact.value_align > 0 &&
+        fact.value_offset == SelfMirOptionAbiValueOffset(fact.value_align) &&
+        fact.align == SelfMirOptionAbiAlign(fact.value_align) &&
+        fact.size == SelfMirOptionAbiSize(fact.value_size, fact.value_align) &&
+        fact.layout_id > 0 && fact.layout_id ==
+            SelfMirOptionNominalAbiLayoutId(
+                fact.type_name, fact.size, fact.align, fact.value_offset,
+                fact.value_size, fact.value_align
+            );
+}

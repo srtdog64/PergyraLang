@@ -3,6 +3,7 @@
 import "../semantic/callable_receiver_carriage_policy_owner.pgy";
 import "declaration_zone_authority_rows_owner.pgy";
 import "nominal_abi_layout_fact_owner.pgy";
+import "option_nominal_abi_layout_fact_owner.pgy";
 
 struct SelfMirDeclarationRows {
     kinds: Array<String>;
@@ -65,6 +66,7 @@ struct SelfMirDeclarationRows {
     role_impl_method_counts: Array<Int>;
     zone_authorities: SelfMirDeclarationZoneAuthorityRows;
     nominal_abi_layouts: SelfMirNominalAbiLayoutRows;
+    option_nominal_abi_layouts: SelfMirOptionNominalAbiLayoutRows;
 }
 func SelfMirDeclarationRowsEmpty() -> SelfMirDeclarationRows {
     let ints: Array<Int> = [];
@@ -83,7 +85,8 @@ func SelfMirDeclarationRowsEmpty() -> SelfMirDeclarationRows {
         ints, ints, strings, strings, ints,
         ints, ints, strings, ints, ints,
         SelfMirDeclarationZoneAuthorityRowsEmpty(),
-        SelfMirNominalAbiLayoutRowsEmpty()
+        SelfMirNominalAbiLayoutRowsEmpty(),
+        SelfMirOptionNominalAbiLayoutRowsEmpty()
     );
 }
 

@@ -8,6 +8,7 @@ import "program_verify_owner.pgy";
 import "../mir_lower/abi_layout_fact_owner.pgy";
 import "../compiler/abi_layout_target_policy_owner.pgy";
 import "../lib/json_emit.pgy";
+import "option_abi_layout_contract_owner.pgy";
 
 // The producer-side row set is deliberately small and explicit in this rung.
 // It mirrors rows admitted by the current selfhost-c ABI target policy.  The
@@ -188,45 +189,45 @@ func SelfMirJsonStaticAbiLayout(type_name: String) -> String {
         );
     }
     if type_name == "Option<Int>" {
-        ArrayPush(fields, SelfMirJsonAbiLayoutField("tag", 0, 4, 4));
-        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 4, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField(SelfMirOptionAbiTagFieldName(), 0, SelfMirOptionAbiTagSize(), SelfMirOptionAbiTagAlign()));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField(SelfMirOptionAbiValueFieldName(), SelfMirOptionAbiValueOffset(4), 4, 4));
         return SelfMirJsonAbiLayoutRow(
-            type_name, 8, 4, fields, "pgy_option_some_Int", "int32_t", 1, "tag", 0, 1
+            type_name, SelfMirOptionAbiSize(4, 4), SelfMirOptionAbiAlign(4), fields, "pgy_option_some_Int", "int32_t", SelfMirOptionAbiRepresentation(), SelfMirOptionAbiDiscriminant(), SelfMirOptionAbiSomeTag(), SelfMirOptionAbiNoneTag()
         );
     }
     if type_name == "Option<Long>" {
-        ArrayPush(fields, SelfMirJsonAbiLayoutField("tag", 0, 4, 4));
-        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 8, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField(SelfMirOptionAbiTagFieldName(), 0, SelfMirOptionAbiTagSize(), SelfMirOptionAbiTagAlign()));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField(SelfMirOptionAbiValueFieldName(), SelfMirOptionAbiValueOffset(8), 8, 8));
         return SelfMirJsonAbiLayoutRow(
-            type_name, 16, 8, fields, "pgy_option_some_Long", "int64_t", 1, "tag", 0, 1
+            type_name, SelfMirOptionAbiSize(8, 8), SelfMirOptionAbiAlign(8), fields, "pgy_option_some_Long", "int64_t", SelfMirOptionAbiRepresentation(), SelfMirOptionAbiDiscriminant(), SelfMirOptionAbiSomeTag(), SelfMirOptionAbiNoneTag()
         );
     }
     if type_name == "Option<Float>" {
-        ArrayPush(fields, SelfMirJsonAbiLayoutField("tag", 0, 4, 4));
-        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 4, 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField(SelfMirOptionAbiTagFieldName(), 0, SelfMirOptionAbiTagSize(), SelfMirOptionAbiTagAlign()));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField(SelfMirOptionAbiValueFieldName(), SelfMirOptionAbiValueOffset(4), 4, 4));
         return SelfMirJsonAbiLayoutRow(
-            type_name, 8, 4, fields, "pgy_option_some_Float", "float", 1, "tag", 0, 1
+            type_name, SelfMirOptionAbiSize(4, 4), SelfMirOptionAbiAlign(4), fields, "pgy_option_some_Float", "float", SelfMirOptionAbiRepresentation(), SelfMirOptionAbiDiscriminant(), SelfMirOptionAbiSomeTag(), SelfMirOptionAbiNoneTag()
         );
     }
     if type_name == "Option<Double>" {
-        ArrayPush(fields, SelfMirJsonAbiLayoutField("tag", 0, 4, 4));
-        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 8, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField(SelfMirOptionAbiTagFieldName(), 0, SelfMirOptionAbiTagSize(), SelfMirOptionAbiTagAlign()));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField(SelfMirOptionAbiValueFieldName(), SelfMirOptionAbiValueOffset(8), 8, 8));
         return SelfMirJsonAbiLayoutRow(
-            type_name, 16, 8, fields, "pgy_option_some_Double", "double", 1, "tag", 0, 1
+            type_name, SelfMirOptionAbiSize(8, 8), SelfMirOptionAbiAlign(8), fields, "pgy_option_some_Double", "double", SelfMirOptionAbiRepresentation(), SelfMirOptionAbiDiscriminant(), SelfMirOptionAbiSomeTag(), SelfMirOptionAbiNoneTag()
         );
     }
     if type_name == "Option<Bool>" {
-        ArrayPush(fields, SelfMirJsonAbiLayoutField("tag", 0, 4, 4));
-        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 4, 1, 1));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField(SelfMirOptionAbiTagFieldName(), 0, SelfMirOptionAbiTagSize(), SelfMirOptionAbiTagAlign()));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField(SelfMirOptionAbiValueFieldName(), SelfMirOptionAbiValueOffset(1), 1, 1));
         return SelfMirJsonAbiLayoutRow(
-            type_name, 8, 4, fields, "pgy_option_some_Bool", "bool", 1, "tag", 0, 1
+            type_name, SelfMirOptionAbiSize(1, 1), SelfMirOptionAbiAlign(1), fields, "pgy_option_some_Bool", "bool", SelfMirOptionAbiRepresentation(), SelfMirOptionAbiDiscriminant(), SelfMirOptionAbiSomeTag(), SelfMirOptionAbiNoneTag()
         );
     }
     if type_name == "Option<String>" {
-        ArrayPush(fields, SelfMirJsonAbiLayoutField("tag", 0, 4, 4));
-        ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 8, 8, 8));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField(SelfMirOptionAbiTagFieldName(), 0, SelfMirOptionAbiTagSize(), SelfMirOptionAbiTagAlign()));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField(SelfMirOptionAbiValueFieldName(), SelfMirOptionAbiValueOffset(8), 8, 8));
         return SelfMirJsonAbiLayoutRow(
-            type_name, 16, 8, fields, "pgy_option_some_String", "char*", 1, "tag", 0, 1
+            type_name, SelfMirOptionAbiSize(8, 8), SelfMirOptionAbiAlign(8), fields, "pgy_option_some_String", "char*", SelfMirOptionAbiRepresentation(), SelfMirOptionAbiDiscriminant(), SelfMirOptionAbiSomeTag(), SelfMirOptionAbiNoneTag()
         );
     }
     if type_name == "Result<Int>" {

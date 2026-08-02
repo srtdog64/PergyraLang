@@ -259,6 +259,13 @@ typedef struct
     bool         abi_layout_present;
     MIRTypeLayout abi_layout;
     uint32_t     abi_layout_id;
+    /* Program-owned derived receipt for Option<this value struct>.  The
+     * wrapper is captured beside its inner nominal row so instructions never
+     * ask a backend to reconstruct tag or payload offsets from type text. */
+    bool         option_abi_layout_present;
+    char        *option_abi_type_name;
+    MIRTypeLayout option_abi_layout;
+    uint32_t     option_abi_layout_id;
 } MIRDeclHeader;
 
 typedef struct

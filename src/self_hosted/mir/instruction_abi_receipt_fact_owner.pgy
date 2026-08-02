@@ -4,9 +4,11 @@
 // dereference that exact row, but may not recover it from a type spelling.
 
 import "declaration_fact_owner.pgy";
+import "option_nominal_abi_layout_fact_owner.pgy";
 
 struct SelfMirInstructionAbiReceiptRows {
     ready: Bool;
+    kinds: Array<Int>;
     nominal_declaration_rows: Array<Int>;
     layout_ids: Array<Int>;
 }
@@ -14,7 +16,7 @@ struct SelfMirInstructionAbiReceiptRows {
 func SelfMirInstructionAbiReceiptRowsEmpty(
 ) -> SelfMirInstructionAbiReceiptRows {
     let ints: Array<Int> = [];
-    return SelfMirInstructionAbiReceiptRows(true, ints, ints);
+    return SelfMirInstructionAbiReceiptRows(true, ints, ints, ints);
 }
 
 func SelfMirInstructionAbiReceiptRowsAppend(
@@ -22,6 +24,7 @@ func SelfMirInstructionAbiReceiptRowsAppend(
     abi_type_names: Array<String>,
     ref declarations: SelfMirDeclarationRows
 ) -> SelfMirInstructionAbiReceiptRows {
+    let kinds: Array<Int> = target.kinds;
     let declaration_rows: Array<Int> = target.nominal_declaration_rows;
     let layout_ids: Array<Int> = target.layout_ids;
     let ready: Bool = target.ready;
@@ -29,60 +32,58 @@ func SelfMirInstructionAbiReceiptRowsAppend(
     while instruction_i < ArrayLength(abi_type_names) {
         let declaration_row: Int = 0 - 1;
         let layout_id: Int = 0;
+        let kind: Int = 0;
         let nominal: Option<Int> = SelfMirNominalUniqueStructIndex(
             declarations.names, declarations.nominal_kinds,
             abi_type_names[instruction_i]
         );
         if IsSome(nominal) {
             declaration_row = UnwrapOption(nominal);
-            if !declarations.nominal_abi_layouts.ready ||
-                declarations.nominal_abi_layouts.required[declaration_row] != 1 ||
-                declarations.nominal_abi_layouts.layout_ids[declaration_row] <= 0 {
+            if !declarations.nominal_abi_layouts.ready {
                 ready = false;
-            } else {
+            } else if declarations.nominal_abi_layouts.required[
+                    declaration_row
+                ] == 1 {
+                kind = 1;
                 layout_id = declarations.nominal_abi_layouts.layout_ids[
                     declaration_row
                 ];
+                if layout_id <= 0 { ready = false; }
+            } else {
+                declaration_row = 0 - 1;
+            }
+        } else {
+            let option_row: Option<Int> =
+                SelfMirOptionNominalAbiLayoutUniqueRowForType(
+                    declarations.option_nominal_abi_layouts,
+                    abi_type_names[instruction_i]
+                );
+            if IsSome(option_row) {
+                declaration_row = UnwrapOption(option_row);
+                if declarations.option_nominal_abi_layouts.required[
+                        declaration_row
+                    ] == 1 {
+                    kind = 2;
+                    let option_fact: SelfMirOptionNominalAbiLayoutFact =
+                        SelfMirOptionNominalAbiLayoutFactAt(
+                            declarations.option_nominal_abi_layouts,
+                            declaration_row
+                        );
+                    if !SelfMirOptionNominalAbiLayoutFactReady(option_fact) {
+                        ready = false;
+                    }
+                    layout_id = option_fact.layout_id;
+                } else {
+                    declaration_row = 0 - 1;
+                }
             }
         }
+        ArrayPush(kinds, kind);
         ArrayPush(declaration_rows, declaration_row);
         ArrayPush(layout_ids, layout_id);
         instruction_i = instruction_i + 1;
     }
     return SelfMirInstructionAbiReceiptRows(
-        ready, declaration_rows, layout_ids
+        ready, kinds, declaration_rows, layout_ids
     );
-}
-
-func SelfMirInstructionAbiReceiptRowsReady(
-    rows: SelfMirInstructionAbiReceiptRows,
-    abi_type_names: Array<String>,
-    ref declarations: SelfMirDeclarationRows
-) -> Bool {
-    let count: Int = ArrayLength(abi_type_names);
-    if !rows.ready || ArrayLength(rows.nominal_declaration_rows) != count ||
-        ArrayLength(rows.layout_ids) != count {
-        return false;
-    }
-    let instruction_i: Int = 0;
-    while instruction_i < count {
-        let row: Int = rows.nominal_declaration_rows[instruction_i];
-        let layout_id: Int = rows.layout_ids[instruction_i];
-        let nominal: Option<Int> = SelfMirNominalUniqueStructIndex(
-            declarations.names, declarations.nominal_kinds,
-            abi_type_names[instruction_i]
-        );
-        if IsSome(nominal) {
-            if row != UnwrapOption(nominal) || row < 0 ||
-                declarations.nominal_abi_layouts.required[row] != 1 ||
-                layout_id <= 0 || layout_id !=
-                    declarations.nominal_abi_layouts.layout_ids[row] {
-                return false;
-            }
-        } else if row != 0 - 1 || layout_id != 0 {
-            return false;
-        }
-        instruction_i = instruction_i + 1;
-    }
-    return true;
 }

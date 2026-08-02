@@ -1,0 +1,25 @@
+// Target selection for one already admitted Option<nominal> plan.
+
+import "direct_mir_option_struct_value_flow_c_emission_owner.pgy";
+import "direct_mir_option_struct_value_flow_llvm_emission_owner.pgy";
+
+func CompileAdmittedDirectMirOptionStructValueFlow(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirTwoRoutineNominalClassificationFact,
+    is_llvm: Bool,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    let plan: DirectMirOptionStructValueFlowPlan =
+        DirectMirOptionStructValueFlowPlanFromAdmitted(
+            admitted, classification
+        );
+    if is_llvm {
+        return DirectMirOptionStructValueFlowEmitLlvm(
+            plan, formatted_print, line_format
+        );
+    }
+    return DirectMirOptionStructValueFlowEmitC(
+        plan, formatted_print, line_format
+    );
+}

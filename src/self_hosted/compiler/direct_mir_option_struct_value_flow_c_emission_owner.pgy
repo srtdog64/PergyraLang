@@ -1,0 +1,172 @@
+// Runtime-free C emission from the sealed Option<nominal> value-flow plan.
+
+import "direct_mir_option_struct_value_flow_plan_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "symbol_table_owner.pgy";
+
+func DirectMirOptionStructValueFlowEmitC(
+    ref plan: DirectMirOptionStructValueFlowPlan,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirOptionStructValueFlowPlanReady(plan) ||
+        plan.unwrap_policy != "proven_some_extract" ||
+        !formatted_print.ok || formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" {
+        Die("direct MIR Option nominal C projection facts are invalid");
+    }
+    let graph: DirectMirOptionStructValueFlowGraphFact = plan.identity.graph;
+    let inner: MirAbiLayoutRowCapture = plan.identity.declaration.abi;
+    let outer: MirAbiLayoutRowCapture = plan.abi.option_abi;
+    let type_name: String = CompilerSymbolCIdentifier(graph.type_name);
+    let option_name: String = Concat("Option_", type_name);
+    let first: String = CompilerSymbolCIdentifier(graph.first_field);
+    let second: String = CompilerSymbolCIdentifier(graph.second_field);
+    let producer: String = CompilerSymbolCIdentifier(graph.producer_name);
+    let parameter: String = CompilerSymbolCIdentifier(graph.parameter_name);
+    if type_name == "" || option_name == "" || first == "" ||
+        second == "" || first == second || producer == "" || parameter == "" {
+        Die("direct MIR Option nominal C symbols are invalid");
+    }
+    let output: String =
+        "#include <stdint.h>\n#include <stddef.h>\n#include <stdio.h>\n\n";
+    output = Concat(output, "typedef struct {\n    int32_t ");
+    output = Concat(output, first);
+    output = Concat(output, ";\n    int32_t ");
+    output = Concat(output, second);
+    output = Concat(output, ";\n} ");
+    output = Concat(output, type_name);
+    output = Concat(output, ";\n\ntypedef struct {\n    int32_t tag;\n    ");
+    output = Concat(output, type_name);
+    output = Concat(output, " value;\n} ");
+    output = Concat(output, option_name);
+    output = Concat(output, ";\n\nenum { PGY_OPTION_SOME_TAG = ");
+    output = Concat(output, outer.primary_tag_text);
+    output = Concat(output, ", PGY_OPTION_NONE_TAG = ");
+    output = Concat(output, outer.secondary_tag_text);
+    output = Concat(output, " };\n\n_Static_assert(sizeof(");
+    output = Concat(output, type_name);
+    output = Concat(output, ") == ");
+    output = Concat(output, inner.size_text);
+    output = Concat(output, ", \"nominal size receipt\");\n_Static_assert(_Alignof(");
+    output = Concat(output, type_name);
+    output = Concat(output, ") == ");
+    output = Concat(output, inner.align_text);
+    output = Concat(output, ", \"nominal align receipt\");\n_Static_assert(offsetof(");
+    output = Concat(output, type_name);
+    output = Concat(output, ", ");
+    output = Concat(output, first);
+    output = Concat(output, ") == ");
+    output = Concat(output, inner.field_offsets[0]);
+    output = Concat(output, ", \"nominal first offset receipt\");\n_Static_assert(offsetof(");
+    output = Concat(output, type_name);
+    output = Concat(output, ", ");
+    output = Concat(output, second);
+    output = Concat(output, ") == ");
+    output = Concat(output, inner.field_offsets[1]);
+    output = Concat(output, ", \"nominal second offset receipt\");\n_Static_assert(sizeof(((");
+    output = Concat(output, type_name);
+    output = Concat(output, " *)0)->");
+    output = Concat(output, first);
+    output = Concat(output, ") == ");
+    output = Concat(output, inner.field_sizes[0]);
+    output = Concat(output, ", \"nominal first size receipt\");\n_Static_assert(sizeof(((");
+    output = Concat(output, type_name);
+    output = Concat(output, " *)0)->");
+    output = Concat(output, second);
+    output = Concat(output, ") == ");
+    output = Concat(output, inner.field_sizes[1]);
+    output = Concat(output, ", \"nominal second size receipt\");\n\n_Static_assert(sizeof(");
+    output = Concat(output, option_name);
+    output = Concat(output, ") == ");
+    output = Concat(output, outer.size_text);
+    output = Concat(output, ", \"Option size receipt\");\n_Static_assert(_Alignof(");
+    output = Concat(output, option_name);
+    output = Concat(output, ") == ");
+    output = Concat(output, outer.align_text);
+    output = Concat(output, ", \"Option align receipt\");\n_Static_assert(offsetof(");
+    output = Concat(output, option_name);
+    output = Concat(output, ", tag) == ");
+    output = Concat(output, outer.field_offsets[0]);
+    output = Concat(output, ", \"Option tag offset receipt\");\n_Static_assert(offsetof(");
+    output = Concat(output, option_name);
+    output = Concat(output, ", value) == ");
+    output = Concat(output, outer.field_offsets[1]);
+    output = Concat(output, ", \"Option value offset receipt\");\n_Static_assert(sizeof(((");
+    output = Concat(output, option_name);
+    output = Concat(output, " *)0)->tag) == ");
+    output = Concat(output, outer.field_sizes[0]);
+    output = Concat(output, ", \"Option tag size receipt\");\n_Static_assert(sizeof(((");
+    output = Concat(output, option_name);
+    output = Concat(output, " *)0)->value) == ");
+    output = Concat(output, outer.field_sizes[1]);
+    output = Concat(output, ", \"Option value size receipt\");\n\nstatic ");
+    output = Concat(output, option_name);
+    output = Concat(output, " ");
+    output = Concat(output, producer);
+    output = Concat(output, "(int32_t ");
+    output = Concat(output, parameter);
+    output = Concat(output, ") {\n    ");
+    output = Concat(output, option_name);
+    output = Concat(output, " pgy_returned = { .tag = PGY_OPTION_SOME_TAG, .value = { .");
+    output = Concat(output, first);
+    output = Concat(output, " = ");
+    output = Concat(output, parameter);
+    output = Concat(output, " + ");
+    output = Concat(output, ToString(graph.producer_first_delta));
+    output = Concat(output, ", .");
+    output = Concat(output, second);
+    output = Concat(output, " = ");
+    output = Concat(output, parameter);
+    output = Concat(output, " + ");
+    output = Concat(output, ToString(graph.producer_second_delta));
+    output = Concat(output, " } };\n    return pgy_returned;\n}\n\nint main(void) {\n    ");
+    output = Concat(output, option_name);
+    output = Concat(output, " pgy_picked = { .tag = PGY_OPTION_SOME_TAG, .value = { ");
+    output = Concat(output, ToString(graph.initial_first));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(graph.initial_second));
+    output = Concat(output, " } };\n    pgy_picked = (");
+    output = Concat(output, option_name);
+    output = Concat(output, "){ .tag = PGY_OPTION_NONE_TAG };\n    pgy_picked = (");
+    output = Concat(output, option_name);
+    output = Concat(output, "){ .tag = PGY_OPTION_SOME_TAG, .value = { ");
+    output = Concat(output, ToString(graph.latest_first));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(graph.latest_second));
+    output = Concat(output, " } };\n    ");
+    output = Concat(output, type_name);
+    output = Concat(output, " pgy_pair = pgy_picked.value;\n    ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (long long)(pgy_pair.");
+    output = Concat(output, first);
+    output = Concat(output, " + pgy_pair.");
+    output = Concat(output, second);
+    output = Concat(output, "));\n    ");
+    output = Concat(output, option_name);
+    output = Concat(output, " pgy_built = ");
+    output = Concat(output, producer);
+    output = Concat(output, "(");
+    output = Concat(output, ToString(graph.producer_argument));
+    output = Concat(output, ");\n    ");
+    output = Concat(output, type_name);
+    output = Concat(output, " pgy_unwrapped = pgy_built.value;\n    ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (long long)(pgy_unwrapped.");
+    output = Concat(output, first);
+    output = Concat(output, " + pgy_unwrapped.");
+    output = Concat(output, second);
+    output = Concat(output, "));\n    ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (long long)pgy_built.value.");
+    output = Concat(output, first);
+    output = Concat(output, ");\n    return 0;\n}\n");
+    return output;
+}

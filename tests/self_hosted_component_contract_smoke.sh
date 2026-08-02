@@ -13899,9 +13899,20 @@ require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE)'
 require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-array-argument-projection-test-smoke"
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
-    "src/self_hosted/mir_lower/fixture/struct_literal_value_flow.pgy"
+    "src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy"
 require_file "src/self_hosted/mir/nominal_abi_layout_fact_owner.pgy"
 require_max_lines "src/self_hosted/mir/nominal_abi_layout_fact_owner.pgy" 245
+for option_abi_owner_cap in \
+    option_abi_layout_contract_owner.pgy:40 \
+    option_nominal_abi_layout_identity_owner.pgy:70 \
+    option_nominal_abi_layout_fact_owner.pgy:160 \
+    option_nominal_abi_layout_verify_owner.pgy:70 \
+    option_nominal_abi_layout_json_projection_owner.pgy:70; do
+    option_abi_owner="${option_abi_owner_cap%%:*}"
+    option_abi_cap="${option_abi_owner_cap##*:}"
+    require_file "src/self_hosted/mir/$option_abi_owner"
+    require_max_lines "src/self_hosted/mir/$option_abi_owner" "$option_abi_cap"
+done
 require_file \
     "src/self_hosted/mir/nominal_abi_layout_json_projection_owner.pgy"
 require_max_lines \
@@ -13909,6 +13920,9 @@ require_max_lines \
 require_file "src/self_hosted/mir/instruction_abi_receipt_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/mir/instruction_abi_receipt_fact_owner.pgy" 100
+require_file "src/self_hosted/mir/instruction_abi_receipt_verify_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir/instruction_abi_receipt_verify_owner.pgy" 70
 require_file "src/self_hosted/mir/instruction_abi_receipt_json_projection_owner.pgy"
 require_max_lines \
     "src/self_hosted/mir/instruction_abi_receipt_json_projection_owner.pgy" 70
@@ -14006,7 +14020,7 @@ require_max_lines \
 require_text "src/self_hosted/compiler/direct_mir_array_return_program_identity_owner.pgy" \
     "JsonArrayObjectFactCount(admitted.document.declarations) == 0"
 require_text "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
-    "DirectMirStructValueFlowProgramCandidate(admitted)"
+    "DirectMirTwoRoutineNominalProgramCandidate(admitted)"
 require_text "src/self_hosted/compiler/direct_mir_struct_value_flow_plan_owner.pgy" \
     "independent_nominal_values_by_value"
 require_text "tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh" \
@@ -14021,10 +14035,63 @@ require_text "Makefile" "SELFHOST_ONE_MIR_STRUCT_VALUE_FLOW_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_STRUCT_VALUE_FLOW_GATE)'
 require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-struct-value-flow-projection-test-smoke"
+for option_value_flow_owner_cap in \
+    direct_mir_two_routine_nominal_classification_owner.pgy:150 \
+    direct_mir_two_routine_nominal_program_admission_owner.pgy:80 \
+    direct_mir_two_routine_nominal_projection_owner.pgy:55 \
+    direct_mir_option_struct_value_flow_program_admission_owner.pgy:30 \
+    direct_mir_option_struct_value_flow_program_identity_owner.pgy:230 \
+    direct_mir_option_struct_value_flow_graph_shape_owner.pgy:140 \
+    direct_mir_option_struct_value_flow_graph_fact_owner.pgy:180 \
+    direct_mir_option_struct_value_flow_instruction_admission_owner.pgy:280 \
+    direct_mir_option_struct_value_flow_abi_fact_owner.pgy:220 \
+    direct_mir_option_struct_value_flow_plan_owner.pgy:180 \
+    direct_mir_option_struct_value_flow_c_emission_owner.pgy:190 \
+    direct_mir_option_struct_value_flow_llvm_emission_owner.pgy:220 \
+    direct_mir_option_struct_value_flow_projection_owner.pgy:40; do
+    option_value_flow_owner="${option_value_flow_owner_cap%%:*}"
+    option_value_flow_cap="${option_value_flow_owner_cap##*:}"
+    require_file "src/self_hosted/compiler/$option_value_flow_owner"
+    require_max_lines \
+        "src/self_hosted/compiler/$option_value_flow_owner" \
+        "$option_value_flow_cap"
+done
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" 80
+require_file \
+    "tests/self_hosted/parity/one_mir_option_struct_value_flow_projection.sh"
+require_file \
+    "tests/self_hosted/parity/one_mir_option_struct_value_flow_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_option_struct_value_flow_projection.sh" 180
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_option_struct_value_flow_mutations.py" 260
+require_text \
+    "src/self_hosted/compiler/direct_mir_two_routine_nominal_projection_owner.pgy" \
+    "classification.kind == DirectMirTwoRoutineNominalOption()"
+require_text \
+    "src/self_hosted/compiler/direct_mir_option_struct_value_flow_plan_owner.pgy" \
+    "explicit_tagged_nominal_values_by_value"
+require_text \
+    "src/self_hosted/compiler/direct_mir_option_struct_value_flow_plan_owner.pgy" \
+    "proven_some_extract"
+require_text \
+    "tests/self_hosted/parity/one_mir_option_struct_value_flow_projection.sh" \
+    "gate must produce source MIR exactly once"
+require_text \
+    "tests/self_hosted/parity/one_mir_option_struct_value_flow_projection.sh" \
+    "routine-order-swap"
+require_text \
+    "tests/self_hosted/parity/one_mir_option_struct_value_flow_projection.sh" \
+    "C/LLVM exact 7/11/5"
+require_text "Makefile" "SELFHOST_ONE_MIR_OPTION_STRUCT_VALUE_FLOW_GATE ?="
+require_text "Makefile" '$(SELFHOST_ONE_MIR_OPTION_STRUCT_VALUE_FLOW_GATE)'
+require_text ".github/workflows/ci.yml" \
+    "self-host-one-mir-option-struct-value-flow-projection-test-smoke"
 require_text "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
-    "src/self_hosted/mir_lower/fixture/struct_literal_value_flow.pgy"
+    "src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy"
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
-    "src/self_hosted/mir_lower/fixture/struct_literal_value_flow.pgy"
+    "src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy"
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240

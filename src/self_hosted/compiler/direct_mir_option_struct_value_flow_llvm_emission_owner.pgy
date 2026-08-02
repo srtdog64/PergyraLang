@@ -1,0 +1,131 @@
+// Runtime-free LLVM aggregate emission from the same target-neutral plan.
+
+import "direct_mir_option_struct_value_flow_plan_owner.pgy";
+import "direct_mir_llvm_text_format_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "symbol_table_owner.pgy";
+
+func DirectMirOptionStructValueFlowEmitLlvm(
+    ref plan: DirectMirOptionStructValueFlowPlan,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirOptionStructValueFlowPlanReady(plan) ||
+        plan.unwrap_policy != "proven_some_extract" ||
+        !formatted_print.ok || formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" {
+        Die("direct MIR Option nominal LLVM projection facts are invalid");
+    }
+    let graph: DirectMirOptionStructValueFlowGraphFact = plan.identity.graph;
+    let inner_name: String = CompilerSymbolCIdentifier(graph.type_name);
+    let option_name: String = Concat("Option_", inner_name);
+    let producer: String = CompilerSymbolCIdentifier(graph.producer_name);
+    if inner_name == "" || option_name == "" || producer == "" {
+        Die("direct MIR Option nominal LLVM symbols are invalid");
+    }
+    let payload: String = DirectMirScalarLlvmFormatPayload(line_format);
+    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
+    let some_tag: String = plan.abi.option_abi.primary_tag_text;
+    let none_tag: String = plan.abi.option_abi.secondary_tag_text;
+    let output: String = "%";
+    output = Concat(output, inner_name);
+    output = Concat(output, " = type { i32, i32 }\n%");
+    output = Concat(output, option_name);
+    output = Concat(output, " = type { i32, %");
+    output = Concat(output, inner_name);
+    output = Concat(output, " }\n\n@.pgy.int.line.format = private unnamed_addr constant [");
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, payload);
+    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n\ndefine internal %");
+    output = Concat(output, option_name);
+    output = Concat(output, " @");
+    output = Concat(output, producer);
+    output = Concat(output, "(i32 %base) {\nentry:\n  %pgy.return.left = add i32 %base, ");
+    output = Concat(output, ToString(graph.producer_first_delta));
+    output = Concat(output, "\n  %pgy.return.right = add i32 %base, ");
+    output = Concat(output, ToString(graph.producer_second_delta));
+    output = Concat(output, "\n  %pgy.return.pair.0 = insertvalue %");
+    output = Concat(output, inner_name);
+    output = Concat(output, " poison, i32 %pgy.return.left, 0\n  %pgy.return.pair.1 = insertvalue %");
+    output = Concat(output, inner_name);
+    output = Concat(output, " %pgy.return.pair.0, i32 %pgy.return.right, 1\n  %pgy.return.option.0 = insertvalue %");
+    output = Concat(output, option_name);
+    output = Concat(output, " poison, i32 ");
+    output = Concat(output, some_tag);
+    output = Concat(output, ", 0\n  %pgy.return.option.1 = insertvalue %");
+    output = Concat(output, option_name);
+    output = Concat(output, " %pgy.return.option.0, %");
+    output = Concat(output, inner_name);
+    output = Concat(output, " %pgy.return.pair.1, 1\n  ret %");
+    output = Concat(output, option_name);
+    output = Concat(output, " %pgy.return.option.1\n}\n\ndefine i32 @main() {\nentry:\n  %pgy.initial.pair.0 = insertvalue %");
+    output = Concat(output, inner_name);
+    output = Concat(output, " poison, i32 ");
+    output = Concat(output, ToString(graph.initial_first));
+    output = Concat(output, ", 0\n  %pgy.initial.pair.1 = insertvalue %");
+    output = Concat(output, inner_name);
+    output = Concat(output, " %pgy.initial.pair.0, i32 ");
+    output = Concat(output, ToString(graph.initial_second));
+    output = Concat(output, ", 1\n  %pgy.initial.option.0 = insertvalue %");
+    output = Concat(output, option_name);
+    output = Concat(output, " poison, i32 ");
+    output = Concat(output, some_tag);
+    output = Concat(output, ", 0\n  %pgy.initial.option.1 = insertvalue %");
+    output = Concat(output, option_name);
+    output = Concat(output, " %pgy.initial.option.0, %");
+    output = Concat(output, inner_name);
+    output = Concat(output, " %pgy.initial.pair.1, 1\n  %pgy.none = insertvalue %");
+    output = Concat(output, option_name);
+    output = Concat(output, " poison, i32 ");
+    output = Concat(output, none_tag);
+    output = Concat(output, ", 0\n  %pgy.latest.pair.0 = insertvalue %");
+    output = Concat(output, inner_name);
+    output = Concat(output, " poison, i32 ");
+    output = Concat(output, ToString(graph.latest_first));
+    output = Concat(output, ", 0\n  %pgy.latest.pair.1 = insertvalue %");
+    output = Concat(output, inner_name);
+    output = Concat(output, " %pgy.latest.pair.0, i32 ");
+    output = Concat(output, ToString(graph.latest_second));
+    output = Concat(output, ", 1\n  %pgy.latest.option.0 = insertvalue %");
+    output = Concat(output, option_name);
+    output = Concat(output, " poison, i32 ");
+    output = Concat(output, some_tag);
+    output = Concat(output, ", 0\n  %pgy.latest.option.1 = insertvalue %");
+    output = Concat(output, option_name);
+    output = Concat(output, " %pgy.latest.option.0, %");
+    output = Concat(output, inner_name);
+    output = Concat(output, " %pgy.latest.pair.1, 1\n  %pgy.pair = extractvalue %");
+    output = Concat(output, option_name);
+    output = Concat(output, " %pgy.latest.option.1, 1\n  %pgy.pair.left = extractvalue %");
+    output = Concat(output, inner_name);
+    output = Concat(output, " %pgy.pair, 0\n  %pgy.pair.right = extractvalue %");
+    output = Concat(output, inner_name);
+    output = Concat(output, " %pgy.pair, 1\n  %pgy.pair.sum = add i32 %pgy.pair.left, %pgy.pair.right\n  %pgy.pair.print = sext i32 %pgy.pair.sum to i64\n  %pgy.pair.logged = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.int.line.format, i64 %pgy.pair.print)\n  %pgy.built = call %");
+    output = Concat(output, option_name);
+    output = Concat(output, " @");
+    output = Concat(output, producer);
+    output = Concat(output, "(i32 ");
+    output = Concat(output, ToString(graph.producer_argument));
+    output = Concat(output, ")\n  %pgy.unwrapped = extractvalue %");
+    output = Concat(output, option_name);
+    output = Concat(output, " %pgy.built, 1\n  %pgy.unwrapped.left = extractvalue %");
+    output = Concat(output, inner_name);
+    output = Concat(output, " %pgy.unwrapped, 0\n  %pgy.unwrapped.right = extractvalue %");
+    output = Concat(output, inner_name);
+    output = Concat(output, " %pgy.unwrapped, 1\n  %pgy.unwrapped.sum = add i32 %pgy.unwrapped.left, %pgy.unwrapped.right\n  %pgy.unwrapped.print = sext i32 %pgy.unwrapped.sum to i64\n  %pgy.unwrapped.logged = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.int.line.format, i64 %pgy.unwrapped.print)\n  %pgy.chained.payload = extractvalue %");
+    output = Concat(output, option_name);
+    output = Concat(output, " %pgy.built, 1\n  %pgy.chained.left = extractvalue %");
+    output = Concat(output, inner_name);
+    output = Concat(output, " %pgy.chained.payload, 0\n  %pgy.chained.print = sext i32 %pgy.chained.left to i64\n  %pgy.chained.logged = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.int.line.format, i64 %pgy.chained.print)\n  ret i32 0\n}\n");
+    return output;
+}

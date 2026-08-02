@@ -1,0 +1,129 @@
+// Declaration-parallel derived ABI receipts for Option<nominal value struct>.
+//
+// Each nominal declaration materializes its wrapper once. Instructions carry
+// the exact declaration row and outer layout ID; later consumers never parse a
+// type spelling or reconstruct wrapper geometry.
+
+import "nominal_abi_layout_fact_owner.pgy";
+import "option_nominal_abi_layout_identity_owner.pgy";
+
+struct SelfMirOptionNominalAbiLayoutRows {
+    ready: Bool;
+    type_names: Array<String>;
+    required: Array<Int>;
+    layout_ids: Array<Int>;
+    sizes: Array<Int>;
+    aligns: Array<Int>;
+    value_offsets: Array<Int>;
+    value_sizes: Array<Int>;
+    value_aligns: Array<Int>;
+}
+
+func SelfMirOptionNominalAbiLayoutRowsEmpty(
+) -> SelfMirOptionNominalAbiLayoutRows {
+    let strings: Array<String> = [];
+    let ints: Array<Int> = [];
+    return SelfMirOptionNominalAbiLayoutRows(
+        true, strings, ints, ints, ints, ints, ints, ints, ints
+    );
+}
+
+func SelfMirOptionNominalAbiLayoutRowsCapture(
+    names: Array<String>, nominal_kinds: Array<String>,
+    ref nominal: SelfMirNominalAbiLayoutRows
+) -> SelfMirOptionNominalAbiLayoutRows {
+    let type_names: Array<String> = [];
+    let requireds: Array<Int> = [];
+    let layout_ids: Array<Int> = [];
+    let sizes: Array<Int> = [];
+    let aligns: Array<Int> = [];
+    let value_offsets: Array<Int> = [];
+    let value_sizes: Array<Int> = [];
+    let value_aligns: Array<Int> = [];
+    let ready: Bool = true;
+    if !nominal.ready || ArrayLength(names) != ArrayLength(nominal_kinds) ||
+        ArrayLength(names) != ArrayLength(nominal.required) {
+        return SelfMirOptionNominalAbiLayoutRows(
+            false, type_names, requireds, layout_ids, sizes, aligns,
+            value_offsets, value_sizes, value_aligns
+        );
+    }
+    let row: Int = 0;
+    while row < ArrayLength(names) {
+        let type_name: String = "";
+        let required: Int = 0;
+        let layout_id: Int = 0;
+        let size: Int = 0;
+        let align: Int = 0;
+        let value_offset: Int = 0;
+        let value_size: Int = 0;
+        let value_align: Int = 0;
+        if nominal_kinds[row] == "struct" {
+            type_name = Concat("Option<", Concat(names[row], ">"));
+            if nominal.required[row] == 1 {
+                value_size = nominal.sizes[row];
+                value_align = nominal.aligns[row];
+                value_offset = SelfMirOptionAbiValueOffset(value_align);
+                align = SelfMirOptionAbiAlign(value_align);
+                size = SelfMirOptionAbiSize(value_size, value_align);
+                layout_id = SelfMirOptionNominalAbiLayoutId(
+                    type_name, size, align, value_offset,
+                    value_size, value_align
+                );
+                if value_offset < 0 || size <= 0 || align <= 0 ||
+                    layout_id <= 0 {
+                    ready = false;
+                } else {
+                    required = 1;
+                }
+            }
+        }
+        ArrayPush(type_names, type_name);
+        ArrayPush(requireds, required);
+        ArrayPush(layout_ids, layout_id);
+        ArrayPush(sizes, size);
+        ArrayPush(aligns, align);
+        ArrayPush(value_offsets, value_offset);
+        ArrayPush(value_sizes, value_size);
+        ArrayPush(value_aligns, value_align);
+        row = row + 1;
+    }
+    return SelfMirOptionNominalAbiLayoutRows(
+        ready, type_names, requireds, layout_ids, sizes, aligns,
+        value_offsets, value_sizes, value_aligns
+    );
+}
+
+func SelfMirOptionNominalAbiLayoutUniqueRowForType(
+    ref rows: SelfMirOptionNominalAbiLayoutRows, type_name: String
+) -> Option<Int> {
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(rows.type_names) {
+        if rows.type_names[row] == type_name {
+            if found >= 0 { return None; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    if found < 0 { return None; }
+    return Some(found);
+}
+
+func SelfMirOptionNominalAbiLayoutFactAt(
+    ref rows: SelfMirOptionNominalAbiLayoutRows,
+    declaration_row: Int
+) -> SelfMirOptionNominalAbiLayoutFact {
+    if !rows.ready || declaration_row < 0 || declaration_row >=
+        ArrayLength(rows.type_names) || rows.required[declaration_row] != 1 {
+        return SelfMirOptionNominalAbiLayoutFact(
+            false, "", 0 - 1, 0, 0, 0, 0, 0, 0
+        );
+    }
+    return SelfMirOptionNominalAbiLayoutFact(
+        true, rows.type_names[declaration_row], declaration_row,
+        rows.layout_ids[declaration_row], rows.sizes[declaration_row],
+        rows.aligns[declaration_row], rows.value_offsets[declaration_row],
+        rows.value_sizes[declaration_row], rows.value_aligns[declaration_row]
+    );
+}

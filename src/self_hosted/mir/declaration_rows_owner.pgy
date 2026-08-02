@@ -445,6 +445,15 @@ func SelfMirDeclarationsFromAnalysis(
         SelfMirDeclarationZoneAuthorityRowsFromFacts(
             analysis.zone_authorities, names, nominal_kinds
         );
+    let nominal_abi_layouts: SelfMirNominalAbiLayoutRows =
+        SelfMirNominalAbiLayoutsCapture(
+            names, nominal_kinds, field_starts, field_counts,
+            field_names, field_kinds, field_types
+        );
+    let option_nominal_abi_layouts: SelfMirOptionNominalAbiLayoutRows =
+        SelfMirOptionNominalAbiLayoutRowsCapture(
+            names, nominal_kinds, nominal_abi_layouts
+        );
     return SelfMirDeclarationRows(
         kinds, nominal_kinds, names, source_syntax_ids,
         target_types, uses_pointer_self,
@@ -471,9 +480,6 @@ func SelfMirDeclarationsFromAnalysis(
         role_slot_types, role_slot_dynamic,
         role_impl_starts, role_impl_counts, role_impl_ability_names,
         role_impl_method_starts, role_impl_method_counts, zone_authorities,
-        SelfMirNominalAbiLayoutsCapture(
-            names, nominal_kinds, field_starts, field_counts,
-            field_names, field_kinds, field_types
-        )
+        nominal_abi_layouts, option_nominal_abi_layouts
     );
 }

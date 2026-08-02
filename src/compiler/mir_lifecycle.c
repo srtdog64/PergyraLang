@@ -135,6 +135,7 @@ mir_destroy(MIRProgram *mir)
             }
             free(mir->decl_headers[i].type_alias_target_type_name);
             free(mir->decl_headers[i].role_subject_type_name);
+            free(mir->decl_headers[i].option_abi_type_name);
             if (mir->decl_headers[i].event_param_names != NULL) {
                 for (size_t j = 0;
                      j < mir->decl_headers[i].event_param_count; j++)

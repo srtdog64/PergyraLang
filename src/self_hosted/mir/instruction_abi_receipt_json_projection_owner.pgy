@@ -1,13 +1,12 @@
 // JSON projection of an instruction's producer-carried ABI receipt.
-
 import "instruction_abi_receipt_fact_owner.pgy";
 import "nominal_abi_layout_json_projection_owner.pgy";
+import "option_nominal_abi_layout_json_projection_owner.pgy";
 
 struct SelfMirInstructionAbiJsonProjection {
     ready: Bool;
     layout: String;
 }
-
 func SelfMirInstructionAbiJsonProjectionForRow(
     ref declarations: SelfMirDeclarationRows,
     ref receipts: SelfMirInstructionAbiReceiptRows,
@@ -20,13 +19,37 @@ func SelfMirInstructionAbiJsonProjectionForRow(
     }
     let declaration_row: Int =
         receipts.nominal_declaration_rows[instruction_index];
-    if declaration_row < 0 {
-        if receipts.layout_ids[instruction_index] != 0 {
+    let kind: Int = receipts.kinds[instruction_index];
+    if kind == 0 {
+        if declaration_row >= 0 || receipts.layout_ids[instruction_index] != 0 {
             return SelfMirInstructionAbiJsonProjection(false, "");
         }
         return SelfMirInstructionAbiJsonProjection(
             true, SelfMirJsonStaticAbiLayout(type_name)
         );
+    }
+    if kind == 2 {
+        let option_fact: SelfMirOptionNominalAbiLayoutFact =
+            SelfMirOptionNominalAbiLayoutFactAt(
+                declarations.option_nominal_abi_layouts, declaration_row
+            );
+        if !SelfMirOptionNominalAbiLayoutFactReady(option_fact) ||
+            option_fact.type_name != type_name ||
+            receipts.layout_ids[instruction_index] != option_fact.layout_id {
+            return SelfMirInstructionAbiJsonProjection(false, "");
+        }
+        let option_layout: String = SelfMirJsonOptionNominalAbiLayout(option_fact);
+        if option_layout == "" || SelfMirJsonAbiLayoutId(option_layout) !=
+            ToString(receipts.layout_ids[instruction_index]) {
+            return SelfMirInstructionAbiJsonProjection(false, "");
+        }
+        return SelfMirInstructionAbiJsonProjection(true, option_layout);
+    }
+    if kind != 1 || declaration_row < 0 {
+        if receipts.layout_ids[instruction_index] != 0 {
+            return SelfMirInstructionAbiJsonProjection(false, "");
+        }
+        return SelfMirInstructionAbiJsonProjection(false, "");
     }
     if declaration_row >= ArrayLength(declarations.names) ||
         declarations.nominal_kinds[declaration_row] != "struct" ||

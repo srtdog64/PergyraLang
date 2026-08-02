@@ -1,0 +1,60 @@
+// Cross-seal every instruction ABI receipt with its declaration-owned row.
+
+import "instruction_abi_receipt_fact_owner.pgy";
+
+func SelfMirInstructionAbiReceiptRowsReady(
+    rows: SelfMirInstructionAbiReceiptRows,
+    abi_type_names: Array<String>,
+    ref declarations: SelfMirDeclarationRows
+) -> Bool {
+    let count: Int = ArrayLength(abi_type_names);
+    if !rows.ready || ArrayLength(rows.kinds) != count ||
+        ArrayLength(rows.nominal_declaration_rows) != count ||
+        ArrayLength(rows.layout_ids) != count {
+        return false;
+    }
+    let instruction_i: Int = 0;
+    while instruction_i < count {
+        let row: Int = rows.nominal_declaration_rows[instruction_i];
+        let layout_id: Int = rows.layout_ids[instruction_i];
+        let kind: Int = rows.kinds[instruction_i];
+        let nominal: Option<Int> = SelfMirNominalUniqueStructIndex(
+            declarations.names, declarations.nominal_kinds,
+            abi_type_names[instruction_i]
+        );
+        if IsSome(nominal) && declarations.nominal_abi_layouts.required[
+                UnwrapOption(nominal)
+            ] == 1 {
+            if kind != 1 || row != UnwrapOption(nominal) || row < 0 ||
+                layout_id <= 0 || layout_id !=
+                    declarations.nominal_abi_layouts.layout_ids[row] {
+                return false;
+            }
+        } else {
+            let option_row: Option<Int> =
+                SelfMirOptionNominalAbiLayoutUniqueRowForType(
+                    declarations.option_nominal_abi_layouts,
+                    abi_type_names[instruction_i]
+                );
+            if IsSome(option_row) &&
+                declarations.option_nominal_abi_layouts.required[
+                    UnwrapOption(option_row)
+                ] == 1 {
+                let option_fact: SelfMirOptionNominalAbiLayoutFact =
+                    SelfMirOptionNominalAbiLayoutFactAt(
+                        declarations.option_nominal_abi_layouts,
+                        UnwrapOption(option_row)
+                    );
+                if !SelfMirOptionNominalAbiLayoutFactReady(option_fact) ||
+                    kind != 2 || row != UnwrapOption(option_row) ||
+                    layout_id != option_fact.layout_id {
+                    return false;
+                }
+            } else if kind != 0 || row != 0 - 1 || layout_id != 0 {
+                return false;
+            }
+        }
+        instruction_i = instruction_i + 1;
+    }
+    return true;
+}

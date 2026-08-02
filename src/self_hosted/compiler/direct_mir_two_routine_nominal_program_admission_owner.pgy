@@ -1,0 +1,73 @@
+// Shared outer envelope for one classified two-routine nominal program.
+
+import "direct_mir_array_argument_program_identity_owner.pgy";
+import "direct_mir_two_routine_nominal_classification_owner.pgy";
+
+func DirectMirTwoRoutineNominalProgramCandidate(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    return MirProgramRoutineIndexCount(admitted.routines) == 2 &&
+        JsonArrayObjectFactTableReady(admitted.document.declarations) &&
+        JsonArrayObjectFactCount(admitted.document.declarations) == 1;
+}
+
+func DirectMirTwoRoutineNominalProgramEnvelopeReady(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirTwoRoutineNominalClassificationFact
+) -> Bool {
+    let specializations: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(
+            admitted.document.root, "generic_method_specializations"
+        );
+    let declarations: MirProgramDeclarationIndex =
+        admitted.domain_runtime_admission.declarations;
+    if !admitted.document.valid || admitted.domain_topology_plan.present ||
+        admitted.document.routines.json != admitted.routines.source_json ||
+        JsonObjectFactCount(admitted.document.root) != 5 ||
+        !DirectMirTwoRoutineNominalProgramCandidate(admitted) ||
+        !DirectMirTwoRoutineNominalClassificationReady(classification) ||
+        !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 ||
+        classification.declaration_name != declarations.names[0] ||
+        classification.entrypoint.row < 0 ||
+        classification.entrypoint.row >= 2 ||
+        classification.producer.row < 0 || classification.producer.row >= 2 ||
+        admitted.routines.names[classification.entrypoint.row] !=
+            classification.entrypoint.name ||
+        ToInt(admitted.routines.source_syntax_ids[
+            classification.entrypoint.row
+        ]) !=
+            classification.entrypoint.source_syntax_id ||
+        admitted.routines.names[classification.producer.row] !=
+            classification.producer.name ||
+        ToInt(admitted.routines.source_syntax_ids[
+            classification.producer.row
+        ]) !=
+            classification.producer.source_syntax_id ||
+        !JsonArrayObjectFactTableReady(
+            admitted.document.parallel_capture_boundaries
+        ) || JsonArrayObjectFactCount(
+            admitted.document.parallel_capture_boundaries
+        ) != 0 || !JsonArrayObjectFactTableReady(specializations) ||
+        JsonArrayObjectFactCount(specializations) != 0 ||
+        !MirProgramRoutineIndexStructureReady(admitted.routines) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < 2 {
+        if admitted.routines.kinds[row] != "function" ||
+            admitted.routines.owners[row] != "" ||
+            admitted.routines.routine_block_counts[row] != 1 {
+            return false;
+        }
+        let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.ends[row]
+        );
+        if !JsonObjectFactTableReady(routine) ||
+            !DirectMirArrayArgumentRoutineEnvelopeReady(routine) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}

@@ -1,0 +1,29 @@
+// Exclusive classified dispatch for two-routine, one-nominal programs.
+
+import "direct_mir_option_struct_value_flow_projection_owner.pgy";
+import "direct_mir_struct_value_flow_projection_owner.pgy";
+
+func CompileAdmittedDirectMirTwoRoutineNominal(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    is_llvm: Bool,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    let classification: DirectMirTwoRoutineNominalClassificationFact =
+        DirectMirTwoRoutineNominalClassificationFromAdmitted(admitted);
+    if !DirectMirTwoRoutineNominalClassificationReady(classification) {
+        Die("direct MIR two-routine nominal classification is invalid");
+    }
+    if classification.kind == DirectMirTwoRoutineNominalOption() {
+        return CompileAdmittedDirectMirOptionStructValueFlow(
+            admitted, classification, is_llvm, formatted_print, line_format
+        );
+    }
+    if classification.kind == DirectMirTwoRoutineNominalPlain() {
+        return CompileAdmittedDirectMirStructValueFlow(
+            admitted, classification, is_llvm, formatted_print, line_format
+        );
+    }
+    Die("direct MIR two-routine nominal classification is unsupported");
+    return "";
+}

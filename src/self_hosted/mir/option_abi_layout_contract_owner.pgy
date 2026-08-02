@@ -1,0 +1,34 @@
+// Shared explicit-tag geometry for every self-host MIR Option<T> ABI row.
+// Static scalar rows and program-derived nominal rows must consume this owner.
+
+func SelfMirOptionAbiTagFieldName() -> String { return "tag"; }
+func SelfMirOptionAbiValueFieldName() -> String { return "value"; }
+func SelfMirOptionAbiTagSize() -> Int { return 4; }
+func SelfMirOptionAbiTagAlign() -> Int { return 4; }
+func SelfMirOptionAbiRepresentation() -> Int { return 1; }
+func SelfMirOptionAbiDiscriminant() -> String { return "tag"; }
+func SelfMirOptionAbiSomeTag() -> Int { return 0; }
+func SelfMirOptionAbiNoneTag() -> Int { return 1; }
+
+func SelfMirOptionAbiAlignUp(value: Int, align: Int) -> Int {
+    if value < 0 || align <= 0 { return 0 - 1; }
+    let padding: Int = (align - (value % align)) % align;
+    if value > 2147483647 - padding { return 0 - 1; }
+    return value + padding;
+}
+
+func SelfMirOptionAbiValueOffset(value_align: Int) -> Int {
+    return SelfMirOptionAbiAlignUp(SelfMirOptionAbiTagSize(), value_align);
+}
+
+func SelfMirOptionAbiAlign(value_align: Int) -> Int {
+    if value_align > SelfMirOptionAbiTagAlign() { return value_align; }
+    return SelfMirOptionAbiTagAlign();
+}
+
+func SelfMirOptionAbiSize(value_size: Int, value_align: Int) -> Int {
+    let offset: Int = SelfMirOptionAbiValueOffset(value_align);
+    return SelfMirOptionAbiAlignUp(
+        offset + value_size, SelfMirOptionAbiAlign(value_align)
+    );
+}

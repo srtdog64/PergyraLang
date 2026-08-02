@@ -1,12 +1,12 @@
-// Exclusive envelope for the two-routine, one-struct value-flow program.
+// Exclusive envelope for Option<nominal> return and value flow.
 
 import "direct_mir_two_routine_nominal_program_admission_owner.pgy";
 
-func DirectMirStructValueFlowProgramEnvelopeReady(
+func DirectMirOptionStructValueFlowProgramEnvelopeReady(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref classification: DirectMirTwoRoutineNominalClassificationFact
 ) -> Bool {
-    return classification.kind == DirectMirTwoRoutineNominalPlain() &&
+    return classification.kind == DirectMirTwoRoutineNominalOption() &&
         DirectMirTwoRoutineNominalProgramEnvelopeReady(
             admitted, classification
         );

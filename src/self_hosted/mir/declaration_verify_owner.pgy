@@ -1,6 +1,7 @@
 // Structural verifier for flat MIR declaration row ranges.
 
 import "declaration_fact_owner.pgy";
+import "option_nominal_abi_layout_verify_owner.pgy";
 import "enum_declaration_verify_owner.pgy";
 import "../lib/callable_contract_vocabulary_projection_owner.pgy";
 import "../lib/nominal_field_kind_owner.pgy";
@@ -123,6 +124,9 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
             ArrayLength(rows.role_impl_method_counts) ||
         !SelfMirDeclarationZoneAuthorityRowsReady(
             rows.zone_authorities, rows.names, rows.nominal_kinds
+        ) || !SelfMirOptionNominalAbiLayoutRowsReady(
+            rows.option_nominal_abi_layouts, rows.names,
+            rows.nominal_kinds, rows.nominal_abi_layouts
         ) ||
         !SelfMirEnumDeclarationPayloadRowsReady(rows) {
         return false;

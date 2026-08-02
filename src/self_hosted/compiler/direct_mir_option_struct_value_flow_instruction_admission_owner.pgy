@@ -1,0 +1,218 @@
+// Instruction identity, SSA uses, and local lifetime for Option<nominal> flow.
+
+import "direct_mir_option_struct_value_flow_program_identity_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+import "../mir_lower/routine_result_definition_fact_owner.pgy";
+
+struct DirectMirOptionStructValueFlowInstructionAdmission {
+    let valid: Bool;
+    let returned: MirRoutineInstructionScalarCapture;
+    let initial: MirRoutineInstructionScalarCapture;
+    let none_value: MirRoutineInstructionScalarCapture;
+    let latest: MirRoutineInstructionScalarCapture;
+    let pair: MirRoutineInstructionScalarCapture;
+    let picked_output: MirRoutineInstructionScalarCapture;
+    let built: MirRoutineInstructionScalarCapture;
+    let unwrapped: MirRoutineInstructionScalarCapture;
+    let built_output: MirRoutineInstructionScalarCapture;
+    let chained_output: MirRoutineInstructionScalarCapture;
+}
+
+func DirectMirOptionStructValueFlowInstructionCapture(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    routine_row: Int, instruction_row: Int
+) -> MirRoutineInstructionScalarCapture {
+    let global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, routine_row, 0, instruction_row
+    );
+    if global < 0 { Die("direct MIR Option nominal instruction is missing"); }
+    return MirRoutineInstructionFactBundleAtGlobal(
+        index.instruction_facts, global
+    );
+}
+
+func DirectMirOptionStructValueFlowInstructionAdmissionReady(
+    ref fact: DirectMirOptionStructValueFlowInstructionAdmission
+) -> Bool {
+    return fact.valid && fact.returned.valid && fact.initial.valid &&
+        fact.none_value.valid && fact.latest.valid && fact.pair.valid &&
+        fact.picked_output.valid && fact.built.valid &&
+        fact.unwrapped.valid && fact.built_output.valid &&
+        fact.chained_output.valid && fact.returned.result == "" &&
+        fact.initial.result != "" && fact.none_value.result != "" &&
+        fact.latest.result != "" && fact.pair.result != "" &&
+        fact.built.result != "" && fact.unwrapped.result != "" &&
+        fact.initial.result != fact.none_value.result &&
+        fact.none_value.result != fact.latest.result;
+}
+
+func DirectMirOptionStructExpectedUseAt(
+    ref uses: MirRoutineInstructionUseFacts,
+    global_row: Int, expected: String
+) -> Bool {
+    let count: Int = MirRoutineInstructionUseCountAtGlobal(uses, global_row);
+    if expected == "" { return count == 0; }
+    let use_value: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, global_row, 0
+    );
+    return count == 1 && IsSome(use_value) &&
+        UnwrapOption(use_value) == expected;
+}
+
+func DirectMirOptionStructValueFlowInstructionAdmissionFromProgram(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref identity: DirectMirOptionStructValueFlowProgramIdentity
+) -> DirectMirOptionStructValueFlowInstructionAdmission {
+    let main_row: Int = identity.entrypoint.row;
+    let producer_row: Int = identity.producer.row;
+    let main_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, main_row
+    );
+    let producer_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, producer_row
+    );
+    let main_uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, main_row);
+    let producer_uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, producer_row);
+    let graph: DirectMirOptionStructValueFlowGraphFact = identity.graph;
+    let option_name: String = Concat(
+        "Option<", Concat(identity.declaration.name, ">")
+    );
+    if !main_index.valid || !producer_index.valid ||
+        ArrayLength(main_index.block_reachable) != 1 ||
+        ArrayLength(producer_index.block_reachable) != 1 ||
+        !main_index.block_reachable[0] || !producer_index.block_reachable[0] ||
+        !MirRoutineFactIndexBlockIsTerminal(main_index, 0) ||
+        !MirRoutineFactIndexBlockIsTerminal(producer_index, 0) ||
+        main_index.block_has_conditional_branch[0] != 0 ||
+        producer_index.block_has_conditional_branch[0] != 0 ||
+        ArrayLength(main_index.source_local_names) != 4 ||
+        ArrayLength(main_index.source_local_types) != 4 ||
+        main_index.source_local_names[0] != graph.option_local_name ||
+        main_index.source_local_names[1] != graph.pair_local_name ||
+        main_index.source_local_names[2] != graph.built_local_name ||
+        main_index.source_local_names[3] != graph.unwrapped_local_name ||
+        main_index.source_local_types[0] != option_name ||
+        main_index.source_local_types[1] != identity.declaration.name ||
+        main_index.source_local_types[2] != option_name ||
+        main_index.source_local_types[3] != identity.declaration.name ||
+        !MirRoutineInstructionUseFactsReady(main_uses, 9) ||
+        !MirRoutineInstructionUseFactsReady(producer_uses, 1) {
+        Die("direct MIR Option nominal routine facts are invalid");
+    }
+    let returned: MirRoutineInstructionScalarCapture =
+        DirectMirOptionStructValueFlowInstructionCapture(
+            admitted, producer_index, producer_row, 0
+        );
+    let captures: Array<MirRoutineInstructionScalarCapture> = [];
+    let globals: Array<Int> = [];
+    let row: Int = 0;
+    while row < 9 {
+        ArrayPush(captures, DirectMirOptionStructValueFlowInstructionCapture(
+            admitted, main_index, main_row, row
+        ));
+        ArrayPush(globals, MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, main_row, 0, row
+        ));
+        row = row + 1;
+    }
+    let producer_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, producer_row, 0, 0
+    );
+    let kinds: Array<String> = [
+        "def", "def", "def", "def", "stmt",
+        "def", "def", "stmt", "stmt"
+    ];
+    let sources: Array<String> = [
+        "AST_LET_DECL", "AST_ASSIGNMENT", "AST_ASSIGNMENT",
+        "AST_LET_DECL", "AST_CALL", "AST_LET_DECL",
+        "AST_LET_DECL", "AST_CALL", "AST_CALL"
+    ];
+    row = 0;
+    while row < 9 {
+        if !captures[row].valid ||
+            admitted.routines.instruction_kinds[globals[row]] != kinds[row] ||
+            admitted.routines.instruction_source_types[globals[row]] !=
+                sources[row] {
+            Die("direct MIR Option nominal instruction shape is invalid");
+        }
+        row = row + 1;
+    }
+    if !returned.valid ||
+        admitted.routines.instruction_kinds[producer_global] != "return" ||
+        admitted.routines.instruction_source_types[producer_global] !=
+            "AST_BINARY" || returned.name != "return" ||
+        returned.result != "" || returned.arg0 != "" || returned.arg1 != "" ||
+        captures[0].name != "ssa-def" ||
+        captures[1].name != "ssa-def" ||
+        captures[2].name != "ssa-def" ||
+        captures[3].name != "ssa-def" || captures[4].name != "stmt" ||
+        captures[5].name != "ssa-def" ||
+        captures[6].name != "ssa-def" || captures[7].name != "stmt" ||
+        captures[8].name != "stmt" ||
+        captures[0].arg0 != graph.option_local_name || captures[0].arg1 != "" ||
+        captures[1].arg0 != graph.option_local_name || captures[1].arg1 != "local" ||
+        captures[2].arg0 != graph.option_local_name || captures[2].arg1 != "local" ||
+        captures[3].arg0 != graph.pair_local_name ||
+        captures[3].arg1 != identity.declaration.name ||
+        captures[4].arg0 != "Log" || captures[4].arg1 != "" ||
+        captures[5].arg0 != graph.built_local_name || captures[5].arg1 != "" ||
+        captures[6].arg0 != graph.unwrapped_local_name ||
+        captures[6].arg1 != identity.declaration.name ||
+        captures[7].arg0 != "Log" || captures[7].arg1 != "" ||
+        captures[8].arg0 != "Log" || captures[8].arg1 != "" ||
+        returned.abi_type_name != option_name ||
+        captures[0].abi_type_name != option_name ||
+        captures[1].abi_type_name != option_name ||
+        captures[2].abi_type_name != option_name ||
+        captures[3].abi_type_name != identity.declaration.name ||
+        captures[5].abi_type_name != option_name ||
+        captures[6].abi_type_name != identity.declaration.name {
+        Die("direct MIR Option nominal instruction identity is invalid");
+    }
+    let expected_uses: Array<String> = [
+        "", "", "", captures[2].result, captures[3].result,
+        "", captures[5].result, captures[6].result, captures[5].result
+    ];
+    row = 0;
+    while row < 9 {
+        if !DirectMirOptionStructExpectedUseAt(
+            main_uses, globals[row], expected_uses[row]
+        ) {
+            Die("direct MIR Option nominal SSA use is invalid");
+        }
+        row = row + 1;
+    }
+    if !DirectMirOptionStructExpectedUseAt(
+        producer_uses, producer_global, ""
+    ) {
+        Die("direct MIR Option nominal producer use is invalid");
+    }
+    let definition_rows: Array<Int> = [0, 1, 2, 3, 5, 6];
+    row = 0;
+    while row < ArrayLength(definition_rows) {
+        let local_row: Int = definition_rows[row];
+        let definition: MirRoutineResultDefinitionFact =
+            MirRoutineFactIndexUniqueResultDefinition(
+                main_index, captures[local_row].result
+            );
+        if !MirRoutineResultDefinitionFactReady(definition) ||
+            definition.global_row != globals[local_row] {
+            Die("direct MIR Option nominal result definition is invalid");
+        }
+        row = row + 1;
+    }
+    let fact: DirectMirOptionStructValueFlowInstructionAdmission =
+        DirectMirOptionStructValueFlowInstructionAdmission(
+            true, returned, captures[0], captures[1], captures[2],
+            captures[3], captures[4], captures[5], captures[6],
+            captures[7], captures[8]
+        );
+    if !DirectMirOptionStructValueFlowInstructionAdmissionReady(fact) {
+        Die("direct MIR Option nominal instruction admission is invalid");
+    }
+    return fact;
+}

@@ -1,0 +1,47 @@
+// Cross-seal declaration-parallel Option<nominal> ABI rows.
+
+import "option_nominal_abi_layout_fact_owner.pgy";
+
+func SelfMirOptionNominalAbiLayoutRowsReady(
+    ref rows: SelfMirOptionNominalAbiLayoutRows,
+    names: Array<String>, nominal_kinds: Array<String>,
+    ref nominal: SelfMirNominalAbiLayoutRows
+) -> Bool {
+    let count: Int = ArrayLength(names);
+    if !rows.ready || ArrayLength(nominal_kinds) != count ||
+        ArrayLength(rows.type_names) != count ||
+        ArrayLength(rows.required) != count ||
+        ArrayLength(rows.layout_ids) != count ||
+        ArrayLength(rows.sizes) != count || ArrayLength(rows.aligns) != count ||
+        ArrayLength(rows.value_offsets) != count ||
+        ArrayLength(rows.value_sizes) != count ||
+        ArrayLength(rows.value_aligns) != count {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if nominal_kinds[row] == "struct" {
+            let expected_name: String = Concat(
+                "Option<", Concat(names[row], ">")
+            );
+            if rows.type_names[row] != expected_name ||
+                rows.required[row] != nominal.required[row] {
+                return false;
+            }
+            if rows.required[row] == 1 {
+                let fact: SelfMirOptionNominalAbiLayoutFact =
+                    SelfMirOptionNominalAbiLayoutFactAt(rows, row);
+                if !SelfMirOptionNominalAbiLayoutFactReady(fact) ||
+                    fact.value_size != nominal.sizes[row] ||
+                    fact.value_align != nominal.aligns[row] {
+                    return false;
+                }
+            }
+        } else if rows.type_names[row] != "" || rows.required[row] != 0 ||
+            rows.layout_ids[row] != 0 {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}

@@ -1,0 +1,156 @@
+// Target-neutral identity for Some/None, unwrap, call, and member flow.
+
+import "direct_mir_option_struct_value_flow_graph_shape_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirOptionStructValueFlowGraphFact {
+    let valid: Bool;
+    let digest: Int;
+    let type_name: String;
+    let first_field: String;
+    let second_field: String;
+    let parameter_name: String;
+    let producer_name: String;
+    let option_local_name: String;
+    let pair_local_name: String;
+    let built_local_name: String;
+    let unwrapped_local_name: String;
+    let producer_first_delta: Int;
+    let producer_second_delta: Int;
+    let initial_first: Int;
+    let initial_second: Int;
+    let latest_first: Int;
+    let latest_second: Int;
+    let producer_argument: Int;
+}
+
+func DirectMirOptionStructCanonicalIntAt(
+    ref sequence: MirExpressionGraphSequence, row: Int
+) -> Int {
+    if row < 0 || row >= ArrayLength(sequence.arena.node_texts) ||
+        sequence.arena.topology.node_kinds[row] !=
+            AstExpressionNodeIntegerLiteral() {
+        Die("direct MIR Option nominal integer node is invalid");
+    }
+    let text: String = sequence.arena.node_texts[row];
+    if text == "" || ToString(ToInt(text)) != text {
+        Die("direct MIR Option nominal integer is not canonical");
+    }
+    return ToInt(text);
+}
+
+func DirectMirOptionStructValueFlowGraphFactDigest(
+    ref fact: DirectMirOptionStructValueFlowGraphFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(181L, fact.type_name);
+    hash = DirectMirCfgHashString(hash, fact.first_field);
+    hash = DirectMirCfgHashString(hash, fact.second_field);
+    hash = DirectMirCfgHashString(hash, fact.parameter_name);
+    hash = DirectMirCfgHashString(hash, fact.producer_name);
+    hash = DirectMirCfgHashString(hash, fact.option_local_name);
+    hash = DirectMirCfgHashString(hash, fact.pair_local_name);
+    hash = DirectMirCfgHashString(hash, fact.built_local_name);
+    hash = DirectMirCfgHashString(hash, fact.unwrapped_local_name);
+    hash = DirectMirCfgHashInt(hash, fact.producer_first_delta);
+    hash = DirectMirCfgHashInt(hash, fact.producer_second_delta);
+    hash = DirectMirCfgHashInt(hash, fact.initial_first);
+    hash = DirectMirCfgHashInt(hash, fact.initial_second);
+    hash = DirectMirCfgHashInt(hash, fact.latest_first);
+    hash = DirectMirCfgHashInt(hash, fact.latest_second);
+    hash = DirectMirCfgHashInt(hash, fact.producer_argument);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirOptionStructValueFlowGraphFactReady(
+    ref fact: DirectMirOptionStructValueFlowGraphFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirOptionStructValueFlowGraphFactDigest(fact) &&
+        fact.type_name != "" && fact.first_field != "" &&
+        fact.second_field != "" && fact.first_field != fact.second_field &&
+        fact.parameter_name != "" && fact.producer_name != "" &&
+        fact.option_local_name != "" && fact.pair_local_name != "" &&
+        fact.built_local_name != "" && fact.unwrapped_local_name != "" &&
+        fact.option_local_name != fact.pair_local_name &&
+        fact.option_local_name != fact.built_local_name &&
+        fact.built_local_name != fact.unwrapped_local_name;
+}
+
+func DirectMirOptionStructValueFlowGraphFactFromSequences(
+    ref returned: MirExpressionGraphSequence,
+    ref initial: MirExpressionGraphSequence,
+    ref none_value: MirExpressionGraphSequence,
+    ref latest: MirExpressionGraphSequence,
+    ref unwrap_picked: MirExpressionGraphSequence,
+    ref picked_output: MirExpressionGraphSequence,
+    ref producer_call: MirExpressionGraphSequence,
+    ref unwrap_built: MirExpressionGraphSequence,
+    ref built_output: MirExpressionGraphSequence,
+    ref chained_output: MirExpressionGraphSequence
+) -> DirectMirOptionStructValueFlowGraphFact {
+    if !producer_call.ok ||
+        ArrayLength(producer_call.arena.node_texts) == 0 {
+        Die("direct MIR Option nominal producer call graph is missing");
+    }
+    let producer_name: String = producer_call.arena.node_texts[0];
+    if !DirectMirOptionStructProducerSomeShapeReady(returned) ||
+        !DirectMirOptionStructLiteralSomeShapeReady(initial) ||
+        !DirectMirOptionStructNoneShapeReady(none_value) ||
+        !DirectMirOptionStructLiteralSomeShapeReady(latest) ||
+        !DirectMirOptionStructUnwrapShapeReady(unwrap_picked) ||
+        !DirectMirOptionStructSumShapeReady(picked_output) ||
+        !DirectMirOptionStructProducerCallShapeReady(
+            producer_call, producer_name
+        ) || !DirectMirOptionStructUnwrapShapeReady(unwrap_built) ||
+        !DirectMirOptionStructSumShapeReady(built_output) ||
+        !DirectMirOptionStructChainedShapeReady(chained_output) {
+        Die("direct MIR Option nominal graph topology is invalid");
+    }
+    if returned.arena.node_texts[0] != "Some" ||
+        initial.arena.node_texts[0] != "Some" ||
+        latest.arena.node_texts[0] != "Some" ||
+        returned.arena.node_texts[2] != initial.arena.node_texts[2] ||
+        returned.arena.node_texts[2] != latest.arena.node_texts[2] ||
+        returned.arena.node_texts[4] != initial.arena.node_texts[4] ||
+        returned.arena.node_texts[4] != latest.arena.node_texts[4] ||
+        returned.arena.node_texts[8] != initial.arena.node_texts[8] ||
+        returned.arena.node_texts[8] != latest.arena.node_texts[8] ||
+        returned.arena.node_texts[5] != returned.arena.node_texts[9] ||
+        unwrap_picked.arena.node_texts[0] != "UnwrapOption" ||
+        unwrap_built.arena.node_texts[0] != "UnwrapOption" ||
+        picked_output.arena.node_texts[3] != returned.arena.node_texts[4] ||
+        picked_output.arena.node_texts[6] != returned.arena.node_texts[8] ||
+        built_output.arena.node_texts[3] != returned.arena.node_texts[4] ||
+        built_output.arena.node_texts[6] != returned.arena.node_texts[8] ||
+        chained_output.arena.node_texts[6] != returned.arena.node_texts[4] ||
+        unwrap_built.arena.node_texts[2] !=
+            chained_output.arena.node_texts[4] {
+        Die("direct MIR Option nominal graph identity is invalid");
+    }
+    let fact: DirectMirOptionStructValueFlowGraphFact =
+        DirectMirOptionStructValueFlowGraphFact(
+            true, 0, returned.arena.node_texts[2],
+            returned.arena.node_texts[4], returned.arena.node_texts[8],
+            returned.arena.node_texts[5], producer_name,
+            unwrap_picked.arena.node_texts[2],
+            picked_output.arena.node_texts[2],
+            unwrap_built.arena.node_texts[2],
+            built_output.arena.node_texts[2],
+            0, DirectMirOptionStructCanonicalIntAt(returned, 10),
+            DirectMirOptionStructCanonicalIntAt(initial, 5),
+            DirectMirOptionStructCanonicalIntAt(initial, 9),
+            DirectMirOptionStructCanonicalIntAt(latest, 5),
+            DirectMirOptionStructCanonicalIntAt(latest, 9),
+            DirectMirOptionStructCanonicalIntAt(producer_call, 2)
+        );
+    return DirectMirOptionStructValueFlowGraphFact(
+        fact.valid, DirectMirOptionStructValueFlowGraphFactDigest(fact),
+        fact.type_name, fact.first_field, fact.second_field,
+        fact.parameter_name, fact.producer_name, fact.option_local_name,
+        fact.pair_local_name, fact.built_local_name,
+        fact.unwrapped_local_name, fact.producer_first_delta,
+        fact.producer_second_delta, fact.initial_first, fact.initial_second,
+        fact.latest_first, fact.latest_second, fact.producer_argument
+    );
+}

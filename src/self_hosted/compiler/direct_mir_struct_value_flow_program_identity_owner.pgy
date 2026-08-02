@@ -94,17 +94,20 @@ func DirectMirStructValueFlowInstructionGraph(
 }
 
 func DirectMirStructValueFlowProgramIdentityFromAdmitted(
-    ref admitted: MirMachineLayerAdmittedJsonInput
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirTwoRoutineNominalClassificationFact
 ) -> DirectMirStructValueFlowProgramIdentity {
-    if !DirectMirStructValueFlowProgramEnvelopeReady(admitted) {
+    if !DirectMirStructValueFlowProgramEnvelopeReady(
+        admitted, classification
+    ) {
         Die("direct MIR struct value-flow program envelope is invalid");
     }
-    let main_row: Int = DirectMirStructValueFlowUniqueRoutineRow(
-        admitted.routines, "Main"
-    );
-    let entrypoint: DirectMirRoutineSignatureFact =
-        DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 4);
+    let main_row: Int = classification.entrypoint.row;
+    let entrypoint: DirectMirRoutineSignatureFact = classification.entrypoint;
     if !DirectMirRoutineSignatureFactReady(entrypoint) ||
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, main_row, 0
+        ) != 4 ||
         entrypoint.return_type != "Void" || entrypoint.param_count != 0 {
         Die("direct MIR struct value-flow entrypoint is invalid");
     }
@@ -118,11 +121,16 @@ func DirectMirStructValueFlowProgramIdentityFromAdmitted(
         DirectMirStructValueFlowInstructionGraph(admitted, main_row, 3);
     let producer_name: String =
         DirectMirStructValueFlowProducerNameFromCall(called);
-    let producer_row: Int = DirectMirStructValueFlowUniqueRoutineRow(
-        admitted.routines, producer_name
-    );
-    let producer: DirectMirRoutineSignatureFact =
-        DirectMirRoutineSignatureFactAt(admitted.routines, producer_row, 1);
+    let producer_row: Int = classification.producer.row;
+    if classification.producer.name != producer_name {
+        Die("direct MIR struct value-flow producer classification drifted");
+    }
+    let producer: DirectMirRoutineSignatureFact = classification.producer;
+    if MirProgramRoutineIndexBlockInstructionCountAt(
+        admitted.routines, producer_row, 0
+    ) != 1 {
+        Die("direct MIR struct value-flow producer cardinality is invalid");
+    }
     let returned: MirExpressionGraphSequence =
         DirectMirStructValueFlowInstructionGraph(admitted, producer_row, 0);
     let graph: DirectMirStructValueFlowGraphFact =

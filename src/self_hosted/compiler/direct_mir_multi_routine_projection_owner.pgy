@@ -1,13 +1,9 @@
-// Exclusive direct-MIR multi-routine projection. Once routine cardinality
-// enters this owner, rejection is final; single-routine shape dispatch cannot
-// reinterpret the program.
-
+// Exclusive multi-routine projection; rejected shapes are never reinterpreted.
 import "direct_mir_array_return_emission_owner.pgy";
 import "direct_mir_array_argument_emission_owner.pgy";
 import "direct_mir_struct_argument_c_emission_owner.pgy";
 import "direct_mir_struct_argument_llvm_emission_owner.pgy";
-import "direct_mir_struct_value_flow_projection_owner.pgy";
-
+import "direct_mir_two_routine_nominal_projection_owner.pgy";
 func CompileAdmittedDirectMirMultiRoutineForTarget(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     target_projection: CompilerTargetProjectionFact
@@ -43,10 +39,13 @@ func CompileAdmittedDirectMirMultiRoutineForTarget(
             return_plan, return_abi, formatted_print, line_format
         );
     }
-    if DirectMirStructValueFlowProgramCandidate(admitted) { return CompileAdmittedDirectMirStructValueFlow(admitted, is_llvm, formatted_print, line_format); }
+    if DirectMirTwoRoutineNominalProgramCandidate(admitted) {
+        return CompileAdmittedDirectMirTwoRoutineNominal(
+            admitted, is_llvm, formatted_print, line_format
+        );
+    }
     if DirectMirStructArgumentProgramCandidate(admitted) {
-        let struct_plan: DirectMirStructArgumentPlan =
-            DirectMirStructArgumentPlanFromAdmitted(admitted);
+        let struct_plan: DirectMirStructArgumentPlan = DirectMirStructArgumentPlanFromAdmitted(admitted);
         if is_llvm {
             return DirectMirStructArgumentEmitLlvm(
                 struct_plan, formatted_print, line_format

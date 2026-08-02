@@ -1,0 +1,138 @@
+// Single classification fact for the two-routine, one-nominal direct path.
+// Routing derives once from routine signatures and never retries another
+// nominal interpretation after selecting a kind.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirTwoRoutineNominalClassificationFact {
+    let valid: Bool;
+    let digest: Int;
+    let kind: Int;
+    let declaration_name: String;
+    let entrypoint: DirectMirRoutineSignatureFact;
+    let producer: DirectMirRoutineSignatureFact;
+}
+
+func DirectMirTwoRoutineNominalUnsupported() -> Int { return 0; }
+func DirectMirTwoRoutineNominalPlain() -> Int { return 1; }
+func DirectMirTwoRoutineNominalOption() -> Int { return 2; }
+
+func InvalidDirectMirTwoRoutineNominalClassificationFact(
+) -> DirectMirTwoRoutineNominalClassificationFact {
+    return DirectMirTwoRoutineNominalClassificationFact(
+        false, 0, DirectMirTwoRoutineNominalUnsupported(), "",
+        InvalidDirectMirRoutineSignatureFact(),
+        InvalidDirectMirRoutineSignatureFact()
+    );
+}
+
+func DirectMirTwoRoutineNominalClassificationDigest(
+    ref fact: DirectMirTwoRoutineNominalClassificationFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(179L, fact.kind);
+    hash = DirectMirCfgHashString(hash, fact.declaration_name);
+    hash = DirectMirCfgHashInt(hash, fact.entrypoint.digest);
+    hash = DirectMirCfgHashInt(hash, fact.producer.digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirTwoRoutineNominalClassificationReady(
+    ref fact: DirectMirTwoRoutineNominalClassificationFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+        DirectMirTwoRoutineNominalClassificationDigest(fact) ||
+        fact.declaration_name == "" ||
+        !DirectMirRoutineSignatureFactReady(fact.entrypoint) ||
+        !DirectMirRoutineSignatureFactReady(fact.producer) ||
+        fact.entrypoint.row == fact.producer.row ||
+        fact.entrypoint.name != "Main" ||
+        fact.producer.name == "Main" ||
+        fact.entrypoint.source_syntax_id == fact.producer.source_syntax_id ||
+        fact.entrypoint.return_type != "Void" ||
+        fact.entrypoint.param_count != 0 {
+        return false;
+    }
+    let option_name: String = Concat(
+        "Option<", Concat(fact.declaration_name, ">")
+    );
+    return (fact.kind == DirectMirTwoRoutineNominalPlain() &&
+            fact.producer.return_type == fact.declaration_name) ||
+        (fact.kind == DirectMirTwoRoutineNominalOption() &&
+         fact.producer.return_type == option_name) ||
+        (fact.kind == DirectMirTwoRoutineNominalUnsupported() &&
+         fact.producer.return_type != fact.declaration_name &&
+         fact.producer.return_type != option_name);
+}
+
+func DirectMirTwoRoutineNominalClassificationFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirTwoRoutineNominalClassificationFact {
+    let declarations: MirProgramDeclarationIndex =
+        admitted.domain_runtime_admission.declarations;
+    if MirProgramRoutineIndexCount(admitted.routines) != 2 ||
+        !MirProgramRoutineIndexStructureReady(admitted.routines) ||
+        !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 ||
+        declarations.kinds[0] != "struct" ||
+        declarations.nominal_kinds[0] != "struct" ||
+        declarations.names[0] == "" {
+        return InvalidDirectMirTwoRoutineNominalClassificationFact();
+    }
+    let main_row: Int = 0 - 1;
+    let row: Int = 0;
+    while row < 2 {
+        if admitted.routines.names[row] == "Main" {
+            if main_row >= 0 {
+                return InvalidDirectMirTwoRoutineNominalClassificationFact();
+            }
+            main_row = row;
+        }
+        row = row + 1;
+    }
+    if main_row < 0 {
+        return InvalidDirectMirTwoRoutineNominalClassificationFact();
+    }
+    let producer_row: Int = 1 - main_row;
+    let entrypoint: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(
+            admitted.routines, main_row,
+            MirProgramRoutineIndexBlockInstructionCountAt(
+                admitted.routines, main_row, 0
+            )
+        );
+    let producer: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(
+            admitted.routines, producer_row,
+            MirProgramRoutineIndexBlockInstructionCountAt(
+                admitted.routines, producer_row, 0
+            )
+        );
+    if !DirectMirRoutineSignatureFactReady(entrypoint) ||
+        !DirectMirRoutineSignatureFactReady(producer) {
+        return InvalidDirectMirTwoRoutineNominalClassificationFact();
+    }
+    let kind: Int = DirectMirTwoRoutineNominalUnsupported();
+    if producer.return_type == declarations.names[0] {
+        kind = DirectMirTwoRoutineNominalPlain();
+    } else if producer.return_type == Concat(
+        "Option<", Concat(declarations.names[0], ">")
+    ) {
+        kind = DirectMirTwoRoutineNominalOption();
+    }
+    let fact: DirectMirTwoRoutineNominalClassificationFact =
+        DirectMirTwoRoutineNominalClassificationFact(
+            true, 0, kind, declarations.names[0], entrypoint, producer
+        );
+    let verified: DirectMirTwoRoutineNominalClassificationFact =
+        DirectMirTwoRoutineNominalClassificationFact(
+            fact.valid,
+            DirectMirTwoRoutineNominalClassificationDigest(fact),
+            fact.kind, fact.declaration_name,
+            fact.entrypoint, fact.producer
+        );
+    if !DirectMirTwoRoutineNominalClassificationReady(verified) {
+        return InvalidDirectMirTwoRoutineNominalClassificationFact();
+    }
+    return verified;
+}

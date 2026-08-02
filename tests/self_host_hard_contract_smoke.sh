@@ -467,14 +467,16 @@ require_text "src/self_hosted/compiler/direct_mir_array_return_program_identity_
     'JsonArrayObjectFactCount(admitted.document.declarations) == 0'
 require_text ".github/workflows/ci.yml" \
     'self-host-one-mir-struct-value-flow-projection-test-smoke'
+require_text ".github/workflows/ci.yml" \
+    'self-host-one-mir-option-struct-value-flow-projection-test-smoke'
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
-    'src/self_hosted/mir_lower/fixture/struct_literal_value_flow.pgy'
+    'src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy'
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
-    'printf '\''11\n'\'''
+    'printf '\''7\n11\n5\n'\'''
 require_text "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
-    'src/self_hosted/mir_lower/fixture/struct_literal_value_flow.pgy'
+    'src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy'
 require_text "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
-    'printf '\''11\n'\'''
+    'printf '\''7\n11\n5\n'\'''
 require_text "src/compiler/llvm_runner.c" \
     "compiler_compile_link_self_host_llvm_artifact("
 require_text "src/compiler/self_host_llvm_driver.c" \

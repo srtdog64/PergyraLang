@@ -71,10 +71,13 @@ func DirectMirStructValueFlowPlanReady(
 }
 
 func DirectMirStructValueFlowPlanFromAdmitted(
-    ref admitted: MirMachineLayerAdmittedJsonInput
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirTwoRoutineNominalClassificationFact
 ) -> DirectMirStructValueFlowPlan {
     let identity: DirectMirStructValueFlowProgramIdentity =
-        DirectMirStructValueFlowProgramIdentityFromAdmitted(admitted);
+        DirectMirStructValueFlowProgramIdentityFromAdmitted(
+            admitted, classification
+        );
     let instructions: DirectMirStructValueFlowInstructionAdmission =
         DirectMirStructValueFlowInstructionAdmissionFromProgram(
             admitted, identity
