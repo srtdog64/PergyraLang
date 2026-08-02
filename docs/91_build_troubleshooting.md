@@ -4316,3 +4316,32 @@ focused gate가 함께 green인지 확인한다.
 
 환경 경계 때문에 일어난 전체 재빌드 시간은 focused gate나 일반 self-host program
 compile 시간에 합산하지 않는다.
+
+## Generic member MIR이 count-only 배열 검사나 C 임시 이름 때문에 잘못 통과하는 경우
+
+`generic_member_inferred_flow.pgy`를 direct C/LLVM 경로에 연결할 때 배열의 기대 행
+수만 세고 다음 토큰이 무엇인지 확인하지 않으면, 유효한 행 뒤에 scalar를 붙인 변조가
+같은 plan으로 통과할 수 있다. JSON 배열 reader가 첫 non-row에서 멈추는 것과 배열이
+정확히 끝났다는 것은 다른 사실이다.
+
+- 이 rung이 읽는 specialization, generic, parameter, field, method, source-local 및
+  parallel-capture 배열은 기대 행 뒤의 다음 유효 토큰이 반드시 `]`인지 확인한다.
+- 행 수만 맞는 scalar tail은 malformed document이며 artifact를 만들기 전에 거부한다.
+- 범용 JSON parser를 새 권위로 만들지 않고, 실제 plan이 소비하는 bounded array
+  owner에서 exact-tail closure를 검증한다.
+
+같은 작업에서 generated C 내부 변수 `pgy_inner`가 합법적인 source local과 충돌해
+컴파일 실패하는 문제도 드러났다. Backend 임시는 source spelling과 별도 namespace를
+사용하며 `_pgy_receiver_0`, `_pgy_inner_0`, `_pgy_result_0`처럼 emitter가 소유한다.
+Source local 이름을 금지 목록으로 막지 않으며 field와 local이 같은 spelling을 쓰는
+합법적 프로그램도 계속 허용한다.
+
+마지막으로 class value를 운반한다고 해서 physical ABI receipt를 발명하지 않는다.
+현재 `Box` slice는 `internal_single_int_value_class`라는 bounded internal
+representation을 declaration/signature/receiver와 교차 봉인한다. 외부 ABI가 실제로
+필요한 seam에 도달하기 전까지 layout row나 interoperability 보장을 주장하지 않는다.
+
+두-routine routing은 exact shape로 분류한다. Member
+`(class,class,2,1,1)`, plain/Option `(struct,struct,0,0,0)`, inferred direct nominal
+`(struct,struct,2,1,0)` 중 하나를 선택한 뒤 실패하면 다른 해석으로 retry하지 않는다.
+이 규칙은 malformed member artifact가 더 느슨한 기존 planner로 새는 것을 막는다.

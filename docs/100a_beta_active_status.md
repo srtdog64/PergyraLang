@@ -169,6 +169,24 @@ falsifier is `generic_member_inferred_flow.pgy`: its 6,482-byte self MIR owns on
 specializations for the nested call. Both direct targets currently fail closed
 in the inferred-generic program envelope; the intended output is exact `41`.
 
+Direct LLVM inferred-generic member update (2026-08-02):
+`generic_member_inferred_flow.pgy` now carries an exact class declaration,
+generic value-receiver signature, two uniform Value-lane member specialization
+receipts, the two nested `Box_Echo_Int` calls, and the inner-result-to-outer-
+argument edge into one target-neutral plan. C and LLVM preserve a real
+specialized method definition, pass the same value receiver through both calls,
+and execute exact `41`; installed public C and LLVM compile/run use this
+frontier. Five order/opaque-owner metamorphics, five value/name/collision
+variants, 70 C negatives, and four LLVM sentinels are green. Exact two-routine
+classification prevents retry as plain/Option/inferred-direct nominal. `Box`
+has the explicit internal representation `internal_single_int_value_class`,
+not a physical ABI receipt. Raw arrays are exact-tail checked, and generated C
+temporaries cannot collide with legal source locals. The next falsifier is
+`generic_member_constructed_return_flow.pgy`: its 9,309-byte self MIR carries
+`Wrap<Int> -> Option<Int>` into `Echo<Option<Int>>`, followed by unwrap and
+exact output `43`. Both targets currently fail closed because no exact
+three-routine constructed-member owner exists.
+
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
 toolchain/preflight clarity, release/debug hygiene, memory/string bounds audit,

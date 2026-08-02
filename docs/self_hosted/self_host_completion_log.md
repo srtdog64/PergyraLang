@@ -6,6 +6,52 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-02 - Inferred generic member flow reaches C and LLVM
+
+- Closed `generic_member_inferred_flow.pgy` at code checkpoint `f01dd7a2`.
+  One 6,482-byte self MIR with SHA-256
+  `45AB6705CA40F56EFE9610FF27DBBAD194304471152949BC17D58F95BA8B8B18`
+  drives both targets. C and LLVM preserve a real `Box_Echo_Int` definition,
+  two nested calls with the same value receiver, the inner-result-to-outer-
+  argument edge, and exact output `41`. Installed public C/LLVM compile/run use
+  the same bounded frontier.
+- Added exact two-routine shape/classification owners. The admitted member tuple
+  is `(class,class,2,1,1)` for declaration kind, nominal kind, specialization,
+  generic-routine and method-routine counts. Plain/Option nominal and direct
+  inferred nominal shapes remain distinct; a selected path returns without
+  retry.
+- Added responsibility-named declaration, generic method signature,
+  specialization, graph, instruction/SSA, representation, plan, projection,
+  C-emission and LLVM-emission owners. `Box` uses the explicit internal
+  representation `internal_single_int_value_class`; it does not fabricate a
+  physical ABI receipt. The target-neutral plan cross-seals that representation
+  to the declaration, signature and receiver carriage before either emitter.
+- The specialization owner requires one positive opaque owner, Value lane,
+  ordinal set `{0,1}`, and uniform
+  `(member, Box, Echo, T -> Int, Box_Echo_Int)` semantics. The graph separately
+  proves both member targets, and emitters consume the plan's symbol instead of
+  reconstructing it from text.
+- Exact array-tail closure rejects scalar residue in specialization, generic,
+  parameter, field, method, source-local and parallel-capture arrays. Generated
+  C temporaries are isolated from legal source names such as `pgy_inner` and
+  `printf`; valid field/local name equality remains accepted.
+- The focused gate completed in 56.6 seconds with one MIR reused for C and
+  LLVM, exact `41`, five order/opaque-owner invariants, five value/name/collision
+  variants, 70 C negatives and four LLVM sentinels. Public installed C/LLVM,
+  inferred Pair, plain/Option struct, hard-contract and full component gates
+  were green. The final current-source driver build took 105.7 seconds and
+  installed 3,910,724 bytes with SHA-256
+  `6A7024E791F2156B759F444BF1F54BDCC48B7B8A84E68CC699EADA069877450D`.
+  Full CI, Coq adequacy, bootstrap seed/fixpoint and current-source gen2==gen3
+  were not rerun; no memory peak was measured.
+- Next falsifier is `generic_member_constructed_return_flow.pgy`. Its 9,309-byte
+  self MIR has `Wrapper`, generic member methods `Wrap<T> -> Option<T>` and
+  `Echo<T> -> T`, `Main`, and heterogeneous specializations
+  `Wrapper_Wrap_Int`/`Wrapper_Echo_Option_Int_`. Both direct targets currently
+  fail at the missing exact three-routine structural owner. The next plan must
+  preserve `Some`, both member calls, Option result/use and unwrap to execute
+  exact `43` without weakening the uniform two-routine member owner.
+
 ## 2026-08-02 - Mixed-lane inferred return and assignment reach C and LLVM
 
 - Closed `generic_return_assignment_inferred_flow.pgy` at code checkpoint

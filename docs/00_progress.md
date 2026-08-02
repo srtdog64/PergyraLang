@@ -2,49 +2,55 @@
 
 마지막 업데이트: 2026-08-02
 
-## 활성 우선순위 — inferred generic member-call flow
+## 활성 우선순위 — constructed generic member return flow
 
-- 실행 체크포인트 `82a926f3`은
-  `generic_return_assignment_inferred_flow.pgy`를 닫았다. 하나의 6,994-byte
-  self MIR, SHA-256
-  `1B108D7A782BFC4491C217570F4D70D527E7CD6565370C742C69FCEA04580DBC`가
-  C와 LLVM을 함께 구동하며 실제 `Identity_Int` 정의와 두 호출, 실제
-  `ReturnIdentity` 정의와 호출, 초기/최신 `result` SSA를 보존한다. 두 실행 결과는
-  정확히 `41`이다.
-- 별도 mixed-lane specialization owner는 Atom/Value lane에 각각 ordinal 0인
-  두 행, 서로 다른 양수 opaque owner와 동일한
-  `(direct, Identity, T -> Int, Identity_Int)` tuple을 요구한다. 기존 inferred
-  nominal 및 explicit-four owner는 느슨해지지 않았다. Native의 빈 specialization
-  table은 공통 graph/header/ABI parity에만 쓰며 fallback oracle이 아니다.
-- 세-routine classifier는 declaration/specialization/generic-routine 수를 한 번만
-  읽는다. 허용 조합은 Array `(0,0,0)`, mixed scalar `(0,2,1)`, explicit nominal
-  `(1,4,1)`, nested struct `(2,0,0)`뿐이며 선택 실패 후 다른 경로로 retry하지 않는다.
-- 하나의 target-neutral plan이 generic/wrapper/main identity, return/assignment/output
-  graph, 초기/최신 SSA, typed no-layout receipt 4개, null statement receipt 1개,
-  target capability와 specialization symbol을 결합한다. Emitter는 MIR/JSON을 다시
-  읽거나 symbol을 재구성하지 않는다.
-- Focused gate는 한 MIR 재사용, C/LLVM exact `41`, routine reverse/cycle,
-  specialization/combined order, coherent opaque-owner renumber equality, 초기값과
-  할당값 독립 변형을 검증한다. C negative 55개와 LLVM sentinel 3개를 artifact 전에
-  거부한다. Array/explicit generic/inferred Pair/nested struct 회귀 및 hard/component
-  계약도 green이다.
-- 설치 드라이버는 3,864,005 bytes, SHA-256
-  `DE73C52BFB1657539A4CFE8BE3B93363A6389D134F2CF525C06253D3ECDBEB63`다.
-  direct current-source install은 128.8초였고 메모리는 계측하지 않았다.
-  `make self-host-compiler`는 실제 install 전에 seed bootstrap을 실행하므로 두 시간을
-  같은 빌드 비용으로 해석하면 안 된다. Full CI, Coq adequacy, current-source
-  gen2==gen3은 재실행하지 않았다.
-- 다음 활성 fixture는 `generic_member_inferred_flow.pgy`다. 현재 6,482-byte self
-  MIR, SHA-256
-  `45AB6705CA40F56EFE9610FF27DBBAD194304471152949BC17D58F95BA8B8B18`는
-  `Box` class, generic value-receiver `Echo<T>`, `Main`, Value-lane member
-  specialization 두 행을 운반한다. C/LLVM 모두 아직 inferred-generic program
-  envelope에서 artifact 전에 거부되며 목표 실행값은 exact `41`이다.
-- 다음 owner는 `Box` declaration/ABI, generic member signature와 receiver carriage,
-  중첩 `box.Echo(box.Echo(41))` target graph, receiver/local SSA use와 두 member
-  specialization receipt를 하나의 plan으로 묶는다. Direct-call 행으로 오분류,
-  기존 owner 완화, source-text inference, member-call flattening과 다른 두-routine
-  해석 retry를 금지한다.
+- 실행 체크포인트 `f01dd7a2`은 `generic_member_inferred_flow.pgy`를 닫았다.
+  하나의 6,482-byte self MIR, SHA-256
+  `45AB6705CA40F56EFE9610FF27DBBAD194304471152949BC17D58F95BA8B8B18`가 C와
+  LLVM을 함께 구동하며 실제 `Box_Echo_Int` 정의, 같은 value receiver를 쓰는 중첩
+  호출 두 개, inner-result-to-outer-argument edge와 exact `41`을 보존한다. 설치된
+  self-host sibling driver를 쓰는 public C/LLVM compile/run도 exact `41`이다.
+- 두-routine classifier는 declaration kind, nominal kind, specialization/generic/
+  method routine 수를 한 번만 읽는다. Member shape `(class,class,2,1,1)`, plain 및
+  Option `(struct,struct,0,0,0)`, direct inferred nominal `(struct,struct,2,1,0)`은
+  배타적이며 선택 뒤 다른 해석으로 retry하지 않는다.
+- Declaration, generic method signature, specialization, graph, instruction/SSA와
+  representation owner가 하나의 target-neutral plan을 만든다. `Box`는 물리 ABI
+  receipt가 없으며 `internal_single_int_value_class`라는 내부 표현만 갖는다. 이
+  표현은 declaration 및 receiver carriage와 교차 봉인되고 interop ABI로 승격되지
+  않는다.
+- 두 specialization 행은 한 양수 opaque owner, Value lane, ordinal `{0,1}`과 같은
+  `(member, Box, Echo, T -> Int, Box_Echo_Int)` tuple을 가져야 한다. Graph가 member
+  target을 독립 검증하고 emitter는 봉인된 symbol만 소비한다. Opaque owner 전체를
+  일관되게 renumber하면 artifact는 동일하다.
+- 이 rung이 읽는 raw array는 기대 행 개수 뒤의 첫 scalar에서 멈추지 않고 정확히
+  `]`에서 닫힌다. Specialization, generic, param, field, method, source-local 및
+  parallel-capture scalar tail은 artifact 전에 거부된다. C backend 임시 이름은
+  `pgy_inner`나 `printf` 같은 합법적 source local과 충돌하지 않으며, field/local의
+  같은 spelling 자체는 허용한다.
+- Focused gate는 56.6초에 한 MIR의 C/LLVM exact `41`, 다섯 order/opaque-owner
+  invariant, 다섯 value/name/collision variant, C negative 70개와 LLVM sentinel
+  4개를 검증했다. Public installed C/LLVM, inferred Pair, plain/Option struct,
+  hard contract와 full component inventory도 green이다.
+- 설치 드라이버는 3,910,724 bytes, SHA-256
+  `6A7024E791F2156B759F444BF1F54BDCC48B7B8A84E68CC699EADA069877450D`다.
+  최종 direct current-source install은 105.7초였고 메모리는 계측하지 않았다.
+  Full CI, Coq adequacy, bootstrap seed/fixpoint와 current-source gen2==gen3은
+  재실행하지 않았다. 기존 duplicate Coq fact ID 때문에 broader
+  `sot-authority-edge-test-smoke`가 red인 상태도 이 rung의 green으로 숨기지 않는다.
+- 다음 활성 fixture는 `generic_member_constructed_return_flow.pgy`다. 현재
+  9,309-byte self MIR, SHA-256
+  `343606FD159C30B155F1852A21DD1792E9D7FA0C13A7A2CD246C4B734E9736FA`는
+  `Wrapper` class, `Wrap<T>(self,value:T)->Option<T>`,
+  `Echo<T>(self,value:T)->T`, `Main`과 heterogeneous member specialization
+  `Wrapper_Wrap_Int`/`Wrapper_Echo_Option_Int_`를 운반한다. C/LLVM 모두 현재
+  exact three-routine structural owner가 없어 artifact 전에 거부되며 목표 출력은
+  exact `43`이다.
+- 다음 owner는 exact three-routine class shape, heterogeneous specialization pair,
+  constructed `Option<T>` return, `Echo<Option<Int>>`, nested receiver graph, Option
+  result/use 및 unwrap output을 하나의 plan으로 결합한다. 기존 uniform owner 완화,
+  source-text type/symbol 복원, `Some`/`Wrap`/`Echo`/`UnwrapOption` flattening,
+  내부 class 표현의 physical ABI 승격과 다른 router 재시도를 금지한다.
 - 메모리는 semantic target의 final maximum만 기록하며 2.4/3 GiB
   attention/hard-stop 정책을 유지한다.
 
