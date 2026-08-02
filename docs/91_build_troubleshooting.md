@@ -4636,9 +4636,30 @@ Focused gate는
 sibling이 현재 codegen tool을 만들고, `operator_add.pgy`를 C로 내린 뒤 exact
 `123/123/3`, body mutation `321/321/3`, non-copyable target rejection을 확인한다.
 
-Windows에서 설치 driver에 `source --emit-c-verified` 두 인자를 주면
-`driver_bootstrap_main.pgy`의 artifact transaction branch가 먼저 선택되어
-`--emit-c-verified`라는 파일을 만들 수 있다. Compiler-scale artifact build에는
-명시적인 `source output.c` 모드를 사용한다. 또한 PowerShell의 `>`는 native
-stdout을 UTF-16LE로 저장할 수 있으므로 생성 C 캡처는 Git Bash redirection 또는
-명시적 byte/UTF-8 writer를 사용한다.
+Windows에서 설치 driver에 `source --emit-c-verified` 두 인자를 주면 옛
+`driver_bootstrap_main.pgy`는 artifact transaction을 먼저 선택해
+`--emit-c-verified`라는 파일을 만들었다. `source output.c` 역시 효과를 arity에
+숨기고 다음 옵션을 파일명으로 오인할 수 있으므로 폐기했다. 현재 계약은 다음처럼
+서로 겹치지 않는다.
+
+```text
+source.pgy --emit-c-verified
+    -> stdout
+--emit-c-artifact-verified source.pgy output.c
+    -> atomic file publication
+```
+
+missing output, old positional form, unknown second option, option-shaped output
+path는 source/MIR read와 artifact begin 전에 실패한다. Native public `--emit-c`와
+compile/run은 사용자 문법을 바꾸지 않고 새 artifact mode를 child argv로 전달한다.
+2026-08-03 공식 installed-driver rebuild는 109.2초였고, focused CLI gate, public
+C emit, default C compile/run, 17 grammar fixture, component ratchet이 모두 green이다.
+이번 빌드에는 pressure 측정을 붙이지 않았으므로 이전 메모리 peak를 재사용하지
+않는다.
+
+아직 전체 argv SoT가 닫힌 것은 아니다. `--emit-mir-json-verified source third`와
+`--mir-json input third`는 installed root에서 output, standalone root에서 machine
+declaration으로 해석된다. 다음 rung은 argv 전체를 I/O 전에 한 번 typed request로
+admit해 이 이중 의미를 제거한다. 또한 PowerShell의 `>`는 native stdout을 UTF-16LE로
+저장할 수 있으므로 생성 C 캡처는 Git Bash redirection 또는 명시적 byte/UTF-8
+writer를 사용한다.

@@ -1,27 +1,26 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-08-03 installed CLI mode disambiguation
+## Active self-host context — 2026-08-03 typed CLI request admission
 
 - Resume authority remains the top card in `docs/current_work_handoff.md`.
-  Implementation commit `9f4ec7442b6278b2494a42ac0e7a4952527c8736`
-  closes the current-source role receiver admission seam.
-- Callable receiver admission now binds exact role target type and a distinct
-  target carriage. `IntMath.Add` keeps erased ABI `mutable-identity` while
-  compiler-ABI `Int` is a concrete `value`; mutable source nominals remain
-  pointer identity. Function emission no longer rescans role declarations and
-  binding no longer reconstructs target kind from `nk` string rows.
-- The installed sibling produced a 3,889,557-byte current codegen C artifact;
-  its 2,351,659-byte host-compiled Pergyra tool generated runnable role C with
-  exact `123\n123\n3`. The focused gate is green for exact execution,
-  `123 -> 321` metamorphism, non-copyable builtin rejection, and no partial C.
-  The component/removed-path ratchet is also green.
-- The sole next executable rung is the installed composition-root CLI. A call
-  shaped as `source.pgy --emit-c-verified` is currently captured by the generic
-  two-positional artifact transaction, creates a file named after the flag, and
-  emits empty stdout. Explicit mode identity must select stdout versus artifact
-  publication before any write; unknown or missing modes fail closed.
-- Memory was not measured for this rung and no older peak is relabelled. Full
-  CI, proof adequacy, and current-source gen2/gen3 remain unrun.
+  Executable commit `9a8e3dbc96c5b6e46200246a5af929c765a94a05`
+  closes the installed source-C stdout/artifact collision.
+- Source C stdout is `source --emit-c-verified`; file publication is only
+  `--emit-c-artifact-verified source output`. Generic `source output`, unknown
+  options, missing output, and option-shaped output paths fail before writes.
+  Public C emit and compile/run keep their existing user syntax while the
+  native launcher passes the explicit internal mode.
+- Fresh installed build, focused CLI negatives, public C emit, default C
+  compile/run, 17 grammar fixtures, and component/removed-path ratchets are
+  green. The live replacement gate remains red later at the existing canonical
+  MIR `semantic call return type rows are incomplete` defect. No new pressure
+  measurement, full CI, proof run, or gen2/gen3 claim was made.
+- The sole next executable rung is one typed argv admission owner shared by the
+  installed and standalone roots. Today `--emit-mir-json-verified source third`
+  and `--mir-json input third` still mean output artifact in one root and
+  optional machine declaration in the other. Each valid request must become one
+  typed variant before I/O; raw dual parsing and compatibility fallback are
+  forbidden.
 
 ## Historical self-host ledger — inactive navigation evidence
 

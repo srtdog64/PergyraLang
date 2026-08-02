@@ -1768,9 +1768,12 @@ inventory must not become a second fact-family owner registry.
   this is the single owner of parser/codegen composition.
 - `src/self_hosted/compiler/driver_bootstrap_main.pgy` -- installed compiler
   composition root and source/MIR/output-file boundary used by producer parity
-  and the integrated seed/oracle fixed point. Its two-argument source/output
-  mode owns the public C artifact for `pgy --emit-c` and the admitted
+  and the integrated seed/oracle fixed point. Its explicit
+  `--emit-c-artifact-verified source output` mode owns the public C artifact for
+  `pgy --emit-c` and the admitted
   `--backend=c` compile/run envelope after the native selector admits it. The
+  removed `source output` form is not a compatibility surface: it is rejected
+  before publication so an option can never become a flag-named artifact. The
   native `c_runner` may consume that artifact only for host compile/link and
   optional execution; it cannot re-enter parser, semantic, MIR, AIR, or native
   codegen as a fallback. Its verified source-to-MIR and direct-MIR LLVM modes

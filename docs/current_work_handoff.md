@@ -6,74 +6,65 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — installed driver CLI mode disambiguation
+## Active self-host context — typed installed-driver request admission
 
-- Executable checkpoint: `9f4ec7442b6278b2494a42ac0e7a4952527c8736` on
-  `main`. The worktree contains only this handoff/review/troubleshooting refresh
-  after that implementation commit. The installed Pergyra-built driver remains
-  the 4,226,751-byte artifact with SHA-256
-  `F641598CA1E5EB81F5F312307B8BEBAA7FF21D3D02EB4C66A82A1CB34F1D1E3F`.
-- Closed executable rung: the current-source Pergyra codegen tool now carries
-  each erased role method's exact concrete target type and a distinct target
-  carriage in `CodegenCallableReceiverFacts`. `IntMath.Add` keeps erased method
-  ABI carriage `mutable-identity`, while its compiler-ABI-owned `Int` target is
-  admitted as `value`; source nominal targets retain their semantic
-  value-or-identity policy and enums are values.
-- Nominal, enum, and compiler ABI builtin target authorities are mutually
-  exclusive. Missing, ambiguous, non-runtime nominal, and non-copyable builtin
-  targets fail during callable admission. `Int=nk:struct`, target-spelling
-  dispatch, first-name selection, and missing-target value fallback are
-  forbidden.
-- Function emission no longer calls `CodegenSemanticRoleReceiverType` or scans
-  role declarations for each method. `CodegenRoleReceiverBindingOrDie` consumes
-  the admitted target carriage and only projects a C pointer-identity or
-  value-copy prologue; it no longer reconstructs semantic kind from the generic
-  `target_type + nk` string environment.
-- The installed sibling emitted a 3,889,557-byte current codegen C artifact in
-  80.8 seconds. Host GCC produced a 2,351,659-byte codegen executable in
-  34.9 seconds. That Pergyra-built tool emitted `operator_add.pgy`; the 1,332-byte
-  C artifact compiled and executed exact `123\n123\n3`.
-- `tests/self_hosted/parity/codegen_role_receiver_admission_owner.sh` is green
-  from the default installed-sibling path in 116.3 seconds. It also mutates the
-  role body to `321` and observes exact `321\n321\n3`, rejects a non-copyable
-  builtin target with no partial C, preserves `lhs_copy` stable address, and
-  forbids a foreign subtraction adapter. The component/removed-path ratchet is
-  green in 210.8 seconds. `git diff --check` is green.
-- The legacy native `bin/pgy.exe ... --backend=c` run on the role fixture is not
-  current oracle evidence: it failed earlier in semantic analysis with
-  `statement_type_unresolved` at node 22. The focused self-codegen gate uses the
-  exact documented output and a body metamorphism instead of relabelling the
-  public substituted/native-mixed path as an independent oracle.
-- Full CI, Coq/Rocq, pressure, bootstrap fixpoint and current-source gen2==gen3
-  were not run. No new memory peak is attached to this rung. Last valid pressure
-  evidence remains checkpoint `8bd92069`: 104.381 seconds, peak private
-  1.937 GiB and working set 1.836 GiB. Memory remains a final-maximum signal
-  with 2.4 GiB attention and 3 GiB hard stop.
-- `tests/sot_authority_edge_smoke.sh` remains RED on the pre-existing five
-  duplicate registry/Coq fact assignments recorded by the previous checkpoint.
-  This receiver change extends the existing carriage row and adds no second
-  fact owner.
-- Next reached production defect: invoking the installed composition root as
-  `pgy-self-driver.exe source.pgy --emit-c-verified` currently matches the
-  generic two-positional-argument artifact transaction before the explicit
-  stdout compatibility mode. It exits 0, writes a file literally named
-  `--emit-c-verified`, and leaves stdout empty. The correct explicit artifact
-  invocation `source.pgy output.c` produced the current codegen tool, but the
-  public stdout route is shadowed.
-- Objective card: production entrypoint is
-  `src/self_hosted/compiler/driver_bootstrap_main.pgy`. Explicit driver mode
-  identity owns routing; artifact transaction and stdout emission are distinct
-  effects. The last legitimate consumer is the composition-root CLI dispatch
-  before `RunDriverRung2FromArgs` or `SelfMirArtifactCommitPayload`.
-- Forbidden fallback: treating an option token as an output path, silently
-  creating a flag-named artifact, retrying native codegen after an explicit
-  self-host mode, keeping two overlapping positional interpretations, or
-  changing downstream gates to accept empty stdout.
-- Next falsifier: an explicit stdout request must emit non-empty byte-stable C
-  to stdout and create no flag-named file; the artifact-file mode must publish
-  exactly once to its requested path; unknown options and missing output paths
-  must fail before publication. Migrate callers to one unambiguous mode owner
-  rather than adding another compatibility fallback.
+- Executable checkpoint: `9a8e3dbc96c5b6e46200246a5af929c765a94a05` on
+  `main`, equal to `origin/main` with a clean worktree immediately after the
+  implementation push. The freshly installed Pergyra-built driver is
+  4,230,100 bytes, SHA-256
+  `192363B13E9F51801ADEDEE27C02936E0BA4CF4FF002642DF385DD77EAA719A1`.
+  The incrementally rebuilt native launcher is 4,621,413 bytes, SHA-256
+  `E56C737F61C81ED1597D985D0331BDC5BA326C1F5C9920477ECD3B43761C9986`.
+- Closed executable rung: the installed composition root no longer infers a C
+  file-write effect from two positional strings. Source C stdout remains
+  `source.pgy --emit-c-verified`; atomic file publication is now only
+  `--emit-c-artifact-verified source.pgy output.c`. The old `source output`
+  form, unknown second options, missing output, and option-shaped output paths
+  all fail before artifact publication. The native public `pgy --emit-c` and
+  compile/run surfaces keep their user syntax and pass the explicit child mode
+  to the sibling driver internally.
+- `tests/self_hosted/parity/installed_driver_cli_mode_owner.sh` is the focused
+  negative gate. It proves repeated stdout byte stability, normalized
+  stdout/artifact payload equality, atomic artifact publication with no temp,
+  restored source-MIR and MIR-C stdout routes, source preservation, and all four
+  pre-publication negatives. It is wired into the default C compile replacement
+  target so CI cannot skip this boundary again.
+- Fresh evidence: official installed-driver rebuild 109.2 seconds; focused CLI
+  gate 4.1 seconds; public default C emit PASS; default C compile/run and the
+  exactly-once shim PASS in 15.4 seconds; all 17 grammar stdout fixtures PASS;
+  component/removed-path ratchet PASS in 177.2 seconds. `git diff --check` is
+  green. No pressure measurement was attached to this rung.
+- `tests/self_host_live_replacement_smoke.sh` advances through direct/launcher C
+  equality, negative diagnostic equality, and source-MIR producer equality, but
+  remains RED at the pre-existing canonical MIR consumer diagnostic
+  `semantic call return type rows are incomplete`. The artifact transaction
+  contract gate is independently RED on its stale
+  `SelfMirProgramJsonWriteArtifactVerified` source pin, and the compiler-world
+  contract gate is RED on stale `GenerateCUnitFromReadySemanticFacts` text.
+  These failures were not relabelled as CLI regressions or silently greened.
+- Full CI, Coq/Rocq, pressure, full bootstrap fixpoint, and current-source
+  gen2==gen3 were not run. Last valid pressure evidence remains checkpoint
+  `8bd92069`: 104.381 seconds, peak private 1.937 GiB and working set 1.836 GiB.
+  Memory remains a final-maximum signal with 2.4 GiB attention and 3 GiB hard
+  stop.
+- Next reached production defect: the same three-argument argv has different
+  meanings in the installed and standalone roots. For
+  `--emit-mir-json-verified source third` and `--mir-json input third`, the
+  installed root treats `third` as an output artifact while
+  `driver_rung2_cli_owner.pgy` treats it as an optional machine declaration.
+- Objective card: admit argv once into a typed driver request before any I/O.
+  The request owner must distinguish stdout, artifact, machine declaration,
+  pressure/observation, canonicalization, and direct-backend effects; the
+  installed and standalone roots are only effect executors. The last consumers
+  are `driver_bootstrap_main.pgy` and `driver_rung2_main.pgy` immediately before
+  compiler-world execution or artifact commit.
+- Forbidden fallback: raw argv re-parsing in both roots, the same argv denoting
+  output in one root and a declaration in another, optional third-position
+  guessing, unknown option as source/path, or retaining the old forms beside a
+  typed request. The next falsifier gives every supported request exactly one
+  variant and rejects missing `-o`, missing manifest values, unknown/extra
+  tokens, and artifact variants at the read-only standalone boundary before
+  source or MIR reads.
 
 ## Historical checkpoint archive — inactive evidence
 

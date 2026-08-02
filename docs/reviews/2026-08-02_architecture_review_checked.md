@@ -125,3 +125,19 @@ role body `123` to `321` and observes exact `321\n321\n3`, then rejects a
 non-copyable builtin role target with no partial C. This is bounded self-codegen
 execution evidence; it does not promote the whole compiler or the general
 cross-target call ABI to complete.
+
+## Post-review executable follow-up
+
+The next reached production defect was not another aggregate feature. The
+installed root inferred file publication from any two positional strings, so
+the legitimate `source --emit-c-verified` stdout request created a file named
+after the option. Commit `9a8e3dbc96c5b6e46200246a5af929c765a94a05`
+removes that positional fallback and gives source C file publication the exact
+mode `--emit-c-artifact-verified source output`. A focused installed-binary gate
+now rejects legacy, unknown, missing, and option-shaped output requests before
+publication and is a dependency of default C compile replacement.
+
+This confirms the review's broader warning: a passing downstream compile did
+not prove the argv ownership boundary was coherent. The next rung therefore
+does not add features. It replaces the remaining duplicate installed/standalone
+argv interpretations with one typed request admission owner before I/O.
