@@ -335,6 +335,36 @@ Log at the zero-declaration/string-hello boundary. The next delta must use an
 explicit compile-time ability-erasure receipt plus a general literal projection,
 not an ability-specific backend.
 
+Compile-time declaration literal update (2026-08-03): executable checkpoint
+`2dcbeba2` closes `ability_decl.pgy` as a bounded target-specific
+`SUBSTITUTING` slice. One declaration-erasure receipt validates the complete
+compile-time-only method declaration and proves zero runtime materialization;
+one general literal-Log plan consumes the persisted expression graph and the
+structured formatted-print ABI. Installed C and runtime-free LLVM both execute
+exact `7`. The former production hello projection and both hello emitters are
+deleted. Zero-declaration, coherent rename, and display-only `expr0` changes are
+artifact-equal; literal 73 executes 73; twenty-five structural mutations fail
+before publication. The plan and emitters contain no ability, method, fixture,
+or expected-output dispatch.
+
+The three new owners occupy 538/560 family LOC and are protected by individual
+caps, exact inventory, one-issuer and retired-path ratchets. Focused ability,
+legacy one-MIR dual, installed C/LLVM, hard self-host and component gates are
+green. The global Pergyra-likeness gate remains independently red at sentinel
+29/22 and zone-bound step 26/29; this slice changes neither counted family and
+does not relax the ratchet. Full CI, Coq/Rocq execution, bootstrap fixed point,
+current-source gen2==gen3 and pressure were not rerun.
+
+Architecture review intake (2026-08-03): the August 2 review observed the older
+`bac9b3f1` aggregate frontier. Its durable constraints remain active—do not add
+topology-specific planners, keep storage layout distinct from call ABI, and run
+the full fixed-point/pressure evidence at an integration boundary—but its Pair
+recommendation is no longer the active rung. The current executable frontier is
+`enum_simple.pgy`: one payload-free enum value plus the real four-block match
+CFG must execute exact `2` then `300` through one target-neutral plan. Enum or
+fixture name dispatch, target-specific mini-compilers, match flattening, source
+reparse, and retry into older planners are forbidden.
+
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
 toolchain/preflight clarity, release/debug hygiene, memory/string bounds audit,

@@ -1,40 +1,39 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-08-02
+마지막 업데이트: 2026-08-03
 
-## 활성 우선순위 — ability declaration erasure와 literal 실행
+## 활성 우선순위 — enum 값과 match CFG 실행
 
-- 실행 체크포인트 `89951491`에서 `nominal_subject.pgy`와
-  `nominal_vessel.pgy`를 하나의 mutable nominal identity owner로 닫았다. 같은
-  target-neutral plan이 subject exact `7`과 vessel exact `13`을 C/LLVM에서
-  실행하며 종류별 미니컴파일러는 없다.
-- Nominal route와 공용 `ProgramAdmission`은 각각 한 번만 실행된다. Declaration,
-  graph, instruction, SSA/use, reachability와 actual-capture ABI absence를 봉인한
-  뒤 semantic carriage owner가 value와 mutable identity를 배타 선택한다.
-  Subject/vessel bounded allow-list도 이 owner 한 곳에만 있다.
-- C는 storage 하나와 `T *const` 하나를 만들고 같은 포인터로 write/read한다.
-  LLVM은 정확히 한 `alloca`, GEP, store, load를 같은 field SSA에 수행한다.
-  Focused gate는 두 exact 결과, 6 positive pairs, 33 C negatives와 14 LLVM
-  sentinels를 통과한다. Passive tobject exact `12` 회귀도 green이다.
-- 현재 드라이버는 4,123,408 bytes, SHA-256
-  `2C40D5752E89AB635F675F2A16454C0D95EE0A8D09B807B9A704CA760EE14D94`다.
-  Shared/passive/mutable family는 각각 `812/900`, `258/320`, `300/384`이며
-  개별 cap과 exact 파일 inventory를 통과한다.
-- Final hard/component contract, installed public C와 runtime-free LLVM 경로,
-  current-source driver build가 green이다. 587초 rebuild는 삭제된 LLVM config
-  stamp를 포함한 native 재구성이므로 증분 성능 표본이 아니다. Full CI,
-  Coq/Rocq, bootstrap fixpoint, current-source gen2==gen3와 pressure는 재실행하지
-  않았다. 마지막 유효 peak는 `8bd92069`의 private 1.937 GiB다.
-- 다음 실제 C-owned 경로는 `ability_decl.pgy`다. Source-to-MIR은 한 번 성공해
-  1,563 bytes, SHA-256
-  `679EA54CDA224A2832603B48A8FD7A747B5944328AEECBAEF31C01401A0D81EF`를
-  만들지만 C/LLVM은 artifact 전에 기존 hello admission에서 거부한다.
-- 다음 owner는 complete ability method signature를 compile-time-only erasure로
-  봉인하고 일반 one-instruction literal-Log projection과 조합해야 한다. 임의
-  declaration 무시, ability/fixture 이름 분기, ability 전용 emitter, runtime
-  layout 발명, source/expr0 재파싱, hello/scalar/native retry를 금지한다. Exact
-  `7` 실행과 declaration/method/contract/graph 변조의 pre-artifact 거부가 다음
-  falsifier다.
+- 실행 체크포인트 `2dcbeba2`에서 `ability_decl.pgy`를 닫았다. Complete method
+  signature를 검증한 compile-time declaration erasure receipt와 일반 literal
+  `Log` plan 하나가 동일 MIR을 C/LLVM으로 투영하고 둘 다 exact `7`을 실행한다.
+- Production path의 `DirectMirHelloProjectionFromAdmitted`와
+  `DirectMirHelloEmit{C,Llvm}`는 삭제됐다. Declaration/method/parameter/contract,
+  instruction/use/graph의 25개 변조는 artifact 전에 실패하며, 선언을 제거한
+  프로그램·일관된 rename·`expr0` display drift는 backend별 byte-equal이다.
+- 공통 literal family는 3 files, `538/560` LOC다. 개별 cap, exact inventory,
+  single issuer, fixture/name dispatch 금지, emitter MIR 재열기 금지와 은퇴 경로
+  재도입 금지가 component ratchet에 묶였다.
+- 현재 installed driver는 4,136,286 bytes, SHA-256
+  `C21D8135C3C90987814E2970CAC0BED0B1505DB1E0B33E7A4D5F8765BA8B718E`다.
+  Focused ability gate, 기존 one-MIR dual regression, installed public C/LLVM,
+  hard self-host contract와 component contract가 green이다.
+- 579.2초 `make self-host-compiler`는 seed/parser/gen2를 포함한 전체 재생성이고,
+  같은 seed를 재사용한 direct driver build는 114.2초다. 둘 다 pressure 표본은
+  아니다. Full CI, Coq/Rocq, bootstrap fixpoint, current-source gen2==gen3와
+  pressure는 이번 rung에서 실행하지 않았다.
+- 전역 Pergyra-likeness gate는 기존 기준 표류 때문에 red다: sentinel `29 > 22`,
+  zone-bound step `26 < 29`. 이번 diff는 해당 sentinel 패턴이나 world/zone intent
+  owner를 추가하지 않았으므로 활성 enum rung에서 기준을 느슨하게 하지 않는다.
+- 다음 실제 C-owned 경로는 `enum_simple.pgy`다. Source-to-MIR은 한 번 성공해
+  4,351 bytes, SHA-256
+  `538079F5BEA11E5A2ABB989D29DCC158108A506F73C0BAA2EFCB163946B62894`를
+  만든다. 현재 양 target은 enum 선언을 compile-time-only declaration으로
+  오분류해 artifact 전에 거부하며, native 실행 기준은 exact `2\n300\n`이다.
+- 다음 owner는 payload-free enum variant value와 four-block `match` CFG를 하나의
+  target-neutral plan으로 결합해야 한다. `Direction`/`South`/출력 상수 분기,
+  target별 enum 미니컴파일러, enum runtime aggregate 발명, source/`expr0` 재파싱,
+  match flattening, enum claim 뒤 scalar/CFG/native retry를 금지한다.
 
 ## 비활성 진행 기록 archive
 

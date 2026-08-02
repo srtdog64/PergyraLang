@@ -1,80 +1,78 @@
 # Current Work Handoff
 
-Updated: 2026-08-02 (Asia/Seoul)
+Updated: 2026-08-03 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — ability declaration erasure and literal execution
+## Active self-host context — enum value and match CFG execution
 
-- Executable checkpoint: `89951491` on `main`; documentation is the only
-  intended dirty state during this handoff refresh. The current Pergyra-built
-  driver is 4,123,408 bytes with SHA-256
-  `2C40D5752E89AB635F675F2A16454C0D95EE0A8D09B807B9A704CA760EE14D94`.
-- Closed executable rung: `nominal_subject.pgy` and `nominal_vessel.pgy` now
-  share one target-neutral mutable nominal identity owner. Their self MIRs are
-  respectively 2,791 bytes
-  (`7A86E9AFF8CE964052663652136CCEEDAD66C06A4090C6CCAA7C7C996203297F`)
-  and 2,785 bytes
-  (`37472A654ACCEDA0ED4530642E0EBB774BE0729A17EDE158AE34054273596F7D`).
-  C artifacts are 335/339 bytes and LLVM artifacts are 532/527 bytes; the
-  installed paths execute exact `7` and `13`.
-- One nominal route and one shared `ProgramAdmission` seal declaration,
-  constructor/member graph, instruction envelope, unique SSA definition/use,
-  reachability and actual-capture ABI absence. The semantic carriage owner is
-  the only subject/vessel bounded allow-list owner. Declaration, route,
-  projection, plan and emitters have no kind-specific string dispatch.
-- C emits one storage object and one `T *const`, then writes and reads through
-  the same identity. LLVM emits exactly one `alloca`, GEP, store and load through
-  the same field SSA; aggregate copy instructions are absent. A failed mutable
-  claim cannot retry passive, scalar or native projection.
-- The focused gate is green for subject exact `7`, vessel exact `13`, six
-  coherent positive target pairs, 33 C negatives and 14 LLVM sentinels. Passive
-  tobject exact `12`, final hard/component contracts, installed public C and
-  runtime-free LLVM compile/run, current-source driver build, Python/shell
-  syntax and diff checks are green. Two independent read-only audits found no
-  remaining blocker after the bounded allow-list was moved to its owner.
-- Shared nominal owners occupy 812/900 lines, passive value owners 258/320 and
-  mutable identity owners 300/384. Every owner has an individual cap and exact
-  family inventory. Retired subject-only owners, a second route/admission,
-  fixture-name dispatch, MIR re-read, passive-plan import and old composition
-  root are negative-gated.
-- The 587-second final rebuild is not an incremental compiler benchmark: an
-  earlier Windows invocation without MSYS tools deleted the LLVM configuration
-  stamp, so this run rebuilt the native configuration before regenerating
-  DRV-2. Generated-C unused-variable warnings remained non-fatal. Full CI,
-  Coq/Rocq, pressure, bootstrap fixpoint and current-source gen2==gen3 were not
-  run. The unrelated duplicate-Coq-fact gate remains known red.
-- Last valid pressure evidence remains checkpoint `8bd92069`: 104.381 seconds,
-  peak private 1.937 GiB and working set 1.836 GiB. The current driver was not
-  pressure-measured. Memory stays a final-maximum signal with 2.4 GiB attention
-  and 3 GiB hard stop, not a per-edit objective.
+- Executable checkpoint: `2dcbeba2` on `main`; documentation is the only
+  intended dirty state during this handoff refresh. The installed Pergyra-built
+  driver is 4,136,286 bytes with SHA-256
+  `C21D8135C3C90987814E2970CAC0BED0B1505DB1E0B33E7A4D5F8765BA8B718E`.
+- Closed executable rung: `ability_decl.pgy` now consumes one strict
+  compile-time declaration-erasure receipt and one target-neutral literal-Log
+  plan. C and runtime-free textual LLVM both execute exact `7`; the zero-
+  declaration form, coherent declaration/method/parameter rename, and `expr0`
+  display drift remain byte-equal within each backend.
+- The receipt proves exact-one declaration, nominal kind, positive syntax ID,
+  zero runtime fields, exact-one method, two exact parameters, `Int` return,
+  function kind, and a complete empty contract. It seals zero runtime layout,
+  symbol, storage, and materialization. The literal plan consumes the persisted
+  expression graph and structured formatted-print ABI; emitters cannot reopen
+  MIR or source text.
+- `DirectMirHelloProjectionFromAdmitted` and `DirectMirHelloEmit{C,Llvm}` are
+  removed from production. Twenty-five declaration/method/parameter/contract/
+  block/instruction/use/graph mutations reject before artifact creation. A
+  literal-73 graph executes exact `73`, proving the plan is not fixture-output
+  dispatch.
+- The three-file family is `538/560` LOC with individual caps and exact file
+  inventory. Component ratchets require a single issuer and forbid retired
+  hello entrypoints, fixture/type names, semantic use of `expr0`, emitter MIR
+  reads, and a second compile-time-erasure owner.
+- Latest green: focused ability C/LLVM parity; old one-MIR dual regression;
+  installed public C and runtime-free LLVM; hard self-host contract; component
+  contract; Python/Bash syntax and `git diff --check`. The old dual regression
+  now pins expected output instead of circularly calling public `pgy --backend=c`
+  after that public path became self-host substitution.
+- `make self-host-compiler` completed in 579.2 seconds because it rebuilt the
+  seed/parser/gen2 chain before installing DRV-2. A final seed-reusing direct
+  driver build completed in 114.2 seconds. Neither run measured pressure and
+  neither is a general compile-throughput benchmark.
+- The global Pergyra-likeness gate remains red at sentinel `29 > 22` and
+  zone-bound step `26 < 29`. This rung added none of the counted sentinel
+  patterns and changed no world/zone intent owner, so the active enum slice must
+  not loosen that unrelated baseline. The previously known duplicate-Coq-fact
+  gate is also not claimed green.
+- Full CI, Coq/Rocq, pressure, bootstrap fixpoint and current-source gen2==gen3
+  were not run. Last valid pressure evidence remains checkpoint `8bd92069`:
+  104.381 seconds, peak private 1.937 GiB and working set 1.836 GiB. Memory is a
+  final-maximum signal with 2.4 GiB attention and 3 GiB hard stop.
 - Active objective: replace the next manifest C-owned path,
-  `src/self_hosted/mir_lower/fixture/ability_decl.pgy`. Source-to-MIR succeeds
-  once and produces 1,563 bytes with SHA-256
-  `679EA54CDA224A2832603B48A8FD7A747B5944328AEECBAEF31C01401A0D81EF`.
-  Both direct targets currently fail before artifact creation with
-  `unsupported or mutated hello facts`; intended runtime output is exact `7`.
+  `src/self_hosted/mir_lower/fixture/enum_simple.pgy`. Source-to-MIR succeeds
+  once and produces 4,351 bytes with SHA-256
+  `538079F5BEA11E5A2ABB989D29DCC158108A506F73C0BAA2EFCB163946B62894`.
+  It contains one payload-free four-variant enum and a four-block match CFG.
+  Both direct targets currently fail before artifact creation because the
+  declaration route overclaims it as compile-time-only erasure. The native
+  execution reference is exact `2\n300\n`.
 - Objective card: the production entrypoint remains installed
-  `pgy-self-driver --mir-json-backend={c,llvm}`. The declaration index and
-  method-contract facts own the exact compile-time `ability Arithmetic` /
-  `Add(self, rhs: Int) -> Int` declaration. A target-neutral compile-time
-  erasure receipt and a general one-instruction literal-Log projection must
-  replace the monolithic “zero declarations + string hello” bypass. Selected
-  C/LLVM emitters are the last legitimate consumers.
-- Forbidden fallback: silently ignoring arbitrary declarations, an
-  `Arithmetic`/`Add`/fixture-name branch, an ability-specific C or LLVM emitter,
-  treating ability as a runtime nominal layout, reparsing source/`expr0`, retrying
-  hello/scalar after a claimed ability failure, or native semantic/backend
-  re-entry.
-- Next falsifier: the same admitted MIR must prove the complete ability method
-  signature and compile-time-only erasure, project the integer literal without
-  declaration loss, and execute exact `7` in C and LLVM. Missing/duplicate
-  declaration or method rows, kind/name/return/param/contract drift, extra
-  runtime fields, graph/use drift and unsupported declaration coexistence must
-  fail before artifact publication. Root-intent takeover remains downstream;
-  it is not inferred from the number of actions or declarations.
+  `pgy-self-driver --mir-json-backend={c,llvm}`. Existing enum declaration,
+  variant identity, expression graph, instruction/use and CFG facts own the
+  semantic input. One target-neutral enum-value + match-CFG plan is the new
+  owner, and selected C/LLVM emitters are its last legitimate consumers.
+- Forbidden fallback: `Direction`/`South`/fixture/output-constant dispatch,
+  target-specific enum planners or mini-compilers, treating the enum as erased
+  or as an invented runtime aggregate, source/`expr0` reparse, flattening the
+  match to constants, or scalar/CFG/native retry after the enum route claims it.
+- Next falsifier: the same admitted MIR must preserve variant ordinal `2`, the
+  actual four-block branch and selected case, and execute exact `2\n300\n` in
+  both targets. Declaration/variant ordinal, match pattern, successor,
+  reachability, SSA use, Log operand and target-plan mutations must fail before
+  publication. Root-intent takeover remains downstream and is not inferred
+  from declaration or action counts.
 
 ## Historical checkpoint archive — inactive evidence
 

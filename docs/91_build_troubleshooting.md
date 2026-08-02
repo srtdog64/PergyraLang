@@ -4464,3 +4464,62 @@ Direct-MIR Array emitter가 내부 backing storage 이름을 직접 고정하면
 이 문제는 단순 명명 스타일이 아니다. 예약 namespace 사용은 host compiler와의
 충돌 가능성을 만들고, source symbol collision은 잘못된 C binding을 만든다. 따라서
 두 조건 모두 artifact publication 전 negative gate로 유지한다.
+
+## 선언이 있는 단일 `Log` MIR을 hello 경로가 거부하거나 임의로 무시하는 경우
+
+단일 `Log` instruction이라고 해서 declaration을 버리고 기존 hello emitter를
+재사용하면 안 된다. 2026-08-03의 `ability_decl.pgy`는 runtime 값이 필요 없는 ability
+method declaration과 integer literal `Log`를 함께 가진다. 기존 경로는 선언 수 0과
+string hello를 한 덩어리로 가정해 거부했고, 선언을 그냥 무시하는 완화는 임의의
+runtime declaration까지 통과시키는 결함이 된다.
+
+해결 경계는 두 owner로 나눈다.
+
+- compile-time declaration-erasure receipt가 정확한 declaration/method/parameter/
+  contract schema와 runtime materialization/layout/symbol/storage의 부재를 봉인한다;
+- 일반 literal-Log plan은 그 receipt와 persisted expression graph, instruction/use,
+  structured formatted-print ABI만 소비한다;
+- C/LLVM emitter는 plan의 target-neutral value와 target ABI projection만 읽고 MIR,
+  source, `expr0`를 다시 열지 않는다;
+- declaration을 제거한 프로그램, 일관된 이름 변경, display-only `expr0` 변경은
+  backend별 artifact byte-equal이어야 하고, graph literal 변경은 실제 출력으로
+  관찰돼야 한다;
+- declaration/method/contract/graph 변조는 artifact 전에 거부한다.
+
+`DirectMirHelloProjectionFromAdmitted`와 target별 hello emitter를 병존시키거나,
+ability/fixture/예상 출력 이름으로 분기하거나, erasure 실패 뒤 scalar/hello/native
+경로를 재시도하지 않는다. 다음 enum fixture처럼 runtime identity가 필요한 declaration은
+compile-time erasure가 아니므로 별도 값/CFG owner가 받아야 한다.
+
+## self-host 회귀에서 public `pgy --backend=c`를 native oracle로 부른 경우
+
+Public C 경로가 self-host sibling driver로 치환된 뒤에는 같은 regression test 안에서
+`pgy --backend=c`를 "native expected output"으로 호출하면 순환 검증이다. Self-host
+artifact와 비교할 독립 oracle이 아니라 같은 production path를 다시 호출하기 때문이다.
+
+- 이미 닫힌 작은 fixture는 문서화된 exact output을 gate 입력으로 고정한다;
+- 독립 native oracle이 필요하면 self-host substitution을 거치지 않는 명시적 owner
+  경계를 사용하고, 그 경계를 테스트가 이름으로 드러낸다;
+- public path의 성공을 native와 self-host 두 증거로 중복 계산하지 않는다.
+
+2026-08-03에는 hello, `let_log`, `multilet` 회귀의 expected output을 각각 exact
+출력으로 고정해 순환을 제거했다.
+
+## self-host build 579초와 114초를 같은 성능 표본으로 해석한 경우
+
+`make self-host-compiler`는 seed capability에 따라 native configuration, parser,
+gen2 codegen과 DRV-2 설치까지 재생성할 수 있다. 2026-08-03의 579.2초 실행은 이 전체
+체인을 수행했다. 같은 seed를 재사용한 direct `self_host_compiler_build.sh` 실행은
+114.2초였다. 두 수치를 일반 프로그램 컴파일 시간이나 같은 증분 build로 비교하면
+안 된다.
+
+성능 기록에는 반드시 실행 범위를 함께 적는다.
+
+- seed/native/parser/gen2 재생성 포함 여부;
+- installed driver만 다시 만드는지;
+- tests/fixed point/pressure 포함 여부;
+- peak memory를 실제로 계측했는지.
+
+계측하지 않은 build에 이전 peak를 붙이지 않는다. 메모리는 매 편집마다 최적화
+목표로 쓰지 않고, semantic target을 닫은 integration boundary에서 최종 maximum을
+기록한다. 2.4 GiB attention과 3 GiB hard stop 정책은 그대로 유지한다.

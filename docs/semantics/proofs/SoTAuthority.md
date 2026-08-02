@@ -48,7 +48,11 @@ It also proves three rejection cases:
 
 The file also declares the architectural compiler-spine fact families, including
 the MIR-owned ABI layout rows and their runtime-call ABI row projection, plus
-the bounded self-host closure facts and a total `spine_authority` mapping.
+the bounded self-host closure facts and a total `spine_authority` mapping. The
+direct-MIR projection section now names compile-time declaration erasure and
+the target-neutral literal-Log plan as distinct facts under the projection
+planner; erasure proof is not backend emission and a literal plan cannot
+silently recreate declaration policy.
 `every_spine_fact_has_declared_authority` and
 `declared_spine_authority_unique` prove that this architectural mapping is
 total and functional. `declared_owner_does_not_imply_rung_closed` keeps the

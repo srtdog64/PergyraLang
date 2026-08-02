@@ -3,6 +3,41 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-08-03 Compile-Time Declaration Literal Substitution
+
+- Checkpoint `2dcbeba2` replaces the production declaration-bearing hello
+  bypass for `ability_decl.pgy`. A strict compile-time declaration-erasure
+  receipt joins declaration, method, parameter and callable-contract facts and
+  proves that no runtime type, layout, symbol or storage is required.
+- A separate target-neutral literal-Log plan reads the admitted expression
+  graph and structured formatted-print ABI once. Selected C/LLVM emitters own
+  syntax only. Both installed paths execute exact `7`; a graph-literal mutation
+  executes exact `73`, so expected output is not an implementation selector.
+- `DirectMirHelloProjectionFromAdmitted` and `DirectMirHelloEmitC/Llvm` are
+  deleted. Zero-declaration, coherent rename, and display-only `expr0` drift are
+  artifact-equal. Twenty-five declaration/method/parameter/contract/block/
+  instruction/use/graph mutations reject before output.
+- The new family is exactly three files and 538/560 LOC. Individual/family
+  caps, exact inventory, one issuer, no fixture/type names, no emitter MIR read,
+  and retired hello-path absence are structural ratchets.
+- A full seed/parser/gen2/DRV-2 rebuild completed in 579.2 seconds; a later
+  seed-reusing driver build completed in 114.2 seconds. Neither is pressure or
+  normal user-program throughput evidence. The installed driver is 4,136,286
+  bytes, SHA-256
+  `C21D8135C3C90987814E2970CAC0BED0B1505DB1E0B33E7A4D5F8765BA8B718E`.
+- Focused ability parity, the pre-existing one-MIR dual regression, installed
+  public C/LLVM, hard self-host and component contracts are green. The global
+  likeness gate is separately red at sentinel 29/22 and zone-bound step 26/29;
+  this change adds neither counted pattern. Full CI, Coq/Rocq execution,
+  bootstrap fixed point, current-source gen2==gen3 and pressure were not run.
+- The next active C-owned path is `enum_simple.pgy`. Its 4,351-byte MIR hash is
+  `538079F5BEA11E5A2ABB989D29DCC158108A506F73C0BAA2EFCB163946B62894`;
+  both direct targets fail closed because the compile-time erasure route
+  overclaims its runtime enum declaration. The next owner must preserve the
+  enum ordinal and real four-block match CFG and execute exact `2\n300\n`
+  without enum/name constants, target-specific planners, source reparse, match
+  flattening, or older-plan retry.
+
 ## Progress Log - 2026-07-28 Exact Intent DIR Reachability
 
 - Self typed AST now preserves native intent mode, rollback, retry,
