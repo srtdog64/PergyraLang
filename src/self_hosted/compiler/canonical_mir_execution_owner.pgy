@@ -1,0 +1,112 @@
+// Canonical MIR execution over one admitted MIR input and one verified body
+// receipt. Canonicalization may rebind identity, but it must not rerun semantic
+// body materialization over already published call-return rows.
+
+import "driver_rung2_owner.pgy";
+
+func CanonicalizeMirArtifactWithAdmittedTopology(
+    artifact: AstTreeArtifact,
+    verified: DriverRung2VerifiedFacts,
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    identity_epoch: CanonicalMirIdentityEpochArtifact
+) -> String {
+    let projection: DriverRung2MirProjection =
+        DriverRung2MirProjectionFromVerifiedFactsObserved(
+            artifact, verified, machine_declaration, false
+        );
+    let facts: SelfMirProgramFacts = projection.facts;
+    let rebound: CanonicalMirProgramIdentityEpoch =
+        CanonicalMirIdentityEpochRebindProgramFacts(
+            facts, admitted, identity_epoch
+        );
+    if !rebound.ok {
+        DriverRung2MirProjectionRelease(projection);
+        Die("canonical MIR identity epoch remap is invalid");
+    }
+    facts = rebound.facts;
+    if !SelfMirProgramFactsReady(facts) {
+        DriverRung2MirProjectionRelease(projection);
+        Die(SelfMirProgramFactsValidationError(facts));
+    }
+    let result: String = SelfMirProgramJson(facts);
+    DriverRung2MirProjectionRelease(projection);
+    return result;
+}
+
+func CanonicalizeMirJsonVerified(
+    mir_json_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration
+) -> String with caps io_read {
+    let admitted: MirMachineLayerAdmittedJsonInput =
+        MirJsonReadMachineAdmittedInput(
+            mir_json_path, machine_declaration
+        );
+    let routines: MirProgramRoutineIndex = admitted.routines;
+    if !MirProgramRoutineIndexStructureReady(routines) {
+        Die("MIR routine inventory is missing or invalid");
+    }
+    let emission: MirProgramTreeEmission =
+        DriverRung2IntentTreeEmissionOrDie(admitted, false);
+    let identity_epoch: CanonicalMirIdentityEpochArtifact =
+        CanonicalMirIdentityEpochArtifactFromTreeText(
+            emission.text, admitted
+        );
+    if !identity_epoch.ok {
+        Die("canonical MIR identity epoch projection is invalid");
+    }
+    let artifact: AstTreeArtifact = identity_epoch.artifact;
+    let graph: SemanticExpressionGraphFacts =
+        MirExpressionGraphFactsForArtifact(
+            routines, artifact, emission.expression_order,
+            admitted.intent_execution_plan
+        );
+    if !graph.ok {
+        Die("MIR instruction expression graph is missing or invalid");
+    }
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeWithExpressionGraph(
+            artifact, true, graph
+        );
+    let verified: DriverRung2VerifiedFacts =
+        VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(
+            artifact, analysis, false
+        );
+    if !MirAssignmentBindingModesMatchSemanticFacts(
+        routines, emission.expression_order,
+        verified.body_types.assignment_types
+    ) {
+        Die("MIR assignment binding-mode fact is missing or invalid");
+    }
+    return CanonicalizeMirArtifactWithAdmittedTopology(
+        artifact, verified, admitted, machine_declaration, identity_epoch
+    );
+}
+
+func CanonicalizeOracleMirJsonBridge(
+    mir_json_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration
+) -> String with caps io_read {
+    let admitted: MirMachineLayerAdmittedJsonInput =
+        MirJsonReadMachineAdmittedInput(
+            mir_json_path, machine_declaration
+        );
+    let tree_emission: MirProgramTreeEmission =
+        DriverRung2IntentTreeEmissionOrDie(admitted, false);
+    let identity_epoch: CanonicalMirIdentityEpochArtifact =
+        CanonicalMirIdentityEpochArtifactFromTreeText(
+            tree_emission.text, admitted
+        );
+    if !identity_epoch.ok {
+        Die("canonical MIR identity epoch projection is invalid");
+    }
+    let artifact: AstTreeArtifact = identity_epoch.artifact;
+    let verified: DriverRung2VerifiedFacts =
+        VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(
+            artifact,
+            SemanticAstArtifactAnalyzeCompactBridge(artifact, true), false
+        );
+    return CanonicalizeMirArtifactWithAdmittedTopology(
+        artifact, verified, admitted, machine_declaration, identity_epoch
+    );
+}

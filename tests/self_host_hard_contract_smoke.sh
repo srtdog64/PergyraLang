@@ -240,16 +240,16 @@ require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 forbid_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "VerifyArtifactForMirProduction" \
     "SemanticAstArtifactAnalyzeCompactBridge"
-require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_function_text "src/self_hosted/compiler/canonical_mir_execution_owner.pgy" \
     "CanonicalizeMirJsonVerified" \
     "emission.expression_order"
-require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_function_text "src/self_hosted/compiler/canonical_mir_execution_owner.pgy" \
     "CanonicalizeMirJsonVerified" \
     "SemanticAstArtifactAnalyzeWithExpressionGraph("
-forbid_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+forbid_function_text "src/self_hosted/compiler/canonical_mir_execution_owner.pgy" \
     "CanonicalizeMirJsonVerified" \
     "SemanticAstArtifactAnalyzeCompactBridge"
-require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_function_text "src/self_hosted/compiler/canonical_mir_execution_owner.pgy" \
     "CanonicalizeOracleMirJsonBridge" \
     "SemanticAstArtifactAnalyzeCompactBridge(artifact, true)"
 forbid_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \

@@ -42,6 +42,44 @@ seed parser and gen2 codegen first. Reuse the already validated seed and run
 `tests/self_hosted/parity/self_host_compiler_build.sh`, then state that the
 measurement covers the installed driver only.
 
+## Canonical MIR reports stale call-return rows after source MIR succeeds
+
+Symptom: `--emit-mir-json-verified` succeeds, but passing that artifact to
+`--canonicalize-mir-json` fails with `semantic call return type rows are
+incomplete` or rejects an already populated call-return row as stale. On a
+compiler-scale graph, the same defect can also inflate elapsed time and memory
+toward the 3 GiB pressure boundary even though the required fact was already
+computed.
+
+Check execution multiplicity before adding a cache or weakening validation. The
+reached failure was:
+
+```text
+analyze + verify -> DriverRung2VerifiedFacts
+canonical projection -> admitted-analysis projection -> verify again
+```
+
+The first verification correctly published `ToString -> String`. The second
+verification revisited the same mutable analysis epoch, and the intentional
+stale-row negative rejected the prefilled value. This was repeated owned work,
+not a missing return-type rule.
+
+The owner-correct repair is to carry the existing `DriverRung2VerifiedFacts`
+receipt into `DriverRung2MirProjectionFromVerifiedFactsObserved`. That consumer
+validates `SemanticAstBodyTypeBundleAdmissionReceiptReadyFor`, then lowers the
+already ready body facts exactly once. Keep the stale-row rejection strict. Do
+not make the resolver idempotent, reconstruct a return-type table, rescan the
+AST/program root, or hide the second verification behind a cache.
+
+Use
+`tests/self_hosted/parity/canonical_mir_verified_projection_owner.sh` as the
+focused falsifier. It emits `let_log.pgy`, canonicalizes through the installed
+launcher, requires byte equality, canonicalizes the result again, and requires
+the second result to be the same fixpoint. Broaden to
+`tests/self_host_live_replacement_smoke.sh` only after this gate is green. For
+memory evidence, record one final integration maximum; do not rerun a pressure
+probe after every local edit.
+
 ## Role-operator targets disappear between semantic analysis and MIR
 
 A role operator is not primitive arithmetic merely because its source token is

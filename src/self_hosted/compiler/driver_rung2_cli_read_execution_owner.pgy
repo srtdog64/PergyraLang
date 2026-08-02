@@ -2,6 +2,7 @@
 
 import "driver_rung2_cli_request_owner.pgy";
 import "compiler_world_direct_mir_owner.pgy";
+import "canonical_mir_execution_owner.pgy";
 
 func DriverRung2CliLogSourceMirPayloadOrDie(
     source_path: String,

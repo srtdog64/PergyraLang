@@ -4623,7 +4623,11 @@ reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "LoadSemanticSource"
 require_file "src/self_hosted/compiler/driver_rung2_owner.pgy"
 require_file "src/self_hosted/compiler/driver_rung2_main.pgy"
-require_max_lines "src/self_hosted/compiler/driver_rung2_owner.pgy" 550
+require_max_lines "src/self_hosted/compiler/driver_rung2_owner.pgy" 500
+require_file "src/self_hosted/compiler/canonical_mir_execution_owner.pgy"
+require_max_lines "src/self_hosted/compiler/canonical_mir_execution_owner.pgy" 140
+require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
+    'import "canonical_mir_execution_owner.pgy";'
 require_file \
     "tests/self_hosted/parity/driver_rung2_analysis_admission_owner.sh"
 require_max_lines \
@@ -4820,7 +4824,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticAstArtifactAnalyzeTyped(artifact, true)"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticAstArtifactAnalyze(artifact, true)"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+require_text "src/self_hosted/compiler/canonical_mir_execution_owner.pgy" \
     "SemanticAstArtifactAnalyzeCompactBridge(artifact, true)"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticExpressionGraphBuildFromText"
@@ -5499,8 +5503,13 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstIterat
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstAssignmentTypeFactsFromArtifact"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstStatementTypeFactsFromArtifact"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileSourceToMirJsonVerified"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CanonicalizeMirJsonVerified"
+require_text "src/self_hosted/compiler/canonical_mir_execution_owner.pgy" \
+    "func CanonicalizeMirJsonVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SelfMirProgramFactsFromReadyArtifactObserved("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "func DriverRung2MirProjectionFromVerifiedFactsObserved("
+reject_text "src/self_hosted/compiler/canonical_mir_execution_owner.pgy" \
+    "DriverRung2MirProjectionFromAdmittedAnalysisObserved("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SelfMirProgramFactsFromArtifact("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -7187,7 +7196,20 @@ require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL"'
 reject_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'export MSYS2_ARG_CONV_EXCL="*"'
-require_text "Makefile" "self-host-live-replacement-test-smoke: self-host-compiler"
+require_file \
+    "tests/self_hosted/parity/canonical_mir_verified_projection_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/canonical_mir_verified_projection_owner.sh" 100
+require_text \
+    "tests/self_hosted/parity/canonical_mir_verified_projection_owner.sh" \
+    'DriverRung2MirProjectionFromVerifiedFactsObserved('
+require_text \
+    "tests/self_hosted/parity/canonical_mir_verified_projection_owner.sh" \
+    'repeated canonicalization is not a fixpoint'
+require_text "Makefile" \
+    "self-host-canonical-mir-verified-projection-test-smoke: self-host-compiler"
+require_text "Makefile" \
+    "self-host-live-replacement-test-smoke: self-host-canonical-mir-verified-projection-test-smoke"
 require_file \
     "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh"
 require_max_lines \

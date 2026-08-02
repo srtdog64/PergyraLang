@@ -81,8 +81,7 @@ check_live_mir_source() {
     local live_arg
     local self_arg
 
-    (cd "$ROOT_DIR" && "$PGY" --mir-json \
-        "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$source")" 2>/dev/null) \
+    (cd "$ROOT_DIR" && "$PGY" --mir-json "$source" 2>/dev/null) \
         | tr -d '\r' >"$live_mir"
     grep -Fq '"schema":"pgy.mir.v1"' "$live_mir" || {
         echo "[self-host-live] $label: C oracle did not produce MIR" >&2
@@ -123,15 +122,15 @@ check_live_mir_source() {
             echo "[self-host-live] $label: launcher C artifact drift" >&2
             exit 1
         }
-    "$CC" -x c -std=c11 "$WORK_DIR/$label.launcher-mir.c" \
+    "$CC" -x c -std=c11 -I"$ROOT_DIR/src/runtime" \
+        "$WORK_DIR/$label.launcher-mir.c" \
         -o "$WORK_DIR/$label.launcher-program" \
         >"$WORK_DIR/$label.cc.log" 2>&1 || {
             cat "$WORK_DIR/$label.cc.log" >&2
             exit 1
         }
-    (cd "$ROOT_DIR" && "$PGY" \
-        "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$source")" --backend=c \
-        -o "$(pgy_path_for_compiler "$PGY" "$WORK_DIR/$label.oracle-program")" \
+    (cd "$ROOT_DIR" && "$PGY" "$source" --backend=c \
+        -o "$(pgy_selfhost_path_relative_to_root "$WORK_DIR/$label.oracle-program")" \
         >"$WORK_DIR/$label.oracle.compile.log" 2>&1)
     "$WORK_DIR/$label.launcher-program" | tr -d '\r' \
         >"$WORK_DIR/$label.launcher.run"

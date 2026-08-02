@@ -96,16 +96,18 @@ func DriverRung2PressureStage(enabled: Bool, stage: String) -> Void {
     }
 }
 
-func DriverRung2MirProjectionFromAdmittedAnalysisObserved(
-    artifact: AstTreeArtifact, analysis: SemanticAstArtifactAnalysis,
-    machine_declaration: SelfHostMachineLayerDeclaration, observe_pressure: Bool
+func DriverRung2MirProjectionFromVerifiedFactsObserved(
+    artifact: AstTreeArtifact,
+    verified: DriverRung2VerifiedFacts,
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    observe_pressure: Bool
 ) -> DriverRung2MirProjection {
-    DriverRung2PressureStage(observe_pressure, "verify:start");
-    let verified: DriverRung2VerifiedFacts =
-        VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(
-            artifact, analysis, observe_pressure
-        );
-    DriverRung2PressureStage(observe_pressure, "verify:done");
+    if !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(
+        verified.body_type_admission, artifact,
+        verified.analysis, verified.body_types
+    ) {
+        Die("driver rung-2 verified body facts are missing or stale");
+    }
     DriverRung2PressureStage(observe_pressure, "mir-facts:start");
     let mir_facts: SelfMirProgramFacts = SelfMirProgramFactsFromReadyArtifactObserved(
         artifact, verified.analysis, verified.body_types.initializer_types,
@@ -121,6 +123,21 @@ func DriverRung2MirProjectionFromAdmittedAnalysisObserved(
     }
     DriverRung2PressureStage(observe_pressure, "mir-facts:done");
     return DriverRung2MirProjection(mir_facts, verified.analysis);
+}
+
+func DriverRung2MirProjectionFromAdmittedAnalysisObserved(
+    artifact: AstTreeArtifact, analysis: SemanticAstArtifactAnalysis,
+    machine_declaration: SelfHostMachineLayerDeclaration, observe_pressure: Bool
+) -> DriverRung2MirProjection {
+    DriverRung2PressureStage(observe_pressure, "verify:start");
+    let verified: DriverRung2VerifiedFacts =
+        VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(
+            artifact, analysis, observe_pressure
+        );
+    DriverRung2PressureStage(observe_pressure, "verify:done");
+    return DriverRung2MirProjectionFromVerifiedFactsObserved(
+        artifact, verified, machine_declaration, observe_pressure
+    );
 }
 
 func DriverRung2MirProjectionFromAnalysisObserved(
@@ -215,88 +232,6 @@ func CompileSourceToMirJsonPressureObserved(
             artifact, analysis, machine_declaration, true
         );
     return DriverRung2MirProjectionJson(projection, true);
-}
-
-func CanonicalizeMirJsonVerified(
-    mir_json_path: String,
-    machine_declaration: SelfHostMachineLayerDeclaration
-) -> String with caps io_read {
-    let admitted: MirMachineLayerAdmittedJsonInput = MirJsonReadMachineAdmittedInput(mir_json_path, machine_declaration);
-    let routines: MirProgramRoutineIndex = admitted.routines;
-    if !MirProgramRoutineIndexStructureReady(routines) {
-        Die("MIR routine inventory is missing or invalid");
-    }
-    let emission: MirProgramTreeEmission =
-        DriverRung2IntentTreeEmissionOrDie(admitted, false);
-    let identity_epoch: CanonicalMirIdentityEpochArtifact =
-        CanonicalMirIdentityEpochArtifactFromTreeText(emission.text, admitted);
-    if !identity_epoch.ok { Die("canonical MIR identity epoch projection is invalid"); }
-    let artifact: AstTreeArtifact = identity_epoch.artifact;
-    let graph: SemanticExpressionGraphFacts =
-        MirExpressionGraphFactsForArtifact(
-            routines, artifact, emission.expression_order, admitted.intent_execution_plan
-        );
-    if !graph.ok {
-        Die("MIR instruction expression graph is missing or invalid");
-    }
-    let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeWithExpressionGraph(artifact, true, graph);
-    let verified: DriverRung2VerifiedFacts =
-        VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(
-            artifact, analysis, false
-        );
-    if !MirAssignmentBindingModesMatchSemanticFacts(
-        routines, emission.expression_order,
-        verified.body_types.assignment_types
-    ) {
-        Die("MIR assignment binding-mode fact is missing or invalid");
-    }
-    return CanonicalizeMirArtifactWithAdmittedTopology(artifact,
-        verified.analysis, admitted, machine_declaration, identity_epoch);
-}
-
-func CanonicalizeMirArtifactWithAdmittedTopology(
-    artifact: AstTreeArtifact,
-    analysis: SemanticAstArtifactAnalysis,
-    ref admitted: MirMachineLayerAdmittedJsonInput,
-    machine_declaration: SelfHostMachineLayerDeclaration,
-    identity_epoch: CanonicalMirIdentityEpochArtifact
-) -> String {
-    let projection: DriverRung2MirProjection = DriverRung2MirProjectionFromAdmittedAnalysisObserved(
-        artifact, analysis, machine_declaration, false);
-    let facts: SelfMirProgramFacts = projection.facts;
-    let rebound: CanonicalMirProgramIdentityEpoch =
-        CanonicalMirIdentityEpochRebindProgramFacts(facts, admitted, identity_epoch);
-    if !rebound.ok {
-        DriverRung2MirProjectionRelease(projection);
-        Die("canonical MIR identity epoch remap is invalid");
-    }
-    facts = rebound.facts;
-    if !SelfMirProgramFactsReady(facts) {
-        DriverRung2MirProjectionRelease(projection);
-        Die(SelfMirProgramFactsValidationError(facts));
-    }
-    let result: String = SelfMirProgramJson(facts);
-    DriverRung2MirProjectionRelease(projection);
-    return result;
-}
-
-func CanonicalizeOracleMirJsonBridge(
-    mir_json_path: String,
-    machine_declaration: SelfHostMachineLayerDeclaration
-) -> String with caps io_read {
-    let admitted: MirMachineLayerAdmittedJsonInput = MirJsonReadMachineAdmittedInput(mir_json_path, machine_declaration);
-    let tree_emission: MirProgramTreeEmission =
-        DriverRung2IntentTreeEmissionOrDie(admitted, false);
-    let identity_epoch: CanonicalMirIdentityEpochArtifact =
-        CanonicalMirIdentityEpochArtifactFromTreeText(
-            tree_emission.text, admitted
-        );
-    if !identity_epoch.ok { Die("canonical MIR identity epoch projection is invalid"); }
-    let artifact: AstTreeArtifact = identity_epoch.artifact;
-    return CanonicalizeMirArtifactWithAdmittedTopology(artifact,
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true), admitted,
-        machine_declaration, identity_epoch);
 }
 
 func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(

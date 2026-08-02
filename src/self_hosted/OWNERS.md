@@ -2072,6 +2072,11 @@ inventory must not become a second fact-family owner registry.
   JSON inputs converge on one `AstTreeArtifact` verifier. For file-backed MIR,
   it snapshots the topology receipt and machine declaration, completes the
   typed codegen view, then retires the raw JSON input before C emission.
+- `src/self_hosted/compiler/canonical_mir_execution_owner.pgy` -- canonical
+  MIR execution owner. It reads one admitted MIR input, performs body
+  verification once, consumes the resulting `DriverRung2VerifiedFacts`
+  receipt for MIR projection, and rebinds the canonical identity epoch. It may
+  not submit the published call-return rows to a second body fixpoint.
 - `src/self_hosted/compiler/driver_rung2_intent_consumer_owner.pgy` -- one
   admitted typed-intent plan tree projection and exact post-semantic expression
   occurrence remap boundary for the DRV-2 consumer.

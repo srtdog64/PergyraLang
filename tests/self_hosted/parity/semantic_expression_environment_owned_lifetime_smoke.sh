@@ -448,7 +448,7 @@ grep -Fq 'SelfMirProgramFactsFromReadyArtifact(' <<<"$mir_checked_body" || {
     exit 1
 }
 
-driver_mir_body="$(function_body "$DRIVER" 'DriverRung2MirProjectionFromAdmittedAnalysisObserved')"
+driver_mir_body="$(function_body "$DRIVER" 'DriverRung2MirProjectionFromVerifiedFactsObserved')"
 grep -Fq 'SelfMirProgramFactsFromReadyArtifactObserved(' <<<"$driver_mir_body" || {
     echo "[self-host-parity:semantic-environment-lifetime] verified driver lost ready-artifact MIR path" >&2
     exit 1
@@ -656,7 +656,8 @@ assert_exact_call_files 'SemanticAstArtifactAdmissionReady(' \
     'src/self_hosted/compiler/driver_rung2_owner.pgy' \
     'src/self_hosted/semantic/ast_artifact_verdict_contract_owner.pgy' \
     'src/self_hosted/semantic/ast_artifact_verdict_owner.pgy' \
-    'src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy'
+    'src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy' \
+    'src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_owner.pgy'
 assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysis(' \
     'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
     'src/self_hosted/semantic/ast_body_type_bundle_owner.pgy'
