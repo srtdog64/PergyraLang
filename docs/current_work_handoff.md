@@ -56,6 +56,14 @@ owner, and the named executable gate.
   both direct targets currently fail closed with `direct MIR multi-routine
   projection rejected the program graph`. The language-semantic result is
   exact `123`, not primitive `1 + 2 == 3`.
+- Reached blocker: the current persisted `add` graph carries
+  `call_target_kind="none"` and an empty target name. Role, ability, impl,
+  method and routine facts exist, but no fact states that this operator was
+  semantically resolved to that method. A direct planner may not infer the
+  target from the only visible role or from `Add` spelling. The immediate
+  executable sub-rung is therefore producer-owned resolved-operator target
+  carriage into MIR; target-neutral direct planning starts only after that fact
+  is admitted.
 - Objective card: production entrypoint is installed
   `pgy-self-driver --mir-json-backend={c,llvm}`. Ability/role declaration rows,
   exact impl-method identity, the role-method routine, operator dispatch fact,
@@ -71,7 +79,9 @@ owner, and the named executable gate.
   while declaration/routine row permutation remains semantically stable.
   Missing or cross-wired ability, role, impl method, receiver type, operator
   target, routine result, caller use and CFG facts must reject before artifact
-  publication. Do not generalize into a query engine or arbitrary role runtime.
+  publication. First, removing or cross-wiring the producer-carried resolved
+  operator target must fail closed instead of becoming primitive addition.
+  Do not generalize into a query engine or arbitrary role runtime.
 
 ## Historical checkpoint archive — inactive evidence
 

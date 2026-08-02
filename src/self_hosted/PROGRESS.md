@@ -5361,3 +5361,11 @@ is green at 5,112 bytes and SHA-256
 while both direct backends fail closed at multi-routine projection. Its first
 falsifier is exact role-dispatched output `123` without primitive-addition,
 fixture-name, row-order, source-text, or target-specific fallback.
+
+The first audit of that next rung found an earlier owner seam: the persisted
+`add` graph still records `call_target_kind="none"` and an empty target name.
+Declarations prove the role/ability/impl structure, but MIR does not yet carry
+the semantic decision that this operator resolves to the role method. The next
+delta must project that resolved target from semantic analysis into MIR. The
+direct planner must not reconstruct it from a unique role, `Add` spelling, or
+the source/display expression.
