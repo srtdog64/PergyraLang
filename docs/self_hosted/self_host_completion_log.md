@@ -6,6 +6,42 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-02 - Array storage projection is promoted across two substituting families
+
+- Landed code checkpoint `96b7f88e` as the first aggregate-owner promotion
+  ratchet after the executable `Array<Point>` closure. `Array<Int>` and
+  `Array<Point>` now consume one target-bound
+  `DirectMirArrayStorageAbiProjection` for the data-layout identity, 32/8
+  size/alignment, four field names/offsets, C `size_t`, and LLVM aggregate/slot
+  indices. Family ABI owners may no longer import the layout contract directly.
+- Both C emitters consume one assertion owner and publish six `_Static_assert`
+  receipts for size, alignment and every public Array offset. Hidden caller
+  storage is issued by a collision-aware symbol owner as
+  `_pgy_array_storage_N`; the prior `__pgy_array_storage` spelling was removed
+  because double-underscore identifiers are reserved to the C implementation.
+  Exact source-parameter collisions force ordinal advancement in both focused
+  lanes.
+- `Array<Int>` now carries the same explicit closed-module/no-external-interop
+  call receipt as `Array<Point>`. This closes the prior family asymmetry without
+  merging storage layout and calling convention or claiming a public external
+  ABI.
+- Focused Array<Int> and Array<Point> gates pass exact `44` and `45`, six/seven
+  invariants, three variants each, 27/35 C negatives and 7/10 LLVM sentinels.
+  Hard self-host, full component, installed public C, installed runtime-free
+  LLVM, shell syntax, Python syntax and diff checks are green. The current-source
+  DRV-2 rebuild completed in 103.8 seconds and installed a 4,068,483-byte driver
+  with SHA-256
+  `8D78B7D0D88622A057F0EBD5A3938D435A28C81BF47EED976C7DAFE9B93B99EF`.
+  It was not pressure-measured; the 1.937 GiB peak remains evidence for
+  `8bd92069` only. Full CI, Coq execution and bootstrap fixpoint were not rerun.
+- This ratchet is architecture evidence, not new C-path substitution progress.
+  The next and final allowed consecutive SoT ratchet is a target-neutral,
+  representation-parameterized aggregate value-flow fact consumed after family
+  admission. It must preserve distinct captured-Int versus nominal-Point ABI
+  provenance and must not read MIR/JSON, classify fixtures, or introduce a new
+  fixture-named emitter family. After that, the next commit must replace an
+  executable C-owned path or record the exact blocker.
+
 ## 2026-08-02 - Constructed Array<Point> member flow reaches C and LLVM
 
 - Closed `generic_member_record_array_return_flow.pgy` at code checkpoint

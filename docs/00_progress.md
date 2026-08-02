@@ -4,7 +4,7 @@
 
 ## 활성 우선순위 — aggregate value-flow owner 승격
 
-- 실행 체크포인트 `8bd92069`는
+- 실행 체크포인트 `96b7f88e`는
   `generic_member_record_array_return_flow.pgy`를 target-specific
   `SUBSTITUTING`으로 닫았다. 같은 11,952-byte self MIR, SHA-256
   `FA0EDC384115F1978C1AB25C8CC587CD9EE6370FAE5717E25DE54BD52EBEC3FF`가
@@ -21,23 +21,33 @@
   `{data,len,cap}` growable container와 다른 도메인이다. 저장 layout과 호출 ABI도
   분리했으며 현재 C/LLVM 산출물은 closed-module internal 호출만 주장한다. 외부
   ABI interoperability는 아직 열려 있다.
-- Hidden storage 이름은 `__pgy_array_storage`로 격리했고, C에는 모든
+- 첫 승격 래칫으로 `Array<Int>`와 `Array<Point>`의 target storage mapping을
+  `DirectMirArrayStorageAbiProjection` 하나로 옮겼다. 두 family ABI는 layout
+  owner를 직접 읽지 않고 data-layout ID, 32/8 크기·정렬, 네 field 이름·offset,
+  C length type과 LLVM aggregate/index receipt를 소비한다. C는 동일한 여섯
+  `_Static_assert`를 방출한다. `_pgy_array_storage_N` symbol owner는 C 예약
+  `__*` 이름을 쓰지 않으며 source parameter 충돌 시 ordinal을 올린다.
+  `Array<Int>` plan도 closed-module/no-external-interop call receipt를 소유한다.
+- Hidden storage 이름은 collision-aware owner가 발급하는
+  `_pgy_array_storage_N`으로 격리했고, C에는 모든
   `pgy_array_*(` runtime call 금지, LLVM에는 Echo/result/data/index/load/field/printf
   전체 chain ratchet을 추가했다. 새 owner는 각 220줄 이하, focused family는
   1,958/2,100줄이다.
-- 최종 설치 드라이버는 4,060,853 bytes, SHA-256
-  `EC1C6292D75BF76686E0F0020231AE2F716FC021DD9AD531912BD6F0087FDD67`다.
-  Fresh full self-host build는 104.381초, peak private 1.937 GiB, working set
-  1.836 GiB였고 2.4 GiB attention을 넘지 않았다. Full CI, Coq adequacy,
-  bootstrap fixpoint와 current-source gen2==gen3은 재실행하지 않았다.
+- 최종 설치 드라이버는 4,068,483 bytes, SHA-256
+  `8D78B7D0D88622A057F0EBD5A3938D435A28C81BF47EED976C7DAFE9B93B99EF`다.
+  Current-source rebuild는 103.8초에 성공했지만 pressure 계측은 하지 않았다.
+  104.381초/peak private 1.937 GiB/working set 1.836 GiB 표본은 이전
+  `8bd92069`에만 속한다. Full CI, Coq adequacy, bootstrap fixpoint와
+  current-source gen2==gen3은 재실행하지 않았다.
 - 첨부 architecture review의 Pair/Array<Point> 미구현 판정은 관찰 HEAD가 뒤처져
   현재 사실과 맞지 않지만, fixture topology별 mini-compiler 확산 경고는 유효하다.
   따라서 다음 활성 작업은 새 aggregate fixture를 추가하는 일이 아니다.
-- 다음 objective는 기존 constructed `Array<Int>`와 `Array<Point>`가 하나의
-  representation-parameterized aggregate value-flow plan을 소비하게 승격하는 것이다.
-  Fact owner는 element nominal ABI, Array storage, caller lifetime, specialization,
-  call/result/index/member flow와 target capability를 소유하고, 마지막 consumer는
-  `DirectMirThreeRoutineProjectionOrDie`가 선택한 C/LLVM emitter다.
+- 다음 objective는 이미 admitted된 constructed `Array<Int>`와 `Array<Point>`가
+  하나의 representation-parameterized aggregate value-flow fact를 소비하게 하는
+  두 번째 승격이다. 공통 fact는 wrapper/element/Array identity, ABI provenance,
+  caller-owned single storage, index zero, construction/identity policy, nested
+  carriage와 closed-module call receipt만 소유한다. MIR/JSON/classification은 읽지
+  않으며 Int receipt와 Point nominal ABI target projection은 계속 분리한다.
 - 새 fixture 이름 기반 owner/emitter 계열, type spelling dispatch, private container를
   public ABI로 승격, storage layout을 call ABI로 간주, target default 추측, 실패 후
   이전 planner retry를 금지한다. Exact `44`와 `45`, 기존 permutations 및 모든

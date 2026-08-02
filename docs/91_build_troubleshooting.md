@@ -4440,3 +4440,27 @@ Pressure invocation은 다음 경계를 지킨다.
 2026-08-02의 정상 표본은 104.381초, peak private 1.937 GiB, peak working set
 1.836 GiB, `attention_required=false`였다. Summary owner는
 `.tmp/build-pressure/record-array-final/record-array-final-self-host-build-relative.summary.json`이다.
+
+## 생성 C의 hidden storage가 `__*`이거나 source parameter와 충돌하는 경우
+
+Direct-MIR Array emitter가 내부 backing storage 이름을 직접 고정하면 두 종류의 결함이
+생긴다. `__pgy_array_storage`처럼 double underscore로 시작하는 이름은 C 구현에
+예약되어 있고, `_pgy_array_storage_0`처럼 합법적인 이름도 source parameter가 이미
+소유할 수 있다. Emitter가 이름을 바꾸는 ad-hoc fallback을 가지면 두 target family가
+서로 다른 symbol 정책을 다시 소유하게 된다.
+
+- 책임 이름을 `DirectMirArrayStorageSymbol` owner 한 곳에서 발급한다.
+- 후보는 `_pgy_array_storage_N`이며 block/parameter scope의 source 이름과 충돌하면
+  ordinal을 증가시킨다. 현재 bounded lane은 ordinal 0..15만 허용하고 소진 시
+  fail-closed한다.
+- Array<Int>와 Array<Point> emitter는 발급된 symbol만 소비하며 `__*`를 직접
+  방출하지 않는다.
+- Focused mutation은 정확히 `_pgy_array_storage_0` parameter를 주입하고 생성
+  artifact가 `_pgy_array_storage_1`을 사용하는지 실행으로 확인한다.
+- Public Array layout은 별도 assertion owner가 크기, 정렬, data/length/capacity/
+  allocator offset의 여섯 `_Static_assert`를 생성한다. Symbol 충돌 회피가 layout
+  또는 call-ABI 판단을 소유해서는 안 된다.
+
+이 문제는 단순 명명 스타일이 아니다. 예약 namespace 사용은 host compiler와의
+충돌 가능성을 만들고, source symbol collision은 잘못된 C binding을 만든다. 따라서
+두 조건 모두 artifact publication 전 negative gate로 유지한다.

@@ -257,6 +257,20 @@ shrink-only. Exact `44` and `45` plus every existing storage/call/ABI/SSA
 negative must remain green. This consolidation is architecture work and is not
 counted as new self-host substitution progress.
 
+Aggregate storage promotion update (2026-08-02): checkpoint `96b7f88e` moves
+the shared target-bound Array storage decision behind
+`DirectMirArrayStorageAbiProjection`. Array<Int> and Array<Point> family ABIs
+derive the same data-layout ID, 32/8 size/alignment, four field names/offsets,
+C `size_t` and LLVM aggregate/indices; direct layout-owner imports are
+negative-gated. Both C artifacts now emit six layout assertions. The generated
+caller-storage binding is owned by a collision-aware, block/parameter-scope
+`_pgy_array_storage_N` fact rather than the C-reserved `__*` namespace, and the
+exact source-parameter collision is executable in both lanes. Array<Int> also
+now carries the shared closed-module/no-external-interop call receipt. The next
+ratchet is the target-neutral aggregate value-flow fact; it must consume sealed
+family evidence without reading MIR/JSON or erasing the distinct captured-Int
+versus nominal-Point ABI provenance.
+
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
 toolchain/preflight clarity, release/debug hygiene, memory/string bounds audit,

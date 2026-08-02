@@ -8,10 +8,10 @@ owner, and the named executable gate.
 
 ## Active self-host context — promote aggregate value-flow ownership
 
-- Executable checkpoint: `8bd92069` on `main`; documentation is the only
+- Executable checkpoint: `96b7f88e` on `main`; documentation is the only
   intended dirty state during this handoff refresh. The installed Pergyra-built
-  driver is 4,060,853 bytes with SHA-256
-  `EC1C6292D75BF76686E0F0020231AE2F716FC021DD9AD531912BD6F0087FDD67`.
+  driver is 4,068,483 bytes with SHA-256
+  `8D78B7D0D88622A057F0EBD5A3938D435A28C81BF47EED976C7DAFE9B93B99EF`.
 - Closed frontier:
   `src/self_hosted/mir_lower/fixture/generic_member_record_array_return_flow.pgy`.
   Its one-shot self MIR is 11,952 bytes with SHA-256
@@ -34,33 +34,53 @@ owner, and the named executable gate.
   layout is also separate from the new closed-module call-ABI fact: C uses the
   host compiler's closed-module classifier and LLVM uses its internal default.
   Neither projection claims external C/LLVM interoperability.
-- Generated hidden storage now uses `__pgy_array_storage`, not a legal source
-  parameter spelling. C publication rejects every `pgy_array_*(` runtime call;
+- The first promotion ratchet is landed. `Array<Int>` and `Array<Point>` now
+  consume one target-bound Array storage projection for data-layout identity,
+  size/alignment, field names/offsets, C length type, LLVM aggregate and slot
+  indices. The family ABI projections cannot import the storage layout owner
+  directly. Both C artifacts emit the same six host layout assertions. A
+  shared symbol owner uses the non-reserved `_pgy_array_storage_N` namespace
+  and increments the ordinal when a source parameter occupies a candidate.
+  `Array<Int>` now also carries the same closed-module/no-external-interop call
+  receipt as `Array<Point>`.
+- Generated hidden storage now uses collision-owned `_pgy_array_storage_N` and
+  advances the ordinal when a legal source parameter already owns a candidate.
+  C publication rejects every `pgy_array_*(` runtime call;
   LLVM publication proves the full Echo/result/data/index/load/field/printf
   chain. Every new Pergyra owner remains at or below 220 lines and the focused
   family is 1,958/2,100 lines.
 - Latest green: final current-source driver rebuild; constructed record-array
   C/LLVM focused gate; prior constructed Array exact `44`; hard self-host
   contract; full component contract; installed public C and runtime-free LLVM
-  compile/run; shell/Python syntax and diff checks. Full CI, Coq adequacy,
-  bootstrap seed/fixpoint, and current-source gen2==gen3 were not run. The
-  unrelated duplicate-Coq-ID `sot-authority-edge-test-smoke` remains a known
-  red and is not claimed green.
-- Final pressure evidence is one fresh full DRV-2 build under the process-tree
-  owner: 104.381 seconds, peak private 1.937 GiB, peak working set 1.836 GiB,
-  `attention_required=false`, 3 GiB hard cap. Earlier WSL/absolute-path setup
-  failures are invalid samples and are not included.
-- Active objective: before admitting a third aggregate topology, promote the
-  completed constructed `Array<Int>` and `Array<Point>` slices behind one
-  representation-parameterized aggregate value-flow plan. Priority is semantic
-  identity/one SoT, explicit storage and closed-module call facts, deletion of
-  topology-specific duplicate decisions, then artifact stability. This is an
-  architecture ratchet, not new substitution progress.
-- Fact owner: the promoted plan owns element nominal ABI, Array storage layout,
-  caller storage lifetime, specialization substitution, nested call/result/
-  index/member flow, and selected target capability. The last legitimate
-  consumer is the selected C or LLVM emitter reached from
-  `DirectMirThreeRoutineProjectionOrDie`.
+  compile/run; shell/Python syntax and diff checks; full UTF-8 documentation
+  quality; protocol registry with nine rows; and formal-semantics structural
+  checks. Coq/Rocq is not installed, so the formal gate used the explicit
+  `PGY_ALLOW_MISSING_COQ=1` declaration and 41 proofs were not machine-checked.
+  Full CI, Coq adequacy, bootstrap seed/fixpoint, and current-source gen2==gen3
+  were not run. The unrelated duplicate-Coq-ID
+  `sot-authority-edge-test-smoke` remains a known red and is not claimed green;
+  its duplicated Coq-fact names and multiplicities are identical between
+  `HEAD` and the refreshed registry row set, so this Array documentation change
+  did not add one.
+- Last valid pressure evidence belongs to executable checkpoint `8bd92069`: one
+  fresh full DRV-2 build took 104.381 seconds at peak private 1.937 GiB and
+  working set 1.836 GiB, with `attention_required=false` under the 3 GiB hard
+  cap. The current `96b7f88e` driver rebuilt successfully in 103.8 seconds but
+  was not pressure-measured, so the older peak is not attributed to it.
+- Active objective: complete the second promotion ratchet before admitting a
+  third aggregate topology. The completed constructed `Array<Int>` and
+  `Array<Point>` slices must project one target-neutral aggregate value-flow
+  fact after family-specific admission and before target ABI projection.
+  Priority is semantic identity/one SoT, preservation of distinct ABI
+  provenance, deletion of duplicate storage/index/call/carriage decisions,
+  then artifact stability. This is architecture work, not new substitution
+  progress.
+- Fact owner: the promoted plan owns wrapper representation, element and Array
+  type identity, ABI-provenance kind, caller-owned single storage, index zero,
+  construction/identity policies, nested call/result carriage and the shared
+  closed-module call receipt. It consumes already-admitted family facts and may
+  not read MIR, JSON or classification. Family target projections remain the
+  last legitimate consumers for distinct Int-receipt and Point-nominal ABI.
 - Forbidden fallback: another fixture-named planner/emitter family, class or
   type spelling dispatch, treating storage layout as calling convention,
   deriving public ABI from the compiler's private growable container, target
