@@ -190,6 +190,15 @@ def change_argument(document):
     instructions(document, "Main")[1]["expr0"] = nodes[10]["text"]
 
 
+def collide_with_hidden_storage(document):
+    wrap = routine(document, "Wrap")
+    wrap["params"][1]["name"] = "_pgy_array_storage_0"
+    row = instructions(document, "Wrap")[0]
+    row["expr0"] = "[_pgy_array_storage_0]"
+    row["expr0_graph"]["nodes"][1]["text"] = "_pgy_array_storage_0"
+    row["expr0_graph"]["nodes"][2]["text"] = "[_pgy_array_storage_0]"
+
+
 def forge_constructor_layout(document):
     row = instructions(document, "Main")[0]
     row["abi_layout_id"] = 77
@@ -210,6 +219,7 @@ emit("source-local-order-swap", lambda d: routine(
 emit("combined-order", combined_order)
 emit("generic-formal-rename", rename_generics)
 emit("argument-value-seventy-three", change_argument)
+emit("hidden-storage-collision", collide_with_hidden_storage)
 emit("collision-names", lambda d: replace_strings(
     d, [("result", "printf"), ("wrapper", "pgy_inner")]))
 

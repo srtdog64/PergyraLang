@@ -217,11 +217,11 @@ def change_field_value(document):
 
 def collide_with_hidden_storage(document):
     wrap = routine(document, "Wrap")
-    wrap["params"][1]["name"] = "pgy_array_storage"
+    wrap["params"][1]["name"] = "_pgy_array_storage_0"
     row = instructions(document, "Wrap")[0]
-    row["expr0"] = "[pgy_array_storage]"
-    row["expr0_graph"]["nodes"][1]["text"] = "pgy_array_storage"
-    row["expr0_graph"]["nodes"][2]["text"] = "[pgy_array_storage]"
+    row["expr0"] = "[_pgy_array_storage_0]"
+    row["expr0_graph"]["nodes"][1]["text"] = "_pgy_array_storage_0"
+    row["expr0_graph"]["nodes"][2]["text"] = "[_pgy_array_storage_0]"
 
 
 def replace_strings(value, replacements):

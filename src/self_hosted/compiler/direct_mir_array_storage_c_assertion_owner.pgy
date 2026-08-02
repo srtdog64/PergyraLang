@@ -1,0 +1,44 @@
+// Host-C receipts for the public four-field Array storage projection.
+
+import "direct_mir_array_storage_abi_projection_owner.pgy";
+
+func DirectMirArrayStorageCAssertionBlock(
+    ref storage: DirectMirArrayStorageAbiProjection,
+    array_type: String
+) -> String {
+    if !DirectMirArrayStorageAbiProjectionReadyFor(
+        storage, CompilerTargetCpuCProjection()
+    ) || array_type == "" {
+        Die("direct MIR Array C storage assertion facts are invalid");
+    }
+    let output: String = "_Static_assert(sizeof(";
+    output = Concat(output, array_type);
+    output = Concat(output, ") == ");
+    output = Concat(output, ToString(storage.size));
+    output = Concat(output, ", \"Array storage size receipt\");\n");
+    output = Concat(output, "_Static_assert(_Alignof(");
+    output = Concat(output, array_type);
+    output = Concat(output, ") == ");
+    output = Concat(output, ToString(storage.align));
+    output = Concat(output, ", \"Array storage align receipt\");\n");
+    let fields: Array<String> = [
+        storage.data_field, storage.length_field,
+        storage.capacity_field, storage.allocator_field
+    ];
+    let offsets: Array<Int> = [
+        storage.data_offset, storage.length_offset,
+        storage.capacity_offset, storage.allocator_offset
+    ];
+    let i: Int = 0;
+    while i < 4 {
+        output = Concat(output, "_Static_assert(offsetof(");
+        output = Concat(output, array_type);
+        output = Concat(output, ", ");
+        output = Concat(output, fields[i]);
+        output = Concat(output, ") == ");
+        output = Concat(output, ToString(offsets[i]));
+        output = Concat(output, ", \"Array storage field receipt\");\n");
+        i = i + 1;
+    }
+    return Concat(output, "\n");
+}

@@ -13702,7 +13702,7 @@ require_max_lines \
 require_file \
     "src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy" 170
+    "src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy" 180
 require_file "src/self_hosted/compiler/direct_mir_array_int_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_array_int_emission_owner.pgy" 320
@@ -14354,6 +14354,9 @@ for constructed_array_member_owner in \
     direct_mir_constructed_array_member_main_instruction_owner.pgy \
     direct_mir_constructed_array_member_abi_admission_owner.pgy \
     direct_mir_array_storage_layout_contract_owner.pgy \
+    direct_mir_array_storage_abi_projection_owner.pgy \
+    direct_mir_array_storage_symbol_owner.pgy \
+    direct_mir_array_storage_c_assertion_owner.pgy \
     direct_mir_constructed_array_member_representation_owner.pgy \
     direct_mir_constructed_array_member_plan_owner.pgy \
     direct_mir_constructed_array_member_c_emission_owner.pgy \
@@ -14409,6 +14412,9 @@ for constructed_record_array_member_owner in \
     direct_mir_closed_module_call_abi_owner.pgy \
     direct_mir_constructed_record_array_member_plan_owner.pgy \
     direct_mir_array_storage_layout_contract_owner.pgy \
+    direct_mir_array_storage_abi_projection_owner.pgy \
+    direct_mir_array_storage_symbol_owner.pgy \
+    direct_mir_array_storage_c_assertion_owner.pgy \
     direct_mir_constructed_record_array_member_abi_projection_owner.pgy \
     direct_mir_constructed_record_array_member_c_emission_owner.pgy \
     direct_mir_constructed_record_array_member_llvm_emission_owner.pgy \
@@ -14437,6 +14443,30 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_constructed_record_array_member_plan_owner.pgy" \
     "caller_owned_fixed_record_array_through_nested_member_by_value"
+require_text \
+    "src/self_hosted/compiler/direct_mir_constructed_array_member_plan_owner.pgy" \
+    'DirectMirClosedModuleCallAbiFactReady(plan.call_abi)'
+require_text \
+    "src/self_hosted/compiler/direct_mir_array_storage_symbol_owner.pgy" \
+    'block_or_parameter'
+require_text \
+    "src/self_hosted/compiler/direct_mir_array_storage_c_assertion_owner.pgy" \
+    'Array storage field receipt'
+for array_c_emitter in \
+    direct_mir_constructed_array_member_c_emission_owner.pgy \
+    direct_mir_constructed_record_array_member_c_emission_owner.pgy; do
+    reject_text "src/self_hosted/compiler/$array_c_emitter" '__pgy_array_storage'
+    require_text "src/self_hosted/compiler/$array_c_emitter" \
+        'DirectMirArrayStorageCAssertionBlock('
+done
+for array_storage_consumer in \
+    direct_mir_array_int_abi_projection_owner.pgy \
+    direct_mir_constructed_record_array_member_abi_projection_owner.pgy; do
+    require_text "src/self_hosted/compiler/$array_storage_consumer" \
+        'direct_mir_array_storage_abi_projection_owner.pgy'
+    reject_text "src/self_hosted/compiler/$array_storage_consumer" \
+        'direct_mir_array_storage_layout_contract_owner.pgy'
+done
 require_text \
     "src/self_hosted/compiler/direct_mir_constructed_record_array_member_representation_owner.pgy" \
     "DirectMirInferredGenericMemberRepresentation()"

@@ -44,19 +44,24 @@ $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_record_array_member_re
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_record_array_member_plan_join_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_closed_module_call_abi_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_record_array_member_plan_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_storage_layout_contract_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_record_array_member_abi_projection_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_record_array_member_c_emission_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_record_array_member_llvm_emission_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_record_array_member_projection_owner.pgy
 EOF
     [[ "$total" -le 2100 ]] || fail "constructed record Array family cap exceeded: $total/2100"
+    for shared_owner in direct_mir_array_storage_layout_contract_owner.pgy direct_mir_array_storage_abi_projection_owner.pgy direct_mir_array_storage_symbol_owner.pgy direct_mir_array_storage_c_assertion_owner.pgy; do
+        require_file "$ROOT_DIR/src/self_hosted/compiler/$shared_owner"
+        [[ "$(wc -l <"$ROOT_DIR/src/self_hosted/compiler/$shared_owner")" -le 140 ]] || fail "shared Array storage owner hard cap exceeded: $shared_owner"
+    done
     grep -Fq 'DirectMirThreeRoutineMixedConstructedGenericMember()' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_classification_owner.pgy" || fail "mixed classification is not owned"
     grep -Fq 'CompileAdmittedDirectMirConstructedRecordArrayMember(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" || fail "record Array projection is not routed"
     for emitter in direct_mir_constructed_record_array_member_c_emission_owner.pgy direct_mir_constructed_record_array_member_llvm_emission_owner.pgy; do
         ! grep -Eq 'MirMachineLayerAdmittedJsonInput|MirExpressionGraphSequence|JsonObjectFact' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter reopened admitted MIR"
         ! grep -Eq 'malloc\(|realloc\(|free\(|pgy_array_[A-Za-z0-9_]*\(' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter owns a runtime fallback"
     done
+    grep -Fq 'direct_mir_array_storage_abi_projection_owner.pgy' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_record_array_member_abi_projection_owner.pgy" || fail "record Array target ABI bypassed the storage projection owner"
+    ! grep -Fq 'direct_mir_array_storage_layout_contract_owner.pgy' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_record_array_member_abi_projection_owner.pgy" || fail "record Array target ABI reopened the storage layout owner"
 }
 
 project() {
@@ -110,11 +115,14 @@ project "$MIR" c "$WORK_DIR/baseline.c"
 project "$MIR" llvm "$WORK_DIR/baseline.ll"
 [[ "$(hash_file "$MIR")" == "$mir_digest" ]] || fail "LLVM projection mutated MIR"
 grep -Fq 'Point *data; size_t length; size_t capacity; void *allocator;' "$WORK_DIR/baseline.c" || fail "C lost stable four-field Array ABI"
-grep -Fq 'return (pgy_Point_array){__pgy_array_storage, 1, 1, NULL};' "$WORK_DIR/baseline.c" || fail "C lost allocator provenance slot"
-grep -Fq 'RecordArrayWrapper_Wrap_Point(RecordArrayWrapper self, Point value, Point *__pgy_array_storage)' "$WORK_DIR/baseline.c" || fail "C lost collision-proof Point by-value/caller-storage ABI"
+grep -Fq 'return (pgy_Point_array){_pgy_array_storage_0, 1, 1, NULL};' "$WORK_DIR/baseline.c" || fail "C lost allocator provenance slot"
+grep -Fq 'RecordArrayWrapper_Wrap_Point(RecordArrayWrapper self, Point value, Point *_pgy_array_storage_0)' "$WORK_DIR/baseline.c" || fail "C lost collision-proof Point by-value/caller-storage ABI"
 grep -Fq 'RecordArrayWrapper_Echo_Array_Point_(RecordArrayWrapper self, pgy_Point_array value)' "$WORK_DIR/baseline.c" || fail "C lost Array<Point> by-value Echo ABI"
 grep -Fq 'RecordArrayWrapper_Echo_Array_Point_(pgy_receiver, pgy_inner)' "$WORK_DIR/baseline.c" || fail "C flattened nested member calls"
-[[ "$(grep -Fc 'Point __pgy_array_storage[1];' "$WORK_DIR/baseline.c")" -eq 1 ]] || fail "C storage owner is not unique"
+[[ "$(grep -Fc 'Point _pgy_array_storage_0[1];' "$WORK_DIR/baseline.c")" -eq 1 ]] || fail "C storage owner is not unique"
+! grep -Eq '(^|[^A-Za-z0-9_])__[A-Za-z0-9_]' "$WORK_DIR/baseline.c" || fail "C emitted a reserved double-underscore identifier"
+grep -Fq '_Static_assert(sizeof(pgy_Point_array) == 32' "$WORK_DIR/baseline.c" || fail "C lost record Array storage size receipt"
+grep -Fq 'offsetof(pgy_Point_array, allocator) == 24' "$WORK_DIR/baseline.c" || fail "C lost record Array allocator offset receipt"
 grep -Fq 'Point pgy_first = pgy_result.data[0];' "$WORK_DIR/baseline.c" || fail "C flattened first SSA"
 ! grep -Eq 'pgy_ai|malloc|realloc|free|pgy_array_[A-Za-z0-9_]*\(|printf\("%lld\\n", \(long long\)45\)' "$WORK_DIR/baseline.c" || fail "C reintroduced fallback or constant output"
 [[ "$(grep -Fc 'alloca [1 x %Point]' "$WORK_DIR/baseline.ll")" -eq 1 ]] || fail "LLVM storage owner is not unique"
@@ -149,6 +157,7 @@ done
 compile_and_expect field-value-seventy-five 75
 compile_and_expect collision-names 45
 compile_and_expect hidden-storage-collision 45
+grep -Fq 'Point *_pgy_array_storage_1)' "$WORK_DIR/hidden-storage-collision.c" || fail "C storage symbol did not avoid the source parameter"
 cmp -s "$WORK_DIR/baseline.c" "$WORK_DIR/collision-names.c" || fail "C source local spelling leaked"
 cmp -s "$WORK_DIR/baseline.ll" "$WORK_DIR/collision-names.ll" || fail "LLVM source local spelling leaked"
 

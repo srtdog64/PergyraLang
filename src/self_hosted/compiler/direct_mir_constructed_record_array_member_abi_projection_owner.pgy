@@ -4,12 +4,13 @@ import "direct_mir_constructed_record_array_member_plan_owner.pgy";
 import "abi_layout_nominal_array_owner.pgy";
 import "target_projection_fact_owner.pgy";
 import "symbol_table_owner.pgy";
-import "direct_mir_array_storage_layout_contract_owner.pgy";
+import "direct_mir_array_storage_abi_projection_owner.pgy";
 
 struct DirectMirConstructedRecordArrayMemberAbiProjection {
     let valid: Bool;
     let target_projection: String;
     let target_capability_fingerprint: Int;
+    let storage: DirectMirArrayStorageAbiProjection;
     let c_element_type: String;
     let c_array_type: String;
     let c_length_type: String;
@@ -26,21 +27,24 @@ func DirectMirConstructedRecordArrayMemberAbiProjectionReadyFor(
     ref projection: DirectMirConstructedRecordArrayMemberAbiProjection,
     expected_target: String
 ) -> Bool {
-    let contract: DirectMirArrayStorageLayoutContract =
-        DirectMirArrayStorageLayoutContractFact();
     if !projection.valid ||
-        !DirectMirArrayStorageLayoutContractReady(contract) ||
+        !DirectMirArrayStorageAbiProjectionReadyFor(
+            projection.storage, expected_target
+        ) ||
         !CompilerTargetProjectionKnown(expected_target) ||
         projection.target_projection != expected_target ||
+        projection.target_projection != projection.storage.target_projection ||
         projection.target_capability_fingerprint !=
-            CompilerTargetCapabilityFingerprint() {
+            CompilerTargetCapabilityFingerprint() ||
+        projection.target_capability_fingerprint !=
+            projection.storage.target_capability_fingerprint {
         return false;
     }
     if expected_target == CompilerTargetCpuCProjection() {
         return projection.c_element_type != "" &&
             projection.c_array_type != "" &&
-            projection.c_length_type == contract.c_length_type &&
-            projection.c_field_order == contract.field_order &&
+            projection.c_length_type == projection.storage.c_length_type &&
+            projection.c_field_order == projection.storage.c_field_order &&
             projection.llvm_element_type == "" &&
             projection.llvm_aggregate_type == "" &&
             projection.data_index == 0 - 1 &&
@@ -52,16 +56,12 @@ func DirectMirConstructedRecordArrayMemberAbiProjectionReadyFor(
         projection.c_element_type == "" && projection.c_array_type == "" &&
         projection.c_length_type == "" && projection.c_field_order == "" &&
         projection.llvm_element_type != "" &&
-        projection.llvm_aggregate_type == contract.llvm_aggregate_type &&
-        projection.data_index == DirectMirArrayStorageLayoutIndex(
-            contract, contract.data_offset
-        ) && projection.length_index == DirectMirArrayStorageLayoutIndex(
-            contract, contract.length_offset
-        ) && projection.capacity_index == DirectMirArrayStorageLayoutIndex(
-            contract, contract.capacity_offset
-        ) && projection.allocator_index == DirectMirArrayStorageLayoutIndex(
-            contract, contract.allocator_offset
-        );
+        projection.llvm_aggregate_type ==
+            projection.storage.llvm_aggregate_type &&
+        projection.data_index == projection.storage.data_index &&
+        projection.length_index == projection.storage.length_index &&
+        projection.capacity_index == projection.storage.capacity_index &&
+        projection.allocator_index == projection.storage.allocator_index;
 }
 
 func DirectMirConstructedRecordArrayMemberAbiProjectionReadyForPlan(
@@ -91,8 +91,8 @@ func DirectMirConstructedRecordArrayMemberAbiProjectionFromPlan(
     ref plan: DirectMirConstructedRecordArrayMemberPlan,
     target: CompilerTargetProjectionFact
 ) -> DirectMirConstructedRecordArrayMemberAbiProjection {
-    let contract: DirectMirArrayStorageLayoutContract =
-        DirectMirArrayStorageLayoutContractFact();
+    let storage: DirectMirArrayStorageAbiProjection =
+        DirectMirArrayStorageAbiProjectionFromTarget(target);
     let is_c: Bool = CompilerTargetProjectionFactReadyFor(
         target, CompilerTargetCpuCProjection()
     );
@@ -100,7 +100,9 @@ func DirectMirConstructedRecordArrayMemberAbiProjectionFromPlan(
         target, CompilerTargetCpuLlvmProjection()
     );
     if !DirectMirConstructedRecordArrayMemberPlanReady(plan) ||
-        !DirectMirArrayStorageLayoutContractReady(contract) ||
+        !DirectMirArrayStorageAbiProjectionReadyFor(
+            storage, target.projection
+        ) ||
         (!is_c && !is_llvm) {
         Die("direct MIR constructed record Array has no target projection");
     }
@@ -112,7 +114,8 @@ func DirectMirConstructedRecordArrayMemberAbiProjectionFromPlan(
     let projection: DirectMirConstructedRecordArrayMemberAbiProjection =
         DirectMirConstructedRecordArrayMemberAbiProjection(
             true, target.projection, target.target_capability_fingerprint,
-            "", "", "", "", "", "", 0 - 1, 0 - 1, 0 - 1, 0 - 1
+            storage, "", "", "", "", "", "",
+            0 - 1, 0 - 1, 0 - 1, 0 - 1
         );
     if is_c {
         let nominal: CompilerAbiNominalArrayLayoutFact =
@@ -126,19 +129,19 @@ func DirectMirConstructedRecordArrayMemberAbiProjectionFromPlan(
         }
         projection = DirectMirConstructedRecordArrayMemberAbiProjection(
             true, target.projection, target.target_capability_fingerprint,
+            storage,
             nominal.c_element_type, nominal.c_value_type,
-            contract.c_length_type, contract.field_order,
+            storage.c_length_type, storage.c_field_order,
             "", "", 0 - 1, 0 - 1, 0 - 1, 0 - 1
         );
     } else {
         projection = DirectMirConstructedRecordArrayMemberAbiProjection(
             true, target.projection, target.target_capability_fingerprint,
+            storage,
             "", "", "", "", Concat("%", c_record),
-            contract.llvm_aggregate_type,
-            DirectMirArrayStorageLayoutIndex(contract, contract.data_offset),
-            DirectMirArrayStorageLayoutIndex(contract, contract.length_offset),
-            DirectMirArrayStorageLayoutIndex(contract, contract.capacity_offset),
-            DirectMirArrayStorageLayoutIndex(contract, contract.allocator_offset)
+            storage.llvm_aggregate_type, storage.data_index,
+            storage.length_index, storage.capacity_index,
+            storage.allocator_index
         );
     }
     if !DirectMirConstructedRecordArrayMemberAbiProjectionReadyForPlan(

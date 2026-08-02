@@ -1,0 +1,138 @@
+// Target-bound projection of the public four-field Array storage contract.
+// Element semantics and function call classification remain separate owners.
+
+import "direct_mir_array_storage_layout_contract_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+struct DirectMirArrayStorageAbiProjection {
+    let valid: Bool;
+    let target_projection: String;
+    let target_capability_fingerprint: Int;
+    let data_layout_id: String;
+    let size: Int;
+    let align: Int;
+    let data_offset: Int;
+    let length_offset: Int;
+    let capacity_offset: Int;
+    let allocator_offset: Int;
+    let c_length_type: String;
+    let c_field_order: String;
+    let data_field: String;
+    let length_field: String;
+    let capacity_field: String;
+    let allocator_field: String;
+    let llvm_aggregate_type: String;
+    let data_index: Int;
+    let length_index: Int;
+    let capacity_index: Int;
+    let allocator_index: Int;
+}
+
+func DirectMirArrayStorageAbiProjectionReadyFor(
+    ref projection: DirectMirArrayStorageAbiProjection,
+    expected_target: String
+) -> Bool {
+    let contract: DirectMirArrayStorageLayoutContract =
+        DirectMirArrayStorageLayoutContractFact();
+    if !projection.valid ||
+        !DirectMirArrayStorageLayoutContractReady(contract) ||
+        !CompilerTargetProjectionKnown(expected_target) ||
+        projection.target_projection != expected_target ||
+        projection.target_capability_fingerprint !=
+            CompilerTargetCapabilityFingerprint() ||
+        projection.data_layout_id != contract.data_layout_id ||
+        projection.size != contract.size ||
+        projection.align != contract.align ||
+        projection.data_offset != contract.data_offset ||
+        projection.length_offset != contract.length_offset ||
+        projection.capacity_offset != contract.capacity_offset ||
+        projection.allocator_offset != contract.allocator_offset {
+        return false;
+    }
+    if projection.data_field != contract.data_field ||
+        projection.length_field != contract.length_field ||
+        projection.capacity_field != contract.capacity_field ||
+        projection.allocator_field != contract.allocator_field {
+        return false;
+    }
+    if expected_target == CompilerTargetCpuCProjection() {
+        return projection.c_length_type == contract.c_length_type &&
+            projection.c_field_order == contract.field_order &&
+            projection.llvm_aggregate_type == "" &&
+            projection.data_index == 0 - 1 &&
+            projection.length_index == 0 - 1 &&
+            projection.capacity_index == 0 - 1 &&
+            projection.allocator_index == 0 - 1;
+    }
+    return expected_target == CompilerTargetCpuLlvmProjection() &&
+        projection.c_length_type == "" && projection.c_field_order == "" &&
+        projection.llvm_aggregate_type == contract.llvm_aggregate_type &&
+        projection.data_index == DirectMirArrayStorageLayoutIndex(
+            contract, contract.data_offset
+        ) && projection.length_index == DirectMirArrayStorageLayoutIndex(
+            contract, contract.length_offset
+        ) && projection.capacity_index == DirectMirArrayStorageLayoutIndex(
+            contract, contract.capacity_offset
+        ) && projection.allocator_index == DirectMirArrayStorageLayoutIndex(
+            contract, contract.allocator_offset
+        );
+}
+
+func DirectMirArrayStorageAbiProjectionFromTarget(
+    target: CompilerTargetProjectionFact
+) -> DirectMirArrayStorageAbiProjection {
+    let contract: DirectMirArrayStorageLayoutContract =
+        DirectMirArrayStorageLayoutContractFact();
+    let is_c: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuCProjection()
+    );
+    let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuLlvmProjection()
+    );
+    if !DirectMirArrayStorageLayoutContractReady(contract) ||
+        (!is_c && !is_llvm) {
+        Die("direct MIR Array storage has no target projection");
+    }
+    let projection: DirectMirArrayStorageAbiProjection =
+        DirectMirArrayStorageAbiProjection(
+            true, target.projection, target.target_capability_fingerprint,
+            contract.data_layout_id, contract.size, contract.align,
+            contract.data_offset, contract.length_offset,
+            contract.capacity_offset, contract.allocator_offset,
+            "", "", contract.data_field, contract.length_field,
+            contract.capacity_field, contract.allocator_field,
+            "", 0 - 1, 0 - 1, 0 - 1, 0 - 1
+        );
+    if is_c {
+        projection = DirectMirArrayStorageAbiProjection(
+            true, target.projection, target.target_capability_fingerprint,
+            contract.data_layout_id, contract.size, contract.align,
+            contract.data_offset, contract.length_offset,
+            contract.capacity_offset, contract.allocator_offset,
+            contract.c_length_type,
+            contract.field_order, contract.data_field, contract.length_field,
+            contract.capacity_field, contract.allocator_field,
+            "", 0 - 1, 0 - 1, 0 - 1, 0 - 1
+        );
+    } else {
+        projection = DirectMirArrayStorageAbiProjection(
+            true, target.projection, target.target_capability_fingerprint,
+            contract.data_layout_id, contract.size, contract.align,
+            contract.data_offset, contract.length_offset,
+            contract.capacity_offset, contract.allocator_offset,
+            "", "", contract.data_field, contract.length_field,
+            contract.capacity_field, contract.allocator_field,
+            contract.llvm_aggregate_type,
+            DirectMirArrayStorageLayoutIndex(contract, contract.data_offset),
+            DirectMirArrayStorageLayoutIndex(contract, contract.length_offset),
+            DirectMirArrayStorageLayoutIndex(contract, contract.capacity_offset),
+            DirectMirArrayStorageLayoutIndex(contract, contract.allocator_offset)
+        );
+    }
+    if !DirectMirArrayStorageAbiProjectionReadyFor(
+        projection, target.projection
+    ) {
+        Die("direct MIR Array storage target projection is invalid");
+    }
+    return projection;
+}

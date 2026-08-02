@@ -7,6 +7,10 @@ struct DirectMirArrayStorageLayoutContract {
     let align: Int;
     let data_layout_id: String;
     let field_order: String;
+    let data_field: String;
+    let length_field: String;
+    let capacity_field: String;
+    let allocator_field: String;
     let c_length_type: String;
     let llvm_aggregate_type: String;
     let data_offset: Int;
@@ -19,7 +23,8 @@ func DirectMirArrayStorageLayoutContractFact(
 ) -> DirectMirArrayStorageLayoutContract {
     return DirectMirArrayStorageLayoutContract(
         true, 32, 8, "pgy.runtime.pointer64-size_t64.v1",
-        "data,length,capacity,allocator", "size_t",
+        "data,length,capacity,allocator", "data", "length", "capacity",
+        "allocator", "size_t",
         "{ ptr, i64, i64, ptr }", 0, 8, 16, 24
     );
 }
@@ -30,6 +35,9 @@ func DirectMirArrayStorageLayoutContractReady(
     return contract.valid && contract.size == 32 && contract.align == 8 &&
         contract.data_layout_id == "pgy.runtime.pointer64-size_t64.v1" &&
         contract.field_order == "data,length,capacity,allocator" &&
+        contract.data_field == "data" && contract.length_field == "length" &&
+        contract.capacity_field == "capacity" &&
+        contract.allocator_field == "allocator" &&
         contract.c_length_type == "size_t" &&
         contract.llvm_aggregate_type == "{ ptr, i64, i64, ptr }" &&
         contract.data_offset == 0 && contract.length_offset == 8 &&

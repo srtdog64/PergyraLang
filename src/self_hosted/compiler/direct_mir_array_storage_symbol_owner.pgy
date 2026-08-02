@@ -1,0 +1,55 @@
+// Collision-free C parameter/local spelling for caller-owned Array storage.
+// The name is emitted only at block or parameter scope, never file scope.
+
+import "symbol_table_owner.pgy";
+
+struct DirectMirArrayStorageSymbolFact {
+    let valid: Bool;
+    let name: String;
+    let ordinal: Int;
+    let scope: String;
+}
+
+func DirectMirArrayStorageSymbolCandidate(ordinal: Int) -> String {
+    if ordinal < 0 { return ""; }
+    return Concat("_pgy_array_storage_", ToString(ordinal));
+}
+
+func DirectMirArrayStorageSymbolFactReadyFor(
+    ref fact: DirectMirArrayStorageSymbolFact,
+    occupied: Array<String>
+) -> Bool {
+    if !fact.valid || fact.ordinal < 0 || fact.ordinal >= 16 ||
+        fact.scope != "block_or_parameter" || fact.name == "" ||
+        fact.name != DirectMirArrayStorageSymbolCandidate(fact.ordinal) ||
+        CompilerSymbolCIdentifier(fact.name) != fact.name {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(occupied) {
+        if fact.name == CompilerSymbolCIdentifier(occupied[i]) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func DirectMirArrayStorageSymbolFactFromOccupied(
+    occupied: Array<String>
+) -> DirectMirArrayStorageSymbolFact {
+    let ordinal: Int = 0;
+    while ordinal < 16 {
+        let fact: DirectMirArrayStorageSymbolFact =
+            DirectMirArrayStorageSymbolFact(
+                true, DirectMirArrayStorageSymbolCandidate(ordinal),
+                ordinal, "block_or_parameter"
+            );
+        if DirectMirArrayStorageSymbolFactReadyFor(fact, occupied) {
+            return fact;
+        }
+        ordinal = ordinal + 1;
+    }
+    Die("direct MIR Array storage has no collision-free C symbol");
+    return DirectMirArrayStorageSymbolFact(false, "", 0 - 1, "");
+}

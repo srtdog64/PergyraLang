@@ -42,7 +42,6 @@ $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_program_i
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_method_instruction_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_main_instruction_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_abi_admission_owner.pgy
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_storage_layout_contract_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_representation_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_plan_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_c_emission_owner.pgy
@@ -51,6 +50,10 @@ $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_projectio
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_projection_owner.pgy
 EOF
     [[ "$total" -le 2160 ]] || fail "constructed Array member family cap exceeded: $total/2160"
+    for shared_owner in direct_mir_array_storage_layout_contract_owner.pgy direct_mir_array_storage_abi_projection_owner.pgy direct_mir_array_storage_symbol_owner.pgy direct_mir_array_storage_c_assertion_owner.pgy; do
+        require_file "$ROOT_DIR/src/self_hosted/compiler/$shared_owner"
+        [[ "$(wc -l <"$ROOT_DIR/src/self_hosted/compiler/$shared_owner")" -le 140 ]] || fail "shared Array storage owner hard cap exceeded: $shared_owner"
+    done
     grep -Fq 'DirectMirConstructedMemberVariantFromPair(pair)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_projection_owner.pgy" || fail "one-shot family classification is not routed"
     grep -Fq 'CompileAdmittedDirectMirConstructedArrayMember(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_projection_owner.pgy" || fail "Array member projection is not routed"
     for projection in direct_mir_constructed_generic_member_specialization_fact_owner.pgy direct_mir_constructed_array_member_specialization_fact_owner.pgy; do
@@ -60,6 +63,9 @@ EOF
         ! grep -Eq 'MirMachineLayerAdmittedJsonInput|MirExpressionGraphSequence|JsonObjectFact' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter reopened admitted MIR"
         ! grep -Fq 'CompilerSymbolCGenericSpecializationName' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter reconstructed specialization symbols"
     done
+    grep -Fq 'direct_mir_array_storage_abi_projection_owner.pgy' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy" || fail "Array<Int> target ABI bypassed the storage projection owner"
+    ! grep -Fq 'direct_mir_array_storage_layout_contract_owner.pgy' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy" || fail "Array<Int> target ABI reopened the storage layout owner"
+    grep -Fq 'DirectMirClosedModuleCallAbiFactReady(plan.call_abi)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_array_member_plan_owner.pgy" || fail "Array<Int> plan lacks the closed-module call receipt"
 }
 
 project() {
@@ -112,9 +118,12 @@ project "$MIR" c "$WORK_DIR/baseline.c"
 [[ "$(hash_file "$MIR")" == "$mir_digest" ]] || fail "C projection mutated MIR"
 project "$MIR" llvm "$WORK_DIR/baseline.ll"
 [[ "$(hash_file "$MIR")" == "$mir_digest" ]] || fail "LLVM projection mutated MIR"
-grep -Fq 'ArrayWrapper_Wrap_Int(ArrayWrapper self, int32_t value, int32_t *__pgy_array_storage)' "$WORK_DIR/baseline.c" || fail "C lost collision-proof caller-storage Wrap ABI"
+grep -Fq 'ArrayWrapper_Wrap_Int(ArrayWrapper self, int32_t value, int32_t *_pgy_array_storage_0)' "$WORK_DIR/baseline.c" || fail "C lost collision-proof caller-storage Wrap ABI"
 grep -Fq 'pgy_ai ArrayWrapper_Echo_Array_Int_(ArrayWrapper self, pgy_ai value)' "$WORK_DIR/baseline.c" || fail "C lost by-value Echo ABI"
-[[ "$(grep -Fc 'int32_t __pgy_array_storage[1];' "$WORK_DIR/baseline.c")" -eq 1 ]] || fail "C storage owner is not unique"
+[[ "$(grep -Fc 'int32_t _pgy_array_storage_0[1];' "$WORK_DIR/baseline.c")" -eq 1 ]] || fail "C storage owner is not unique"
+! grep -Eq '(^|[^A-Za-z0-9_])__[A-Za-z0-9_]' "$WORK_DIR/baseline.c" || fail "C emitted a reserved double-underscore identifier"
+grep -Fq '_Static_assert(sizeof(pgy_ai) == 32' "$WORK_DIR/baseline.c" || fail "C lost Array storage size receipt"
+grep -Fq 'offsetof(pgy_ai, allocator) == 24' "$WORK_DIR/baseline.c" || fail "C lost Array allocator offset receipt"
 grep -Fq 'ArrayWrapper_Echo_Array_Int_(pgy_receiver, pgy_inner)' "$WORK_DIR/baseline.c" || fail "C flattened nested member flow"
 ! grep -Eq 'pgy_array_new_Int|malloc|free' "$WORK_DIR/baseline.c" || fail "C reintroduced runtime allocation"
 [[ "$(grep -Fc 'alloca [1 x i32]' "$WORK_DIR/baseline.ll")" -eq 1 ]] || fail "LLVM storage owner is not unique"
@@ -130,15 +139,17 @@ for permutation in routine-order-reverse specialization-order-swap declaration-m
     cmp -s "$WORK_DIR/baseline.c" "$WORK_DIR/$permutation.c" || fail "C artifact drifted for $permutation"
     cmp -s "$WORK_DIR/baseline.ll" "$WORK_DIR/$permutation.ll" || fail "LLVM artifact drifted for $permutation"
 done
-for variant in argument-value-seventy-three collision-names; do
+for variant in argument-value-seventy-three collision-names hidden-storage-collision; do
     project "$WORK_DIR/$variant.json" c "$WORK_DIR/$variant.c"
     project "$WORK_DIR/$variant.json" llvm "$WORK_DIR/$variant.ll"
 done
 compile_and_expect argument-value-seventy-three 73
 compile_and_expect collision-names 44
+compile_and_expect hidden-storage-collision 44
+grep -Fq 'int32_t *_pgy_array_storage_1)' "$WORK_DIR/hidden-storage-collision.c" || fail "C storage symbol did not avoid the source parameter"
 cmp -s "$WORK_DIR/baseline.c" "$WORK_DIR/collision-names.c" || fail "C source local spelling leaked"
 cmp -s "$WORK_DIR/baseline.ll" "$WORK_DIR/collision-names.ll" || fail "LLVM source local spelling leaked"
 
 for mutation in declaration-kind-drift missing-method field-type-drift wrap-return-drift echo-return-drift receiver-carriage-drift missing-specialization duplicate-specialization-ordinal specialization-lane-drift specialization-target-drift outer-actual-drift inner-symbol-drift array-element-edge-drift identity-body-drift inner-target-drift outer-edge-drift index-value-drift stale-output-use result-type-drift result-abi-not-required result-layout-offset-drift result-runtime-drift result-discriminant-drift result-tag-drift result-niche-drift constructor-physical-layout unreachable-wrap; do reject_mutation "$mutation"; done
 for mutation in outer-actual-drift inner-symbol-drift inner-target-drift result-layout-offset-drift result-runtime-drift result-tag-drift constructor-physical-layout; do reject_mutation "$mutation" llvm; done
-echo "[$LABEL] PASS: one MIR, caller-owned Array through two member specializations, C/LLVM exact 44, six invariants, two variants, 27 C negatives, 7 LLVM sentinels"
+echo "[$LABEL] PASS: one MIR, caller-owned Array through two member specializations, C/LLVM exact 44, six invariants, three variants, 27 C negatives, 7 LLVM sentinels"

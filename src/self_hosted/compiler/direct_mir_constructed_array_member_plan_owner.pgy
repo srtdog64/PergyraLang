@@ -2,6 +2,7 @@
 
 import "direct_mir_constructed_array_member_abi_admission_owner.pgy";
 import "direct_mir_constructed_array_member_representation_owner.pgy";
+import "direct_mir_closed_module_call_abi_owner.pgy";
 import "target_capability_owner.pgy";
 import "artifact_zone_owner.pgy";
 import "../mir_lower/ssa_identity_owner.pgy";
@@ -16,6 +17,7 @@ struct DirectMirConstructedArrayMemberPlan {
     let identity: DirectMirConstructedArrayMemberProgramIdentity;
     let representation: DirectMirInferredGenericMemberRepresentationFact;
     let abi: MirAbiLayoutRowCapture;
+    let call_abi: DirectMirClosedModuleCallAbiFact;
     let receiver_value: String;
     let result_value: String;
     let storage_count: Int;
@@ -42,6 +44,12 @@ func DirectMirConstructedArrayMemberPlanDigest(
     hash = DirectMirCfgHashInt(hash, plan.identity.digest);
     hash = DirectMirCfgHashInt(hash, plan.representation.digest);
     hash = DirectMirCfgHashInt(hash, MirAbiLayoutIdFromCapture(plan.abi));
+    hash = DirectMirCfgHashInt(
+        hash, plan.call_abi.target_capability_fingerprint
+    );
+    hash = DirectMirCfgHashString(hash, plan.call_abi.scope);
+    hash = DirectMirCfgHashString(hash, plan.call_abi.c_classifier);
+    hash = DirectMirCfgHashString(hash, plan.call_abi.llvm_classifier);
     hash = DirectMirCfgHashString(hash, plan.receiver_value);
     hash = DirectMirCfgHashString(hash, plan.result_value);
     hash = DirectMirCfgHashInt(hash, plan.storage_count);
@@ -64,6 +72,7 @@ func DirectMirConstructedArrayMemberPlanReady(
         DirectMirInferredGenericMemberRepresentationFactReady(
             plan.representation
         ) && DirectMirArrayIntCapturedAbiReady(plan.abi) &&
+        DirectMirClosedModuleCallAbiFactReady(plan.call_abi) &&
         plan.representation.type_name == plan.identity.declaration.name &&
         plan.representation.field_name == plan.identity.declaration.field_name &&
         plan.representation.field_type == plan.identity.declaration.field_type &&
@@ -106,13 +115,18 @@ func DirectMirConstructedArrayMemberPlanFromAdmitted(
         DirectMirConstructedArrayMemberAbiFromResult(
             admitted.routines.source_json, main
         );
+    let call_abi: DirectMirClosedModuleCallAbiFact =
+        DirectMirClosedModuleCallAbiFactFromOwner();
+    if !DirectMirClosedModuleCallAbiFactReady(call_abi) {
+        Die("direct MIR constructed Array call ABI scope is invalid");
+    }
     let plan: DirectMirConstructedArrayMemberPlan =
         DirectMirConstructedArrayMemberPlan(
             true, DirectMirConstructedArrayMemberPlanSchema(),
             CompilerArtifactPlanRevision(), 0,
             CompilerTargetCapabilitySchema(),
             CompilerTargetCapabilityFingerprint(), identity, representation,
-            abi, main.constructor.result, main.result.result,
+            abi, call_abi, main.constructor.result, main.result.result,
             identity.method_graph.element_count,
             identity.main_graph.selected_index,
             DirectMirConstructedArrayMemberCarriage()
@@ -123,6 +137,7 @@ func DirectMirConstructedArrayMemberPlanFromAdmitted(
             DirectMirConstructedArrayMemberPlanDigest(plan),
             plan.target_capability_schema, plan.target_capability_fingerprint,
             plan.identity, plan.representation, plan.abi,
+            plan.call_abi,
             plan.receiver_value, plan.result_value, plan.storage_count,
             plan.selected_index, plan.value_carriage
         );

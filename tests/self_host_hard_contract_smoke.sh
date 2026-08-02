@@ -583,6 +583,31 @@ require_text \
     "src/self_hosted/compiler/direct_mir_array_storage_layout_contract_owner.pgy" \
     'pgy.runtime.pointer64-size_t64.v1'
 require_text \
+    "src/self_hosted/compiler/direct_mir_array_storage_abi_projection_owner.pgy" \
+    'DirectMirArrayStorageAbiProjectionFromTarget('
+require_text \
+    "src/self_hosted/compiler/direct_mir_array_storage_symbol_owner.pgy" \
+    '_pgy_array_storage_'
+require_text \
+    "src/self_hosted/compiler/direct_mir_array_storage_c_assertion_owner.pgy" \
+    'Array storage size receipt'
+require_text \
+    "src/self_hosted/compiler/direct_mir_constructed_array_member_plan_owner.pgy" \
+    'DirectMirClosedModuleCallAbiFactReady(plan.call_abi)'
+for array_c_emitter in \
+    direct_mir_constructed_array_member_c_emission_owner.pgy \
+    direct_mir_constructed_record_array_member_c_emission_owner.pgy; do
+    forbid_text "src/self_hosted/compiler/$array_c_emitter" '__pgy_array_storage'
+done
+for array_storage_consumer in \
+    direct_mir_array_int_abi_projection_owner.pgy \
+    direct_mir_constructed_record_array_member_abi_projection_owner.pgy; do
+    require_text "src/self_hosted/compiler/$array_storage_consumer" \
+        'direct_mir_array_storage_abi_projection_owner.pgy'
+    forbid_text "src/self_hosted/compiler/$array_storage_consumer" \
+        'direct_mir_array_storage_layout_contract_owner.pgy'
+done
+require_text \
     "src/self_hosted/compiler/direct_mir_closed_module_call_abi_owner.pgy" \
     'closed_module_internal_only'
 require_text \
