@@ -2,44 +2,45 @@
 
 마지막 업데이트: 2026-08-02
 
-## 활성 우선순위 — inferred-generic nominal value flow
+## 활성 우선순위 — inferred generic return/assignment flow
 
-- 실행 체크포인트 `32300bf0`는 `generic_struct_field_value_flow.pgy`를 닫았다.
-  하나의 14,014-byte self MIR, SHA-256
-  `1C41796E0C92FAB20EF56329913548138A715E53368330EDDE913D21801729B8`가 C와
-  LLVM을 함께 구동하며 실제 `Identity_Int` 정의 1개와 호출 4개, 실제
-  `BuildPair(Int) -> Pair`, aggregate insert/extract를 보존한다. 두 실행 결과는
-  정확히 `7`이다.
-- Self MIR의 specialization 4행은 모두 `(direct, Identity, T -> Int,
-  Identity_Int)`이고 Atom/Value lane의 ordinal 0/1 좌표가 중복 없이 존재한다.
-  Native MIR에는 이 행이 0개이므로 specialization oracle로 쓰지 않고 공통 graph와
-  `Pair` ABI parity에만 사용한다.
-- 세 routine은 declaration 수 0/1/2를 한 번 분류하는 전용 owner를 통과한다.
-  Root는 53줄이며 Array, generic nominal, nested struct를 순차 retry하지 않는다.
-  하나의 target-neutral plan만 strict generic template, specialization, graph, SSA,
-  `Pair` layout ID `674136663`을 결합해 C 또는 LLVM emitter로 전달한다.
-- Focused gate는 한 self MIR 재사용, exact `7`, routine/specialization permutation과
-  29개 pre-artifact negative를 검증한다. Emitter의 MIR/JSON 재개방,
-  specialization symbol 재조합, generic/BuildPair flattening, repaired layout과 stale
-  use/member path를 금지한다.
-- 최신 producer가 scalar return에 `abi_type_name=Int`를 운반하면서 기존 Array와
-  nested-struct plan의 잠복 결함도 드러났다. 물리 layout이 없다는 사실은 타입 이름이
-  없다는 뜻이 아니다. 두 plan은 이제 exact scalar type과
-  `(id=0,required=false,null)`을 함께 검증하며 해당 회귀 gate가 green이다.
-- 설치 드라이버는 3,805,954 bytes, SHA-256
-  `C46D58EC0F446F4080AE0AB42D8D7724FC2779E998B176CCA118C27FFB4D0110`다.
-  마지막 current-source rebuild는 101.7초였고 메모리는 계측하지 않았다.
-- 최신 green은 explicit-generic C/LLVM gate, 기존 Array/struct/Option 회귀,
-  hard contract, full component inventory와 current-source driver build다. Full CI,
-  Coq adequacy, bootstrap seed, current-source gen2==gen3은 재실행하지 않았다.
-- 다음 활성 fixture는 `generic_struct_field_inferred_value_flow.pgy`다. 현재
-  7,200-byte self MIR은 `Identity<T>`, `Main`, `Pair`, inferred `Identity(Int)`
-  specialization 2행을 운반하지만 C/LLVM 모두 two-routine nominal classification에서
-  artifact 전에 fail-closed한다. 목표 실행값은 exact `42`다.
-- 다음 owner는 4행 explicit owner를 느슨하게 넓히지 않는 별도 2행 inferred
-  specialization equivalence class, generic template, 두 graph call, `Pair` receipt와
-  two-routine identity를 하나의 plan으로 결합한다. Source-text inference, native의 빈
-  specialization table, `Identity_Int` flattening, plain nominal retry를 금지한다.
+- 실행 체크포인트 `1f4b086b`는
+  `generic_struct_field_inferred_value_flow.pgy`를 닫았다. 하나의 7,200-byte
+  self MIR, SHA-256
+  `056D80DC722F2134B4100D7F2F627770E4E11E162F414DC6123DEF48BD1DC0F3`가
+  C와 LLVM을 함께 구동하며 실제 `Identity_Int` 정의 1개와 inferred 호출 2개,
+  `Pair` aggregate insert/extract와 member read를 보존한다. 두 실행 결과는 정확히
+  `42`다.
+- 별도 inferred specialization owner는 Value lane, ordinal `{0,1}`, 동일한 양수
+  opaque owner와 `(direct, Identity, T -> Int, Identity_Int)` tuple을 요구한다.
+  기존 4행 explicit owner는 느슨해지지 않았다. Native의 빈 specialization table은
+  공통 graph/ABI parity에만 쓰며 fallback oracle이 아니다.
+- 두-routine root는 specialization 수를 한 번만 읽어 0이면 기존 plain/Option,
+  2이면 inferred nominal을 선택한다. 선택된 inferred plan은 다른 해석으로 retry하지
+  않는다. 하나의 target-neutral plan이 strict generic template, exact 두-call graph,
+  `Pair` layout ID `674136663`, SSA use와 specialization symbol을 결합한다.
+- Focused gate는 한 MIR 재사용, exact `42`, routine/spec/combined permutation과
+  coherent opaque-owner renumber artifact equality, 32개 pre-artifact negative를
+  검증한다. 현재 MIR에는 source owner ID와 graph call을 직접 join할 stable ID가 없으므로
+  coherent renumber를 거짓 negative로 만들지 않는다.
+- Generic routine envelope, exact graph shape, typed no-physical-ABI receipt, two-Int
+  nominal physical shape는 각각 하나의 공통 owner로 이동했다. Explicit generic,
+  Array/nested argument, plain/Option nominal 회귀와 hard/component 계약이 green이다.
+- 설치 드라이버는 3,834,473 bytes, SHA-256
+  `DCFA39E2737DF101684E093CC9B88A8EDD5210451DAA01924D8E4C05714113E4`다.
+  current-source rebuild는 101.7초였고 메모리는 계측하지 않았다. Full CI, Coq
+  adequacy, bootstrap seed, current-source gen2==gen3은 재실행하지 않았다.
+- 다음 활성 fixture는 `generic_return_assignment_inferred_flow.pgy`다. 현재
+  6,994-byte self MIR, SHA-256
+  `1B108D7A782BFC4491C217570F4D70D527E7CD6565370C742C69FCEA04580DBC`는
+  `Identity<T>`, `ReturnIdentity`, `Main`, declaration 0개, inferred specialization
+  2행을 운반한다. 한 행은 Atom-lane return call, 다른 행은 Value-lane assignment
+  call이다. C/LLVM 모두 아직 Array argument envelope에서 artifact 전에 거부되며
+  목표 실행값은 exact `41`이다.
+- 다음 owner는 mixed-lane 2행 specialization class, strict generic template,
+  `ReturnIdentity` return call, `Main` assignment와 latest SSA use, 최종 direct call을
+  하나의 scalar plan으로 묶는다. Array 오분류, 기존 owner 완화, source-text inference,
+  `Identity_Int`/`ReturnIdentity` flattening과 다른 세-routine 해석 retry를 금지한다.
 - 메모리는 semantic target의 final maximum만 기록하며 2.4/3 GiB
   attention/hard-stop 정책을 유지한다.
 

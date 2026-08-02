@@ -6,6 +6,47 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-02 - Inferred generic nominal value flow reaches C and LLVM
+
+- Closed `generic_struct_field_inferred_value_flow.pgy` at code checkpoint
+  `1f4b086b`. One 7,200-byte self MIR with SHA-256
+  `056D80DC722F2134B4100D7F2F627770E4E11E162F414DC6123DEF48BD1DC0F3`
+  drives both targets. C and LLVM preserve one real `Identity_Int` definition,
+  two inferred calls, a real `Pair` aggregate and member reads, and exact output
+  `42`.
+- Added a distinct exact-two specialization owner for one opaque positive
+  source owner, Value lane, ordinal set `{0,1}`, and the uniform
+  `(direct, Identity, T -> Int, Identity_Int)` tuple. The earlier exact-four
+  explicit owner remains strict. Native's empty specialization table is not a
+  fallback oracle.
+- Added row-order-independent program/graph/instruction/ABI owners and one
+  target-neutral plan. Emitters receive the plan only and consume the carried
+  specialized symbol. The two-routine structural classifier reads
+  specialization count once: zero reaches the existing plain/Option refinement,
+  two reaches inferred nominal, and every other cardinality fails closed.
+- Moved four reached facts behind responsibility-named shared owners: generic
+  routine envelope, generic nominal exact graph shape, typed no-physical-ABI
+  instruction receipt, and two-Int nominal physical shape. Explicit generic,
+  Array/nested argument, plain struct and Option struct focused regressions all
+  remain green.
+- The focused gate reuses one MIR across C and LLVM, proves routine/spec/combined
+  order and coherent opaque-owner renumber equality, and runs 31 C negatives
+  plus one LLVM specialization sentinel. Coherent source-owner renumber is
+  intentionally not rejected because the current MIR does not carry a graph-side
+  stable identity that could validate that opaque number.
+- Current-source driver build, focused inferred/explicit/nominal regressions,
+  hard substitution contract, and full component inventory are green. The
+  installed 3,834,473-byte driver has SHA-256
+  `DCFA39E2737DF101684E093CC9B88A8EDD5210451DAA01924D8E4C05714113E4`;
+  rebuild time was 101.7 seconds without memory measurement. Full CI, Coq,
+  bootstrap seed, and current-source gen2==gen3 were not rerun.
+- Next falsifier is `generic_return_assignment_inferred_flow.pgy`. Its
+  6,994-byte self MIR has `Identity<T>`, `ReturnIdentity`, `Main`, zero
+  declarations, and two `Identity_Int` receipts split across Atom return and
+  Value assignment lanes. Both direct targets currently fail in the Array
+  argument envelope; the next scalar plan must execute exact `41` without
+  weakening either landed specialization owner.
+
 ## 2026-08-02 - Explicit generic nominal value flow reaches C and LLVM
 
 - Closed `generic_struct_field_value_flow.pgy` at code checkpoint `32300bf0`.

@@ -4207,6 +4207,40 @@ Focused gate는 한 14,014-byte self MIR로 C/LLVM exact `7`, 실제
 `Identity_Int` 정의 1개와 호출 4개, routine/specialization permutation과 29개
 pre-artifact negative를 검증한다.
 
+## Inferred generic Pair MIR이 plain nominal 분류에서 먼저 거부되는 경우
+
+`generic_struct_field_inferred_value_flow.pgy`는 routine 2개와 declaration 1개라
+기존 plain/Option nominal 후보에도 들어간다. 하지만 두 번째 routine은 일반 함수가
+아니라 `Identity<T>(value:T)->T`이므로 generic을 금지하는 일반 signature owner에서
+다음과 같이 artifact 전에 멈췄다.
+
+```text
+CODEGEN ERROR: direct MIR two-routine nominal classification is invalid
+```
+
+해결은 semantic classifier를 느슨하게 만드는 것이 아니라 specialization cardinality를
+상위에서 한 번만 분류하는 것이다.
+
+- specialization 0행은 기존 plain/Option nominal refinement만 소비한다.
+- specialization 2행은 별도 inferred-generic nominal owner만 소비한다.
+- 다른 수이거나 선택된 plan이 거부되면 다른 해석으로 retry하지 않는다.
+- inferred 두 행은 같은 양수 source owner, Value lane, ordinal `{0,1}`과 동일한
+  `(direct, callable, formal, actual, symbol)` tuple을 가져야 한다.
+- 기존 explicit 4행 Atom/Value owner는 그대로 유지하며 공용 permissive owner로
+  합치지 않는다.
+- Native MIR의 빈 specialization table은 공통 routine graph와 `Pair` ABI parity만
+  제공하며 specialization 복원에 쓰지 않는다.
+
+현재 `source_owner_syntax_id`는 graph call node와 join할 stable ID가 direct MIR에 없다.
+따라서 한 행만 다른 owner로 바꾼 경우는 거부하지만, 두 행을 같은 다른 양수로
+일관되게 바꾼 경우는 artifact-equal metamorphic이다. 숫자 `18`을 하드코딩해 이를
+negative로 만들면 provenance를 증명하는 것이 아니라 fixture 번호를 외운다. 더 강한
+증거가 필요하면 producer protocol이 initializer owner identity를 graph/instruction에
+추가로 운반해야 한다.
+
+Focused gate는 하나의 7,200-byte self MIR로 C/LLVM exact `42`, 실제
+`Identity_Int` 정의 1개와 호출 2개, 네 metamorphic과 32개 negative를 검증한다.
+
 ## `abi_layout_required=false`를 타입 없음으로 잘못 해석하는 경우
 
 Current-source driver를 다시 만든 뒤 기존 Array argument와 nested-struct argument gate가

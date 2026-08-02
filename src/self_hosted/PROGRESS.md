@@ -1,35 +1,38 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-08-02 nested `Option<Pair>` aggregate ABI
+## Active self-host context — 2026-08-02 inferred generic return/assignment
 
-- Executable checkpoint `cd886a6d` closes bounded
-  `struct_literal_value_flow.pgy`. One 11,441-byte self-host MIR drives a real
-  `BuildPair(Int) -> Pair`, mutable local replacement, returned aggregate and
-  member reads in C/LLVM; both print exact `11`, and installed public C/LLVM
-  compile/run use the same sibling Pergyra-built driver.
-- Native and self producers attach the exact `Pair` declaration receipt to
-  aggregate return and definition facts. Instruction receipt ownership is
-  explicit; the JSON writer cannot recover a layout from expression text or a
-  declaration scan. Native residual assignment and self `pair.2` remain visibly
-  different representations joined by semantic use identity.
-- One row-order-independent target-neutral program/graph/plan feeds both
-  emitters. Thirteen ABI, declaration, call-edge, latest-use, and member-path
-  mutations fail before artifact publication; backend layout guessing, constant
-  flattening, Array retry, and native semantic/codegen re-entry are forbidden.
-- Installed driver: 3,690,605 bytes, SHA-256
-  `4B303BA7C112BC7B4F4727722E694D429DF9C3EA280BCEF1AAB90DAF6B6B40F4`;
-  seed-plus-driver rebuild 506.2 seconds, memory not measured.
-- The sole next executable rung is `option_struct_value_flow.pgy`, expected
-  output `7\n11\n5`. Source-to-MIR succeeds as 17,637 bytes, SHA-256
-  `580E55AB8D4A902F18303959F36D74A59CBEC61DB1A585F5AEA5CBE5E53AEFB6`,
-  but direct C fails before artifact publication. Unwrapped `Pair` definitions
-  carry ID `674136663`; `Option<Pair>` return and mutable locals carry no
-  reconstructible nested ABI receipt. The next change composes that receipt
-  from the existing Option contract and the program-owned `Pair` declaration.
-- Latest green includes native compiler build, focused C/LLVM/permutation/
-  13-negative execution, installed C and LLVM, hard contract, full component
-  ratchet, and final self-host driver build. Full CI, Coq, and current-source
-  fixed point were not rerun.
+- Executable checkpoint `1f4b086b` closes bounded
+  `generic_struct_field_inferred_value_flow.pgy`. One 7,200-byte self MIR with
+  SHA-256
+  `056D80DC722F2134B4100D7F2F627770E4E11E162F414DC6123DEF48BD1DC0F3`
+  drives C and LLVM through one target-neutral plan. Both preserve one real
+  `Identity_Int` definition, two inferred calls, a real `Pair` aggregate and
+  member reads, and print exact `42`.
+- The inferred specialization owner admits exactly two uniform Value-lane rows
+  at ordinals `{0,1}` without weakening the prior exact-four explicit owner.
+  Two-routine structural classification reads specialization cardinality once;
+  a rejected inferred plan cannot retry plain or Option nominal projection.
+- One focused gate reuses the same MIR for both targets, proves routine/spec/
+  combined-order and opaque-owner-renumber artifact equality, and rejects 32
+  generic, specialization, graph, ABI, SSA, and member-path mutations before
+  publication. Native's empty specialization table is common graph/ABI evidence
+  only.
+- Installed driver: 3,834,473 bytes, SHA-256
+  `DCFA39E2737DF101684E093CC9B88A8EDD5210451DAA01924D8E4C05714113E4`;
+  current-source rebuild 101.7 seconds, memory not measured. Inferred/explicit
+  generic, Array/nested argument, plain/Option nominal, hard contract, and full
+  component inventory gates are green. Full CI, Coq, bootstrap seed, and
+  current-source fixed point were not rerun.
+- The sole next executable rung is
+  `generic_return_assignment_inferred_flow.pgy`, expected output `41`. Its
+  6,994-byte self MIR with SHA-256
+  `1B108D7A782BFC4491C217570F4D70D527E7CD6565370C742C69FCEA04580DBC`
+  has `Identity<T>`, `ReturnIdentity`, `Main`, zero declarations, and two
+  `Identity_Int` receipts split across Atom return and Value assignment lanes.
+  Both direct targets currently fail before publication in the Array argument
+  envelope. The next plan must preserve the return call, reassignment SSA, and
+  final call without loosening either landed specialization owner.
 
 ## Historical self-host ledger — inactive navigation evidence
 

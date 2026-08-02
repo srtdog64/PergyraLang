@@ -127,6 +127,19 @@ closed a prior scalar receipt defect: a typed `Int` return with no physical
 layout preserves `abi_type_name=Int` while requiring layout ID zero, required
 false, and null layout.
 
+Direct LLVM inferred-generic nominal value-flow update (2026-08-02):
+`generic_struct_field_inferred_value_flow.pgy` now carries a distinct two-row
+Value-lane specialization class, strict `Identity<T>(value:T)->T`, two exact
+inferred calls, one program-owned `Pair` receipt, and the latest SSA use into
+one target-neutral plan. C and LLVM preserve one real `Identity_Int`
+definition, two calls, aggregate insertion/extraction and exact output `42`.
+Routine, specialization, combined-order, and coherent opaque-owner renumber
+metamorphics are artifact-equal; thirty-two negative executions reject generic,
+specialization, graph, ABI, SSA, and member-path drift before publication. The
+two-routine root reads specialization cardinality once, so an inferred-plan
+failure cannot retry plain or Option nominal projection. Native MIR's empty
+specialization table remains common graph/ABI evidence only.
+
 Installed LLVM substitution update (2026-08-01): plain public LLVM binary
 requests use the sibling Pergyra-built driver for exactly one source-to-MIR
 production and one direct LLVM projection. `clang -x ir` is the only final host
@@ -138,12 +151,13 @@ the bounded two-routine Array return, and three-routine Array parameter
 frontiers, including the bounded three-routine nominal-struct parameter slice.
 The bounded nominal-struct and Option-of-nominal return/local value-flow slices
 are also substituting; this is not evidence for general, heap-backed,
-runtime-bearing, or arbitrary multi-routine programs. The bounded explicit
-`Identity<Int>` nominal value-flow slice is now also substituting. The next
-falsifier is `generic_struct_field_inferred_value_flow.pgy`: its self MIR owns
-two inferred `Identity(Int)` specialization receipts, but both direct C and
-LLVM currently fail closed in two-routine nominal classification before
-artifact publication. The intended output is exact `42`.
+runtime-bearing, or arbitrary multi-routine programs. The bounded explicit and
+inferred `Identity<Int>` nominal value-flow slices are now also substituting.
+The next falsifier is `generic_return_assignment_inferred_flow.pgy`: its
+6,994-byte self MIR owns one Atom-lane return-call receipt and one Value-lane
+assignment-call receipt for `Identity_Int`, but both direct C and LLVM currently
+fail closed in the declaration-free three-routine Array envelope before artifact
+publication. The intended output is exact `41`.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:

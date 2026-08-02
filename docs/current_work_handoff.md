@@ -6,79 +6,73 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — carry inferred-generic nominal value flow
+## Active self-host context — carry inferred generic return/assignment flow
 
-- Executable checkpoint: `32300bf0` on `main`, one commit ahead of
+- Executable checkpoint: `1f4b086b` on `main`, one commit ahead of
   `origin/main` before this documentation update. The installed Pergyra-built
-  driver is 3,805,954 bytes with SHA-256
-  `C46D58EC0F446F4080AE0AB42D8D7724FC2779E998B176CCA118C27FFB4D0110`.
-  Its final current-source rebuild took 101.7 seconds and was not
-  pressure-measured.
-- Closed frontier: `generic_struct_field_value_flow.pgy` now travels through
-  one 14,014-byte self-host MIR with SHA-256
-  `1C41796E0C92FAB20EF56329913548138A715E53368330EDDE913D21801729B8`.
-  The same MIR feeds C and LLVM and preserves one real
-  `Identity_Int(Int) -> Int` definition, four calls, one real
-  `BuildPair(Int) -> Pair` definition/call, aggregate insert/extract, and exact
-  output `7`. This is bounded target-specific `SUBSTITUTING` evidence, not
-  whole-compiler generic replacement.
-- Self MIR owns four explicit specialization receipts for the uniform semantic
-  tuple `(direct, Identity, T -> Int, Identity_Int)`. Native MIR currently owns
-  zero specialization rows, so native is used only for common routine graph and
-  `Pair` ABI parity; it is not treated as a fallback specialization oracle.
-  The four self rows are row-order-independent, have unique Atom/Value lane and
-  ordinal coordinates, and are cross-sealed to exactly four graph calls.
-- One three-routine classifier decides declaration-free Array, one-declaration
-  generic nominal, or two-declaration nested struct before projection. The
-  multi-routine root is 53 lines and makes one three-routine call; a rejected
-  generic plan cannot retry Array, nested struct, or two-routine nominal plans.
-- One target-neutral plan joins the strict `Identity<T>(value:T)->T` template,
-  the specialization receipt, three routine identities, exact graph topology,
-  SSA uses, and the program-owned `Pair` layout ID `674136663`. Emitters consume
-  the plan only; they cannot reopen MIR/JSON or rebuild `Identity_Int` from
-  source spelling.
-- The focused gate reuses one source MIR for both targets, executes exact `7`,
-  proves routine and specialization-row permutation equality, and rejects 29
-  pre-artifact mutations. It explicitly rejects generic header/body/ABI drift,
-  missing or heterogeneous specialization rows, flattened calls, aggregate
-  receipt loss, repaired layout IDs, stale SSA uses, and member-path drift.
-- Rebuilding the driver exposed a prior scalar-receipt bug in the existing
-  Array and nested-struct plans. `abi_type_name=Int` with
-  `(layout_id=0, required=false, layout=null)` means typed scalar with no
-  physical layout, not absent type identity. Both plans now preserve the exact
-  scalar type while rejecting any physical-layout drift; their C/LLVM gates are
-  green again.
-- Latest green: explicit-generic focused C/LLVM gate; Array-argument,
-  nested-struct-argument, and Option<Pair> regressions; hard substitution
-  contract; full component inventory; current-source driver build; and staged
-  diff checks. Full CI, Coq adequacy, bootstrap seed, and current-source
-  gen2==gen3 fixed point were not rerun after `32300bf0`.
+  driver is 3,834,473 bytes with SHA-256
+  `DCFA39E2737DF101684E093CC9B88A8EDD5210451DAA01924D8E4C05714113E4`.
+  Its current-source rebuild took 101.7 seconds and was not pressure-measured.
+- Closed frontier: `generic_struct_field_inferred_value_flow.pgy` now travels
+  through one 7,200-byte self MIR with SHA-256
+  `056D80DC722F2134B4100D7F2F627770E4E11E162F414DC6123DEF48BD1DC0F3`.
+  The same MIR feeds C and LLVM, preserves one real `Identity_Int(Int) -> Int`
+  definition, two real inferred calls, `Pair` insert/extract and member reads,
+  and prints exact `42`. This is bounded target-specific `SUBSTITUTING`
+  evidence, not whole-compiler generic replacement.
+- A distinct two-row inferred specialization owner requires one positive opaque
+  source owner, Value lane, ordinals `{0,1}`, and a uniform
+  `(direct, Identity, T -> Int, Identity_Int)` tuple. The landed four-row
+  explicit owner remains strict and unchanged. Native MIR still owns zero
+  specialization rows and is used only for common routine graph and `Pair` ABI
+  parity, never as a specialization fallback.
+- The two-routine root now reads specialization cardinality once: zero selects
+  the existing plain/Option nominal refinement and two selects inferred-generic
+  nominal flow. A selected inferred plan cannot retry plain or Option. One
+  target-neutral plan joins the strict generic template, exact two-call graph,
+  one program-owned `Pair` receipt with layout ID `674136663`, SSA use, target
+  capability, and carried specialized symbol before target selection.
+- Exact topology, generic routine envelope, typed no-physical-ABI receipt, and
+  two-Int nominal physical shape now each have one shared responsibility-named
+  owner. Explicit generic, Array argument, nested-struct argument, plain
+  nominal, and Option nominal focused regressions remain green after the move.
+- The focused gate reuses one source MIR for C and LLVM, executes exact `42`,
+  proves routine, specialization, combined-order, and coherent opaque-owner
+  renumber artifact equality, and rejects 31 C mutations plus one LLVM
+  specialization sentinel before artifact publication. Coherent owner-ID
+  renumber is intentionally equal: the current MIR has no graph-side stable ID
+  with which to prove that opaque provenance number.
+- Latest green: current-source driver build; inferred and explicit generic,
+  Array/nested argument, plain/Option nominal C/LLVM focused gates; hard
+  substitution contract; full component inventory; and staged diff checks.
+  Full CI, Coq adequacy, bootstrap seed, and current-source gen2==gen3 fixed
+  point were not rerun after `1f4b086b`.
 - The broader `sot-authority-edge-test-smoke` remains known red on the
   pre-existing duplicate Coq fact IDs recorded in the previous checkpoint.
   This executable rung did not rewrite those unrelated registry identities or
   claim that gate as green.
 - Active objective: close
-  `src/self_hosted/mir_lower/fixture/generic_struct_field_inferred_value_flow.pgy`.
-  Its current self MIR is 7,200 bytes with SHA-256
-  `056D80DC722F2134B4100D7F2F627770E4E11E162F414DC6123DEF48BD1DC0F3`.
-  It has `Identity<T>`, `Main`, one `Pair`, and two inferred `Identity(Int)`
-  specialization receipts. Both direct C and LLVM currently fail closed before
-  artifact publication with `direct MIR two-routine nominal classification is
-  invalid`; the intended execution result is exact `42`.
-- Fact owner: a distinct two-row inferred-specialization equivalence class,
-  strict generic template identity, two graph-owned inferred calls, one
-  program-owned `Pair` receipt, and row-order-independent two-routine identity.
-  The last legitimate consumer is one target-neutral inferred-generic nominal
-  plan feeding the selected C or LLVM projection.
-- Forbidden fallback: parsing inferred actuals from source text, weakening the
-  landed four-row explicit-specialization owner into a permissive shape,
-  flattening `Identity_Int`, using native's empty specialization table as
-  authority, retrying the plain nominal plan, or copying C reconstruction into
-  LLVM.
-- Next falsifier: one self MIR reused by C and LLVM, exact `42`, routine and
-  specialization-row permutations, and pre-artifact rejection of inferred
-  actual/callable/symbol drift, generic formal/body/ABI drift, Pair receipt
-  loss, repaired layout, stale use, and member-path mutations.
+  `src/self_hosted/mir_lower/fixture/generic_return_assignment_inferred_flow.pgy`.
+  Its current self MIR is 6,994 bytes with SHA-256
+  `1B108D7A782BFC4491C217570F4D70D527E7CD6565370C742C69FCEA04580DBC`.
+  It has `Identity<T>`, `ReturnIdentity(Int)->Int`, `Main`, no declarations,
+  and two inferred receipts for the same `Identity_Int`: one Atom-lane return
+  call and one Value-lane assignment call. Direct C and LLVM both currently
+  fail before output with `direct MIR Array argument program envelope is
+  invalid`; the intended execution result is exact `41`.
+- Fact owner: a distinct mixed-lane two-row inferred-specialization class,
+  strict generic template, `ReturnIdentity` return-call graph, `Main`
+  assignment call and latest SSA use, and the final direct call into one
+  target-neutral scalar plan. The last legitimate consumer is the selected C
+  or LLVM emitter after one three-routine structural classification.
+- Forbidden fallback: treating declaration-free three-routine shape as Array,
+  loosening either landed specialization owner, recovering inferred actuals
+  from source text, flattening `Identity_Int` or `ReturnIdentity`, ignoring the
+  reassignment SSA identity, or retrying another three-routine interpretation.
+- Next falsifier: one self MIR reused by C and LLVM, exact `41`, routine and
+  specialization-row permutations, and pre-artifact rejection of mixed-lane
+  receipt, generic header/body/ABI, return-call, assignment, latest-use, and
+  output-call mutations.
 - Memory policy remains one execution per changed semantic target followed by
   the final maximum only. Attention begins at 2.4 GiB and the hard stop is
   3 GiB; no threshold crossing was measured or inferred in this rung.
