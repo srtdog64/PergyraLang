@@ -199,13 +199,9 @@ mir_routine_signature_metadata_capture(const MIRProgram *program,
                     mir_param_resource_kind_from_type_name(
                         routine->param_type_names[i]);
                 {
-                    const MIRTypeLayout *layout = mir_abi_lookup(
-                        routine->param_type_names[i]);
-                    if (layout == NULL) {
-                        const MIRDeclHeader *header = mir_find_decl_header(
+                    const MIRTypeLayout *layout =
+                        mir_program_abi_layout_for_type_name(
                             program, routine->param_type_names[i]);
-                        layout = mir_decl_header_abi_layout(header);
-                    }
                     routine->param_abi_facts[i].type_layout = layout;
                     routine->param_abi_facts[i].abi_layout_id =
                         mir_abi_layout_id(layout);

@@ -1,0 +1,177 @@
+// Instruction, SSA-use, assignment-target, and local-lifetime admission.
+
+import "direct_mir_struct_value_flow_program_identity_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+import "../mir_lower/routine_result_definition_fact_owner.pgy";
+
+struct DirectMirStructValueFlowInstructionAdmission {
+    let valid: Bool;
+    let initial: MirRoutineInstructionScalarCapture;
+    let assignment: MirRoutineInstructionScalarCapture;
+    let result: MirRoutineInstructionScalarCapture;
+    let output: MirRoutineInstructionScalarCapture;
+    let returned: MirRoutineInstructionScalarCapture;
+}
+
+func DirectMirStructValueFlowInstructionCapture(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    routine_row: Int, instruction_row: Int
+) -> MirRoutineInstructionScalarCapture {
+    let global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, routine_row, 0, instruction_row
+    );
+    if global < 0 { Die("direct MIR value-flow instruction is missing"); }
+    return MirRoutineInstructionFactBundleAtGlobal(
+        index.instruction_facts, global
+    );
+}
+
+func DirectMirStructValueFlowInstructionAdmissionReady(
+    ref fact: DirectMirStructValueFlowInstructionAdmission
+) -> Bool {
+    return fact.valid && fact.initial.valid && fact.assignment.valid &&
+        fact.result.valid && fact.output.valid && fact.returned.valid &&
+        fact.initial.result != "" && fact.assignment.result != "" &&
+        fact.initial.result != fact.assignment.result &&
+        fact.result.result != "";
+}
+
+func DirectMirStructValueFlowInstructionAdmissionFromProgram(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref identity: DirectMirStructValueFlowProgramIdentity
+) -> DirectMirStructValueFlowInstructionAdmission {
+    let main_row: Int = identity.entrypoint.row;
+    let producer_row: Int = identity.producer.row;
+    let main_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, main_row
+    );
+    let producer_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, producer_row
+    );
+    let main_uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, main_row);
+    let producer_uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, producer_row);
+    if !main_index.valid || !producer_index.valid ||
+        ArrayLength(main_index.block_reachable) != 1 ||
+        ArrayLength(producer_index.block_reachable) != 1 ||
+        !main_index.block_reachable[0] || !producer_index.block_reachable[0] ||
+        !MirRoutineFactIndexBlockIsTerminal(main_index, 0) ||
+        !MirRoutineFactIndexBlockIsTerminal(producer_index, 0) ||
+        main_index.block_has_conditional_branch[0] != 0 ||
+        producer_index.block_has_conditional_branch[0] != 0 ||
+        ArrayLength(main_index.source_local_names) != 2 ||
+        ArrayLength(main_index.source_local_types) != 2 ||
+        main_index.source_local_names[0] != identity.graph.source_local_name ||
+        main_index.source_local_names[1] != identity.graph.result_local_name ||
+        main_index.source_local_types[0] != identity.declaration.name ||
+        main_index.source_local_types[1] != identity.declaration.name ||
+        !MirRoutineInstructionUseFactsReady(main_uses, 4) ||
+        !MirRoutineInstructionUseFactsReady(producer_uses, 1) {
+        Die("direct MIR struct value-flow routine facts are invalid");
+    }
+    let initial: MirRoutineInstructionScalarCapture =
+        DirectMirStructValueFlowInstructionCapture(
+            admitted, main_index, main_row, 0
+        );
+    let assignment: MirRoutineInstructionScalarCapture =
+        DirectMirStructValueFlowInstructionCapture(
+            admitted, main_index, main_row, 1
+        );
+    let result: MirRoutineInstructionScalarCapture =
+        DirectMirStructValueFlowInstructionCapture(
+            admitted, main_index, main_row, 2
+        );
+    let output: MirRoutineInstructionScalarCapture =
+        DirectMirStructValueFlowInstructionCapture(
+            admitted, main_index, main_row, 3
+        );
+    let returned: MirRoutineInstructionScalarCapture =
+        DirectMirStructValueFlowInstructionCapture(
+            admitted, producer_index, producer_row, 0
+        );
+    let globals: Array<Int> = [];
+    let row: Int = 0;
+    while row < 4 {
+        ArrayPush(globals, MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, main_row, 0, row
+        ));
+        row = row + 1;
+    }
+    let producer_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, producer_row, 0, 0
+    );
+    if !initial.valid || !assignment.valid || !result.valid || !output.valid ||
+        !returned.valid || admitted.routines.instruction_kinds[globals[0]] != "def" ||
+        admitted.routines.instruction_kinds[globals[1]] != "def" ||
+        admitted.routines.instruction_kinds[globals[2]] != "def" ||
+        admitted.routines.instruction_kinds[globals[3]] != "stmt" ||
+        admitted.routines.instruction_kinds[producer_global] != "return" ||
+        admitted.routines.instruction_source_types[globals[0]] != "AST_LET_DECL" ||
+        admitted.routines.instruction_source_types[globals[1]] != "AST_ASSIGNMENT" ||
+        admitted.routines.instruction_source_types[globals[2]] != "AST_LET_DECL" ||
+        admitted.routines.instruction_source_types[globals[3]] != "AST_CALL" ||
+        initial.name != "ssa-def" || assignment.name != "ssa-def" ||
+        result.name != "ssa-def" || output.name != "stmt" ||
+        returned.name != "return" || initial.arg0 != identity.graph.source_local_name ||
+        assignment.arg0 != identity.graph.source_local_name ||
+        result.arg0 != identity.graph.result_local_name || output.arg0 != "Log" ||
+        initial.arg1 != identity.declaration.name || assignment.arg1 != "local" ||
+        result.arg1 != identity.declaration.name || output.arg1 != "" ||
+        returned.result != "" || returned.arg0 != "" || returned.arg1 != "" ||
+        MirRoutineInstructionUseCountAtGlobal(main_uses, globals[0]) != 0 ||
+        MirRoutineInstructionUseCountAtGlobal(main_uses, globals[1]) != 0 ||
+        MirRoutineInstructionUseCountAtGlobal(producer_uses, producer_global) != 0 {
+        Die("direct MIR struct value-flow instruction identity is invalid");
+    }
+    let call_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        main_uses, globals[2], 0
+    );
+    let output_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        main_uses, globals[3], 0
+    );
+    if MirRoutineInstructionUseCountAtGlobal(main_uses, globals[2]) != 1 ||
+        MirRoutineInstructionUseCountAtGlobal(main_uses, globals[3]) != 1 ||
+        !IsSome(call_use) || !IsSome(output_use) ||
+        UnwrapOption(call_use) != assignment.result ||
+        UnwrapOption(call_use) == initial.result ||
+        UnwrapOption(output_use) != result.result {
+        Die("direct MIR struct value-flow latest-use identity is invalid");
+    }
+    let definition_results: Array<String> = [
+        initial.result, assignment.result, result.result
+    ];
+    row = 0;
+    while row < 3 {
+        let definition: MirRoutineResultDefinitionFact =
+            MirRoutineFactIndexUniqueResultDefinition(
+                main_index, definition_results[row]
+            );
+        if !MirRoutineResultDefinitionFactReady(definition) ||
+            definition.global_row != globals[row] {
+            Die("direct MIR struct value-flow result definition is invalid");
+        }
+        row = row + 1;
+    }
+    let assignment_expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions, globals[1]
+        );
+    let assignment_target: MirExpressionGraphSequence =
+        DirectMirArrayIntGraphFromExpressionFact(
+            admitted.routines.source_json, assignment_expression, 1
+        );
+    if !DirectMirStructValueFlowAssignmentTargetReady(
+        assignment_target, identity.graph.source_local_name
+    ) { Die("direct MIR struct value-flow assignment target is invalid"); }
+    let fact: DirectMirStructValueFlowInstructionAdmission =
+        DirectMirStructValueFlowInstructionAdmission(
+            true, initial, assignment, result, output, returned
+        );
+    if !DirectMirStructValueFlowInstructionAdmissionReady(fact) {
+        Die("direct MIR struct value-flow instruction admission is invalid");
+    }
+    return fact;
+}

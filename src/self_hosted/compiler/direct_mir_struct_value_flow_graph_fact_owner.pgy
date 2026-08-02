@@ -1,0 +1,212 @@
+// Typed graph identity for nominal return, reassignment, call, and member use.
+
+import "direct_mir_array_int_graph_fact_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirStructValueFlowGraphFact {
+    let valid: Bool;
+    let digest: Int;
+    let type_name: String;
+    let first_field: String;
+    let second_field: String;
+    let parameter_name: String;
+    let producer_name: String;
+    let source_local_name: String;
+    let result_local_name: String;
+    let producer_first_delta: Int;
+    let producer_second_delta: Int;
+    let initial_first: Int;
+    let initial_second: Int;
+    let assigned_first: Int;
+    let assigned_second: Int;
+}
+
+func DirectMirStructValueFlowCanonicalIntAt(
+    ref sequence: MirExpressionGraphSequence, row: Int
+) -> Int {
+    if row < 0 || row >= ArrayLength(sequence.arena.node_texts) ||
+        sequence.arena.topology.node_kinds[row] !=
+            AstExpressionNodeIntegerLiteral() {
+        Die("direct MIR value-flow integer node is invalid");
+    }
+    let text: String = sequence.arena.node_texts[row];
+    if text == "" || ToString(ToInt(text)) != text {
+        Die("direct MIR value-flow integer is not canonical");
+    }
+    return ToInt(text);
+}
+
+func DirectMirStructValueFlowTopologyReady(
+    ref sequence: MirExpressionGraphSequence,
+    kinds: Array<Int>, lefts: Array<Int>, rights: Array<Int>,
+    root: Int, direct_row: Int
+) -> Bool {
+    let count: Int = ArrayLength(kinds);
+    if !sequence.ok || sequence.ready_node_count != count ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != root ||
+        ArrayLength(lefts) != count || ArrayLength(rights) != count {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if sequence.arena.topology.node_kinds[row] != kinds[row] ||
+            sequence.arena.topology.left_children[row] != lefts[row] ||
+            sequence.arena.topology.right_children[row] != rights[row] {
+            return false;
+        }
+        if row == direct_row {
+            if sequence.arena.call_target_kinds[row] !=
+                    SemanticCallTargetDirect() ||
+                sequence.arena.call_target_names[row] == "" { return false; }
+        } else if sequence.arena.call_target_kinds[row] !=
+                SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[row] != "" { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirStructValueFlowConstructorTopologyReady(
+    ref sequence: MirExpressionGraphSequence, producer: Bool
+) -> Bool {
+    if producer {
+        return DirectMirStructValueFlowTopologyReady(sequence, [
+            AstExpressionNodeLeaf(), AstExpressionNodeStructLiteral(),
+            AstExpressionNodeStructFieldName(), AstExpressionNodeLeaf(),
+            AstExpressionNodeIntegerLiteral(), AstExpressionNodeAdd(),
+            AstExpressionNodeStructFieldBinding(), AstExpressionNodeStructField(),
+            AstExpressionNodeStructFieldName(), AstExpressionNodeLeaf(),
+            AstExpressionNodeIntegerLiteral(), AstExpressionNodeAdd(),
+            AstExpressionNodeStructFieldBinding(), AstExpressionNodeStructField()
+        ], [0,0,0,0,0,3,2,1,0,0,0,9,8,7],
+        [0,0,0,0,0,4,5,6,0,0,0,10,11,12], 13, 0 - 1);
+    }
+    return DirectMirStructValueFlowTopologyReady(sequence, [
+        AstExpressionNodeLeaf(), AstExpressionNodeStructLiteral(),
+        AstExpressionNodeStructFieldName(), AstExpressionNodeIntegerLiteral(),
+        AstExpressionNodeStructFieldBinding(), AstExpressionNodeStructField(),
+        AstExpressionNodeStructFieldName(), AstExpressionNodeIntegerLiteral(),
+        AstExpressionNodeStructFieldBinding(), AstExpressionNodeStructField()
+    ], [0,0,0,0,2,1,0,0,6,5], [0,0,0,0,3,4,0,0,7,8], 9, 0 - 1);
+}
+
+func DirectMirStructValueFlowGraphFactDigest(
+    ref fact: DirectMirStructValueFlowGraphFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(157L, fact.type_name);
+    hash = DirectMirCfgHashString(hash, fact.first_field);
+    hash = DirectMirCfgHashString(hash, fact.second_field);
+    hash = DirectMirCfgHashString(hash, fact.parameter_name);
+    hash = DirectMirCfgHashString(hash, fact.producer_name);
+    hash = DirectMirCfgHashString(hash, fact.source_local_name);
+    hash = DirectMirCfgHashString(hash, fact.result_local_name);
+    hash = DirectMirCfgHashInt(hash, fact.producer_first_delta);
+    hash = DirectMirCfgHashInt(hash, fact.producer_second_delta);
+    hash = DirectMirCfgHashInt(hash, fact.initial_first);
+    hash = DirectMirCfgHashInt(hash, fact.initial_second);
+    hash = DirectMirCfgHashInt(hash, fact.assigned_first);
+    hash = DirectMirCfgHashInt(hash, fact.assigned_second);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirStructValueFlowGraphFactReady(
+    ref fact: DirectMirStructValueFlowGraphFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirStructValueFlowGraphFactDigest(fact) &&
+        fact.type_name != "" && fact.first_field != "" &&
+        fact.second_field != "" && fact.first_field != fact.second_field &&
+        fact.parameter_name != "" && fact.producer_name != "" &&
+        fact.source_local_name != "" && fact.result_local_name != "" &&
+        fact.source_local_name != fact.result_local_name;
+}
+
+func DirectMirStructValueFlowProducerNameFromCall(
+    ref called: MirExpressionGraphSequence
+) -> String {
+    if !DirectMirStructValueFlowTopologyReady(called, [
+        AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+        AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+        AstExpressionNodeMemberAccess(), AstExpressionNodeCallArgument()
+    ], [0,0,0,0,2,1], [0,0,0,0,3,4], 5, 1) ||
+        called.arena.node_texts[0] != called.arena.call_target_names[1] {
+        Die("direct MIR struct value-flow producer call is invalid");
+    }
+    return called.arena.call_target_names[1];
+}
+
+func DirectMirStructValueFlowAssignmentTargetReady(
+    ref target: MirExpressionGraphSequence, local_name: String
+) -> Bool {
+    return target.ok && target.ready_node_count == 1 &&
+        ArrayLength(target.roots) == 1 && target.roots[0] == 0 &&
+        target.arena.topology.node_kinds[0] == AstExpressionNodeLeaf() &&
+        target.arena.node_texts[0] == local_name &&
+        target.arena.call_target_kinds[0] == SemanticCallTargetNone() &&
+        target.arena.call_target_names[0] == "";
+}
+
+func DirectMirStructValueFlowGraphFactFromSequences(
+    ref returned: MirExpressionGraphSequence,
+    ref initial: MirExpressionGraphSequence,
+    ref assigned: MirExpressionGraphSequence,
+    ref called: MirExpressionGraphSequence,
+    ref output: MirExpressionGraphSequence
+) -> DirectMirStructValueFlowGraphFact {
+    if !DirectMirStructValueFlowConstructorTopologyReady(returned, true) ||
+        !DirectMirStructValueFlowConstructorTopologyReady(initial, false) ||
+        !DirectMirStructValueFlowConstructorTopologyReady(assigned, false) ||
+        !DirectMirStructValueFlowTopologyReady(called, [
+            AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+            AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+            AstExpressionNodeMemberAccess(), AstExpressionNodeCallArgument()
+        ], [0,0,0,0,2,1], [0,0,0,0,3,4], 5, 1) ||
+        !DirectMirStructValueFlowTopologyReady(output, [
+            AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+            AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+            AstExpressionNodeMemberAccess(), AstExpressionNodeLeaf(),
+            AstExpressionNodeLeaf(), AstExpressionNodeMemberAccess(),
+            AstExpressionNodeAdd(), AstExpressionNodeCallArgument()
+        ], [0,0,0,0,2,0,0,5,4,1], [0,0,0,0,3,0,0,6,7,8], 9, 1) {
+        Die("direct MIR struct value-flow graph topology is invalid");
+    }
+    if returned.arena.node_texts[0] == "" ||
+        returned.arena.node_texts[0] != initial.arena.node_texts[0] ||
+        returned.arena.node_texts[0] != assigned.arena.node_texts[0] ||
+        returned.arena.node_texts[2] != initial.arena.node_texts[2] ||
+        returned.arena.node_texts[2] != assigned.arena.node_texts[2] ||
+        returned.arena.node_texts[8] != initial.arena.node_texts[6] ||
+        returned.arena.node_texts[8] != assigned.arena.node_texts[6] ||
+        returned.arena.node_texts[3] != returned.arena.node_texts[9] ||
+        called.arena.node_texts[0] != called.arena.call_target_names[1] ||
+        output.arena.node_texts[0] != "ToString" ||
+        output.arena.call_target_names[1] != "ToString" ||
+        called.arena.node_texts[3] != returned.arena.node_texts[8] ||
+        output.arena.node_texts[3] != returned.arena.node_texts[2] ||
+        output.arena.node_texts[6] != returned.arena.node_texts[8] ||
+        output.arena.node_texts[2] != output.arena.node_texts[5] {
+        Die("direct MIR struct value-flow graph identity is invalid");
+    }
+    let fact: DirectMirStructValueFlowGraphFact =
+        DirectMirStructValueFlowGraphFact(
+            true, 0, returned.arena.node_texts[0],
+            returned.arena.node_texts[2], returned.arena.node_texts[8],
+            returned.arena.node_texts[3], called.arena.call_target_names[1],
+            called.arena.node_texts[2], output.arena.node_texts[2],
+            DirectMirStructValueFlowCanonicalIntAt(returned, 4),
+            DirectMirStructValueFlowCanonicalIntAt(returned, 10),
+            DirectMirStructValueFlowCanonicalIntAt(initial, 3),
+            DirectMirStructValueFlowCanonicalIntAt(initial, 7),
+            DirectMirStructValueFlowCanonicalIntAt(assigned, 3),
+            DirectMirStructValueFlowCanonicalIntAt(assigned, 7)
+        );
+    return DirectMirStructValueFlowGraphFact(
+        fact.valid, DirectMirStructValueFlowGraphFactDigest(fact),
+        fact.type_name, fact.first_field, fact.second_field,
+        fact.parameter_name, fact.producer_name, fact.source_local_name,
+        fact.result_local_name, fact.producer_first_delta,
+        fact.producer_second_delta, fact.initial_first, fact.initial_second,
+        fact.assigned_first, fact.assigned_second
+    );
+}

@@ -1,0 +1,105 @@
+// Cross-sealed nominal ABI receipts for return and aggregate SSA definitions.
+
+import "direct_mir_struct_value_flow_program_identity_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/abi_layout_admission_fact_owner.pgy";
+
+struct DirectMirStructValueFlowAbiFact {
+    let valid: Bool;
+    let digest: Int;
+    let declaration: DirectMirNominalDeclarationAbiFact;
+    let return_layout_id: Int;
+    let initial_layout_id: Int;
+    let assignment_layout_id: Int;
+    let result_layout_id: Int;
+    let returned: MirAbiLayoutRowCapture;
+    let initial: MirAbiLayoutRowCapture;
+    let assignment: MirAbiLayoutRowCapture;
+    let result: MirAbiLayoutRowCapture;
+}
+
+func DirectMirStructValueFlowCapturedAbi(
+    json: String,
+    ref capture: MirRoutineInstructionScalarCapture
+) -> MirAbiLayoutRowCapture {
+    let admitted: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            json, capture.abi_type_name, capture.abi_type_value_ready,
+            capture.abi_type_start, capture.abi_type_end,
+            capture.abi_layout_id_start, capture.abi_layout_id_end,
+            capture.abi_layout_required_start,
+            capture.abi_layout_required_end, capture.abi_layout_start,
+            capture.abi_layout_end
+        );
+    if !IsSome(admitted) {
+        Die("direct MIR struct value-flow instruction ABI receipt is missing");
+    }
+    return UnwrapOption(admitted);
+}
+
+func DirectMirStructValueFlowAbiFactDigest(
+    ref fact: DirectMirStructValueFlowAbiFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(167L, fact.declaration.digest);
+    hash = DirectMirCfgHashInt(hash, fact.return_layout_id);
+    hash = DirectMirCfgHashInt(hash, fact.initial_layout_id);
+    hash = DirectMirCfgHashInt(hash, fact.assignment_layout_id);
+    hash = DirectMirCfgHashInt(hash, fact.result_layout_id);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirStructValueFlowAbiFactReady(
+    ref fact: DirectMirStructValueFlowAbiFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 ||
+        fact.digest != DirectMirStructValueFlowAbiFactDigest(fact) ||
+        !DirectMirNominalDeclarationAbiFactReady(fact.declaration) {
+        return false;
+    }
+    let id: Int = fact.declaration.abi_layout_id;
+    return fact.return_layout_id == id && fact.initial_layout_id == id &&
+        fact.assignment_layout_id == id && fact.result_layout_id == id &&
+        DirectMirStructAbiRowsEqual(fact.returned, fact.declaration.abi) &&
+        DirectMirStructAbiRowsEqual(fact.initial, fact.declaration.abi) &&
+        DirectMirStructAbiRowsEqual(fact.assignment, fact.declaration.abi) &&
+        DirectMirStructAbiRowsEqual(fact.result, fact.declaration.abi);
+}
+
+func DirectMirStructValueFlowAbiFactFromCaptures(
+    json: String,
+    ref identity: DirectMirStructValueFlowProgramIdentity,
+    ref returned: MirRoutineInstructionScalarCapture,
+    ref initial: MirRoutineInstructionScalarCapture,
+    ref assignment: MirRoutineInstructionScalarCapture,
+    ref result: MirRoutineInstructionScalarCapture
+) -> DirectMirStructValueFlowAbiFact {
+    let return_abi: MirAbiLayoutRowCapture =
+        DirectMirStructValueFlowCapturedAbi(json, returned);
+    let initial_abi: MirAbiLayoutRowCapture =
+        DirectMirStructValueFlowCapturedAbi(json, initial);
+    let assignment_abi: MirAbiLayoutRowCapture =
+        DirectMirStructValueFlowCapturedAbi(json, assignment);
+    let result_abi: MirAbiLayoutRowCapture =
+        DirectMirStructValueFlowCapturedAbi(json, result);
+    let fact: DirectMirStructValueFlowAbiFact =
+        DirectMirStructValueFlowAbiFact(
+            true, 0, identity.declaration,
+            MirAbiLayoutIdFromCapture(return_abi),
+            MirAbiLayoutIdFromCapture(initial_abi),
+            MirAbiLayoutIdFromCapture(assignment_abi),
+            MirAbiLayoutIdFromCapture(result_abi), return_abi, initial_abi,
+            assignment_abi, result_abi
+        );
+    let verified: DirectMirStructValueFlowAbiFact =
+        DirectMirStructValueFlowAbiFact(
+            fact.valid, DirectMirStructValueFlowAbiFactDigest(fact),
+            fact.declaration, fact.return_layout_id, fact.initial_layout_id,
+            fact.assignment_layout_id, fact.result_layout_id, fact.returned,
+            fact.initial, fact.assignment, fact.result
+        );
+    if !DirectMirStructValueFlowAbiFactReady(verified) {
+        Die("direct MIR struct value-flow ABI receipts disagree");
+    }
+    return verified;
+}

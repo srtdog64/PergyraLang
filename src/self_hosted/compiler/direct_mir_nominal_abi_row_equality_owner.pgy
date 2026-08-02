@@ -1,0 +1,30 @@
+// Exact equality for producer-carried nominal ABI rows.
+
+import "../mir_lower/abi_layout_fact_owner.pgy";
+
+func DirectMirStructAbiRowsEqual(
+    ref left: MirAbiLayoutRowCapture,
+    ref right: MirAbiLayoutRowCapture
+) -> Bool {
+    if !left.valid || !right.valid || left.type_name != right.type_name ||
+        left.size_text != right.size_text || left.align_text != right.align_text ||
+        left.runtime_fn != right.runtime_fn ||
+        left.inner_c_type != right.inner_c_type ||
+        left.representation_text != right.representation_text ||
+        left.discriminant != right.discriminant ||
+        left.primary_tag_text != right.primary_tag_text ||
+        left.secondary_tag_text != right.secondary_tag_text ||
+        left.niche_none_pattern != right.niche_none_pattern ||
+        ArrayLength(left.field_names) != ArrayLength(right.field_names) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(left.field_names) {
+        if left.field_names[row] != right.field_names[row] ||
+            left.field_offsets[row] != right.field_offsets[row] ||
+            left.field_sizes[row] != right.field_sizes[row] ||
+            left.field_aligns[row] != right.field_aligns[row] { return false; }
+        row = row + 1;
+    }
+    return true;
+}

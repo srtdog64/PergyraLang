@@ -1,0 +1,88 @@
+// Producer-carried nominal ABI receipt for each MIR instruction.
+//
+// The declaration row is a stable program-local handle. JSON projection may
+// dereference that exact row, but may not recover it from a type spelling.
+
+import "declaration_fact_owner.pgy";
+
+struct SelfMirInstructionAbiReceiptRows {
+    ready: Bool;
+    nominal_declaration_rows: Array<Int>;
+    layout_ids: Array<Int>;
+}
+
+func SelfMirInstructionAbiReceiptRowsEmpty(
+) -> SelfMirInstructionAbiReceiptRows {
+    let ints: Array<Int> = [];
+    return SelfMirInstructionAbiReceiptRows(true, ints, ints);
+}
+
+func SelfMirInstructionAbiReceiptRowsAppend(
+    target: SelfMirInstructionAbiReceiptRows,
+    abi_type_names: Array<String>,
+    ref declarations: SelfMirDeclarationRows
+) -> SelfMirInstructionAbiReceiptRows {
+    let declaration_rows: Array<Int> = target.nominal_declaration_rows;
+    let layout_ids: Array<Int> = target.layout_ids;
+    let ready: Bool = target.ready;
+    let instruction_i: Int = 0;
+    while instruction_i < ArrayLength(abi_type_names) {
+        let declaration_row: Int = 0 - 1;
+        let layout_id: Int = 0;
+        let nominal: Option<Int> = SelfMirNominalUniqueStructIndex(
+            declarations.names, declarations.nominal_kinds,
+            abi_type_names[instruction_i]
+        );
+        if IsSome(nominal) {
+            declaration_row = UnwrapOption(nominal);
+            if !declarations.nominal_abi_layouts.ready ||
+                declarations.nominal_abi_layouts.required[declaration_row] != 1 ||
+                declarations.nominal_abi_layouts.layout_ids[declaration_row] <= 0 {
+                ready = false;
+            } else {
+                layout_id = declarations.nominal_abi_layouts.layout_ids[
+                    declaration_row
+                ];
+            }
+        }
+        ArrayPush(declaration_rows, declaration_row);
+        ArrayPush(layout_ids, layout_id);
+        instruction_i = instruction_i + 1;
+    }
+    return SelfMirInstructionAbiReceiptRows(
+        ready, declaration_rows, layout_ids
+    );
+}
+
+func SelfMirInstructionAbiReceiptRowsReady(
+    rows: SelfMirInstructionAbiReceiptRows,
+    abi_type_names: Array<String>,
+    ref declarations: SelfMirDeclarationRows
+) -> Bool {
+    let count: Int = ArrayLength(abi_type_names);
+    if !rows.ready || ArrayLength(rows.nominal_declaration_rows) != count ||
+        ArrayLength(rows.layout_ids) != count {
+        return false;
+    }
+    let instruction_i: Int = 0;
+    while instruction_i < count {
+        let row: Int = rows.nominal_declaration_rows[instruction_i];
+        let layout_id: Int = rows.layout_ids[instruction_i];
+        let nominal: Option<Int> = SelfMirNominalUniqueStructIndex(
+            declarations.names, declarations.nominal_kinds,
+            abi_type_names[instruction_i]
+        );
+        if IsSome(nominal) {
+            if row != UnwrapOption(nominal) || row < 0 ||
+                declarations.nominal_abi_layouts.required[row] != 1 ||
+                layout_id <= 0 || layout_id !=
+                    declarations.nominal_abi_layouts.layout_ids[row] {
+                return false;
+            }
+        } else if row != 0 - 1 || layout_id != 0 {
+            return false;
+        }
+        instruction_i = instruction_i + 1;
+    }
+    return true;
+}

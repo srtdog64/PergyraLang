@@ -12,6 +12,7 @@ import "abi_layout_json_projection_owner.pgy";
 import "machine_layer_json_projection_owner.pgy";
 import "json_projection_support_owner.pgy";
 import "routine_param_json_projection_owner.pgy";
+import "instruction_abi_receipt_json_projection_owner.pgy";
 import "domain_runtime_assignment_json_owner.pgy";
 import "../lib/json_emit.pgy";
 func SelfMirJsonExpressionGraph(rows: SelfMirExpressionGraphRows, ref graph: SemanticExpressionGraphFacts,
@@ -134,7 +135,13 @@ func SelfMirJsonInstruction(
     // Static rows are producer-owned for the fixed ABI subset.  Unknown
     // and target-dependent rows retain the explicit dynamic tuple; that
     // form is a declared fact, not a backend lookup permission.
-    let abi_layout: String = SelfMirJsonStaticAbiLayout(abi_type_name);
+    let abi_projection: SelfMirInstructionAbiJsonProjection =
+        SelfMirInstructionAbiJsonProjectionForRow(
+            facts.declarations, facts.instruction_abi_receipts,
+            instruction_index, abi_type_name
+        );
+    if !abi_projection.ready { return ""; }
+    let abi_layout: String = abi_projection.layout;
     let abi_layout_required: Bool = StringLength(abi_layout) > 0;
     let abi_layout_id: String = SelfMirJsonAbiLayoutId(abi_layout);
     let abi_layout_wire: String = "null";

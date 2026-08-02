@@ -10,5 +10,8 @@ bool mir_nominal_abi_layouts_capture(MIRProgram *program,
                                      char **error_message);
 const MIRTypeLayout *mir_decl_header_abi_layout(
     const MIRDeclHeader *header);
+const MIRTypeLayout *mir_program_abi_layout_for_type_name(
+    const MIRProgram *program,
+    const char *type_name);
 
 #endif /* PERGYRA_MIR_NOMINAL_ABI_LAYOUT_H */

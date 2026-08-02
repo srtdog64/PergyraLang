@@ -60,7 +60,9 @@ func DirectMirArrayReturnProgramIdentityReady(
 func DirectMirArrayReturnProgramCandidate(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> Bool {
-    return MirProgramRoutineIndexCount(admitted.routines) == 2;
+    return MirProgramRoutineIndexCount(admitted.routines) == 2 &&
+        JsonArrayObjectFactTableReady(admitted.document.declarations) &&
+        JsonArrayObjectFactCount(admitted.document.declarations) == 0;
 }
 
 func DirectMirArrayReturnProgramEnvelopeReady(

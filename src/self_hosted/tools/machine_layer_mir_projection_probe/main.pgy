@@ -188,14 +188,18 @@ func MachineProbeFacts(
         SelfMirDestructureTypeFactRowsWithoutFacts(1),
         SelfMirLoopFlowRowsWithoutLoops(1)
     );
+    let declarations: SelfMirDeclarationRows = SelfMirDeclarationRowsEmpty();
     return SelfMirProgramFacts(
         true, "", "", 1,
-        SelfMirDeclarationRowsEmpty(),
+        declarations,
         SelfMirDomainTopologyFactsAbsent(),
         SelfMirDomainRuntimeAssignmentFactsEmpty(true, false),
         SelfMirGenericSpecializationRowsEmpty(),
         SelfMirParallelCaptureRowsEmpty(),
-        routines, cfg5, program_graph.graph
+        routines, cfg5, SelfMirInstructionAbiReceiptRowsAppend(
+            SelfMirInstructionAbiReceiptRowsEmpty(),
+            cfg5.instructions.abi_type_names, declarations
+        ), program_graph.graph
     );
 }
 

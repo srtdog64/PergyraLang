@@ -1,6 +1,7 @@
 #include "mir_stmt_population_internal.h"
 
 #include "mir_abi_layout.h"
+#include "mir_nominal_abi_layout.h"
 #include "mir_resource_runtime_population.h"
 #include "mir_source_local_type_shape.h"
 
@@ -311,10 +312,24 @@ mir_make_assignment_instruction(MIRRoutine *routine,
     inst.ast = stmt;
     mir_instruction_capture_source_provenance(&inst, stmt);
     if (stmt != NULL && stmt->type == AST_ASSIGNMENT) {
+        const char *target_name;
+
         inst.expr0 = ast_assignment_target(stmt);
         inst.expr1 = ast_assignment_value(stmt);
         inst.arg1 = mir_assignment_target_root_binding_mode(routine,
                                                             inst.expr0);
+        target_name = mir_assignment_target_root_name(inst.expr0);
+        if (routine != NULL && target_name != NULL) {
+            const char *type_name = mir_routine_source_local_type_name(
+                routine, target_name);
+            if (type_name != NULL) {
+                inst.abi_type_name = pgy_arena_strdup(
+                    &routine->scratch, type_name);
+                inst.type_layout = mir_program_abi_layout_for_type_name(
+                    routine->program, inst.abi_type_name);
+                inst.abi_layout_id = mir_abi_layout_id(inst.type_layout);
+            }
+        }
     }
     mir_attach_statement_call_fact(&inst, stmt);
     mir_set_inst_source_statement_fact(&inst, stmt, source_statement_index);

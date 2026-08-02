@@ -333,7 +333,13 @@ func SelfMirJsonInstructionWriteFile(
     let abi_type_name: String = SelfMirJsonAbiTypeName(
         rows, instruction_index
     );
-    let abi_layout: String = SelfMirJsonStaticAbiLayout(abi_type_name);
+    let abi_projection: SelfMirInstructionAbiJsonProjection =
+        SelfMirInstructionAbiJsonProjectionForRow(
+            facts.declarations, facts.instruction_abi_receipts,
+            instruction_index, abi_type_name
+        );
+    if !abi_projection.ready { return false; }
+    let abi_layout: String = abi_projection.layout;
     let abi_layout_required: Bool = StringLength(abi_layout) > 0;
     let machine: SelfMirMachineLayerProjection =
         SelfMirMachineLayerProjection(

@@ -1,0 +1,95 @@
+// Runtime-free C emission for verified nominal return and value flow.
+
+import "direct_mir_struct_value_flow_plan_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "symbol_table_owner.pgy";
+
+func DirectMirStructValueFlowEmitC(
+    ref plan: DirectMirStructValueFlowPlan,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirStructValueFlowPlanReady(plan) || !formatted_print.ok ||
+        formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        formatted_print.symbol == "" || line_format == "" {
+        Die("direct MIR struct value-flow C projection facts are invalid");
+    }
+    let graph: DirectMirStructValueFlowGraphFact = plan.identity.graph;
+    let abi: MirAbiLayoutRowCapture = plan.identity.declaration.abi;
+    let type_name: String = CompilerSymbolCIdentifier(graph.type_name);
+    let first: String = CompilerSymbolCIdentifier(graph.first_field);
+    let second: String = CompilerSymbolCIdentifier(graph.second_field);
+    let producer: String = CompilerSymbolCIdentifier(graph.producer_name);
+    let parameter: String = CompilerSymbolCIdentifier(graph.parameter_name);
+    if type_name == "" || first == "" || second == "" || first == second ||
+        producer == "" || parameter == "" {
+        Die("direct MIR struct value-flow C symbols are invalid");
+    }
+    let output: String =
+        "#include <stdint.h>\n#include <stddef.h>\n#include <stdio.h>\n\n";
+    output = Concat(output, "typedef struct {\n    int32_t ");
+    output = Concat(output, first);
+    output = Concat(output, ";\n    int32_t ");
+    output = Concat(output, second);
+    output = Concat(output, ";\n} ");
+    output = Concat(output, type_name);
+    output = Concat(output, ";\n\n_Static_assert(sizeof(");
+    output = Concat(output, type_name);
+    output = Concat(output, ") == ");
+    output = Concat(output, abi.size_text);
+    output = Concat(output, ", \"nominal size receipt\");\n_Static_assert(_Alignof(");
+    output = Concat(output, type_name);
+    output = Concat(output, ") == ");
+    output = Concat(output, abi.align_text);
+    output = Concat(output, ", \"nominal align receipt\");\n_Static_assert(offsetof(");
+    output = Concat(output, type_name);
+    output = Concat(output, ", ");
+    output = Concat(output, second);
+    output = Concat(output, ") == ");
+    output = Concat(output, abi.field_offsets[1]);
+    output = Concat(output, ", \"nominal field receipt\");\n\nstatic ");
+    output = Concat(output, type_name);
+    output = Concat(output, " ");
+    output = Concat(output, producer);
+    output = Concat(output, "(int32_t ");
+    output = Concat(output, parameter);
+    output = Concat(output, ") {\n    ");
+    output = Concat(output, type_name);
+    output = Concat(output, " pgy_returned = {");
+    output = Concat(output, parameter);
+    output = Concat(output, " + ");
+    output = Concat(output, ToString(graph.producer_first_delta));
+    output = Concat(output, ", ");
+    output = Concat(output, parameter);
+    output = Concat(output, " + ");
+    output = Concat(output, ToString(graph.producer_second_delta));
+    output = Concat(output, "};\n    return pgy_returned;\n}\n\nint main(void) {\n    ");
+    output = Concat(output, type_name);
+    output = Concat(output, " pgy_initial = {");
+    output = Concat(output, ToString(graph.initial_first));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(graph.initial_second));
+    output = Concat(output, "};\n    ");
+    output = Concat(output, type_name);
+    output = Concat(output, " pgy_latest = {");
+    output = Concat(output, ToString(graph.assigned_first));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(graph.assigned_second));
+    output = Concat(output, "};\n    (void)pgy_initial;\n    ");
+    output = Concat(output, type_name);
+    output = Concat(output, " pgy_built = ");
+    output = Concat(output, producer);
+    output = Concat(output, "(pgy_latest.");
+    output = Concat(output, second);
+    output = Concat(output, ");\n    int32_t pgy_sum = pgy_built.");
+    output = Concat(output, first);
+    output = Concat(output, " + pgy_built.");
+    output = Concat(output, second);
+    output = Concat(output, ";\n    ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (long long)pgy_sum);\n    return 0;\n}\n");
+    return output;
+}

@@ -336,8 +336,8 @@ forbid_text "src/self_hosted/mir/routine_build_owner.pgy" \
     "cfg.instructions.uses[cfg.instructions.use_starts[instruction_index]]"
 forbid_text "src/self_hosted/mir/routine_build_owner.pgy" \
     "SelfMirTextContainsIdentifier("
-require_text "src/self_hosted/mir/abi_layout_json_projection_owner.pgy" \
-    "rows.source_types[instruction_index] == \"AST_LET_DECL\""
+require_text "src/self_hosted/mir/routine_let_owner.pgy" \
+    "SelfMirRoutineAttachLastAbiTypeName(build, local_type)"
 require_text "src/self_hosted/mir/abi_layout_json_projection_owner.pgy" \
     "rows.source_types[instruction_index] == \"AST_CALL\""
 require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
@@ -430,20 +430,51 @@ require_text "src/self_hosted/compiler/direct_mir_struct_argument_plan_owner.pgy
 require_text "src/self_hosted/compiler/direct_mir_struct_argument_plan_owner.pgy" \
     'DirectMirStructArgumentPlanMutationRejected'
 require_text "Makefile" '$(SELFHOST_ONE_MIR_STRUCT_ARGUMENT_GATE)'
+require_file "src/self_hosted/mir/instruction_abi_receipt_fact_owner.pgy"
+require_file \
+    "src/self_hosted/mir/instruction_abi_receipt_json_projection_owner.pgy"
+require_text "src/self_hosted/mir/program_fact_owner.pgy" \
+    'instruction_abi_receipts: SelfMirInstructionAbiReceiptRows'
+require_text "src/self_hosted/mir/artifact_lower_owner.pgy" \
+    'SelfMirInstructionAbiReceiptRowsAppend('
+forbid_text "src/self_hosted/mir/abi_layout_json_projection_owner.pgy" \
+    'rows.expr1s[instruction_index]'
+forbid_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    'SelfMirJsonOwnedAbiLayoutForType('
+forbid_text "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
+    'SelfMirJsonOwnedAbiLayoutForType('
 require_text ".github/workflows/ci.yml" \
     'self-host-one-mir-array-return-projection-test-smoke'
 require_text ".github/workflows/ci.yml" \
     'self-host-one-mir-array-argument-projection-test-smoke'
 require_text ".github/workflows/ci.yml" \
     'self-host-one-mir-struct-argument-projection-test-smoke'
+require_text "Makefile" \
+    'self-host-one-mir-struct-value-flow-projection-test-smoke: self-host-compiler'
+require_file "tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh"
+require_file "tests/self_hosted/parity/one_mir_struct_value_flow_mutations.py"
+require_text "tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh" \
+    'gate must produce source MIR exactly once'
+require_text "tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh" \
+    'C/LLVM exact 11'
+require_text "tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh" \
+    'routine-order-swap'
+require_text "tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh" \
+    'repaired-all-layout-offsets'
+require_text "src/self_hosted/compiler/direct_mir_struct_value_flow_plan_owner.pgy" \
+    'independent_nominal_values_by_value'
+require_text "src/self_hosted/compiler/direct_mir_array_return_program_identity_owner.pgy" \
+    'JsonArrayObjectFactCount(admitted.document.declarations) == 0'
+require_text ".github/workflows/ci.yml" \
+    'self-host-one-mir-struct-value-flow-projection-test-smoke'
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
-    'src/self_hosted/mir_lower/fixture/struct_literal_call_argument.pgy'
+    'src/self_hosted/mir_lower/fixture/struct_literal_value_flow.pgy'
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
-    'printf '\''6\n'\'''
+    'printf '\''11\n'\'''
 require_text "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
-    'src/self_hosted/mir_lower/fixture/struct_literal_call_argument.pgy'
+    'src/self_hosted/mir_lower/fixture/struct_literal_value_flow.pgy'
 require_text "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
-    'printf '\''6\n'\'''
+    'printf '\''11\n'\'''
 require_text "src/compiler/llvm_runner.c" \
     "compiler_compile_link_self_host_llvm_artifact("
 require_text "src/compiler/self_host_llvm_driver.c" \

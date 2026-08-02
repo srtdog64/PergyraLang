@@ -145,10 +145,22 @@ func SelfMirLowerTrackedStatementFromArtifact(
         let return_source_type: String = SelfMirExpressionSourceTypeName(
             SelfMirExpressionKindFromText(payload)
         );
+        let return_type: Option<String> =
+            SemanticAstStatementInferredTypeForNode(
+                input.statement_types, node_id, kind
+            );
+        if !IsSome(return_type) {
+            return SelfMirRoutineBuildError(
+                build, "MIR value return type fact is missing"
+            );
+        }
         build = SelfMirRoutineAddInstruction(
             build, "return", "return", "", "", "", payload, "",
             return_source_type,
             SelfMirExpressionGraphUses(build, return_graph)
+        );
+        build = SelfMirRoutineAttachLastAbiTypeName(
+            build, UnwrapOption(return_type)
         );
         build = SelfMirRoutineAttachLastExpressionGraph(
             build, return_graph, input.machine_declaration

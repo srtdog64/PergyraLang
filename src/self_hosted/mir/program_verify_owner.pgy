@@ -9,7 +9,6 @@ import "../semantic/assignment_binding_mode_owner.pgy";
 func SelfMirParallelCount(count: Int, rows: Array<Int>) -> Bool {
     return ArrayLength(rows) == count;
 }
-
 func SelfMirParallelStringCount(count: Int, rows: Array<String>) -> Bool {
     return ArrayLength(rows) == count;
 }
@@ -566,6 +565,7 @@ func SelfMirProgramFactsValidationError(facts: SelfMirProgramFacts) -> String {
                 facts.cfg.instructions, facts.expression_graph)
         );
     }
+    if !SelfMirInstructionAbiReceiptRowsReady(facts.instruction_abi_receipts, facts.cfg.instructions.abi_type_names, facts.declarations) { return "MIR instruction ABI receipt rows are invalid"; }
     if !SelfMirBlockRowsReady(
         facts.cfg.blocks, ArrayLength(facts.cfg.instructions.ids)
     ) {

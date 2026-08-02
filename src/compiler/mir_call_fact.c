@@ -9,6 +9,7 @@
 #include "../semantic/lifecycle_state.h"
 #include "mir_type_helpers.h"
 #include "mir_abi_layout.h"
+#include "mir_nominal_abi_layout.h"
 
 static void
 mir_attach_text_builder_runtime_row(MIRInstruction *inst,
@@ -209,7 +210,8 @@ mir_attach_def_type_name_fact(MIRRoutine *routine,
         return;
     inst->abi_type_name = pgy_arena_strdup(&routine->scratch, type_name);
     if (inst->abi_type_name != NULL) {
-        inst->type_layout = mir_abi_lookup(inst->abi_type_name);
+        inst->type_layout = mir_program_abi_layout_for_type_name(
+            routine->program, inst->abi_type_name);
         inst->abi_layout_id = mir_abi_layout_id(inst->type_layout);
     }
     free(rendered);
@@ -247,6 +249,7 @@ mir_attach_def_initializer_call_fact(MIRRoutine *routine,
     } else if (stmt->type == AST_ASSIGNMENT) {
         inst->expr1 = ast_assignment_target(stmt);
         expr = ast_assignment_value(stmt);
+        mir_attach_def_type_name_fact(routine, inst, NULL);
         inst->requires_source_statement_emit = true;
     }
     if (expr != NULL && expr->type == AST_CHANNEL_RECV)

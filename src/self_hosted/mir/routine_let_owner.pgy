@@ -86,6 +86,7 @@ func SelfMirLowerLetFromArtifact(
         local_name, nominal_type, expression, local_type,
         "AST_LET_DECL", initializer_uses
     );
+    build = SelfMirRoutineAttachLastAbiTypeName(build, local_type);
     return SelfMirRoutineAttachLastExpressionGraph(
         build, initializer_graph, input.machine_declaration
     );

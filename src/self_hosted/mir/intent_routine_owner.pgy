@@ -460,6 +460,10 @@ func SelfMirAppendIntentRoutine(
         facts.artifact_node_count, facts.declarations, facts.domain_topology,
         facts.domain_runtime_assignments, facts.generic_specializations,
         facts.parallel_captures, appended, SelfMirAppendCfg(facts.cfg, build.cfg),
+        SelfMirInstructionAbiReceiptRowsAppend(
+            facts.instruction_abi_receipts,
+            build.cfg.instructions.abi_type_names, facts.declarations
+        ),
         facts.expression_graph
     );
 }

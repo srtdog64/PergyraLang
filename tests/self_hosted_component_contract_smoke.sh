@@ -636,6 +636,8 @@ require_dir "src/self_hosted/mir_lower"
 require_dir "src/self_hosted/mir"
 for mir_producer_owner in \
     program_fact_owner.pgy \
+    instruction_abi_receipt_fact_owner.pgy \
+    canonical_instruction_id_owner.pgy \
     parallel_capture_fact_owner.pgy \
     expression_fact_owner.pgy \
     routine_input_owner.pgy \
@@ -666,6 +668,7 @@ for mir_producer_owner in \
     program_verify_owner.pgy \
     json_projection_owner.pgy \
     instruction_json_artifact_writer_owner.pgy \
+    instruction_abi_receipt_json_projection_owner.pgy \
     program_json_artifact_writer_owner.pgy; do
     require_file "src/self_hosted/mir/$mir_producer_owner"
     require_max_lines "src/self_hosted/mir/$mir_producer_owner" 600
@@ -712,7 +715,8 @@ require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "func SelfMirProgram
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "func SelfMirProgramFactsFromReadyArtifact"
 require_text "src/self_hosted/mir/routine_assignment_owner.pgy" \
     "if target_text == target &&"
-require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "func SelfMirCanonicalInstructionIds"
+require_text "src/self_hosted/mir/canonical_instruction_id_owner.pgy" \
+    "func SelfMirCanonicalInstructionIds"
 require_text "src/self_hosted/mir/program_verify_owner.pgy" "func SelfMirProgramFactsReady"
 require_text "src/self_hosted/mir/program_verify_owner.pgy" "func SelfMirProgramFactsValidationError"
 require_text "src/self_hosted/mir/program_verify_owner.pgy" "func SelfMirBlockRowsValidationError"
@@ -6721,8 +6725,8 @@ require_text "src/self_hosted/mir/routine_let_owner.pgy" \
     "SelfMirRoutineDeclareLocal("
 require_text "src/self_hosted/mir/routine_build_owner.pgy" \
     "func SelfMirRoutineAtLocalCount("
-require_text "src/self_hosted/mir/abi_layout_json_projection_owner.pgy" \
-    'rows.source_types[instruction_index] == "AST_LET_DECL"'
+require_text "src/self_hosted/mir/routine_let_owner.pgy" \
+    'SelfMirRoutineAttachLastAbiTypeName(build, local_type)'
 require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
     "func MirDeclaredLocalTypeFact("
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
@@ -13895,13 +13899,37 @@ require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE)'
 require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-array-argument-projection-test-smoke"
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
-    "src/self_hosted/mir_lower/fixture/struct_literal_call_argument.pgy"
+    "src/self_hosted/mir_lower/fixture/struct_literal_value_flow.pgy"
 require_file "src/self_hosted/mir/nominal_abi_layout_fact_owner.pgy"
 require_max_lines "src/self_hosted/mir/nominal_abi_layout_fact_owner.pgy" 245
 require_file \
     "src/self_hosted/mir/nominal_abi_layout_json_projection_owner.pgy"
 require_max_lines \
     "src/self_hosted/mir/nominal_abi_layout_json_projection_owner.pgy" 70
+require_file "src/self_hosted/mir/instruction_abi_receipt_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir/instruction_abi_receipt_fact_owner.pgy" 100
+require_file "src/self_hosted/mir/instruction_abi_receipt_json_projection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir/instruction_abi_receipt_json_projection_owner.pgy" 70
+require_file "src/self_hosted/mir/canonical_instruction_id_owner.pgy"
+require_max_lines "src/self_hosted/mir/canonical_instruction_id_owner.pgy" 90
+require_text "src/self_hosted/mir/program_fact_owner.pgy" \
+    "instruction_abi_receipts: SelfMirInstructionAbiReceiptRows"
+require_text "src/self_hosted/mir/artifact_lower_owner.pgy" \
+    "SelfMirInstructionAbiReceiptRowsAppend("
+require_text "src/self_hosted/mir/intent_routine_owner.pgy" \
+    "SelfMirInstructionAbiReceiptRowsAppend("
+require_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    "facts.instruction_abi_receipts"
+require_text "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
+    "facts.instruction_abi_receipts"
+reject_text "src/self_hosted/mir/abi_layout_json_projection_owner.pgy" \
+    'rows.expr1s[instruction_index]'
+reject_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    "SelfMirJsonOwnedAbiLayoutForType("
+reject_text "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
+    "SelfMirJsonOwnedAbiLayoutForType("
 require_file \
     "src/self_hosted/compiler/direct_mir_nominal_declaration_abi_fact_owner.pgy"
 require_max_lines \
@@ -13953,6 +13981,50 @@ require_text "Makefile" "SELFHOST_ONE_MIR_STRUCT_ARGUMENT_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_STRUCT_ARGUMENT_GATE)'
 require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-struct-argument-projection-test-smoke"
+for value_flow_owner_cap in \
+    direct_mir_nominal_abi_row_equality_owner.pgy:40 \
+    direct_mir_struct_value_flow_program_admission_owner.pgy:95 \
+    direct_mir_struct_value_flow_program_identity_owner.pgy:230 \
+    direct_mir_struct_value_flow_graph_fact_owner.pgy:260 \
+    direct_mir_struct_value_flow_instruction_admission_owner.pgy:200 \
+    direct_mir_struct_value_flow_abi_fact_owner.pgy:180 \
+    direct_mir_struct_value_flow_plan_owner.pgy:230 \
+    direct_mir_struct_value_flow_c_emission_owner.pgy:180 \
+    direct_mir_struct_value_flow_llvm_emission_owner.pgy:140 \
+    direct_mir_struct_value_flow_projection_owner.pgy:40; do
+    value_flow_owner="${value_flow_owner_cap%%:*}"
+    value_flow_cap="${value_flow_owner_cap##*:}"
+    require_file "src/self_hosted/compiler/$value_flow_owner"
+    require_max_lines "src/self_hosted/compiler/$value_flow_owner" "$value_flow_cap"
+done
+require_file "tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh"
+require_file "tests/self_hosted/parity/one_mir_struct_value_flow_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh" 200
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_struct_value_flow_mutations.py" 240
+require_text "src/self_hosted/compiler/direct_mir_array_return_program_identity_owner.pgy" \
+    "JsonArrayObjectFactCount(admitted.document.declarations) == 0"
+require_text "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
+    "DirectMirStructValueFlowProgramCandidate(admitted)"
+require_text "src/self_hosted/compiler/direct_mir_struct_value_flow_plan_owner.pgy" \
+    "independent_nominal_values_by_value"
+require_text "tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh" \
+    "gate must produce source MIR exactly once"
+require_text "tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh" \
+    "routine-order-swap"
+require_text "tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh" \
+    "repaired-all-layout-offsets"
+require_text "tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh" \
+    "C/LLVM exact 11"
+require_text "Makefile" "SELFHOST_ONE_MIR_STRUCT_VALUE_FLOW_GATE ?="
+require_text "Makefile" '$(SELFHOST_ONE_MIR_STRUCT_VALUE_FLOW_GATE)'
+require_text ".github/workflows/ci.yml" \
+    "self-host-one-mir-struct-value-flow-projection-test-smoke"
+require_text "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
+    "src/self_hosted/mir_lower/fixture/struct_literal_value_flow.pgy"
+require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
+    "src/self_hosted/mir_lower/fixture/struct_literal_value_flow.pgy"
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240

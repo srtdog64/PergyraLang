@@ -229,6 +229,7 @@ SELFHOST_ONE_MIR_CFG_AIR_PLAN_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-hos
 SELFHOST_ONE_MIR_ARRAY_RETURN_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-array-return-projection-test-smoke)
 SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-array-argument-projection-test-smoke)
 SELFHOST_ONE_MIR_STRUCT_ARGUMENT_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-struct-argument-projection-test-smoke)
+SELFHOST_ONE_MIR_STRUCT_VALUE_FLOW_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-struct-value-flow-projection-test-smoke)
 SELFHOST_HARD_DRIVER_FRONTIER ?= class_compare_return,class_as_strategy,class_compose_factory,device_slot_routine,defer_scope,class_node_field_access,function_clause_order_minimal
 RUNTIME_PANIC_CODEGEN_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 SLOT_CONTRACT_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
@@ -2933,7 +2934,7 @@ self-host-preparation-platform-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_DRIVER_BACKENDS="$${PGY_SELFHOST_DRIVER_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung2_body_parity.sh
 
-self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-hard-driver-rung2-parity-test-smoke $(SELFHOST_ONE_MIR_DUAL_BACKEND_GATE) $(SELFHOST_ONE_MIR_CFG_AIR_PLAN_GATE) $(SELFHOST_ONE_MIR_ARRAY_RETURN_GATE) $(SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE) $(SELFHOST_ONE_MIR_STRUCT_ARGUMENT_GATE)
+self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-hard-driver-rung2-parity-test-smoke $(SELFHOST_ONE_MIR_DUAL_BACKEND_GATE) $(SELFHOST_ONE_MIR_CFG_AIR_PLAN_GATE) $(SELFHOST_ONE_MIR_ARRAY_RETURN_GATE) $(SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE) $(SELFHOST_ONE_MIR_STRUCT_ARGUMENT_GATE) $(SELFHOST_ONE_MIR_STRUCT_VALUE_FLOW_GATE)
 
 self-host-preparation-exhaustive-parity-test-smoke: $(PGY) $(PGY_LSP) self-host-driver-execution-action-optional-within-parity-test-smoke self-host-driver-source-mir-execution-action-test-smoke
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_json_validator_parity.sh
@@ -3172,10 +3173,13 @@ self-host-one-mir-array-argument-projection-test-smoke: self-host-compiler
 self-host-one-mir-struct-argument-projection-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_struct_argument_projection.sh
 
+self-host-one-mir-struct-value-flow-projection-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh
+
 self-host-default-llvm-replacement-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh
 
-.PHONY: self-host-one-mir-dual-backend-projection-test-smoke self-host-one-mir-cfg-air-plan-projection-test-smoke self-host-one-mir-option-match-projection-test-smoke self-host-one-mir-array-int-projection-test-smoke self-host-one-mir-array-return-projection-test-smoke self-host-one-mir-array-argument-projection-test-smoke self-host-one-mir-struct-argument-projection-test-smoke self-host-default-llvm-replacement-test-smoke self-host-driver-source-mir-execution-action-test-smoke
+.PHONY: self-host-one-mir-dual-backend-projection-test-smoke self-host-one-mir-cfg-air-plan-projection-test-smoke self-host-one-mir-option-match-projection-test-smoke self-host-one-mir-array-int-projection-test-smoke self-host-one-mir-array-return-projection-test-smoke self-host-one-mir-array-argument-projection-test-smoke self-host-one-mir-struct-argument-projection-test-smoke self-host-one-mir-struct-value-flow-projection-test-smoke self-host-default-llvm-replacement-test-smoke self-host-driver-source-mir-execution-action-test-smoke
 
 self-host-driver-bootstrap-full-test-smoke: self-host-codegen-bootstrap-seed-test-smoke
 	@if command -v powershell >/dev/null 2>&1; then \

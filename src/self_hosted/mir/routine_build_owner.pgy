@@ -124,6 +124,15 @@ func SelfMirRoutineAddInstruction(
     );
 }
 
+func SelfMirRoutineAttachLastAbiTypeName(
+    build: SelfMirRoutineBuild,
+    abi_type_name: String
+) -> SelfMirRoutineBuild {
+    return SelfMirRoutineWithCfg(
+        build, SelfMirCfgAttachLastAbiTypeName(build.cfg, abi_type_name)
+    );
+}
+
 func SelfMirSsaBaseName(ssa_name: String) -> String {
     let separator: Int = StringIndexOf(ssa_name, ".");
     if separator < 0 { return ssa_name; }

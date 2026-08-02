@@ -167,3 +167,18 @@ mir_decl_header_abi_layout(const MIRDeclHeader *header)
     }
     return &header->abi_layout;
 }
+
+const MIRTypeLayout *
+mir_program_abi_layout_for_type_name(const MIRProgram *program,
+                                     const char *type_name)
+{
+    const MIRTypeLayout *layout;
+
+    if (type_name == NULL || type_name[0] == '\0')
+        return NULL;
+    layout = mir_abi_lookup(type_name);
+    if (layout != NULL)
+        return layout;
+    return mir_decl_header_abi_layout(
+        mir_nominal_unique_struct(program, type_name));
+}

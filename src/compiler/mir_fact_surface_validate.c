@@ -1,6 +1,7 @@
 #include "mir_fact_validate_internal.h"
 #include "mir_abi_layout.h"
 #include "mir_machine_layer.h"
+#include "mir_nominal_abi_layout.h"
 #include "mir_stmt_population_internal.h"
 
 #include <string.h>
@@ -110,6 +111,23 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
         const char *root_call_name = mir_instruction_root_call_name(inst);
         const MIRTextBuilderRuntimeRow *expected_text_builder_row =
             mir_text_builder_runtime_row_by_source_name(root_call_name);
+        const MIRTypeLayout *expected_instruction_layout =
+            mir_program_abi_layout_for_type_name(
+                routine->program, inst->abi_type_name);
+        if ((inst->kind == MIR_INST_RETURN || inst->kind == MIR_INST_DEF
+             || inst->kind == MIR_INST_ASSIGN)
+            && expected_instruction_layout != NULL
+            && (inst->type_layout != expected_instruction_layout
+                || inst->abi_layout_id !=
+                    mir_abi_layout_id(expected_instruction_layout))) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] is missing its program-owned ABI layout receipt",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index, i);
+            }
+            return false;
+        }
         if (inst->type_layout != NULL
             && (inst->abi_layout_id == 0
                 || inst->abi_layout_id != mir_abi_layout_id(inst->type_layout))) {

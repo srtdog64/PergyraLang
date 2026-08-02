@@ -6,6 +6,7 @@ import "direct_mir_array_return_emission_owner.pgy";
 import "direct_mir_array_argument_emission_owner.pgy";
 import "direct_mir_struct_argument_c_emission_owner.pgy";
 import "direct_mir_struct_argument_llvm_emission_owner.pgy";
+import "direct_mir_struct_value_flow_projection_owner.pgy";
 
 func CompileAdmittedDirectMirMultiRoutineForTarget(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -42,6 +43,7 @@ func CompileAdmittedDirectMirMultiRoutineForTarget(
             return_plan, return_abi, formatted_print, line_format
         );
     }
+    if DirectMirStructValueFlowProgramCandidate(admitted) { return CompileAdmittedDirectMirStructValueFlow(admitted, is_llvm, formatted_print, line_format); }
     if DirectMirStructArgumentProgramCandidate(admitted) {
         let struct_plan: DirectMirStructArgumentPlan =
             DirectMirStructArgumentPlanFromAdmitted(admitted);

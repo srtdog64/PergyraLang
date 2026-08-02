@@ -6,7 +6,9 @@
 
 #include "../parser/ast_api.h"
 #include "mir_base_helpers.h"
+#include "mir_abi_layout.h"
 #include "mir_branch_source_facts.h"
+#include "mir_nominal_abi_layout.h"
 #include "mir_source_inventory_build.h"
 #include "mir_timing.h"
 
@@ -72,8 +74,13 @@ mir_add_terminator_instruction(MIRRoutine *routine,
     else if (inst.kind == MIR_INST_BRANCH
         && inst.branch_shape == MIR_BRANCH_SELECT_DISPATCH)
         inst.expr0 = mir_select_case_channel(terminator_condition);
-    else if (inst.kind == MIR_INST_RETURN)
+    else if (inst.kind == MIR_INST_RETURN) {
         inst.expr0 = terminator_value;
+        inst.abi_type_name = routine->return_type_name;
+        inst.type_layout = mir_program_abi_layout_for_type_name(
+            routine->program, inst.abi_type_name);
+        inst.abi_layout_id = mir_abi_layout_id(inst.type_layout);
+    }
     if (inst.kind == MIR_INST_BRANCH
         && inst.ast != NULL
         && inst.ast->type == AST_FOR_LOOP) {

@@ -17,6 +17,7 @@ import "generic_specialization_owner.pgy";
 import "runtime_call_abi_fact_owner.pgy";
 import "domain_topology_fact_owner.pgy";
 import "domain_runtime_assignment_fact_owner.pgy";
+import "instruction_abi_receipt_fact_owner.pgy";
 
 struct SelfMirInstructionRows {
     ids: Array<Int>;
@@ -110,6 +111,7 @@ struct SelfMirProgramFacts {
     parallel_captures: SelfMirParallelCaptureRows;
     routines: SelfMirRoutineRows;
     cfg: SelfMirCfgRows;
+    instruction_abi_receipts: SelfMirInstructionAbiReceiptRows;
     expression_graph: SemanticExpressionGraphFacts;
 }
 
@@ -193,6 +195,7 @@ func SelfMirProgramFactsEmpty(
         SelfMirParallelCaptureRowsEmpty(),
         SelfMirRoutineRowsEmpty(),
         SelfMirCfgRowsEmpty(),
+        SelfMirInstructionAbiReceiptRowsEmpty(),
         expression_graph
     );
 }
@@ -208,6 +211,7 @@ func SelfMirProgramFactsError(
         facts.domain_runtime_assignments,
         facts.generic_specializations,
         facts.parallel_captures, facts.routines, facts.cfg,
+        facts.instruction_abi_receipts,
         facts.expression_graph
     );
 }
@@ -222,6 +226,7 @@ func SelfMirProgramFactsWithDomainTopology(
         facts.domain_runtime_assignments,
         facts.generic_specializations, facts.parallel_captures,
         facts.routines, facts.cfg,
+        facts.instruction_abi_receipts,
         facts.expression_graph
     );
 }

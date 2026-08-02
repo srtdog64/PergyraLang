@@ -1,0 +1,22 @@
+// Target selection for the already admitted nominal value-flow plan.
+
+import "direct_mir_struct_value_flow_c_emission_owner.pgy";
+import "direct_mir_struct_value_flow_llvm_emission_owner.pgy";
+
+func CompileAdmittedDirectMirStructValueFlow(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    is_llvm: Bool,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    let plan: DirectMirStructValueFlowPlan =
+        DirectMirStructValueFlowPlanFromAdmitted(admitted);
+    if is_llvm {
+        return DirectMirStructValueFlowEmitLlvm(
+            plan, formatted_print, line_format
+        );
+    }
+    return DirectMirStructValueFlowEmitC(
+        plan, formatted_print, line_format
+    );
+}

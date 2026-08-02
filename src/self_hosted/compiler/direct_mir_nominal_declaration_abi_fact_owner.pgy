@@ -4,7 +4,7 @@
 import "../mir_lower/abi_layout_admission_fact_owner.pgy";
 import "../mir_lower/program_declaration_index_owner.pgy";
 import "../air/mir_cfg_identity_owner.pgy";
-
+import "direct_mir_nominal_abi_row_equality_owner.pgy";
 struct DirectMirNominalDeclarationAbiFact {
     let valid: Bool;
     let digest: Int;

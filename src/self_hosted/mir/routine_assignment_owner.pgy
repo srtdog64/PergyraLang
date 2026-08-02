@@ -111,6 +111,9 @@ func SelfMirLowerAssignmentFromArtifact(
         build, "def", "ssa-def", SelfMirSsaName(target, version),
         target, binding_mode, expression, target_text, "AST_ASSIGNMENT", uses
     );
+    build = SelfMirRoutineAttachLastAbiTypeName(
+        build, build.local_types[local_index]
+    );
     build = SelfMirRoutineAttachLastExpressionGraph(
         build, value_graph, input.machine_declaration
     );

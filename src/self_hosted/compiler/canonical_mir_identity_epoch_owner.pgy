@@ -591,6 +591,7 @@ func CanonicalMirIdentityEpochRebindProgramFacts(
         topology, domain_runtime_assignments,
         facts.generic_specializations, facts.parallel_captures,
         facts.routines, facts.cfg,
+        facts.instruction_abi_receipts,
         facts.expression_graph
     );
     return CanonicalMirProgramIdentityEpoch(

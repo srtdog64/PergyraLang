@@ -1,0 +1,69 @@
+// Exclusive envelope for the two-routine, one-struct value-flow program.
+
+import "direct_mir_array_argument_program_identity_owner.pgy";
+
+func DirectMirStructValueFlowProgramCandidate(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    return MirProgramRoutineIndexCount(admitted.routines) == 2 &&
+        JsonArrayObjectFactTableReady(admitted.document.declarations) &&
+        JsonArrayObjectFactCount(admitted.document.declarations) == 1;
+}
+
+func DirectMirStructValueFlowProgramEnvelopeReady(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    let specializations: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(
+            admitted.document.root, "generic_method_specializations"
+        );
+    let declarations: MirProgramDeclarationIndex =
+        admitted.domain_runtime_admission.declarations;
+    if !admitted.document.valid || admitted.domain_topology_plan.present ||
+        admitted.document.routines.json != admitted.routines.source_json ||
+        JsonObjectFactCount(admitted.document.root) != 5 ||
+        !DirectMirStructValueFlowProgramCandidate(admitted) ||
+        !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 ||
+        !JsonArrayObjectFactTableReady(
+            admitted.document.parallel_capture_boundaries
+        ) || JsonArrayObjectFactCount(
+            admitted.document.parallel_capture_boundaries
+        ) != 0 || !JsonArrayObjectFactTableReady(specializations) ||
+        JsonArrayObjectFactCount(specializations) != 0 ||
+        !MirProgramRoutineIndexStructureReady(admitted.routines) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < 2 {
+        if admitted.routines.kinds[row] != "function" ||
+            admitted.routines.owners[row] != "" ||
+            admitted.routines.routine_block_counts[row] != 1 {
+            return false;
+        }
+        let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.ends[row]
+        );
+        if !JsonObjectFactTableReady(routine) ||
+            !DirectMirArrayArgumentRoutineEnvelopeReady(routine) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirStructValueFlowUniqueRoutineRow(
+    ref routines: MirProgramRoutineIndex, name: String
+) -> Int {
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < MirProgramRoutineIndexCount(routines) {
+        if routines.names[row] == name {
+            if found >= 0 { Die("direct MIR value-flow routine is duplicated"); }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}

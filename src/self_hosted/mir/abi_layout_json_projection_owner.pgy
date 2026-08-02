@@ -326,30 +326,11 @@ func SelfMirJsonAbiTypeName(
     if rows.abi_type_names[instruction_index] != "" {
         return rows.abi_type_names[instruction_index];
     }
-    if rows.kinds[instruction_index] == "def" &&
-        rows.source_types[instruction_index] == "AST_LET_DECL" {
-        return rows.expr1s[instruction_index];
-    }
     if rows.runtime_call_abi.present[instruction_index] == 1 {
         if rows.source_types[instruction_index] == "AST_CALL" {
             return "";
         }
         return rows.runtime_call_abi.type_names[instruction_index];
-    }
-    let candidate: String = rows.expr1s[instruction_index];
-    if candidate == "Int" || candidate == "Long" ||
-        candidate == "Float" || candidate == "Double" ||
-        candidate == "Bool" || candidate == "String" ||
-        candidate == "Option<Int>" || candidate == "Option<Long>" ||
-        candidate == "Option<Float>" || candidate == "Option<Double>" ||
-        candidate == "Option<String>" || candidate == "Option<Bool>" ||
-        candidate == "Result<Int>" || candidate == "Result<Bool>" ||
-        candidate == "Result<String>" || candidate == "Array<Int>" ||
-        candidate == "Array<Long>" || candidate == "Array<Float>" ||
-        candidate == "Array<Double>" || candidate == "Array<Bool>" ||
-        candidate == "Array<String>" || candidate == "TextBuilder" ||
-        candidate == "Allocator" {
-        return candidate;
     }
     return "";
 }

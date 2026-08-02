@@ -1,0 +1,153 @@
+// Row-order-independent identity for nominal aggregate return/value flow.
+
+import "direct_mir_struct_value_flow_program_admission_owner.pgy";
+import "direct_mir_struct_value_flow_graph_fact_owner.pgy";
+import "direct_mir_nominal_declaration_abi_fact_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+
+struct DirectMirStructValueFlowProgramIdentity {
+    let valid: Bool;
+    let digest: Int;
+    let entrypoint: DirectMirRoutineSignatureFact;
+    let producer: DirectMirRoutineSignatureFact;
+    let declaration: DirectMirNominalDeclarationAbiFact;
+    let graph: DirectMirStructValueFlowGraphFact;
+}
+
+func DirectMirStructValueFlowProgramIdentityDigest(
+    ref identity: DirectMirStructValueFlowProgramIdentity
+) -> Int {
+    if !identity.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(163L, identity.entrypoint.digest);
+    hash = DirectMirCfgHashInt(hash, identity.producer.digest);
+    hash = DirectMirCfgHashInt(hash, identity.declaration.digest);
+    hash = DirectMirCfgHashInt(hash, identity.graph.digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirStructValueFlowPhysicalRowReady(
+    ref declaration: DirectMirNominalDeclarationAbiFact
+) -> Bool {
+    return declaration.abi.size_text == "8" &&
+        declaration.abi.align_text == "4" &&
+        ArrayLength(declaration.abi.field_names) == 2 &&
+        declaration.abi.field_offsets[0] == "0" &&
+        declaration.abi.field_offsets[1] == "4" &&
+        declaration.abi.field_sizes[0] == "4" &&
+        declaration.abi.field_sizes[1] == "4" &&
+        declaration.abi.field_aligns[0] == "4" &&
+        declaration.abi.field_aligns[1] == "4";
+}
+
+func DirectMirStructValueFlowProgramIdentityReady(
+    ref identity: DirectMirStructValueFlowProgramIdentity
+) -> Bool {
+    if !identity.valid || identity.digest == 0 || identity.digest !=
+        DirectMirStructValueFlowProgramIdentityDigest(identity) ||
+        !DirectMirRoutineSignatureFactReady(identity.entrypoint) ||
+        !DirectMirRoutineSignatureFactReady(identity.producer) ||
+        !DirectMirNominalDeclarationAbiFactReady(identity.declaration) ||
+        !DirectMirStructValueFlowGraphFactReady(identity.graph) {
+        return false;
+    }
+    let declaration: DirectMirNominalDeclarationAbiFact = identity.declaration;
+    let graph: DirectMirStructValueFlowGraphFact = identity.graph;
+    return identity.entrypoint.name == "Main" &&
+        identity.entrypoint.return_type == "Void" &&
+        identity.entrypoint.param_count == 0 &&
+        identity.producer.name == graph.producer_name &&
+        identity.producer.return_type == declaration.name &&
+        identity.producer.param_count == 1 &&
+        identity.producer.param.name == graph.parameter_name &&
+        identity.producer.param.type_name == CompilerAbiLayoutIntTypeName() &&
+        identity.producer.param.carriage == "value" &&
+        identity.producer.param.resource == "none" &&
+        identity.producer.param.pass_shape == "direct" &&
+        !identity.producer.param.abi_required &&
+        declaration.name == graph.type_name &&
+        ArrayLength(declaration.field_names) == 2 &&
+        declaration.field_names[0] == graph.first_field &&
+        declaration.field_names[1] == graph.second_field &&
+        declaration.field_types[0] == CompilerAbiLayoutIntTypeName() &&
+        declaration.field_types[1] == CompilerAbiLayoutIntTypeName() &&
+        DirectMirStructValueFlowPhysicalRowReady(declaration) &&
+        identity.entrypoint.row != identity.producer.row &&
+        identity.entrypoint.source_syntax_id !=
+            identity.producer.source_syntax_id;
+}
+
+func DirectMirStructValueFlowInstructionGraph(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    routine_row: Int, instruction_row: Int
+) -> MirExpressionGraphSequence {
+    let global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, routine_row, 0, instruction_row
+    );
+    if global < 0 { Die("direct MIR value-flow instruction routing failed"); }
+    let expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions, global
+        );
+    return DirectMirArrayIntGraphFromExpressionFact(
+        admitted.routines.source_json, expression, 0
+    );
+}
+
+func DirectMirStructValueFlowProgramIdentityFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirStructValueFlowProgramIdentity {
+    if !DirectMirStructValueFlowProgramEnvelopeReady(admitted) {
+        Die("direct MIR struct value-flow program envelope is invalid");
+    }
+    let main_row: Int = DirectMirStructValueFlowUniqueRoutineRow(
+        admitted.routines, "Main"
+    );
+    let entrypoint: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 4);
+    if !DirectMirRoutineSignatureFactReady(entrypoint) ||
+        entrypoint.return_type != "Void" || entrypoint.param_count != 0 {
+        Die("direct MIR struct value-flow entrypoint is invalid");
+    }
+    let initial: MirExpressionGraphSequence =
+        DirectMirStructValueFlowInstructionGraph(admitted, main_row, 0);
+    let assigned: MirExpressionGraphSequence =
+        DirectMirStructValueFlowInstructionGraph(admitted, main_row, 1);
+    let called: MirExpressionGraphSequence =
+        DirectMirStructValueFlowInstructionGraph(admitted, main_row, 2);
+    let output: MirExpressionGraphSequence =
+        DirectMirStructValueFlowInstructionGraph(admitted, main_row, 3);
+    let producer_name: String =
+        DirectMirStructValueFlowProducerNameFromCall(called);
+    let producer_row: Int = DirectMirStructValueFlowUniqueRoutineRow(
+        admitted.routines, producer_name
+    );
+    let producer: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(admitted.routines, producer_row, 1);
+    let returned: MirExpressionGraphSequence =
+        DirectMirStructValueFlowInstructionGraph(admitted, producer_row, 0);
+    let graph: DirectMirStructValueFlowGraphFact =
+        DirectMirStructValueFlowGraphFactFromSequences(
+            returned, initial, assigned, called, output
+        );
+    let declarations: MirProgramDeclarationIndex =
+        admitted.domain_runtime_admission.declarations;
+    let declaration: DirectMirNominalDeclarationAbiFact =
+        DirectMirNominalDeclarationAbiFactFromDocument(
+            admitted.document.root.json, declarations, 0
+        );
+    let identity: DirectMirStructValueFlowProgramIdentity =
+        DirectMirStructValueFlowProgramIdentity(
+            true, 0, entrypoint, producer, declaration, graph
+        );
+    let verified: DirectMirStructValueFlowProgramIdentity =
+        DirectMirStructValueFlowProgramIdentity(
+            identity.valid,
+            DirectMirStructValueFlowProgramIdentityDigest(identity),
+            identity.entrypoint, identity.producer, identity.declaration,
+            identity.graph
+        );
+    if !DirectMirStructValueFlowProgramIdentityReady(verified) {
+        Die("direct MIR struct value-flow identity is invalid");
+    }
+    return verified;
+}
