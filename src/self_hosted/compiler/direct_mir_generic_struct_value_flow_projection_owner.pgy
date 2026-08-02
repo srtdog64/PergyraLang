@@ -1,0 +1,25 @@
+// Target selection after the generic nominal plan has been admitted once.
+
+import "direct_mir_generic_struct_value_flow_c_emission_owner.pgy";
+import "direct_mir_generic_struct_value_flow_llvm_emission_owner.pgy";
+
+func CompileAdmittedDirectMirGenericStructValueFlow(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirThreeRoutineClassificationFact,
+    is_llvm: Bool,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    let plan: DirectMirGenericStructValueFlowPlan =
+        DirectMirGenericStructValueFlowPlanFromAdmitted(
+            admitted, classification
+        );
+    if is_llvm {
+        return DirectMirGenericStructValueFlowEmitLlvm(
+            plan, formatted_print, line_format
+        );
+    }
+    return DirectMirGenericStructValueFlowEmitC(
+        plan, formatted_print, line_format
+    );
+}

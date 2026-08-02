@@ -1,0 +1,158 @@
+// Strict one-formal generic routine signature for direct-MIR projection.
+
+import "direct_mir_routine_param_fact_owner.pgy";
+import "../mir_lower/program_routine_index_owner.pgy";
+import "../mir_lower/routine_inventory_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirGenericRoutineSignatureFact {
+    let valid: Bool;
+    let digest: Int;
+    let row: Int;
+    let name: String;
+    let kind: String;
+    let source_syntax_id: Int;
+    let receiver_carriage: String;
+    let generic_name: String;
+    let return_type: String;
+    let param: DirectMirRoutineParamFact;
+}
+
+func InvalidDirectMirGenericRoutineSignatureFact(
+) -> DirectMirGenericRoutineSignatureFact {
+    return DirectMirGenericRoutineSignatureFact(
+        false, 0, 0 - 1, "", "", 0, "", "", "",
+        InvalidDirectMirRoutineParamFact()
+    );
+}
+
+func DirectMirGenericRoutineSignatureFactDigest(
+    ref fact: DirectMirGenericRoutineSignatureFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(191L, fact.name);
+    hash = DirectMirCfgHashString(hash, fact.kind);
+    hash = DirectMirCfgHashInt(hash, fact.source_syntax_id);
+    hash = DirectMirCfgHashString(hash, fact.receiver_carriage);
+    hash = DirectMirCfgHashString(hash, fact.generic_name);
+    hash = DirectMirCfgHashString(hash, fact.return_type);
+    hash = DirectMirCfgHashInt(hash, fact.param.digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirGenericRoutineSignatureFactReady(
+    ref fact: DirectMirGenericRoutineSignatureFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirGenericRoutineSignatureFactDigest(fact) && fact.row >= 0 &&
+        fact.name != "" && fact.name != "Main" &&
+        fact.kind == "function" && fact.source_syntax_id > 0 &&
+        fact.receiver_carriage == "none" &&
+        fact.generic_name != "" && fact.return_type == fact.generic_name &&
+        DirectMirRoutineParamFactReady(fact.param) &&
+        fact.param.type_name == fact.generic_name &&
+        fact.param.carriage == "value" && fact.param.resource == "none" &&
+        fact.param.pass_shape == "direct" && !fact.param.abi_required;
+}
+
+func DirectMirGenericRoutineSignatureFactAt(
+    ref routines: MirProgramRoutineIndex, row: Int
+) -> DirectMirGenericRoutineSignatureFact {
+    if row < 0 || !MirProgramRoutineIndexRowReady(routines, row) ||
+        routines.kinds[row] != "function" || routines.owners[row] != "" ||
+        routines.routine_block_counts[row] != 1 ||
+        MirProgramRoutineIndexBlockInstructionCountAt(routines, row, 0) != 1 {
+        return InvalidDirectMirGenericRoutineSignatureFact();
+    }
+    let unique_name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        routines.source_json, routines.starts[row], routines.ends[row], "name"
+    );
+    let unique_kind: Option<String> = MirObjectUniqueStringFactAtBounds(
+        routines.source_json, routines.starts[row], routines.ends[row], "kind"
+    );
+    let unique_syntax: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        routines.source_json, routines.starts[row], routines.ends[row],
+        "source_syntax_id"
+    );
+    let unique_receiver: Option<String> = MirObjectUniqueStringFactAtBounds(
+        routines.source_json, routines.starts[row], routines.ends[row],
+        "receiver_carriage"
+    );
+    let unique_return: Option<String> = MirObjectUniqueStringFactAtBounds(
+        routines.source_json, routines.starts[row], routines.ends[row],
+        "return"
+    );
+    let generic_bounds: Array<Int> = [0, 0];
+    if !IsSome(unique_name) || !IsSome(unique_kind) ||
+        !IsSome(unique_syntax) || !IsSome(unique_receiver) ||
+        !IsSome(unique_return) ||
+        UnwrapOption(unique_name) != routines.names[row] ||
+        UnwrapOption(unique_kind) != routines.kinds[row] ||
+        UnwrapOption(unique_syntax) != routines.source_syntax_ids[row] ||
+        UnwrapOption(unique_receiver) != "none" ||
+        MirObjectFieldOccurrenceCountAtBounds(
+            routines.source_json, routines.starts[row], routines.ends[row],
+            "generics"
+        ) != 1 || MirObjectFieldOccurrenceCountAtBounds(
+            routines.source_json, routines.starts[row], routines.ends[row],
+            "params"
+        ) != 1 || !MirObjectArrayBoundsAtBounds(
+            routines.source_json, routines.starts[row], routines.ends[row],
+            "generics", generic_bounds
+        ) || JsonArrayStringCount(
+            routines.source_json, generic_bounds[0], generic_bounds[1]
+        ) != 1 {
+        return InvalidDirectMirGenericRoutineSignatureFact();
+    }
+    let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
+        routines.source_json, routines.starts[row], routines.ends[row]
+    );
+    let param_bounds: Array<Int> = [0, 0];
+    let object_bounds: Array<Int> = [0, 0];
+    if ArrayLength(header.generic_names) != 1 ||
+        ArrayLength(header.param_names) != 1 ||
+        ArrayLength(header.param_types) != 1 ||
+        ArrayLength(header.param_carriages) != 1 ||
+        ArrayLength(header.param_resources) != 1 ||
+        ArrayLength(header.param_pass_shapes) != 1 ||
+        header.return_type != UnwrapOption(unique_return) ||
+        !MirObjectArrayBoundsAtBounds(
+            routines.source_json, routines.starts[row], routines.ends[row],
+            "params", param_bounds
+        ) || !JsonArrayNextObjectBounds(
+            routines.source_json, param_bounds[0] + 1, param_bounds[1],
+            object_bounds
+        ) {
+        return InvalidDirectMirGenericRoutineSignatureFact();
+    }
+    let param: DirectMirRoutineParamFact =
+        DirectMirRoutineParamFactFromBounds(
+            routines.source_json, object_bounds[0], object_bounds[1]
+        );
+    if !DirectMirRoutineParamFactReady(param) ||
+        param.name != header.param_names[0] ||
+        param.type_name != header.param_types[0] ||
+        param.carriage != header.param_carriages[0] ||
+        param.resource != header.param_resources[0] ||
+        param.pass_shape != header.param_pass_shapes[0] {
+        return InvalidDirectMirGenericRoutineSignatureFact();
+    }
+    let fact: DirectMirGenericRoutineSignatureFact =
+        DirectMirGenericRoutineSignatureFact(
+            true, 0, row, routines.names[row], routines.kinds[row],
+            ToInt(routines.source_syntax_ids[row]),
+            UnwrapOption(unique_receiver),
+            header.generic_names[0], header.return_type, param
+        );
+    let verified: DirectMirGenericRoutineSignatureFact =
+        DirectMirGenericRoutineSignatureFact(
+            fact.valid, DirectMirGenericRoutineSignatureFactDigest(fact),
+            fact.row, fact.name, fact.kind, fact.source_syntax_id,
+            fact.receiver_carriage, fact.generic_name, fact.return_type,
+            fact.param
+        );
+    if !DirectMirGenericRoutineSignatureFactReady(verified) {
+        return InvalidDirectMirGenericRoutineSignatureFact();
+    }
+    return verified;
+}

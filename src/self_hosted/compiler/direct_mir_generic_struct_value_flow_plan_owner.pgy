@@ -1,0 +1,103 @@
+// Target-neutral plan for explicit generic scalar calls and nominal values.
+
+import "direct_mir_generic_struct_value_flow_abi_fact_owner.pgy";
+import "target_capability_owner.pgy";
+import "artifact_zone_owner.pgy";
+import "../mir_lower/ssa_identity_owner.pgy";
+
+struct DirectMirGenericStructValueFlowPlan {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let digest: Int;
+    let target_capability_schema: String;
+    let target_capability_fingerprint: Int;
+    let identity: DirectMirGenericStructValueFlowProgramIdentity;
+    let abi: DirectMirGenericStructValueFlowAbiFact;
+    let source_value: String;
+    let result_value: String;
+    let value_carriage: String;
+}
+
+func DirectMirGenericStructValueFlowPlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-generic-struct-value-flow-plan.v1";
+}
+
+func DirectMirGenericStructValueFlowCarriage() -> String {
+    return "explicit_generic_scalar_calls_into_nominal_values_by_value";
+}
+
+func DirectMirGenericStructValueFlowPlanDigest(
+    ref plan: DirectMirGenericStructValueFlowPlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(227L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
+    hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
+    hash = DirectMirCfgHashInt(hash, plan.identity.digest);
+    hash = DirectMirCfgHashInt(hash, plan.abi.digest);
+    hash = DirectMirCfgHashString(hash, plan.source_value);
+    hash = DirectMirCfgHashString(hash, plan.result_value);
+    hash = DirectMirCfgHashString(hash, plan.value_carriage);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirGenericStructValueFlowPlanReady(
+    ref plan: DirectMirGenericStructValueFlowPlan
+) -> Bool {
+    return plan.valid &&
+        plan.schema == DirectMirGenericStructValueFlowPlanSchema() &&
+        plan.revision == CompilerArtifactPlanRevision() && plan.digest != 0 &&
+        plan.digest == DirectMirGenericStructValueFlowPlanDigest(plan) &&
+        plan.target_capability_schema == CompilerTargetCapabilitySchema() &&
+        plan.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        DirectMirGenericStructValueFlowProgramIdentityReady(plan.identity) &&
+        DirectMirGenericStructValueFlowAbiFactReady(plan.abi) &&
+        MirSsaNameMatches(
+            plan.source_value, plan.identity.graph.source_local_name, false
+        ) && MirSsaNameMatches(
+            plan.result_value, plan.identity.graph.result_local_name, false
+        ) && plan.source_value != plan.result_value &&
+        plan.value_carriage == DirectMirGenericStructValueFlowCarriage();
+}
+
+func DirectMirGenericStructValueFlowPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirThreeRoutineClassificationFact
+) -> DirectMirGenericStructValueFlowPlan {
+    let identity: DirectMirGenericStructValueFlowProgramIdentity =
+        DirectMirGenericStructValueFlowProgramIdentityFromAdmitted(
+            admitted, classification
+        );
+    let instructions: DirectMirGenericStructValueFlowInstructionAdmission =
+        DirectMirGenericStructValueFlowInstructionAdmissionFromProgram(
+            admitted, identity
+        );
+    let abi: DirectMirGenericStructValueFlowAbiFact =
+        DirectMirGenericStructValueFlowAbiFactFromInstructions(
+            admitted.routines.source_json, identity, instructions
+        );
+    let plan: DirectMirGenericStructValueFlowPlan =
+        DirectMirGenericStructValueFlowPlan(
+            true, DirectMirGenericStructValueFlowPlanSchema(),
+            CompilerArtifactPlanRevision(), 0,
+            CompilerTargetCapabilitySchema(),
+            CompilerTargetCapabilityFingerprint(), identity, abi,
+            instructions.initial.result, instructions.result.result,
+            DirectMirGenericStructValueFlowCarriage()
+        );
+    let verified: DirectMirGenericStructValueFlowPlan =
+        DirectMirGenericStructValueFlowPlan(
+            plan.valid, plan.schema, plan.revision,
+            DirectMirGenericStructValueFlowPlanDigest(plan),
+            plan.target_capability_schema,
+            plan.target_capability_fingerprint, plan.identity, plan.abi,
+            plan.source_value, plan.result_value, plan.value_carriage
+        );
+    if !DirectMirGenericStructValueFlowPlanReady(verified) {
+        Die("direct MIR generic nominal plan is invalid");
+    }
+    return verified;
+}

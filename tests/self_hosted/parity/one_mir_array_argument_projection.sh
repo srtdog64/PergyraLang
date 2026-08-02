@@ -42,6 +42,7 @@ assert_owner_ratchet() {
     local plan="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_argument_plan_owner.pgy"
     local emission="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_argument_emission_owner.pgy"
     local multi="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy"
+    local three="$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy"
     local owner cap lines term
     while IFS='|' read -r owner cap; do
         require_file "$owner"
@@ -70,8 +71,10 @@ EOF
         fail "Array argument identity does not consume canonical ABI"
     grep -Fq 'DirectMirArrayArgumentPlanMutationRejected' "$plan" ||
         fail "Array argument plan lacks a repaired mutation falsifier"
-    grep -Fq 'DirectMirArrayArgumentProgramCandidate(admitted)' "$multi" ||
-        fail "multi-routine owner does not classify the three-routine graph"
+    grep -Fq 'CompileAdmittedDirectMirThreeRoutine(' "$multi" ||
+        fail "multi-routine owner does not route one three-routine decision"
+    grep -Fq 'classification.kind == DirectMirThreeRoutineArrayArgument()' \
+        "$three" || fail "three-routine owner does not classify Array argument MIR"
     ! grep -Fq '@pgy_' "$emission" ||
         fail "runtime-free Array argument emission references Pergyra runtime"
     local source_mir_flag="--emit-mir-json-verified"

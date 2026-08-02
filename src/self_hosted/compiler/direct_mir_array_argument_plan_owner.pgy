@@ -157,11 +157,13 @@ func DirectMirArrayArgumentPlanMutationRejected(
         !DirectMirArrayArgumentPlanReady(bad_target);
 }
 
-func DirectMirArrayArgumentInstructionHasNoAbi(
+func DirectMirArrayArgumentInstructionHasNoPhysicalAbi(
     json: String,
-    ref capture: MirRoutineInstructionScalarCapture
+    ref capture: MirRoutineInstructionScalarCapture,
+    expected_type: String
 ) -> Bool {
-    return capture.abi_type_value_ready && capture.abi_type_name == "" &&
+    return capture.abi_type_value_ready &&
+        capture.abi_type_name == expected_type &&
         capture.abi_layout_id_start >= 0 &&
         capture.abi_layout_required_start >= 0 &&
         capture.abi_layout_start >= 0 &&
@@ -197,6 +199,9 @@ func DirectMirArrayArgumentPlanFromAdmitted(
         program.entrypoint.row, program.array_callee.row,
         program.nested_callee.row
     ];
+    let abi_types: Array<String> = [
+        "", CompilerAbiLayoutIntTypeName(), CompilerAbiLayoutIntTypeName()
+    ];
     let globals: Array<Int> = [];
     let captures: Array<MirRoutineInstructionScalarCapture> = [];
     let expressions: Array<MirProgramInstructionExpressionFact> = [];
@@ -219,8 +224,9 @@ func DirectMirArrayArgumentPlanFromAdmitted(
             MirRoutineInstructionFactBundleAtGlobal(
                 routine_index.instruction_facts, global
             );
-        if !capture.valid || !DirectMirArrayArgumentInstructionHasNoAbi(
-            admitted.routines.source_json, capture
+        if !capture.valid ||
+            !DirectMirArrayArgumentInstructionHasNoPhysicalAbi(
+                admitted.routines.source_json, capture, abi_types[row]
         ) {
             Die("direct MIR Array argument instruction ABI is invalid");
         }

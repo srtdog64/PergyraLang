@@ -1,0 +1,98 @@
+// One Pair layout receipt shared by declaration, return, and both SSA values.
+
+import "direct_mir_generic_struct_value_flow_instruction_admission_owner.pgy";
+import "direct_mir_nominal_abi_row_equality_owner.pgy";
+import "../mir_lower/abi_layout_admission_fact_owner.pgy";
+
+struct DirectMirGenericStructValueFlowAbiFact {
+    let valid: Bool;
+    let digest: Int;
+    let declaration: DirectMirNominalDeclarationAbiFact;
+    let layout_ids: Array<Int>;
+}
+
+func DirectMirGenericStructCapturedAbi(
+    json: String,
+    ref capture: MirRoutineInstructionScalarCapture
+) -> MirAbiLayoutRowCapture {
+    let admitted: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            json, capture.abi_type_name, capture.abi_type_value_ready,
+            capture.abi_type_start, capture.abi_type_end,
+            capture.abi_layout_id_start, capture.abi_layout_id_end,
+            capture.abi_layout_required_start,
+            capture.abi_layout_required_end, capture.abi_layout_start,
+            capture.abi_layout_end
+        );
+    if !IsSome(admitted) {
+        Die("direct MIR generic nominal ABI receipt is missing");
+    }
+    return UnwrapOption(admitted);
+}
+
+func DirectMirGenericStructValueFlowAbiFactDigest(
+    ref fact: DirectMirGenericStructValueFlowAbiFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(223L, fact.declaration.digest);
+    let row: Int = 0;
+    while row < ArrayLength(fact.layout_ids) {
+        hash = DirectMirCfgHashInt(hash, fact.layout_ids[row]);
+        row = row + 1;
+    }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirGenericStructValueFlowAbiFactReady(
+    ref fact: DirectMirGenericStructValueFlowAbiFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+        DirectMirGenericStructValueFlowAbiFactDigest(fact) ||
+        !DirectMirNominalDeclarationAbiFactReady(fact.declaration) ||
+        ArrayLength(fact.layout_ids) != 3 {
+        return false;
+    }
+    let row: Int = 0;
+    while row < 3 {
+        if fact.layout_ids[row] != fact.declaration.abi_layout_id {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirGenericStructValueFlowAbiFactFromInstructions(
+    json: String,
+    ref identity: DirectMirGenericStructValueFlowProgramIdentity,
+    ref instructions: DirectMirGenericStructValueFlowInstructionAdmission
+) -> DirectMirGenericStructValueFlowAbiFact {
+    let returned: MirAbiLayoutRowCapture =
+        DirectMirGenericStructCapturedAbi(json, instructions.returned);
+    let initial: MirAbiLayoutRowCapture =
+        DirectMirGenericStructCapturedAbi(json, instructions.initial);
+    let result: MirAbiLayoutRowCapture =
+        DirectMirGenericStructCapturedAbi(json, instructions.result);
+    if !DirectMirStructAbiRowsEqual(returned, identity.declaration.abi) ||
+        !DirectMirStructAbiRowsEqual(initial, identity.declaration.abi) ||
+        !DirectMirStructAbiRowsEqual(result, identity.declaration.abi) {
+        Die("direct MIR generic nominal ABI receipts disagree");
+    }
+    let fact: DirectMirGenericStructValueFlowAbiFact =
+        DirectMirGenericStructValueFlowAbiFact(
+            true, 0, identity.declaration, [
+                MirAbiLayoutIdFromCapture(returned),
+                MirAbiLayoutIdFromCapture(initial),
+                MirAbiLayoutIdFromCapture(result)
+            ]
+        );
+    let verified: DirectMirGenericStructValueFlowAbiFact =
+        DirectMirGenericStructValueFlowAbiFact(
+            fact.valid, DirectMirGenericStructValueFlowAbiFactDigest(fact),
+            fact.declaration, fact.layout_ids
+        );
+    if !DirectMirGenericStructValueFlowAbiFactReady(verified) {
+        Die("direct MIR generic nominal ABI fact is invalid");
+    }
+    return verified;
+}

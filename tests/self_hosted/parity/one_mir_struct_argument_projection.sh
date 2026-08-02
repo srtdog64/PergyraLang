@@ -43,9 +43,12 @@ $ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_argument_llvm_emission_owne
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy|90
 EOF
     [[ "$total" -le 1385 ]] || fail "struct owner family cap exceeded: $total/1385"
-    grep -Fq 'DirectMirStructArgumentProgramCandidate(admitted)' \
+    grep -Fq 'CompileAdmittedDirectMirThreeRoutine(' \
         "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" ||
-        fail "multi-routine root does not classify struct argument MIR"
+        fail "multi-routine root does not route one three-routine decision"
+    grep -Fq 'classification.kind == DirectMirThreeRoutineStructArgument()' \
+        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" ||
+        fail "three-routine owner does not classify struct argument MIR"
     grep -Fq 'JsonArrayObjectFactCount(admitted.document.declarations) == 0' \
         "$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_argument_program_identity_owner.pgy" ||
         fail "Array and struct candidates are not disjoint"

@@ -1,0 +1,88 @@
+// One structural decision for all bounded three-routine direct-MIR programs.
+
+import "direct_mir_scalar_graph_admission_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirThreeRoutineClassificationFact {
+    let valid: Bool;
+    let digest: Int;
+    let kind: String;
+    let declaration_count: Int;
+    let specialization_count: Int;
+}
+
+func DirectMirThreeRoutineArrayArgument() -> String {
+    return "declaration-free";
+}
+
+func DirectMirThreeRoutineGenericNominal() -> String {
+    return "single-nominal";
+}
+
+func DirectMirThreeRoutineStructArgument() -> String {
+    return "double-nominal";
+}
+
+func DirectMirThreeRoutineClassificationFactDigest(
+    ref fact: DirectMirThreeRoutineClassificationFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(197L, fact.kind);
+    hash = DirectMirCfgHashInt(hash, fact.declaration_count);
+    hash = DirectMirCfgHashInt(hash, fact.specialization_count);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirThreeRoutineClassificationFactReady(
+    ref fact: DirectMirThreeRoutineClassificationFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirThreeRoutineClassificationFactDigest(fact) &&
+        ((fact.kind == DirectMirThreeRoutineArrayArgument() &&
+          fact.declaration_count == 0) ||
+         (fact.kind == DirectMirThreeRoutineGenericNominal() &&
+          fact.declaration_count == 1) ||
+         (fact.kind == DirectMirThreeRoutineStructArgument() &&
+          fact.declaration_count == 2));
+}
+
+func DirectMirThreeRoutineClassificationFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirThreeRoutineClassificationFact {
+    let specializations: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(
+            admitted.document.root, "generic_method_specializations"
+        );
+    if MirProgramRoutineIndexCount(admitted.routines) != 3 ||
+        !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
+        !JsonArrayObjectFactTableReady(specializations) {
+        Die("direct MIR three-routine structure is invalid");
+    }
+    let declarations: Int = JsonArrayObjectFactCount(
+        admitted.document.declarations
+    );
+    let kind: String = "";
+    if declarations == 0 {
+        kind = DirectMirThreeRoutineArrayArgument();
+    } else if declarations == 1 {
+        kind = DirectMirThreeRoutineGenericNominal();
+    } else if declarations == 2 {
+        kind = DirectMirThreeRoutineStructArgument();
+    } else {
+        Die("direct MIR three-routine declaration shape is unsupported");
+    }
+    let fact: DirectMirThreeRoutineClassificationFact =
+        DirectMirThreeRoutineClassificationFact(
+            true, 0, kind, declarations,
+            JsonArrayObjectFactCount(specializations)
+        );
+    let verified: DirectMirThreeRoutineClassificationFact =
+        DirectMirThreeRoutineClassificationFact(
+            fact.valid, DirectMirThreeRoutineClassificationFactDigest(fact),
+            fact.kind, fact.declaration_count, fact.specialization_count
+        );
+    if !DirectMirThreeRoutineClassificationFactReady(verified) {
+        Die("direct MIR three-routine classification is invalid");
+    }
+    return verified;
+}

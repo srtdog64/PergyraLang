@@ -1,0 +1,226 @@
+// Instruction, use-chain, and local-lifetime admission for the generic rung.
+
+import "direct_mir_generic_struct_value_flow_program_identity_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+import "../mir_lower/routine_result_definition_fact_owner.pgy";
+
+struct DirectMirGenericStructValueFlowInstructionAdmission {
+    let valid: Bool;
+    let generic_return: MirRoutineInstructionScalarCapture;
+    let returned: MirRoutineInstructionScalarCapture;
+    let initial: MirRoutineInstructionScalarCapture;
+    let result: MirRoutineInstructionScalarCapture;
+    let output: MirRoutineInstructionScalarCapture;
+}
+
+func DirectMirGenericStructInstructionCapture(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    routine_row: Int, instruction_row: Int
+) -> MirRoutineInstructionScalarCapture {
+    let global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, routine_row, 0, instruction_row
+    );
+    if global < 0 {
+        Die("direct MIR generic nominal instruction is missing");
+    }
+    return MirRoutineInstructionFactBundleAtGlobal(
+        index.instruction_facts, global
+    );
+}
+
+func DirectMirGenericStructExpectedUse(
+    ref uses: MirRoutineInstructionUseFacts,
+    global_row: Int, expected: String
+) -> Bool {
+    let count: Int = MirRoutineInstructionUseCountAtGlobal(uses, global_row);
+    if expected == "" { return count == 0; }
+    let value: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, global_row, 0
+    );
+    return count == 1 && IsSome(value) && UnwrapOption(value) == expected;
+}
+
+func DirectMirGenericStructInstructionHasNoPhysicalAbi(
+    json: String,
+    ref capture: MirRoutineInstructionScalarCapture,
+    expected_type: String
+) -> Bool {
+    return capture.abi_type_value_ready &&
+        capture.abi_type_name == expected_type &&
+        capture.abi_layout_id_start >= 0 &&
+        capture.abi_layout_required_start >= 0 &&
+        capture.abi_layout_start >= 0 && SubEqualsWithLen(
+            json, capture.abi_layout_id_end,
+            capture.abi_layout_id_start, 1, "0"
+        ) && SubEqualsWithLen(
+            json, capture.abi_layout_required_end,
+            capture.abi_layout_required_start, 5, "false"
+        ) && SubEqualsWithLen(
+            json, capture.abi_layout_end,
+            capture.abi_layout_start, 4, "null"
+        );
+}
+
+func DirectMirGenericStructValueFlowInstructionAdmissionReady(
+    ref fact: DirectMirGenericStructValueFlowInstructionAdmission
+) -> Bool {
+    return fact.valid && fact.generic_return.valid && fact.returned.valid &&
+        fact.initial.valid && fact.result.valid && fact.output.valid &&
+        fact.generic_return.result == "" && fact.returned.result == "" &&
+        fact.initial.result != "" && fact.result.result != "" &&
+        fact.initial.result != fact.result.result && fact.output.result == "";
+}
+
+func DirectMirGenericStructValueFlowInstructionAdmissionFromProgram(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref identity: DirectMirGenericStructValueFlowProgramIdentity
+) -> DirectMirGenericStructValueFlowInstructionAdmission {
+    let main_row: Int = identity.entrypoint.row;
+    let producer_row: Int = identity.producer.row;
+    let generic_row: Int = identity.generic_template.row;
+    let main_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, main_row
+    );
+    let producer_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, producer_row
+    );
+    let generic_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, generic_row
+    );
+    let main_uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, main_row);
+    let producer_uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, producer_row);
+    let generic_uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, generic_row);
+    if !main_index.valid || !producer_index.valid || !generic_index.valid ||
+        ArrayLength(main_index.block_reachable) != 1 ||
+        ArrayLength(producer_index.block_reachable) != 1 ||
+        ArrayLength(generic_index.block_reachable) != 1 ||
+        !main_index.block_reachable[0] ||
+        !producer_index.block_reachable[0] ||
+        !generic_index.block_reachable[0] ||
+        !MirRoutineFactIndexBlockIsTerminal(main_index, 0) ||
+        !MirRoutineFactIndexBlockIsTerminal(producer_index, 0) ||
+        !MirRoutineFactIndexBlockIsTerminal(generic_index, 0) ||
+        main_index.block_has_conditional_branch[0] != 0 ||
+        producer_index.block_has_conditional_branch[0] != 0 ||
+        generic_index.block_has_conditional_branch[0] != 0 ||
+        ArrayLength(main_index.source_local_names) != 2 ||
+        ArrayLength(main_index.source_local_types) != 2 ||
+        main_index.source_local_names[0] != identity.graph.source_local_name ||
+        main_index.source_local_names[1] != identity.graph.result_local_name ||
+        main_index.source_local_types[0] != identity.declaration.name ||
+        main_index.source_local_types[1] != identity.declaration.name ||
+        !MirRoutineInstructionUseFactsReady(main_uses, 3) ||
+        !MirRoutineInstructionUseFactsReady(producer_uses, 1) ||
+        !MirRoutineInstructionUseFactsReady(generic_uses, 1) {
+        Die("direct MIR generic nominal routine facts are invalid");
+    }
+    let generic_return: MirRoutineInstructionScalarCapture =
+        DirectMirGenericStructInstructionCapture(
+            admitted, generic_index, generic_row, 0
+        );
+    let returned: MirRoutineInstructionScalarCapture =
+        DirectMirGenericStructInstructionCapture(
+            admitted, producer_index, producer_row, 0
+        );
+    let initial: MirRoutineInstructionScalarCapture =
+        DirectMirGenericStructInstructionCapture(
+            admitted, main_index, main_row, 0
+        );
+    let result: MirRoutineInstructionScalarCapture =
+        DirectMirGenericStructInstructionCapture(
+            admitted, main_index, main_row, 1
+        );
+    let output: MirRoutineInstructionScalarCapture =
+        DirectMirGenericStructInstructionCapture(
+            admitted, main_index, main_row, 2
+        );
+    let generic_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, generic_row, 0, 0
+    );
+    let producer_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, producer_row, 0, 0
+    );
+    let globals: Array<Int> = [
+        MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, main_row, 0, 0
+        ),
+        MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, main_row, 0, 1
+        ),
+        MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, main_row, 0, 2
+        )
+    ];
+    if !generic_return.valid || !returned.valid || !initial.valid ||
+        !result.valid || !output.valid ||
+        admitted.routines.instruction_kinds[generic_global] != "return" ||
+        admitted.routines.instruction_source_types[generic_global] !=
+            "AST_IDENTIFIER" ||
+        admitted.routines.instruction_kinds[producer_global] != "return" ||
+        admitted.routines.instruction_source_types[producer_global] !=
+            "AST_BINARY" ||
+        admitted.routines.instruction_kinds[globals[0]] != "def" ||
+        admitted.routines.instruction_kinds[globals[1]] != "def" ||
+        admitted.routines.instruction_kinds[globals[2]] != "stmt" ||
+        admitted.routines.instruction_source_types[globals[0]] !=
+            "AST_LET_DECL" ||
+        admitted.routines.instruction_source_types[globals[1]] !=
+            "AST_LET_DECL" ||
+        admitted.routines.instruction_source_types[globals[2]] != "AST_CALL" ||
+        generic_return.name != "return" || returned.name != "return" ||
+        initial.name != "ssa-def" || result.name != "ssa-def" ||
+        output.name != "stmt" || generic_return.arg0 != "" ||
+        generic_return.arg1 != "" || returned.arg0 != "" ||
+        returned.arg1 != "" ||
+        !DirectMirGenericStructInstructionHasNoPhysicalAbi(
+            admitted.routines.source_json, generic_return,
+            identity.generic_template.generic_name
+        ) ||
+        returned.abi_type_name != identity.declaration.name ||
+        initial.arg0 != identity.graph.source_local_name ||
+        initial.arg1 != identity.declaration.name ||
+        result.arg0 != identity.graph.result_local_name ||
+        result.arg1 != identity.declaration.name ||
+        output.arg0 != "Log" || output.arg1 != "" ||
+        initial.abi_type_name != identity.declaration.name ||
+        result.abi_type_name != identity.declaration.name {
+        Die("direct MIR generic nominal instruction identity is invalid");
+    }
+    if !DirectMirGenericStructExpectedUse(generic_uses, generic_global, "") ||
+        !DirectMirGenericStructExpectedUse(
+            producer_uses, producer_global, ""
+        ) || !DirectMirGenericStructExpectedUse(main_uses, globals[0], "") ||
+        !DirectMirGenericStructExpectedUse(
+            main_uses, globals[1], initial.result
+        ) || !DirectMirGenericStructExpectedUse(
+            main_uses, globals[2], result.result
+        ) {
+        Die("direct MIR generic nominal SSA use is invalid");
+    }
+    let results: Array<String> = [initial.result, result.result];
+    let row: Int = 0;
+    while row < 2 {
+        let definition: MirRoutineResultDefinitionFact =
+            MirRoutineFactIndexUniqueResultDefinition(
+                main_index, results[row]
+            );
+        if !MirRoutineResultDefinitionFactReady(definition) ||
+            definition.global_row != globals[row] {
+            Die("direct MIR generic nominal result definition is invalid");
+        }
+        row = row + 1;
+    }
+    let fact: DirectMirGenericStructValueFlowInstructionAdmission =
+        DirectMirGenericStructValueFlowInstructionAdmission(
+            true, generic_return, returned, initial, result, output
+        );
+    if !DirectMirGenericStructValueFlowInstructionAdmissionReady(fact) {
+        Die("direct MIR generic nominal instruction admission is invalid");
+    }
+    return fact;
+}

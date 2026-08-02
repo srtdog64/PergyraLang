@@ -13868,8 +13868,8 @@ require_text \
     "src/self_hosted/compiler/direct_mir_array_argument_emission_owner.pgy" \
     'output = Concat(output, abi.llvm_aggregate_type);'
 require_text \
-    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
-    "DirectMirArrayArgumentProgramCandidate(admitted)"
+    "src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" \
+    "classification.kind == DirectMirThreeRoutineArrayArgument()"
 reject_text \
     "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
     "DirectMirHelloProjectionFromAdmitted"
@@ -13985,8 +13985,8 @@ require_text \
     "src/self_hosted/compiler/direct_mir_struct_argument_plan_owner.pgy" \
     "caller_owned_nested_value_by_value"
 require_text \
-    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
-    "DirectMirStructArgumentProgramCandidate(admitted)"
+    "src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" \
+    "classification.kind == DirectMirThreeRoutineStructArgument()"
 require_text "tests/self_hosted/parity/one_mir_struct_argument_projection.sh" \
     "routine-declaration-order-cycle"
 require_text "tests/self_hosted/parity/one_mir_struct_argument_projection.sh" \
@@ -14092,6 +14092,46 @@ require_text "tests/self_hosted/parity/default_c_compile_installed_self_host_own
     "src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy"
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
     "src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy"
+require_file \
+    "tests/self_hosted/parity/one_mir_generic_struct_value_flow_projection.sh"
+require_file \
+    "tests/self_hosted/parity/one_mir_generic_struct_value_flow_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_generic_struct_value_flow_projection.sh" 190
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_generic_struct_value_flow_mutations.py" 270
+require_file \
+    "src/self_hosted/compiler/direct_mir_three_routine_classification_owner.pgy"
+require_file \
+    "src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy"
+require_file \
+    "src/self_hosted/compiler/direct_mir_generic_specialization_fact_owner.pgy"
+require_file \
+    "src/self_hosted/compiler/direct_mir_generic_routine_signature_fact_owner.pgy"
+require_file \
+    "src/self_hosted/compiler/direct_mir_generic_struct_value_flow_plan_owner.pgy"
+require_text \
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
+    "CompileAdmittedDirectMirThreeRoutine("
+require_text \
+    "src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" \
+    "CompileAdmittedDirectMirGenericStructValueFlow("
+require_text \
+    "src/self_hosted/compiler/direct_mir_generic_specialization_fact_owner.pgy" \
+    "JsonObjectFactCount(row) != 9"
+require_text \
+    "src/self_hosted/compiler/direct_mir_generic_struct_value_flow_plan_owner.pgy" \
+    "explicit_generic_scalar_calls_into_nominal_values_by_value"
+require_text \
+    "tests/self_hosted/parity/one_mir_generic_struct_value_flow_projection.sh" \
+    "gate must produce source MIR exactly once"
+require_text \
+    "tests/self_hosted/parity/one_mir_generic_struct_value_flow_projection.sh" \
+    "one specialization definition and four calls"
+require_text "Makefile" "SELFHOST_ONE_MIR_GENERIC_STRUCT_VALUE_FLOW_GATE ?="
+require_text "Makefile" '$(SELFHOST_ONE_MIR_GENERIC_STRUCT_VALUE_FLOW_GATE)'
+require_text ".github/workflows/ci.yml" \
+    "self-host-one-mir-generic-struct-value-flow-projection-test-smoke"
 require_file "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" 240

@@ -1,0 +1,171 @@
+// Direct-MIR specialization receipt for one explicit generic callable.
+// The four call-site rows are admitted once; emitters consume only this fact.
+
+import "../lib/json_fact_table.pgy";
+import "symbol_table_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+import "abi_layout_row_owner.pgy";
+import "../hir/ast_expression_graph_owner.pgy";
+
+struct DirectMirGenericSpecializationFact {
+    let valid: Bool;
+    let digest: Int;
+    let callable: String;
+    let specialized_symbol: String;
+    let generic_param: String;
+    let generic_actual: String;
+    let atom_owner_syntax_id: Int;
+    let value_owner_syntax_id: Int;
+}
+
+func InvalidDirectMirGenericSpecializationFact(
+) -> DirectMirGenericSpecializationFact {
+    return DirectMirGenericSpecializationFact(
+        false, 0, "", "", "", "", 0, 0
+    );
+}
+
+func DirectMirGenericSpecializationSingleString(
+    ref row: JsonObjectFactTable, field: String
+) -> String {
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFactArrayBounds(row, field, bounds) ||
+        JsonArrayStringCount(row.json, bounds[0], bounds[1]) != 1 {
+        return "";
+    }
+    return JsonArrayStringAt(row.json, bounds[0], bounds[1], 0);
+}
+
+func DirectMirGenericSpecializationFactDigest(
+    ref fact: DirectMirGenericSpecializationFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(181L, fact.callable);
+    hash = DirectMirCfgHashString(hash, fact.specialized_symbol);
+    hash = DirectMirCfgHashString(hash, fact.generic_param);
+    hash = DirectMirCfgHashString(hash, fact.generic_actual);
+    hash = DirectMirCfgHashInt(hash, fact.atom_owner_syntax_id);
+    hash = DirectMirCfgHashInt(hash, fact.value_owner_syntax_id);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirGenericSpecializationFactReady(
+    ref fact: DirectMirGenericSpecializationFact
+) -> Bool {
+    let actuals: Array<String> = [fact.generic_actual];
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirGenericSpecializationFactDigest(fact) &&
+        fact.callable != "" && fact.callable != "Main" &&
+        fact.specialized_symbol != "" && fact.generic_param != "" &&
+        fact.generic_actual == CompilerAbiLayoutIntTypeName() &&
+        fact.atom_owner_syntax_id > 0 && fact.value_owner_syntax_id > 0 &&
+        fact.atom_owner_syntax_id != fact.value_owner_syntax_id &&
+        fact.specialized_symbol == CompilerSymbolCGenericSpecializationName(
+            fact.callable, actuals
+        );
+}
+
+func DirectMirGenericSpecializationFactFromDocument(
+    ref root: JsonObjectFactTable
+) -> DirectMirGenericSpecializationFact {
+    let table: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
+        root, "generic_method_specializations"
+    );
+    if !JsonArrayObjectFactTableReady(table) ||
+        JsonArrayObjectFactCount(table) != 4 {
+        return InvalidDirectMirGenericSpecializationFact();
+    }
+    let seen: Array<Bool> = [false, false, false, false];
+    let lane_owners: Array<Int> = [0, 0];
+    let callable: String = "";
+    let specialized_symbol: String = "";
+    let generic_param: String = "";
+    let generic_actual: String = "";
+    let row_i: Int = 0;
+    while row_i < 4 {
+        let row: JsonObjectFactTable = JsonArrayObjectFactAt(table, row_i);
+        let owner_id_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            row, "source_owner_syntax_id"
+        );
+        let lane_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            row, "source_lane"
+        );
+        let ordinal_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            row, "source_call_ordinal"
+        );
+        let target_opt: Option<String> = JsonObjectFactStringFieldOpt(
+            row, "target_kind"
+        );
+        let owner_opt: Option<String> = JsonObjectFactStringFieldOpt(
+            row, "owner"
+        );
+        let callable_opt: Option<String> = JsonObjectFactStringFieldOpt(
+            row, "callable"
+        );
+        let symbol_opt: Option<String> = JsonObjectFactStringFieldOpt(
+            row, "specialized_symbol"
+        );
+        let param: String = DirectMirGenericSpecializationSingleString(
+            row, "generic_params"
+        );
+        let actual: String = DirectMirGenericSpecializationSingleString(
+            row, "generic_actuals"
+        );
+        if !JsonObjectFactTableReady(row) || JsonObjectFactCount(row) != 9 ||
+            !IsSome(owner_id_opt) ||
+            !IsSome(lane_opt) || !IsSome(ordinal_opt) || !IsSome(target_opt) ||
+            !IsSome(owner_opt) || !IsSome(callable_opt) ||
+            !IsSome(symbol_opt) || UnwrapOption(target_opt) != "direct" ||
+            UnwrapOption(owner_opt) != "" || param == "" || actual == "" {
+            return InvalidDirectMirGenericSpecializationFact();
+        }
+        let owner_id_text: String = UnwrapOption(owner_id_opt);
+        let lane_text: String = UnwrapOption(lane_opt);
+        let ordinal_text: String = UnwrapOption(ordinal_opt);
+        let owner_id: Int = ToInt(owner_id_text);
+        let lane: Int = ToInt(lane_text);
+        let ordinal: Int = ToInt(ordinal_text);
+        if ToString(owner_id) != owner_id_text || owner_id <= 0 ||
+            ToString(lane) != lane_text ||
+            (lane != AstExpressionLaneAtom() &&
+             lane != AstExpressionLaneValue()) ||
+            ToString(ordinal) != ordinal_text || ordinal < 0 || ordinal > 1 {
+            return InvalidDirectMirGenericSpecializationFact();
+        }
+        let slot: Int = lane * 2 + ordinal;
+        if seen[slot] { return InvalidDirectMirGenericSpecializationFact(); }
+        ArraySet(seen, slot, true);
+        if lane_owners[lane] == 0 {
+            ArraySet(lane_owners, lane, owner_id);
+        } else if lane_owners[lane] != owner_id {
+            return InvalidDirectMirGenericSpecializationFact();
+        }
+        if row_i == 0 {
+            callable = UnwrapOption(callable_opt);
+            specialized_symbol = UnwrapOption(symbol_opt);
+            generic_param = param;
+            generic_actual = actual;
+        } else if callable != UnwrapOption(callable_opt) ||
+            specialized_symbol != UnwrapOption(symbol_opt) ||
+            generic_param != param || generic_actual != actual {
+            return InvalidDirectMirGenericSpecializationFact();
+        }
+        row_i = row_i + 1;
+    }
+    let fact: DirectMirGenericSpecializationFact =
+        DirectMirGenericSpecializationFact(
+            true, 0, callable, specialized_symbol, generic_param,
+            generic_actual, lane_owners[0], lane_owners[1]
+        );
+    let verified: DirectMirGenericSpecializationFact =
+        DirectMirGenericSpecializationFact(
+            fact.valid, DirectMirGenericSpecializationFactDigest(fact),
+            fact.callable, fact.specialized_symbol, fact.generic_param,
+            fact.generic_actual, fact.atom_owner_syntax_id,
+            fact.value_owner_syntax_id
+        );
+    if !DirectMirGenericSpecializationFactReady(verified) {
+        return InvalidDirectMirGenericSpecializationFact();
+    }
+    return verified;
+}

@@ -116,6 +116,9 @@ func DirectMirStructArgumentPlanFromAdmitted(
         program.entrypoint.row, program.outer_callee.row,
         program.nested_callee.row
     ];
+    let abi_types: Array<String> = [
+        "", CompilerAbiLayoutIntTypeName(), CompilerAbiLayoutIntTypeName()
+    ];
     let globals: Array<Int> = [];
     let captures: Array<MirRoutineInstructionScalarCapture> = [];
     let expressions: Array<MirProgramInstructionExpressionFact> = [];
@@ -138,8 +141,9 @@ func DirectMirStructArgumentPlanFromAdmitted(
             MirRoutineInstructionFactBundleAtGlobal(
                 routine_index.instruction_facts, global
             );
-        if !capture.valid || !DirectMirArrayArgumentInstructionHasNoAbi(
-            admitted.routines.source_json, capture
+        if !capture.valid ||
+            !DirectMirArrayArgumentInstructionHasNoPhysicalAbi(
+                admitted.routines.source_json, capture, abi_types[row]
         ) {
             Die("direct MIR struct argument instruction ABI is invalid");
         }

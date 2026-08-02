@@ -1,0 +1,145 @@
+// Target-neutral semantic graph fact for the explicit generic nominal rung.
+
+import "direct_mir_generic_struct_value_flow_graph_shape_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+
+struct DirectMirGenericStructValueFlowGraphFact {
+    let valid: Bool;
+    let digest: Int;
+    let type_name: String;
+    let first_field: String;
+    let second_field: String;
+    let generic_callable: String;
+    let generic_actual: String;
+    let generic_parameter_name: String;
+    let parameter_name: String;
+    let producer_name: String;
+    let source_local_name: String;
+    let result_local_name: String;
+    let producer_first_delta: Int;
+    let producer_second_delta: Int;
+    let initial_first: Int;
+    let initial_second: Int;
+}
+
+func DirectMirGenericStructCanonicalIntAt(
+    ref sequence: MirExpressionGraphSequence, row: Int
+) -> Int {
+    if row < 0 || row >= ArrayLength(sequence.arena.node_texts) ||
+        sequence.arena.topology.node_kinds[row] !=
+            AstExpressionNodeIntegerLiteral() {
+        Die("direct MIR generic nominal integer node is invalid");
+    }
+    let value: String = sequence.arena.node_texts[row];
+    if value == "" || ToString(ToInt(value)) != value {
+        Die("direct MIR generic nominal integer is not canonical");
+    }
+    return ToInt(value);
+}
+
+func DirectMirGenericStructValueFlowGraphFactDigest(
+    ref fact: DirectMirGenericStructValueFlowGraphFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(199L, fact.type_name);
+    hash = DirectMirCfgHashString(hash, fact.first_field);
+    hash = DirectMirCfgHashString(hash, fact.second_field);
+    hash = DirectMirCfgHashString(hash, fact.generic_callable);
+    hash = DirectMirCfgHashString(hash, fact.generic_actual);
+    hash = DirectMirCfgHashString(hash, fact.generic_parameter_name);
+    hash = DirectMirCfgHashString(hash, fact.parameter_name);
+    hash = DirectMirCfgHashString(hash, fact.producer_name);
+    hash = DirectMirCfgHashString(hash, fact.source_local_name);
+    hash = DirectMirCfgHashString(hash, fact.result_local_name);
+    hash = DirectMirCfgHashInt(hash, fact.producer_first_delta);
+    hash = DirectMirCfgHashInt(hash, fact.producer_second_delta);
+    hash = DirectMirCfgHashInt(hash, fact.initial_first);
+    hash = DirectMirCfgHashInt(hash, fact.initial_second);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirGenericStructValueFlowGraphFactReady(
+    ref fact: DirectMirGenericStructValueFlowGraphFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirGenericStructValueFlowGraphFactDigest(fact) &&
+        fact.type_name != "" && fact.first_field != "" &&
+        fact.second_field != "" && fact.first_field != fact.second_field &&
+        fact.generic_callable != "" && fact.generic_actual != "" &&
+        fact.generic_parameter_name != "" &&
+        fact.parameter_name != "" && fact.producer_name != "" &&
+        fact.source_local_name != "" && fact.result_local_name != "" &&
+        fact.source_local_name != fact.result_local_name;
+}
+
+func DirectMirGenericStructValueFlowGraphFactFromSequences(
+    ref generic_return: MirExpressionGraphSequence,
+    ref produced: MirExpressionGraphSequence,
+    ref initial: MirExpressionGraphSequence,
+    ref producer_call: MirExpressionGraphSequence,
+    ref output: MirExpressionGraphSequence
+) -> DirectMirGenericStructValueFlowGraphFact {
+    if !produced.ok || produced.ready_node_count != 24 ||
+        !producer_call.ok || producer_call.ready_node_count != 6 {
+        Die("direct MIR generic nominal graph input is incomplete");
+    }
+    let callable: String = produced.arena.call_target_names[6];
+    let producer: String = producer_call.arena.call_target_names[1];
+    if !DirectMirGenericStructIdentityReturnShapeReady(generic_return) ||
+        !DirectMirGenericStructProducerShapeReady(produced, callable) ||
+        !DirectMirGenericStructInitialShapeReady(initial, callable) ||
+        !DirectMirGenericStructProducerCallShapeReady(
+            producer_call, producer
+        ) || !DirectMirGenericStructOutputShapeReady(output) {
+        Die("direct MIR generic nominal graph topology is invalid");
+    }
+    if produced.arena.call_target_names[17] != callable ||
+        initial.arena.call_target_names[6] != callable ||
+        initial.arena.call_target_names[15] != callable ||
+        produced.arena.node_texts[3] != callable ||
+        produced.arena.node_texts[14] != callable ||
+        initial.arena.node_texts[3] != callable ||
+        initial.arena.node_texts[12] != callable ||
+        produced.arena.node_texts[4] != produced.arena.node_texts[15] ||
+        produced.arena.node_texts[4] != initial.arena.node_texts[4] ||
+        produced.arena.node_texts[4] != initial.arena.node_texts[13] ||
+        produced.arena.node_texts[0] != initial.arena.node_texts[0] ||
+        produced.arena.node_texts[2] != initial.arena.node_texts[2] ||
+        produced.arena.node_texts[13] != initial.arena.node_texts[11] ||
+        produced.arena.node_texts[7] != produced.arena.node_texts[18] ||
+        producer_call.arena.node_texts[0] != producer ||
+        producer_call.arena.node_texts[3] != produced.arena.node_texts[13] ||
+        output.arena.node_texts[0] != "ToString" ||
+        output.arena.node_texts[3] != produced.arena.node_texts[2] ||
+        output.arena.node_texts[6] != produced.arena.node_texts[13] ||
+        output.arena.node_texts[2] != output.arena.node_texts[5] {
+        Die("direct MIR generic nominal graph identity is invalid");
+    }
+    let fact: DirectMirGenericStructValueFlowGraphFact =
+        DirectMirGenericStructValueFlowGraphFact(
+            true, 0, produced.arena.node_texts[0],
+            produced.arena.node_texts[2], produced.arena.node_texts[13],
+            callable, produced.arena.node_texts[4],
+            generic_return.arena.node_texts[0],
+            produced.arena.node_texts[7], producer,
+            producer_call.arena.node_texts[2], output.arena.node_texts[2],
+            DirectMirGenericStructCanonicalIntAt(produced, 8),
+            DirectMirGenericStructCanonicalIntAt(produced, 19),
+            DirectMirGenericStructCanonicalIntAt(initial, 7),
+            DirectMirGenericStructCanonicalIntAt(initial, 16)
+        );
+    let verified: DirectMirGenericStructValueFlowGraphFact =
+        DirectMirGenericStructValueFlowGraphFact(
+            fact.valid, DirectMirGenericStructValueFlowGraphFactDigest(fact),
+            fact.type_name, fact.first_field, fact.second_field,
+            fact.generic_callable, fact.generic_actual,
+            fact.generic_parameter_name, fact.parameter_name,
+            fact.producer_name, fact.source_local_name, fact.result_local_name,
+            fact.producer_first_delta, fact.producer_second_delta,
+            fact.initial_first, fact.initial_second
+        );
+    if !DirectMirGenericStructValueFlowGraphFactReady(verified) {
+        Die("direct MIR generic nominal graph fact is invalid");
+    }
+    return verified;
+}

@@ -1,0 +1,124 @@
+// Exact graph topology for four explicit generic calls and nominal value flow.
+
+import "direct_mir_array_int_graph_fact_owner.pgy";
+
+func DirectMirGenericStructExactTopologyReady(
+    ref sequence: MirExpressionGraphSequence,
+    kinds: Array<Int>, lefts: Array<Int>, rights: Array<Int>,
+    targets: Array<String>, root: Int
+) -> Bool {
+    let count: Int = ArrayLength(kinds);
+    if !sequence.ok || sequence.ready_node_count != count ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != root ||
+        ArrayLength(lefts) != count || ArrayLength(rights) != count ||
+        ArrayLength(targets) != count {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if sequence.arena.topology.node_kinds[row] != kinds[row] ||
+            sequence.arena.topology.left_children[row] != lefts[row] ||
+            sequence.arena.topology.right_children[row] != rights[row] {
+            return false;
+        }
+        if targets[row] == "" {
+            if sequence.arena.call_target_kinds[row] !=
+                    SemanticCallTargetNone() ||
+                sequence.arena.call_target_names[row] != "" {
+                return false;
+            }
+        } else if sequence.arena.call_target_kinds[row] !=
+                SemanticCallTargetDirect() ||
+            sequence.arena.call_target_names[row] != targets[row] {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirGenericStructIdentityReturnShapeReady(
+    ref sequence: MirExpressionGraphSequence
+) -> Bool {
+    return DirectMirGenericStructExactTopologyReady(
+        sequence, [AstExpressionNodeLeaf()], [0], [0], [""], 0
+    );
+}
+
+func DirectMirGenericStructProducerShapeReady(
+    ref sequence: MirExpressionGraphSequence, callable: String
+) -> Bool {
+    return callable != "" && DirectMirGenericStructExactTopologyReady(
+        sequence, [
+            AstExpressionNodeLeaf(), AstExpressionNodeStructLiteral(),
+            AstExpressionNodeStructFieldName(), AstExpressionNodeLeaf(),
+            AstExpressionNodeGenericTypeActual(),
+            AstExpressionNodeGenericCallee(), AstExpressionNodeCall(),
+            AstExpressionNodeLeaf(), AstExpressionNodeIntegerLiteral(),
+            AstExpressionNodeAdd(), AstExpressionNodeCallArgument(),
+            AstExpressionNodeStructFieldBinding(), AstExpressionNodeStructField(),
+            AstExpressionNodeStructFieldName(), AstExpressionNodeLeaf(),
+            AstExpressionNodeGenericTypeActual(),
+            AstExpressionNodeGenericCallee(), AstExpressionNodeCall(),
+            AstExpressionNodeLeaf(), AstExpressionNodeIntegerLiteral(),
+            AstExpressionNodeAdd(), AstExpressionNodeCallArgument(),
+            AstExpressionNodeStructFieldBinding(), AstExpressionNodeStructField()
+        ], [
+            0,0,0,0,0,3,5,0,0,7,6,2,1,0,0,0,14,16,0,0,18,17,13,12
+        ], [
+            0,0,0,0,0,4,0,0,0,8,9,10,11,0,0,0,15,0,0,0,19,20,21,22
+        ], [
+            "","","","","","",callable,"","","","","","",
+            "","","","",callable,"","","","","",""
+        ], 23
+    );
+}
+
+func DirectMirGenericStructInitialShapeReady(
+    ref sequence: MirExpressionGraphSequence, callable: String
+) -> Bool {
+    return callable != "" && DirectMirGenericStructExactTopologyReady(
+        sequence, [
+            AstExpressionNodeLeaf(), AstExpressionNodeStructLiteral(),
+            AstExpressionNodeStructFieldName(), AstExpressionNodeLeaf(),
+            AstExpressionNodeGenericTypeActual(),
+            AstExpressionNodeGenericCallee(), AstExpressionNodeCall(),
+            AstExpressionNodeIntegerLiteral(), AstExpressionNodeCallArgument(),
+            AstExpressionNodeStructFieldBinding(), AstExpressionNodeStructField(),
+            AstExpressionNodeStructFieldName(), AstExpressionNodeLeaf(),
+            AstExpressionNodeGenericTypeActual(),
+            AstExpressionNodeGenericCallee(), AstExpressionNodeCall(),
+            AstExpressionNodeIntegerLiteral(), AstExpressionNodeCallArgument(),
+            AstExpressionNodeStructFieldBinding(), AstExpressionNodeStructField()
+        ], [0,0,0,0,0,3,5,0,6,2,1,0,0,0,12,14,0,15,11,10],
+        [0,0,0,0,0,4,0,0,7,8,9,0,0,0,13,0,0,16,17,18], [
+            "","","","","","",callable,"","","","","","","",
+            "",callable,"","","",""
+        ], 19
+    );
+}
+
+func DirectMirGenericStructProducerCallShapeReady(
+    ref sequence: MirExpressionGraphSequence, producer: String
+) -> Bool {
+    return producer != "" && DirectMirGenericStructExactTopologyReady(
+        sequence, [AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+        AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+        AstExpressionNodeMemberAccess(), AstExpressionNodeCallArgument()],
+        [0,0,0,0,2,1], [0,0,0,0,3,4],
+        ["",producer,"","","",""], 5
+    );
+}
+
+func DirectMirGenericStructOutputShapeReady(
+    ref sequence: MirExpressionGraphSequence
+) -> Bool {
+    return DirectMirGenericStructExactTopologyReady(sequence, [
+        AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+        AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+        AstExpressionNodeMemberAccess(), AstExpressionNodeLeaf(),
+        AstExpressionNodeLeaf(), AstExpressionNodeMemberAccess(),
+        AstExpressionNodeAdd(), AstExpressionNodeCallArgument()
+    ], [0,0,0,0,2,0,0,5,4,1], [0,0,0,0,3,0,0,6,7,8],
+    ["","ToString","","","","","","","",""], 9);
+}

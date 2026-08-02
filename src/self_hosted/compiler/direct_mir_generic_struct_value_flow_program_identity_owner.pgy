@@ -1,0 +1,223 @@
+// Row-order-independent identity for generic scalar calls into nominal values.
+
+import "direct_mir_generic_struct_value_flow_program_admission_owner.pgy";
+import "direct_mir_generic_struct_value_flow_graph_fact_owner.pgy";
+import "direct_mir_generic_specialization_fact_owner.pgy";
+import "direct_mir_generic_routine_signature_fact_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_nominal_declaration_abi_fact_owner.pgy";
+
+struct DirectMirGenericStructValueFlowProgramIdentity {
+    let valid: Bool;
+    let digest: Int;
+    let entrypoint: DirectMirRoutineSignatureFact;
+    let producer: DirectMirRoutineSignatureFact;
+    let generic_template: DirectMirGenericRoutineSignatureFact;
+    let specialization: DirectMirGenericSpecializationFact;
+    let declaration: DirectMirNominalDeclarationAbiFact;
+    let graph: DirectMirGenericStructValueFlowGraphFact;
+}
+
+func DirectMirGenericStructValueFlowProgramIdentityDigest(
+    ref identity: DirectMirGenericStructValueFlowProgramIdentity
+) -> Int {
+    if !identity.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(211L, identity.entrypoint.digest);
+    hash = DirectMirCfgHashInt(hash, identity.producer.digest);
+    hash = DirectMirCfgHashInt(hash, identity.generic_template.digest);
+    hash = DirectMirCfgHashInt(hash, identity.specialization.digest);
+    hash = DirectMirCfgHashInt(hash, identity.declaration.digest);
+    hash = DirectMirCfgHashInt(hash, identity.graph.digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirGenericStructPhysicalRowReady(
+    ref declaration: DirectMirNominalDeclarationAbiFact
+) -> Bool {
+    return declaration.abi.size_text == "8" &&
+        declaration.abi.align_text == "4" &&
+        ArrayLength(declaration.abi.field_names) == 2 &&
+        declaration.abi.field_offsets[0] == "0" &&
+        declaration.abi.field_offsets[1] == "4" &&
+        declaration.abi.field_sizes[0] == "4" &&
+        declaration.abi.field_sizes[1] == "4" &&
+        declaration.abi.field_aligns[0] == "4" &&
+        declaration.abi.field_aligns[1] == "4";
+}
+
+func DirectMirGenericStructValueFlowProgramIdentityReady(
+    ref identity: DirectMirGenericStructValueFlowProgramIdentity
+) -> Bool {
+    if !identity.valid || identity.digest == 0 || identity.digest !=
+        DirectMirGenericStructValueFlowProgramIdentityDigest(identity) ||
+        !DirectMirRoutineSignatureFactReady(identity.entrypoint) ||
+        !DirectMirRoutineSignatureFactReady(identity.producer) ||
+        !DirectMirGenericRoutineSignatureFactReady(
+            identity.generic_template
+        ) || !DirectMirGenericSpecializationFactReady(
+            identity.specialization
+        ) || !DirectMirNominalDeclarationAbiFactReady(
+            identity.declaration
+        ) || !DirectMirGenericStructValueFlowGraphFactReady(identity.graph) {
+        return false;
+    }
+    let graph: DirectMirGenericStructValueFlowGraphFact = identity.graph;
+    let generic: DirectMirGenericRoutineSignatureFact =
+        identity.generic_template;
+    return identity.entrypoint.name == "Main" &&
+        identity.entrypoint.return_type == "Void" &&
+        identity.entrypoint.param_count == 0 &&
+        identity.producer.name == graph.producer_name &&
+        identity.producer.return_type == identity.declaration.name &&
+        identity.producer.param_count == 1 &&
+        identity.producer.param.name == graph.parameter_name &&
+        identity.producer.param.type_name == CompilerAbiLayoutIntTypeName() &&
+        identity.producer.param.carriage == "value" &&
+        identity.producer.param.resource == "none" &&
+        identity.producer.param.pass_shape == "direct" &&
+        !identity.producer.param.abi_required &&
+        generic.name == graph.generic_callable &&
+        generic.param.name == graph.generic_parameter_name &&
+        generic.generic_name == identity.specialization.generic_param &&
+        identity.specialization.callable == graph.generic_callable &&
+        identity.specialization.generic_actual == graph.generic_actual &&
+        graph.generic_actual == CompilerAbiLayoutIntTypeName() &&
+        identity.declaration.name == graph.type_name &&
+        ArrayLength(identity.declaration.field_names) == 2 &&
+        identity.declaration.field_names[0] == graph.first_field &&
+        identity.declaration.field_names[1] == graph.second_field &&
+        identity.declaration.field_types[0] == CompilerAbiLayoutIntTypeName() &&
+        identity.declaration.field_types[1] == CompilerAbiLayoutIntTypeName() &&
+        DirectMirGenericStructPhysicalRowReady(identity.declaration) &&
+        identity.entrypoint.row != identity.producer.row &&
+        identity.entrypoint.row != generic.row &&
+        identity.producer.row != generic.row &&
+        identity.entrypoint.source_syntax_id !=
+            identity.producer.source_syntax_id &&
+        identity.entrypoint.source_syntax_id != generic.source_syntax_id &&
+        identity.producer.source_syntax_id != generic.source_syntax_id;
+}
+
+func DirectMirGenericStructInstructionGraph(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    routine_row: Int, instruction_row: Int
+) -> MirExpressionGraphSequence {
+    let global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, routine_row, 0, instruction_row
+    );
+    if global < 0 {
+        Die("direct MIR generic nominal instruction routing failed");
+    }
+    let expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions, global
+        );
+    return DirectMirArrayIntGraphFromExpressionFact(
+        admitted.routines.source_json, expression, 0
+    );
+}
+
+func DirectMirGenericStructUniqueRoutineRow(
+    ref routines: MirProgramRoutineIndex, name: String
+) -> Int {
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < MirProgramRoutineIndexCount(routines) {
+        if routines.names[row] == name {
+            if found >= 0 {
+                Die("direct MIR generic nominal routine is duplicated");
+            }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirGenericStructValueFlowProgramIdentityFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref classification: DirectMirThreeRoutineClassificationFact
+) -> DirectMirGenericStructValueFlowProgramIdentity {
+    if !DirectMirGenericStructValueFlowProgramEnvelopeReady(
+        admitted, classification
+    ) {
+        Die("direct MIR generic nominal program envelope is invalid");
+    }
+    let main_row: Int = DirectMirGenericStructUniqueRoutineRow(
+        admitted.routines, "Main"
+    );
+    if main_row < 0 || MirProgramRoutineIndexBlockInstructionCountAt(
+        admitted.routines, main_row, 0
+    ) != 3 {
+        Die("direct MIR generic nominal entrypoint is invalid");
+    }
+    let initial: MirExpressionGraphSequence =
+        DirectMirGenericStructInstructionGraph(admitted, main_row, 0);
+    let producer_call: MirExpressionGraphSequence =
+        DirectMirGenericStructInstructionGraph(admitted, main_row, 1);
+    let output: MirExpressionGraphSequence =
+        DirectMirGenericStructInstructionGraph(admitted, main_row, 2);
+    if !producer_call.ok || producer_call.ready_node_count != 6 {
+        Die("direct MIR generic nominal producer call is missing");
+    }
+    let producer_row: Int = DirectMirGenericStructUniqueRoutineRow(
+        admitted.routines, producer_call.arena.call_target_names[1]
+    );
+    if producer_row < 0 || MirProgramRoutineIndexBlockInstructionCountAt(
+        admitted.routines, producer_row, 0
+    ) != 1 {
+        Die("direct MIR generic nominal producer is invalid");
+    }
+    let produced: MirExpressionGraphSequence =
+        DirectMirGenericStructInstructionGraph(admitted, producer_row, 0);
+    if !produced.ok || produced.ready_node_count != 24 {
+        Die("direct MIR generic nominal constructor graph is missing");
+    }
+    let generic_row: Int = DirectMirGenericStructUniqueRoutineRow(
+        admitted.routines, produced.arena.call_target_names[6]
+    );
+    if generic_row < 0 || MirProgramRoutineIndexBlockInstructionCountAt(
+        admitted.routines, generic_row, 0
+    ) != 1 {
+        Die("direct MIR generic nominal template is invalid");
+    }
+    let generic_return: MirExpressionGraphSequence =
+        DirectMirGenericStructInstructionGraph(admitted, generic_row, 0);
+    let graph: DirectMirGenericStructValueFlowGraphFact =
+        DirectMirGenericStructValueFlowGraphFactFromSequences(
+            generic_return, produced, initial, producer_call, output
+        );
+    let entrypoint: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 3);
+    let producer: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(admitted.routines, producer_row, 1);
+    let generic: DirectMirGenericRoutineSignatureFact =
+        DirectMirGenericRoutineSignatureFactAt(
+            admitted.routines, generic_row
+        );
+    let specialization: DirectMirGenericSpecializationFact =
+        DirectMirGenericSpecializationFactFromDocument(
+            admitted.document.root
+        );
+    let declaration: DirectMirNominalDeclarationAbiFact =
+        DirectMirNominalDeclarationAbiFactFromDocument(
+            admitted.document.root.json,
+            admitted.domain_runtime_admission.declarations, 0
+        );
+    let identity: DirectMirGenericStructValueFlowProgramIdentity =
+        DirectMirGenericStructValueFlowProgramIdentity(
+            true, 0, entrypoint, producer, generic, specialization,
+            declaration, graph
+        );
+    let verified: DirectMirGenericStructValueFlowProgramIdentity =
+        DirectMirGenericStructValueFlowProgramIdentity(
+            identity.valid,
+            DirectMirGenericStructValueFlowProgramIdentityDigest(identity),
+            identity.entrypoint, identity.producer, identity.generic_template,
+            identity.specialization, identity.declaration, identity.graph
+        );
+    if !DirectMirGenericStructValueFlowProgramIdentityReady(verified) {
+        Die("direct MIR generic nominal program identity is invalid");
+    }
+    return verified;
+}
