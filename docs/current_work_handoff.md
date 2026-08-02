@@ -6,90 +6,78 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — promote aggregate value-flow ownership
+## Active self-host context — vessel generic-member executable replacement
 
-- Executable checkpoint: `96b7f88e` on `main`; documentation is the only
-  intended dirty state during this handoff refresh. The installed Pergyra-built
-  driver is 4,068,483 bytes with SHA-256
-  `8D78B7D0D88622A057F0EBD5A3938D435A28C81BF47EED976C7DAFE9B93B99EF`.
-- Closed frontier:
-  `src/self_hosted/mir_lower/fixture/generic_member_record_array_return_flow.pgy`.
-  Its one-shot self MIR is 11,952 bytes with SHA-256
-  `FA0EDC384115F1978C1AB25C8CC587CD9EE6370FAE5717E25DE54BD52EBEC3FF`.
-  The installed public C and runtime-free LLVM paths preserve the real
-  `RecordArrayWrapper_Wrap_Point` and
-  `RecordArrayWrapper_Echo_Array_Point_` definitions/calls, caller-owned fixed
-  storage, `Array<Point>` by-value carriage, index zero, the loaded `Point`, and
-  `.x`; both artifacts execute exact `45`.
-- Exact admission now owns one struct plus one class, two specializations,
-  three routines, cross-domain unique positive source syntax IDs, every Main
-  instruction envelope, the Point declaration/SSA ABI receipts, nested call
-  graph, storage lifetime, representation, and final Log. The focused gate
-  proves three artifact-preserving variants, 35 C negatives, ten LLVM
-  sentinels, exact `45`, and the existing exact-`75` value variant.
-- Public direct-MIR `Array<T>` storage uses the explicit four-field
-  `{data,length,capacity,allocator}` contract and target data-layout identity
-  `pgy.runtime.pointer64-size_t64.v1`. This does not redefine the private
-  three-field growable containers used inside the self-host compiler. Storage
-  layout is also separate from the new closed-module call-ABI fact: C uses the
-  host compiler's closed-module classifier and LLVM uses its internal default.
-  Neither projection claims external C/LLVM interoperability.
-- The first promotion ratchet is landed. `Array<Int>` and `Array<Point>` now
-  consume one target-bound Array storage projection for data-layout identity,
-  size/alignment, field names/offsets, C length type, LLVM aggregate and slot
-  indices. The family ABI projections cannot import the storage layout owner
-  directly. Both C artifacts emit the same six host layout assertions. A
-  shared symbol owner uses the non-reserved `_pgy_array_storage_N` namespace
-  and increments the ordinal when a source parameter occupies a candidate.
-  `Array<Int>` now also carries the same closed-module/no-external-interop call
-  receipt as `Array<Point>`.
-- Generated hidden storage now uses collision-owned `_pgy_array_storage_N` and
-  advances the ordinal when a legal source parameter already owns a candidate.
-  C publication rejects every `pgy_array_*(` runtime call;
-  LLVM publication proves the full Echo/result/data/index/load/field/printf
-  chain. Every new Pergyra owner remains at or below 220 lines and the focused
-  family is 1,958/2,100 lines.
-- Latest green: final current-source driver rebuild; constructed record-array
-  C/LLVM focused gate; prior constructed Array exact `44`; hard self-host
-  contract; full component contract; installed public C and runtime-free LLVM
-  compile/run; shell/Python syntax and diff checks; full UTF-8 documentation
-  quality; protocol registry with nine rows; and formal-semantics structural
-  checks. Coq/Rocq is not installed, so the formal gate used the explicit
-  `PGY_ALLOW_MISSING_COQ=1` declaration and 41 proofs were not machine-checked.
-  Full CI, Coq adequacy, bootstrap seed/fixpoint, and current-source gen2==gen3
-  were not run. The unrelated duplicate-Coq-ID
-  `sot-authority-edge-test-smoke` remains a known red and is not claimed green;
-  its duplicated Coq-fact names and multiplicities are identical between
-  `HEAD` and the refreshed registry row set, so this Array documentation change
-  did not add one.
-- Last valid pressure evidence belongs to executable checkpoint `8bd92069`: one
-  fresh full DRV-2 build took 104.381 seconds at peak private 1.937 GiB and
-  working set 1.836 GiB, with `attention_required=false` under the 3 GiB hard
-  cap. The current `96b7f88e` driver rebuilt successfully in 103.8 seconds but
-  was not pressure-measured, so the older peak is not attributed to it.
-- Active objective: complete the second promotion ratchet before admitting a
-  third aggregate topology. The completed constructed `Array<Int>` and
-  `Array<Point>` slices must project one target-neutral aggregate value-flow
-  fact after family-specific admission and before target ABI projection.
-  Priority is semantic identity/one SoT, preservation of distinct ABI
-  provenance, deletion of duplicate storage/index/call/carriage decisions,
-  then artifact stability. This is architecture work, not new substitution
-  progress.
-- Fact owner: the promoted plan owns wrapper representation, element and Array
-  type identity, ABI-provenance kind, caller-owned single storage, index zero,
-  construction/identity policies, nested call/result carriage and the shared
-  closed-module call receipt. It consumes already-admitted family facts and may
-  not read MIR, JSON or classification. Family target projections remain the
-  last legitimate consumers for distinct Int-receipt and Point-nominal ABI.
-- Forbidden fallback: another fixture-named planner/emitter family, class or
-  type spelling dispatch, treating storage layout as calling convention,
-  deriving public ABI from the compiler's private growable container, target
-  default guessing, or retrying an older planner after admission.
-- Next falsifier: exact `44` and `45` continue through the same promoted owner;
-  existing permutations and all Array/Point/storage/call/SSA negatives remain
-  fail-closed; the old duplicated decision entrypoints become a shrink-only
-  inventory. Only after this gate is green may the next unsupported executable
-  aggregate program be selected.
+- Executable checkpoint: `e24d5652` on `main`; documentation is the only
+  intended dirty state during this handoff refresh. The current Pergyra-built
+  driver is 4,077,599 bytes with SHA-256
+  `A8F0F563A79CB87CDEB2052742FDA0472980CA67A4700FCF7B13C2F73E5140C6`.
+- The second and final consecutive SoT-only ratchet is closed. Constructed
+  `Array<Int>` and `Array<Point>` plans now consume one target-neutral
+  `DirectMirAggregateValueFlowFact` and one selected
+  `DirectMirAggregateValueFlowTargetProjection`. Wrapper representation,
+  element/Array identity, real ABI provenance, caller-owned single storage,
+  index, construction/identity, allocator/lifetime/carriage and the
+  closed-module call receipt are no longer re-owned by either family or its
+  C/LLVM emitter.
+- ABI provenance remains intentionally asymmetric and exact. `Array<Int>` uses
+  its captured physical Array receipt. `Array<Point>` uses
+  `DirectMirConstructedRecordArrayAbiAbsenceFact`, which validates the admitted
+  MIR receipt `(layout_id=0, required=false, layout=null)`, binds the typed
+  result capture, and supplies that exact digest as
+  `aggregate_flow.abi_evidence_id`. `point_abi.digest` remains only the nominal
+  `Point` element ABI and is not accepted as Array-absence evidence.
+- Artifact bytes are unchanged by the promotion: Array<Int> C is 1,332 bytes
+  (`73A724D56100BC9B5F851F29934524349CB31273B6A5E2FE71E62568356942E6`)
+  and LLVM is 1,628 bytes
+  (`45B8DB294F2D282203C64BD04CCCFB34003B868C74F697E002843FE8C94E3B1F`);
+  Array<Point> C is 1,780 bytes
+  (`34991B2A1D4C2150EAAF6E60020A9B1836E6E94858423E76E4EF784306BC28BA`)
+  and LLVM is 1,782 bytes
+  (`9EEAC586ED480688EA053E8F06CE73153B30427152EFEBCBACC1200E1B4CB629`).
+  The focused gates execute exact `44` and `45`, retain
+  six/seven invariants and three variants each, and reject 27/35 C negatives
+  plus 7/10 LLVM sentinels.
+- Latest green: hard self-host contract, both focused C/LLVM gates, full
+  component contract, installed public C compile/run, installed runtime-free
+  LLVM compile/run, current-source parse/codegen, equivalent release host
+  compile and installed source smoke, shell syntax, and diff checks. The build
+  wrapper's final GCC command was not green in this Codex runner because its
+  nested shell resolved the temporary directory to protected `C:\Windows`;
+  compiling the same generated C with the same release flags and a repository
+  temp directory succeeded in 66.9 seconds. Full CI, Coq/Rocq adequacy,
+  bootstrap seed/fixpoint, and current-source gen2==gen3 were not run. The
+  unrelated duplicate-Coq-fact `sot-authority-edge-test-smoke` remains a known
+  red and is not claimed green; this change adds no protocol or proof identity.
+- Last valid pressure evidence remains checkpoint `8bd92069`: 104.381 seconds,
+  peak private 1.937 GiB and working set 1.836 GiB. The current driver was not
+  pressure-measured, so no older peak is attributed to it. Memory remains a
+  final-maximum signal with 2.4 GiB attention and 3 GiB hard stop, not a
+  per-edit objective.
+- Active objective: replace the next real C-owned path for
+  `src/self_hosted/mir_lower/fixture/generic_vessel_member_inferred_flow.pgy`.
+  Current source-to-MIR succeeds once: 6,527 bytes, SHA-256
+  `367AA5B544912E9735B42F9C16222A6424432D88FD308CAC6258E823D0229DD5`.
+  Both direct C and LLVM currently fail closed before artifact publication with
+  `CODEGEN ERROR: direct MIR two-routine classification is invalid`.
+- Objective card: preserve one semantic generic-member identity across passive
+  `class` and `vessel` hosts; priority is existing owner reuse, one-shot host
+  classification, deletion of the C bypass for this slice, then exact artifact
+  parity. The production entrypoint is installed
+  `pgy-self-driver --mir-json-backend={c,llvm}` through
+  `CompileAdmittedDirectMirMultiRoutineForTarget`. The reached fact owner is
+  `direct_mir_two_routine_classification_owner.pgy`; the last legitimate
+  orchestration consumer is the existing inferred generic-member plan and
+  projection.
+- Forbidden fallback: type-name or fixture-name dispatch, a vessel-specific
+  emitter/plan, retrying another planner after classification, weakening class
+  identity into syntax-text matching, or native C semantic/backend re-entry.
+- Next falsifier: the same self MIR must drive the existing real generic-member
+  definition and nested calls under C and LLVM and execute exact `42`.
+  Class/vessel host-kind mutation, unresolved member/specialization, stale SSA
+  use, and planner-retry negatives must fail before artifact creation. This
+  next commit must be executable replacement progress, not a third SoT-only
+  cleanup.
 
 ## Historical checkpoint archive — inactive evidence
 

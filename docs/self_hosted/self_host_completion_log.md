@@ -6,6 +6,46 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-02 - Aggregate value flow is promoted; vessel execution is next
+
+- Landed code checkpoint `e24d5652` as the second and final consecutive
+  SoT-only promotion. Constructed Array<Int> and Array<Point> now consume
+  `DirectMirAggregateValueFlowFact` and one target projection instead of
+  independently owning representation, storage/index, call ABI,
+  allocator/lifetime/carriage and target emission constants. Family-specific
+  admission and nominal target projection remain separate.
+- Closed the final audit blocker with
+  `DirectMirConstructedRecordArrayAbiAbsenceFact`. It validates the admitted
+  Array<Point> result receipt as layout ID zero, not required, and null layout;
+  binds type/result/capture identity; enters the program digest; and supplies
+  its exact digest as aggregate ABI evidence. `point_abi.digest` now proves only
+  the Point element ABI. A read-only independent audit found no remaining fake
+  provenance, dual authority, emitter re-decision or cap blocker.
+- Array<Int> C/LLVM artifacts remain 1,332/1,628 bytes with SHA-256
+  `73A724D56100BC9B5F851F29934524349CB31273B6A5E2FE71E62568356942E6`
+  and `45B8DB294F2D282203C64BD04CCCFB34003B868C74F697E002843FE8C94E3B1F`.
+  Array<Point> C/LLVM remain 1,780/1,782 bytes with SHA-256
+  `34991B2A1D4C2150EAAF6E60020A9B1836E6E94858423E76E4EF784306BC28BA`
+  and `9EEAC586ED480688EA053E8F06CE73153B30427152EFEBCBACC1200E1B4CB629`.
+  Focused exact 44/45, hard contract, full component, installed C and installed
+  LLVM gates are green.
+- Current-source parse/codegen plus equivalent release host compilation and
+  installed source smoke produced a 4,077,599-byte driver with SHA-256
+  `A8F0F563A79CB87CDEB2052742FDA0472980CA67A4700FCF7B13C2F73E5140C6`.
+  The nested Codex build shell's final GCC step resolved temp storage to
+  protected `C:\Windows`; the same generated C and release flags succeeded in
+  66.9 seconds with a repository temp directory. This is recorded as a runner
+  limitation, not claimed as a green wrapper run. Pressure, full CI, Coq/Rocq,
+  bootstrap fixpoint and current-source gen2==gen3 were not run.
+- The next rung is executable replacement, not another SoT cleanup.
+  `generic_vessel_member_inferred_flow.pgy` produces a 6,527-byte self MIR with
+  SHA-256
+  `367AA5B544912E9735B42F9C16222A6424432D88FD308CAC6258E823D0229DD5`;
+  direct C and LLVM both fail closed at the two-routine classifier. Reuse the
+  existing inferred generic-member plan/emitter for passive vessel hosts,
+  preserve host-kind identity, execute exact 42, and forbid fixture/type-name
+  dispatch, vessel-specific emitters, planner retry and native fallback.
+
 ## 2026-08-02 - Array storage projection is promoted across two substituting families
 
 - Landed code checkpoint `96b7f88e` as the first aggregate-owner promotion

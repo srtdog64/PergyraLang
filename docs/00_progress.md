@@ -2,56 +2,45 @@
 
 마지막 업데이트: 2026-08-02
 
-## 활성 우선순위 — aggregate value-flow owner 승격
+## 활성 우선순위 — vessel generic-member 실행 경로 치환
 
-- 실행 체크포인트 `96b7f88e`는
-  `generic_member_record_array_return_flow.pgy`를 target-specific
-  `SUBSTITUTING`으로 닫았다. 같은 11,952-byte self MIR, SHA-256
-  `FA0EDC384115F1978C1AB25C8CC587CD9EE6370FAE5717E25DE54BD52EBEC3FF`가
-  C와 LLVM을 모두 구동하며 실제 `Wrap<Point> -> Array<Point>`,
-  `Echo<Array<Point>>`, index, `Point` load와 `.x`를 보존해 exact `45`를 출력한다.
-- Exact mixed declaration/program owner는 한 struct, 한 class, 두 specialization,
-  세 routine, 양수이며 도메인 간 중복 없는 source syntax ID, 25개 Main field
-  envelope, Point/Array ABI와 SSA, nested calls, caller-owned storage, 최종 Log를
-  한 plan에 봉인한다. Focused gate는 세 variant, C negative 35개, LLVM sentinel
-  10개와 exact `45`/`75` 실행을 검증한다.
-- Public direct-MIR Array storage는
-  `{data,length,capacity,allocator}`와
-  `pgy.runtime.pointer64-size_t64.v1`이 소유한다. Self-host compiler 내부의 private
-  `{data,len,cap}` growable container와 다른 도메인이다. 저장 layout과 호출 ABI도
-  분리했으며 현재 C/LLVM 산출물은 closed-module internal 호출만 주장한다. 외부
-  ABI interoperability는 아직 열려 있다.
-- 첫 승격 래칫으로 `Array<Int>`와 `Array<Point>`의 target storage mapping을
-  `DirectMirArrayStorageAbiProjection` 하나로 옮겼다. 두 family ABI는 layout
-  owner를 직접 읽지 않고 data-layout ID, 32/8 크기·정렬, 네 field 이름·offset,
-  C length type과 LLVM aggregate/index receipt를 소비한다. C는 동일한 여섯
-  `_Static_assert`를 방출한다. `_pgy_array_storage_N` symbol owner는 C 예약
-  `__*` 이름을 쓰지 않으며 source parameter 충돌 시 ordinal을 올린다.
-  `Array<Int>` plan도 closed-module/no-external-interop call receipt를 소유한다.
-- Hidden storage 이름은 collision-aware owner가 발급하는
-  `_pgy_array_storage_N`으로 격리했고, C에는 모든
-  `pgy_array_*(` runtime call 금지, LLVM에는 Echo/result/data/index/load/field/printf
-  전체 chain ratchet을 추가했다. 새 owner는 각 220줄 이하, focused family는
-  1,958/2,100줄이다.
-- 최종 설치 드라이버는 4,068,483 bytes, SHA-256
-  `8D78B7D0D88622A057F0EBD5A3938D435A28C81BF47EED976C7DAFE9B93B99EF`다.
-  Current-source rebuild는 103.8초에 성공했지만 pressure 계측은 하지 않았다.
-  104.381초/peak private 1.937 GiB/working set 1.836 GiB 표본은 이전
-  `8bd92069`에만 속한다. Full CI, Coq adequacy, bootstrap fixpoint와
-  current-source gen2==gen3은 재실행하지 않았다.
-- 첨부 architecture review의 Pair/Array<Point> 미구현 판정은 관찰 HEAD가 뒤처져
-  현재 사실과 맞지 않지만, fixture topology별 mini-compiler 확산 경고는 유효하다.
-  따라서 다음 활성 작업은 새 aggregate fixture를 추가하는 일이 아니다.
-- 다음 objective는 이미 admitted된 constructed `Array<Int>`와 `Array<Point>`가
-  하나의 representation-parameterized aggregate value-flow fact를 소비하게 하는
-  두 번째 승격이다. 공통 fact는 wrapper/element/Array identity, ABI provenance,
-  caller-owned single storage, index zero, construction/identity policy, nested
-  carriage와 closed-module call receipt만 소유한다. MIR/JSON/classification은 읽지
-  않으며 Int receipt와 Point nominal ABI target projection은 계속 분리한다.
-- 새 fixture 이름 기반 owner/emitter 계열, type spelling dispatch, private container를
-  public ABI로 승격, storage layout을 call ABI로 간주, target default 추측, 실패 후
-  이전 planner retry를 금지한다. Exact `44`와 `45`, 기존 permutations 및 모든
-  ABI/storage/call/SSA negative가 같은 승격 owner 아래 green인 것이 다음 falsifier다.
+- 실행 체크포인트 `e24d5652`에서 두 번째이자 마지막 연속 SoT 승격을 닫았다.
+  Constructed `Array<Int>`와 `Array<Point>`는 이제 하나의 target-neutral
+  `DirectMirAggregateValueFlowFact`와 선택된 target projection을 소비한다.
+  두 family plan/emitter가 representation, storage/index, call receipt,
+  allocator/lifetime/carriage를 다시 결정하는 경로는 negative-gated다.
+- ABI provenance를 합치지 않았다. `Array<Int>`는 실제 captured physical ABI
+  receipt를 사용한다. `Array<Point>`는 새 absence owner가 admitted MIR의
+  `layout_id=0`, `required=false`, `layout=null`을 검증하고 typed result capture와
+  결합한 digest를 `aggregate_flow.abi_evidence_id`로 전달한다. `point_abi.digest`는
+  Point 원소 ABI일 뿐 Array 부재 증거가 아니다.
+- 두 lane의 C/LLVM artifact는 승격 전과 byte-equal이다. Focused gate는 exact
+  `44`/`45`, 여섯/일곱 invariants, 각 세 variants, 27/35 C negatives와 7/10 LLVM
+  sentinels를 통과했다. Hard contract, full component, installed public C와
+  runtime-free LLVM compile/run도 green이다.
+- 현재 설치 드라이버는 4,077,599 bytes, SHA-256
+  `A8F0F563A79CB87CDEB2052742FDA0472980CA67A4700FCF7B13C2F73E5140C6`다.
+  Current-source parse/codegen과 동일 release-flag host compile/source smoke는
+  성공했다. Codex runner의 nested build shell은 GCC temp를 보호된 `C:\Windows`로
+  해석해 wrapper 마지막 단계가 red였으며, repo temp를 지정한 동일 C 직접
+  compile은 66.9초였다. Pressure는 재지 않았다. Full CI, Coq/Rocq adequacy,
+  bootstrap fixpoint와 current-source gen2==gen3도 재실행하지 않았다.
+- 첨부 8월 2일 architecture review의 topology-specific mini-compiler 경고는 이번
+  공통 value-flow 승격으로 받아들였다. Pair/Array<Point> 미구현과 3.65MB driver
+  평가는 관찰 HEAD `bac9b3f1` 기준이라 현재 사실에는 그대로 적용하지 않는다.
+  portable external call ABI와 general aggregate legalization은 여전히 열린 문제다.
+- 다음 objective는 실제 C-owned 실행 경로 치환이다.
+  `generic_vessel_member_inferred_flow.pgy`의 source-to-MIR은 성공하며 결과는
+  6,527 bytes, SHA-256
+  `367AA5B544912E9735B42F9C16222A6424432D88FD308CAC6258E823D0229DD5`다.
+  현재 direct C와 LLVM은 모두 artifact 전에
+  `direct MIR two-routine classification is invalid`로 fail-closed한다.
+- 기존 inferred generic-member owner를 passive `vessel Cell`에도 재사용하되
+  class/vessel host identity는 명시적으로 보존한다. Fixture/type-name dispatch,
+  vessel 전용 plan/emitter, 실패 후 다른 planner retry, native C fallback은 금지한다.
+  같은 MIR이 C/LLVM의 실제 generic-member definition과 nested calls를 거쳐 exact
+  `42`를 실행하고 host-kind/target/use negatives가 artifact 전에 거부되는 것이
+  다음 falsifier다. 다음 커밋은 반드시 executable replacement delta여야 한다.
 
 ## 비활성 진행 기록 archive
 

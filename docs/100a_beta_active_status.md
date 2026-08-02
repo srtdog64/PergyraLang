@@ -271,6 +271,23 @@ ratchet is the target-neutral aggregate value-flow fact; it must consume sealed
 family evidence without reading MIR/JSON or erasing the distinct captured-Int
 versus nominal-Point ABI provenance.
 
+Aggregate value-flow promotion update (2026-08-02): checkpoint `e24d5652`
+closes that second and final consecutive SoT-only ratchet. Constructed
+Array<Int> and Array<Point> plans now share one target-neutral aggregate-flow
+fact and one target projection for representation, element/Array identity,
+caller storage, index, construction/identity, allocator/lifetime/carriage and
+closed-module call ABI. Family-specific admission remains the authority for
+different evidence: Array<Int> carries a physical Array receipt, while
+Array<Point> carries a dedicated typed-absence fact derived from the admitted
+MIR receipt. The latter's exact digest, not the Point declaration digest, is
+cross-sealed into `aggregate_flow.abi_evidence_id`. C/LLVM artifacts remain
+byte-identical and execute exact 44/45 through installed paths. This promotion
+does not add substitution coverage. The active executable rung is the passive
+`vessel Cell` inferred generic-member fixture, whose 6,527-byte self MIR is
+currently rejected by the two-routine classifier on both direct targets. The
+next delta must reuse the existing generic-member plan/emitter and execute
+exact 42 without a vessel-specific family or native fallback.
+
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
 toolchain/preflight clarity, release/debug hygiene, memory/string bounds audit,
