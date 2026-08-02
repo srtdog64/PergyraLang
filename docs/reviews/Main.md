@@ -6,6 +6,10 @@ or gate that receives remaining work.
 
 ## Reviews
 
+- [`2026-08-02_architecture_review_checked.md`](2026-08-02_architecture_review_checked.md)
+  - current-tree adjudication of the `bac9b3f1` aggregate/ABI review, including
+    superseded Pair work, retained ABI/legalization constraints, current role-
+    operator substitution, and the next self-codegen receiver blocker.
 - [`2026-07-19_production_review_checked.md`](2026-07-19_production_review_checked.md)
   - current-head adjudication of the `2575f9a7` production review, including
     runtime state repairs, historical memory evidence, and the next executable

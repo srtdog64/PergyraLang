@@ -6,6 +6,72 @@
 
 ---
 
+## Role-operator targets disappear between semantic analysis and MIR
+
+A role operator is not primitive arithmetic merely because its source token is
+`+`. Semantic analysis must join the admitted ability, role, impl, method
+signature, receiver type, and expression graph, then persist one exact target:
+
+```text
+call_target_kind = role_operator
+call_target_name = <ability>.<role>.<method>
+```
+
+The backend must reject an empty, malformed, or cross-wired target. It must not
+select the only visible role, decode the operator spelling again, inspect
+display-only `expr0`, or retry primitive arithmetic after the role route has
+claimed the graph. The method signature also requires exactly one `self`; an
+empty raw source type for `self` is canonicalized by the signature owner and
+must not be treated as a missing receiver fact.
+
+Keep the operator vocabulary in one self-host semantic owner. The graph builder
+and legacy self-host role dispatcher consume the same kind/alias/method mapping.
+A native C table that has not migrated is a `BRIDGE`, not permission to add
+another self-host table.
+
+## A compiler-scale graph becomes slow or memory-heavy after a local semantic check
+
+First look for a cumulative graph operation that is being repeated per body or
+per optional feature. In the role-operator slice, the no-role program path
+initially called the full expression-graph readiness check again after the
+semantic bundle had already admitted that cumulative graph. This turned one
+owner-boundary validation into repeated whole-program work.
+
+The correction is an explicit declaration-presence branch:
+
+- if role-operator declarations exist, resolve only the reached role targets;
+- if none exist, scan only for a forbidden already-carried role target;
+- do not rebuild, concatenate, copy, or revalidate the cumulative expression
+  graph at this local owner.
+
+The current sibling driver then processed the compiler-scale
+`src/self_hosted/codegen/main.pgy` source to a 3,884,672-byte C artifact in
+73.1 seconds. This is bounded performance evidence for the fixed operation, not
+a general cache/query-engine justification and not a memory measurement.
+
+## Self-host codegen results disagree with current source
+
+Identify which compiler binary produced the result before debugging semantics.
+`bin/pgy.exe` can be an older prebuilt seed while `bin/pgy-self-driver.exe` is
+the current-source sibling. A diagnostic that remains unchanged after source
+instrumentation is evidence of a stale executable, not evidence that the new
+branch executed.
+
+- Build/install the sibling through the official
+  `tests/self_hosted/parity/self_host_compiler_build.sh` owner.
+- On Windows invoke `C:\Program Files\Git\bin\bash.exe` explicitly.
+- Pass repository-relative source and artifact paths to self-host tools; do not
+  turn an absolute Windows path into a second path authority inside Git Bash.
+- Record the exact binary size/hash with the test result.
+- Do not claim the current sibling supports an option it rejects. At this
+  checkpoint it does not expose the legacy `--backend=c` codegen-tool mode.
+
+The current-source codegen tool can be emitted and host-compiled separately.
+Its role fixture currently fails closed with
+`role receiver target nominal-kind fact is missing`. That is the next codegen
+receiver-admission blocker. It is not a failure of the closed direct-MIR role
+operator projection and must not be hidden by native codegen fallback.
+
 ## 2026-07-30 exhaustive self-check and platform-contract failures
 
 When `selfcheck_sources.sh` is strengthened, a new failure does not

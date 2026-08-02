@@ -1,31 +1,29 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-08-02 ability declaration erasure
+## Active self-host context — 2026-08-03 role operator substitution
 
 - Resume authority remains the top card in `docs/current_work_handoff.md`.
-  Executable checkpoint `89951491` closes `nominal_subject.pgy` exact `7` and
-  `nominal_vessel.pgy` exact `13` through one mutable nominal identity plan.
-- The shared route/admission owns declaration, graph, instruction, SSA/use,
-  reachability and actual-capture ABI absence. The semantic carriage policy is
-  the only bounded subject/vessel allow-list owner; no compiler router or
-  emitter dispatches on those spellings.
-- C uses one stable pointer identity. LLVM uses one alloca/GEP/store/load field
-  chain. Six positive pairs, 33 C negatives, 14 LLVM sentinels, passive tobject
-  regression, hard/component contracts and installed C/LLVM gates are green.
-- Installed driver: 4,123,408 bytes, SHA-256
-  `2C40D5752E89AB635F675F2A16454C0D95EE0A8D09B807B9A704CA760EE14D94`.
-  The 587-second rebuild included native LLVM configuration recovery and is not
-  an incremental self-host performance sample. Memory was not measured.
-- The sole next executable rung is `ability_decl.pgy`, expected output `7`.
-  Its 1,563-byte self MIR has SHA-256
-  `679EA54CDA224A2832603B48A8FD7A747B5944328AEECBAEF31C01401A0D81EF`.
-  Both direct targets fail without an artifact at the current zero-declaration,
-  string-only hello admission.
-- The next plan must seal the exact ability declaration/method contract as an
-  explicit compile-time erasure and compose it with a general literal-Log
-  projection. It must not ignore arbitrary declarations, create an
-  ability-specific emitter, recover semantics from source/expr0, invent runtime
-  layout, or retry hello/scalar/native paths after a claimed failure.
+  Implementation commit `aa61503ad1762d9b3f14933cff71e247eb2d5a90`
+  closes `role_operator_dispatch.pgy` as bounded, target-specific
+  `SUBSTITUTING` through the installed Pergyra-built driver.
+- One 5,143-byte self-produced MIR artifact, SHA-256
+  `3D2A408D4271D74D0F76962D9FA62CE9F2017901C96D1490724B276824021E95`,
+  feeds direct C and runtime-free textual LLVM. Both execute exact `123`.
+- Semantic analysis owns the carried `role_operator` target. The compiler owns
+  one target-neutral role-call plan and a separate selected-target ABI view;
+  C uses `long long`, LLVM uses `i64`, and neither backend rediscovers the
+  operator from source, display text, fixture identity, or the only visible
+  role.
+- The focused gate covers six metamorphic cases and 27 negative mutations.
+  The final current-source self-host driver build completed in 106.7 seconds;
+  its installed artifact is 4,226,751 bytes with SHA-256
+  `F641598CA1E5EB81F5F312307B8BEBAA7FF21D3D02EB4C66A82A1CB34F1D1E3F`.
+  Memory was not measured for this rung and no older peak is relabelled.
+- The sole next executable rung is the current-source self-host codegen role
+  fixture. It currently fails closed with `role receiver target nominal-kind
+  fact is missing`. The next change must carry and exact-join the existing
+  semantic nominal-kind fact at the role receiver binding boundary; it must not
+  infer from target spelling, scan declarations, or retry native codegen.
 
 ## Historical self-host ledger — inactive navigation evidence
 

@@ -6,82 +6,84 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — role operator dispatch execution
+## Active self-host context — role codegen receiver admission
 
-- Executable checkpoint: `24c700e0d67c35b11aa677e3e1bd71f234fab274` on
-  `main`. The installed
-  Pergyra-built driver is 4,179,179 bytes with SHA-256
-  `973C27FFAE2C3201D4988F7DA99C546663CB4116A430D60A0703B92263E44883`.
-- Closed executable rung: `enum_simple.pgy` is `SUBSTITUTING`. Source-to-MIR
-  produces one 4,351-byte MIR identity with SHA-256
-  `538079F5BEA11E5A2ABB989D29DCC158108A506F73C0BAA2EFCB163946B62894`;
-  that same artifact drives C and runtime-free textual LLVM and both execute
-  exact `2\n300`.
-- The language-level enum variant index now owns declaration owner, spelling,
-  ordinal, payload count and ordered payload types. A general identity-match
-  AIR child owns the real four-block CFG and SSA use binding. One target-neutral
-  enum plan joins those facts with a scalar-ordinal ABI; it materializes no
-  aggregate, storage object or runtime helper. The common `DirectMirCfgPlan`
-  remains the only plan issuer and both existing target emitters consume it.
-- Enum routing claims the program before compile-time declaration erasure. Once
-  claimed, malformed enum input cannot retry erasure, nominal, Option, scalar,
-  legacy CFG or native paths. No fixture, enum, variant or expected-output name
-  appears in the owner family, and no target-specific enum planner/emitter was
-  introduced.
-- Focused installed-driver evidence covers exact C/LLVM execution, coherent
-  rename and display-only artifact equality, case/ordinal/arm-literal semantic
-  changes, and 34 pre-publication negatives across declaration schema, variant
-  identity/payload, definition/graph/SSA/use, pattern/binding, topology and arm
-  facts.
-- This rung also repaired a pre-existing producer/consumer split introduced by
-  `cd886a6d`: assignment MIR began carrying its owned `Int` ABI while direct
-  if/loop/break CFG consumers still required an empty ABI. The consumers now
-  require `Int`; three ABI-forgery negatives reject `String`. Deterministically
-  regenerated CFG identity pins were refreshed, and the complete if/phi/
-  reassign/nested/loop/range/break C/LLVM gate is green.
-- Latest green: current-source driver build and install (106.4 seconds), focused
-  enum C/LLVM gate, complete one-MIR CFG/AIR-plan regression, compile-time
-  declaration-erasure regression, hard self-host contract, component contract,
-  Python/Bash syntax and `git diff --check`. The earlier outer
-  `make self-host-compiler` invocation timed out after installing an artifact;
-  only the direct official builder result is claimed green.
+- Executable checkpoint: `aa61503ad1762d9b3f14933cff71e247eb2d5a90` on
+  `main`. This handoff/documentation update follows that implementation commit.
+  The current installed Pergyra-built driver is
+  4,226,751 bytes with SHA-256
+  `F641598CA1E5EB81F5F312307B8BEBAA7FF21D3D02EB4C66A82A1CB34F1D1E3F`.
+- Closed executable rung: `role_operator_dispatch.pgy` is target-specific
+  `SUBSTITUTING`. Source-to-MIR produces one 5,143-byte artifact with SHA-256
+  `3D2A408D4271D74D0F76962D9FA62CE9F2017901C96D1490724B276824021E95`;
+  the same artifact drives direct C and runtime-free textual LLVM and both
+  execute exact `123`.
+- The semantic producer now resolves the operator graph to
+  `call_target_kind="role_operator"` and
+  `call_target_name="IntMath.Arithmetic.Add"`. The target is joined from the
+  admitted ability, role, impl, method signature, receiver, and expression
+  graph owners; display `expr0`, the only visible role, and operator spelling
+  are not backend authority. Eleven role-operator identities and aliases are
+  owned by one self-host vocabulary used by graph admission and the legacy
+  self-host role dispatcher.
+- One target-neutral role-call plan seals declaration identity, the exact-one
+  `self` signature, receiver/rhs/result types, method routine, literal result,
+  caller use, CFG, and target capability. A separate selected-target ABI view
+  maps the carried `Int` contract to C `long long` or LLVM `i64`, alignment 8,
+  a direct receiver pointer, and direct scalar argument/return. The LLVM method
+  has internal linkage. Neither emitter reopens MIR or owns operator semantics.
+- Once a role-operator target is carried, missing or malformed role facts fail
+  before artifact publication and cannot retry primitive addition, another
+  multi-routine planner, or native codegen. Programs with no role-operator
+  declaration take a declaration-presence fast path; it checks that no carried
+  role target escaped but does not revalidate or copy the cumulative expression
+  graph a second time.
+- Focused current-driver evidence is green: exact C/LLVM execution, six
+  metamorphic cases, and 27 pre-publication negatives. The final official
+  current-source self-host driver builder completed in 106.7 seconds. The sibling
+  driver also processed the compiler-scale `src/self_hosted/codegen/main.pgy`
+  graph to a 3,884,672-byte C artifact in
+  73.1 seconds, proving the no-role fast path reaches compiler scale.
+- Current-driver regressions are green for enum exact `2\n300` with five
+  metamorphic/34 negative cases and the complete if/phi/reassign/nested/while/
+  range/break C/LLVM CFG plan. A direct CFG-script run with its default stale
+  `.tmp/.../driver_seed.exe` failed the old assignment-ABI identity pin; the
+  same gate passed when explicitly bound to this final installed sibling. Do
+  not report the stale seed result as a current-source compiler regression.
 - Full CI, Coq/Rocq, pressure, bootstrap fixpoint and current-source gen2==gen3
-  were not run. Last valid pressure evidence remains checkpoint `8bd92069`:
-  104.381 seconds, peak private 1.937 GiB and working set 1.836 GiB. Memory is a
-  final-maximum signal with 2.4 GiB attention and 3 GiB hard stop.
-- Active objective: replace the next manifest C-owned path,
-  `src/self_hosted/mir_lower/fixture/role_operator_dispatch.pgy`. Installed
-  source-to-MIR succeeds and produces 5,112 bytes with SHA-256
-  `02058EDCEFA3EBEB908449DA54EBB13680C9B560F9B0E8B7FAB7892F2B5C4D4C`;
-  both direct targets currently fail closed with `direct MIR multi-routine
-  projection rejected the program graph`. The language-semantic result is
-  exact `123`, not primitive `1 + 2 == 3`.
-- Reached blocker: the current persisted `add` graph carries
-  `call_target_kind="none"` and an empty target name. Role, ability, impl,
-  method and routine facts exist, but no fact states that this operator was
-  semantically resolved to that method. A direct planner may not infer the
-  target from the only visible role or from `Add` spelling. The immediate
-  executable sub-rung is therefore producer-owned resolved-operator target
-  carriage into MIR; target-neutral direct planning starts only after that fact
-  is admitted.
-- Objective card: production entrypoint is installed
-  `pgy-self-driver --mir-json-backend={c,llvm}`. Ability/role declaration rows,
-  exact impl-method identity, the role-method routine, operator dispatch fact,
-  caller expression graph and use edge are the fact owners. The last legitimate
-  consumer is one target-neutral role-operator call plan feeding selected C or
-  LLVM emission.
-- Forbidden fallback: `IntMath`/`Arithmetic`/`Add`/fixture/output dispatch,
-  folding `a + b` as primitive arithmetic, copying a C-only role resolver into
-  LLVM, row-order or source/`expr0` reconstruction, a second operator registry,
-  or retrying a primitive/multi-routine/native path after the role route claims
-  the program.
-- Next falsifier: the same produced MIR must execute exact `123` in both targets
-  while declaration/routine row permutation remains semantically stable.
-  Missing or cross-wired ability, role, impl method, receiver type, operator
-  target, routine result, caller use and CFG facts must reject before artifact
-  publication. First, removing or cross-wiring the producer-carried resolved
-  operator target must fail closed instead of becoming primitive addition.
-  Do not generalize into a query engine or arbitrary role runtime.
+  were not run. No new memory peak is attached to this rung. Last valid pressure
+  evidence remains checkpoint `8bd92069`: 104.381 seconds, peak private
+  1.937 GiB and working set 1.836 GiB. Memory remains a final-maximum signal
+  with 2.4 GiB attention and 3 GiB hard stop.
+- `tests/sot_authority_edge_smoke.sh` is RED on a pre-existing registry/Coq
+  cardinality defect: five fact identities are each assigned to multiple owner
+  rows (`SFDirectMirCfgCertificate`, `SFDirectMirCfgProjectionPlan`,
+  `SFAbiLayoutRows`, `SFDirectMirCallReturnGraph`, and
+  `SFDirectMirCallParameterGraph`). The role row did not add a duplicate. Do not
+  invent proof constructors inside this executable rung; consolidate those rows
+  or extend the Coq fact taxonomy as its own reached registry repair.
+- The next executable blocker is the current-source Pergyra codegen tool on
+  `src/self_hosted/codegen/role_fixture/operator_add.pgy`. The tool itself is
+  produced by the current sibling driver and host compiler, but the fixture
+  fails before role collection with exact diagnostic
+  `role receiver target nominal-kind fact is missing`. This is a separate
+  source-to-codegen receiver-admission seam; the closed direct-MIR role plan is
+  not a fallback for it.
+- Objective card: production entrypoint is the Pergyra-built codegen tool. The
+  existing semantic nominal-kind and callable receiver-carriage facts own the
+  concrete role target. The last legitimate consumer is the role receiver
+  binding/emission boundary that must emit the current codegen fixture through
+  its selected backend.
+- Forbidden fallback: target-type spelling as nominal kind, first matching
+  nominal declaration, role/fixture/output dispatch, accepting an empty
+  nominal-kind fact, reparsing source text, using the direct-MIR plan as a
+  codegen-side semantic oracle, or falling back to native codegen after the
+  self-host codegen route claims the fixture.
+- Next falsifier: carry and exact-join the concrete role target nominal kind so
+  current-source self C codegen executes the documented operator result; a
+  missing, wrong-kind, same-name foreign, or receiver-carriage mismatch must
+  reject before a partial artifact. Keep this one receiver-admission rung
+  bounded; do not open a general query/cache or native keyword-registry rewrite.
 
 ## Historical checkpoint archive — inactive evidence
 
