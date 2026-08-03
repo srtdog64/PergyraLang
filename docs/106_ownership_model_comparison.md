@@ -43,15 +43,20 @@ CFG/AIR evidence, diagnostics, and backend tests.
 | Abstraction safety | Keep intent, authority, zone, and backend behavior from drifting. |
 | Distributed safety | Keep ownership transfer clear across task, channel, world, and device boundaries. |
 
-Current Pergyra position is intentionally mixed:
+Current Pergyra evidence is intentionally mixed. Percentages are not used here
+because no executable gate owns such a score:
 
-- Memory safety: about 70 percent until CFG/AIR body ownership is complete.
-- Resource safety: about 60 percent until drop/cleanup and Pin/Lease close.
-- Abstraction/distributed safety: stronger, about 90 percent in the language
-  direction, but still gated by runtime propagation and backend parity.
+- Memory safety is `BOUNDED`: the covered CFG/AIR body and backend-compare
+  slices are evidence; whole-language body ownership is open.
+- Resource safety is `BOUNDED`: block-scoped region/pin cleanup and selected
+  ownership flows are evidence; arbitrary mandatory finalization is open.
+- Abstraction/distributed safety is `BOUNDED`: intent, authority, lane, and
+  transfer contracts have named gates, while precise capture and full runtime
+  propagation remain open.
 
-If Option C below is implemented, the target moves roughly to memory 85 percent
-and resource 90 percent without importing lifetime annotations.
+Option C below is a direction, not a numerical completion forecast. Each item
+becomes current only through its named semantic, runtime, C/LLVM, and negative
+gate.
 
 Slot positioning:
 
@@ -114,13 +119,17 @@ Pergyra has a different, bounded advantage in the structured-concurrency slice:
 - `parallel` has a scoped join contract;
 - the landed lane classifier can join pin, live-view, raw-slot, raw-channel,
   effect, and movability evidence and reject covered contradictions;
-- the certified region slice and gated pin fixtures carry cleanup through
-  plan/CFG evidence instead of asking a backend to guess.
+- the native compiler's certified region slice and gated pin fixtures carry
+  bounded cleanup through plan/CFG evidence instead of asking a backend to
+  guess.
 
 This is not whole-language superiority. Precise closure-capture production is
 still incomplete, several executor lanes remain synchronous scaffolds, `pin` is
 a slot/view lease rather than arbitrary-type immovability, and Pergyra does not
-yet prevent every user-defined required finalizer from being forgotten.
+yet prevent every user-defined required finalizer from being forgotten. The
+installed self-host path also does not yet reach the native pin surface or the
+full LLVM lane projection, so native closure must not be promoted into a
+whole-self-host claim.
 
 | Axis | Rust 2026 direction | Pergyra current evidence | Status / open work |
 |---|---|---|---|
@@ -129,13 +138,49 @@ yet prevent every user-defined required finalizer from being forgotten.
 | arbitrary immovable user type | proposed `!Move` capability | no general equivalent | candidate `relocatable` fact, not current SoT |
 | guaranteed finalizer for arbitrary type | proposed `!Forget` capability | certified cleanup slices only | candidate `must_finalize` consumption fact, not current SoT |
 
-If `relocatable` or `must_finalize` is promoted from candidate to language fact,
-it belongs to the existing ownership classifier and must be consumed by
-spawn/parallel/region/zone plans. Do not introduce a second `Move`/`Forget`
-policy table, make routine users select scheduling lanes, or reinterpret
-Pergyra `pin` as Rust `Pin`. Missing evidence fails closed. Surface syntax is
-deferred until an actual authority, interoperability, observable-cost, or
-ownership boundary requires it.
+The scoped advantage applies to structured `parallel`, whose syntax joins
+before continuation. A named `spawn` returns `Future<T>`; `await` consumes that
+handle and prevents reuse, but the current semantic checker has no general
+function-exit must-await rule for a still-live future. Pergyra therefore does
+not yet have a general safe-scoped-spawn answer equivalent to the proposed
+`!Forget` handle guarantee.
+
+Observed on 2026-08-03, `execution-lane-policy-test-smoke` is green for the
+12-row native decision table and 13-row AIR producer table. After its Windows
+output-path bug was removed, `self-host-execution-lane-parity-test-smoke`
+reaches and passes the C classifier rows 35/35, then fails closed before an
+LLVM artifact because the installed self-host LLVM projector does not yet own
+this program. The full C/LLVM self-host parity gate is therefore red, not a
+current 35/35-each claim.
+
+The overloaded word "move" must not collapse four different facts:
+
+| Fact | Current owner | Meaning |
+|---|---|---|
+| ownership transfer | `OwnershipTypeClass`, `own`/`ref`, resource flow | which binding or boundary owns a value after transfer |
+| executor relocation demand | `BoundaryCaptureFact.requires_movability` | whether one concurrency site requires a movable executor lane |
+| physical address relocation | not implemented as a general type fact | whether a value may change address during its lifetime |
+| cleanup/abandonment obligation | bounded CFG/region/pin plans only | whether scope exit must consume or finalize a value |
+
+`MOVE_ONLY` therefore does not mean Rust-style `!Move`, and
+`requires_movability` is a site demand rather than proof that every captured
+type is physically relocatable. Likewise, the absence of a public
+`mem::forget` equivalent is not by itself a guaranteed-finalizer proof.
+
+If relocation or mandatory-cleanup semantics are promoted, they remain under
+the same semantic ownership authority but use a separate orthogonal capability
+row; they must not be squeezed into `OwnershipTypeClass`. Assignment/storage
+consume relocation capability, spawn/parallel consume the join of capture
+capability and site demand, and CFG/region/zone plans consume cleanup
+obligations. Unknown required facts fail closed.
+
+Do not introduce a second `Move`/`Forget` policy table, make routine users
+select scheduling lanes, or reinterpret Pergyra `pin` as Rust `Pin`. Do not add
+surface syntax until an actual authority, interoperability, observable-cost, or
+ownership boundary requires it. The current negative contract is pinned by
+`ownership-relocation-cleanup-contract-test-smoke`; executable lane behavior
+remains owned by `execution-lane-policy-test-smoke` and
+`self-host-execution-lane-parity-test-smoke`.
 
 ### Project Verona
 

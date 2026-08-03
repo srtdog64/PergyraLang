@@ -201,6 +201,10 @@ contract owners.
   handle on await, so the semantic checker marks a named awaited handle
   consumed and rejects double-await / await-after-cancel reuse through the
   normal move/release diagnostic path.
+- This is not a general must-await or guaranteed-finalizer rule. A still-live
+  named future is not currently rejected merely because its function exits.
+  Only structured `parallel` owns join-before-continuation in the current
+  language contract.
 - Inline `await spawn Worker(args...)` is valid because the temporary handle is
   consumed immediately and never creates a reusable binding.
 - A task condition-variable wait failure is an internal invariant violation;

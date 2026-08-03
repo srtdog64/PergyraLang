@@ -2,6 +2,13 @@
 
 > 도메인 파편화를 막기 위해, 자원이 어떻게 전달되는지를 **항상 명시**한다.
 
+여기서 `move`는 소유권 이전이다. `MOVE_ONLY`는 복사할 수 없지만 소유권을
+이전할 수 있는 자원 분류이며, 메모리 주소 재배치를 금지하는 Rust식
+`!Move`와는 다른 축이다. 실행 경계의 `requires_movability`도 특정 작업이
+이동 가능한 실행 lane을 요구한다는 site fact일 뿐 타입 능력이 아니다.
+주소 안정성과 필수 cleanup은 필요해질 때 같은 semantic ownership 권위
+아래의 별도 capability fact로 소유해야 한다.
+
 ---
 
 ## 원칙

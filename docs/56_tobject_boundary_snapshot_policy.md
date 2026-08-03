@@ -1,5 +1,17 @@
 # `tobject` Boundary Contract and Snapshot Policy
 
+## Relocation and cleanup non-goals
+
+`tobject` is an immutable boundary-transfer snapshot whose lifecycle is
+separate from its source. It is not a stable-address or immovable allocation,
+not a pin lease, and not a guaranteed-finalizer handle. Crossing a boundary by
+materializing a `tobject` may solve aliasing and lifetime coupling for that
+payload, but it does not prove a Rust-style `!Move` or `!Forget` capability for
+the source or destination type. Physical relocation and mandatory cleanup, if
+added, require their own semantic capability facts under the ownership
+authority; backend layout, `tobject` spelling, or transfer success cannot infer
+them.
+
 마지막 업데이트: 2026-07-29
 
 ## 2026-07-29 implementation audit

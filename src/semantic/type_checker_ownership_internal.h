@@ -3,6 +3,12 @@
 
 #include "type_checker_internal.h"
 
+/*
+ * This is the transfer/borrow classifier, not a physical relocation or
+ * mandatory-finalization lattice. A future stable-address or must-cleanup
+ * capability remains an orthogonal fact under the same semantic ownership
+ * authority; do not encode it as another OwnershipTypeClass member.
+ */
 typedef enum OwnershipTypeClass {
     OWNERSHIP_TYPE_COPY_ONLY = 0,
     OWNERSHIP_TYPE_MOVE_ONLY,

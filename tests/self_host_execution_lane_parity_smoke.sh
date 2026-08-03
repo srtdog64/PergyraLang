@@ -17,6 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+PGY_COMPILER_PATH="$PATH"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -52,6 +53,7 @@ case "${harness_paths[3]}" in /*|[A-Za-z]:*|*\\*) fail "lane executor golden pat
 case "${harness_paths[4]}" in /*|[A-Za-z]:*|*\\*) fail "lane executor missing golden path must be repo-relative: ${harness_paths[4]}" ;; esac
 
 SRC="$ROOT_DIR/${harness_paths[0]}"
+SRC_ARG="${harness_paths[0]}"
 GOLDEN="$ROOT_DIR/${harness_paths[1]}"
 EXEC_SRC="$ROOT_DIR/${harness_paths[2]}"
 EXEC_GOLDEN="$ROOT_DIR/${harness_paths[3]}"
@@ -105,13 +107,15 @@ fi
 
 backends="c"
 # Only attempt LLVM if this build advertises it.
-if "$PGY" --help 2>/dev/null | grep -qiE 'llvm'; then
+if PATH="$PGY_COMPILER_PATH" "$PGY" --help 2>/dev/null | grep -qiE 'llvm'; then
     backends="c llvm"
 fi
 
 for be in $backends; do
     exe="$WORK/lane_$be.exe"
-    if ! "$PGY" "$(pgy_path_for_compiler "$PGY" "$SRC")" --backend="$be" -o "$exe" \
+    exe_arg="${exe#"$ROOT_DIR/"}"
+    if ! (cd "$ROOT_DIR" && PATH="$PGY_COMPILER_PATH" "$PGY" \
+            "$SRC_ARG" --backend="$be" -o "$exe_arg") \
             >"$WORK/compile_$be.out" 2>"$WORK/compile_$be.err"; then
         if [ "$be" = "llvm" ] && pgy_selfhost_log_reports_no_llvm "$WORK/compile_$be.err" 2>/dev/null; then
             echo "[sea-self-host-lane] LLVM unavailable; skipping llvm backend"
@@ -127,8 +131,9 @@ for be in $backends; do
     echo "[sea-self-host-lane] backend=$be matches named C policy/evidence shape (35/35)"
 done
 
-EXEC_ARG="$(pgy_path_for_compiler "$PGY" "$EXEC_SRC")"
+EXEC_ARG="${harness_paths[2]}"
 EXEC_C_BIN="$WORK/lane_executor_contract_c.exe"
+EXEC_C_BIN_ARG="${EXEC_C_BIN#"$ROOT_DIR/"}"
 EXEC_C_OUT="$WORK/lane_executor_contract_c.out"
 EXEC_EXPECTED_NORM="$WORK/lane_executor_contract_expected.norm"
 EXEC_C_MISSING_OUT="$WORK/lane_executor_contract_c_missing.out"
@@ -136,7 +141,8 @@ EXEC_C_MISSING_ERR="$WORK/lane_executor_contract_c_missing.err"
 EXEC_MISSING_EXPECTED_NORM="$WORK/lane_executor_contract_missing_expected.norm"
 EXEC_C_COMPILE_OUT="$WORK/lane_executor_contract_c.compile.out"
 EXEC_C_COMPILE_ERR="$WORK/lane_executor_contract_c.compile.err"
-if ! "$PGY" "$EXEC_ARG" --backend=c -o "$EXEC_C_BIN" \
+if ! (cd "$ROOT_DIR" && PATH="$PGY_COMPILER_PATH" "$PGY" \
+        "$EXEC_ARG" --backend=c -o "$EXEC_C_BIN_ARG") \
         >"$EXEC_C_COMPILE_OUT" 2>"$EXEC_C_COMPILE_ERR"; then
     cat "$EXEC_C_COMPILE_ERR" >&2
     fail "lane executor contract compile failed"
@@ -161,14 +167,17 @@ pgy_selfhost_normalize_text_artifact < "$EXEC_MISSING_GOLDEN" > "$EXEC_MISSING_E
 if ! diff -u "$EXEC_MISSING_EXPECTED_NORM" "$EXEC_C_MISSING_OUT"; then
     fail "lane executor missing-term artifact drift (see diff)."
 fi
-assert_llvm_leg "sea-self-host-lane-executor" "$EXEC_ARG" "$WORK"
+PATH="$PGY_COMPILER_PATH" \
+    assert_llvm_leg "sea-self-host-lane-executor" "$EXEC_ARG" "$WORK"
 
 EXEC_LLVM_NEG_BIN="$WORK/lane_executor_contract_llvm_negative.exe"
+EXEC_LLVM_NEG_BIN_ARG="${EXEC_LLVM_NEG_BIN#"$ROOT_DIR/"}"
 EXEC_LLVM_NEG_COMPILE_OUT="$WORK/lane_executor_contract_llvm_negative.compile.out"
 EXEC_LLVM_NEG_COMPILE_ERR="$WORK/lane_executor_contract_llvm_negative.compile.err"
 EXEC_LLVM_MISSING_OUT="$WORK/lane_executor_contract_llvm_missing.out"
 EXEC_LLVM_MISSING_ERR="$WORK/lane_executor_contract_llvm_missing.err"
-if ! "$PGY" "$EXEC_ARG" --backend=llvm -o "$EXEC_LLVM_NEG_BIN" \
+if ! (cd "$ROOT_DIR" && PATH="$PGY_COMPILER_PATH" "$PGY" \
+        "$EXEC_ARG" --backend=llvm -o "$EXEC_LLVM_NEG_BIN_ARG") \
         >"$EXEC_LLVM_NEG_COMPILE_OUT" 2>"$EXEC_LLVM_NEG_COMPILE_ERR"; then
     if pgy_selfhost_log_reports_no_llvm "$EXEC_LLVM_NEG_COMPILE_ERR" 2>/dev/null; then
         echo "[sea-self-host-lane] lane executor missing-term llvm-leg skipped"

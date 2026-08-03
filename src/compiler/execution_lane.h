@@ -41,8 +41,11 @@ typedef struct
     bool captures_raw_slot;
     bool captures_raw_channel;
 
-    /* Movability evidence. A site requires movability when it is handed to a
-       detached/movable executor rather than scoped fork-join. */
+    /* Executor-relocation evidence. `requires_movability` is a boundary-site
+       demand when work is handed to a detached/movable executor rather than
+       scoped fork-join. It is not a Rust-style type relocation capability.
+       `captures_value_only` is the current bounded capture proof, not a
+       declaration that arbitrary user types are movable. */
     bool requires_movability;
     bool captures_value_only;
     bool crosses_authority_boundary;

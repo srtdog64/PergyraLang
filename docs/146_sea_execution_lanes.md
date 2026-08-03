@@ -128,9 +128,13 @@ strictly underneath.
   (`src/self_hosted/sea/execution_lane.pgy` — a typed `BoundaryCaptureFact`
   struct consumed by a typed `ExecutionLane` return, `Reject` as a first-class
   variant, zero `-1` sentinels). A cross-language / cross-backend parity smoke
-  (`self-host-execution-lane-parity-test-smoke`) diffs a named case-row artifact
-  against the C policy table plus AIR evidence-shape rows on both C and LLVM
-  (35/35 each). The named rows explicitly pin positive `MovableScheduler`
+  (`self-host-execution-lane-parity-test-smoke`) is intended to diff a named
+  case-row artifact against the C policy table plus AIR evidence-shape rows on
+  both C and LLVM. On the 2026-08-03 installed path, its corrected Windows path
+  handling reaches C 35/35, then the self-host LLVM projector fails before
+  artifact publication. The full gate is currently red; the older 35/35-each
+  observation is historical, not current installed-driver evidence. The named
+  rows explicitly pin positive `MovableScheduler`
   evidence and negative `Reject` rows for pin, live-view, raw-slot, and
   raw-channel resource capture under movability requirements. Raw-channel
   evidence is boundary-local resource evidence, not a fact that only channel

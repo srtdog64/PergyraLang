@@ -6,6 +6,25 @@
 
 ---
 
+## A self-host parity gate exits with an empty compile log under Git Bash
+
+Symptom: `self_host_execution_lane_parity_smoke.sh` reports
+`compile failed (backend=c)`, but both captured compiler streams are empty. A
+manual compile from PowerShell or a repo-relative invocation succeeds.
+
+Check the argument boundary before treating this as a language failure. A
+Windows `pgy.exe` can receive a repo-relative source correctly while an
+absolute Git-Bash `/d/...` output path remains unconverted. The lane parity
+gate now enters the repository root and passes repo-relative source and `-o`
+paths for its C/LLVM artifacts. This also avoids mixing a Windows input path
+with a POSIX output path in one invocation.
+
+After that correction, the 2026-08-03 installed path reaches C policy/evidence
+parity 35/35. It then fails at the self-host LLVM projector before publication.
+That second failure is real coverage evidence, not another path symptom: do not
+skip LLVM or claim the full parity gate green. Continue from the active
+self-host executable rung rather than weakening this independent gate.
+
 ## Returned-array foreach is rejected by the return-only or Option-match route
 
 Symptom: source-to-MIR succeeds for a multi-routine program such as
