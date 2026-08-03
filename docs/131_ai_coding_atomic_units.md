@@ -363,6 +363,18 @@ one active executable rung, one objective card, responsibility-named owners,
 no generic helper expansion, no dual authority, and integration evidence that
 cannot be replaced by fixture count or generated LOC.
 
+The bounded String-array push rung is a concrete example. Output-only testing
+could have accepted values pre-baked into final storage while leaving LLVM's
+length as an immutable stale snapshot. The architecture constraint instead
+fixed one operation-ordered length owner, one mutable backend object, a strict
+  store-before-length-update rule, and negatives for missing empty graphs,
+  reordered or late pushes, entry-block re-entry, capacity-as-length, stale
+  receivers, and backend rediscovery. The re-entry case is especially
+  architectural: the emitted values remain locally consistent, yet a CFG edge
+  back to block zero repeats mutation and invalidates the bounded-capacity
+  proof. The lesson is that consistency tests constrain language surface;
+  owner/consumer/fallback gates constrain compiler architecture.
+
 The central rule is:
 
 > **When AI-generated code volume exceeds human understanding speed,

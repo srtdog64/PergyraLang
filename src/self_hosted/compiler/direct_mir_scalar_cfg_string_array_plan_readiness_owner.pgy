@@ -1,36 +1,9 @@
 // Source and bound-row readiness for the String-array companion plan.
 
-import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_identity_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
-
-func DirectMirScalarCfgStringArrayIndexReady(
-    fact: DirectMirScalarCfgStringArrayIndexFact, require_bound_rows: Bool,
-    element_count: Int
-) -> Bool {
-    let by_value: Bool = fact.kind == DirectMirScalarCfgStringArrayIndexValue();
-    let by_iteration: Bool =
-        fact.kind == DirectMirScalarCfgStringArrayIndexIteration();
-    let by_literal: Bool =
-        fact.kind == DirectMirScalarCfgStringArrayIndexLiteral();
-    if !by_value && !by_iteration && !by_literal { return false; }
-    if by_value && (fact.value_id == "" || fact.source_name == "" ||
-        fact.iteration_syntax_id >= 0 || fact.literal != "") { return false; }
-    if by_iteration && (fact.value_id != "" || fact.source_name == "" ||
-        fact.iteration_syntax_id < 0 || fact.literal != "") { return false; }
-    if by_literal && (fact.value_id != "" || fact.source_name != "" ||
-        fact.iteration_syntax_id >= 0 ||
-        !DirectMirScalarCfgCanonicalInt(fact.literal) ||
-        ToInt(fact.literal) < 0 || ToInt(fact.literal) >= element_count) {
-        return false;
-    }
-    if !require_bound_rows {
-        return fact.value_row == -1 && fact.local_row == -1;
-    }
-    return (by_value && fact.value_row >= 0 && fact.local_row == -1) ||
-        (by_iteration && fact.value_row == -1 && fact.local_row >= 0) ||
-        (by_literal && fact.value_row == -1 && fact.local_row == -1);
-}
+import "direct_mir_scalar_cfg_string_array_index_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_capacity_owner.pgy";
 
 func DirectMirScalarCfgStringArrayCollectionsReady(
     ref plan: DirectMirScalarCfgStringArrayPlan
@@ -78,18 +51,6 @@ func DirectMirScalarCfgStringArrayCollectionsReady(
     return expected_element == ArrayLength(plan.collections.elements);
 }
 
-func DirectMirScalarCfgStringArrayIndexSetReady(
-    ref rows: DirectMirScalarCfgStringArrayIndexSet, count: Int
-) -> Bool {
-    return count == ArrayLength(rows.kinds) &&
-        count == ArrayLength(rows.value_ids) &&
-        count == ArrayLength(rows.source_names) &&
-        count == ArrayLength(rows.iteration_syntax_ids) &&
-        count == ArrayLength(rows.literals) &&
-        count == ArrayLength(rows.value_rows) &&
-        count == ArrayLength(rows.local_rows);
-}
-
 func DirectMirScalarCfgStringArrayPlanShapeReady(
     ref plan: DirectMirScalarCfgStringArrayPlan, require_bound_rows: Bool
 ) -> Bool {
@@ -111,16 +72,23 @@ func DirectMirScalarCfgStringArrayPlanShapeReady(
         access_count != ArrayLength(plan.accesses.guard_length_rows) ||
         access_count != ArrayLength(plan.accesses.value_present) ||
         access_count != ArrayLength(plan.accesses.value_literals) ||
+        access_count != ArrayLength(plan.accesses.expected_lengths_before) ||
         access_count != ArrayLength(plan.accesses.operation_rows) ||
         !DirectMirScalarCfgStringArrayIndexSetReady(
             plan.accesses.indices, access_count
         ) { return false; }
     let row: Int = 0;
+    while row < DirectMirScalarCfgStringArrayCollectionCount(plan) {
+        let collection: DirectMirScalarCfgArrayStringCollectionFact =
+            DirectMirScalarCfgStringArrayCollectionAt(plan, row);
+        if DirectMirScalarCfgStringArrayStaticCapacity(plan, row) <
+                ArrayLength(collection.elements) { return false; }
+        row = row + 1;
+    }
+    row = 0;
     while row < length_count {
         let fact: DirectMirScalarCfgStringArrayLengthFact =
             DirectMirScalarCfgStringArrayLengthAt(plan, row);
-        let collection: DirectMirScalarCfgArrayStringCollectionFact =
-            DirectMirScalarCfgStringArrayCollectionAt(plan, fact.collection_row);
         if fact.global_row < 0 || fact.block < 0 ||
             fact.control_loop_syntax_id < -1 || fact.collection_row < 0 ||
             fact.collection_row >=
@@ -132,7 +100,9 @@ func DirectMirScalarCfgStringArrayPlanShapeReady(
              fact.control_loop_syntax_id != -1) ||
             !DirectMirScalarCfgStringArrayIndexReady(
                 fact.index, require_bound_rows,
-                ArrayLength(collection.elements)
+                DirectMirScalarCfgStringArrayFinalLength(
+                    plan, fact.collection_row
+                )
             ) { return false; }
         let prior: Int = 0;
         while prior < row {
@@ -146,21 +116,33 @@ func DirectMirScalarCfgStringArrayPlanShapeReady(
     while row < access_count {
         let fact: DirectMirScalarCfgStringArrayAccessFact =
             DirectMirScalarCfgStringArrayAccessAt(plan, row);
-        let collection: DirectMirScalarCfgArrayStringCollectionFact =
-            DirectMirScalarCfgStringArrayCollectionAt(plan, fact.collection_row);
+        let no_index: Bool = fact.kind ==
+                DirectMirScalarCfgStringArrayAccessPushKind() ||
+            fact.kind == DirectMirScalarCfgStringArrayAccessLengthLog();
+        let owns_value: Bool = fact.kind ==
+                DirectMirScalarCfgStringArrayAccessSetKind() ||
+            fact.kind == DirectMirScalarCfgStringArrayAccessPushKind();
+        let is_push: Bool = fact.kind ==
+            DirectMirScalarCfgStringArrayAccessPushKind();
         if fact.global_row < 0 || fact.collection_row < 0 ||
             fact.collection_row >=
                 DirectMirScalarCfgStringArrayCollectionCount(plan) ||
             fact.kind < DirectMirScalarCfgStringArrayAccessConcatRead() ||
-            fact.kind > DirectMirScalarCfgStringArrayAccessSetKind() ||
-            !DirectMirScalarCfgStringArrayIndexReady(
+            fact.kind > DirectMirScalarCfgStringArrayAccessLengthLog() ||
+            (no_index && !DirectMirScalarCfgStringArrayIndexAbsentReady(
+                fact.index
+            )) || (!no_index && !DirectMirScalarCfgStringArrayIndexReady(
                 fact.index, require_bound_rows,
-                ArrayLength(collection.elements)
-            ) || (fact.kind == DirectMirScalarCfgStringArrayAccessSetKind()) !=
-                fact.value_present || (!fact.value_present &&
+                DirectMirScalarCfgStringArrayFinalLength(
+                    plan, fact.collection_row
+                )
+            )) || owns_value != fact.value_present || (!fact.value_present &&
                 fact.value_literal != "") ||
-            ((fact.index.kind == DirectMirScalarCfgStringArrayIndexLiteral()) !=
+            (!no_index &&
+             (fact.index.kind == DirectMirScalarCfgStringArrayIndexLiteral()) !=
                 (fact.guard_length_row == -1)) ||
+            (no_index && fact.guard_length_row != -1) ||
+            (!is_push && fact.expected_length_before != -1) ||
             (fact.guard_length_row >= 0 &&
                 (fact.guard_length_row >= length_count ||
                  plan.lengths.collection_rows[fact.guard_length_row] !=
@@ -174,6 +156,25 @@ func DirectMirScalarCfgStringArrayPlanShapeReady(
             ((require_bound_rows && fact.operation_row < 0) ||
              (!require_bound_rows && fact.operation_row != -1)) {
             return false;
+        }
+        if is_push {
+            let expected: Int = plan.collections.element_counts[
+                fact.collection_row
+            ];
+            let push_prior: Int = 0;
+            while push_prior < row {
+                if plan.accesses.collection_rows[push_prior] ==
+                        fact.collection_row &&
+                    plan.accesses.kinds[push_prior] ==
+                        DirectMirScalarCfgStringArrayAccessPushKind() {
+                    expected = expected + 1;
+                }
+                push_prior = push_prior + 1;
+            }
+            if fact.expected_length_before != expected || expected >=
+                    DirectMirScalarCfgStringArrayStaticCapacity(
+                        plan, fact.collection_row
+                    ) { return false; }
         }
         let prior: Int = 0;
         while prior < row {

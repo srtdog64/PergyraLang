@@ -123,7 +123,11 @@ func DirectMirScalarCfgTypedOperationsReady(
                 left_type != CompilerAbiLayoutStringTypeName() &&
                 indexed_kind != DirectMirScalarCfgStringArrayAccessLogRead()) ||
             (kind == DirectMirScalarCfgOpArraySetString() &&
-                indexed_kind != DirectMirScalarCfgStringArrayAccessSetKind()) {
+                indexed_kind != DirectMirScalarCfgStringArrayAccessSetKind()) ||
+            (kind == DirectMirScalarCfgOpArrayPushString() &&
+                indexed_kind != DirectMirScalarCfgStringArrayAccessPushKind()) ||
+            (kind == DirectMirScalarCfgOpLogArrayLength() &&
+                indexed_kind != DirectMirScalarCfgStringArrayAccessLengthLog()) {
             return false;
         }
         if kind == DirectMirScalarCfgOpConcatString() { concat_seen = true; }

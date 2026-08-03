@@ -71,6 +71,7 @@ func DirectMirScalarCfgStringArrayPlanDigest(
         if fact.value_present { value_present = 1; }
         hash = DirectMirCfgHashInt(hash, value_present);
         hash = DirectMirCfgHashString(hash, fact.value_literal);
+        hash = DirectMirCfgHashInt(hash, fact.expected_length_before);
         hash = DirectMirCfgHashInt(hash, fact.operation_row);
         row = row + 1;
     }

@@ -1,0 +1,72 @@
+// Source-row constructors and lookups for the String-array plan.
+
+import "direct_mir_scalar_cfg_string_array_graph_shape_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+
+func DirectMirScalarCfgStringArrayGraphAt(
+    ref object: JsonObjectFactTable, key: String
+) -> MirExpressionGraphSequence {
+    return MirExpressionGraphSequenceAppend(
+        MirExpressionGraphSequenceEmpty(),
+        JsonObjectFactObjectTable(object, key)
+    );
+}
+
+func DirectMirScalarCfgStringArrayCollectionUse(
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref plan: DirectMirScalarCfgStringArrayPlan,
+    global_row: Int, use_row: Int
+) -> Int {
+    let value_opt: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, global_row, use_row
+    );
+    if !IsSome(value_opt) { return -1; }
+    return DirectMirScalarCfgStringArrayCollectionRowAtValue(
+        plan, UnwrapOption(value_opt)
+    );
+}
+
+func DirectMirScalarCfgStringArrayIndexValueFact(
+    value_id: String, source_name: String
+) -> DirectMirScalarCfgStringArrayIndexFact {
+    return DirectMirScalarCfgStringArrayIndexFact(
+        DirectMirScalarCfgStringArrayIndexValue(), value_id,
+        source_name, -1, "", -1, -1
+    );
+}
+
+func DirectMirScalarCfgStringArrayIndexIterationFact(
+    syntax_id: Int, source_name: String
+) -> DirectMirScalarCfgStringArrayIndexFact {
+    return DirectMirScalarCfgStringArrayIndexFact(
+        DirectMirScalarCfgStringArrayIndexIteration(), "",
+        source_name, syntax_id, "", -1, -1
+    );
+}
+
+func DirectMirScalarCfgStringArrayIndexLiteralFact(
+    literal: String
+) -> DirectMirScalarCfgStringArrayIndexFact {
+    return DirectMirScalarCfgStringArrayIndexFact(
+        DirectMirScalarCfgStringArrayIndexLiteral(), "", "",
+        -1, literal, -1, -1
+    );
+}
+
+func DirectMirScalarCfgStringArrayDynamicGuardRow(
+    ref lengths: DirectMirScalarCfgStringArrayLengthSet,
+    collection_row: Int, index: DirectMirScalarCfgStringArrayIndexFact
+) -> Int {
+    let found: Int = -1; let row: Int = 0;
+    while row < ArrayLength(lengths.global_rows) {
+        if lengths.collection_rows[row] == collection_row &&
+            lengths.indices.kinds[row] == index.kind &&
+            lengths.indices.value_ids[row] == index.value_id &&
+            lengths.indices.iteration_syntax_ids[row] ==
+                index.iteration_syntax_id {
+            if found >= 0 { return -1; } found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}

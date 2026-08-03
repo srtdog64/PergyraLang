@@ -2,6 +2,23 @@
 
 import "../mir_lower/expression_graph_sequence_owner.pgy";
 
+func DirectMirArrayLiteralEmptyReady(
+    ref sequence: MirExpressionGraphSequence
+) -> Bool {
+    return sequence.ok && sequence.ready_node_count == 1 &&
+        ArrayLength(sequence.roots) == 1 && sequence.roots[0] == 0 &&
+        ArrayLength(sequence.arena.topology.node_kinds) == 1 &&
+        ArrayLength(sequence.arena.topology.left_children) == 1 &&
+        ArrayLength(sequence.arena.topology.right_children) == 1 &&
+        ArrayLength(sequence.arena.node_texts) == 1 && ArrayLength(
+            sequence.arena.call_target_kinds) == 1 && ArrayLength(sequence.arena.call_target_names) == 1 &&
+        sequence.arena.topology.node_kinds[0] ==
+            AstExpressionNodeArrayLiteral() &&
+        sequence.arena.topology.left_children[0] == 0 && sequence.arena.topology.right_children[0] == 0 &&
+        sequence.arena.call_target_kinds[0] == SemanticCallTargetNone() &&
+        sequence.arena.call_target_names[0] == "";
+}
+
 func DirectMirArrayLiteralElementNodes(
     ref sequence: MirExpressionGraphSequence, element_kind: Int
 ) -> Array<Int> {

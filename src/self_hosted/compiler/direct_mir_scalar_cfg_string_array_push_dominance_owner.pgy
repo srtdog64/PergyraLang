@@ -1,0 +1,110 @@
+// Once-only entry-prefix dominance for bounded String-array pushes.
+
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_entry_execution_owner.pgy";
+import "../mir_lower/routine_definition_dominance_fact_owner.pgy";
+
+struct DirectMirScalarCfgInstructionPositionFact {
+    let valid: Bool;
+    let block: Int;
+    let local: Int;
+}
+
+func DirectMirScalarCfgInstructionPositionAt(
+    ref index: MirRoutineFactIndex, global_row: Int
+) -> DirectMirScalarCfgInstructionPositionFact {
+    let block: Int = 0;
+    while block < ArrayLength(index.block_starts) {
+        let start: Int = index.instruction_facts.global_start +
+            index.block_instruction_starts[block];
+        let end: Int = start + index.block_instruction_counts[block];
+        if global_row >= start && global_row < end {
+            return DirectMirScalarCfgInstructionPositionFact(
+                true, block, global_row - start
+            );
+        }
+        block = block + 1;
+    }
+    return DirectMirScalarCfgInstructionPositionFact(false, -1, -1);
+}
+
+func DirectMirScalarCfgStringArrayPushPrefixDominanceReady(
+    ref plan: DirectMirScalarCfgStringArrayPlan,
+    ref index: MirRoutineFactIndex
+) -> Bool {
+    if !DirectMirScalarCfgStringArrayPushEntryExecutesOnceReady(plan, index) {
+        return false; }
+    let collection: Int = 0;
+    while collection < DirectMirScalarCfgStringArrayCollectionCount(plan) {
+        let definition: DirectMirScalarCfgInstructionPositionFact =
+            DirectMirScalarCfgInstructionPositionAt(
+                index, plan.collections.definition_global_rows[collection]
+            );
+        let last_push: DirectMirScalarCfgInstructionPositionFact =
+            DirectMirScalarCfgInstructionPositionFact(false, -1, -1);
+        let prior_global: Int = -1; let push_count: Int = 0;
+        let row: Int = 0;
+        while row < DirectMirScalarCfgStringArrayAccessCount(plan) {
+            let fact: DirectMirScalarCfgStringArrayAccessFact =
+                DirectMirScalarCfgStringArrayAccessAt(plan, row);
+            if fact.collection_row == collection && fact.kind ==
+                    DirectMirScalarCfgStringArrayAccessPushKind() {
+                let position: DirectMirScalarCfgInstructionPositionFact =
+                    DirectMirScalarCfgInstructionPositionAt(
+                        index, fact.global_row
+                    );
+                if !definition.valid || definition.block != 0 ||
+                    !position.valid || position.block != 0 ||
+                    position.local <= definition.local ||
+                    (last_push.valid && position.local <= last_push.local) ||
+                    fact.global_row <= prior_global {
+                    return false;
+                }
+                last_push = position; prior_global = fact.global_row;
+                push_count = push_count + 1;
+            }
+            row = row + 1;
+        }
+        if push_count > 0 {
+            let length_row: Int = 0;
+            while length_row < DirectMirScalarCfgStringArrayLengthCount(plan) {
+                let fact: DirectMirScalarCfgStringArrayLengthFact =
+                    DirectMirScalarCfgStringArrayLengthAt(plan, length_row);
+                if fact.collection_row == collection {
+                    let position: DirectMirScalarCfgInstructionPositionFact =
+                        DirectMirScalarCfgInstructionPositionAt(
+                            index, fact.global_row
+                        );
+                    if !position.valid || (position.block == 0 &&
+                        position.local <= last_push.local) ||
+                        (position.block != 0 &&
+                         !MirRoutineBlockDominates(index, 0, position.block)) {
+                        return false;
+                    }
+                }
+                length_row = length_row + 1;
+            }
+            row = 0;
+            while row < DirectMirScalarCfgStringArrayAccessCount(plan) {
+                let fact: DirectMirScalarCfgStringArrayAccessFact =
+                    DirectMirScalarCfgStringArrayAccessAt(plan, row);
+                if fact.collection_row == collection && fact.kind !=
+                        DirectMirScalarCfgStringArrayAccessPushKind() {
+                    let position: DirectMirScalarCfgInstructionPositionFact =
+                        DirectMirScalarCfgInstructionPositionAt(
+                            index, fact.global_row
+                        );
+                    if !position.valid || (position.block == 0 &&
+                        position.local <= last_push.local) ||
+                        (position.block != 0 &&
+                         !MirRoutineBlockDominates(index, 0, position.block)) {
+                        return false;
+                    }
+                }
+                row = row + 1;
+            }
+        }
+        collection = collection + 1;
+    }
+    return true;
+}

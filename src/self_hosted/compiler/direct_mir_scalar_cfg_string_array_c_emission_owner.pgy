@@ -1,65 +1,8 @@
 // C projection from the sealed multi-row String-array plan.
 
-import "direct_mir_scalar_cfg_array_c_materialization_owner.pgy";
 import "direct_mir_scalar_cfg_c_operand_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_graph_readiness_owner.pgy";
-import "direct_mir_array_string_abi_projection_owner.pgy";
-
-func DirectMirScalarCfgStringArrayCPreamble(
-    ref plan: DirectMirScalarCfgGraphPlan,
-    target: CompilerTargetProjectionFact
-) -> String {
-    if DirectMirScalarCfgStringArrayPlanAbsent(plan.string_arrays) { return ""; }
-    let fact: DirectMirScalarCfgArrayStringCollectionFact =
-        DirectMirScalarCfgStringArrayCollectionAt(plan.string_arrays, 0);
-    let abi: DirectMirArrayStringAbiProjection =
-        DirectMirArrayStringAbiProjectionFromCanonicalLayout(
-            target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
-            fact.data_offset, fact.length_offset, fact.capacity_offset,
-            fact.allocator_offset
-        );
-    return Concat(
-        "#include <stdint.h>\n#include <stddef.h>\n",
-        DirectMirScalarCfgArrayCStruct(
-            abi.c_element_type, abi.c_length_type, abi.c_array_type
-        )
-    );
-}
-
-func DirectMirScalarCfgStringArrayCDeclarations(
-    ref plan: DirectMirScalarCfgGraphPlan,
-    target: CompilerTargetProjectionFact
-) -> String {
-    let output: String = ""; let row: Int = 0;
-    while row < DirectMirScalarCfgStringArrayCollectionCount(
-        plan.string_arrays
-    ) {
-        let fact: DirectMirScalarCfgArrayStringCollectionFact =
-            DirectMirScalarCfgStringArrayCollectionAt(plan.string_arrays, row);
-        let abi: DirectMirArrayStringAbiProjection =
-            DirectMirArrayStringAbiProjectionFromCanonicalLayout(
-                target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
-                fact.data_offset, fact.length_offset, fact.capacity_offset,
-                fact.allocator_offset
-            );
-        let count: String = ToString(ArrayLength(fact.elements));
-        output = Concat(output, Concat("    ", abi.c_element_type));
-        output = Concat(output, " pgy_indexed_storage_");
-        output = Concat(output, Concat(ToString(row), Concat("[", count)));
-        output = Concat(output, "] = {");
-        output = Concat(
-            output, DirectMirScalarCfgArrayStringCElementList(fact.elements)
-        );
-        output = Concat(output, Concat("};\n    ", abi.c_array_type));
-        output = Concat(output, " pgy_indexed_collection_");
-        output = Concat(output, Concat(ToString(row), " = {pgy_indexed_storage_"));
-        output = Concat(output, Concat(ToString(row), ", "));
-        output = Concat(output, Concat(count, Concat(", ", count)));
-        output = Concat(output, ", NULL};\n");
-        row = row + 1;
-    }
-    return output;
-}
+import "direct_mir_scalar_cfg_string_array_c_storage_emission_owner.pgy";
 
 func DirectMirScalarCfgStringArrayCIndex(
     ref plan: DirectMirScalarCfgGraphPlan,

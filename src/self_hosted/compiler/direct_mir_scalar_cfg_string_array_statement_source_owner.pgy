@@ -1,0 +1,66 @@
+// Persisted statement facts for String-array push and length observation.
+
+import "direct_mir_scalar_cfg_string_array_length_log_graph_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_source_fact_owner.pgy";
+
+struct DirectMirScalarCfgStringArrayStatementSourceFact {
+    let valid: Bool;
+    let collection_row: Int;
+    let value_present: Bool;
+    let value_literal: String;
+}
+
+func DirectMirScalarCfgStringArrayStatementSourceFactInvalid(
+) -> DirectMirScalarCfgStringArrayStatementSourceFact {
+    return DirectMirScalarCfgStringArrayStatementSourceFact(
+        false, -1, false, ""
+    );
+}
+
+func DirectMirScalarCfgStringArrayPushSourceFactFrom(
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref plan: DirectMirScalarCfgStringArrayPlan,
+    ref graph: MirExpressionGraphSequence, global_row: Int
+) -> DirectMirScalarCfgStringArrayStatementSourceFact {
+    let invalid: DirectMirScalarCfgStringArrayStatementSourceFact =
+        DirectMirScalarCfgStringArrayStatementSourceFactInvalid();
+    if MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) != 1 {
+        return invalid;
+    }
+    let collection_row: Int = DirectMirScalarCfgStringArrayCollectionUse(
+        use_facts, plan, global_row, 0
+    );
+    let literal: Option<String> = DirectMirScalarCfgStringArraySingleLiteral(
+        graph, AstExpressionNodeStringLiteral()
+    );
+    if collection_row < 0 || !IsSome(literal) { return invalid; }
+    let value: Option<String> = DirectMirAsciiLiteralContent(
+        UnwrapOption(literal)
+    );
+    if !IsSome(value) { return invalid; }
+    return DirectMirScalarCfgStringArrayStatementSourceFact(
+        true, collection_row, true, UnwrapOption(value)
+    );
+}
+
+func DirectMirScalarCfgStringArrayLengthLogSourceFactFrom(
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref plan: DirectMirScalarCfgStringArrayPlan,
+    ref graph: MirExpressionGraphSequence, global_row: Int
+) -> DirectMirScalarCfgStringArrayStatementSourceFact {
+    let invalid: DirectMirScalarCfgStringArrayStatementSourceFact =
+        DirectMirScalarCfgStringArrayStatementSourceFactInvalid();
+    if MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) != 1 {
+        return invalid;
+    }
+    let collection_row: Int = DirectMirScalarCfgStringArrayCollectionUse(
+        use_facts, plan, global_row, 0
+    );
+    let length: DirectMirScalarCfgStringArrayLengthLogGraphFact =
+        DirectMirScalarCfgStringArrayLengthLogGraphFactFrom(graph);
+    if collection_row < 0 || !length.valid || length.collection_name !=
+            plan.collections.names[collection_row] { return invalid; }
+    return DirectMirScalarCfgStringArrayStatementSourceFact(
+        true, collection_row, false, ""
+    );
+}

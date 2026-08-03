@@ -94,6 +94,7 @@ func DirectMirScalarCfgStringArrayAppendAccess(
     let indices: DirectMirScalarCfgStringArrayIndexSet = rows.indices;
     let value_present: Array<Bool> = rows.value_present;
     let value_literals: Array<String> = rows.value_literals;
+    let expected_lengths: Array<Int> = rows.expected_lengths_before;
     let operation_rows: Array<Int> = rows.operation_rows;
     ArrayPush(global_rows, fact.global_row); ArrayPush(kinds, fact.kind);
     ArrayPush(collection_rows, fact.collection_row);
@@ -101,9 +102,10 @@ func DirectMirScalarCfgStringArrayAppendAccess(
     DirectMirScalarCfgStringArrayAppendIndex(indices, fact.index);
     ArrayPush(value_present, fact.value_present);
     ArrayPush(value_literals, fact.value_literal);
+    ArrayPush(expected_lengths, fact.expected_length_before);
     ArrayPush(operation_rows, fact.operation_row);
     rows = DirectMirScalarCfgStringArrayAccessSet(
         rows.valid, global_rows, kinds, collection_rows, guard_rows, indices,
-        value_present, value_literals, operation_rows
+        value_present, value_literals, expected_lengths, operation_rows
     );
 }

@@ -103,8 +103,9 @@ done
 require_text "$WORK_DIR/base.c" '((size_t)pgy_local_1) < pgy_indexed_collection_0.length'
 require_text "$WORK_DIR/base.c" 'pgy_indexed_collection_0.data[pgy_local_1]'
 require_text "$WORK_DIR/base.ll" 'icmp ult i64'
-require_text "$WORK_DIR/base.ll" 'extractvalue { ptr, i64, i64, ptr } %pgy.array.indexed.0.3, 1'
+require_text "$WORK_DIR/base.ll" 'load i64, ptr %pgy.array.indexed.0.length.field'
 require_text "$WORK_DIR/base.ll" 'getelementptr inbounds ptr'
+reject_text "$WORK_DIR/base.ll" 'extractvalue { ptr, i64, i64, ptr } %pgy.array.indexed.0.3'
 reject_text "$WORK_DIR/base.ll" '%pgy.cond.1.capacity'
 
 compile_and_run() {

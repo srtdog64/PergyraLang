@@ -1,0 +1,138 @@
+// Mutable LLVM storage object for the sealed String-array plan.
+
+import "direct_mir_scalar_cfg_string_array_capacity_owner.pgy";
+import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
+import "direct_mir_array_string_abi_projection_owner.pgy";
+
+func DirectMirScalarCfgStringArrayLlvmGlobals(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> String {
+    let output: String = ""; let collection: Int = 0;
+    while collection < DirectMirScalarCfgStringArrayCollectionCount(
+        plan.string_arrays
+    ) {
+        let fact: DirectMirScalarCfgArrayStringCollectionFact =
+            DirectMirScalarCfgStringArrayCollectionAt(
+                plan.string_arrays, collection
+            );
+        let item: Int = 0;
+        while item < ArrayLength(fact.elements) {
+            output = Concat(output, DirectMirScalarCfgStringLlvmConstant(
+                Concat(".pgy.scalar.cfg.indexed.", Concat(
+                    ToString(collection), Concat(".", ToString(item))
+                )), fact.elements[item]
+            ));
+            item = item + 1;
+        }
+        collection = collection + 1;
+    }
+    let access: Int = 0;
+    while access < DirectMirScalarCfgStringArrayAccessCount(
+        plan.string_arrays
+    ) {
+        let fact: DirectMirScalarCfgStringArrayAccessFact =
+            DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, access);
+        if fact.kind == DirectMirScalarCfgStringArrayAccessSetKind() ||
+                fact.kind == DirectMirScalarCfgStringArrayAccessPushKind() {
+            let category: String = "set";
+            if fact.kind == DirectMirScalarCfgStringArrayAccessPushKind() {
+                category = "push";
+            }
+            output = Concat(output, DirectMirScalarCfgStringLlvmConstant(
+                Concat(".pgy.scalar.cfg.indexed.", Concat(category,
+                    Concat(".", ToString(access)))), fact.value_literal
+            ));
+        }
+        access = access + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
+    prefix: String, aggregate: String, field: String, index: Int
+) -> String {
+    let output: String = Concat("  %pgy.array.", prefix);
+    output = Concat(output, Concat(".", Concat(field, ".field = ")));
+    output = Concat(output, Concat("getelementptr inbounds ", aggregate));
+    output = Concat(output, Concat(", ptr %pgy.array.", prefix));
+    output = Concat(output, ".object, i32 0, i32 ");
+    return Concat(output, Concat(ToString(index), "\n"));
+}
+
+func DirectMirScalarCfgStringArrayLlvmDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact
+) -> String {
+    let output: String = ""; let row: Int = 0;
+    while row < DirectMirScalarCfgStringArrayCollectionCount(
+        plan.string_arrays
+    ) {
+        let fact: DirectMirScalarCfgArrayStringCollectionFact =
+            DirectMirScalarCfgStringArrayCollectionAt(plan.string_arrays, row);
+        let abi: DirectMirArrayStringAbiProjection =
+            DirectMirArrayStringAbiProjectionFromCanonicalLayout(
+                target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
+                fact.data_offset, fact.length_offset, fact.capacity_offset,
+                fact.allocator_offset
+            );
+        let prefix: String = Concat("indexed.", ToString(row));
+        let initial: Int = ArrayLength(fact.elements);
+        let capacity: Int = DirectMirScalarCfgStringArrayStaticCapacity(
+            plan.string_arrays, row
+        );
+        if capacity < initial {
+            Die("direct MIR String array LLVM capacity is invalid");
+        }
+        let data: String = "null";
+        if capacity > 0 {
+            output = Concat(output, Concat("  %pgy.array.", prefix));
+            output = Concat(output, Concat(".storage = alloca [",
+                Concat(ToString(capacity), " x ptr], align 8\n")));
+            let item: Int = 0;
+            while item < initial {
+                output = Concat(output, Concat("  %pgy.array.", prefix));
+                output = Concat(output, Concat(".slot.", ToString(item)));
+                output = Concat(output, Concat(" = getelementptr inbounds [",
+                    Concat(ToString(capacity), " x ptr], ptr %pgy.array.")));
+                output = Concat(output, Concat(prefix,
+                    Concat(".storage, i64 0, i64 ", ToString(item))));
+                output = Concat(output, Concat("\n  store ptr @.pgy.scalar.cfg.indexed.",
+                    Concat(ToString(row), Concat(".", ToString(item)))));
+                output = Concat(output, Concat(", ptr %pgy.array.",
+                    Concat(prefix, Concat(".slot.", ToString(item)))));
+                output = Concat(output, ", align 8\n");
+                item = item + 1;
+            }
+            output = Concat(output, Concat("  %pgy.array.", prefix));
+            output = Concat(output, Concat(".data = getelementptr inbounds [",
+                Concat(ToString(capacity), " x ptr], ptr %pgy.array.")));
+            output = Concat(output, Concat(prefix,
+                ".storage, i64 0, i64 0\n"));
+            data = Concat("%pgy.array.", Concat(prefix, ".data"));
+        }
+        output = Concat(output, Concat("  %pgy.array.", prefix));
+        output = Concat(output, Concat(".object = alloca ",
+            Concat(abi.llvm_aggregate_type, ", align 8\n")));
+        output = Concat(output, DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
+            prefix, abi.llvm_aggregate_type, "data", abi.data_index));
+        output = Concat(output, DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
+            prefix, abi.llvm_aggregate_type, "length", abi.length_index));
+        output = Concat(output, DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
+            prefix, abi.llvm_aggregate_type, "capacity", abi.capacity_index));
+        output = Concat(output, DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
+            prefix, abi.llvm_aggregate_type, "allocator", abi.allocator_index));
+        output = Concat(output, Concat("  store ptr ", data));
+        output = Concat(output, Concat(", ptr %pgy.array.",
+            Concat(prefix, ".data.field, align 8\n")));
+        output = Concat(output, Concat("  store i64 ", ToString(initial)));
+        output = Concat(output, Concat(", ptr %pgy.array.",
+            Concat(prefix, ".length.field, align 8\n")));
+        output = Concat(output, Concat("  store i64 ", ToString(capacity)));
+        output = Concat(output, Concat(", ptr %pgy.array.",
+            Concat(prefix, ".capacity.field, align 8\n")));
+        output = Concat(output, Concat("  store ptr null, ptr %pgy.array.",
+            Concat(prefix, ".allocator.field, align 8\n")));
+        row = row + 1;
+    }
+    return output;
+}

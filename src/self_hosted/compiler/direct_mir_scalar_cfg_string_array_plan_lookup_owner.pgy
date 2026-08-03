@@ -76,7 +76,7 @@ func DirectMirScalarCfgStringArrayAccessAt(
     if row < 0 || row >= DirectMirScalarCfgStringArrayAccessCount(plan) {
         return DirectMirScalarCfgStringArrayAccessFact(
             -1, 0, -1, -1, DirectMirScalarCfgStringArrayIndexFactEmpty(),
-            false, "", -1
+            false, "", -1, -1
         );
     }
     return DirectMirScalarCfgStringArrayAccessFact(
@@ -85,6 +85,7 @@ func DirectMirScalarCfgStringArrayAccessAt(
         plan.accesses.guard_length_rows[row],
         DirectMirScalarCfgStringArrayIndexAt(plan.accesses.indices, row),
         plan.accesses.value_present[row], plan.accesses.value_literals[row],
+        plan.accesses.expected_lengths_before[row],
         plan.accesses.operation_rows[row]
     );
 }

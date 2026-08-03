@@ -1,0 +1,52 @@
+// Shape and bound-row readiness for String-array indices.
+
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy";
+
+func DirectMirScalarCfgStringArrayIndexAbsentReady(
+    fact: DirectMirScalarCfgStringArrayIndexFact
+) -> Bool {
+    return fact.kind == 0 && fact.value_id == "" &&
+        fact.source_name == "" && fact.iteration_syntax_id == -1 &&
+        fact.literal == "" && fact.value_row == -1 && fact.local_row == -1;
+}
+
+func DirectMirScalarCfgStringArrayIndexReady(
+    fact: DirectMirScalarCfgStringArrayIndexFact, require_bound_rows: Bool,
+    element_count: Int
+) -> Bool {
+    let by_value: Bool = fact.kind == DirectMirScalarCfgStringArrayIndexValue();
+    let by_iteration: Bool =
+        fact.kind == DirectMirScalarCfgStringArrayIndexIteration();
+    let by_literal: Bool =
+        fact.kind == DirectMirScalarCfgStringArrayIndexLiteral();
+    if !by_value && !by_iteration && !by_literal { return false; }
+    if by_value && (fact.value_id == "" || fact.source_name == "" ||
+        fact.iteration_syntax_id >= 0 || fact.literal != "") { return false; }
+    if by_iteration && (fact.value_id != "" || fact.source_name == "" ||
+        fact.iteration_syntax_id < 0 || fact.literal != "") { return false; }
+    if by_literal && (fact.value_id != "" || fact.source_name != "" ||
+        fact.iteration_syntax_id >= 0 ||
+        !DirectMirScalarCfgCanonicalInt(fact.literal) ||
+        ToInt(fact.literal) < 0 || ToInt(fact.literal) >= element_count) {
+        return false;
+    }
+    if !require_bound_rows {
+        return fact.value_row == -1 && fact.local_row == -1;
+    }
+    return (by_value && fact.value_row >= 0 && fact.local_row == -1) ||
+        (by_iteration && fact.value_row == -1 && fact.local_row >= 0) ||
+        (by_literal && fact.value_row == -1 && fact.local_row == -1);
+}
+
+func DirectMirScalarCfgStringArrayIndexSetReady(
+    ref rows: DirectMirScalarCfgStringArrayIndexSet, count: Int
+) -> Bool {
+    return count == ArrayLength(rows.kinds) &&
+        count == ArrayLength(rows.value_ids) &&
+        count == ArrayLength(rows.source_names) &&
+        count == ArrayLength(rows.iteration_syntax_ids) &&
+        count == ArrayLength(rows.literals) &&
+        count == ArrayLength(rows.value_rows) &&
+        count == ArrayLength(rows.local_rows);
+}

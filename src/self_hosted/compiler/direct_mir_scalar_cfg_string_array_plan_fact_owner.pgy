@@ -6,6 +6,8 @@ func DirectMirScalarCfgStringArrayIndexLiteral() -> Int { return 3; }
 func DirectMirScalarCfgStringArrayAccessConcatRead() -> Int { return 1; }
 func DirectMirScalarCfgStringArrayAccessLogRead() -> Int { return 2; }
 func DirectMirScalarCfgStringArrayAccessSetKind() -> Int { return 3; }
+func DirectMirScalarCfgStringArrayAccessPushKind() -> Int { return 4; }
+func DirectMirScalarCfgStringArrayAccessLengthLog() -> Int { return 5; }
 
 struct DirectMirScalarCfgStringArrayIndexFact {
     let kind: Int;
@@ -68,6 +70,7 @@ struct DirectMirScalarCfgStringArrayAccessSet {
     let indices: DirectMirScalarCfgStringArrayIndexSet;
     let value_present: Array<Bool>;
     let value_literals: Array<String>;
+    let expected_lengths_before: Array<Int>;
     let operation_rows: Array<Int>;
 }
 
@@ -87,6 +90,7 @@ struct DirectMirScalarCfgStringArrayAccessFact {
     let index: DirectMirScalarCfgStringArrayIndexFact;
     let value_present: Bool;
     let value_literal: String;
+    let expected_length_before: Int;
     let operation_row: Int;
 }
 
@@ -133,7 +137,8 @@ func DirectMirScalarCfgStringArrayAccessSetEmpty(
     let bools: Array<Bool> = [];
     return DirectMirScalarCfgStringArrayAccessSet(
         valid, ints, ints, ints, ints,
-        DirectMirScalarCfgStringArrayIndexSetEmpty(), bools, strings, ints
+        DirectMirScalarCfgStringArrayIndexSetEmpty(), bools, strings,
+        ints, ints
     );
 }
 

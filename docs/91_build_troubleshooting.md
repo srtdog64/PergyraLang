@@ -52,6 +52,42 @@ bounds before dereferencing a receipt; otherwise a stale row can crash the
 compiler rather than fail closed. The focused negative gate must include a
 negative initial value, negative step, guard-bypass predecessor, and stale row.
 
+### Empty array graph is rejected even though the MIR contains `[]`
+
+The persisted JSON uses `null` for absent children, but
+`MirExpressionGraphSequenceAppend` normalizes arity-zero child slots to the
+sequence sentinel `0`. A consumer of `MirExpressionGraphSequence` must validate
+that owned representation, not compare it with the raw JSON encoding. The
+String-array empty-literal predicate initially expected `-1`, so a valid
+one-node `array_literal` was reported as `direct MIR String array collection is
+invalid`. Keep the raw JSON parser out of the collection owner; verify one
+root, one array-literal node, the sequence-owned `0` sentinels, and `none` call
+target columns instead.
+
+### Push output is right but post-push length is stale
+
+Do not pre-bake pushed values into a final initializer and do not use final
+capacity as current length. For the bounded straight-line rung, storage may be
+preallocated to `initial_length + admitted_push_count`, but the public array
+object starts at the literal length. Each operation stores its value first and
+then advances the same current-length field. C conditions and logs read
+`.length`; LLVM conditions, indexed reads, and length logs load the one mutable
+`length.field`. An immutable LLVM aggregate snapshot is valid for the separate
+foreach-only value lane, not for a mutation lane.
+
+This is not general runtime growth parity. The bounded owner rejects branch,
+loop, late, pre-definition, aliased, returned, or dynamic-value pushes. Do not
+call the private three-field `pgy_as_push`, claim reallocation support, or add a
+backend-local push discovery path to make a larger fixture pass.
+
+Exact local order is also insufficient if another CFG block can jump back to
+entry block zero. Such an edge re-executes every admitted push while the static
+capacity proof still counted each source operation once. Keep entry execution
+cardinality in its own target-neutral owner: when the plan contains a push,
+neither successor column may contain block zero. The focused falsifier adds an
+exit-to-entry edge and requires both backends to reject before publishing an
+artifact.
+
 ## GCC says it cannot create a temporary file under `C:\Windows`
 
 Symptom: a self-host driver build launched through Git Bash fails during host

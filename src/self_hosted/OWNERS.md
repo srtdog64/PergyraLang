@@ -2210,6 +2210,24 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_readiness_owner.pgy`
   -- source and bound-row shape, static literal bounds, duplicate collection /
   global / operation claim rejection, and explicit empty-String value presence.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_source_fact_owner.pgy`,
+  `direct_mir_scalar_cfg_string_array_statement_source_owner.pgy`, and
+  `direct_mir_scalar_cfg_string_array_length_log_graph_owner.pgy` -- exact
+  persisted graph/use facts for one collection statement, including literal
+  `ArrayPush` and `Log(ToString(ArrayLength(collection)))`. Display text is not
+  an authority and missing graph facts fail closed.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_capacity_owner.pgy`,
+  `direct_mir_scalar_cfg_string_array_index_readiness_owner.pgy`, and
+  `direct_mir_scalar_cfg_string_array_push_graph_readiness_owner.pgy` --
+  operation-ordered length version, bounded final capacity, absent-index
+  sentinel, and post-plan push/length-log operation binding. A future push
+  count cannot be observed as the current length.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_push_dominance_owner.pgy`
+  and `direct_mir_scalar_cfg_string_array_entry_execution_owner.pgy` -- admit
+  only once-executed entry-block push prefixes after the collection definition
+  and before every length/read/set consumer. The entry owner rejects every
+  predecessor edge into block zero; loop, branch, late, reordered,
+  pre-definition, or re-entered pushes fail before target projection.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_graph_shape_owner.pgy`
   and `direct_mir_scalar_cfg_string_array_plan_admission_owner.pgy` -- exact
   graph/use admission for range or while `ArrayLength`, indexed concat/Log,
@@ -2241,7 +2259,10 @@ inventory must not become a second fact-family owner registry.
   `direct_mir_array_string_abi_projection_owner.pgy` -- canonical
   `Array<String>` ABI admission and selected-target C/LLVM spelling. They
   consume the persisted layout row; neither backend guesses offsets or runtime
-  symbols.
+  symbols. The direct public C projection is the four-field
+  `PgyArray_String`; `CompilerAbiLayoutArrayStringCValueType()` and its
+  three-field `pgy_as` spelling remain private to self-codegen/runtime carriage
+  and cannot own this direct projection.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_fact_owner.pgy`,
   `direct_mir_scalar_cfg_foreach_set_owner.pgy`, and
   `direct_mir_scalar_cfg_foreach_append_owner.pgy` -- immutable target-neutral
@@ -2287,11 +2308,14 @@ inventory must not become a second fact-family owner registry.
   `direct_mir_scalar_cfg_foreach_typed_c_emission_owner.pgy`, which owns typed
   Int/String storage, ABI-length cursor, binder load, latch increment, and
   condition projection from the sealed receipts.
-- `src/self_hosted/compiler/direct_mir_scalar_cfg_array_c_materialization_owner.pgy`
-  and `direct_mir_scalar_cfg_string_array_c_emission_owner.pgy` -- canonical C
-  String-array storage, length-bound condition, indexed reads, and static
-  in-bounds set. A signed dynamic index is converted to `size_t` only after the
-  shared nonnegative plan proof.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_array_c_materialization_owner.pgy`,
+  `direct_mir_scalar_cfg_string_array_c_storage_emission_owner.pgy`,
+  `direct_mir_scalar_cfg_string_array_c_mutation_emission_owner.pgy`, and
+  `direct_mir_scalar_cfg_string_array_c_emission_owner.pgy` -- canonical public
+  four-field C String-array storage, initial length/capacity materialization,
+  operation-time push store then length update, final length observation,
+  indexed reads, and static in-bounds set. A signed dynamic index is converted
+  to `size_t` only after the shared nonnegative plan proof.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy` --
   final textual LLVM block projection from that same plan. Operation spelling
   is delegated to the type-directed operation owner; it owns no admission.
@@ -2300,10 +2324,14 @@ inventory must not become a second fact-family owner registry.
   LLVM operation spelling, String constants/arrays, and the selected concat
   helper body from sealed receipts.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_array_string_llvm_value_owner.pgy`
-  and `direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy` -- canonical
-  String-array aggregate materialization plus ABI-indexed length/data loads,
-  indexed reads, and static in-bounds set. Unsigned `icmp ult` and inbounds GEP
-  consume the same nonnegative and owned-length receipt as C.
+  remains the immutable foreach value materializer. The direct indexed lane is
+  instead owned by `direct_mir_scalar_cfg_string_array_llvm_storage_emission_owner.pgy`,
+  `direct_mir_scalar_cfg_string_array_llvm_mutation_emission_owner.pgy`, and
+  `direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy`: one mutable
+  four-field object owns data, current length, capacity, push stores, indexed
+  reads, and final length observation. No stale immutable aggregate snapshot
+  may own a post-push length. Unsigned `icmp ult` and inbounds GEP consume the
+  same nonnegative and owned-length receipt as C.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy`
   -- stable LLVM consumer names delegated to
   `direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy`, which owns

@@ -1,76 +1,8 @@
 // LLVM projection from the sealed multi-row String-array plan.
 
-import "direct_mir_scalar_cfg_array_string_llvm_value_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_operand_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_graph_readiness_owner.pgy";
-import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
-
-func DirectMirScalarCfgStringArrayLlvmGlobals(
-    ref plan: DirectMirScalarCfgGraphPlan
-) -> String {
-    let output: String = ""; let collection: Int = 0;
-    while collection < DirectMirScalarCfgStringArrayCollectionCount(
-        plan.string_arrays
-    ) {
-        let collection_fact: DirectMirScalarCfgArrayStringCollectionFact =
-            DirectMirScalarCfgStringArrayCollectionAt(
-                plan.string_arrays, collection
-            );
-        let item: Int = 0;
-        while item < ArrayLength(collection_fact.elements) {
-            output = Concat(output, DirectMirScalarCfgStringLlvmConstant(
-                Concat(".pgy.scalar.cfg.indexed.", Concat(
-                    ToString(collection), Concat(".", ToString(item))
-                )),
-                collection_fact.elements[item]
-            ));
-            item = item + 1;
-        }
-        collection = collection + 1;
-    }
-    let access: Int = 0;
-    while access < DirectMirScalarCfgStringArrayAccessCount(
-        plan.string_arrays
-    ) {
-        let access_fact: DirectMirScalarCfgStringArrayAccessFact =
-            DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, access);
-        if access_fact.kind ==
-                DirectMirScalarCfgStringArrayAccessSetKind() {
-            output = Concat(output, DirectMirScalarCfgStringLlvmConstant(
-                Concat(".pgy.scalar.cfg.indexed.set.", ToString(access)),
-                access_fact.value_literal
-            ));
-        }
-        access = access + 1;
-    }
-    return output;
-}
-
-func DirectMirScalarCfgStringArrayLlvmDeclarations(
-    ref plan: DirectMirScalarCfgGraphPlan,
-    target: CompilerTargetProjectionFact
-) -> String {
-    let output: String = ""; let row: Int = 0;
-    while row < DirectMirScalarCfgStringArrayCollectionCount(
-        plan.string_arrays
-    ) {
-        let fact: DirectMirScalarCfgArrayStringCollectionFact =
-            DirectMirScalarCfgStringArrayCollectionAt(plan.string_arrays, row);
-        let abi: DirectMirArrayStringAbiProjection =
-            DirectMirArrayStringAbiProjectionFromCanonicalLayout(
-                target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
-                fact.data_offset, fact.length_offset, fact.capacity_offset,
-                fact.allocator_offset
-            );
-        output = Concat(output, DirectMirScalarCfgArrayStringLlvmValue(
-            Concat("indexed.", ToString(row)),
-            Concat(".pgy.scalar.cfg.indexed.", ToString(row)),
-            fact.elements, abi
-        ));
-        row = row + 1;
-    }
-    return output;
-}
+import "direct_mir_scalar_cfg_string_array_llvm_storage_emission_owner.pgy";
 
 func DirectMirScalarCfgStringArrayLlvmIndex(
     ref plan: DirectMirScalarCfgGraphPlan,
@@ -111,11 +43,14 @@ func DirectMirScalarCfgStringArrayLlvmAddress(
         plan, fact.index, stem
     );
     let output: String = index[0];
-    output = Concat(output, Concat("  ", Concat(stem, ".array.data = extractvalue ")));
-    output = Concat(output, Concat(abi.llvm_aggregate_type, " %pgy.array.indexed."));
-    output = Concat(output, Concat(ToString(fact.collection_row), ".3, "));
-    output = Concat(output, Concat(ToString(abi.data_index), "\n  "));
-    output = Concat(output, Concat(stem, ".array.ptr = getelementptr inbounds ptr, ptr "));
+    output = Concat(output, Concat("  ", Concat(stem, ".array.data = load ")));
+    output = Concat(output, Concat(abi.llvm_element_type,
+        ", ptr %pgy.array.indexed."));
+    output = Concat(output, Concat(ToString(fact.collection_row),
+        ".data.field, align 8\n  "));
+    output = Concat(output, Concat(stem,
+        Concat(".array.ptr = getelementptr inbounds ",
+            Concat(abi.llvm_element_type, ", ptr "))));
     output = Concat(output, Concat(stem, Concat(".array.data, i64 ", index[1])));
     output = Concat(output, "\n");
     return [output, Concat(stem, ".array.ptr")];
@@ -195,10 +130,11 @@ func DirectMirScalarCfgStringArrayLlvmCondition(
         plan, fact.index, stem
     );
     let output: String = index[0];
-    output = Concat(output, Concat("  ", Concat(stem, ".length = extractvalue ")));
-    output = Concat(output, Concat(abi.llvm_aggregate_type, " %pgy.array.indexed."));
-    output = Concat(output, Concat(ToString(fact.collection_row), ".3, "));
-    output = Concat(output, Concat(ToString(abi.length_index), "\n  "));
+    output = Concat(output, Concat("  ", Concat(stem, ".length = load ")));
+    output = Concat(output, Concat(abi.llvm_length_type,
+        ", ptr %pgy.array.indexed."));
+    output = Concat(output, Concat(ToString(fact.collection_row),
+        ".length.field, align 8\n  "));
     output = Concat(output, Concat(stem, " = icmp ult i64 "));
     output = Concat(output, Concat(index[1], Concat(", ", stem)));
     return Concat(output, ".length");

@@ -15557,6 +15557,30 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_dominance_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_dominance_owner.pgy" 80
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_capacity_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_capacity_owner.pgy" 70
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_index_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_index_readiness_owner.pgy" 60
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_length_log_graph_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_length_log_graph_owner.pgy" 50
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_push_dominance_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_push_dominance_owner.pgy" 110
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_entry_execution_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_entry_execution_owner.pgy" 40
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_push_graph_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_push_graph_readiness_owner.pgy" 80
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_source_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_source_fact_owner.pgy" 80
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_statement_source_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_statement_source_owner.pgy" 70
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_index_safety_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_index_safety_owner.pgy" 100
@@ -15638,6 +15662,12 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_emission_owner.pgy" 140
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_storage_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_storage_emission_owner.pgy" 80
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_mutation_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_mutation_emission_owner.pgy" 60
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy" 260
@@ -15653,6 +15683,12 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy" 220
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_storage_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_storage_emission_owner.pgy" 140
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_mutation_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_mutation_emission_owner.pgy" 70
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy" 220
@@ -15707,6 +15743,15 @@ require_max_lines \
 require_file "tests/self_hosted/parity/one_mir_string_array_mutations.py"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_string_array_mutations.py" 180
+require_file "tests/self_hosted/parity/one_mir_string_array_push_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_string_array_push_projection.sh" 140
+require_file "tests/self_hosted/parity/one_mir_string_array_push_artifact_contract.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_string_array_push_artifact_contract.sh" 60
+require_file "tests/self_hosted/parity/one_mir_string_array_push_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_string_array_push_mutations.py" 175
 require_file "tests/self_hosted/parity/one_mir_iteration_binding_scope_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_iteration_binding_scope_owner.sh" 160
@@ -15747,6 +15792,8 @@ require_text "tests/self_hosted/parity/one_mir_cfg_break_case.sh" \
     'one_mir_indexed_string_array_projection.sh'
 require_text "tests/self_hosted/parity/one_mir_cfg_break_case.sh" \
     'one_mir_string_array_mutation_projection.sh'
+require_text "tests/self_hosted/parity/one_mir_cfg_break_case.sh" \
+    'one_mir_string_array_push_projection.sh'
 require_text "tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh" \
     'nested_iteration_continue_shadow.pgy'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy" \

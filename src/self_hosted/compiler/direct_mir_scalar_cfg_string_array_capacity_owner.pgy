@@ -1,0 +1,64 @@
+// Target-neutral materialized length and bounded capacity for String arrays.
+
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+
+func DirectMirScalarCfgStringArrayPushCountInAccesses(
+    ref accesses: DirectMirScalarCfgStringArrayAccessSet, collection_row: Int
+) -> Int {
+    let count: Int = 0; let row: Int = 0;
+    while row < ArrayLength(accesses.global_rows) {
+        if accesses.collection_rows[row] == collection_row &&
+            accesses.kinds[row] ==
+                DirectMirScalarCfgStringArrayAccessPushKind() {
+            count = count + 1;
+        }
+        row = row + 1;
+    }
+    return count;
+}
+
+func DirectMirScalarCfgStringArrayCollectionPushCount(
+    ref plan: DirectMirScalarCfgStringArrayPlan, collection_row: Int
+) -> Int {
+    return DirectMirScalarCfgStringArrayPushCountInAccesses(
+        plan.accesses, collection_row
+    );
+}
+
+func DirectMirScalarCfgStringArrayCollectionHasPush(
+    ref plan: DirectMirScalarCfgStringArrayPlan, collection_row: Int
+) -> Bool {
+    return DirectMirScalarCfgStringArrayCollectionPushCount(
+        plan, collection_row
+    ) > 0;
+}
+
+func DirectMirScalarCfgStringArrayFinalLength(
+    ref plan: DirectMirScalarCfgStringArrayPlan, collection_row: Int
+) -> Int {
+    let fact: DirectMirScalarCfgArrayStringCollectionFact =
+        DirectMirScalarCfgStringArrayCollectionAt(plan, collection_row);
+    return ArrayLength(fact.elements) +
+        DirectMirScalarCfgStringArrayCollectionPushCount(plan, collection_row);
+}
+
+func DirectMirScalarCfgStringArrayStaticCapacity(
+    ref plan: DirectMirScalarCfgStringArrayPlan, collection_row: Int
+) -> Int {
+    return DirectMirScalarCfgStringArrayFinalLength(
+        plan, collection_row
+    );
+}
+
+func DirectMirScalarCfgStringArrayExpectedLengthBeforeNextPush(
+    ref collections: DirectMirScalarCfgStringArrayCollectionSet,
+    ref accesses: DirectMirScalarCfgStringArrayAccessSet,
+    collection_row: Int
+) -> Int {
+    if collection_row < 0 || collection_row >=
+            ArrayLength(collections.element_counts) { return -1; }
+    return collections.element_counts[collection_row] +
+        DirectMirScalarCfgStringArrayPushCountInAccesses(
+            accesses, collection_row
+        );
+}

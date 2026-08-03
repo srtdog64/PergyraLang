@@ -5,76 +5,11 @@ import "direct_mir_scalar_cfg_string_array_plan_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_append_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_dominance_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_capacity_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_source_fact_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_statement_source_owner.pgy";
 import "direct_mir_scalar_cfg_foreach_set_owner.pgy";
 import "direct_mir_scalar_cfg_range_set_owner.pgy";
-
-func DirectMirScalarCfgStringArrayGraphAt(
-    ref object: JsonObjectFactTable, key: String
-) -> MirExpressionGraphSequence {
-    return MirExpressionGraphSequenceAppend(
-        MirExpressionGraphSequenceEmpty(),
-        JsonObjectFactObjectTable(object, key)
-    );
-}
-
-func DirectMirScalarCfgStringArrayCollectionUse(
-    ref use_facts: MirRoutineInstructionUseFacts,
-    ref plan: DirectMirScalarCfgStringArrayPlan,
-    global_row: Int, use_row: Int
-) -> Int {
-    let value_opt: Option<String> = MirRoutineInstructionUseAtGlobal(
-        use_facts, global_row, use_row
-    );
-    if !IsSome(value_opt) { return -1; }
-    return DirectMirScalarCfgStringArrayCollectionRowAtValue(
-        plan, UnwrapOption(value_opt)
-    );
-}
-
-func DirectMirScalarCfgStringArrayIndexValueFact(
-    value_id: String, source_name: String
-) -> DirectMirScalarCfgStringArrayIndexFact {
-    return DirectMirScalarCfgStringArrayIndexFact(
-        DirectMirScalarCfgStringArrayIndexValue(), value_id,
-        source_name, -1, "", -1, -1
-    );
-}
-
-func DirectMirScalarCfgStringArrayIndexIterationFact(
-    syntax_id: Int, source_name: String
-) -> DirectMirScalarCfgStringArrayIndexFact {
-    return DirectMirScalarCfgStringArrayIndexFact(
-        DirectMirScalarCfgStringArrayIndexIteration(), "",
-        source_name, syntax_id, "", -1, -1
-    );
-}
-
-func DirectMirScalarCfgStringArrayIndexLiteralFact(
-    literal: String
-) -> DirectMirScalarCfgStringArrayIndexFact {
-    return DirectMirScalarCfgStringArrayIndexFact(
-        DirectMirScalarCfgStringArrayIndexLiteral(), "", "",
-        -1, literal, -1, -1
-    );
-}
-
-func DirectMirScalarCfgStringArrayDynamicGuardRow(
-    ref lengths: DirectMirScalarCfgStringArrayLengthSet,
-    collection_row: Int, index: DirectMirScalarCfgStringArrayIndexFact
-) -> Int {
-    let found: Int = -1; let row: Int = 0;
-    while row < ArrayLength(lengths.global_rows) {
-        if lengths.collection_rows[row] == collection_row &&
-            lengths.indices.kinds[row] == index.kind &&
-            lengths.indices.value_ids[row] == index.value_id &&
-            lengths.indices.iteration_syntax_ids[row] ==
-                index.iteration_syntax_id {
-            if found >= 0 { return -1; } found = row;
-        }
-        row = row + 1;
-    }
-    return found;
-}
 
 func DirectMirScalarCfgStringArrayPlanFromOwners(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -283,7 +218,7 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
                     DirectMirScalarCfgStringArrayAppendAccess(accesses,
                         DirectMirScalarCfgStringArrayAccessFact(
                         global, DirectMirScalarCfgStringArrayAccessConcatRead(),
-                        collection_row, guard, index_fact, false, "", -1
+                        collection_row, guard, index_fact, false, "", -1, -1
                     ));
                     claimed_collection_use_count =
                         claimed_collection_use_count + 1;
@@ -350,11 +285,53 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
                     DirectMirScalarCfgStringArrayAppendAccess(accesses,
                         DirectMirScalarCfgStringArrayAccessFact(
                         global, DirectMirScalarCfgStringArrayAccessLogRead(),
-                        collection_row, guard, index_fact, false, "", -1
+                        collection_row, guard, index_fact, false, "", -1, -1
                     ));
                     claimed_collection_use_count =
                         claimed_collection_use_count + 1;
+                } else {
+                    let length_log:
+                        DirectMirScalarCfgStringArrayStatementSourceFact =
+                        DirectMirScalarCfgStringArrayLengthLogSourceFactFrom(
+                            use_facts, source, graph, global
+                        );
+                    if length_log.valid {
+                        DirectMirScalarCfgStringArrayAppendAccess(accesses,
+                            DirectMirScalarCfgStringArrayAccessFact(
+                            global,
+                            DirectMirScalarCfgStringArrayAccessLengthLog(),
+                            length_log.collection_row, -1,
+                            DirectMirScalarCfgStringArrayIndexFactEmpty(),
+                            false, "", -1, -1
+                        ));
+                        claimed_collection_use_count =
+                            claimed_collection_use_count + 1;
+                    }
                 }
+            } else if kind == "stmt" && capture.arg0 == "ArrayPush" &&
+                    DirectMirScalarCfgStringArrayCollectionUse(
+                        use_facts, source, global, 0
+                    ) >= 0 {
+                let push: DirectMirScalarCfgStringArrayStatementSourceFact =
+                    DirectMirScalarCfgStringArrayPushSourceFactFrom(
+                        use_facts, source, graph, global
+                    );
+                if !push.valid { Die("direct MIR String array push is invalid"); }
+                let expected_length: Int =
+                    DirectMirScalarCfgStringArrayExpectedLengthBeforeNextPush(
+                        collections, accesses, push.collection_row
+                    );
+                if expected_length < 0 {
+                    Die("direct MIR String array push length is invalid");
+                }
+                DirectMirScalarCfgStringArrayAppendAccess(accesses,
+                    DirectMirScalarCfgStringArrayAccessFact(
+                    global, DirectMirScalarCfgStringArrayAccessPushKind(),
+                    push.collection_row, -1,
+                    DirectMirScalarCfgStringArrayIndexFactEmpty(),
+                    true, push.value_literal, expected_length, -1
+                ));
+                claimed_collection_use_count = claimed_collection_use_count + 1;
             } else if kind == "stmt" && capture.arg0 == "ArraySet" {
                 if use_count < 1 || DirectMirScalarCfgStringArrayCollectionUse(
                     use_facts, source, global, 0
@@ -390,7 +367,7 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
                     collection_row, -1,
                     DirectMirScalarCfgStringArrayIndexLiteralFact(
                         UnwrapOption(index_opt)
-                    ), true, UnwrapOption(value), -1
+                    ), true, UnwrapOption(value), -1, -1
                 ));
                 claimed_collection_use_count = claimed_collection_use_count + 1;
             }

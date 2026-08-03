@@ -21,6 +21,11 @@ struct DirectMirScalarCfgArrayStringCollectionFact {
     let allocator_offset: Int;
 }
 
+struct DirectMirScalarCfgArrayStringLiteralFact {
+    let valid: Bool;
+    let elements: Array<String>;
+}
+
 func DirectMirScalarCfgArrayStringCollectionFactEmpty(
 ) -> DirectMirScalarCfgArrayStringCollectionFact {
     let elements: Array<String> = [];
@@ -31,22 +36,28 @@ func DirectMirScalarCfgArrayStringCollectionFactEmpty(
 
 func DirectMirScalarCfgArrayStringLiteralElements(
     ref graph: MirExpressionGraphSequence
-) -> Array<String> {
+) -> DirectMirScalarCfgArrayStringLiteralFact {
     let values: Array<String> = [];
     let nodes: Array<Int> = DirectMirArrayLiteralElementNodes(
         graph, AstExpressionNodeStringLiteral()
     );
-    if ArrayLength(nodes) < 1 { return values; }
+    if ArrayLength(nodes) < 1 {
+        return DirectMirScalarCfgArrayStringLiteralFact(
+            DirectMirArrayLiteralEmptyReady(graph), values
+        );
+    }
     let row: Int = 0;
     while row < ArrayLength(nodes) {
         let content: Option<String> = DirectMirAsciiLiteralContent(
             graph.arena.node_texts[nodes[row]]
         );
-        if !IsSome(content) { return []; }
+        if !IsSome(content) {
+            return DirectMirScalarCfgArrayStringLiteralFact(false, values);
+        }
         ArrayPush(values, UnwrapOption(content));
         row = row + 1;
     }
-    return values;
+    return DirectMirScalarCfgArrayStringLiteralFact(true, values);
 }
 
 func DirectMirScalarCfgArrayStringCollectionFactReady(
@@ -58,7 +69,7 @@ func DirectMirScalarCfgArrayStringCollectionFactReady(
         fact.collection_value_id != "" && fact.collection_name != "" &&
         fact.storage_identity == Concat(
             "local-array:", fact.collection_value_id
-        ) && ArrayLength(fact.elements) > 0 &&
+        ) &&
         DirectMirArrayStorageLayoutContractReady(layout) &&
         fact.abi_layout_id > 0 && fact.abi_size == layout.size &&
         fact.abi_align == layout.align &&
@@ -108,12 +119,13 @@ func DirectMirScalarCfgArrayStringCollectionFromOwners(
         DirectMirArrayIntGraphFromExpressionFact(
             admitted.routines.source_json, expression, 0
         );
-    let elements: Array<String> =
+    let literal: DirectMirScalarCfgArrayStringLiteralFact =
         DirectMirScalarCfgArrayStringLiteralElements(graph);
+    if !literal.valid { return invalid; }
     let fact: DirectMirScalarCfgArrayStringCollectionFact =
         DirectMirScalarCfgArrayStringCollectionFact(
             true, definition.global_row, collection_value, collection_name,
-            Concat("local-array:", declaration.result), elements,
+            Concat("local-array:", declaration.result), literal.elements,
             MirAbiLayoutIdFromCapture(abi), ToInt(abi.size_text),
             ToInt(abi.align_text), ToInt(abi.field_offsets[0]),
             ToInt(abi.field_offsets[1]), ToInt(abi.field_offsets[2]),

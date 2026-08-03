@@ -1,6 +1,7 @@
 // Definition and dynamic-guard dominance for an admitted String-array plan.
 
 import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_push_dominance_owner.pgy";
 import "../mir_lower/routine_definition_dominance_fact_owner.pgy";
 
 func DirectMirScalarCfgStringArrayGuardEdgeReady(
@@ -73,5 +74,5 @@ func DirectMirScalarCfgStringArrayPlanDominanceReady(
             ) { return false; }
         access_row = access_row + 1;
     }
-    return true;
+    return DirectMirScalarCfgStringArrayPushPrefixDominanceReady(plan, index);
 }

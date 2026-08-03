@@ -78,7 +78,8 @@ func DirectMirScalarCfgStringArrayPlanAtLocalRows(
             fact.global_row, fact.kind, fact.collection_row,
             fact.guard_length_row,
             DirectMirScalarCfgStringArrayBoundIndex(fact.index, local_refs),
-            fact.value_present, fact.value_literal, fact.operation_row
+            fact.value_present, fact.value_literal,
+            fact.expected_length_before, fact.operation_row
         ));
         row = row + 1;
     }
@@ -109,6 +110,7 @@ func DirectMirScalarCfgStringArrayPlanAtOperation(
             source.accesses.kinds, source.accesses.collection_rows,
             source.accesses.guard_length_rows, source.accesses.indices,
             source.accesses.value_present, source.accesses.value_literals,
+            source.accesses.expected_lengths_before,
             operation_rows
         );
     let plan: DirectMirScalarCfgStringArrayPlan =

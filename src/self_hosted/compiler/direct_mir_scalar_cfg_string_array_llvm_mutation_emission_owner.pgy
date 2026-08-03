@@ -1,0 +1,61 @@
+// Operation-time LLVM mutation and length observation for String arrays.
+
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirScalarCfgStringArrayLlvmPush(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> String {
+    let row: Int = DirectMirScalarCfgStringArrayAccessRowAtOperation(
+        plan.string_arrays, operation
+    );
+    if row < 0 || plan.string_arrays.accesses.kinds[row] !=
+            DirectMirScalarCfgStringArrayAccessPushKind() {
+        Die("direct MIR String array LLVM push is missing");
+    }
+    let fact: DirectMirScalarCfgStringArrayAccessFact =
+        DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, row);
+    let stem: String = Concat("%pgy.op.", ToString(operation));
+    let prefix: String = Concat(
+        "%pgy.array.indexed.", ToString(fact.collection_row)
+    );
+    let output: String = Concat("  ", Concat(stem,
+        Concat(".push.data = load ptr, ptr ", prefix)));
+    output = Concat(output, ".data.field, align 8\n  ");
+    output = Concat(output, Concat(stem,
+        Concat(".push.slot = getelementptr inbounds ptr, ptr ", stem)));
+    output = Concat(output, Concat(".push.data, i64 ",
+        Concat(ToString(fact.expected_length_before), "\n")));
+    output = Concat(output, Concat("  store ptr @.pgy.scalar.cfg.indexed.push.",
+        ToString(row)));
+    output = Concat(output, Concat(", ptr ",
+        Concat(stem, ".push.slot, align 8\n")));
+    output = Concat(output, Concat("  store i64 ",
+        ToString(fact.expected_length_before + 1)));
+    return Concat(output, Concat(", ptr ",
+        Concat(prefix, ".length.field, align 8\n")));
+}
+
+func DirectMirScalarCfgStringArrayLlvmLengthLog(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact
+) -> String {
+    let row: Int = DirectMirScalarCfgStringArrayAccessRowAtOperation(
+        plan.string_arrays, operation
+    );
+    if row < 0 || plan.string_arrays.accesses.kinds[row] !=
+            DirectMirScalarCfgStringArrayAccessLengthLog() {
+        Die("direct MIR String array LLVM length log is missing");
+    }
+    let fact: DirectMirScalarCfgStringArrayAccessFact =
+        DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, row);
+    let stem: String = Concat("%pgy.op.", ToString(operation));
+    let output: String = Concat("  ", Concat(stem, ".length = load i64, ptr "));
+    output = Concat(output, Concat("%pgy.array.indexed.",
+        Concat(ToString(fact.collection_row), ".length.field, align 8\n")));
+    output = Concat(output, Concat("  ", Concat(stem,
+        Concat(".printed = call i32 (ptr, ...) @", formatted_print.symbol))));
+    output = Concat(output,
+        "(ptr @.pgy.scalar.cfg.int.format, i64 ");
+    return Concat(output, Concat(stem, ".length)\n"));
+}

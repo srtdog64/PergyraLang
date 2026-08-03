@@ -1,0 +1,34 @@
+// Entry-block execution cardinality for bounded String-array pushes.
+
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+
+func DirectMirScalarCfgStringArrayPushEntryExecutesOnceReady(
+    ref plan: DirectMirScalarCfgStringArrayPlan,
+    ref index: MirRoutineFactIndex
+) -> Bool {
+    let has_push: Bool = false;
+    let row: Int = 0;
+    while row < DirectMirScalarCfgStringArrayAccessCount(plan) {
+        let fact: DirectMirScalarCfgStringArrayAccessFact =
+            DirectMirScalarCfgStringArrayAccessAt(plan, row);
+        if fact.kind == DirectMirScalarCfgStringArrayAccessPushKind() {
+            has_push = true;
+        }
+        row = row + 1;
+    }
+    if !has_push { return true; }
+    let block_count: Int = ArrayLength(index.block_succ_true);
+    if block_count == 0 ||
+        ArrayLength(index.block_succ_false) != block_count {
+        return false;
+    }
+    let block: Int = 0;
+    while block < block_count {
+        if index.block_succ_true[block] == 0 ||
+            index.block_succ_false[block] == 0 {
+            return false;
+        }
+        block = block + 1;
+    }
+    return true;
+}

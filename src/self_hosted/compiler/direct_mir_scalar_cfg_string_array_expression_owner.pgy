@@ -1,5 +1,4 @@
 // Scalar expression rows projected from the sealed String-array plan.
-
 import "direct_mir_scalar_cfg_leaf_operand_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
 
@@ -75,9 +74,22 @@ func DirectMirScalarCfgStringArrayStatementExpressionFact(
             -1, -1, -1, -1, "", ""
         );
     }
+    if kind == DirectMirScalarCfgStringArrayAccessPushKind() &&
+        scalar.arg0 == "ArrayPush" {
+        return DirectMirScalarCfgExpressionFact(
+            true, DirectMirScalarCfgOpArrayPushString(),
+            -1, -1, -1, -1, "", ""
+        );
+    }
+    if kind == DirectMirScalarCfgStringArrayAccessLengthLog() &&
+        scalar.arg0 == "Log" {
+        return DirectMirScalarCfgExpressionFact(
+            true, DirectMirScalarCfgOpLogArrayLength(),
+            -1, -1, -1, -1, "", ""
+        );
+    }
     return DirectMirScalarCfgExpressionFactEmpty();
 }
-
 func DirectMirScalarCfgStringArrayLengthConditionFact(
     ref plan: DirectMirScalarCfgStringArrayPlan, global_row: Int
 ) -> DirectMirScalarCfgExpressionFact {

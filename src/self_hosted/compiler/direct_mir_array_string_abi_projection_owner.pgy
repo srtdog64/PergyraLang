@@ -21,6 +21,10 @@ struct DirectMirArrayStringAbiProjection {
     let allocator_index: Int;
 }
 
+func DirectMirArrayStringPublicCValueType() -> String {
+    return "PgyArray_String";
+}
+
 func DirectMirArrayStringAbiProjectionReadyFor(
     ref projection: DirectMirArrayStringAbiProjection,
     expected_target: String
@@ -37,7 +41,7 @@ func DirectMirArrayStringAbiProjectionReadyFor(
         return projection.c_element_type == "char *" &&
             projection.c_length_type == projection.storage.c_length_type &&
             projection.c_array_type ==
-                CompilerAbiLayoutArrayStringCValueType() &&
+                DirectMirArrayStringPublicCValueType() &&
             projection.llvm_element_type == "" &&
             projection.llvm_length_type == "" &&
             projection.llvm_aggregate_type == "" &&
@@ -93,7 +97,7 @@ func DirectMirArrayStringAbiProjectionFromCanonicalLayout(
         projection = DirectMirArrayStringAbiProjection(
             true, target.projection, target.target_capability_fingerprint,
             storage, "char *", storage.c_length_type,
-            CompilerAbiLayoutArrayStringCValueType(), "", "", "",
+            DirectMirArrayStringPublicCValueType(), "", "", "",
             -1, -1, -1, -1
         );
     } else {
