@@ -6,59 +6,60 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — canonical MIR routine identity frontier
+## Active self-host context — public source-to-MIR production takeover
 
-- Executable checkpoint: `e7125ab3081a095866c240643a9dbb4f410f0978` on
-  `main`, one commit ahead of `origin/main` before this handoff update. The
-  installed Pergyra-built driver is 4,245,240 bytes, SHA-256
-  `CB03F0017AD058709E47E4592705BD51531D9E1E5F12463293132A5A52A7E217`.
-  The native launcher remains 4,620,901 bytes, SHA-256
-  `FBA8E6D73AB9072C8130483A34C13164C4C8DE58425E355141655F65E5AE7374`.
-- Closed executable rung: strict canonical MIR now verifies semantic body facts
-  once. `CanonicalizeMirJsonVerified` creates one `DriverRung2VerifiedFacts`;
-  `CanonicalizeMirArtifactWithAdmittedTopology` passes that receipt to
-  `DriverRung2MirProjectionFromVerifiedFactsObserved`, which validates the
-  admission receipt and consumes ready facts without reopening
-  `VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved`.
-- The intentional stale call-return-row rejection remains unchanged. The
-  previous `let-log` failure was a second verification of the already populated
-  `ToString -> String` row, not a missing semantic rule. Canonical execution now
-  has a separate 112-line owner capped at 140 lines; the main driver owner is
-  485/500 lines and the CLI read owner is 118/140 lines.
-- Fresh executable evidence: current installed-driver rebuild PASS in 108.6
-  seconds; canonical verified-projection fixpoint PASS in 3.0 seconds; hard
-  substitution contract PASS in 61.3 seconds; semantic environment lifetime
-  PASS in 26.5 seconds; mutable-analysis admission negative PASS in 158.4
-  seconds; component/removed-path ratchet PASS in 174.9 seconds; all changed
-  shell files pass `bash -n`; and `git diff --check` is green.
-- `tests/self_host_live_replacement_smoke.sh` now passes the former first
-  `let-log` row and the next eleven rows. It reaches the final
-  `intent-typed-outcome` row, where both canonical artifacts are 47,400 bytes
-  and become byte-identical when only routine `source_syntax_id` values are
-  normalized. The exact remaining drift is `Main=85, RunIntent=72` for the
-  native oracle versus `Main=72, RunIntent=85` for self MIR.
-- Active objective: close that final canonical routine-identity drift through
-  the public installed `--canonicalize-mir-json` path. Existing owners are
-  `MirProgramRoutineIndex`, `CanonicalMirRoutineIdentityEpoch`, and
-  `CanonicalMirIdentityEpochRebindProgramFacts`; the last artifact consumer is
-  `SelfMirProgramJson`. First prove which owner must canonicalize routine order
-  or IDs before editing.
-- Forbidden fallback: ignoring or deleting `source_syntax_id`, regex/JSON text
-  rewriting, row-position identity, fixture/name special cases, synthetic IDs
-  disconnected from the canonical AST epoch, AST/program-root rescan, native-C
-  semantic re-entry, or weakening MIR identity validation. The next falsifier
-  is exact native/self canonical equality for `intent-typed-outcome`, followed
-  by repeated canonicalization fixpoint and a routine-order mutation negative.
-- The previous 2.43 GiB observation remains historical attention evidence, not
-  a measurement of this rung. No per-edit pressure probes, full CI, full
-  bootstrap, current-source gen2==gen3, or Coq/Rocq suite ran. The previously
-  observed unrelated compiler-world and SoT adequacy RED rows were not
-  relabelled as regressions.
-- Three exact ignored build directories from the previous CLI rung remain:
-  `.tmp/self_hosted/cli-request-check`,
-  `.tmp/self_hosted/cli-request-direct-build`, and
-  `.tmp/self_hosted/cli-request-official-build`. Additional current test
-  artifacts are ignored and are not semantic evidence.
+- Executable checkpoint: `01c880346264e989611c51c2471d189e882211fe` on
+  `main`. The installed Pergyra-built driver is 4,252,131 bytes, SHA-256
+  `0116E8A20A5504E4BB2010B36DC071870155FD52A4E2F00EBB2E3E177D57DC95`.
+- Closed executable rung: canonical MIR top-level assembly no longer treats the
+  JSON function/intent producer phases as source order.
+  `MirTopLevelRoutineOrderCursor` merges the two monotonic streams by admitted
+  `source_syntax_id`; methods remain declaration-owned. Same-phase reversal,
+  equal heads, and missing identities fail before output. No post-hoc ID patch,
+  phase sort, row-position fallback, source reparse, or AST-root rescan exists.
+- Dependent identity closure: a mixed `Identity<Int>` + `RunIntent` + `Main`
+  program exposed producer-local generic owner ID `93` versus canonical owner
+  ID `98`. `MirGenericSpecializationIdentityEpoch` now seals the distinct owner
+  preorder once and maps producer owners to canonical owners. Lane, call
+  ordinal, callable, actuals, symbol, and graph call identity remain exact;
+  raw numeric equality and offset inference are forbidden.
+- Fresh executable evidence: installed-driver rebuild PASS in 107.4 seconds;
+  canonical cross-phase preorder/equality/fixpoint/nonmonotonic negative PASS;
+  raw mixed generic+intent execution and ordinal negative PASS; all thirteen
+  live source/MIR replacement rows PASS in 72.1 seconds; hard substitution
+  contract PASS in 43.9 seconds; component/removed-path ratchet PASS in 166.9
+  seconds; both new shell gates pass `bash -n`; `git diff --check` was green.
+- Hard caps remain fixed: routine-order owner 104/120, generic identity-epoch
+  owner 123/140, generic decoder 322/420, routine gate 138/140, and generic
+  epoch gate 56/100. Component owns only inventory, caps, wiring, and retired
+  paths; executable gates own behavioral claims.
+- The August 2 architecture review observed `bac9b3f1`. Its Pair/aggregate
+  implementation frontier is stale: the repository already documents the
+  completed aggregate value-flow promotion. Its durable constraints remain
+  active—no topology-specific mini-compiler, storage layout is not call ABI,
+  and pressure/fixed-point evidence belongs at an integration boundary.
+- Active objective card: move the public `bin/pgy --mir-json <source>` request
+  from `src/pgy_driver.c::main` into the installed Pergyra driver. Priority is
+  selector substitution, explicit failure, oracle independence, then patch
+  size. The fact owner is `SelfMirProgramFacts`; execution owner is
+  `DriverSourceMirExecution.ProduceSourceMir`; the last orchestration consumer
+  is `DriverRung2CliLogSourceMirPayloadOrDie`.
+- Direct bypass to delete from production selection:
+  `driver_run_pipeline -> driver_app.c`'s `dump_mir_json -> mir_dump_json`.
+  Keep the native producer only behind an explicit frozen/test-only oracle
+  boundary. `tests/self_host_live_replacement_smoke.sh` currently calls public
+  `pgy --mir-json` as its oracle, so that oracle must be split before takeover;
+  otherwise the gate would compare the self path with itself.
+- Next falsifier: for
+  `tests/self_hosted/parity/fixture/intent_typed_outcome_execution.pgy`, public
+  `pgy --mir-json` must be byte-equal to direct installed
+  `pgy-self-driver --emit-mir-json-verified`; self and frozen-native MIR must be
+  canonical-equal. A missing sibling or unsupported source must fail without
+  entering `driver_run_pipeline`, `mir_dump_json`, or another native fallback.
+- No pressure probe, full CI, full bootstrap, current-source gen2==gen3, or
+  Coq/Rocq suite ran for this rung. Historical peaks are not attached to the
+  current driver. Memory remains final-integration-only: attention at 2.4 GiB,
+  hard stop at 3 GiB.
 
 ## Historical checkpoint archive — inactive evidence
 

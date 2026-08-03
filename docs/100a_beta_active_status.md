@@ -365,6 +365,19 @@ CFG must execute exact `2` then `300` through one target-neutral plan. Enum or
 fixture name dispatch, target-specific mini-compilers, match flattening, source
 reparse, and retry into older planners are forbidden.
 
+Canonical routine identity update (2026-08-03): executable checkpoint
+`01c88034` closes the final live `intent-typed-outcome` drift. Function and
+intent producer phases now merge by their admitted source preorder before AST
+creation; same-phase reversal fails closed. A mixed explicit-generic + intent
+fixture also removed producer/canonical numeric owner equality through one
+sealed generic-specialization identity epoch while retaining exact lane,
+ordinal, callable, actual, symbol, and graph validation. Canonical permutation,
+two fixpoints, raw mixed execution, ordinal negative, all thirteen live rows,
+hard substitution, and the component inventory are green. The next executable
+replacement is the public `pgy --mir-json <source>` selector; its native oracle
+must be split into an explicit test-only boundary before the C
+`driver_run_pipeline -> mir_dump_json` production bypass is deleted.
+
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
 toolchain/preflight clarity, release/debug hygiene, memory/string bounds audit,

@@ -2,38 +2,44 @@
 
 마지막 업데이트: 2026-08-03
 
-## 활성 우선순위 — enum 값과 match CFG 실행
+## 활성 우선순위 — public source-to-MIR production takeover
 
-- 실행 체크포인트 `2dcbeba2`에서 `ability_decl.pgy`를 닫았다. Complete method
-  signature를 검증한 compile-time declaration erasure receipt와 일반 literal
-  `Log` plan 하나가 동일 MIR을 C/LLVM으로 투영하고 둘 다 exact `7`을 실행한다.
-- Production path의 `DirectMirHelloProjectionFromAdmitted`와
-  `DirectMirHelloEmit{C,Llvm}`는 삭제됐다. Declaration/method/parameter/contract,
-  instruction/use/graph의 25개 변조는 artifact 전에 실패하며, 선언을 제거한
-  프로그램·일관된 rename·`expr0` display drift는 backend별 byte-equal이다.
-- 공통 literal family는 3 files, `538/560` LOC다. 개별 cap, exact inventory,
-  single issuer, fixture/name dispatch 금지, emitter MIR 재열기 금지와 은퇴 경로
-  재도입 금지가 component ratchet에 묶였다.
-- 현재 installed driver는 4,136,286 bytes, SHA-256
-  `C21D8135C3C90987814E2970CAC0BED0B1505DB1E0B33E7A4D5F8765BA8B718E`다.
-  Focused ability gate, 기존 one-MIR dual regression, installed public C/LLVM,
-  hard self-host contract와 component contract가 green이다.
-- 579.2초 `make self-host-compiler`는 seed/parser/gen2를 포함한 전체 재생성이고,
-  같은 seed를 재사용한 direct driver build는 114.2초다. 둘 다 pressure 표본은
-  아니다. Full CI, Coq/Rocq, bootstrap fixpoint, current-source gen2==gen3와
-  pressure는 이번 rung에서 실행하지 않았다.
-- 전역 Pergyra-likeness gate는 기존 기준 표류 때문에 red다: sentinel `29 > 22`,
-  zone-bound step `26 < 29`. 이번 diff는 해당 sentinel 패턴이나 world/zone intent
-  owner를 추가하지 않았으므로 활성 enum rung에서 기준을 느슨하게 하지 않는다.
-- 다음 실제 C-owned 경로는 `enum_simple.pgy`다. Source-to-MIR은 한 번 성공해
-  4,351 bytes, SHA-256
-  `538079F5BEA11E5A2ABB989D29DCC158108A506F73C0BAA2EFCB163946B62894`를
-  만든다. 현재 양 target은 enum 선언을 compile-time-only declaration으로
-  오분류해 artifact 전에 거부하며, native 실행 기준은 exact `2\n300\n`이다.
-- 다음 owner는 payload-free enum variant value와 four-block `match` CFG를 하나의
-  target-neutral plan으로 결합해야 한다. `Direction`/`South`/출력 상수 분기,
-  target별 enum 미니컴파일러, enum runtime aggregate 발명, source/`expr0` 재파싱,
-  match flattening, enum claim 뒤 scalar/CFG/native retry를 금지한다.
+- 실행 체크포인트 `01c880346264e989611c51c2471d189e882211fe`에서 canonical
+  MIR의 function/intent phase 순서 결함을 닫았다. JSON row 위치가 아니라 각
+  producer phase의 monotonic `source_syntax_id`를 한 cursor가 병합한다. Method는
+  declaration owner에 남고, same-phase 역행이나 같은 head ID는 출력 전에 거부한다.
+- 기존 self MIR은 `Main`을 `RunIntent`보다 먼저 싣고 native MIR은 소스 순서를
+  유지해 canonical ID가 뒤집혔다. 이제 mixed fixture의 input/canonical
+  top-level `(kind, owner, name)` source-preorder가 같고, function/intent row swap은
+  artifact-equal이며 양쪽 repeated canonicalization이 fixpoint다.
+- `Identity<Int>`와 intent를 같은 프로그램에 넣자 producer-local generic owner
+  ID `93`과 canonical ID `98`의 숫자 직접 비교가 드러났다. 새
+  `MirGenericSpecializationIdentityEpoch`는 distinct owner preorder를 한 번만
+  봉인해 canonical owner로 매핑한다. Lane/ordinal/callable/actual/symbol/graph
+  identity는 계속 exact이며 offset, 이름, row-position fallback은 없다.
+- 설치 driver는 4,252,131 bytes, SHA-256
+  `0116E8A20A5504E4BB2010B36DC071870155FD52A4E2F00EBB2E3E177D57DC95`다.
+  Direct rebuild 107.4초, routine focused gate, mixed generic epoch positive/negative,
+  live 13-row matrix 72.1초, hard contract 43.9초, component contract 166.9초가
+  green이다. 이번 rung은 pressure 표본이 아니며 full CI, Coq/Rocq, full bootstrap,
+  current-source gen2==gen3는 실행하지 않았다.
+- August 2 architecture review의 Pair/aggregate 활성 권고는 `bac9b3f1` 기준이라
+  현재 frontier가 아니다. Topology별 mini-compiler 금지, storage layout과 call ABI
+  분리, integration boundary에서 fixed-point/pressure를 측정하라는 구조적 경고만
+  현재 규칙으로 유지한다.
+- 다음 실제 `SUBSTITUTING` rung은 public `pgy --mir-json <source>`다. 현재
+  `src/pgy_driver.c::main -> driver_run_pipeline -> dump_mir_json -> mir_dump_json`의
+  C 경로가 남아 있다. 이를 installed Pergyra driver의
+  `PgyCompilerWorld.source_mir -> DriverSourceMirExecution.ProduceSourceMir ->
+  SelfMirProgramFacts` 경로로 넘긴다.
+- 먼저 native oracle을 명시적인 frozen/test-only 경계로 분리해야 한다. 현재 live
+  gate의 public `pgy --mir-json` 호출을 그대로 두고 selector를 바꾸면 self 결과를
+  자기 자신과 비교하는 허위 parity가 된다. Missing sibling·unsupported source가
+  C pipeline으로 retry하는 것도 금지한다.
+- 다음 falsifier는 `intent_typed_outcome_execution.pgy`의 public/self MIR byte
+  equality, frozen native/self canonical equality, 그리고 missing sibling에서
+  `driver_run_pipeline`과 `mir_dump_json` 미도달이다. 메모리는 매 edit가 아니라
+  integration 마지막 최대값만 기록하며 2.4 GiB attention, 3 GiB hard stop을 유지한다.
 
 ## 비활성 진행 기록 archive
 

@@ -1,6 +1,6 @@
 # Build Troubleshooting
 
-마지막 업데이트: 2026-08-02
+마지막 업데이트: 2026-08-03
 
 빌드/회귀 도중 자주 마주치는 문제와 대응. **항상 `mingw32-make rebuild`를 먼저 시도**하면 절반은 풀린다.
 
@@ -79,6 +79,52 @@ the second result to be the same fixpoint. Broaden to
 `tests/self_host_live_replacement_smoke.sh` only after this gate is green. For
 memory evidence, record one final integration maximum; do not rerun a pressure
 probe after every local edit.
+
+## Canonical MIR swaps `Main`/intent identity or mixed generics become unknown
+
+Symptom: native and self MIR contain the same routines and bodies, but
+canonical output differs only in top-level routine `source_syntax_id`. A mixed
+program may then fail raw MIR-to-C with:
+
+```text
+MIR generic specialization facts are incomplete:
+MIR generic specialization identity is unknown
+```
+
+Check whether one producer preserves source interleaving while another emits
+all functions and then all intents. JSON row position is not source order. Do
+not repair this with a global function-first sort, a post-hoc ID patch, a
+numeric offset, or a `new ? old` generic-identity fallback.
+
+The closed owner split is:
+
+```text
+function phase --\
+                  MirTopLevelRoutineOrderCursor -> canonical AST preorder
+intent phase   --/
+
+producer generic owner preorder --\
+                                  MirGenericSpecializationIdentityEpoch
+canonical generic owner preorder-/
+```
+
+Each producer phase must already be monotonic by its admitted
+`source_syntax_id`; the cursor only merges the two heads. Methods remain with
+declaration lowering. The generic epoch owner collects each distinct producer
+and canonical owner once, sorts each within its own epoch, and maps equal
+preorder ranks. The decoder then still requires exact lane, call ordinal,
+callable, generic actuals, specialized symbol, and semantic graph call node.
+Raw producer and canonical ID numbers are never compared, and no offset is
+inferred.
+
+Use `canonical_mir_routine_phase_identity_owner.sh` for cross-kind row
+permutation, source-preorder preservation, repeated fixpoint, and same-phase
+nonmonotonic rejection. Use
+`generic_specialization_identity_epoch_owner.sh` for raw mixed
+generic+intent MIR execution and invalid ordinal rejection without partial C.
+Only then broaden to `self_host_live_replacement_smoke.sh`. Do not turn this
+bounded identity mapping into a general query/cache engine or recompute it per
+generic row.
 
 ## Role-operator targets disappear between semantic analysis and MIR
 
