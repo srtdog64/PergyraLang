@@ -4957,3 +4957,54 @@ mode의 16 KiB 고정 버퍼로 전달한다. `path_read_file`이나 whole-artif
 추가하면 이전 메모리/복사 결함을 되살리므로 금지된다. Focused stdout gate는
 file/stdout byte equality, clang exact `7/11/5`, exact-once와 failure zero-payload를
 검사한다. 이제 둘 다 bounded substitution이지만 general CFG coverage는 별도다.
+
+## LocalRef push 검사 뒤 driver smoke가 3 GiB를 넘고 stale stamp가 남는 경우
+
+2026-08-03 lexical LocalRef rung에서 producer의 모든 local push마다 별도
+`Array<String>` 중복 검사를 추가하자, 새 `pgy-self-driver`의 bounded source smoke가
+비정상적으로 성장했다. 첫 비계측 실행은 working set 약 44–47 GiB까지 도달해
+수동 종료했고, hard-stop 감시를 붙인 재실행은 3,404,480,512 bytes에서 종료됐다.
+검사를 owner 내부 loop로 바꾼 변형도 final smoke에서 3 GiB를 넘었다. 따라서
+`Array` 값 전달 하나가 원인이라고 단정할 수는 없고, 정확한 runtime retention
+mechanism은 `Unknown`이다. 확정된 사실은 다음과 같다.
+
+```text
+parser composed AST 완료
+-> gen2 driver C 완료
+-> host compile 완료
+-> 새 driver source smoke에서만 hard cap 초과
+```
+
+필수 executable rung이 아니었던 per-push uniqueness 강화는 제거했다. Wire consumer는
+duplicate/forged/missing/orphan LocalRef를 계속 artifact publication 전에 거부한다.
+제거 후 별도 output identity로 recovery full build를 실행했고, 최종 peak working set은
+2,243,174,400 bytes(2.089 GiB)로 2.4 GiB attention 아래였다. 같은 recovered driver의
+focused C/LLVM gate peak는 62,537,728 bytes였고 exact `0,1,2,40`이 green이었다.
+
+이 과정에서 build transaction 결함도 드러났다. 이전
+`self_host_compiler_build.sh`는 host compile 직후 temporary binary를 installed
+`bin/pgy-self-driver` 위로 먼저 move하고, 그 binary로 smoke한 뒤 stamp를 썼다.
+Smoke가 실패하면 installed binary는 실패 artifact인데 stamp는 과거 green key로
+남았다. Source key가 다시 과거 상태와 같아지면 다음 실행이 그 실패 binary를
+fingerprinted green으로 재사용할 수 있었다.
+
+현재 순서는 다음으로 고정됐다.
+
+```text
+generated C -> temporary candidate binary
+temporary candidate -> bounded source smoke
+smoke artifact 존재 확인
+temporary candidate -> installed driver move
+build key -> stamp commit
+```
+
+Smoke 실패나 빈 artifact에서는 candidate만 제거하며 installed driver와 stamp는
+건드리지 않는다. `driver_source_mir_execution_action_gate.sh`가 candidate smoke,
+install move, stamp commit의 순서를 정적으로 고정한다. 복구 후 default full build와
+candidate smoke가 완료됐고, 다음 동일-source 호출은 9.1초에 fingerprint reuse됐다.
+
+이 증상에서 cap, timeout, worker, cache를 먼저 늘리지 않는다. 3 GiB hard stop과
+2.4 GiB attention은 유지하고, build 단계 timestamp로 `parser`, `gen2 emission`,
+`host compile`, `candidate smoke` 중 어느 단계가 성장했는지 먼저 분리한다. 일상
+focused gate에 pressure sampling을 반복해서 붙이지 말고, final/integration build의
+최대값 하나만 handoff에 기록한다.

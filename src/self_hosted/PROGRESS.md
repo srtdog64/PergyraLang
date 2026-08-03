@@ -1,6 +1,31 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-08-03 for-loop break exit merge
+## Active self-host context — 2026-08-03 lexical LocalRef substitution
+
+- Pushed executable checkpoint `9cabfd84` closes the same-spelling outer/range
+  binding through the installed self-host C and LLVM routes. The self producer
+  restores the outer scope after `for`, carries `declaration:6:0` and
+  `iteration:7:0`, and both backends execute exact `0,1,2,40` from one MIR.
+- One `local_ref_identity_owner` owns the role/syntax/index grammar. LocalRef
+  rows remain aligned with instructions and direct expression leaves; wire
+  projection is conditional on duplicate spelling. The general scalar-CFG plan
+  normalizes those identities to storage slots. No emitter, fixture route,
+  source-local row coordinate, or name-first/name-last recovery owns semantics.
+- Nine missing/forged/orphan identity and use mutations reject before C/LLVM
+  artifact publication. Existing break, for-break, continue, cumulative CFG,
+  public LLVM, and structural gates remain green. The slice is bounded
+  `SUBSTITUTING`, not whole-compiler replacement.
+- A producer hot-path uniqueness experiment made final driver smoke breach the
+  3 GiB cap and was removed. Recovery build completed at 2.089 GiB. The build
+  now smoke-tests its temporary candidate before installing or stamping it, so
+  a failed smoke cannot overwrite a green installed driver.
+- The next executable falsifier is nested same-spelling range binders with exact
+  output `0,1,0,0,1,1,40`. Generalize range receipts as an identity-indexed
+  array; do not add a nested-loop topology compiler or backend scope recovery.
+
+## Historical self-host ledger — inactive navigation evidence
+
+### Previous 2026-08-03 for-loop break exit merge
 
 - Resume authority is the top card in `docs/current_work_handoff.md`.
   Executable commit `6da669a41bf656c55870f0543bf0080739717e8b` closes
@@ -23,8 +48,6 @@
   version identity, invent a backend phi, restore source/`expr0`, retry another
   planner, or re-enter native semantics. Pressure, full CI/bootstrap/fixpoint,
   and prover suites did not run.
-
-## Historical self-host ledger — inactive navigation evidence
 
 ### Previous 2026-08-01 installed C-emission replacement
 

@@ -6,7 +6,74 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — iteration-binding scope snapshot
+## Active self-host context — lexical LocalRef substitution
+
+- Executable checkpoint: pushed `9cabfd84` on `main`; the worktree was clean
+  before this documentation update. `bin/pgy.exe` remains 4,626,988 bytes,
+  SHA-256
+  `39798EA50105C9B48F26AE2FCABDB400B54AC153D15DC440B089C4E5E6402F9E`.
+  The recovered and smoke-verified Pergyra-built sibling is 4,321,007 bytes,
+  SHA-256
+  `4041BD3C86F7E49847239EE1083FAB622A90D3CC9AA33DD7C635A0A438B51A09`.
+- Closed executable rung: `iteration_binding_shadow.pgy` declares outer
+  `i: Int = 40`, executes `for i in 0..3`, then observes the outer binding.
+  Its 4,365-byte self-produced MIR has SHA-256
+  `77409191405BDD859479069669AED8426F41E7DFAAA497B7EBCEDA28754264BB`.
+  The body has no SSA use and carries direct `iteration:7:0`; the final Log
+  uses outer `i.1` with `declaration:6:0`. No phi is invented.
+- That one MIR produces a 468-byte C artifact
+  (`E2724F4F1B6972BE932C30E4545AE89EB749E7F8883B322E2DF23EB9C25FDF31`)
+  and a 1,276-byte LLVM artifact
+  (`9CEDD99D55B94B8473CEB9741B954617D7D349257E527D374A9D708920C0C449`).
+  Both compile and execute exact `0`, `1`, `2`, `40`; public installed LLVM
+  file and stdout publication reach the same plan.
+- `local_ref_identity_owner.pgy` is the one grammar for
+  `(binding_role, owner_syntax_id, binding_index)`. Producer CFG rows carry
+  aligned primary/direct-expression LocalRefs. The wire fields are emitted only
+  when one routine has duplicate source-local spelling, so existing unique-name
+  MIR remains byte-stable. The direct consumer validates the wire once and
+  normalizes it to plan-local slots before either backend.
+- No topology-specific shadow compiler or emitter was added. The existing
+  scalar-CFG plan is ValueId-first, consumes the explicit range LocalRef only
+  for direct version-zero leaves, and treats `source_locals` as an unordered
+  name/type inventory rather than storage identity. Missing, forged, swapped,
+  duplicate, and orphan LocalRef/use rows reject before artifact publication.
+- Fixed caps are green without increases: program verifier 600/600, routine
+  build 597/600, JSON facade 596/600, graph admission 377/450, LocalRef plan
+  275/300, wire admission 199/240, range fact 167/180, range construction
+  129/280, and focused gate 116/160.
+- Latest observed evidence: successful recovery full build peak
+  2,243,174,400 bytes (2.089 GiB), installed fingerprint reuse 9.1 seconds,
+  focused LocalRef C/LLVM 9.7 seconds, existing break/for-break/continue gates
+  all green, cumulative CFG/AIR 176.8 seconds, public installed LLVM 22.7
+  seconds, driver source/action transaction gate 13.5 seconds, and structural
+  component/removed-path ratchet 229.4 seconds.
+- Build incident: an attempted producer-side per-push uniqueness check caused
+  the new driver's final smoke to grow past 3 GiB, including one unbounded
+  44–47 GiB observation before termination. The check was removed. A failed
+  smoke also exposed that the build moved the candidate over the installed
+  driver before committing its stamp. The builder now smokes the temporary
+  candidate first, then installs and stamps it. See
+  `docs/91_build_troubleshooting.md`.
+- Classification: this same-spelling outer/range binding slice is bounded
+  `SUBSTITUTING` in installed C and LLVM. It is not general foreach,
+  nested/multiple range receipts, arbitrary lexical shadowing, whole-compiler
+  replacement, or a current gen2==gen3 claim.
+- Next objective card: replace the native path for nested same-spelling range
+  binders with a general array of range receipts. The falsifier declares outer
+  `i = 40`, nests `for i in 0..2` inside another `for i in 0..2`, observes the
+  outer-range `i` after the inner loop and lexical `i.1` after both, and expects
+  `0,1,0,0,1,1,40`. Owners are the same LocalRef grammar plus typed iteration
+  rows; the last consumer is the general scalar-CFG plan. Forbidden are a
+  nested-loop topology compiler, one last/first-name lookup, backend scope
+  recovery, or retaining the current single-range receipt as a fallback.
+- Full CI, full bootstrap, current-source gen2==gen3, and Coq/Rocq did not run.
+  Memory remains final-integration-only: attention at 2.4 GiB, hard stop at
+  3 GiB, and only the maximum/final pressure result is recorded.
+
+## Historical checkpoint archive — inactive evidence
+
+### Previous iteration-binding scope snapshot
 
 - Executable checkpoint: `aefebe13` on `main`, one commit ahead of
   `origin/main` before this documentation update. `bin/pgy.exe` remains
@@ -67,8 +134,6 @@ owner, and the named executable gate.
 - No pressure probe, full CI, full bootstrap, current-source gen2==gen3, or
   Coq/Rocq suite ran. Memory remains final-integration-only: attention at
   2.4 GiB and hard stop at 3 GiB.
-
-## Historical checkpoint archive — inactive evidence
 
 ### Previous multi-backedge loop snapshot
 
