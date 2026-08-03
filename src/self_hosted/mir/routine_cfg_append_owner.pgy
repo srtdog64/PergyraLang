@@ -183,6 +183,8 @@ func SelfMirAppendCfg(
             use_starts, use_counts, uses,
             expr0_graphs, expr1_graphs, match_facts, destructure_facts,
             abi_type_names, runtime_call_abi
+        ), SelfMirInstructionLocalRefRowsAppendRows(
+            target.local_refs, source.local_refs
         )
     );
 }

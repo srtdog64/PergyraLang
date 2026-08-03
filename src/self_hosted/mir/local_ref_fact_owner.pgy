@@ -1,0 +1,170 @@
+// Stable lexical LocalRef facts carried beside MIR instructions.
+
+import "../semantic/ast_expression_graph_fact_owner.pgy";
+import "expression_graph_fact_owner.pgy";
+import "local_ref_identity_owner.pgy";
+
+struct SelfMirInstructionLocalRefRows {
+    primary_refs: Array<String>;
+    expr0_starts: Array<Int>;
+    expr0_counts: Array<Int>;
+    expr0_nodes: Array<Int>;
+    expr0_refs: Array<String>;
+}
+
+func SelfMirInstructionLocalRefRowsEmpty(
+) -> SelfMirInstructionLocalRefRows {
+    let strings: Array<String> = [];
+    let ints: Array<Int> = [];
+    return SelfMirInstructionLocalRefRows(strings, ints, ints, ints, strings);
+}
+
+func SelfMirInstructionLocalRefRowsAppendInstruction(
+    rows: SelfMirInstructionLocalRefRows
+) -> SelfMirInstructionLocalRefRows {
+    let primary: Array<String> = rows.primary_refs;
+    let starts: Array<Int> = rows.expr0_starts;
+    let counts: Array<Int> = rows.expr0_counts;
+    ArrayPush(primary, "");
+    ArrayPush(starts, ArrayLength(rows.expr0_nodes));
+    ArrayPush(counts, 0);
+    return SelfMirInstructionLocalRefRows(
+        primary, starts, counts, rows.expr0_nodes, rows.expr0_refs
+    );
+}
+
+func SelfMirInstructionLocalRefRowsAttachPrimary(
+    rows: SelfMirInstructionLocalRefRows,
+    local_ref: String
+) -> SelfMirInstructionLocalRefRows {
+    let index: Int = ArrayLength(rows.primary_refs) - 1;
+    if index < 0 || local_ref == "" || rows.primary_refs[index] != "" {
+        return rows;
+    }
+    let primary: Array<String> = rows.primary_refs;
+    ArraySet(primary, index, local_ref);
+    return SelfMirInstructionLocalRefRows(
+        primary, rows.expr0_starts, rows.expr0_counts,
+        rows.expr0_nodes, rows.expr0_refs
+    );
+}
+
+func SelfMirInstructionLocalRefRowsAttachExpr0(
+    rows: SelfMirInstructionLocalRefRows,
+    view: SemanticExpressionGraphView,
+    local_names: Array<String>,
+    local_versions: Array<Int>,
+    local_refs: Array<String>
+) -> SelfMirInstructionLocalRefRows {
+    let instruction: Int = ArrayLength(rows.primary_refs) - 1;
+    if instruction < 0 || !view.ok ||
+        ArrayLength(local_names) != ArrayLength(local_versions) ||
+        ArrayLength(local_names) != ArrayLength(local_refs) ||
+        rows.expr0_counts[instruction] != 0 {
+        return rows;
+    }
+    let start_opt: Option<Int> = SemanticExpressionGraphSubtreeStart(
+        view.graph, view.root_id
+    );
+    if !IsSome(start_opt) { return rows; }
+    let start: Int = UnwrapOption(start_opt);
+    let nodes: Array<Int> = rows.expr0_nodes;
+    let refs: Array<String> = rows.expr0_refs;
+    let node: Int = start;
+    while node <= view.root_id {
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            view.graph, node
+        );
+        let text: Option<String> = SemanticExpressionGraphNodeText(
+            view.graph, node
+        );
+        if IsSome(kind) && IsSome(text) &&
+            UnwrapOption(kind) == AstExpressionNodeLeaf() {
+            let local: Int = ArrayLength(local_names) - 1;
+            while local >= 0 {
+                if local_names[local] == UnwrapOption(text) {
+                    if local_versions[local] == 0 && local_refs[local] != "" {
+                        ArrayPush(nodes, node - start);
+                        ArrayPush(refs, local_refs[local]);
+                    }
+                    break;
+                }
+                local = local - 1;
+            }
+        }
+        node = node + 1;
+    }
+    let counts: Array<Int> = rows.expr0_counts;
+    ArraySet(counts, instruction, ArrayLength(nodes) - rows.expr0_starts[instruction]);
+    return SelfMirInstructionLocalRefRows(
+        rows.primary_refs, rows.expr0_starts, counts, nodes, refs
+    );
+}
+
+func SelfMirInstructionLocalRefRowsAppendRows(
+    target: SelfMirInstructionLocalRefRows,
+    source: SelfMirInstructionLocalRefRows
+) -> SelfMirInstructionLocalRefRows {
+    let primary: Array<String> = target.primary_refs;
+    let starts: Array<Int> = target.expr0_starts;
+    let counts: Array<Int> = target.expr0_counts;
+    let nodes: Array<Int> = target.expr0_nodes;
+    let refs: Array<String> = target.expr0_refs;
+    let row: Int = 0;
+    while row < ArrayLength(source.primary_refs) {
+        ArrayPush(primary, source.primary_refs[row]);
+        ArrayPush(starts, ArrayLength(nodes));
+        ArrayPush(counts, source.expr0_counts[row]);
+        let use: Int = 0;
+        while use < source.expr0_counts[row] {
+            let source_use: Int = source.expr0_starts[row] + use;
+            ArrayPush(nodes, source.expr0_nodes[source_use]);
+            ArrayPush(refs, source.expr0_refs[source_use]);
+            use = use + 1;
+        }
+        row = row + 1;
+    }
+    return SelfMirInstructionLocalRefRows(primary, starts, counts, nodes, refs);
+}
+
+func SelfMirInstructionLocalRefRowsReady(
+    rows: SelfMirInstructionLocalRefRows,
+    graphs: SelfMirExpressionGraphRows,
+    instruction_count: Int
+) -> Bool {
+    if instruction_count != ArrayLength(rows.primary_refs) ||
+        instruction_count != ArrayLength(rows.expr0_starts) ||
+        instruction_count != ArrayLength(rows.expr0_counts) ||
+        ArrayLength(rows.expr0_nodes) != ArrayLength(rows.expr0_refs) {
+        return false;
+    }
+    let cursor: Int = 0;
+    let row: Int = 0;
+    while row < instruction_count {
+        if rows.expr0_starts[row] != cursor || rows.expr0_counts[row] < 0 {
+            return false;
+        }
+        let use: Int = 0;
+        while use < rows.expr0_counts[row] {
+            let index: Int = cursor + use;
+            if rows.expr0_nodes[index] < 0 ||
+                rows.expr0_nodes[index] >= graphs.node_counts[row] ||
+                !SelfMirLocalRefValid(rows.expr0_refs[index]) {
+                return false;
+            }
+            use = use + 1;
+        }
+        cursor = cursor + rows.expr0_counts[row];
+        row = row + 1;
+    }
+    if cursor != ArrayLength(rows.expr0_nodes) { return false; }
+    let primary: Int = 0;
+    while primary < instruction_count {
+        if rows.primary_refs[primary] != "" &&
+            !SelfMirLocalRefValid(rows.primary_refs[primary]) {
+            return false;
+        }
+        primary = primary + 1;
+    }
+    return true;
+}

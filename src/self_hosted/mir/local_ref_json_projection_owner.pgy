@@ -1,0 +1,90 @@
+// Conditional LocalRef wire projection for routines with ambiguous spelling.
+
+import "program_fact_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func SelfMirRoutineLocalRefWireRequired(
+    rows: SelfMirRoutineRows,
+    routine_index: Int
+) -> Bool {
+    let count: Int = rows.local_counts[routine_index];
+    let start: Int = rows.local_starts[routine_index];
+    let row: Int = 0;
+    while row < count {
+        let prior: Int = 0;
+        while prior < row {
+            if rows.local_names[start + prior] ==
+                rows.local_names[start + row] {
+                return true;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func SelfMirJsonExpr0LocalRefs(
+    rows: SelfMirInstructionLocalRefRows,
+    instruction_index: Int
+) -> String {
+    let items: Array<String> = [];
+    let use: Int = 0;
+    while use < rows.expr0_counts[instruction_index] {
+        let index: Int = rows.expr0_starts[instruction_index] + use;
+        ArrayPush(items, JsonEmitObject([
+            JsonEmitFieldNumber("node", ToString(rows.expr0_nodes[index])),
+            JsonEmitFieldString("ref", rows.expr0_refs[index])
+        ]));
+        use = use + 1;
+    }
+    return JsonEmitArray(items);
+}
+
+func SelfMirJsonAppendLocalRefFields(
+    rows: SelfMirInstructionLocalRefRows,
+    instruction_index: Int,
+    enabled: Bool,
+    inout fields: Array<String>
+) -> Void {
+    if !enabled { return; }
+    ArrayPush(fields, JsonEmitFieldRaw(
+        "local_ref", SelfMirJsonOptionalString(
+            SelfMirOptionalString(rows.primary_refs[instruction_index])
+        )
+    ));
+    ArrayPush(fields, JsonEmitFieldRaw(
+        "expr0_local_refs", SelfMirJsonExpr0LocalRefs(
+            rows, instruction_index
+        )
+    ));
+}
+
+func SelfMirJsonLocalRefsWriteFile(
+    rows: SelfMirInstructionLocalRefRows,
+    instruction_index: Int,
+    output: Int
+) -> Bool {
+    CompilerArtifactWrite(output, ",\"local_ref\":");
+    if rows.primary_refs[instruction_index] == "" {
+        CompilerArtifactWrite(output, "null");
+    } else if !JsonStringLiteralWriteFile(
+        output, rows.primary_refs[instruction_index]
+    ) { return false; }
+    CompilerArtifactWrite(output, ",\"expr0_local_refs\":[");
+    let use: Int = 0;
+    while use < rows.expr0_counts[instruction_index] {
+        if use > 0 { CompilerArtifactWrite(output, ","); }
+        let index: Int = rows.expr0_starts[instruction_index] + use;
+        CompilerArtifactWrite(output, "{\"node\":");
+        CompilerArtifactWrite(output, ToString(rows.expr0_nodes[index]));
+        CompilerArtifactWrite(output, ",\"ref\":");
+        if !JsonStringLiteralWriteFile(output, rows.expr0_refs[index]) {
+            return false;
+        }
+        CompilerArtifactWrite(output, "}");
+        use = use + 1;
+    }
+    CompilerArtifactWrite(output, "]");
+    return true;
+}

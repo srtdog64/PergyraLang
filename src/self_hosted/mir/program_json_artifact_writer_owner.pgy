@@ -11,7 +11,8 @@ import "routine_param_json_projection_owner.pgy";
 func SelfMirJsonBlockWriteFile(
     facts: SelfMirProgramFacts,
     block_index: Int,
-    output: Int
+    output: Int,
+    emit_local_refs: Bool
 ) -> Bool {
     let blocks: SelfMirBlockRows = facts.cfg.blocks;
     CompilerArtifactWrite(output, "{");
@@ -29,7 +30,7 @@ func SelfMirJsonBlockWriteFile(
         if !SelfMirJsonInstructionWriteFile(
             facts,
             blocks.instruction_starts[block_index] + instruction_i,
-            output
+            output, emit_local_refs
         ) { return false; }
         instruction_i = instruction_i + 1;
     }
@@ -56,6 +57,9 @@ func SelfMirJsonRoutineWriteFile(
     output: Int
 ) -> Bool {
     let rows: SelfMirRoutineRows = facts.routines;
+    let emit_local_refs: Bool = SelfMirRoutineLocalRefWireRequired(
+        rows, routine_index
+    );
     CompilerArtifactWrite(output, "{");
     CompilerArtifactWrite(output, JsonEmitFieldString("name", rows.names[routine_index]));
     CompilerArtifactWrite(output, ",");
@@ -219,7 +223,8 @@ func SelfMirJsonRoutineWriteFile(
     while block_i < rows.block_counts[routine_index] {
         if block_i > 0 { CompilerArtifactWrite(output, ","); }
         if !SelfMirJsonBlockWriteFile(
-            facts, rows.block_starts[routine_index] + block_i, output
+            facts, rows.block_starts[routine_index] + block_i, output,
+            emit_local_refs
         ) { return false; }
         block_i = block_i + 1;
     }

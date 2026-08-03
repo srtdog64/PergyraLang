@@ -18,6 +18,7 @@ import "runtime_call_abi_fact_owner.pgy";
 import "domain_topology_fact_owner.pgy";
 import "domain_runtime_assignment_fact_owner.pgy";
 import "instruction_abi_receipt_fact_owner.pgy";
+import "local_ref_fact_owner.pgy";
 
 struct SelfMirInstructionRows {
     ids: Array<Int>;
@@ -65,6 +66,7 @@ struct SelfMirBlockRows {
 struct SelfMirCfgRows {
     blocks: SelfMirBlockRows;
     instructions: SelfMirInstructionRows;
+    local_refs: SelfMirInstructionLocalRefRows;
 }
 
 struct SelfMirRoutineRows {
@@ -165,7 +167,8 @@ func SelfMirBlockRowsEmpty() -> SelfMirBlockRows {
 
 func SelfMirCfgRowsEmpty() -> SelfMirCfgRows {
     return SelfMirCfgRows(
-        SelfMirBlockRowsEmpty(), SelfMirInstructionRowsEmpty()
+        SelfMirBlockRowsEmpty(), SelfMirInstructionRowsEmpty(),
+        SelfMirInstructionLocalRefRowsEmpty()
     );
 }
 
@@ -254,7 +257,7 @@ func SelfMirCfgAddBlock(cfg: SelfMirCfgRows) -> SelfMirCfgRows {
             ids, reachable, instruction_starts, instruction_counts,
             has_true, succ_true, has_false, succ_false
         ),
-        cfg.instructions
+        cfg.instructions, cfg.local_refs
     );
 }
 
@@ -283,7 +286,7 @@ func SelfMirCfgSetSuccessors(
             blocks.instruction_counts, has_true, succ_true,
             has_false, succ_false
         ),
-        cfg.instructions
+        cfg.instructions, cfg.local_refs
     );
 }
 
@@ -399,7 +402,7 @@ func SelfMirCfgAddInstruction(
             use_starts, use_counts, uses,
             expr0_graphs, expr1_graphs, instructions.match_facts,
             instructions.destructure_facts, abi_type_names, runtime_call_abi
-        )
+        ), SelfMirInstructionLocalRefRowsAppendInstruction(cfg.local_refs)
     );
 }
 
@@ -493,7 +496,7 @@ func SelfMirCfgAttachLastExpr0Graph(
             instructions.expr1_graphs, instructions.match_facts,
             instructions.destructure_facts, instructions.abi_type_names,
             instructions.runtime_call_abi
-        )
+        ), cfg.local_refs
     );
 }
 
@@ -528,7 +531,7 @@ func SelfMirCfgAttachLastExpr1Graph(
             instructions.expr0_graphs, graphs, instructions.match_facts,
             instructions.destructure_facts, instructions.abi_type_names,
             instructions.runtime_call_abi
-        )
+        ), cfg.local_refs
     );
 }
 
@@ -568,7 +571,7 @@ func SelfMirCfgAttachLastMatchCase(
             instructions.expr1_graphs, match_facts,
             instructions.destructure_facts, instructions.abi_type_names,
             instructions.runtime_call_abi
-        )
+        ), cfg.local_refs
     );
 }
 

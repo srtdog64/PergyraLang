@@ -69,7 +69,7 @@ func SelfMirCanonicalInstructionIds(
                 instructions.expr1_graphs, instructions.match_facts,
                 instructions.destructure_facts, instructions.abi_type_names,
                 instructions.runtime_call_abi
-            )
+            ), facts.cfg.local_refs
         ), facts.instruction_abi_receipts, facts.expression_graph
     );
 }

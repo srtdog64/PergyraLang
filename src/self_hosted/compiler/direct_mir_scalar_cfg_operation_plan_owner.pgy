@@ -4,17 +4,6 @@ import "direct_mir_scalar_cfg_expression_owner.pgy";
 import "../mir_lower/latest_local_value_fact_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 
-func DirectMirScalarCfgLocalRow(
-    names: Array<String>, wanted: String
-) -> Int {
-    let row: Int = 0;
-    while row < ArrayLength(names) {
-        if names[row] == wanted { return row; }
-        row = row + 1;
-    }
-    return -1;
-}
-
 func DirectMirScalarCfgValueUseDominates(
     ref index: MirRoutineFactIndex,
     value_names: Array<String>,

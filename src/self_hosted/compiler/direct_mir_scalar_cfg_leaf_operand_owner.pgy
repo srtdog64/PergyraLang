@@ -1,0 +1,31 @@
+// One expression leaf resolved to its admitted ValueId or range LocalRef.
+
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+
+struct DirectMirScalarCfgLeafOperand {
+    let valid: Bool;
+    let value_row: Int;
+    let local_row: Int;
+    let use_count: Int;
+}
+
+func DirectMirScalarCfgLeafOperandFromOwners(
+    ref use_facts: MirRoutineInstructionUseFacts,
+    global_row: Int,
+    use_row: Int,
+    node_text: String,
+    value_names: Array<String>,
+    range_local_name: String,
+    range_local_row: Int
+) -> DirectMirScalarCfgLeafOperand {
+    let value_row: Int = DirectMirScalarCfgUseValueRow(
+        use_facts, global_row, use_row, node_text, value_names
+    );
+    if value_row >= 0 {
+        return DirectMirScalarCfgLeafOperand(true, value_row, -1, 1);
+    }
+    if range_local_row >= 0 && node_text == range_local_name {
+        return DirectMirScalarCfgLeafOperand(true, -1, range_local_row, 0);
+    }
+    return DirectMirScalarCfgLeafOperand(false, -1, -1, 0);
+}

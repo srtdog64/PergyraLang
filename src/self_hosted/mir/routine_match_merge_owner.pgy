@@ -1,6 +1,7 @@
 // N-way scalar match SSA merge owner.
 
 import "routine_build_owner.pgy";
+import "routine_local_ref_attachment_owner.pgy";
 
 func SelfMirMatchArmVersionsAppend(
     rows: Array<Int>, versions: Array<Int>, entry_count: Int
@@ -146,6 +147,7 @@ func SelfMirMergeMatchArms(
                 ),
                 "phi", "", "", "", "", incoming
             );
+            build = SelfMirRoutineAttachLastPrimaryLocalRef(build, local_i);
         }
         local_i = local_i + 1;
     }

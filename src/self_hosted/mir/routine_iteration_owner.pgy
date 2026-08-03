@@ -2,6 +2,7 @@
 
 import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
+import "routine_local_ref_attachment_owner.pgy";
 import "routine_expression_use_owner.pgy";
 import "expression_fact_owner.pgy";
 
@@ -125,7 +126,8 @@ func SelfMirPrepareIterationCollection(
     build: SelfMirRoutineBuild,
     fact: SelfMirIterationLoweringFact,
     source_graph: SemanticExpressionGraphView,
-    declaration: SelfHostMachineLayerDeclaration
+    declaration: SelfHostMachineLayerDeclaration,
+    local_ref: String
 ) -> SelfMirRoutineBuild {
     if !fact.collection_hoisted { return build; }
     if !source_graph.ok {
@@ -137,12 +139,23 @@ func SelfMirPrepareIterationCollection(
         build, source_graph
     );
     build = SelfMirRoutineAddLocal(
-        build, fact.synthetic_name, fact.iterable_type_name, 1
+        build, fact.synthetic_name, fact.iterable_type_name, 1, local_ref
     );
     build = SelfMirRoutineAddInstruction(
         build, "def", "ssa-def", SelfMirSsaName(fact.synthetic_name, 1),
         fact.synthetic_name, "", fact.source_expression,
         fact.iterable_type_name, "AST_LET_DECL", uses
+    );
+    let synthetic_local: Option<Int> = SelfMirRoutineLocalIndex(
+        build, fact.synthetic_name
+    );
+    if !IsSome(synthetic_local) {
+        return SelfMirRoutineBuildError(
+            build, "MIR foreach synthetic LocalRef disappeared"
+        );
+    }
+    build = SelfMirRoutineAttachLastPrimaryLocalRef(
+        build, UnwrapOption(synthetic_local)
     );
     return SelfMirRoutineAttachLastExpressionGraph(
         build, source_graph, declaration

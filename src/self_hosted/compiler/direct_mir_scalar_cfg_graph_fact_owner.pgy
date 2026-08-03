@@ -15,6 +15,9 @@ struct DirectMirScalarCfgGraphPlan {
     let target_schema: String;
     let target_fingerprint: Int;
     let local_names: Array<String>;
+    let local_ref_kinds: Array<Int>;
+    let local_ref_value_ids: Array<String>;
+    let local_ref_syntax_ids: Array<Int>;
     let value_names: Array<String>;
     let value_local_rows: Array<Int>;
     let value_definition_blocks: Array<Int>;

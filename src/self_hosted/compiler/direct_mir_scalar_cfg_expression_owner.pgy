@@ -1,6 +1,7 @@
 // Typed expression-graph projection for the general scalar CFG plan.
 
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_scalar_cfg_leaf_operand_owner.pgy";
 
 struct DirectMirScalarCfgExpressionFact {
     let valid: Bool;
@@ -46,28 +47,17 @@ func DirectMirScalarCfgValueExpressionFact(
         );
     }
     if count == 1 && sequence.arena.topology.node_kinds[0] ==
-            AstExpressionNodeLeaf() &&
-        (MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) == 1 ||
-         (range_local_row >= 0 &&
-          sequence.arena.node_texts[0] == range_local_name &&
-          MirRoutineInstructionUseCountAtGlobal(
-              use_facts, global_row
-          ) == 0)) {
-        if range_local_row >= 0 &&
-            sequence.arena.node_texts[0] == range_local_name {
-            return DirectMirScalarCfgExpressionFact(
-                true, DirectMirScalarCfgOpCopyInt(), -1, -1,
-                range_local_row, -1, "", ""
+            AstExpressionNodeLeaf() {
+        let operand: DirectMirScalarCfgLeafOperand =
+            DirectMirScalarCfgLeafOperandFromOwners(
+                use_facts, global_row, 0, sequence.arena.node_texts[0],
+                value_names, range_local_name, range_local_row
             );
-        }
-        let value_row: Int = DirectMirScalarCfgUseValueRow(
-            use_facts, global_row, 0, sequence.arena.node_texts[0],
-            value_names
-        );
-        if value_row >= 0 {
+        if operand.valid && operand.use_count ==
+                MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) {
             return DirectMirScalarCfgExpressionFact(
-                true, DirectMirScalarCfgOpCopyInt(), value_row, -1,
-                -1, -1, "", ""
+                true, DirectMirScalarCfgOpCopyInt(), operand.value_row, -1,
+                operand.local_row, -1, "", ""
             );
         }
     }
@@ -85,16 +75,15 @@ func DirectMirScalarCfgValueExpressionFact(
     let right_literal: String = "";
     let expected_uses: Int = 0;
     if sequence.arena.topology.node_kinds[0] == AstExpressionNodeLeaf() {
-        if range_local_row >= 0 &&
-            sequence.arena.node_texts[0] == range_local_name {
-            left_local = range_local_row;
-        } else {
-            left_value = DirectMirScalarCfgUseValueRow(
+        let operand: DirectMirScalarCfgLeafOperand =
+            DirectMirScalarCfgLeafOperandFromOwners(
                 use_facts, global_row, expected_uses,
-                sequence.arena.node_texts[0], value_names
+                sequence.arena.node_texts[0], value_names,
+                range_local_name, range_local_row
             );
-            expected_uses = expected_uses + 1;
-        }
+        if !operand.valid { return DirectMirScalarCfgExpressionFactEmpty(); }
+        left_value = operand.value_row; left_local = operand.local_row;
+        expected_uses = expected_uses + operand.use_count;
     } else if sequence.arena.topology.node_kinds[0] ==
             AstExpressionNodeIntegerLiteral() &&
         DirectMirScalarCfgCanonicalInt(sequence.arena.node_texts[0]) {
@@ -103,16 +92,15 @@ func DirectMirScalarCfgValueExpressionFact(
         return DirectMirScalarCfgExpressionFactEmpty();
     }
     if sequence.arena.topology.node_kinds[1] == AstExpressionNodeLeaf() {
-        if range_local_row >= 0 &&
-            sequence.arena.node_texts[1] == range_local_name {
-            right_local = range_local_row;
-        } else {
-            right_value = DirectMirScalarCfgUseValueRow(
+        let operand: DirectMirScalarCfgLeafOperand =
+            DirectMirScalarCfgLeafOperandFromOwners(
                 use_facts, global_row, expected_uses,
-                sequence.arena.node_texts[1], value_names
+                sequence.arena.node_texts[1], value_names,
+                range_local_name, range_local_row
             );
-            expected_uses = expected_uses + 1;
-        }
+        if !operand.valid { return DirectMirScalarCfgExpressionFactEmpty(); }
+        right_value = operand.value_row; right_local = operand.local_row;
+        expected_uses = expected_uses + operand.use_count;
     } else if sequence.arena.topology.node_kinds[1] ==
             AstExpressionNodeIntegerLiteral() &&
         DirectMirScalarCfgCanonicalInt(sequence.arena.node_texts[1]) {
@@ -185,19 +173,21 @@ func DirectMirScalarCfgConditionExpressionFact(
     while node < 2 {
         if sequence.arena.topology.node_kinds[node] ==
                 AstExpressionNodeLeaf() {
-            if range_local_row >= 0 &&
-                sequence.arena.node_texts[node] == range_local_name {
-                if node == 0 { left_local = range_local_row; }
-                else { right_local = range_local_row; }
-            } else {
-                let value_row: Int = DirectMirScalarCfgUseValueRow(
+            let operand: DirectMirScalarCfgLeafOperand =
+                DirectMirScalarCfgLeafOperandFromOwners(
                     use_facts, global_row, expected_uses,
-                    sequence.arena.node_texts[node], value_names
+                    sequence.arena.node_texts[node], value_names,
+                    range_local_name, range_local_row
                 );
-                if node == 0 { left_value = value_row; }
-                else { right_value = value_row; }
-                expected_uses = expected_uses + 1;
+            if !operand.valid {
+                return DirectMirScalarCfgExpressionFactEmpty();
             }
+            if node == 0 {
+                left_value = operand.value_row; left_local = operand.local_row;
+            } else {
+                right_value = operand.value_row; right_local = operand.local_row;
+            }
+            expected_uses = expected_uses + operand.use_count;
         } else if sequence.arena.topology.node_kinds[node] ==
                 AstExpressionNodeIntegerLiteral() &&
             DirectMirScalarCfgCanonicalInt(sequence.arena.node_texts[node]) {
@@ -273,27 +263,17 @@ func DirectMirScalarCfgLogExpressionFact(
         return DirectMirScalarCfgExpressionFactEmpty();
     }
     let node_text: String = sequence.arena.node_texts[value_node];
-    if range_local_row >= 0 && node_text == range_local_name {
-        if MirRoutineInstructionUseCountAtGlobal(
-            use_facts, global_row
-        ) != 0 {
-            return DirectMirScalarCfgExpressionFactEmpty();
-        }
-        return DirectMirScalarCfgExpressionFact(
-            true, DirectMirScalarCfgOpLogInt(), -1, -1,
-            range_local_row, -1, "", ""
+    let operand: DirectMirScalarCfgLeafOperand =
+        DirectMirScalarCfgLeafOperandFromOwners(
+            use_facts, global_row, 0, node_text, value_names,
+            range_local_name, range_local_row
         );
-    }
-    if MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) != 1 {
+    if !operand.valid || operand.use_count !=
+            MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) {
         return DirectMirScalarCfgExpressionFactEmpty();
     }
-    let value_row: Int = DirectMirScalarCfgUseValueRow(
-        use_facts, global_row, 0,
-        node_text, value_names
-    );
-    if value_row < 0 { return DirectMirScalarCfgExpressionFactEmpty(); }
     return DirectMirScalarCfgExpressionFact(
-        true, DirectMirScalarCfgOpLogInt(), value_row, -1,
-        -1, -1, "", ""
+        true, DirectMirScalarCfgOpLogInt(), operand.value_row, -1,
+        operand.local_row, -1, "", ""
     );
 }

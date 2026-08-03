@@ -45,7 +45,8 @@ func SelfMirRoutineFromInput(
             );
         }
         build = SelfMirRoutineAddLocal(
-            build, UnwrapOption(param_name), UnwrapOption(param_type), 0
+            build, UnwrapOption(param_name), UnwrapOption(param_type), 0,
+            SelfMirLocalRef("parameter", function_node_id, p)
         );
         p = p + 1;
     }

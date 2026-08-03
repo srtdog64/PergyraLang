@@ -2,6 +2,7 @@
 
 import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
+import "routine_local_ref_attachment_owner.pgy";
 import "routine_expression_use_owner.pgy";
 
 func SelfMirLowerLetFromArtifact(
@@ -70,7 +71,11 @@ func SelfMirLowerLetFromArtifact(
         build, initializer_graph
     );
     build = SelfMirRoutineDeclareLocal(
-        build, local_name, local_type, UnwrapOption(binding_ordinal)
+        build, local_name, local_type, UnwrapOption(binding_ordinal),
+        SelfMirLocalRef(
+            "declaration", node_id,
+            input.analysis.local_bindings.binding_indices[local_row]
+        )
     );
     let added_local: Option<Int> = SelfMirRoutineLocalIndex(build, local_name);
     if !IsSome(added_local) {
@@ -85,6 +90,9 @@ func SelfMirLowerLetFromArtifact(
         build, "def", "ssa-def", SelfMirSsaName(local_name, local_version),
         local_name, nominal_type, expression, local_type,
         "AST_LET_DECL", initializer_uses
+    );
+    build = SelfMirRoutineAttachLastPrimaryLocalRef(
+        build, UnwrapOption(added_local)
     );
     build = SelfMirRoutineAttachLastAbiTypeName(build, local_type);
     return SelfMirRoutineAttachLastExpressionGraph(

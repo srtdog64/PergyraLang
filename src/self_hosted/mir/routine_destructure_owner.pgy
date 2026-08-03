@@ -66,7 +66,10 @@ func SelfMirLowerDestructureFromArtifact(
             );
         }
         let binding: String = input.analysis.local_bindings.names[local_row];
-        build = SelfMirRoutineAddLocal(build, binding, element_type, 0);
+        build = SelfMirRoutineAddLocal(
+            build, binding, element_type, 0,
+            SelfMirLocalRef("destructure", node_id, i)
+        );
         if !build.ok { return build; }
         ArrayPush(bindings, binding);
         i = i + 1;

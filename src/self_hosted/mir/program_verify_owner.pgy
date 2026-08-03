@@ -13,7 +13,6 @@ func SelfMirParallelCount(count: Int, rows: Array<Int>) -> Bool {
 func SelfMirParallelStringCount(count: Int, rows: Array<String>) -> Bool {
     return ArrayLength(rows) == count;
 }
-
 func SelfMirInstructionUsesLocalVersion(
     rows: SelfMirInstructionRows,
     instruction_index: Int,
@@ -33,7 +32,6 @@ func SelfMirInstructionUsesLocalVersion(
     }
     return false;
 }
-
 func SelfMirAssignmentTargetGraphBaseText(
     ref graph: SemanticExpressionGraphFacts,
     root: Int
@@ -67,7 +65,6 @@ func SelfMirAssignmentTargetGraphBaseText(
     }
     return None;
 }
-
 func SelfMirAssignmentTargetGraphValidationError(
     rows: SelfMirInstructionRows,
     ref graph: SemanticExpressionGraphFacts,
@@ -150,7 +147,6 @@ func SelfMirAssignmentTargetGraphValidationError(
     }
     return "";
 }
-
 func SelfMirAssignmentTargetGraphReady(
     rows: SelfMirInstructionRows,
     ref graph: SemanticExpressionGraphFacts,
@@ -566,6 +562,10 @@ func SelfMirProgramFactsValidationError(facts: SelfMirProgramFacts) -> String {
                 facts.cfg.instructions, facts.expression_graph)
         );
     }
+    if !SelfMirInstructionLocalRefRowsReady(
+        facts.cfg.local_refs, facts.cfg.instructions.expr0_graphs,
+        ArrayLength(facts.cfg.instructions.ids)
+    ) { return "MIR instruction LocalRef rows are invalid"; }
     if !SelfMirInstructionAbiReceiptRowsReady(facts.instruction_abi_receipts, facts.cfg.instructions.abi_type_names, facts.declarations) { return "MIR instruction ABI receipt rows are invalid"; }
     if !SelfMirBlockRowsReady(
         facts.cfg.blocks, ArrayLength(facts.cfg.instructions.ids)

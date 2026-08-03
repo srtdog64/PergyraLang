@@ -1,0 +1,199 @@
+// Explicit LocalRef wire facts required when source-local spellings collide.
+
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir/local_ref_identity_owner.pgy";
+
+struct DirectMirScalarCfgWireLocalRefs {
+    let valid: Bool;
+    let required: Bool;
+    let primary_refs: Array<String>;
+    let expr0_starts: Array<Int>;
+    let expr0_counts: Array<Int>;
+    let expr0_nodes: Array<Int>;
+    let expr0_refs: Array<String>;
+}
+
+func DirectMirScalarCfgWireLocalRefsEmpty(
+) -> DirectMirScalarCfgWireLocalRefs {
+    let strings: Array<String> = [];
+    let ints: Array<Int> = [];
+    return DirectMirScalarCfgWireLocalRefs(
+        false, false, strings, ints, ints, ints, strings
+    );
+}
+
+func DirectMirScalarCfgWireLocalRefsRequired(
+    ref index: MirRoutineFactIndex
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(index.source_local_names) {
+        let prior: Int = 0;
+        while prior < row {
+            if index.source_local_names[prior] ==
+                index.source_local_names[row] { return true; }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarCfgWireLocalRefsFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex
+) -> DirectMirScalarCfgWireLocalRefs {
+    let empty: DirectMirScalarCfgWireLocalRefs =
+        DirectMirScalarCfgWireLocalRefsEmpty();
+    let required: Bool = DirectMirScalarCfgWireLocalRefsRequired(index);
+    let primary: Array<String> = [];
+    let starts: Array<Int> = [];
+    let counts: Array<Int> = [];
+    let nodes: Array<Int> = [];
+    let refs: Array<String> = [];
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            admitted.routines.source_json,
+            admitted.routines.instruction_starts[global],
+            admitted.routines.instruction_ends[global]
+        );
+        let local_occurrences: Int = MirObjectFieldOccurrenceCountAtBounds(
+            object.json, object.start, object.end, "local_ref"
+        );
+        let expr_occurrences: Int = MirObjectFieldOccurrenceCountAtBounds(
+            object.json, object.start, object.end, "expr0_local_refs"
+        );
+        if (!required && (local_occurrences != 0 || expr_occurrences != 0)) ||
+            (required && (local_occurrences != 1 || expr_occurrences != 1)) {
+            return empty;
+        }
+        let primary_ref: String = "";
+        let rows: JsonArrayObjectFactTable = EmptyJsonArrayObjectFactTable();
+        if required {
+            let primary_opt: Option<String> = JsonObjectFactStringFieldOpt(
+                object, "local_ref"
+            );
+            if IsSome(primary_opt) {
+                primary_ref = UnwrapOption(primary_opt);
+                if !SelfMirLocalRefValid(primary_ref) {
+                    return empty;
+                }
+            }
+            rows = JsonObjectFactArrayObjectTable(
+                object, "expr0_local_refs"
+            );
+            if !JsonArrayObjectFactTableReady(rows) { return empty; }
+        }
+        ArrayPush(primary, primary_ref);
+        ArrayPush(starts, ArrayLength(nodes));
+        let row: Int = 0;
+        while required && row < JsonArrayObjectFactCount(rows) {
+            let item: JsonObjectFactTable = JsonArrayObjectFactAt(rows, row);
+            let node_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+                item, "node"
+            );
+            let ref_opt: Option<String> = JsonObjectFactStringFieldOpt(
+                item, "ref"
+            );
+            if JsonObjectFactCount(item) != 2 || !IsSome(node_opt) ||
+                !IsSome(ref_opt) ||
+                ToString(ToInt(UnwrapOption(node_opt))) !=
+                    UnwrapOption(node_opt) || ToInt(UnwrapOption(node_opt)) < 0 ||
+                !SelfMirLocalRefValid(UnwrapOption(ref_opt)) {
+                return empty;
+            }
+            ArrayPush(nodes, ToInt(UnwrapOption(node_opt)));
+            ArrayPush(refs, UnwrapOption(ref_opt));
+            row = row + 1;
+        }
+        ArrayPush(counts, ArrayLength(nodes) - starts[instruction]);
+        instruction = instruction + 1;
+    }
+    return DirectMirScalarCfgWireLocalRefs(
+        true, required, primary, starts, counts, nodes, refs
+    );
+}
+
+func DirectMirScalarCfgWireExprRefAt(
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    instruction: Int,
+    node: Int
+) -> String {
+    let found: String = "";
+    let row: Int = 0;
+    while row < wire.expr0_counts[instruction] {
+        let index: Int = wire.expr0_starts[instruction] + row;
+        if wire.expr0_nodes[index] == node {
+            if found != "" { return ""; }
+            found = wire.expr0_refs[index];
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarCfgWireRangeUsesReady(
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref range: DirectMirScalarCfgRangeIterationFact
+) -> Bool {
+    if !wire.required { return true; }
+    let expected_ref: String = Concat(
+        "iteration:", Concat(ToString(range.loop_syntax_id), ":0")
+    );
+    let use_facts: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, 0);
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            admitted.routines.source_json,
+            admitted.routines.instruction_starts[global],
+            admitted.routines.instruction_ends[global]
+        );
+        let sequence: MirExpressionGraphSequence =
+            DirectMirScalarCfgExpressionSequence(object);
+        let matching_nodes: Int = 0;
+        let direct_nodes: Int = 0;
+        if sequence.ok {
+            let node: Int = 0;
+            while node < ArrayLength(sequence.arena.topology.node_kinds) {
+                let direct_ref: String = DirectMirScalarCfgWireExprRefAt(
+                    wire, instruction, node
+                );
+                let matches: Bool =
+                    sequence.arena.topology.node_kinds[node] ==
+                        AstExpressionNodeLeaf() &&
+                    sequence.arena.node_texts[node] == range.binding_name;
+                if direct_ref != "" {
+                    if !matches || direct_ref != expected_ref {
+                        return false;
+                    }
+                    direct_nodes = direct_nodes + 1;
+                }
+                if matches { matching_nodes = matching_nodes + 1; }
+                node = node + 1;
+            }
+            if direct_nodes != wire.expr0_counts[instruction] {
+                return false;
+            }
+        } else if wire.expr0_counts[instruction] != 0 { return false; }
+        let matching_uses: Int = 0;
+        let use: Int = 0;
+        while use < MirRoutineInstructionUseCountAtGlobal(use_facts, global) {
+            let use_opt: Option<String> = MirRoutineInstructionUseAtGlobal(
+                use_facts, global, use
+            );
+            if IsSome(use_opt) && MirSsaNameMatches(
+                UnwrapOption(use_opt), range.binding_name, true
+            ) { matching_uses = matching_uses + 1; }
+            use = use + 1;
+        }
+        if matching_nodes != direct_nodes + matching_uses { return false; }
+        instruction = instruction + 1;
+    }
+    return true;
+}

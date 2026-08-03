@@ -1,6 +1,7 @@
 // Producer-owned loop exit merge over completion and break predecessors.
 
 import "routine_local_predecessor_snapshot_owner.pgy";
+import "routine_local_ref_attachment_owner.pgy";
 
 func SelfMirLoopExitMergeLocalVersions(
     build: SelfMirRoutineBuild,
@@ -72,6 +73,7 @@ func SelfMirLoopExitMergeLocalVersions(
                 ),
                 "phi", "", "", "", "", phi_uses
             );
+            build = SelfMirRoutineAttachLastPrimaryLocalRef(build, local_row);
         } else {
             build = SelfMirRoutineSetLocalVersion(
                 build, local_row, incoming_versions[0]

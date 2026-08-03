@@ -1,6 +1,7 @@
 // Readiness and mutation ratchet for a sealed scalar CFG plan.
 
 import "direct_mir_scalar_cfg_graph_identity_owner.pgy";
+import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 
 func DirectMirScalarCfgOperandCount(
     value: Int, local: Int, literal: String
@@ -23,6 +24,11 @@ func DirectMirScalarCfgGraphPlanReady(
         plan.revision != CompilerArtifactPlanRevision() || plan.digest == 0 ||
         plan.digest != DirectMirScalarCfgGraphPlanDigest(plan) ||
         plan.mir_digest == 0 || plan.cfg_digest == 0 || local_count < 1 ||
+        !DirectMirScalarCfgLocalRefsReady(
+            plan.local_names, plan.local_ref_kinds,
+            plan.local_ref_value_ids, plan.local_ref_syntax_ids,
+            plan.value_local_rows, plan.range_iteration
+        ) ||
         block_count < 2 || operation_count < 1 ||
         value_count != ArrayLength(plan.value_local_rows) ||
         value_count != ArrayLength(plan.value_definition_blocks) ||

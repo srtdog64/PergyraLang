@@ -2,6 +2,7 @@
 
 import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
+import "routine_local_ref_attachment_owner.pgy";
 import "routine_iteration_owner.pgy";
 import "routine_local_predecessor_snapshot_owner.pgy";
 import "loop_reachability_fact_owner.pgy";
@@ -65,16 +66,20 @@ func SelfMirLowerForFromArtifact(
     }
     let iteration_scope_local_count: Int = ArrayLength(build.local_names);
     build = SelfMirPrepareIterationCollection(
-        build, iteration, source_graph, input.machine_declaration
+        build, iteration, source_graph, input.machine_declaration,
+        SelfMirLocalRef("iteration-synthetic", node_id, 0)
     );
+    let iteration_ref: String = SelfMirLocalRef("iteration", node_id, 0);
     build = SelfMirRoutinePushLocal(
-        build, binding, iteration.binding_type_name, 0
+        build, binding, iteration.binding_type_name, 0, iteration_ref
     );
+    let iteration_local: Int = ArrayLength(build.local_names) - 1;
     let preheader: Int = build.current_block;
     build = SelfMirRoutineAddInstruction(
         build, "loop-init", "loop-init", "", binding, "",
         start, stop, "AST_FOR_LOOP", SelfMirNoUses()
     );
+    build = SelfMirRoutineAttachLastPrimaryLocalRef(build, iteration_local);
     if iteration.collection_hoisted {
         build = SelfMirRoutineAttachLastExpressionGraph(
             build, iteration_graph,
@@ -108,6 +113,7 @@ func SelfMirLowerForFromArtifact(
         build, "branch", "branch", "", binding, "", start,
         stop, "AST_FOR_LOOP", branch_uses
     );
+    build = SelfMirRoutineAttachLastPrimaryLocalRef(build, iteration_local);
     if iteration.collection_hoisted {
         build = SelfMirRoutineAttachLastExpressionGraph(
             build, branch_graph,

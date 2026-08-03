@@ -139,15 +139,19 @@ if ! "${compile_command[@]}" >"$BUILD_DIR/driver.compile.log" 2>&1; then
     tail -n 40 "$BUILD_DIR/driver.compile.log" >&2 || true
     fail "emitted DRV-2 C failed to compile"
 fi
-mv -f "$tmp_output" "$OUTPUT"
 
 smoke_rel="${SMOKE_OUT#"$ROOT_DIR"/}"
 rm -f "$SMOKE_OUT"
-if ! (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" "$OUTPUT" \
+if ! (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" "$tmp_output" \
     --emit-c-artifact-verified \
     src/self_hosted/semantic/fixture/valid_call_int.pgy "$smoke_rel"); then
+    rm -f "$tmp_output"
     fail "Pergyra-built DRV-2 failed its bounded source smoke"
 fi
-[[ -s "$SMOKE_OUT" ]] || fail "Pergyra-built DRV-2 emitted no smoke artifact"
+if [[ ! -s "$SMOKE_OUT" ]]; then
+    rm -f "$tmp_output"
+    fail "Pergyra-built DRV-2 emitted no smoke artifact"
+fi
+mv -f "$tmp_output" "$OUTPUT"
 printf '%s\n' "$build_key" >"$STAMP"
 echo "[self-host-compiler-build] Pergyra-built DRV-2 installed: $OUTPUT"

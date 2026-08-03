@@ -1,0 +1,29 @@
+// Canonical lexical binding identity grammar shared by producer and consumer.
+
+func SelfMirLocalRefRoleValid(role: String) -> Bool {
+    return role == "declaration" || role == "iteration" ||
+        role == "parameter" || role == "destructure" ||
+        role == "owner-field" || role == "iteration-synthetic";
+}
+
+func SelfMirLocalRefValid(value: String) -> Bool {
+    let parts: Array<String> = Split(value, ":");
+    return ArrayLength(parts) == 3 &&
+        SelfMirLocalRefRoleValid(parts[0]) &&
+        ToString(ToInt(parts[1])) == parts[1] && ToInt(parts[1]) >= 0 &&
+        ToString(ToInt(parts[2])) == parts[2] && ToInt(parts[2]) >= 0;
+}
+
+func SelfMirLocalRef(
+    role: String, owner_syntax_id: Int, binding_index: Int
+) -> String {
+    if !SelfMirLocalRefRoleValid(role) ||
+        owner_syntax_id < 0 || binding_index < 0 {
+        return "";
+    }
+    return Concat(
+        role, Concat(":", Concat(
+            ToString(owner_syntax_id), Concat(":", ToString(binding_index))
+        ))
+    );
+}

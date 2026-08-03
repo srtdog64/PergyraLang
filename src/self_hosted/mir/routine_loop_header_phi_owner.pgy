@@ -2,6 +2,7 @@
 
 import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
+import "routine_local_ref_attachment_owner.pgy";
 
 func SelfMirLoopPrepareHeaderLocalVersions(
     ref input: SelfMirRoutineInput,
@@ -44,6 +45,7 @@ func SelfMirLoopPrepareHeaderLocalVersions(
                 ),
                 "phi", "", "", "", "", phi_uses
             );
+            build = SelfMirRoutineAttachLastPrimaryLocalRef(build, local_row);
             build = SelfMirRoutineSetLocalVersion(
                 build, local_row, phi_version
             );

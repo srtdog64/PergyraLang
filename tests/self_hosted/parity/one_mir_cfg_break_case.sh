@@ -30,4 +30,4 @@ require_file "$ITERATION_SCOPE_GATE"
 PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
     bash "$ITERATION_SCOPE_GATE" || fail "iteration binding scope gate failed"
 
-echo "[$LABEL] iteration binding shadow is lexical and still fail-closed"
+echo "[$LABEL] iteration binding shadow substitutes through one LocalRef plan"

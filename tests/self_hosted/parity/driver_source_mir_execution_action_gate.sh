@@ -155,6 +155,14 @@ grep -Fq -- 'io_write' "$CLI_OWNER" && fail "standalone CLI wrapper regained io_
 require_text "$BUILD_OWNER" 'DRIVER_SOURCE="src/self_hosted/compiler/driver_bootstrap_main.pgy"'
 grep -Fq -- 'DRIVER_SOURCE="src/self_hosted/compiler/driver_rung2_main.pgy"' "$BUILD_OWNER" && fail "installed build returned to the test-only DRV-2 entrypoint"
 require_text "$BUILD_OWNER" 'OUTPUT="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"'
+require_text "$BUILD_OWNER" 'MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" "$tmp_output"'
+candidate_smoke_line="$(grep -nF -- 'MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" "$tmp_output"' "$BUILD_OWNER" | cut -d: -f1)"
+install_move_line="$(grep -nF -- 'mv -f "$tmp_output" "$OUTPUT"' "$BUILD_OWNER" | cut -d: -f1)"
+stamp_line="$(grep -nF -- 'printf '\''%s\n'\'' "$build_key" >"$STAMP"' "$BUILD_OWNER" | cut -d: -f1)"
+[[ -n "$candidate_smoke_line" && -n "$install_move_line" && -n "$stamp_line" &&
+    "$candidate_smoke_line" -lt "$install_move_line" &&
+    "$install_move_line" -lt "$stamp_line" ]] ||
+    fail "self-host driver must pass candidate smoke before install/stamp commit"
 require_text "$NATIVE_LAUNCHER" 'path_join_dup(directory, "pgy-self-driver")'
 retired_file_helpers="$(
     find "$ROOT_DIR/src/self_hosted" -type f -name '*.pgy' \

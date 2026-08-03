@@ -14,6 +14,7 @@ import "json_projection_support_owner.pgy";
 import "routine_param_json_projection_owner.pgy";
 import "instruction_abi_receipt_json_projection_owner.pgy";
 import "domain_runtime_assignment_json_owner.pgy";
+import "local_ref_json_projection_owner.pgy";
 import "../lib/json_emit.pgy";
 func SelfMirJsonExpressionGraph(rows: SelfMirExpressionGraphRows, ref graph: SemanticExpressionGraphFacts,
     instruction_index: Int
@@ -98,9 +99,8 @@ func SelfMirJsonExpressionGraph(rows: SelfMirExpressionGraphRows, ref graph: Sem
     ]);
 }
 
-func SelfMirJsonInstruction(
-    facts: SelfMirProgramFacts,
-    instruction_index: Int
+func SelfMirJsonInstruction(facts: SelfMirProgramFacts,
+    instruction_index: Int, emit_local_refs: Bool
 ) -> String {
     let rows: SelfMirInstructionRows = facts.cfg.instructions;
     let uses: Array<String> = [];
@@ -229,13 +229,15 @@ func SelfMirJsonInstruction(
         ),
         JsonEmitFieldRaw("uses", JsonEmitArray(uses))
     ];
+    SelfMirJsonAppendLocalRefFields(
+        facts.cfg.local_refs, instruction_index, emit_local_refs, fields
+    );
     SelfMirJsonAppendRuntimeCallAbiFields(rows, instruction_index, fields);
     return JsonEmitObject(fields);
 }
 
-func SelfMirJsonBlock(
-    facts: SelfMirProgramFacts,
-    block_index: Int
+func SelfMirJsonBlock(facts: SelfMirProgramFacts,
+    block_index: Int, emit_local_refs: Bool
 ) -> String {
     let blocks: SelfMirBlockRows = facts.cfg.blocks;
     let instructions: Array<String> = [];
@@ -243,9 +245,8 @@ func SelfMirJsonBlock(
     while i < blocks.instruction_counts[block_index] {
         ArrayPush(
             instructions,
-            SelfMirJsonInstruction(
-                facts, blocks.instruction_starts[block_index] + i
-            )
+            SelfMirJsonInstruction(facts,
+                blocks.instruction_starts[block_index] + i, emit_local_refs)
         );
         i = i + 1;
     }
@@ -296,12 +297,16 @@ func SelfMirJsonRoutine(
         param_i = param_i + 1;
     }
     let blocks: Array<String> = [];
+    let emit_local_refs: Bool = SelfMirRoutineLocalRefWireRequired(
+        rows, routine_index
+    );
     let block_i: Int = 0;
     while block_i < rows.block_counts[routine_index] {
         ArrayPush(
             blocks,
             SelfMirJsonBlock(
-                facts, rows.block_starts[routine_index] + block_i
+                facts, rows.block_starts[routine_index] + block_i,
+                emit_local_refs
             )
         );
         block_i = block_i + 1;

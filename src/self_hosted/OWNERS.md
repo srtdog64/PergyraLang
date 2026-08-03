@@ -779,6 +779,18 @@ inventory must not become a second fact-family owner registry.
   phase wire without a source or AST reread.
 - `src/self_hosted/mir/program_verify_owner.pgy` -- MIR row range/topology and
   required-fact verification.
+- `src/self_hosted/mir/local_ref_fact_owner.pgy` -- canonical lexical binding
+  identity and aligned instruction/direct-expression LocalRef rows. It owns
+  `(role, owner_syntax_id, binding_index)` carriage, not display spelling.
+- `src/self_hosted/mir/local_ref_identity_owner.pgy` -- the single canonical
+  LocalRef role vocabulary, textual grammar, constructor, and validator shared
+  by producer verification and admitted wire consumption.
+- `src/self_hosted/mir/local_ref_json_projection_owner.pgy` -- conditional
+  LocalRef JSON projection for routines whose source-local spellings collide;
+  unique-spelling MIR retains its existing wire shape.
+- `src/self_hosted/mir/routine_local_ref_attachment_owner.pgy` -- the builder
+  boundary that attaches the active binding's canonical LocalRef to the last
+  emitted definition, phi, loop-init, or loop-branch instruction.
 - `src/self_hosted/mir/enum_declaration_verify_owner.pgy` -- contiguous
   enum-variant payload start/count rows and concrete ordered payload-type
   verification.
@@ -2089,6 +2101,15 @@ inventory must not become a second fact-family owner registry.
   typed persisted-expression-graph projection for the admitted Int/Bool
   literal, copy, comparison, addition, and Log subset; display `expr0` is not
   semantic input.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_owner.pgy` --
+  ValueId-first leaf resolution with the sealed range-local row as the only
+  direct-local alternative; spelling never overrides an explicit SSA use.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy` --
+  exact conditional LocalRef wire admission and range-use completeness. Missing,
+  forged, duplicate, or orphan direct-local rows fail before plan publication.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy` --
+  target-neutral LocalRef-to-plan-slot normalization and source-local inventory
+  multiset admission; physical JSON row order is not storage identity.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_assignment_target_owner.pgy`
   -- exact one-leaf assignment-place graph receipt joined to the instruction's
   carried source-local identity; display target text is not a fallback.
@@ -2107,9 +2128,11 @@ inventory must not become a second fact-family owner registry.
   neutral effects, stable flags, and empty resource-state spans without
   reconstructing a loop from a fixture topology.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy`
-  -- one target-neutral range iteration receipt joining loop-init/branch rows,
-  binding LocalRef, bounds, header/body/exit, and every admitted continue or
-  fallthrough backedge predecessor.
+  -- admitted-MIR construction of one range receipt by joining loop-init/branch
+  rows, bounds, header/body/exit, and every continue or fallthrough predecessor.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_range_fact_owner.pgy` --
+  target-neutral range receipt schema, digest, bound/unbound readiness, binding
+  LocalRef slot, and canonical local-name view consumed by plan admission.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_range_emission_owner.pgy`
   -- target spelling for the plan-sealed range initialization and latch effect;
   it cannot reopen MIR, source, or topology.

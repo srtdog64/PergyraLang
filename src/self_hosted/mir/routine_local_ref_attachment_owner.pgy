@@ -1,0 +1,21 @@
+// Builder attachment boundary for instruction-primary lexical LocalRefs.
+
+import "routine_build_owner.pgy";
+
+func SelfMirRoutineAttachLastPrimaryLocalRef(
+    build: SelfMirRoutineBuild,
+    local_index: Int
+) -> SelfMirRoutineBuild {
+    if local_index < 0 || local_index >= ArrayLength(build.local_refs) {
+        return SelfMirRoutineBuildError(
+            build, "MIR instruction primary LocalRef is missing"
+        );
+    }
+    let refs: SelfMirInstructionLocalRefRows =
+        SelfMirInstructionLocalRefRowsAttachPrimary(
+            build.cfg.local_refs, build.local_refs[local_index]
+        );
+    return SelfMirRoutineWithCfg(
+        build, SelfMirCfgRows(build.cfg.blocks, build.cfg.instructions, refs)
+    );
+}
