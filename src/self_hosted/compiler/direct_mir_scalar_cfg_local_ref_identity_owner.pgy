@@ -1,0 +1,19 @@
+// Canonical scalar-CFG local-slot kinds and explicit identity lookup.
+
+func DirectMirScalarCfgLocalRefValue() -> Int { return 1; }
+func DirectMirScalarCfgLocalRefIteration() -> Int { return 2; }
+
+func DirectMirScalarCfgLocalIdentityRow(
+    identities: Array<String>, wanted: String
+) -> Int {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(identities) {
+        if identities[row] == wanted {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}

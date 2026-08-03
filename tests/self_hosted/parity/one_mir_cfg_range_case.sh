@@ -11,7 +11,7 @@ for owner in "$RANGE_AIR_OWNER" "$RANGE_OWNER" "$RANGE_EMISSION" \
 done
 grep -Fq -- 'DirectMirRangeCfgCertificateFactMutationRejected' "$RANGE_AIR_OWNER" ||
     fail "range AIR evidence mutation ratchet is missing"
-grep -Fq -- 'DirectMirScalarCfgRangeIterationFactFromOwners' "$RANGE_OWNER" ||
+grep -Fq -- 'DirectMirScalarCfgRangeIterationFactsFromOwners' "$RANGE_OWNER" ||
     fail "general scalar CFG range receipt is missing"
 grep -Fq -- 'DirectMirScalarCfgRangeCBlockEffect' "$RANGE_EMISSION" &&
     grep -Fq -- 'DirectMirScalarCfgRangeLlvmBlockEffect' "$RANGE_EMISSION" ||

@@ -15426,6 +15426,9 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_owner.pgy" 40
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_direct_local_operand_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_direct_local_operand_owner.pgy" 40
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy" 300
@@ -15450,6 +15453,24 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy" 280
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_range_set_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_range_set_owner.pgy" 300
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_identity_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_identity_owner.pgy" 40
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_iteration_local_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_iteration_local_owner.pgy" 150
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_wire_range_scope_admission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_wire_range_scope_admission_owner.pgy" 150
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_range_graph_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_range_graph_readiness_owner.pgy" 60
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_range_block_effect_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_range_block_effect_owner.pgy" 40
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_range_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_range_fact_owner.pgy" 180
@@ -15486,6 +15507,12 @@ require_max_lines \
 require_file "tests/self_hosted/parity/one_mir_iteration_binding_scope_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_iteration_binding_scope_owner.sh" 160
+require_file "tests/self_hosted/parity/one_mir_nested_iteration_binding_scope_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_nested_iteration_binding_scope_owner.sh" 120
+require_file "tests/self_hosted/parity/driver_source_mir_install_transaction_gate.sh"
+require_max_lines \
+    "tests/self_hosted/parity/driver_source_mir_install_transaction_gate.sh" 60
 require_file "src/self_hosted/mir/local_ref_fact_owner.pgy"
 require_max_lines "src/self_hosted/mir/local_ref_fact_owner.pgy" 180
 require_file "src/self_hosted/mir/local_ref_identity_owner.pgy"
@@ -15494,10 +15521,10 @@ require_file "src/self_hosted/mir/local_ref_json_projection_owner.pgy"
 require_max_lines "src/self_hosted/mir/local_ref_json_projection_owner.pgy" 100
 require_file "src/self_hosted/mir/routine_local_ref_attachment_owner.pgy"
 require_max_lines "src/self_hosted/mir/routine_local_ref_attachment_owner.pgy" 40
-require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy" \
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
     'DirectMirScalarCfgWireLocalRefsFromOwners('
-require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy" \
-    'DirectMirScalarCfgWireRangeUsesReady('
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_wire_range_scope_admission_owner.pgy" \
+    'DirectMirScalarCfgWireRangeScopesReady('
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy" \
     'SelfMirLocalRefValid('
 reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy" \
@@ -15506,6 +15533,11 @@ reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner
     'DirectMirScalarCfgLocalRow'
 reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy" \
     'DirectMirScalarCfgRangeLocalRow'
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" \
+    'let range_iteration: DirectMirScalarCfgRangeIterationFact;'
+! grep -R -F --include='*.pgy' 'DirectMirScalarCfgRangeIterationFactFromOwners(' \
+    src/self_hosted/compiler >/dev/null ||
+    fail "singular scalar CFG range constructor reappeared"
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
     'DirectMirScalarCfgGraphRouteClaimed(admitted)'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
@@ -15603,7 +15635,7 @@ require_text "src/self_hosted/air/mir_range_cfg_certificate_fact_owner.pgy" \
 require_text "src/self_hosted/air/mir_range_cfg_certificate_fact_owner.pgy" \
     'func DirectMirRangeCfgCertificateFactMutationRejected('
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy" \
-    'func DirectMirScalarCfgRangeIterationFactFromOwners('
+    'func DirectMirScalarCfgRangeIterationFactsFromOwners('
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_range_emission_owner.pgy" \
     'func DirectMirScalarCfgRangeCBlockEffect('
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_range_emission_owner.pgy" \
@@ -15673,7 +15705,7 @@ for loop_single_issuer_term in \
 done
 for range_single_issuer_term in \
     DirectMirRangeCfgCertificateFactFromIndex \
-    DirectMirScalarCfgRangeIterationFactFromOwners \
+    DirectMirScalarCfgRangeIterationFactsFromOwners \
     DirectMirScalarCfgRangeCBlockEffect \
     DirectMirScalarCfgRangeLlvmBlockEffect; do
     range_single_issuer_count="$(grep -R -F --include='*.pgy' \

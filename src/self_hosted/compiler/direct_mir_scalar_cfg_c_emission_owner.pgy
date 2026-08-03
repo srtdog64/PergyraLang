@@ -2,7 +2,7 @@
 
 import "direct_mir_scalar_cfg_graph_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_c_operand_owner.pgy";
-import "direct_mir_scalar_cfg_range_emission_owner.pgy";
+import "direct_mir_scalar_cfg_range_block_effect_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
 func DirectMirScalarCfgEmitC(
@@ -101,8 +101,8 @@ func DirectMirScalarCfgEmitC(
             operation = operation + 1;
         }
         output = Concat(
-            output, DirectMirScalarCfgRangeCBlockEffect(
-                plan.range_iteration,
+            output, DirectMirScalarCfgRangeCBlockEffects(
+                plan.range_iterations,
                 ArrayLength(plan.block_succ_true), block
             )
         );

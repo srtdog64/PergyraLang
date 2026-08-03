@@ -21,7 +21,7 @@ func SelfMirRoutineLocalRefWireRequired(
         }
         row = row + 1;
     }
-    return false;
+    return rows.iteration_counts[routine_index] > 1;
 }
 
 func SelfMirJsonExpr0LocalRefs(

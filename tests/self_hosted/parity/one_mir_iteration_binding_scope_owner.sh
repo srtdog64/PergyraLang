@@ -28,14 +28,15 @@ command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 
 FOR_OWNER="$ROOT_DIR/src/self_hosted/mir/routine_for_owner.pgy"
 WIRE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy"
+SCOPE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_wire_range_scope_admission_owner.pgy"
 PLAN_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy"
 require_text "$FOR_OWNER" 'SelfMirRoutinePushLocal('
-require_text "$WIRE_OWNER" 'DirectMirScalarCfgWireRangeUsesReady('
-require_text "$PLAN_OWNER" 'DirectMirScalarCfgWireLocalRefsFromOwners('
+require_text "$SCOPE_OWNER" 'DirectMirScalarCfgWireRangeScopesReady('
+require_text "$PLAN_OWNER" 'DirectMirScalarCfgAppendIterationLocals('
 reject_text "$FOR_OWNER" 'SelfMirRoutineAddLocal('
 reject_text "$PLAN_OWNER" 'DirectMirScalarCfgLocalRow('
 reject_text "$PLAN_OWNER" 'DirectMirScalarCfgRangeLocalRow('
-for owner in "$WIRE_OWNER" "$PLAN_OWNER"; do
+for owner in "$WIRE_OWNER" "$SCOPE_OWNER" "$PLAN_OWNER"; do
     reject_text "$owner" 'iteration_binding_shadow.pgy'
 done
 

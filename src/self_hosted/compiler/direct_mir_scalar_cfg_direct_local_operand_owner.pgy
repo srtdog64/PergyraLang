@@ -1,0 +1,37 @@
+// Exact expression-node LocalRef to iteration-local slot resolution.
+
+import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
+
+func DirectMirScalarCfgDirectLocalOperandRow(
+    ref local_refs: DirectMirScalarCfgLocalRefPlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    instruction_row: Int, node: Int, node_text: String
+) -> Int {
+    let local_row: Int = -1;
+    if wire.required {
+        let direct_ref: String = DirectMirScalarCfgWireExprRefAt(
+            wire, instruction_row, node
+        );
+        if direct_ref == "" { return -1; }
+        local_row = DirectMirScalarCfgLocalIdentityRow(
+            local_refs.local_ref_value_ids, direct_ref
+        );
+    } else {
+        let row: Int = 0;
+        while row < ArrayLength(local_refs.local_names) {
+            if local_refs.local_ref_kinds[row] ==
+                    DirectMirScalarCfgLocalRefIteration() &&
+                local_refs.local_names[row] == node_text {
+                if local_row >= 0 { return -1; }
+                local_row = row;
+            }
+            row = row + 1;
+        }
+    }
+    if local_row < 0 || local_refs.local_ref_kinds[local_row] !=
+            DirectMirScalarCfgLocalRefIteration() ||
+        local_refs.local_names[local_row] != node_text {
+        return -1;
+    }
+    return local_row;
+}

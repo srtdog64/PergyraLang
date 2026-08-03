@@ -25,16 +25,22 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
     let instruction_count: Int = ArrayLength(index.instruction_facts.starts);
     let use_facts: MirRoutineInstructionUseFacts =
         BuildMirRoutineInstructionUseFacts(admitted.routines, 0);
-    let range_source: DirectMirScalarCfgRangeIterationFact =
-        DirectMirScalarCfgRangeIterationFactFromOwners(
+    let range_sources: DirectMirScalarCfgRangeFactSet =
+        DirectMirScalarCfgRangeIterationFactsFromOwners(
             admitted, index, use_facts
         );
-    if index.valid &&
-        ArrayLength(index.loop_flow_summary_kinds) == 1 &&
-        index.loop_flow_summary_kinds[0] == 1 &&
-        !DirectMirScalarCfgRangeIterationFactSourceReady(
-            range_source, ArrayLength(index.block_starts)
-        ) {
+    let expected_ranges: Int = 0;
+    let flow_row: Int = 0;
+    while flow_row < ArrayLength(index.loop_flow_summary_kinds) {
+        if index.loop_flow_summary_kinds[flow_row] == 1 {
+            expected_ranges = expected_ranges + 1;
+        }
+        flow_row = flow_row + 1;
+    }
+    if index.valid && (DirectMirScalarCfgRangeFactCount(range_sources) !=
+            expected_ranges || !DirectMirScalarCfgRangeFactSetSourceReady(
+            range_sources, ArrayLength(index.block_starts)
+        )) {
         Die("direct MIR scalar CFG range iteration facts are invalid");
     }
     if !index.valid || !MirRoutineInstructionFactBundleReady(
@@ -46,21 +52,26 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
         ) {
         Die("direct MIR scalar CFG typed index, use, or phi facts are invalid");
     }
+    let wire: DirectMirScalarCfgWireLocalRefs =
+        DirectMirScalarCfgWireLocalRefsFromOwners(admitted, index);
     let local_refs: DirectMirScalarCfgLocalRefPlan =
         DirectMirScalarCfgLocalRefPlanFromOwners(
-            admitted, index, range_source
+            admitted, index, use_facts, wire, range_sources
         );
     if !local_refs.valid {
         Die("direct MIR scalar CFG LocalRef plan is invalid");
     }
-    let range_iteration: DirectMirScalarCfgRangeIterationFact = range_source;
-    if range_source.valid {
-        range_iteration = DirectMirScalarCfgRangeIterationFactAtLocalRow(
-            range_source, local_refs.range_local_row
+    let range_iterations: DirectMirScalarCfgRangeFactSet =
+        DirectMirScalarCfgRangeFactsAtLocalRows(
+            range_sources, local_refs.local_ref_kinds,
+            local_refs.local_ref_syntax_ids
         );
+    if DirectMirScalarCfgRangeFactCount(range_iterations) !=
+            DirectMirScalarCfgRangeFactCount(range_sources) {
+        Die("direct MIR scalar CFG range local binding is invalid");
     }
     if !DirectMirScalarCfgLoopFlowFactsReady(
-        index, admitted.routines, 0, range_iteration
+        index, admitted.routines, 0, range_iterations
     ) {
         Die("direct MIR scalar CFG loop facts are invalid");
     }
@@ -132,10 +143,8 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                     );
                 let expression: DirectMirScalarCfgExpressionFact =
                     DirectMirScalarCfgValueExpressionFact(
-                        instruction, use_facts, global_row, value_names,
-                        DirectMirScalarCfgRangeLocalName(
-                            range_iteration, local_names
-                        ), range_iteration.local_row
+                        instruction, use_facts, global_row,
+                        local_instruction, value_names, local_refs, wire
                     );
                 if !scalar.valid || scalar.name != "ssa-def" ||
                     scalar.abi_type_name != "Int" || result_value < 0 ||
@@ -224,10 +233,13 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                     ArrayLength(binding.predecessor_blocks)
                 );
             } else if kind == "loop-init" {
+                let range: DirectMirScalarCfgRangeIterationFact =
+                    DirectMirScalarCfgRangeFactAtInitGlobalRow(
+                        range_iterations, global_row
+                    );
                 if !DirectMirScalarCfgRangeIterationFactReady(
-                        range_iteration, ArrayLength(index.block_starts)
-                    ) || global_row != range_iteration.init_global_row ||
-                    block != range_iteration.init_block {
+                        range, ArrayLength(index.block_starts)
+                    ) || block != range.init_block {
                     Die("direct MIR scalar CFG range initializer is invalid");
                 }
             } else if kind == "stmt" {
@@ -237,10 +249,8 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                     );
                 let expression: DirectMirScalarCfgExpressionFact =
                     DirectMirScalarCfgLogExpressionFact(
-                        instruction, use_facts, global_row, value_names,
-                        DirectMirScalarCfgRangeLocalName(
-                            range_iteration, local_names
-                        ), range_iteration.local_row
+                        instruction, use_facts, global_row,
+                        local_instruction, value_names, local_refs, wire
                     );
                 if !scalar.valid || scalar.arg0 != "Log" ||
                     scalar.result != "" || !expression.valid ||
@@ -288,23 +298,23 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                         Die("direct MIR scalar CFG continue edge is invalid");
                     }
                 } else if source == "AST_FOR_LOOP" {
+                    let range: DirectMirScalarCfgRangeIterationFact =
+                        DirectMirScalarCfgRangeFactAtBranchGlobalRow(
+                            range_iterations, global_row
+                        );
                     if !DirectMirScalarCfgRangeIterationFactReady(
-                            range_iteration, ArrayLength(index.block_starts)
-                        ) || global_row != range_iteration.branch_global_row ||
-                        block != range_iteration.header_block {
+                            range, ArrayLength(index.block_starts)
+                        ) || block != range.header_block {
                         Die("direct MIR scalar CFG range branch is invalid");
                     }
                     condition = DirectMirScalarCfgExpressionFact(
                         true, DirectMirScalarCfgConditionLess(), -1, -1,
-                        range_iteration.local_row, -1, "",
-                        range_iteration.stop_literal
+                        range.local_row, -1, "", range.stop_literal
                     );
                 } else {
                     condition = DirectMirScalarCfgConditionExpressionFact(
-                        instruction, use_facts, global_row, value_names,
-                        DirectMirScalarCfgRangeLocalName(
-                            range_iteration, local_names
-                        ), range_iteration.local_row
+                        instruction, use_facts, global_row,
+                        local_instruction, value_names, local_refs, wire
                     );
                     if !condition.valid ||
                         index.block_succ_true[block] < 0 ||
@@ -363,7 +373,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
         operation_right_locals, operation_left_literals,
         operation_right_literals, operation_phi_starts,
         operation_phi_counts, phi_predecessor_blocks, phi_incoming_values,
-        range_iteration
+        range_iterations
     );
     let verified: DirectMirScalarCfgGraphPlan =
         DirectMirScalarCfgGraphPlanWithDigest(

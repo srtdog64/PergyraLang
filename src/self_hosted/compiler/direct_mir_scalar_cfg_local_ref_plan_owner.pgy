@@ -1,12 +1,9 @@
 // Target-neutral local storage identities for the scalar CFG plan.
 
-import "direct_mir_scalar_cfg_range_iteration_owner.pgy";
+import "direct_mir_scalar_cfg_iteration_local_owner.pgy";
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
 import "../mir_lower/routine_result_definition_fact_owner.pgy";
-
-func DirectMirScalarCfgLocalRefValue() -> Int { return 1; }
-func DirectMirScalarCfgLocalRefIteration() -> Int { return 2; }
 
 struct DirectMirScalarCfgLocalRefPlan {
     let valid: Bool;
@@ -17,7 +14,6 @@ struct DirectMirScalarCfgLocalRefPlan {
     let value_names: Array<String>;
     let value_local_rows: Array<Int>;
     let value_definition_blocks: Array<Int>;
-    let range_local_row: Int;
 }
 
 func DirectMirScalarCfgLocalRefPlanEmpty(
@@ -25,7 +21,7 @@ func DirectMirScalarCfgLocalRefPlanEmpty(
     let strings: Array<String> = [];
     let ints: Array<Int> = [];
     return DirectMirScalarCfgLocalRefPlan(
-        false, strings, ints, strings, ints, strings, ints, ints, -1
+        false, strings, ints, strings, ints, strings, ints, ints
     );
 }
 
@@ -35,17 +31,6 @@ func DirectMirScalarCfgValueLocalRow(
     let row: Int = 0;
     while row < ArrayLength(names) {
         if names[row] == wanted { return row; }
-        row = row + 1;
-    }
-    return -1;
-}
-
-func DirectMirScalarCfgLocalIdentityRow(
-    identities: Array<String>, wanted: String
-) -> Int {
-    let row: Int = 0;
-    while row < ArrayLength(identities) {
-        if identities[row] == wanted { return row; }
         row = row + 1;
     }
     return -1;
@@ -88,12 +73,12 @@ func DirectMirScalarCfgLocalInventoryMatches(
 func DirectMirScalarCfgLocalRefPlanFromOwners(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref index: MirRoutineFactIndex,
-    ref range: DirectMirScalarCfgRangeIterationFact
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref ranges: DirectMirScalarCfgRangeFactSet
 ) -> DirectMirScalarCfgLocalRefPlan {
     let empty: DirectMirScalarCfgLocalRefPlan =
         DirectMirScalarCfgLocalRefPlanEmpty();
-    let wire: DirectMirScalarCfgWireLocalRefs =
-        DirectMirScalarCfgWireLocalRefsFromOwners(admitted, index);
     if !wire.valid { return empty; }
     let local_names: Array<String> = [];
     let local_ref_kinds: Array<Int> = [];
@@ -136,12 +121,9 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(
             }
             if (source == "AST_LET_DECL" && local_row >= 0) ||
                 ((source == "AST_ASSIGNMENT" || kind == "phi") &&
-                    range.valid && local_name == range.binding_name &&
-                    (!wire.required || local_identity == Concat(
-                        "iteration:", Concat(
-                            ToString(range.loop_syntax_id), ":0"
-                        )
-                    ))) {
+                    DirectMirScalarCfgValueDefinitionConflictsWithRange(
+                        ranges, local_name, local_identity, wire.required
+                    )) {
                 return empty;
             }
             if local_row < 0 {
@@ -167,48 +149,17 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(
         }
         instruction = instruction + 1;
     }
-    let range_local_row: Int = -1;
-    if range.valid {
-        if !DirectMirScalarCfgRangeIterationFactSourceReady(
-                range, ArrayLength(index.block_starts)
-            ) || range.binding_name == "" {
-            return empty;
-        }
-        let expected_range_ref: String = Concat(
-            "iteration:", Concat(ToString(range.loop_syntax_id), ":0")
-        );
-        if wire.required &&
-            (wire.primary_refs[
-                range.init_global_row - index.instruction_facts.global_start
-             ] != expected_range_ref ||
-             wire.primary_refs[
-                range.branch_global_row - index.instruction_facts.global_start
-             ] != expected_range_ref ||
-             DirectMirScalarCfgLocalIdentityRow(
-                local_ref_value_ids, expected_range_ref
-             ) >= 0 ||
-             !DirectMirScalarCfgWireRangeUsesReady(
-                wire, admitted, index, range
-             )) {
-            return empty;
-        }
-        range_local_row = ArrayLength(local_names);
-        ArrayPush(local_names, range.binding_name);
-        ArrayPush(local_ref_kinds, DirectMirScalarCfgLocalRefIteration());
-        if wire.required {
-            ArrayPush(local_ref_value_ids, expected_range_ref);
-        } else {
-            ArrayPush(local_ref_value_ids, "");
-        }
-        ArrayPush(local_ref_syntax_ids, range.loop_syntax_id);
-    }
+    if !DirectMirScalarCfgAppendIterationLocals(
+        admitted, index, use_facts, wire, ranges, local_names,
+        local_ref_kinds, local_ref_value_ids, local_ref_syntax_ids
+    ) { return empty; }
     if !DirectMirScalarCfgLocalInventoryMatches(index, local_names) {
         return empty;
     }
     return DirectMirScalarCfgLocalRefPlan(
         true, local_names, local_ref_kinds, local_ref_value_ids,
         local_ref_syntax_ids, value_names, value_local_rows,
-        value_definition_blocks, range_local_row
+        value_definition_blocks
     );
 }
 
@@ -216,7 +167,7 @@ func DirectMirScalarCfgLocalRefsReady(
     local_names: Array<String>, local_ref_kinds: Array<Int>,
     local_ref_value_ids: Array<String>, local_ref_syntax_ids: Array<Int>,
     value_local_rows: Array<Int>,
-    ref range: DirectMirScalarCfgRangeIterationFact
+    ref ranges: DirectMirScalarCfgRangeFactSet
 ) -> Bool {
     let count: Int = ArrayLength(local_names);
     if count < 1 || count != ArrayLength(local_ref_kinds) ||
@@ -225,7 +176,6 @@ func DirectMirScalarCfgLocalRefsReady(
         return false;
     }
     let row: Int = 0;
-    let iteration_count: Int = 0;
     while row < count {
         let kind: Int = local_ref_kinds[row];
         if local_names[row] == "" ||
@@ -243,13 +193,6 @@ func DirectMirScalarCfgLocalRefsReady(
             (kind != DirectMirScalarCfgLocalRefValue() &&
              kind != DirectMirScalarCfgLocalRefIteration()) {
             return false;
-        }
-        if kind == DirectMirScalarCfgLocalRefIteration() {
-            iteration_count = iteration_count + 1;
-            if !range.valid || range.local_row != row ||
-                range.loop_syntax_id != local_ref_syntax_ids[row] {
-                return false;
-            }
         }
         let prior: Int = 0;
         while prior < row {
@@ -270,6 +213,8 @@ func DirectMirScalarCfgLocalRefsReady(
         }
         row = row + 1;
     }
-    return (range.valid && iteration_count == 1) ||
-        (!range.valid && iteration_count == 0);
+    return DirectMirScalarCfgIterationLocalsReady(
+        local_names, local_ref_kinds, local_ref_value_ids,
+        local_ref_syntax_ids, ranges
+    );
 }

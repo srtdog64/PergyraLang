@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_cfg_graph_identity_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
+import "direct_mir_scalar_cfg_range_graph_readiness_owner.pgy";
 
 func DirectMirScalarCfgOperandCount(
     value: Int, local: Int, literal: String
@@ -27,7 +28,7 @@ func DirectMirScalarCfgGraphPlanReady(
         !DirectMirScalarCfgLocalRefsReady(
             plan.local_names, plan.local_ref_kinds,
             plan.local_ref_value_ids, plan.local_ref_syntax_ids,
-            plan.value_local_rows, plan.range_iteration
+            plan.value_local_rows, plan.range_iterations
         ) ||
         block_count < 2 || operation_count < 1 ||
         value_count != ArrayLength(plan.value_local_rows) ||
@@ -184,37 +185,7 @@ func DirectMirScalarCfgGraphPlanReady(
         }
         phi_row = phi_row + 1;
     }
-    let range_ready: Bool = DirectMirScalarCfgRangeIterationFactReady(
-        plan.range_iteration, block_count
-    );
-    if !range_ready && !DirectMirScalarCfgRangeIterationFactAbsent(
-        plan.range_iteration
-    ) { return false; }
-    if range_ready {
-        let range: DirectMirScalarCfgRangeIterationFact =
-            plan.range_iteration;
-        if plan.block_succ_true[range.init_block] != range.header_block ||
-            plan.block_succ_false[range.init_block] >= 0 ||
-            plan.block_succ_true[range.header_block] != range.body_block ||
-            plan.block_succ_false[range.header_block] != range.exit_block ||
-            plan.block_condition_kinds[range.header_block] !=
-                DirectMirScalarCfgConditionLess() ||
-            plan.block_condition_left_locals[range.header_block] !=
-                range.local_row ||
-            plan.block_condition_right_literals[range.header_block] !=
-                range.stop_literal {
-            return false;
-        }
-        let latch: Int = 0;
-        while latch < ArrayLength(range.backedge_blocks) {
-            let latch_block: Int = range.backedge_blocks[latch];
-            if plan.block_succ_true[latch_block] != range.header_block ||
-                plan.block_succ_false[latch_block] >= 0 {
-                return false;
-            }
-            latch = latch + 1;
-        }
-    }
+    if !DirectMirScalarCfgRangeGraphReady(plan) { return false; }
     return CompilerArtifactIdentityReady(
         CompilerEmittedCArtifactKind(), plan.revision, plan.digest
     ) && CompilerArtifactIdentityReady(

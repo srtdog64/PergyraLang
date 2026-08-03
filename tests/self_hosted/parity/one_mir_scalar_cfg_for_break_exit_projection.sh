@@ -32,8 +32,8 @@ RANGE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_range_iter
 ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
 require_text "$FOR_OWNER" 'SelfMirLoopPrepareHeaderLocalVersions('
 require_text "$FOR_OWNER" 'SelfMirLoopExitMergeLocalVersions('
-require_text "$RANGE_OWNER" 'DirectMirScalarCfgRangeIterationFactFromOwners('
-require_text "$ADMISSION" 'DirectMirScalarCfgRangeIterationFactFromOwners('
+require_text "$RANGE_OWNER" 'DirectMirScalarCfgRangeIterationFactsFromOwners('
+require_text "$ADMISSION" 'DirectMirScalarCfgRangeIterationFactsFromOwners('
 reject_text "$ADMISSION" 'for_break_exit.pgy'
 reject_text "$RANGE_OWNER" 'for_break_exit.pgy'
 

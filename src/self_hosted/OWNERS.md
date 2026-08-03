@@ -2102,14 +2102,23 @@ inventory must not become a second fact-family owner registry.
   literal, copy, comparison, addition, and Log subset; display `expr0` is not
   semantic input.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_owner.pgy` --
-  ValueId-first leaf resolution with the sealed range-local row as the only
-  direct-local alternative; spelling never overrides an explicit SSA use.
+  ValueId-first leaf resolution with an exact expression-node LocalRef as the
+  only direct-local alternative; spelling never overrides an explicit SSA use.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_direct_local_operand_owner.pgy`
+  -- exact `(instruction,node)` LocalRef-to-iteration-slot resolution after
+  ValueId admission; duplicate or missing identities fail closed.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy` --
-  exact conditional LocalRef wire admission and range-use completeness. Missing,
-  forged, duplicate, or orphan direct-local rows fail before plan publication.
+  exact conditional LocalRef wire decoding and shape admission.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_wire_range_scope_admission_owner.pgy`
+  -- receipt-keyed direct-use completeness plus CFG-dominance validation of the
+  innermost active same-spelling range binder.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy` --
   target-neutral LocalRef-to-plan-slot normalization and source-local inventory
   multiset admission; physical JSON row order is not storage identity.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_identity_owner.pgy`
+  -- scalar-CFG local-slot kinds and exact explicit-identity lookup.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_iteration_local_owner.pgy` --
+  canonical range-receipt-to-local-slot bijection and bound receipt publication.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_assignment_target_owner.pgy`
   -- exact one-leaf assignment-place graph receipt joined to the instruction's
   carried source-local identity; display target text is not a fallback.
@@ -2128,14 +2137,20 @@ inventory must not become a second fact-family owner registry.
   neutral effects, stable flags, and empty resource-state spans without
   reconstructing a loop from a fixture topology.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy`
-  -- admitted-MIR construction of one range receipt by joining loop-init/branch
-  rows, bounds, header/body/exit, and every continue or fallthrough predecessor.
+  -- admitted-MIR construction of canonical range receipts by exact
+  `loop_syntax_id`/LocalRef joins over typed iteration and loop-flow owners.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_range_fact_owner.pgy` --
-  target-neutral range receipt schema, digest, bound/unbound readiness, binding
-  LocalRef slot, and canonical local-name view consumed by plan admission.
+  target-neutral per-range receipt schema, digest, and bound/unbound readiness.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_range_set_owner.pgy` -- one
+  canonical receipt-set owner for primitive storage, ordering, digest, exact
+  lookup, and set readiness; array position is not semantic identity.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_range_graph_readiness_owner.pgy`
+  -- receipt-by-receipt CFG and unique latch-effect validation after plan issue.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_range_emission_owner.pgy`
   -- target spelling for the plan-sealed range initialization and latch effect;
   it cannot reopen MIR, source, or topology.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_range_block_effect_owner.pgy`
+  -- canonical receipt-set aggregation of per-block C/LLVM range effects.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_c_operand_owner.pgy` -- C
   spelling for sealed ValueId/LocalRef/literal operands.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_c_emission_owner.pgy` --

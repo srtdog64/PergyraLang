@@ -1,0 +1,37 @@
+// Canonical per-block aggregation of verified range effects.
+
+import "direct_mir_scalar_cfg_range_emission_owner.pgy";
+
+func DirectMirScalarCfgRangeCBlockEffects(
+    ref facts: DirectMirScalarCfgRangeFactSet,
+    block_count: Int, block: Int
+) -> String {
+    let output: String = "";
+    let row: Int = 0;
+    while row < DirectMirScalarCfgRangeFactCount(facts) {
+        let fact: DirectMirScalarCfgRangeIterationFact =
+            DirectMirScalarCfgRangeFactAt(facts, row);
+        output = Concat(output, DirectMirScalarCfgRangeCBlockEffect(
+            fact, block_count, block
+        ));
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarCfgRangeLlvmBlockEffects(
+    ref facts: DirectMirScalarCfgRangeFactSet,
+    block_count: Int, block: Int
+) -> String {
+    let output: String = "";
+    let row: Int = 0;
+    while row < DirectMirScalarCfgRangeFactCount(facts) {
+        let fact: DirectMirScalarCfgRangeIterationFact =
+            DirectMirScalarCfgRangeFactAt(facts, row);
+        output = Concat(output, DirectMirScalarCfgRangeLlvmBlockEffect(
+            fact, block_count, block
+        ));
+        row = row + 1;
+    }
+    return output;
+}

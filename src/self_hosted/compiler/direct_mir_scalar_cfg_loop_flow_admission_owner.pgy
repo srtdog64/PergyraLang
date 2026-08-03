@@ -5,7 +5,7 @@ import "direct_mir_scalar_cfg_range_iteration_owner.pgy";
 func DirectMirScalarCfgLoopFlowFactsReady(
     ref index: MirRoutineFactIndex, ref routines: MirProgramRoutineIndex,
     routine_row: Int,
-    ref range_iteration: DirectMirScalarCfgRangeIterationFact
+    ref range_iterations: DirectMirScalarCfgRangeFactSet
 ) -> Bool {
     if !LoopFlowSummaryProjectionReady(index, routines, routine_row) ||
         !MirRoutineFactIndexLoopFlowFactsValid(index) ||
@@ -13,6 +13,7 @@ func DirectMirScalarCfgLoopFlowFactsReady(
         return false;
     }
     let row: Int = 0;
+    let range_count: Int = 0;
     while row < ArrayLength(index.loop_flow_summary_loop_ids) {
         let kind: Int = index.loop_flow_summary_kinds[row];
         if (kind != 0 && kind != 1) ||
@@ -23,18 +24,17 @@ func DirectMirScalarCfgLoopFlowFactsReady(
             index.loop_flow_summary_entry_counts[row] != 0 ||
             index.loop_flow_summary_exit_starts[row] != 0 ||
             index.loop_flow_summary_exit_counts[row] != 0 { return false; }
-        if kind == 1 && (!DirectMirScalarCfgRangeIterationFactReady(
-                range_iteration, ArrayLength(index.block_starts)
-            ) || range_iteration.loop_syntax_id !=
-                index.loop_flow_summary_loop_ids[row]) { return false; }
-        if kind == 0 && !DirectMirScalarCfgRangeIterationFactAbsent(
-            range_iteration
-        ) { return false; }
+        let range: DirectMirScalarCfgRangeIterationFact =
+            DirectMirScalarCfgRangeFactAtLoopSyntaxId(
+                range_iterations, index.loop_flow_summary_loop_ids[row]
+            );
+        if kind == 1 {
+            if !DirectMirScalarCfgRangeIterationFactReady(
+                range, ArrayLength(index.block_starts)
+            ) { return false; }
+            range_count = range_count + 1;
+        } else if range.valid { return false; }
         row = row + 1;
     }
-    if ArrayLength(index.loop_flow_summary_loop_ids) == 0 &&
-        !DirectMirScalarCfgRangeIterationFactAbsent(range_iteration) {
-        return false;
-    }
-    return true;
+    return range_count == DirectMirScalarCfgRangeFactCount(range_iterations);
 }

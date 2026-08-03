@@ -44,11 +44,11 @@ struct DirectMirScalarCfgGraphPlan {
     let operation_phi_counts: Array<Int>;
     let phi_predecessor_blocks: Array<Int>;
     let phi_incoming_values: Array<Int>;
-    let range_iteration: DirectMirScalarCfgRangeIterationFact;
+    let range_iterations: DirectMirScalarCfgRangeFactSet;
 }
 
 func DirectMirScalarCfgGraphPlanSchema() -> String {
-    return "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v1";
+    return "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v2";
 }
 
 func DirectMirScalarCfgOpConstInt() -> Int { return 1; }

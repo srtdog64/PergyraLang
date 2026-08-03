@@ -55,4 +55,5 @@ run_case src/self_hosted/mir_lower/fixture/multiple_break_exit.pgy multi-break $
 run_case src/self_hosted/mir_lower/fixture/for_break_exit.pgy for-break $'3\n'
 run_case examples/break_continue.pgy continue-backedge $'42\n'
 run_case src/self_hosted/mir_lower/fixture/iteration_binding_shadow.pgy binding-shadow $'0\n1\n2\n40\n'
+run_case src/self_hosted/mir_lower/fixture/nested_iteration_binding_shadow.pgy nested-binding-shadow $'0\n1\n0\n0\n1\n1\n40\n'
 echo "[$LABEL] public file/stdout use installed scalar CFG LLVM through lexical LocalRefs"

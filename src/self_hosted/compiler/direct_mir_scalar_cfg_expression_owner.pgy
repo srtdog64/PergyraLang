@@ -25,9 +25,10 @@ func DirectMirScalarCfgValueExpressionFact(
     ref instruction: JsonObjectFactTable,
     ref use_facts: MirRoutineInstructionUseFacts,
     global_row: Int,
+    instruction_row: Int,
     value_names: Array<String>,
-    range_local_name: String,
-    range_local_row: Int
+    ref local_refs: DirectMirScalarCfgLocalRefPlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs
 ) -> DirectMirScalarCfgExpressionFact {
     let sequence: MirExpressionGraphSequence =
         DirectMirScalarCfgExpressionSequence(instruction);
@@ -50,8 +51,8 @@ func DirectMirScalarCfgValueExpressionFact(
             AstExpressionNodeLeaf() {
         let operand: DirectMirScalarCfgLeafOperand =
             DirectMirScalarCfgLeafOperandFromOwners(
-                use_facts, global_row, 0, sequence.arena.node_texts[0],
-                value_names, range_local_name, range_local_row
+                use_facts, global_row, 0, instruction_row, 0,
+                sequence.arena.node_texts[0], value_names, local_refs, wire
             );
         if operand.valid && operand.use_count ==
                 MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) {
@@ -77,9 +78,8 @@ func DirectMirScalarCfgValueExpressionFact(
     if sequence.arena.topology.node_kinds[0] == AstExpressionNodeLeaf() {
         let operand: DirectMirScalarCfgLeafOperand =
             DirectMirScalarCfgLeafOperandFromOwners(
-                use_facts, global_row, expected_uses,
-                sequence.arena.node_texts[0], value_names,
-                range_local_name, range_local_row
+                use_facts, global_row, expected_uses, instruction_row, 0,
+                sequence.arena.node_texts[0], value_names, local_refs, wire
             );
         if !operand.valid { return DirectMirScalarCfgExpressionFactEmpty(); }
         left_value = operand.value_row; left_local = operand.local_row;
@@ -94,9 +94,8 @@ func DirectMirScalarCfgValueExpressionFact(
     if sequence.arena.topology.node_kinds[1] == AstExpressionNodeLeaf() {
         let operand: DirectMirScalarCfgLeafOperand =
             DirectMirScalarCfgLeafOperandFromOwners(
-                use_facts, global_row, expected_uses,
-                sequence.arena.node_texts[1], value_names,
-                range_local_name, range_local_row
+                use_facts, global_row, expected_uses, instruction_row, 1,
+                sequence.arena.node_texts[1], value_names, local_refs, wire
             );
         if !operand.valid { return DirectMirScalarCfgExpressionFactEmpty(); }
         right_value = operand.value_row; right_local = operand.local_row;
@@ -124,9 +123,10 @@ func DirectMirScalarCfgConditionExpressionFact(
     ref instruction: JsonObjectFactTable,
     ref use_facts: MirRoutineInstructionUseFacts,
     global_row: Int,
+    instruction_row: Int,
     value_names: Array<String>,
-    range_local_name: String,
-    range_local_row: Int
+    ref local_refs: DirectMirScalarCfgLocalRefPlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs
 ) -> DirectMirScalarCfgExpressionFact {
     let sequence: MirExpressionGraphSequence =
         DirectMirScalarCfgExpressionSequence(instruction);
@@ -175,9 +175,9 @@ func DirectMirScalarCfgConditionExpressionFact(
                 AstExpressionNodeLeaf() {
             let operand: DirectMirScalarCfgLeafOperand =
                 DirectMirScalarCfgLeafOperandFromOwners(
-                    use_facts, global_row, expected_uses,
-                    sequence.arena.node_texts[node], value_names,
-                    range_local_name, range_local_row
+                    use_facts, global_row, expected_uses, instruction_row,
+                    node, sequence.arena.node_texts[node], value_names,
+                    local_refs, wire
                 );
             if !operand.valid {
                 return DirectMirScalarCfgExpressionFactEmpty();
@@ -214,9 +214,10 @@ func DirectMirScalarCfgLogExpressionFact(
     ref instruction: JsonObjectFactTable,
     ref use_facts: MirRoutineInstructionUseFacts,
     global_row: Int,
+    instruction_row: Int,
     value_names: Array<String>,
-    range_local_name: String,
-    range_local_row: Int
+    ref local_refs: DirectMirScalarCfgLocalRefPlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs
 ) -> DirectMirScalarCfgExpressionFact {
     let sequence: MirExpressionGraphSequence =
         DirectMirScalarCfgExpressionSequence(instruction);
@@ -265,8 +266,8 @@ func DirectMirScalarCfgLogExpressionFact(
     let node_text: String = sequence.arena.node_texts[value_node];
     let operand: DirectMirScalarCfgLeafOperand =
         DirectMirScalarCfgLeafOperandFromOwners(
-            use_facts, global_row, 0, node_text, value_names,
-            range_local_name, range_local_row
+            use_facts, global_row, 0, instruction_row, value_node,
+            node_text, value_names, local_refs, wire
         );
     if !operand.valid || operand.use_count !=
             MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) {

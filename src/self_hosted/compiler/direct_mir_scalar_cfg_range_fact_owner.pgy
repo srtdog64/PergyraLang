@@ -154,14 +154,3 @@ func DirectMirScalarCfgRangeIterationFactAtLocalRow(
         bound, DirectMirScalarCfgRangeIterationFactDigest(bound)
     );
 }
-
-func DirectMirScalarCfgRangeLocalName(
-    ref fact: DirectMirScalarCfgRangeIterationFact,
-    local_names: Array<String>
-) -> String {
-    if !fact.valid || fact.local_row < 0 ||
-        fact.local_row >= ArrayLength(local_names) {
-        return "";
-    }
-    return local_names[fact.local_row];
-}

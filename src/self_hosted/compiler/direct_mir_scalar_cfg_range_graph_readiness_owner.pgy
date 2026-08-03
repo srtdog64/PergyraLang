@@ -1,0 +1,55 @@
+// Receipt-by-receipt CFG readiness for a sealed scalar graph plan.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarCfgRangeGraphReady(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let block_count: Int = ArrayLength(plan.block_succ_true);
+    if !DirectMirScalarCfgRangeFactSetReady(
+        plan.range_iterations, block_count
+    ) { return false; }
+    let row: Int = 0;
+    while row < DirectMirScalarCfgRangeFactCount(plan.range_iterations) {
+        let range: DirectMirScalarCfgRangeIterationFact =
+            DirectMirScalarCfgRangeFactAt(plan.range_iterations, row);
+        if plan.block_succ_true[range.init_block] != range.header_block ||
+            plan.block_succ_false[range.init_block] >= 0 ||
+            plan.block_succ_true[range.header_block] != range.body_block ||
+            plan.block_succ_false[range.header_block] != range.exit_block ||
+            plan.block_condition_kinds[range.header_block] !=
+                DirectMirScalarCfgConditionLess() ||
+            plan.block_condition_left_locals[range.header_block] !=
+                range.local_row ||
+            plan.block_condition_right_literals[range.header_block] !=
+                range.stop_literal {
+            return false;
+        }
+        let latch: Int = 0;
+        while latch < ArrayLength(range.backedge_blocks) {
+            let latch_block: Int = range.backedge_blocks[latch];
+            if plan.block_succ_true[latch_block] != range.header_block ||
+                plan.block_succ_false[latch_block] >= 0 {
+                return false;
+            }
+            let prior_range: Int = 0;
+            while prior_range < row {
+                let prior_latch: Int = 0;
+                let prior_fact: DirectMirScalarCfgRangeIterationFact =
+                    DirectMirScalarCfgRangeFactAt(
+                        plan.range_iterations, prior_range
+                    );
+                while prior_latch < ArrayLength(prior_fact.backedge_blocks) {
+                    if prior_fact.backedge_blocks[prior_latch] == latch_block {
+                        return false;
+                    }
+                    prior_latch = prior_latch + 1;
+                }
+                prior_range = prior_range + 1;
+            }
+            latch = latch + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}

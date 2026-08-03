@@ -1,0 +1,298 @@
+// Canonical identity, storage, lookup, and readiness for range receipts.
+
+import "direct_mir_scalar_cfg_range_fact_owner.pgy";
+
+struct DirectMirScalarCfgRangeFactSet {
+    let valid: Bool;
+    let digest: Int;
+    let fact_digests: Array<Int>;
+    let init_global_rows: Array<Int>;
+    let branch_global_rows: Array<Int>;
+    let init_blocks: Array<Int>;
+    let header_blocks: Array<Int>;
+    let body_blocks: Array<Int>;
+    let exit_blocks: Array<Int>;
+    let local_rows: Array<Int>;
+    let loop_syntax_ids: Array<Int>;
+    let binding_names: Array<String>;
+    let start_literals: Array<String>;
+    let stop_literals: Array<String>;
+    let step_literals: Array<String>;
+    let backedge_starts: Array<Int>;
+    let backedge_counts: Array<Int>;
+    let backedge_blocks: Array<Int>;
+}
+
+func DirectMirScalarCfgRangeFactSetInvalid(
+) -> DirectMirScalarCfgRangeFactSet {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return DirectMirScalarCfgRangeFactSet(
+        false, 0, ints, ints, ints, ints, ints, ints, ints, ints, ints,
+        strings, strings, strings, strings, ints, ints, ints
+    );
+}
+
+func DirectMirScalarCfgRangeFactSetDigest(
+    ref facts: DirectMirScalarCfgRangeFactSet
+) -> Int {
+    if !facts.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(
+        173L, ArrayLength(facts.loop_syntax_ids)
+    );
+    let row: Int = 0;
+    while row < ArrayLength(facts.loop_syntax_ids) {
+        hash = DirectMirCfgHashInt(hash, facts.loop_syntax_ids[row]);
+        hash = DirectMirCfgHashInt(hash, facts.fact_digests[row]);
+        row = row + 1;
+    }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarCfgRangeFactSetWithDigest(
+    facts: DirectMirScalarCfgRangeFactSet, digest: Int
+) -> DirectMirScalarCfgRangeFactSet {
+    return DirectMirScalarCfgRangeFactSet(
+        facts.valid, digest, facts.fact_digests, facts.init_global_rows,
+        facts.branch_global_rows, facts.init_blocks, facts.header_blocks,
+        facts.body_blocks, facts.exit_blocks, facts.local_rows,
+        facts.loop_syntax_ids, facts.binding_names, facts.start_literals,
+        facts.stop_literals, facts.step_literals, facts.backedge_starts,
+        facts.backedge_counts, facts.backedge_blocks
+    );
+}
+
+func DirectMirScalarCfgRangeFactSetEmpty(
+) -> DirectMirScalarCfgRangeFactSet {
+    let invalid: DirectMirScalarCfgRangeFactSet =
+        DirectMirScalarCfgRangeFactSetInvalid();
+    let facts: DirectMirScalarCfgRangeFactSet =
+        DirectMirScalarCfgRangeFactSet(
+            true, 0, invalid.fact_digests, invalid.init_global_rows,
+            invalid.branch_global_rows, invalid.init_blocks,
+            invalid.header_blocks, invalid.body_blocks, invalid.exit_blocks,
+            invalid.local_rows, invalid.loop_syntax_ids,
+            invalid.binding_names, invalid.start_literals,
+            invalid.stop_literals, invalid.step_literals,
+            invalid.backedge_starts, invalid.backedge_counts,
+            invalid.backedge_blocks
+        );
+    return DirectMirScalarCfgRangeFactSetWithDigest(
+        facts, DirectMirScalarCfgRangeFactSetDigest(facts)
+    );
+}
+
+func DirectMirScalarCfgRangeFactCount(
+    ref facts: DirectMirScalarCfgRangeFactSet
+) -> Int {
+    if !facts.valid { return -1; }
+    return ArrayLength(facts.loop_syntax_ids);
+}
+
+func DirectMirScalarCfgRangeFactAt(
+    ref facts: DirectMirScalarCfgRangeFactSet, row: Int
+) -> DirectMirScalarCfgRangeIterationFact {
+    if !facts.valid || row < 0 ||
+        row >= ArrayLength(facts.loop_syntax_ids) {
+        return DirectMirScalarCfgRangeIterationFactEmpty();
+    }
+    let backedges: Array<Int> = [];
+    let item: Int = 0;
+    while item < facts.backedge_counts[row] {
+        ArrayPush(
+            backedges, facts.backedge_blocks[facts.backedge_starts[row] + item]
+        );
+        item = item + 1;
+    }
+    return DirectMirScalarCfgRangeIterationFact(
+        true, facts.fact_digests[row], facts.init_global_rows[row],
+        facts.branch_global_rows[row], facts.init_blocks[row],
+        facts.header_blocks[row], facts.body_blocks[row],
+        facts.exit_blocks[row], facts.local_rows[row],
+        facts.loop_syntax_ids[row], facts.binding_names[row],
+        facts.start_literals[row], facts.stop_literals[row],
+        facts.step_literals[row], backedges
+    );
+}
+
+func DirectMirScalarCfgRangeFactSetAppend(
+    facts: DirectMirScalarCfgRangeFactSet,
+    fact: DirectMirScalarCfgRangeIterationFact
+) -> DirectMirScalarCfgRangeFactSet {
+    if !facts.valid || !fact.valid ||
+        (DirectMirScalarCfgRangeFactCount(facts) > 0 &&
+         facts.loop_syntax_ids[DirectMirScalarCfgRangeFactCount(facts) - 1] >=
+            fact.loop_syntax_id) {
+        return DirectMirScalarCfgRangeFactSetInvalid();
+    }
+    let fact_digests: Array<Int> = facts.fact_digests;
+    let init_globals: Array<Int> = facts.init_global_rows;
+    let branch_globals: Array<Int> = facts.branch_global_rows;
+    let init_blocks: Array<Int> = facts.init_blocks;
+    let headers: Array<Int> = facts.header_blocks;
+    let bodies: Array<Int> = facts.body_blocks;
+    let exits: Array<Int> = facts.exit_blocks;
+    let locals: Array<Int> = facts.local_rows;
+    let loop_ids: Array<Int> = facts.loop_syntax_ids;
+    let names: Array<String> = facts.binding_names;
+    let starts: Array<String> = facts.start_literals;
+    let stops: Array<String> = facts.stop_literals;
+    let steps: Array<String> = facts.step_literals;
+    let backedge_starts: Array<Int> = facts.backedge_starts;
+    let backedge_counts: Array<Int> = facts.backedge_counts;
+    let backedges: Array<Int> = facts.backedge_blocks;
+    ArrayPush(fact_digests, fact.digest);
+    ArrayPush(init_globals, fact.init_global_row);
+    ArrayPush(branch_globals, fact.branch_global_row);
+    ArrayPush(init_blocks, fact.init_block);
+    ArrayPush(headers, fact.header_block);
+    ArrayPush(bodies, fact.body_block);
+    ArrayPush(exits, fact.exit_block);
+    ArrayPush(locals, fact.local_row);
+    ArrayPush(loop_ids, fact.loop_syntax_id);
+    ArrayPush(names, fact.binding_name);
+    ArrayPush(starts, fact.start_literal);
+    ArrayPush(stops, fact.stop_literal);
+    ArrayPush(steps, fact.step_literal);
+    ArrayPush(backedge_starts, ArrayLength(backedges));
+    ArrayPush(backedge_counts, ArrayLength(fact.backedge_blocks));
+    let edge: Int = 0;
+    while edge < ArrayLength(fact.backedge_blocks) {
+        ArrayPush(backedges, fact.backedge_blocks[edge]);
+        edge = edge + 1;
+    }
+    let appended: DirectMirScalarCfgRangeFactSet =
+        DirectMirScalarCfgRangeFactSet(
+            true, 0, fact_digests, init_globals, branch_globals, init_blocks,
+            headers, bodies, exits, locals, loop_ids, names, starts, stops,
+            steps, backedge_starts, backedge_counts, backedges
+        );
+    return DirectMirScalarCfgRangeFactSetWithDigest(
+        appended, DirectMirScalarCfgRangeFactSetDigest(appended)
+    );
+}
+
+func DirectMirScalarCfgRangeExpectedLocalRef(
+    ref fact: DirectMirScalarCfgRangeIterationFact
+) -> String {
+    if !fact.valid || fact.loop_syntax_id < 0 { return ""; }
+    return Concat("iteration:", Concat(ToString(fact.loop_syntax_id), ":0"));
+}
+
+func DirectMirScalarCfgRangeFactAtLoopSyntaxId(
+    ref facts: DirectMirScalarCfgRangeFactSet, wanted: Int
+) -> DirectMirScalarCfgRangeIterationFact {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < DirectMirScalarCfgRangeFactCount(facts) {
+        if facts.loop_syntax_ids[row] == wanted {
+            if found >= 0 { return DirectMirScalarCfgRangeIterationFactEmpty(); }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return DirectMirScalarCfgRangeFactAt(facts, found);
+}
+
+func DirectMirScalarCfgRangeFactAtInitGlobalRow(
+    ref facts: DirectMirScalarCfgRangeFactSet, wanted: Int
+) -> DirectMirScalarCfgRangeIterationFact {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < DirectMirScalarCfgRangeFactCount(facts) {
+        if facts.init_global_rows[row] == wanted {
+            if found >= 0 { return DirectMirScalarCfgRangeIterationFactEmpty(); }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return DirectMirScalarCfgRangeFactAt(facts, found);
+}
+
+func DirectMirScalarCfgRangeFactAtBranchGlobalRow(
+    ref facts: DirectMirScalarCfgRangeFactSet, wanted: Int
+) -> DirectMirScalarCfgRangeIterationFact {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < DirectMirScalarCfgRangeFactCount(facts) {
+        if facts.branch_global_rows[row] == wanted {
+            if found >= 0 { return DirectMirScalarCfgRangeIterationFactEmpty(); }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return DirectMirScalarCfgRangeFactAt(facts, found);
+}
+
+func DirectMirScalarCfgRangeFactAtExpectedLocalRef(
+    ref facts: DirectMirScalarCfgRangeFactSet, wanted: String
+) -> DirectMirScalarCfgRangeIterationFact {
+    let parts: Array<String> = Split(wanted, ":");
+    if ArrayLength(parts) != 3 || parts[0] != "iteration" ||
+        parts[2] != "0" { return DirectMirScalarCfgRangeIterationFactEmpty(); }
+    return DirectMirScalarCfgRangeFactAtLoopSyntaxId(facts, ToInt(parts[1]));
+}
+
+func DirectMirScalarCfgRangeFactSetShapeReady(
+    ref facts: DirectMirScalarCfgRangeFactSet,
+    block_count: Int, require_bound_local: Bool
+) -> Bool {
+    let count: Int = DirectMirScalarCfgRangeFactCount(facts);
+    if count < 0 || facts.digest == 0 ||
+        facts.digest != DirectMirScalarCfgRangeFactSetDigest(facts) ||
+        count != ArrayLength(facts.fact_digests) ||
+        count != ArrayLength(facts.init_global_rows) ||
+        count != ArrayLength(facts.branch_global_rows) ||
+        count != ArrayLength(facts.init_blocks) ||
+        count != ArrayLength(facts.header_blocks) ||
+        count != ArrayLength(facts.body_blocks) ||
+        count != ArrayLength(facts.exit_blocks) ||
+        count != ArrayLength(facts.local_rows) ||
+        count != ArrayLength(facts.binding_names) ||
+        count != ArrayLength(facts.start_literals) ||
+        count != ArrayLength(facts.stop_literals) ||
+        count != ArrayLength(facts.step_literals) ||
+        count != ArrayLength(facts.backedge_starts) ||
+        count != ArrayLength(facts.backedge_counts) {
+        return false;
+    }
+    let edge_cursor: Int = 0;
+    let row: Int = 0;
+    while row < count {
+        let fact: DirectMirScalarCfgRangeIterationFact =
+            DirectMirScalarCfgRangeFactAt(facts, row);
+        if facts.backedge_starts[row] != edge_cursor ||
+            !DirectMirScalarCfgRangeIterationFactShapeReady(
+                fact, block_count, require_bound_local
+            ) || (row > 0 && facts.loop_syntax_ids[row - 1] >=
+                facts.loop_syntax_ids[row]) {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if facts.init_global_rows[prior] == facts.init_global_rows[row] ||
+                facts.branch_global_rows[prior] ==
+                    facts.branch_global_rows[row] ||
+                (require_bound_local &&
+                 facts.local_rows[prior] == facts.local_rows[row]) {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        edge_cursor = edge_cursor + facts.backedge_counts[row];
+        row = row + 1;
+    }
+    return edge_cursor == ArrayLength(facts.backedge_blocks);
+}
+
+func DirectMirScalarCfgRangeFactSetSourceReady(
+    ref facts: DirectMirScalarCfgRangeFactSet, block_count: Int
+) -> Bool {
+    return DirectMirScalarCfgRangeFactSetShapeReady(facts, block_count, false);
+}
+
+func DirectMirScalarCfgRangeFactSetReady(
+    ref facts: DirectMirScalarCfgRangeFactSet, block_count: Int
+) -> Bool {
+    return DirectMirScalarCfgRangeFactSetShapeReady(facts, block_count, true);
+}

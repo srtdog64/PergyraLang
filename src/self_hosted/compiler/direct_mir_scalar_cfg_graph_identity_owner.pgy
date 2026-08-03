@@ -55,9 +55,7 @@ func DirectMirScalarCfgGraphPlanDigest(
     hash = DirectMirScalarCfgHashInts(hash, plan.phi_predecessor_blocks);
     hash = DirectMirScalarCfgHashInts(hash, plan.phi_incoming_values);
     hash = DirectMirCfgHashInt(
-        hash, DirectMirScalarCfgRangeIterationFactDigest(
-            plan.range_iteration
-        )
+        hash, DirectMirScalarCfgRangeFactSetDigest(plan.range_iterations)
     );
     return DirectMirCfgBoundedDigest(hash);
 }
@@ -85,6 +83,6 @@ func DirectMirScalarCfgGraphPlanWithDigest(
         plan.operation_right_locals, plan.operation_left_literals,
         plan.operation_right_literals, plan.operation_phi_starts,
         plan.operation_phi_counts, plan.phi_predecessor_blocks,
-        plan.phi_incoming_values, plan.range_iteration
+        plan.phi_incoming_values, plan.range_iterations
     );
 }

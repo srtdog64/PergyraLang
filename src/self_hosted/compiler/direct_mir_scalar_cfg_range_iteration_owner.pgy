@@ -1,129 +1,198 @@
-// One typed range-iteration receipt for the general scalar CFG plan.
+// Canonical typed range-receipt construction for the general scalar CFG plan.
 
-import "direct_mir_scalar_cfg_range_fact_owner.pgy";
+import "direct_mir_scalar_cfg_range_set_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
 
-func DirectMirScalarCfgRangeIterationFactFromOwners(
+func DirectMirScalarCfgRangeInstructionLocalRef(
+    ref admitted: MirMachineLayerAdmittedJsonInput, global: Int
+) -> String {
+    let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[global],
+        admitted.routines.instruction_ends[global]
+    );
+    let value: Option<String> = JsonObjectFactStringFieldOpt(
+        object, "local_ref"
+    );
+    if !IsSome(value) { return ""; }
+    return UnwrapOption(value);
+}
+
+func DirectMirScalarCfgRangeIterationFactsFromOwners(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref index: MirRoutineFactIndex,
     ref use_facts: MirRoutineInstructionUseFacts
-) -> DirectMirScalarCfgRangeIterationFact {
-    let empty: DirectMirScalarCfgRangeIterationFact =
-        DirectMirScalarCfgRangeIterationFactEmpty();
-    if !index.valid ||
-        ArrayLength(index.loop_flow_summary_loop_ids) != 1 ||
-        ArrayLength(index.loop_flow_summary_kinds) != 1 ||
-        index.loop_flow_summary_kinds[0] != 1 ||
-        index.loop_flow_summary_effect_bases[0] != 0 ||
-        index.loop_flow_summary_effect_deltas[0] != 0 ||
-        index.loop_flow_summary_flags[0] != 1 ||
-        index.loop_flow_summary_entry_counts[0] != 0 ||
-        index.loop_flow_summary_exit_counts[0] != 0 ||
-        ArrayLength(index.loop_flow_state_stable_indices) != 0 ||
-        ArrayLength(index.iteration_type_facts.iteration_syntax_ids) != 1 ||
-        index.iteration_type_facts.iteration_syntax_ids[0] !=
-            index.loop_flow_summary_loop_ids[0] ||
-        index.iteration_type_facts.function_syntax_ids[0] !=
-            ToInt(index.source_syntax_id) ||
-        index.iteration_type_facts.binding_types[0] != "Int" ||
-        index.iteration_type_facts.iterable_types[0] != "Int" ||
-        index.iteration_type_facts.collection_hoists[0] != 0 {
-        return empty;
+) -> DirectMirScalarCfgRangeFactSet {
+    let invalid: DirectMirScalarCfgRangeFactSet =
+        DirectMirScalarCfgRangeFactSetInvalid();
+    if !index.valid || ArrayLength(index.loop_flow_state_stable_indices) != 0 {
+        return invalid;
     }
-    let init_global: Int = -1;
-    let branch_global: Int = -1;
-    let init_block: Int = -1;
-    let header: Int = -1;
-    let block: Int = 0;
-    while block < ArrayLength(index.block_starts) {
-        let local: Int = 0;
-        while local < index.block_instruction_counts[block] {
-            let local_instruction: Int =
-                index.block_instruction_starts[block] + local;
-            let global: Int = index.instruction_facts.global_start +
-                local_instruction;
-            let kind: String = admitted.routines.instruction_kinds[global];
-            let source: String =
-                admitted.routines.instruction_source_types[global];
-            if kind == "loop-init" && source == "AST_FOR_LOOP" {
-                if init_global >= 0 { return empty; }
-                init_global = global;
-                init_block = block;
-            }
-            if kind == "branch" && source == "AST_FOR_LOOP" {
-                if branch_global >= 0 { return empty; }
-                branch_global = global;
-                header = block;
-            }
-            local = local + 1;
+    let range_count: Int = 0;
+    let flow_row: Int = 0;
+    while flow_row < ArrayLength(index.loop_flow_summary_loop_ids) {
+        if index.loop_flow_summary_kinds[flow_row] == 1 {
+            range_count = range_count + 1;
         }
-        block = block + 1;
+        flow_row = flow_row + 1;
     }
-    if init_global < 0 || branch_global < 0 || init_block < 0 || header < 0 {
-        return empty;
-    }
-    let init: MirRoutineInstructionScalarCapture =
-        MirRoutineInstructionFactBundleAtGlobal(
-            index.instruction_facts, init_global
-        );
-    let branch: MirRoutineInstructionScalarCapture =
-        MirRoutineInstructionFactBundleAtGlobal(
-            index.instruction_facts, branch_global
-        );
-    let init_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
-        admitted.routines.instruction_starts[init_global],
-        admitted.routines.instruction_ends[init_global]
-    );
-    let branch_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
-        admitted.routines.instruction_starts[branch_global],
-        admitted.routines.instruction_ends[branch_global]
-    );
-    let start: String = DirectMirCfgSingleNodeLiteral(
-        init_object, AstExpressionNodeIntegerLiteral()
-    );
-    let stop: String = DirectMirCfgSingleNodeLiteral(
-        branch_object, AstExpressionNodeIntegerLiteral()
-    );
-    if !init.valid || !branch.valid || init.name != "loop-init" ||
-        branch.name != "branch" || init.result != "" || branch.result != "" ||
-        init.arg0 == "" || init.arg0 != branch.arg0 || init.arg1 != "" ||
-        branch.arg1 != "" || init.expr0 != start || branch.expr0 != start ||
-        init.expr1 != stop || branch.expr1 != stop ||
-        MirRoutineInstructionUseCountAtGlobal(use_facts, init_global) != 0 ||
-        MirRoutineInstructionUseCountAtGlobal(use_facts, branch_global) != 0 ||
-        index.block_succ_true[init_block] != header ||
-        index.block_succ_false[init_block] >= 0 ||
-        index.block_succ_true[header] < 0 ||
-        index.block_succ_false[header] < 0 ||
-        index.backedge_headers[header] != 1 {
-        return empty;
-    }
-    let backedges: Array<Int> = [];
-    block = 0;
-    while block < ArrayLength(index.block_starts) {
-        if block != init_block &&
-            (index.block_succ_true[block] == header ||
-             index.block_succ_false[block] == header) {
-            ArrayPush(backedges, block);
+    if range_count != ArrayLength(
+        index.iteration_type_facts.iteration_syntax_ids
+    ) { return invalid; }
+    let facts: DirectMirScalarCfgRangeFactSet =
+        DirectMirScalarCfgRangeFactSetEmpty();
+    let prior_loop_id: Int = -1;
+    while DirectMirScalarCfgRangeFactCount(facts) < range_count {
+        let loop_id: Int = -1;
+        flow_row = 0;
+        while flow_row < ArrayLength(index.loop_flow_summary_loop_ids) {
+            let candidate: Int = index.loop_flow_summary_loop_ids[flow_row];
+            if index.loop_flow_summary_kinds[flow_row] == 1 &&
+                candidate > prior_loop_id &&
+                (loop_id < 0 || candidate < loop_id) {
+                loop_id = candidate;
+            }
+            flow_row = flow_row + 1;
         }
-        block = block + 1;
+        if loop_id < 0 { return invalid; }
+        let matched_flow: Int = -1;
+        flow_row = 0;
+        while flow_row < ArrayLength(index.loop_flow_summary_loop_ids) {
+            if index.loop_flow_summary_kinds[flow_row] == 1 &&
+                index.loop_flow_summary_loop_ids[flow_row] == loop_id {
+                if matched_flow >= 0 { return invalid; }
+                matched_flow = flow_row;
+            }
+            flow_row = flow_row + 1;
+        }
+        let type_row: Int = -1;
+        let row: Int = 0;
+        while row < ArrayLength(
+            index.iteration_type_facts.iteration_syntax_ids
+        ) {
+            if index.iteration_type_facts.iteration_syntax_ids[row] == loop_id {
+                if type_row >= 0 { return invalid; }
+                type_row = row;
+            }
+            row = row + 1;
+        }
+        if matched_flow < 0 || type_row < 0 ||
+            index.loop_flow_summary_effect_bases[matched_flow] != 0 ||
+            index.loop_flow_summary_effect_deltas[matched_flow] != 0 ||
+            index.loop_flow_summary_flags[matched_flow] != 1 ||
+            index.loop_flow_summary_entry_counts[matched_flow] != 0 ||
+            index.loop_flow_summary_exit_counts[matched_flow] != 0 ||
+            index.iteration_type_facts.function_syntax_ids[type_row] !=
+                ToInt(index.source_syntax_id) ||
+            index.iteration_type_facts.binding_types[type_row] != "Int" ||
+            index.iteration_type_facts.iterable_types[type_row] != "Int" ||
+            index.iteration_type_facts.collection_hoists[type_row] != 0 {
+            return invalid;
+        }
+        let expected_ref: String = Concat(
+            "iteration:", Concat(ToString(loop_id), ":0")
+        );
+        let init_global: Int = -1;
+        let branch_global: Int = -1;
+        let init_block: Int = -1;
+        let header: Int = -1;
+        let block: Int = 0;
+        while block < ArrayLength(index.block_starts) {
+            let local: Int = 0;
+            while local < index.block_instruction_counts[block] {
+                let instruction: Int =
+                    index.block_instruction_starts[block] + local;
+                let global: Int = index.instruction_facts.global_start +
+                    instruction;
+                let kind: String = admitted.routines.instruction_kinds[global];
+                let source: String =
+                    admitted.routines.instruction_source_types[global];
+                let matches: Bool = range_count == 1 ||
+                    DirectMirScalarCfgRangeInstructionLocalRef(
+                        admitted, global
+                    ) == expected_ref;
+                if matches && kind == "loop-init" && source == "AST_FOR_LOOP" {
+                    if init_global >= 0 { return invalid; }
+                    init_global = global; init_block = block;
+                }
+                if matches && kind == "branch" && source == "AST_FOR_LOOP" {
+                    if branch_global >= 0 { return invalid; }
+                    branch_global = global; header = block;
+                }
+                local = local + 1;
+            }
+            block = block + 1;
+        }
+        if init_global < 0 || branch_global < 0 { return invalid; }
+        let init: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, init_global
+            );
+        let branch: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, branch_global
+            );
+        let init_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            admitted.routines.source_json,
+            admitted.routines.instruction_starts[init_global],
+            admitted.routines.instruction_ends[init_global]
+        );
+        let branch_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            admitted.routines.source_json,
+            admitted.routines.instruction_starts[branch_global],
+            admitted.routines.instruction_ends[branch_global]
+        );
+        let start: String = DirectMirCfgSingleNodeLiteral(
+            init_object, AstExpressionNodeIntegerLiteral()
+        );
+        let stop: String = DirectMirCfgSingleNodeLiteral(
+            branch_object, AstExpressionNodeIntegerLiteral()
+        );
+        if !init.valid || !branch.valid || init.arg0 == "" ||
+            init.arg0 != branch.arg0 || init.expr0 != start ||
+            branch.expr0 != start || init.expr1 != stop ||
+            branch.expr1 != stop ||
+            MirRoutineInstructionUseCountAtGlobal(
+                use_facts, init_global
+            ) != 0 || MirRoutineInstructionUseCountAtGlobal(
+                use_facts, branch_global
+            ) != 0 || index.block_succ_true[init_block] != header ||
+            index.block_succ_false[init_block] >= 0 ||
+            index.block_succ_true[header] < 0 ||
+            index.block_succ_false[header] < 0 ||
+            index.backedge_headers[header] != 1 {
+            return invalid;
+        }
+        let backedges: Array<Int> = [];
+        block = 0;
+        while block < ArrayLength(index.block_starts) {
+            if block != init_block &&
+                (index.block_succ_true[block] == header ||
+                 index.block_succ_false[block] == header) {
+                ArrayPush(backedges, block);
+            }
+            block = block + 1;
+        }
+        let fact: DirectMirScalarCfgRangeIterationFact =
+            DirectMirScalarCfgRangeIterationFact(
+                true, 0, init_global, branch_global, init_block, header,
+                index.block_succ_true[header], index.block_succ_false[header],
+                -1, loop_id, init.arg0, start, stop, "1", backedges
+            );
+        let verified: DirectMirScalarCfgRangeIterationFact =
+            DirectMirScalarCfgRangeIterationFactWithDigest(
+                fact, DirectMirScalarCfgRangeIterationFactDigest(fact)
+            );
+        if !DirectMirScalarCfgRangeIterationFactSourceReady(
+            verified, ArrayLength(index.block_starts)
+        ) { return invalid; }
+        facts = DirectMirScalarCfgRangeFactSetAppend(facts, verified);
+        if !facts.valid { return invalid; }
+        prior_loop_id = loop_id;
     }
-    let fact: DirectMirScalarCfgRangeIterationFact =
-        DirectMirScalarCfgRangeIterationFact(
-            true, 0, init_global, branch_global, init_block, header,
-            index.block_succ_true[header], index.block_succ_false[header],
-            -1, index.loop_flow_summary_loop_ids[0], init.arg0,
-            start, stop, "1", backedges
-        );
-    let verified: DirectMirScalarCfgRangeIterationFact =
-        DirectMirScalarCfgRangeIterationFactWithDigest(
-            fact, DirectMirScalarCfgRangeIterationFactDigest(fact)
-        );
-    if !DirectMirScalarCfgRangeIterationFactSourceReady(
-        verified, ArrayLength(index.block_starts)
-    ) { return empty; }
-    return verified;
+    if !DirectMirScalarCfgRangeFactSetSourceReady(
+        facts, ArrayLength(index.block_starts)
+    ) { return invalid; }
+    return facts;
 }

@@ -1,0 +1,140 @@
+// Exact expression LocalRef admission for every scalar-CFG range binding.
+
+import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
+import "direct_mir_scalar_cfg_range_set_owner.pgy";
+
+func DirectMirScalarCfgRangeBindingNameKnown(
+    ref facts: DirectMirScalarCfgRangeFactSet, wanted: String
+) -> Bool {
+    let row: Int = 0;
+    while row < DirectMirScalarCfgRangeFactCount(facts) {
+        if facts.binding_names[row] == wanted { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarCfgInstructionBlock(
+    ref index: MirRoutineFactIndex, instruction: Int
+) -> Int {
+    let block: Int = 0;
+    while block < ArrayLength(index.block_starts) {
+        if instruction >= index.block_instruction_starts[block] &&
+            instruction < index.block_instruction_starts[block] +
+                index.block_instruction_counts[block] {
+            return block;
+        }
+        block = block + 1;
+    }
+    return -1;
+}
+
+func DirectMirScalarCfgRangeOwnsDirectUseBlock(
+    ref index: MirRoutineFactIndex,
+    ref facts: DirectMirScalarCfgRangeFactSet,
+    ref selected: DirectMirScalarCfgRangeIterationFact,
+    block: Int
+) -> Bool {
+    if !selected.valid || block < 0 ||
+        !MirRoutineBlockDominates(index, selected.header_block, block) ||
+        MirRoutineBlockDominates(index, selected.exit_block, block) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < DirectMirScalarCfgRangeFactCount(facts) {
+        let candidate: DirectMirScalarCfgRangeIterationFact =
+            DirectMirScalarCfgRangeFactAt(facts, row);
+        if candidate.loop_syntax_id != selected.loop_syntax_id &&
+            candidate.binding_name == selected.binding_name &&
+            MirRoutineBlockDominates(index, candidate.header_block, block) &&
+            !MirRoutineBlockDominates(index, candidate.exit_block, block) &&
+            MirRoutineBlockDominates(
+                index, selected.header_block, candidate.header_block
+            ) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarCfgWireRangeScopesReady(
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref facts: DirectMirScalarCfgRangeFactSet
+) -> Bool {
+    if !wire.required { return DirectMirScalarCfgRangeFactCount(facts) <= 1; }
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        let block: Int = DirectMirScalarCfgInstructionBlock(
+            index, instruction
+        );
+        let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            admitted.routines.source_json,
+            admitted.routines.instruction_starts[global],
+            admitted.routines.instruction_ends[global]
+        );
+        let sequence: MirExpressionGraphSequence =
+            DirectMirScalarCfgExpressionSequence(object);
+        let matching_nodes: Int = 0;
+        let direct_nodes: Int = 0;
+        if sequence.ok {
+            let node: Int = 0;
+            while node < ArrayLength(sequence.arena.topology.node_kinds) {
+                let direct_ref: String = DirectMirScalarCfgWireExprRefAt(
+                    wire, instruction, node
+                );
+                let is_leaf: Bool =
+                    sequence.arena.topology.node_kinds[node] ==
+                        AstExpressionNodeLeaf();
+                let text: String = sequence.arena.node_texts[node];
+                if is_leaf && DirectMirScalarCfgRangeBindingNameKnown(
+                    facts, text
+                ) { matching_nodes = matching_nodes + 1; }
+                if direct_ref != "" {
+                    let fact: DirectMirScalarCfgRangeIterationFact =
+                        DirectMirScalarCfgRangeFactAtExpectedLocalRef(
+                            facts, direct_ref
+                        );
+                    if !is_leaf || !fact.valid || fact.binding_name != text ||
+                        !DirectMirScalarCfgRangeOwnsDirectUseBlock(
+                            index, facts, fact, block
+                        ) {
+                        return false;
+                    }
+                    direct_nodes = direct_nodes + 1;
+                }
+                node = node + 1;
+            }
+            if direct_nodes != wire.expr0_counts[instruction] {
+                return false;
+            }
+        } else if wire.expr0_counts[instruction] != 0 { return false; }
+        let matching_uses: Int = 0;
+        let use: Int = 0;
+        while use < MirRoutineInstructionUseCountAtGlobal(use_facts, global) {
+            let use_opt: Option<String> = MirRoutineInstructionUseAtGlobal(
+                use_facts, global, use
+            );
+            if IsSome(use_opt) {
+                let fact_row: Int = 0;
+                let matched: Bool = false;
+                while fact_row < DirectMirScalarCfgRangeFactCount(facts) {
+                    if MirSsaNameMatches(
+                        UnwrapOption(use_opt),
+                        facts.binding_names[fact_row], true
+                    ) { matched = true; }
+                    fact_row = fact_row + 1;
+                }
+                if matched { matching_uses = matching_uses + 1; }
+            }
+            use = use + 1;
+        }
+        if matching_nodes != direct_nodes + matching_uses { return false; }
+        instruction = instruction + 1;
+    }
+    return true;
+}
