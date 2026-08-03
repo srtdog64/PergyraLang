@@ -397,9 +397,14 @@ then closes the producer-side exit-phi omission in `break_after_stmt.pgy`:
 exit block 5 carries `i.8 = phi(i.2, i.4)`, both backends execute exact
 `3\n3`, and public file/stdout LLVM is byte-equal to the installed projection.
 The bridge and topology-specific break shape/plan/emitter are deleted; the
-remaining bounded CFG plan is schema v8 without a break fact. The next CFG
-falsifier is one three-predecessor exit phi with repeated latest ValueId slots,
-not another topology-specific plan.
+remaining bounded CFG plan is schema v8 without a break fact. Checkpoint
+`6da669a4` closes the next three-predecessor exit phi: equal latest ValueIds are
+distinct predecessor slots, each slot is consumed once, and selection still
+requires the latest same-local definition dominating that predecessor. Both
+backends execute exact `2`, incoming-row permutation is byte-equal, and forged
+stale `[i.2, i.2]` remains rejected. The next CFG falsifier is producer-owned
+exit-value merging for a range `for` with a reachable break, not another
+topology-specific plan.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:

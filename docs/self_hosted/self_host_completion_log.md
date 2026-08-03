@@ -6,6 +6,31 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-03 - Repeated break ValueIds bind by consumed phi slot
+
+- Landed executable checkpoint `6da669a4`. `multiple_break_exit.pgy` emits one
+  8,040-byte MIR (`C2AF131C...835`) with exit inputs `[i.2, i.4, i.4]`.
+  C and LLVM execute exact `2`; `[i.4, i.2, i.4]` incoming-row permutation is
+  byte-identical for each backend.
+- The original projector failed closed with `predecessor/phi binding is
+  invalid`. The first slot-consumption repair exposed a second falsifier by
+  accepting stale `[i.2, i.2]`. The final binding both consumes each physical
+  incoming slot once and scans all same-local routine definitions to require
+  the latest definition dominating each predecessor.
+- Block dominance, strict result-definition ordering, and definition-to-use
+  dominance moved to `routine_definition_dominance_fact_owner.pgy`. Its cap is
+  54/70 lines; phi binding is 127/180 and the focused gate is 156/160. No cap
+  increased.
+- The installed driver is 4,278,544 bytes, SHA-256
+  `C274237F...2A44`. Its rebuild took 130.8 seconds. Focused repeated-slot
+  C/LLVM, public multi-break+nested scalar, and the full component ratchet are
+  green.
+- The next falsifier is a range `for` that mutates an outer local, takes a
+  reachable break, and observes the value after the loop. The producer already
+  captures break version snapshots but currently consumes only their block
+  list when connecting exit edges; no for-specific backend repair is allowed.
+- No pressure run, full CI/bootstrap/fixpoint, or prover suite ran.
+
 ## 2026-08-03 - Break exit phi moves into the MIR producer
 
 - Landed executable checkpoint `cc2ddb14`. `break_after_stmt.pgy` now emits a

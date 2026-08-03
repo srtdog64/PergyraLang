@@ -2,29 +2,28 @@
 
 마지막 업데이트: 2026-08-03
 
-## 활성 우선순위 — repeated multi-break predecessor binding
+## 활성 우선순위 — for-loop break exit merge
 
-- 실행 체크포인트는 `cc2ddb14`다. installed Pergyra driver는 4,277,950
-  bytes, SHA-256 `15987177...B08A`다.
-- `break_after_stmt.pgy`의 producer MIR은 7,554 bytes
-  (`7C87AD58...ADAD`)이며 exit block 5에
-  `i.8 = phi(i.2, i.4)`를 둔다. C와 LLVM은 같은 MIR에서 exact
-  `3\n3`을 실행한다.
-- break predecessor와 로컬 SSA snapshot은 producer owner가 보유한다.
-  general scalar CFG plan이 이 경로를 인수했고 전용 break bridge,
-  shape, plan, emitter는 삭제됐다. 남은 공용 CFG plan은 `v8`이며
-  `break_fact`나 backend-only exit phi가 없다.
-- focused break, nested scalar, dual-backend, 누적 CFG, public LLVM
-  file/stdout, component removed-path gate가 모두 green이다. 새 owner hard
-  cap은 각각 90줄, focused gate cap은 160줄이며 올린 cap은 없다.
-- 다음 단일 falsifier는 feasible header exit와 동일한 `i.4`를 운반하는
-  두 break predecessor를 함께 가진 `multiple_break_exit.pgy`다. phi
-  predecessor 수는 3이고 incoming은 `[i.2, i.4, i.4]`여야 한다.
-  현재 binding owner가 동일 ValueId slot을 ambiguity로 거부하는지 먼저
-  관찰한 뒤 slot consumption을 일반적으로 고친다.
-- uses 배열 순서를 edge identity로 해석하거나 phi arity를 줄이는 것,
-  backend phi 재도입, 삭제된 break plan 복원, fixture/block-count 분기,
-  source/`expr0` 복원, native fallback은 금지한다.
+- 실행 체크포인트는 `6da669a4`다. installed Pergyra driver는 4,278,544
+  bytes, SHA-256 `C274237F...2A44`다.
+- `multiple_break_exit.pgy`의 producer MIR은 8,040 bytes
+  (`C2AF131C...835`)이며 exit phi는 predecessor별 세 슬롯
+  `[i.2, i.4, i.4]`를 보존한다. C와 LLVM은 같은 MIR에서 exact `2`를
+  실행하며 `[i.4, i.2, i.4]` 순열도 backend별 byte-equal이다.
+- 단순 slot-consumption 수정은 stale `[i.2, i.2]` 위조를 잘못 허용했다.
+  최종 binding은 각 슬롯을 한 번씩 소비하면서 routine 전체의 동일 local
+  definition을 확인해 그 predecessor를 지배하는 최신 정의만 선택한다.
+- dominance 책임은 새 named owner가 보유한다. dominance 54/70,
+  predecessor binding 127/180, focused gate 156/160이고 cap을 올리지 않았다.
+  focused C/LLVM, public multi-break+nested, full component ratchet이 green이다.
+- 다음 단일 falsifier는 range `for`에서 outer `Int`를 갱신하고 reachable
+  `break` 뒤 그 값을 사용하는 `for_break_exit.pgy`다. 현재
+  `routine_for_owner.pgy`는 break block과 local-version snapshot을 받지만
+  block edge만 소비하고 exit phi는 생산하지 않는다.
+- 새 for-break 전용 compiler를 만들거나 block 목록만 authority로 쓰는 것,
+  backend phi, fixture/block-count 분기, source/`expr0` 복원, planner retry,
+  native fallback은 금지한다. 기존 while/break exit merge와 같은 의미라면
+  하나의 일반 loop-exit 책임으로 합친다.
 - 메모리는 최종 integration 최대값만 기록한다. 2.4 GiB attention,
   3 GiB hard stop을 유지하며 이번 rung에서는 pressure/full bootstrap/
   gen2==gen3/full CI를 실행하지 않았다. 로컬 prover도 없다.

@@ -1,28 +1,28 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-08-03 repeated multi-break binding
+## Active self-host context — 2026-08-03 for-loop break exit merge
 
 - Resume authority is the top card in `docs/current_work_handoff.md`.
-  Executable commit `cc2ddb14c6932e9600062c3f2409f42d94041ff2` closes
-  producer-owned loop-exit phi carriage for `break_after_stmt.pgy`.
-- One 7,554-byte MIR carries `i.8 = phi(i.2, i.4)` at the exit. The same
-  general scalar CFG plan drives C and LLVM to exact `3\n3`; public LLVM
-  file/stdout are byte-equal to the installed projection.
-- Break predecessor/local-version snapshots and while exit merge are named MIR
-  owners. The bridge and topology-specific break shape/plan/emitter are deleted.
-  The remaining bounded CFG plan is schema v8 with no break fact or backend-only
-  exit phi.
-- Focused, nested, dual-backend, cumulative CFG, public, and component
-  removed-path gates are green. No hard cap increased.
-- The sole next executable falsifier is `multiple_break_exit.pgy`: a feasible
-  header exit plus two break predecessors carrying the same latest `i.4`
-  should produce a three-input phi `[i.2, i.4, i.4]` and execute exact `2`.
-  Observe the current duplicate-slot ambiguity before changing
-  `MirPhiPredecessorBindingFactFromOwners`.
-- Do not shrink phi arity, bind by uses order, reuse one incoming slot without
-  tracking consumption, invent a backend phi, revive the retired break path, or
-  add fixture/block-count routing. Pressure, full CI/bootstrap/fixpoint, and
-  prover suites did not run.
+  Executable commit `6da669a41bf656c55870f0543bf0080739717e8b` closes
+  repeated ValueId binding for `multiple_break_exit.pgy`.
+- One 8,040-byte MIR carries exit inputs `[i.2, i.4, i.4]`. The same general
+  scalar CFG plan drives C and LLVM to exact `2`; permuting the incoming row to
+  `[i.4, i.2, i.4]` leaves both artifacts byte-identical.
+- Each predecessor consumes one incoming slot, but equal values are not accepted
+  merely because two slots exist. The binding owner scans every same-local
+  result definition and requires the latest definition dominating that edge;
+  the forged stale `[i.2, i.2]` therefore remains rejected.
+- Block/definition dominance moved to a named 54/70-line owner. Phi binding is
+  127/180 and the focused gate is 156/160; no cap increased. Focused C/LLVM,
+  public multi-break+nested regression, and the full component ratchet are green.
+- The sole next executable falsifier is `for_break_exit.pgy`: a range loop
+  mutates an outer local, exits through a reachable break, and then observes the
+  merged value. `routine_for_owner.pgy` currently consumes captured break blocks
+  for edges but not their local-version snapshots for a producer exit phi.
+- Do not add a topology-specific for-break compiler, use block lists without
+  version identity, invent a backend phi, restore source/`expr0`, retry another
+  planner, or re-enter native semantics. Pressure, full CI/bootstrap/fixpoint,
+  and prover suites did not run.
 
 ## Historical self-host ledger — inactive navigation evidence
 

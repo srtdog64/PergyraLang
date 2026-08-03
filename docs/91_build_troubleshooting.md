@@ -26,10 +26,19 @@ producer/consumer cases were reached on 2026-08-03:
    snapshot and emits producer-owned `i.8 = phi(i.2, i.4)` at the exit.
    The bridge and topology-specific break plan/emitter are deleted; a backend
    no longer invents or guesses an exit value.
-3. A future exit with header `i.2` and two break predecessors both carrying
-   `i.4` must preserve three phi slots. If predecessor binding reports
-   ambiguity, track which identical incoming slot has been consumed; do not
-   collapse phi arity or use array order as edge identity.
+3. `multiple_break_exit.pgy` reaches an exit with header `i.2` and two break
+   predecessors both carrying `i.4`, so the producer preserves three phi slots
+   `[i.2, i.4, i.4]`. Equal ValueIds are not ambiguity by themselves: each
+   predecessor consumes one physical incoming slot. Slot consumption alone is
+   insufficient, however. The first repair falsely accepted forged stale
+   `[i.2, i.2]`. Binding must also scan every same-local routine definition and
+   require the latest definition dominating that predecessor. Incoming row
+   permutation may change storage order but not C/LLVM artifact bytes.
+4. A range `for` can capture break blocks and version snapshots yet still use
+   only the block list to connect exit edges. If an outer local is observed
+   after the loop, the producer must merge the header/range completion lane and
+   every reachable break snapshot before projection. Do not move that missing
+   phi to a for-specific backend or treat the block list as value authority.
 
 The general owner is selected by supported typed operations and source-local
 types, not fixture name or exact block count. It validates exact
