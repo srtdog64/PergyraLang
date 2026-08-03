@@ -25,9 +25,14 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
     let instruction_count: Int = ArrayLength(index.instruction_facts.starts);
     let use_facts: MirRoutineInstructionUseFacts =
         BuildMirRoutineInstructionUseFacts(admitted.routines, 0);
+    let wire: DirectMirScalarCfgWireLocalRefs =
+        DirectMirScalarCfgWireLocalRefsFromOwners(admitted, index);
+    if !wire.valid {
+        Die("direct MIR scalar CFG LocalRef plan is invalid");
+    }
     let range_sources: DirectMirScalarCfgRangeFactSet =
         DirectMirScalarCfgRangeIterationFactsFromOwners(
-            admitted, index, use_facts
+            admitted, index, use_facts, wire
         );
     let expected_ranges: Int = 0;
     let flow_row: Int = 0;
@@ -52,8 +57,6 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
         ) {
         Die("direct MIR scalar CFG typed index, use, or phi facts are invalid");
     }
-    let wire: DirectMirScalarCfgWireLocalRefs =
-        DirectMirScalarCfgWireLocalRefsFromOwners(admitted, index);
     let local_refs: DirectMirScalarCfgLocalRefPlan =
         DirectMirScalarCfgLocalRefPlanFromOwners(
             admitted, index, use_facts, wire, range_sources

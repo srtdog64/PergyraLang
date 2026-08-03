@@ -44,7 +44,10 @@ assert r["source_locals"] == [{"name":"i","type":"Int"}]*3
 assert [x["iteration_syntax_id"] for x in r["iteration_type_facts"]] == [7,9]
 assert [x["loop_syntax_id"] for x in r["loop_flow_summaries"]] == [7,9]
 rows = [x for b in r["blocks"] for x in b["instructions"]]
+assert [(b.get("succ_true"), b.get("succ_false")) for b in r["blocks"]] == [
+    (1,None),(2,6),(3,None),(4,5),(3,None),(1,None),(None,None)]
 assert [x["kind"] for x in rows] == ["def","loop-init","branch","loop-init","branch","stmt","stmt","stmt"]
+assert rows[0]["local_ref"] == "declaration:6:0"
 assert [rows[x]["local_ref"] for x in (1,2,3,4)] == ["iteration:7:0","iteration:7:0","iteration:9:0","iteration:9:0"]
 assert rows[5]["expr0_local_refs"] == [{"node":0,"ref":"iteration:9:0"}]
 assert rows[6]["expr0_local_refs"] == [{"node":0,"ref":"iteration:7:0"}]

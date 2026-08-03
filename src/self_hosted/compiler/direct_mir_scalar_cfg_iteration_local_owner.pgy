@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_cfg_wire_range_scope_admission_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
+import "direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy";
 
 func DirectMirScalarCfgIterationLocalRow(
     local_ref_kinds: Array<Int>, local_ref_syntax_ids: Array<Int>,

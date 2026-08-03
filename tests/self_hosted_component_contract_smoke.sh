@@ -15459,6 +15459,9 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_identity_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_identity_owner.pgy" 40
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy" 40
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_iteration_local_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_iteration_local_owner.pgy" 150
@@ -15525,8 +15528,18 @@ require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_own
     'DirectMirScalarCfgWireLocalRefsFromOwners('
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_wire_range_scope_admission_owner.pgy" \
     'DirectMirScalarCfgWireRangeScopesReady('
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy" \
+    'SelfMirLocalRef("iteration", loop_syntax_id, 0)'
+require_text "tests/self_hosted/parity/one_mir_cfg_break_case.sh" \
+    'one_mir_nested_iteration_binding_scope_owner.sh'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy" \
     'SelfMirLocalRefValid('
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy" \
+    'Split(wanted, ":")'
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy" \
+    'JsonObjectFactStringFieldOpt('
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy" \
+    '"local_ref"'
 reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy" \
     'func DirectMirScalarCfgWireLocalRefValid('
 reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy" \
@@ -15538,6 +15551,9 @@ reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy
 ! grep -R -F --include='*.pgy' 'DirectMirScalarCfgRangeIterationFactFromOwners(' \
     src/self_hosted/compiler >/dev/null ||
     fail "singular scalar CFG range constructor reappeared"
+! grep -R -F --include='*.pgy' 'range_local_row' \
+    src/self_hosted/compiler >/dev/null ||
+    fail "singular scalar CFG range-local row reappeared"
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
     'DirectMirScalarCfgGraphRouteClaimed(admitted)'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \

@@ -1,7 +1,7 @@
 // Exact expression LocalRef admission for every scalar-CFG range binding.
 
 import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
-import "direct_mir_scalar_cfg_range_set_owner.pgy";
+import "direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy";
 
 func DirectMirScalarCfgRangeBindingNameKnown(
     ref facts: DirectMirScalarCfgRangeFactSet, wanted: String

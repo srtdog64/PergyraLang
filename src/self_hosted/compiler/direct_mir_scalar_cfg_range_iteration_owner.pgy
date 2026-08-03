@@ -1,32 +1,20 @@
 // Canonical typed range-receipt construction for the general scalar CFG plan.
 
-import "direct_mir_scalar_cfg_range_set_owner.pgy";
+import "direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy";
+import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
-
-func DirectMirScalarCfgRangeInstructionLocalRef(
-    ref admitted: MirMachineLayerAdmittedJsonInput, global: Int
-) -> String {
-    let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
-        admitted.routines.instruction_starts[global],
-        admitted.routines.instruction_ends[global]
-    );
-    let value: Option<String> = JsonObjectFactStringFieldOpt(
-        object, "local_ref"
-    );
-    if !IsSome(value) { return ""; }
-    return UnwrapOption(value);
-}
 
 func DirectMirScalarCfgRangeIterationFactsFromOwners(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref index: MirRoutineFactIndex,
-    ref use_facts: MirRoutineInstructionUseFacts
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref wire: DirectMirScalarCfgWireLocalRefs
 ) -> DirectMirScalarCfgRangeFactSet {
     let invalid: DirectMirScalarCfgRangeFactSet =
         DirectMirScalarCfgRangeFactSetInvalid();
-    if !index.valid || ArrayLength(index.loop_flow_state_stable_indices) != 0 {
+    if !index.valid || !wire.valid ||
+        ArrayLength(index.loop_flow_state_stable_indices) != 0 {
         return invalid;
     }
     let range_count: Int = 0;
@@ -90,9 +78,8 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
             index.iteration_type_facts.collection_hoists[type_row] != 0 {
             return invalid;
         }
-        let expected_ref: String = Concat(
-            "iteration:", Concat(ToString(loop_id), ":0")
-        );
+        let expected_ref: String =
+            DirectMirScalarCfgIterationLocalRef(loop_id);
         let init_global: Int = -1;
         let branch_global: Int = -1;
         let init_block: Int = -1;
@@ -109,9 +96,8 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
                 let source: String =
                     admitted.routines.instruction_source_types[global];
                 let matches: Bool = range_count == 1 ||
-                    DirectMirScalarCfgRangeInstructionLocalRef(
-                        admitted, global
-                    ) == expected_ref;
+                    (wire.required &&
+                     wire.primary_refs[instruction] == expected_ref);
                 if matches && kind == "loop-init" && source == "AST_FOR_LOOP" {
                     if init_global >= 0 { return invalid; }
                     init_global = global; init_block = block;

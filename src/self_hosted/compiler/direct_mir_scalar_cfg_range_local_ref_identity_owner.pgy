@@ -1,0 +1,32 @@
+// Canonical LocalRef projection and exact lookup for scalar-CFG range receipts.
+
+import "direct_mir_scalar_cfg_range_set_owner.pgy";
+import "../mir/local_ref_identity_owner.pgy";
+
+func DirectMirScalarCfgIterationLocalRef(loop_syntax_id: Int) -> String {
+    return SelfMirLocalRef("iteration", loop_syntax_id, 0);
+}
+
+func DirectMirScalarCfgRangeExpectedLocalRef(
+    ref fact: DirectMirScalarCfgRangeIterationFact
+) -> String {
+    if !fact.valid { return ""; }
+    return DirectMirScalarCfgIterationLocalRef(fact.loop_syntax_id);
+}
+
+func DirectMirScalarCfgRangeFactAtExpectedLocalRef(
+    ref facts: DirectMirScalarCfgRangeFactSet, wanted: String
+) -> DirectMirScalarCfgRangeIterationFact {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < DirectMirScalarCfgRangeFactCount(facts) {
+        let fact: DirectMirScalarCfgRangeIterationFact =
+            DirectMirScalarCfgRangeFactAt(facts, row);
+        if DirectMirScalarCfgRangeExpectedLocalRef(fact) == wanted {
+            if found >= 0 { return DirectMirScalarCfgRangeIterationFactEmpty(); }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return DirectMirScalarCfgRangeFactAt(facts, found);
+}

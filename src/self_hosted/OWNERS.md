@@ -2102,8 +2102,10 @@ inventory must not become a second fact-family owner registry.
   literal, copy, comparison, addition, and Log subset; display `expr0` is not
   semantic input.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_owner.pgy` --
-  ValueId-first leaf resolution with an exact expression-node LocalRef as the
-  only direct-local alternative; spelling never overrides an explicit SSA use.
+  ValueId-first leaf resolution. Wire-required ranges use exact expression-node
+  LocalRefs; the byte-stable single-range wireless shape admits only one
+  iteration local with the requested spelling. Spelling never overrides an
+  explicit SSA use or selects a first/last candidate.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_direct_local_operand_owner.pgy`
   -- exact `(instruction,node)` LocalRef-to-iteration-slot resolution after
   ValueId admission; duplicate or missing identities fail closed.
@@ -2117,6 +2119,9 @@ inventory must not become a second fact-family owner registry.
   multiset admission; physical JSON row order is not storage identity.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_identity_owner.pgy`
   -- scalar-CFG local-slot kinds and exact explicit-identity lookup.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy`
+  -- canonical range LocalRef projection through `SelfMirLocalRef` plus exact
+  receipt-set lookup; it neither rebuilds nor reparses the wire grammar.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_iteration_local_owner.pgy` --
   canonical range-receipt-to-local-slot bijection and bound receipt publication.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_assignment_target_owner.pgy`
@@ -2137,8 +2142,10 @@ inventory must not become a second fact-family owner registry.
   neutral effects, stable flags, and empty resource-state spans without
   reconstructing a loop from a fixture topology.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy`
-  -- admitted-MIR construction of canonical range receipts by exact
-  `loop_syntax_id`/LocalRef joins over typed iteration and loop-flow owners.
+  -- admitted-MIR construction of canonical range receipts over typed
+  iteration and loop-flow owners; multi-range selection consumes the one
+  decoded wire and exact `loop_syntax_id` LocalRefs, while the byte-stable
+  single-range shape has one possible typed receipt.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_range_fact_owner.pgy` --
   target-neutral per-range receipt schema, digest, and bound/unbound readiness.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_range_set_owner.pgy` -- one

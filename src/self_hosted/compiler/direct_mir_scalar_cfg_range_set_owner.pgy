@@ -172,13 +172,6 @@ func DirectMirScalarCfgRangeFactSetAppend(
     );
 }
 
-func DirectMirScalarCfgRangeExpectedLocalRef(
-    ref fact: DirectMirScalarCfgRangeIterationFact
-) -> String {
-    if !fact.valid || fact.loop_syntax_id < 0 { return ""; }
-    return Concat("iteration:", Concat(ToString(fact.loop_syntax_id), ":0"));
-}
-
 func DirectMirScalarCfgRangeFactAtLoopSyntaxId(
     ref facts: DirectMirScalarCfgRangeFactSet, wanted: Int
 ) -> DirectMirScalarCfgRangeIterationFact {
@@ -222,15 +215,6 @@ func DirectMirScalarCfgRangeFactAtBranchGlobalRow(
         row = row + 1;
     }
     return DirectMirScalarCfgRangeFactAt(facts, found);
-}
-
-func DirectMirScalarCfgRangeFactAtExpectedLocalRef(
-    ref facts: DirectMirScalarCfgRangeFactSet, wanted: String
-) -> DirectMirScalarCfgRangeIterationFact {
-    let parts: Array<String> = Split(wanted, ":");
-    if ArrayLength(parts) != 3 || parts[0] != "iteration" ||
-        parts[2] != "0" { return DirectMirScalarCfgRangeIterationFactEmpty(); }
-    return DirectMirScalarCfgRangeFactAtLoopSyntaxId(facts, ToInt(parts[1]));
 }
 
 func DirectMirScalarCfgRangeFactSetShapeReady(

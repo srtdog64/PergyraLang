@@ -86,6 +86,15 @@ project() {
         fail "$target rejected $input"
 }
 project program c c; project program llvm ll
+[[ "$(sha256sum "$MIR" | awk '{print $1}')" == \
+    77409191405bdd859479069669aed8426f41e7dfaaa497b7ebceda28754264bb ]] ||
+    fail "single-range MIR identity drifted"
+[[ "$(sha256sum "$WORK_DIR/program.c" | awk '{print $1}')" == \
+    e2724f4f1b6972be932c30e4545ae89eb749e7f8883b322e2df23eb9c25fdf31 ]] ||
+    fail "single-range C artifact drifted"
+[[ "$(sha256sum "$WORK_DIR/program.ll" | awk '{print $1}')" == \
+    9cedd99d55b94b8473ceb9741b954617d7d349257e527d374a9d708920c0c449 ]] ||
+    fail "single-range LLVM artifact drifted"
 "$CC" -std=c11 -Wall -Wextra -Werror "$WORK_DIR/program.c" \
     -o "$WORK_DIR/c.exe" || fail "C artifact did not compile"
 "$CLANG" -x ir "$WORK_DIR/program.ll" -o "$WORK_DIR/llvm.exe" \
