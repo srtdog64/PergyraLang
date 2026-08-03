@@ -273,7 +273,7 @@ expect_rejected_without_artifact reachability_fact "$mutation" \
 mutation="$(make_mutation branch_graph_use \
     's/"uses":\["x\.1"\]/"uses":["x.2"]/' '"uses":["x.2"]')"
 expect_rejected_without_artifact branch_graph_use "$mutation" \
-    'branch.*(graph|use)|condition.*(leaf|use)|SSA|use[^[:alnum:]]+edge'
+    'branch.*(graph|use)|condition.*(leaf|use|invalid)|SSA|use[^[:alnum:]]+edge'
 
 SOURCE="$ROOT_DIR/src/self_hosted/mir_lower/fixture/if_else_assign.pgy"
 require_file "$SOURCE"; produce_one_mir; mir_digest="$(hash_file "$MIR_ARTIFACT")"
@@ -288,13 +288,13 @@ assert_mir_identity "$mir_digest" "if_else_assign backend executions"
 mutation="$(make_mutation missing_phi 's/"kind":"phi"/"kind":"def"/' '"kind":"def","name":"value"')"
 expect_rejected_without_artifact missing_phi "$mutation" 'CFG.*phi|phi.*(missing|required)'
 mutation="$(make_mutation phi_incoming_count 's/"uses":\["value.3","value.4"\]/"uses":["value.3"]/' '"uses":["value.3"]')"
-expect_rejected_without_artifact phi_incoming_count "$mutation" 'phi.*(incoming|count)|incoming.*count'
+expect_rejected_without_artifact phi_incoming_count "$mutation" 'phi.*(incoming|count|invalid)|incoming.*count'
 mutation="$(make_mutation phi_predecessor_coverage 's/"uses":\["value.3","value.4"\]/"uses":["value.3","value.3"]/' '"uses":["value.3","value.3"]')"
-expect_rejected_without_artifact phi_predecessor_coverage "$mutation" 'phi.*(incoming|predecessor)|incoming.*predecessor'
+expect_rejected_without_artifact phi_predecessor_coverage "$mutation" 'phi.*(incoming|predecessor|invalid)|incoming.*predecessor'
 mutation="$(make_mutation stale_incoming_ssa 's/"uses":\["value.3","value.4"\]/"uses":["value.2","value.4"]/' '"uses":["value.2","value.4"]')"
-expect_rejected_without_artifact stale_incoming_ssa "$mutation" 'phi.*(incoming|SSA)|incoming.*(stale|SSA)'
+expect_rejected_without_artifact stale_incoming_ssa "$mutation" 'phi.*(incoming|SSA|invalid)|incoming.*(stale|SSA)'
 mutation="$(make_mutation stale_result_ssa 's/"result":"value.5"/"result":"value.4"/' '"result":"value.4"')"
-expect_rejected_without_artifact stale_result_ssa "$mutation" 'phi.*result|result.*(use|SSA)|stale.*SSA'
+expect_rejected_without_artifact stale_result_ssa "$mutation" 'phi.*(result|invalid)|result.*(use|SSA)|stale.*SSA'
 mutation="$(make_mutation merge_edge 's/],"succ_true":3}/],"succ_true":2}/' '],"succ_true":2}')"
-expect_rejected_without_artifact merge_edge "$mutation" 'CFG.*(merge|successor)|merge.*edge'
+expect_rejected_without_artifact merge_edge "$mutation" 'CFG.*(merge|successor)|merge.*edge|phi.*invalid'
 source "$ROOT_DIR/tests/self_hosted/parity/one_mir_cfg_reassign_case.sh"

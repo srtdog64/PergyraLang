@@ -1,0 +1,20 @@
+// Typed assignment-target graph admission for the scalar CFG slice.
+
+import "direct_mir_scalar_cfg_expression_owner.pgy";
+
+func DirectMirScalarCfgAssignmentTargetReady(
+    ref instruction: JsonObjectFactTable,
+    expected_local: String
+) -> Bool {
+    let sequence: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceAppend(
+            MirExpressionGraphSequenceEmpty(),
+            JsonObjectFactObjectTable(instruction, "expr1_graph")
+        );
+    return expected_local != "" && sequence.ok &&
+        ArrayLength(sequence.roots) == 1 && sequence.roots[0] == 0 &&
+        ArrayLength(sequence.arena.topology.node_kinds) == 1 &&
+        sequence.arena.topology.node_kinds[0] == AstExpressionNodeLeaf() &&
+        sequence.arena.node_texts[0] == expected_local &&
+        DirectMirScalarCfgNoCallTargets(sequence);
+}

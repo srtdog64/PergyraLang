@@ -878,6 +878,14 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/phi_fact_owner.pgy` -- final-consumer typed phi
   predecessor arity, canonical SSA local/result identity, flattened incoming
   use, and unique definition-block validation without reopening raw `uses`.
+- `src/self_hosted/mir_lower/phi_predecessor_binding_fact_owner.pgy` -- exact
+  predecessor-to-incoming ValueId binding from typed CFG, SSA definition, use,
+  phi, and dominance owners. Incoming array position is never predecessor
+  identity, and any unbound or multiply reused incoming fails before planning.
+- `src/self_hosted/mir_lower/latest_local_value_fact_owner.pgy` -- canonical
+  latest dominating ValueId at an ordinary instruction use point. A merely
+  dominating but shadowed SSA version is rejected without relying on numeric
+  version order or source text.
 - `src/self_hosted/mir_lower/ssa_identity_owner.pgy` -- consumer-side
   canonical `<source-local>.<version>` validation shared by phi and direct
   backend admission without importing producer version assignment internals.
@@ -2065,6 +2073,41 @@ inventory must not become a second fact-family owner registry.
   a separately labelled backend-only exit phi without claiming another MIR phi.
 - `src/self_hosted/compiler/direct_mir_llvm_text_format_owner.pgy` -- shared
   LLVM line-format byte encoding used by scalar and CFG text emitters.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy` --
+  immutable target-neutral scalar CFG graph plan carrying local storage,
+  ValueIds, blocks, conditions, operations, and predecessor-bound phi rows.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_expression_owner.pgy` --
+  typed persisted-expression-graph projection for the admitted Int/Bool
+  literal, copy, comparison, addition, and Log subset; display `expr0` is not
+  semantic input.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_assignment_target_owner.pgy`
+  -- exact one-leaf assignment-place graph receipt joined to the instruction's
+  carried source-local identity; display target text is not a fallback.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_break_exit_bridge_owner.pgy`
+  -- explicit shrink-only capability boundary for a loop with both a feasible
+  condition exit and `break` while the producer still lacks an exit phi. That
+  slice remains with the named legacy loop-break plan; constant-true break CFGs
+  and canonical phi-bearing graphs stay on the general route.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy`
+  -- topology-independent route and plan issuer over the typed MIR indices,
+  use facts, dominance facts, and exact phi bindings. It claims the supported
+  operation/type envelope, not fixture names or block counts, and claimed
+  invalid graphs cannot retry a legacy topology path.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_loop_flow_admission_owner.pgy`
+  -- scalar execution receipt over the existing loop-summary/CFG projection
+  owner. The current pure-Int slice requires while-kind, neutral effects,
+  stable flags, and empty resource-state spans without reconstructing a loop
+  from a fixture topology.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_c_emission_owner.pgy` --
+  final C label/goto projection from the immutable scalar CFG plan, using one
+  source-local storage cell to lower verified SSA/phi facts without rereading
+  MIR.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy` --
+  final textual LLVM block projection from that same plan and local-storage
+  policy; it owns target spelling only.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_projection_owner.pgy` --
+  selected-target boundary joining the one scalar CFG plan with the owned
+  formatted-print ABI and C/LLVM text consumer.
 - `src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy` --
   backend-neutral validation of the bounded literal/local/arithmetic/direct-
   call graph facts consumed by direct projection. It owns neither target text

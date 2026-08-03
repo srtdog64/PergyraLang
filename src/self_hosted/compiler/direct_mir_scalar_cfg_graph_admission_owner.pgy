@@ -1,0 +1,449 @@
+// Admission and immutable-plan issuance for the general scalar CFG slice.
+
+import "direct_mir_scalar_cfg_expression_owner.pgy";
+import "direct_mir_scalar_cfg_assignment_target_owner.pgy";
+import "direct_mir_scalar_cfg_break_exit_bridge_owner.pgy";
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_loop_flow_admission_owner.pgy";
+import "direct_mir_scalar_graph_admission_owner.pgy";
+import "../mir_lower/phi_fact_owner.pgy";
+import "../mir_lower/phi_predecessor_binding_fact_owner.pgy";
+import "../mir_lower/latest_local_value_fact_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+import "../mir_lower/routine_result_definition_fact_owner.pgy";
+
+func DirectMirScalarCfgGraphRouteClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    if !DirectMirCfgProgramEnvelopeReady(admitted) ||
+        admitted.routines.routine_block_counts[0] < 2 {
+        return false;
+    }
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, 0
+    );
+    if !index.valid || ArrayLength(index.source_local_names) < 1 ||
+        ArrayLength(index.source_local_names) !=
+            ArrayLength(index.source_local_types) {
+        return false;
+    }
+    let local_row: Int = 0;
+    while local_row < ArrayLength(index.source_local_types) {
+        if index.source_local_types[local_row] != "Int" { return false; }
+        local_row = local_row + 1;
+    }
+    let branch_seen: Bool = false;
+    let break_seen: Bool = false;
+    let row: Int = 0;
+    while row < ArrayLength(index.instruction_facts.starts) {
+        let global_row: Int = index.instruction_facts.global_start + row;
+        let kind: String = admitted.routines.instruction_kinds[global_row];
+        let source: String =
+            admitted.routines.instruction_source_types[global_row];
+        if kind == "def" {
+            if source != "AST_LET_DECL" && source != "AST_ASSIGNMENT" {
+                return false;
+            }
+        } else if kind == "phi" {
+            if source != "" { return false; }
+        } else if kind == "stmt" {
+            if source != "AST_CALL" { return false; }
+        } else if kind == "branch" {
+            if source != "AST_BINARY" && source != "AST_IDENTIFIER" &&
+                source != "AST_BREAK" {
+                return false;
+            }
+            branch_seen = true;
+            if source == "AST_BREAK" { break_seen = true; }
+        } else {
+            return false;
+        }
+        row = row + 1;
+    }
+    return branch_seen &&
+        !DirectMirScalarCfgBreakExitMergeBridgeRequired(index, break_seen);
+}
+
+func DirectMirScalarCfgLocalRow(
+    names: Array<String>, wanted: String
+) -> Int {
+    let row: Int = 0;
+    while row < ArrayLength(names) {
+        if names[row] == wanted { return row; }
+        row = row + 1;
+    }
+    return -1;
+}
+
+func DirectMirScalarCfgValueUseDominates(
+    ref index: MirRoutineFactIndex,
+    value_names: Array<String>,
+    value_local_rows: Array<Int>,
+    value_row: Int,
+    use_block: Int,
+    use_instruction_row: Int
+) -> Bool {
+    if value_row < 0 || value_row >= ArrayLength(value_names) {
+        return false;
+    }
+    return MirRoutineLatestDominatingLocalValueMatches(
+        index, value_names, value_local_rows, value_row,
+        use_block, use_instruction_row
+    );
+}
+
+func DirectMirScalarCfgAppendOperation(
+    inout kinds: Array<Int>,
+    inout result_values: Array<Int>,
+    inout left_values: Array<Int>,
+    inout right_values: Array<Int>,
+    inout left_literals: Array<String>,
+    inout right_literals: Array<String>,
+    inout phi_starts: Array<Int>,
+    inout phi_counts: Array<Int>,
+    kind: Int,
+    result_value: Int,
+    expression: DirectMirScalarCfgExpressionFact,
+    phi_start: Int,
+    phi_count: Int
+) -> Void {
+    ArrayPush(kinds, kind);
+    ArrayPush(result_values, result_value);
+    ArrayPush(left_values, expression.left_value);
+    ArrayPush(right_values, expression.right_value);
+    ArrayPush(left_literals, expression.left_literal);
+    ArrayPush(right_literals, expression.right_literal);
+    ArrayPush(phi_starts, phi_start);
+    ArrayPush(phi_counts, phi_count);
+}
+
+func DirectMirScalarCfgGraphPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirScalarCfgGraphPlan {
+    if !DirectMirScalarCfgGraphRouteClaimed(admitted) {
+        Die("direct MIR scalar CFG graph route was not claimed");
+    }
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, 0
+    );
+    let instruction_count: Int = ArrayLength(index.instruction_facts.starts);
+    let use_facts: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, 0);
+    if !index.valid || !MirRoutineInstructionFactBundleReady(
+            index.instruction_facts, ArrayLength(index.block_starts)
+        ) || !MirRoutineInstructionUseFactsReady(
+            use_facts, instruction_count
+        ) || !DirectMirScalarCfgLoopFlowFactsReady(
+            index, admitted.routines, 0
+        ) || !MirRoutinePhiFactsReady(
+            index, admitted.routines, use_facts, 0
+        ) {
+        Die("direct MIR scalar CFG typed index, loop, use, or phi facts are invalid");
+    }
+    let local_names: Array<String> = index.source_local_names;
+    let local_row: Int = 0;
+    while local_row < ArrayLength(local_names) {
+        if StringLength(local_names[local_row]) == 0 {
+            Die("direct MIR scalar CFG local identity is missing");
+        }
+        let prior: Int = 0;
+        while prior < local_row {
+            if local_names[prior] == local_names[local_row] {
+                Die("direct MIR scalar CFG local identity is duplicated");
+            }
+            prior = prior + 1;
+        }
+        local_row = local_row + 1;
+    }
+
+    let value_names: Array<String> = [];
+    let value_local_rows: Array<Int> = [];
+    let value_definition_blocks: Array<Int> = [];
+    let value_instruction: Int = 0;
+    while value_instruction < instruction_count {
+        let result: String =
+            index.instruction_facts.results[value_instruction];
+        if result != "" {
+            let global_row: Int =
+                index.instruction_facts.global_start + value_instruction;
+            let kind: String = admitted.routines.instruction_kinds[global_row];
+            if kind != "def" && kind != "phi" {
+                Die("direct MIR scalar CFG non-value instruction has a result");
+            }
+            let definition: MirRoutineResultDefinitionFact =
+                MirRoutineFactIndexUniqueResultDefinition(index, result);
+            let local_name: String =
+                index.instruction_facts.arg0s[value_instruction];
+            if kind == "phi" {
+                local_name = index.instruction_facts.names[value_instruction];
+            }
+            let local_row: Int = DirectMirScalarCfgLocalRow(
+                local_names, local_name
+            );
+            if !MirRoutineResultDefinitionFactReady(definition) ||
+                local_row < 0 || !MirSsaNameMatches(
+                    result, local_name, false
+                ) || DirectMirScalarCfgGraphValueRow(
+                    value_names, result
+                ) >= 0 {
+                Die("direct MIR scalar CFG ValueId definition is invalid");
+            }
+            ArrayPush(value_names, result);
+            ArrayPush(value_local_rows, local_row);
+            ArrayPush(value_definition_blocks, definition.block_id);
+        }
+        value_instruction = value_instruction + 1;
+    }
+
+    let block_succ_true: Array<Int> = index.block_succ_true;
+    let block_succ_false: Array<Int> = index.block_succ_false;
+    let block_operation_starts: Array<Int> = [];
+    let block_operation_counts: Array<Int> = [];
+    let block_condition_kinds: Array<Int> = [];
+    let block_condition_left_values: Array<Int> = [];
+    let block_condition_right_values: Array<Int> = [];
+    let block_condition_left_literals: Array<String> = [];
+    let block_condition_right_literals: Array<String> = [];
+    let operation_kinds: Array<Int> = [];
+    let operation_result_values: Array<Int> = [];
+    let operation_left_values: Array<Int> = [];
+    let operation_right_values: Array<Int> = [];
+    let operation_left_literals: Array<String> = [];
+    let operation_right_literals: Array<String> = [];
+    let operation_phi_starts: Array<Int> = [];
+    let operation_phi_counts: Array<Int> = [];
+    let phi_predecessor_blocks: Array<Int> = [];
+    let phi_incoming_values: Array<Int> = [];
+
+    let block: Int = 0;
+    while block < ArrayLength(index.block_starts) {
+        if !index.block_reachable[block] {
+            Die("direct MIR scalar CFG contains an unreachable block");
+        }
+        let operation_start: Int = ArrayLength(operation_kinds);
+        ArrayPush(block_operation_starts, operation_start);
+        let condition: DirectMirScalarCfgExpressionFact =
+            DirectMirScalarCfgExpressionFact(
+                true, DirectMirScalarCfgConditionNone(), -1, -1, "", ""
+            );
+        let instruction_row: Int = 0;
+        while instruction_row < index.block_instruction_counts[block] {
+            let local_instruction: Int =
+                index.block_instruction_starts[block] + instruction_row;
+            let global_row: Int =
+                index.instruction_facts.global_start + local_instruction;
+            let kind: String = admitted.routines.instruction_kinds[global_row];
+            let source: String =
+                admitted.routines.instruction_source_types[global_row];
+            let instruction: JsonObjectFactTable =
+                JsonObjectFactTableFromBounds(
+                    admitted.routines.source_json,
+                    admitted.routines.instruction_starts[global_row],
+                    admitted.routines.instruction_ends[global_row]
+                );
+            if kind == "def" {
+                let scalar: MirRoutineInstructionScalarCapture =
+                    MirRoutineInstructionFactBundleAtGlobal(
+                        index.instruction_facts, global_row
+                    );
+                let result_value: Int =
+                    DirectMirScalarCfgGraphValueRow(
+                        value_names, scalar.result
+                    );
+                let expression: DirectMirScalarCfgExpressionFact =
+                    DirectMirScalarCfgValueExpressionFact(
+                        instruction, use_facts, global_row, value_names
+                    );
+                if !scalar.valid || scalar.name != "ssa-def" ||
+                    scalar.abi_type_name != "Int" || result_value < 0 ||
+                    !expression.valid ||
+                    (source == "AST_LET_DECL" && scalar.arg1 != "") ||
+                    (source == "AST_ASSIGNMENT" && scalar.arg1 != "local") ||
+                    (source == "AST_ASSIGNMENT" &&
+                        !DirectMirScalarCfgAssignmentTargetReady(
+                            instruction, scalar.arg0
+                        )) ||
+                    (expression.left_value >= 0 &&
+                        !DirectMirScalarCfgValueUseDominates(
+                            index, value_names, value_local_rows,
+                            expression.left_value,
+                            block, instruction_row
+                        )) ||
+                    (expression.right_value >= 0 &&
+                        !DirectMirScalarCfgValueUseDominates(
+                            index, value_names, value_local_rows,
+                            expression.right_value,
+                            block, instruction_row
+                        )) {
+                    Die("direct MIR scalar CFG definition fact is invalid");
+                }
+                DirectMirScalarCfgAppendOperation(
+                    operation_kinds, operation_result_values,
+                    operation_left_values, operation_right_values,
+                    operation_left_literals, operation_right_literals,
+                    operation_phi_starts, operation_phi_counts,
+                    expression.kind, result_value, expression,
+                    ArrayLength(phi_predecessor_blocks), 0
+                );
+            } else if kind == "phi" {
+                let phi: MirRoutinePhiFact = MirRoutinePhiFactAt(
+                    index, admitted.routines, use_facts, 0,
+                    block, instruction_row
+                );
+                let binding: MirPhiPredecessorBindingFact =
+                    MirPhiPredecessorBindingFactFromOwners(index, phi);
+                let result_value: Int =
+                    DirectMirScalarCfgGraphValueRow(
+                        value_names, phi.result_name
+                    );
+                if !MirPhiPredecessorBindingFactReady(
+                        binding, phi.predecessor_count
+                    ) || result_value < 0 {
+                    Die("direct MIR scalar CFG predecessor/phi binding is invalid");
+                }
+                let phi_start: Int = ArrayLength(phi_predecessor_blocks);
+                let predecessor_row: Int = 0;
+                while predecessor_row < ArrayLength(
+                    binding.predecessor_blocks
+                ) {
+                    let incoming_row: Int =
+                        binding.incoming_rows[predecessor_row];
+                    let incoming_value: Int =
+                        DirectMirScalarCfgGraphValueRow(
+                            value_names, phi.incoming_results[incoming_row]
+                        );
+                    if incoming_value < 0 ||
+                        value_local_rows[incoming_value] !=
+                            value_local_rows[result_value] {
+                        Die("direct MIR scalar CFG phi ValueId local binding is invalid");
+                    }
+                    ArrayPush(
+                        phi_predecessor_blocks,
+                        binding.predecessor_blocks[predecessor_row]
+                    );
+                    ArrayPush(phi_incoming_values, incoming_value);
+                    predecessor_row = predecessor_row + 1;
+                }
+                let empty_expression: DirectMirScalarCfgExpressionFact =
+                    DirectMirScalarCfgExpressionFact(
+                        true, DirectMirScalarCfgOpPhiInt(), -1, -1, "", ""
+                    );
+                DirectMirScalarCfgAppendOperation(
+                    operation_kinds, operation_result_values,
+                    operation_left_values, operation_right_values,
+                    operation_left_literals, operation_right_literals,
+                    operation_phi_starts, operation_phi_counts,
+                    DirectMirScalarCfgOpPhiInt(), result_value,
+                    empty_expression, phi_start,
+                    ArrayLength(binding.predecessor_blocks)
+                );
+            } else if kind == "stmt" {
+                let scalar: MirRoutineInstructionScalarCapture =
+                    MirRoutineInstructionFactBundleAtGlobal(
+                        index.instruction_facts, global_row
+                    );
+                let expression: DirectMirScalarCfgExpressionFact =
+                    DirectMirScalarCfgLogExpressionFact(
+                        instruction, use_facts, global_row, value_names
+                    );
+                if !scalar.valid || scalar.arg0 != "Log" ||
+                    scalar.result != "" || !expression.valid ||
+                    (expression.left_value >= 0 &&
+                        !DirectMirScalarCfgValueUseDominates(
+                            index, value_names, value_local_rows,
+                            expression.left_value,
+                            block, instruction_row
+                        )) {
+                    Die("direct MIR scalar CFG Log fact is invalid");
+                }
+                DirectMirScalarCfgAppendOperation(
+                    operation_kinds, operation_result_values,
+                    operation_left_values, operation_right_values,
+                    operation_left_literals, operation_right_literals,
+                    operation_phi_starts, operation_phi_counts,
+                    expression.kind, -1, expression,
+                    ArrayLength(phi_predecessor_blocks), 0
+                );
+            } else if kind == "branch" {
+                if instruction_row + 1 !=
+                    index.block_instruction_counts[block] {
+                    Die("direct MIR scalar CFG branch is not the terminator");
+                }
+                if source == "AST_BREAK" {
+                    if index.block_succ_true[block] < 0 ||
+                        index.block_succ_false[block] >= 0 ||
+                        MirRoutineBlockDominates(
+                            index, index.block_succ_true[block], block
+                        ) ||
+                        MirRoutineInstructionUseCountAtGlobal(
+                            use_facts, global_row
+                        ) != 0 {
+                        Die("direct MIR scalar CFG break edge is invalid");
+                    }
+                } else {
+                    condition = DirectMirScalarCfgConditionExpressionFact(
+                        instruction, use_facts, global_row, value_names
+                    );
+                    if !condition.valid ||
+                        index.block_succ_true[block] < 0 ||
+                        (index.block_succ_false[block] < 0 &&
+                            (condition.kind !=
+                                DirectMirScalarCfgConditionBool() ||
+                             condition.left_literal != "true")) ||
+                        (condition.left_value >= 0 &&
+                            !DirectMirScalarCfgValueUseDominates(
+                                index, value_names, value_local_rows,
+                                condition.left_value,
+                                block, instruction_row
+                            )) ||
+                        (condition.right_value >= 0 &&
+                            !DirectMirScalarCfgValueUseDominates(
+                                index, value_names, value_local_rows,
+                                condition.right_value,
+                                block, instruction_row
+                            )) {
+                        Die("direct MIR scalar CFG condition fact is invalid");
+                    }
+                }
+            }
+            instruction_row = instruction_row + 1;
+        }
+        ArrayPush(
+            block_operation_counts,
+            ArrayLength(operation_kinds) - operation_start
+        );
+        ArrayPush(block_condition_kinds, condition.kind);
+        ArrayPush(block_condition_left_values, condition.left_value);
+        ArrayPush(block_condition_right_values, condition.right_value);
+        ArrayPush(block_condition_left_literals, condition.left_literal);
+        ArrayPush(block_condition_right_literals, condition.right_literal);
+        block = block + 1;
+    }
+    let plan: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgGraphPlan(
+        true, DirectMirScalarCfgGraphPlanSchema(),
+        CompilerArtifactPlanRevision(), 0,
+        DirectMirCfgMirDigest(admitted.routines.source_json),
+        DirectMirCfgDigestFromIndex(index), CompilerTargetCapabilitySchema(),
+        CompilerTargetCapabilityFingerprint(), local_names, value_names,
+        value_local_rows, value_definition_blocks,
+        block_succ_true, block_succ_false,
+        block_operation_starts, block_operation_counts,
+        block_condition_kinds, block_condition_left_values,
+        block_condition_right_values, block_condition_left_literals,
+        block_condition_right_literals, operation_kinds,
+        operation_result_values, operation_left_values,
+        operation_right_values, operation_left_literals,
+        operation_right_literals, operation_phi_starts,
+        operation_phi_counts, phi_predecessor_blocks, phi_incoming_values
+    );
+    let verified: DirectMirScalarCfgGraphPlan =
+        DirectMirScalarCfgGraphPlanWithDigest(
+            plan, DirectMirScalarCfgGraphPlanDigest(plan)
+        );
+    if !DirectMirScalarCfgGraphPlanReady(verified) ||
+        !DirectMirScalarCfgGraphPlanMutationRejected(verified) {
+        Die("direct MIR scalar CFG verified plan identity is invalid");
+    }
+    return verified;
+}

@@ -27,11 +27,11 @@ mutation="$(make_mutation missing_false_predecessor_phi \
     's/"uses":\["x\.3","x\.1"\]/"uses":["x.3","x.3"]/' \
     '"uses":["x.3","x.3"]')"
 expect_rejected_without_artifact missing_false_predecessor_phi "$mutation" \
-    'phi.*(incoming|predecessor)|incoming.*predecessor'
+    'phi.*(incoming|predecessor|invalid)|incoming.*predecessor'
 mutation="$(make_mutation assignment_abi \
     's/"arg1":"local","slot_anchor":null,"abi_type_name":"Int"/"arg1":"local","slot_anchor":null,"abi_type_name":"String"/g' \
     '"arg1":"local","slot_anchor":null,"abi_type_name":"String"')"
 expect_rejected_without_artifact assignment_abi "$mutation" \
-    'CFG.*(arm|type)|arm.*(ABI|type)|ABI.*assignment'
+    'CFG.*(arm|type)|arm.*(ABI|type)|ABI.*assignment|def.*invalid'
 
 source "$ROOT_DIR/tests/self_hosted/parity/one_mir_cfg_nested_case.sh"

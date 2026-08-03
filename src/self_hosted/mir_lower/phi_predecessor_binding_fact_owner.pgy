@@ -1,0 +1,169 @@
+// Exact predecessor -> incoming ValueId bindings for one MIR phi.
+//
+// The `uses` row order is not a predecessor order.  This owner selects the
+// latest incoming definition that dominates each predecessor and rejects
+// missing, ambiguous, or unused incoming values.
+
+import "phi_fact_owner.pgy";
+import "mir_cfg_graph_owner.pgy";
+import "routine_result_definition_fact_owner.pgy";
+
+struct MirPhiPredecessorBindingFact {
+    let valid: Bool;
+    let predecessor_blocks: Array<Int>;
+    let incoming_rows: Array<Int>;
+}
+
+func MirPhiPredecessorBindingFactEmpty() -> MirPhiPredecessorBindingFact {
+    let empty: Array<Int> = [];
+    return MirPhiPredecessorBindingFact(false, empty, empty);
+}
+
+func MirRoutineBlockDominates(
+    ref index: MirRoutineFactIndex,
+    dominator: Int,
+    block: Int
+) -> Bool {
+    let count: Int = ArrayLength(index.block_starts);
+    if !index.valid || dominator < 0 || block < 0 ||
+        dominator >= count || block >= count ||
+        !index.block_reachable[dominator] || !index.block_reachable[block] {
+        return false;
+    }
+    if dominator == block { return true; }
+    return !MirRoutineGraphCanReachAvoiding(
+        index.block_succ_true, index.block_succ_false,
+        0, block, dominator
+    );
+}
+
+func MirRoutineDefinitionStrictlyPrecedes(
+    ref index: MirRoutineFactIndex,
+    ref earlier: MirRoutineResultDefinitionFact,
+    ref later: MirRoutineResultDefinitionFact
+) -> Bool {
+    if !MirRoutineResultDefinitionFactReady(earlier) ||
+        !MirRoutineResultDefinitionFactReady(later) ||
+        earlier.global_row == later.global_row {
+        return false;
+    }
+    if earlier.block_id == later.block_id {
+        return earlier.block_instruction_row < later.block_instruction_row;
+    }
+    return MirRoutineBlockDominates(index, earlier.block_id, later.block_id);
+}
+
+func MirRoutineDefinitionDominatesInstruction(
+    ref index: MirRoutineFactIndex,
+    ref definition: MirRoutineResultDefinitionFact,
+    use_block: Int,
+    use_instruction_row: Int
+) -> Bool {
+    if !MirRoutineResultDefinitionFactReady(definition) ||
+        use_instruction_row < 0 {
+        return false;
+    }
+    if definition.block_id == use_block {
+        return definition.block_instruction_row < use_instruction_row;
+    }
+    return MirRoutineBlockDominates(index, definition.block_id, use_block);
+}
+
+func MirPhiPredecessorBindingFactFromOwners(
+    ref index: MirRoutineFactIndex,
+    ref phi: MirRoutinePhiFact
+) -> MirPhiPredecessorBindingFact {
+    if !phi.valid || phi.predecessor_count < 2 ||
+        ArrayLength(phi.incoming_results) < 2 ||
+        ArrayLength(phi.incoming_results) !=
+            ArrayLength(phi.incoming_definition_blocks) {
+        return MirPhiPredecessorBindingFactEmpty();
+    }
+    let predecessors: Array<Int> = [];
+    let block: Int = 0;
+    while block < ArrayLength(index.block_starts) {
+        if index.block_succ_true[block] == phi.block_id ||
+            index.block_succ_false[block] == phi.block_id {
+            ArrayPush(predecessors, block);
+        }
+        block = block + 1;
+    }
+    if ArrayLength(predecessors) != phi.predecessor_count {
+        return MirPhiPredecessorBindingFactEmpty();
+    }
+    let incoming_rows: Array<Int> = [];
+    let selected_counts: Array<Int> = [];
+    let incoming: Int = 0;
+    while incoming < ArrayLength(phi.incoming_results) {
+        ArrayPush(selected_counts, 0);
+        incoming = incoming + 1;
+    }
+    let predecessor_row: Int = 0;
+    while predecessor_row < ArrayLength(predecessors) {
+        let predecessor: Int = predecessors[predecessor_row];
+        let selected: Int = 0 - 1;
+        let candidate: Int = 0;
+        while candidate < ArrayLength(phi.incoming_results) {
+            let definition: MirRoutineResultDefinitionFact =
+                MirRoutineFactIndexUniqueResultDefinition(
+                    index, phi.incoming_results[candidate]
+                );
+            if !MirRoutineResultDefinitionFactReady(definition) ||
+                definition.block_id !=
+                    phi.incoming_definition_blocks[candidate] ||
+                !MirRoutineBlockDominates(
+                    index, definition.block_id, predecessor
+                ) {
+                candidate = candidate + 1;
+                continue;
+            }
+            let shadowed: Bool = false;
+            let other: Int = 0;
+            while other < ArrayLength(phi.incoming_results) {
+                if other != candidate {
+                    let later: MirRoutineResultDefinitionFact =
+                        MirRoutineFactIndexUniqueResultDefinition(
+                            index, phi.incoming_results[other]
+                        );
+                    if MirRoutineResultDefinitionFactReady(later) &&
+                        MirRoutineBlockDominates(
+                            index, later.block_id, predecessor
+                        ) && MirRoutineDefinitionStrictlyPrecedes(
+                            index, definition, later
+                        ) {
+                        shadowed = true;
+                    }
+                }
+                other = other + 1;
+            }
+            if !shadowed {
+                if selected >= 0 {
+                    return MirPhiPredecessorBindingFactEmpty();
+                }
+                selected = candidate;
+            }
+            candidate = candidate + 1;
+        }
+        if selected < 0 { return MirPhiPredecessorBindingFactEmpty(); }
+        ArrayPush(incoming_rows, selected);
+        ArraySet(selected_counts, selected, selected_counts[selected] + 1);
+        predecessor_row = predecessor_row + 1;
+    }
+    let selected_row: Int = 0;
+    while selected_row < ArrayLength(selected_counts) {
+        if selected_counts[selected_row] == 0 {
+            return MirPhiPredecessorBindingFactEmpty();
+        }
+        selected_row = selected_row + 1;
+    }
+    return MirPhiPredecessorBindingFact(true, predecessors, incoming_rows);
+}
+
+func MirPhiPredecessorBindingFactReady(
+    ref fact: MirPhiPredecessorBindingFact,
+    expected_predecessors: Int
+) -> Bool {
+    return fact.valid && expected_predecessors >= 2 &&
+        ArrayLength(fact.predecessor_blocks) == expected_predecessors &&
+        ArrayLength(fact.incoming_rows) == expected_predecessors;
+}

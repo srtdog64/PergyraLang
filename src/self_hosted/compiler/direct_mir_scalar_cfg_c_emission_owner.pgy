@@ -1,0 +1,172 @@
+// C projection of one verified topology-independent scalar CFG plan.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "../mir/runtime_call_abi_fact_owner.pgy";
+
+func DirectMirScalarCfgCLocal(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    value_row: Int
+) -> String {
+    if value_row < 0 || value_row >= ArrayLength(plan.value_local_rows) {
+        Die("direct MIR scalar CFG C ValueId is invalid");
+    }
+    return Concat("pgy_local_", ToString(plan.value_local_rows[value_row]));
+}
+
+func DirectMirScalarCfgCOperand(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    value_row: Int,
+    literal: String
+) -> String {
+    if value_row >= 0 { return DirectMirScalarCfgCLocal(plan, value_row); }
+    if literal == "" {
+        Die("direct MIR scalar CFG C operand is missing");
+    }
+    return literal;
+}
+
+func DirectMirScalarCfgEmitC(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    int_line_format: String,
+    string_line_format: String,
+    int_c_type: String
+) -> String {
+    if !DirectMirScalarCfgGraphPlanReady(plan) || !formatted_print.ok ||
+        formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        int_line_format == "" || string_line_format == "" ||
+        int_c_type == "" {
+        Die("direct MIR scalar CFG C plan or runtime ABI is invalid");
+    }
+    let output: String = "#include <stdio.h>\n\nint main(void) {\n";
+    let local_row: Int = 0;
+    while local_row < ArrayLength(plan.local_names) {
+        output = Concat(output, "    ");
+        output = Concat(output, int_c_type);
+        output = Concat(output, " pgy_local_");
+        output = Concat(output, ToString(local_row));
+        output = Concat(output, " = 0;\n");
+        local_row = local_row + 1;
+    }
+    output = Concat(output, "    goto pgy_block_0;\n");
+    let block: Int = 0;
+    while block < ArrayLength(plan.block_succ_true) {
+        output = Concat(output, "pgy_block_");
+        output = Concat(output, ToString(block));
+        output = Concat(output, ":\n");
+        let operation: Int = plan.block_operation_starts[block];
+        let operation_end: Int = operation +
+            plan.block_operation_counts[block];
+        while operation < operation_end {
+            let kind: Int = plan.operation_kinds[operation];
+            if kind == DirectMirScalarCfgOpConstInt() {
+                output = Concat(output, "    ");
+                output = Concat(output, DirectMirScalarCfgCLocal(
+                    plan, plan.operation_result_values[operation]
+                ));
+                output = Concat(output, " = ");
+                output = Concat(
+                    output, plan.operation_left_literals[operation]
+                );
+                output = Concat(output, ";\n");
+            } else if kind == DirectMirScalarCfgOpCopyInt() ||
+                    kind == DirectMirScalarCfgOpAddInt() {
+                output = Concat(output, "    ");
+                output = Concat(output, DirectMirScalarCfgCLocal(
+                    plan, plan.operation_result_values[operation]
+                ));
+                output = Concat(output, " = ");
+                output = Concat(output, DirectMirScalarCfgCOperand(
+                    plan, plan.operation_left_values[operation],
+                    plan.operation_left_literals[operation]
+                ));
+                if kind == DirectMirScalarCfgOpAddInt() {
+                    output = Concat(output, " + ");
+                    output = Concat(output, DirectMirScalarCfgCOperand(
+                        plan, plan.operation_right_values[operation],
+                        plan.operation_right_literals[operation]
+                    ));
+                }
+                output = Concat(output, ";\n");
+            } else if kind == DirectMirScalarCfgOpLogInt() {
+                output = Concat(output, "    ");
+                output = Concat(output, formatted_print.symbol);
+                output = Concat(output, "(\"");
+                output = Concat(output, int_line_format);
+                output = Concat(output, "\", (");
+                output = Concat(output, int_c_type);
+                output = Concat(output, ")");
+                output = Concat(output, DirectMirScalarCfgCLocal(
+                    plan, plan.operation_left_values[operation]
+                ));
+                output = Concat(output, ");\n");
+            } else if kind == DirectMirScalarCfgOpLogString() {
+                output = Concat(output, "    ");
+                output = Concat(output, formatted_print.symbol);
+                output = Concat(output, "(\"");
+                output = Concat(output, string_line_format);
+                output = Concat(output, "\", \"");
+                output = Concat(
+                    output, plan.operation_left_literals[operation]
+                );
+                output = Concat(output, "\");\n");
+            } else if kind != DirectMirScalarCfgOpPhiInt() {
+                Die("direct MIR scalar CFG C operation is unsupported");
+            }
+            operation = operation + 1;
+        }
+        let condition: Int = plan.block_condition_kinds[block];
+        let true_target: Int = plan.block_succ_true[block];
+        let false_target: Int = plan.block_succ_false[block];
+        if condition == DirectMirScalarCfgConditionNone() {
+            if true_target >= 0 {
+                output = Concat(output, "    goto pgy_block_");
+                output = Concat(output, ToString(true_target));
+                output = Concat(output, ";\n");
+            } else {
+                output = Concat(output, "    return 0;\n");
+            }
+        } else {
+            output = Concat(output, "    if (");
+            if condition == DirectMirScalarCfgConditionBool() {
+                if plan.block_condition_left_literals[block] == "true" {
+                    output = Concat(output, "1");
+                } else {
+                    output = Concat(output, "0");
+                }
+            } else {
+                output = Concat(output, DirectMirScalarCfgCOperand(
+                    plan, plan.block_condition_left_values[block],
+                    plan.block_condition_left_literals[block]
+                ));
+                if condition == DirectMirScalarCfgConditionLess() {
+                    output = Concat(output, " < ");
+                } else if condition == DirectMirScalarCfgConditionEqual() {
+                    output = Concat(output, " == ");
+                } else if condition == DirectMirScalarCfgConditionGreater() {
+                    output = Concat(output, " > ");
+                } else {
+                    Die("direct MIR scalar CFG C condition is unsupported");
+                }
+                output = Concat(output, DirectMirScalarCfgCOperand(
+                    plan, plan.block_condition_right_values[block],
+                    plan.block_condition_right_literals[block]
+                ));
+            }
+            output = Concat(output, ") goto pgy_block_");
+            output = Concat(output, ToString(true_target));
+            output = Concat(output, ";\n");
+            if false_target >= 0 {
+                output = Concat(output, "    goto pgy_block_");
+                output = Concat(output, ToString(false_target));
+                output = Concat(output, ";\n");
+            } else {
+                output = Concat(output, "    return 0;\n");
+            }
+        }
+        block = block + 1;
+    }
+    output = Concat(output, "}\n");
+    return output;
+}

@@ -1,0 +1,30 @@
+// Loop-flow receipt required by the general scalar CFG execution slice.
+
+import "../mir_lower/routine_lower.pgy";
+
+func DirectMirScalarCfgLoopFlowFactsReady(
+    ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int
+) -> Bool {
+    if !LoopFlowSummaryProjectionReady(index, routines, routine_row) ||
+        !MirRoutineFactIndexLoopFlowFactsValid(index) ||
+        ArrayLength(index.loop_flow_state_stable_indices) != 0 {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(index.loop_flow_summary_loop_ids) {
+        if index.loop_flow_summary_kinds[row] != 0 ||
+            index.loop_flow_summary_effect_bases[row] != 0 ||
+            index.loop_flow_summary_effect_deltas[row] != 0 ||
+            index.loop_flow_summary_flags[row] != 1 ||
+            index.loop_flow_summary_entry_starts[row] != 0 ||
+            index.loop_flow_summary_entry_counts[row] != 0 ||
+            index.loop_flow_summary_exit_starts[row] != 0 ||
+            index.loop_flow_summary_exit_counts[row] != 0 {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}

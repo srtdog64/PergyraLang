@@ -1,0 +1,251 @@
+// LLVM IR projection of one verified topology-independent scalar CFG plan.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_llvm_text_format_owner.pgy";
+import "../mir/runtime_call_abi_fact_owner.pgy";
+
+func DirectMirScalarCfgLlvmLocal(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    value_row: Int
+) -> String {
+    if value_row < 0 || value_row >= ArrayLength(plan.value_local_rows) {
+        Die("direct MIR scalar CFG LLVM ValueId is invalid");
+    }
+    return Concat("%pgy.local.", ToString(plan.value_local_rows[value_row]));
+}
+
+func DirectMirScalarCfgEmitLlvm(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    int_line_format: String,
+    string_line_format: String
+) -> String {
+    if !DirectMirScalarCfgGraphPlanReady(plan) || !formatted_print.ok ||
+        formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        int_line_format == "" || string_line_format == "" {
+        Die("direct MIR scalar CFG LLVM plan or runtime ABI is invalid");
+    }
+    let int_size: Int =
+        DirectMirScalarLlvmFormatByteCount(int_line_format);
+    let string_size: Int =
+        DirectMirScalarLlvmFormatByteCount(string_line_format);
+    let output: String = "@.pgy.scalar.cfg.int.format = private unnamed_addr constant [";
+    output = Concat(output, ToString(int_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(
+        output, DirectMirScalarLlvmFormatPayload(int_line_format)
+    );
+    output = Concat(output, "\\00\", align 1\n");
+    output = Concat(
+        output,
+        "@.pgy.scalar.cfg.string.format = private unnamed_addr constant ["
+    );
+    output = Concat(output, ToString(string_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(
+        output, DirectMirScalarLlvmFormatPayload(string_line_format)
+    );
+    output = Concat(output, "\\00\", align 1\n");
+    let string_operation: Int = 0;
+    while string_operation < ArrayLength(plan.operation_kinds) {
+        if plan.operation_kinds[string_operation] ==
+                DirectMirScalarCfgOpLogString() {
+            let content: String =
+                plan.operation_left_literals[string_operation];
+            output = Concat(output, "@.pgy.scalar.cfg.string.");
+            output = Concat(output, ToString(string_operation));
+            output = Concat(output, " = private unnamed_addr constant [");
+            output = Concat(output, ToString(StringLength(content) + 1));
+            output = Concat(output, " x i8] c\"");
+            output = Concat(output, content);
+            output = Concat(output, "\\00\", align 1\n");
+        }
+        string_operation = string_operation + 1;
+    }
+    output = Concat(output, "\ndeclare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n\ndefine i32 @main() {\nentry:\n");
+    let local_row: Int = 0;
+    while local_row < ArrayLength(plan.local_names) {
+        output = Concat(output, "  %pgy.local.");
+        output = Concat(output, ToString(local_row));
+        output = Concat(output, " = alloca i64, align 8\n  store i64 0, ptr %pgy.local.");
+        output = Concat(output, ToString(local_row));
+        output = Concat(output, ", align 8\n");
+        local_row = local_row + 1;
+    }
+    output = Concat(output, "  br label %pgy.block.0\n");
+    let block: Int = 0;
+    while block < ArrayLength(plan.block_succ_true) {
+        output = Concat(output, "\npgy.block.");
+        output = Concat(output, ToString(block));
+        output = Concat(output, ":\n");
+        let operation: Int = plan.block_operation_starts[block];
+        let operation_end: Int = operation +
+            plan.block_operation_counts[block];
+        while operation < operation_end {
+            let kind: Int = plan.operation_kinds[operation];
+            if kind == DirectMirScalarCfgOpConstInt() {
+                output = Concat(output, "  store i64 ");
+                output = Concat(
+                    output, plan.operation_left_literals[operation]
+                );
+                output = Concat(output, ", ptr ");
+                output = Concat(output, DirectMirScalarCfgLlvmLocal(
+                    plan, plan.operation_result_values[operation]
+                ));
+                output = Concat(output, ", align 8\n");
+            } else if kind == DirectMirScalarCfgOpCopyInt() ||
+                    kind == DirectMirScalarCfgOpAddInt() {
+                output = Concat(output, "  %pgy.op.");
+                output = Concat(output, ToString(operation));
+                output = Concat(output, ".left = load i64, ptr ");
+                output = Concat(output, DirectMirScalarCfgLlvmLocal(
+                    plan, plan.operation_left_values[operation]
+                ));
+                output = Concat(output, ", align 8\n");
+                let result_operand: String = Concat(
+                    "%pgy.op.", Concat(ToString(operation), ".left")
+                );
+                if kind == DirectMirScalarCfgOpAddInt() {
+                    let right_operand: String =
+                        plan.operation_right_literals[operation];
+                    if plan.operation_right_values[operation] >= 0 {
+                        output = Concat(output, "  %pgy.op.");
+                        output = Concat(output, ToString(operation));
+                        output = Concat(output, ".right = load i64, ptr ");
+                        output = Concat(output, DirectMirScalarCfgLlvmLocal(
+                            plan, plan.operation_right_values[operation]
+                        ));
+                        output = Concat(output, ", align 8\n");
+                        right_operand = Concat(
+                            "%pgy.op.",
+                            Concat(ToString(operation), ".right")
+                        );
+                    }
+                    output = Concat(output, "  %pgy.op.");
+                    output = Concat(output, ToString(operation));
+                    output = Concat(output, ".sum = add i64 ");
+                    output = Concat(output, result_operand);
+                    output = Concat(output, ", ");
+                    output = Concat(output, right_operand);
+                    output = Concat(output, "\n");
+                    result_operand = Concat(
+                        "%pgy.op.",
+                        Concat(ToString(operation), ".sum")
+                    );
+                }
+                output = Concat(output, "  store i64 ");
+                output = Concat(output, result_operand);
+                output = Concat(output, ", ptr ");
+                output = Concat(output, DirectMirScalarCfgLlvmLocal(
+                    plan, plan.operation_result_values[operation]
+                ));
+                output = Concat(output, ", align 8\n");
+            } else if kind == DirectMirScalarCfgOpLogInt() {
+                output = Concat(output, "  %pgy.op.");
+                output = Concat(output, ToString(operation));
+                output = Concat(output, ".log = load i64, ptr ");
+                output = Concat(output, DirectMirScalarCfgLlvmLocal(
+                    plan, plan.operation_left_values[operation]
+                ));
+                output = Concat(output, ", align 8\n  %pgy.op.");
+                output = Concat(output, ToString(operation));
+                output = Concat(output, ".printed = call i32 (ptr, ...) @");
+                output = Concat(output, formatted_print.symbol);
+                output = Concat(output, "(ptr @.pgy.scalar.cfg.int.format, i64 %pgy.op.");
+                output = Concat(output, ToString(operation));
+                output = Concat(output, ".log)\n");
+            } else if kind == DirectMirScalarCfgOpLogString() {
+                output = Concat(output, "  %pgy.op.");
+                output = Concat(output, ToString(operation));
+                output = Concat(output, ".printed = call i32 (ptr, ...) @");
+                output = Concat(output, formatted_print.symbol);
+                output = Concat(output, "(ptr @.pgy.scalar.cfg.string.format, ptr @.pgy.scalar.cfg.string.");
+                output = Concat(output, ToString(operation));
+                output = Concat(output, ")\n");
+            } else if kind != DirectMirScalarCfgOpPhiInt() {
+                Die("direct MIR scalar CFG LLVM operation is unsupported");
+            }
+            operation = operation + 1;
+        }
+        let condition: Int = plan.block_condition_kinds[block];
+        let true_target: Int = plan.block_succ_true[block];
+        let false_target: Int = plan.block_succ_false[block];
+        if condition == DirectMirScalarCfgConditionNone() {
+            if true_target >= 0 {
+                output = Concat(output, "  br label %pgy.block.");
+                output = Concat(output, ToString(true_target));
+                output = Concat(output, "\n");
+            } else {
+                output = Concat(output, "  ret i32 0\n");
+            }
+        } else if condition == DirectMirScalarCfgConditionBool() &&
+                false_target < 0 {
+            output = Concat(output, "  br label %pgy.block.");
+            output = Concat(output, ToString(true_target));
+            output = Concat(output, "\n");
+        } else {
+            let left_operand: String =
+                plan.block_condition_left_literals[block];
+            let right_operand: String =
+                plan.block_condition_right_literals[block];
+            if plan.block_condition_left_values[block] >= 0 {
+                output = Concat(output, "  %pgy.cond.");
+                output = Concat(output, ToString(block));
+                output = Concat(output, ".left = load i64, ptr ");
+                output = Concat(output, DirectMirScalarCfgLlvmLocal(
+                    plan, plan.block_condition_left_values[block]
+                ));
+                output = Concat(output, ", align 8\n");
+                left_operand = Concat(
+                    "%pgy.cond.", Concat(ToString(block), ".left")
+                );
+            }
+            if plan.block_condition_right_values[block] >= 0 {
+                output = Concat(output, "  %pgy.cond.");
+                output = Concat(output, ToString(block));
+                output = Concat(output, ".right = load i64, ptr ");
+                output = Concat(output, DirectMirScalarCfgLlvmLocal(
+                    plan, plan.block_condition_right_values[block]
+                ));
+                output = Concat(output, ", align 8\n");
+                right_operand = Concat(
+                    "%pgy.cond.", Concat(ToString(block), ".right")
+                );
+            }
+            output = Concat(output, "  %pgy.cond.");
+            output = Concat(output, ToString(block));
+            output = Concat(output, " = ");
+            if condition == DirectMirScalarCfgConditionBool() {
+                output = Concat(output, "icmp eq i1 ");
+                output = Concat(output, left_operand);
+                output = Concat(output, ", true");
+            } else {
+                if condition == DirectMirScalarCfgConditionLess() {
+                    output = Concat(output, "icmp slt i64 ");
+                } else if condition == DirectMirScalarCfgConditionEqual() {
+                    output = Concat(output, "icmp eq i64 ");
+                } else if condition == DirectMirScalarCfgConditionGreater() {
+                    output = Concat(output, "icmp sgt i64 ");
+                } else {
+                    Die("direct MIR scalar CFG LLVM condition is unsupported");
+                }
+                output = Concat(output, left_operand);
+                output = Concat(output, ", ");
+                output = Concat(output, right_operand);
+            }
+            output = Concat(output, "\n  br i1 %pgy.cond.");
+            output = Concat(output, ToString(block));
+            output = Concat(output, ", label %pgy.block.");
+            output = Concat(output, ToString(true_target));
+            output = Concat(output, ", label %pgy.block.");
+            output = Concat(output, ToString(false_target));
+            output = Concat(output, "\n");
+        }
+        block = block + 1;
+    }
+    output = Concat(output, "}\n");
+    return output;
+}

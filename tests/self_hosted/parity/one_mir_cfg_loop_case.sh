@@ -29,26 +29,26 @@ require_file "$SOURCE"; produce_one_mir; mir_digest="$(hash_file "$MIR_ARTIFACT"
     fail "whileloop producer identity or four-block/one-phi shape drifted"
 project_one_target c "$C_ARTIFACT" "$mir_digest"
 project_one_target llvm "$LLVM_ARTIFACT" "$mir_digest"
-for fact in 'long long pgy_local_0 = 0;' 'while (pgy_local_0 < 3)' \
+for fact in 'long long pgy_local_0 = 0;' \
+    'if (pgy_local_0 < 3) goto pgy_block_2;' \
     'printf("%lld\n", (long long)pgy_local_0);' \
     'pgy_local_0 = pgy_local_0 + 1;' 'return 0;'; do
     grep -Fq -- "$fact" "$C_ARTIFACT" || fail "loop C fact drifted: $fact"
 done
-[[ "$(grep -o 'while (' "$C_ARTIFACT" | wc -l | tr -d ' ')" == 1 ]] &&
-    ! grep -Fq 'goto' "$C_ARTIFACT" || fail "loop C topology drifted"
+[[ "$(grep -F 'goto pgy_block_1;' "$C_ARTIFACT" | wc -l | tr -d ' ')" == 2 ]] ||
+    fail "loop C backedge topology drifted"
 for fact in '[6 x i8] c"%lld\0A\00"' \
     'declare i32 @printf(ptr, ...)' \
-    'br label %pgy.block.1' \
-    '%pgy.local.loop = phi i64 [ %pgy.local.entry, %entry ], [ %pgy.local.next, %pgy.block.2 ]' \
-    '%pgy.condition.loop = icmp slt i64 %pgy.local.loop, 3' \
-    'br i1 %pgy.condition.loop, label %pgy.block.2, label %pgy.block.3' \
-    '%pgy.logged.loop = call i32 (ptr, ...) @printf(ptr @.pgy.int.line.format, i64 %pgy.local.loop)' \
-    '%pgy.local.next = add i64 %pgy.local.loop, 1' 'ret i32 0'; do
+    '%pgy.local.0 = alloca i64, align 8' \
+    '%pgy.cond.1 = icmp slt i64 %pgy.cond.1.left, 3' \
+    'br i1 %pgy.cond.1, label %pgy.block.2, label %pgy.block.3' \
+    'call i32 (ptr, ...) @printf(ptr @.pgy.scalar.cfg.int.format' \
+    '%pgy.op.3.sum = add i64 %pgy.op.3.left, 1' 'ret i32 0'; do
     grep -Fq -- "$fact" "$LLVM_ARTIFACT" || fail "loop LLVM fact drifted: $fact"
 done
-[[ "$(grep -F ' phi i64 ' "$LLVM_ARTIFACT" | wc -l | tr -d ' ')" == 1 &&
+[[ "$(grep -F ' phi i64 ' "$LLVM_ARTIFACT" | wc -l | tr -d ' ')" == 0 &&
     "$(grep -F 'br label %pgy.block.1' "$LLVM_ARTIFACT" | wc -l | tr -d ' ')" == 2 ]] &&
-    ! grep -Eq 'alloca| load | store ' "$LLVM_ARTIFACT" ||
+    grep -Fq 'alloca i64' "$LLVM_ARTIFACT" ||
     fail "loop LLVM topology drifted"
 compile_artifacts; run_and_compare $'0\n1\n2'
 assert_mir_identity "$mir_digest" "whileloop backend executions"
@@ -99,7 +99,8 @@ mutation="$(make_mutation stale_log_use \
 expect_rejected_without_artifact stale_log_use "$mutation" 'loop|SSA|use|Log'
 mutation="$(make_mutation stale_increment_use \
     's/"uses":\["i\.2"\]/"uses":["i.1"]/3' '"uses":["i.1"]')"
-expect_rejected_without_artifact stale_increment_use "$mutation" 'loop|SSA|use|increment'
+expect_rejected_without_artifact stale_increment_use "$mutation" \
+    'loop|SSA|use|increment|definition.*invalid'
 mutation="$(make_mutation stale_increment_result \
     's/"result":"i\.5"/"result":"i.6"/' '"result":"i.6"')"
 expect_rejected_without_artifact stale_increment_result "$mutation" 'loop|phi|SSA|increment'
@@ -107,26 +108,24 @@ mutation="$(make_mutation increment_abi \
     's/"result":"i\.5","arg0":"i","arg1":"local","slot_anchor":null,"abi_type_name":"Int"/"result":"i.5","arg0":"i","arg1":"local","slot_anchor":null,"abi_type_name":"String"/' \
     '"result":"i.5","arg0":"i","arg1":"local","slot_anchor":null,"abi_type_name":"String"')"
 expect_rejected_without_artifact increment_abi "$mutation" \
-    'loop|increment|assignment|ABI|type'
+    'loop|increment|assignment|ABI|type|definition.*invalid'
 mutation="$(make_mutation missing_backedge \
     's/],"succ_true":1},{"id":3/],"succ_true":3},{"id":3/' \
     '],"succ_true":3},{"id":3')"
 expect_rejected_without_artifact missing_backedge "$mutation" 'loop|backedge|CFG|successor'
-mutation="$(make_mutation wrong_loop_exit \
-    's/,"succ_true":2,"succ_false":3/,"succ_true":2,"succ_false":0/' \
-    '"succ_true":2,"succ_false":0')"
-expect_rejected_without_artifact wrong_loop_exit "$mutation" 'loop|exit|CFG|successor'
-mutation="$(make_mutation condition_operator \
-    's/"kind":"less"/"kind":"greater"/' '"kind":"greater"')"
-expect_rejected_without_artifact condition_operator "$mutation" 'loop|binary|condition|graph'
+# Redirecting the false edge to another valid block creates a different cyclic
+# CFG; it is not malformed merely because it differs from this fixture.
+# A different supported comparison is a different valid CFG program, not a
+# malformed instance of this fixture topology. The general owner must accept it.
 mutation="$(make_mutation increment_operator \
     's/"kind":"add"/"kind":"multiply"/' '"kind":"multiply"')"
-expect_rejected_without_artifact increment_operator "$mutation" 'loop|binary|increment|graph'
+expect_rejected_without_artifact increment_operator "$mutation" \
+    'loop|binary|increment|graph|definition.*invalid'
 mutation="$(make_mutation assignment_target_graph \
     's/"expr1_graph":{"root":0,"nodes":\[{"kind":"leaf","text":"i"/"expr1_graph":{"root":0,"nodes":[{"kind":"leaf","text":"j"/' \
     '"expr1_graph":{"root":0,"nodes":[{"kind":"leaf","text":"j"')"
 expect_rejected_without_artifact assignment_target_graph "$mutation" \
-    'loop|assignment|target|graph'
+    'loop|assignment|target|graph|definition.*invalid'
 mutation="$(make_mutation tostring_target \
     's/"call_target_name":"ToString"/"call_target_name":"ToInt"/' \
     '"call_target_name":"ToInt"')"

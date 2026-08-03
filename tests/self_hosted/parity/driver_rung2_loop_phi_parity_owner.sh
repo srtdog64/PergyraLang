@@ -19,6 +19,14 @@ pgy_selfhost_verify_driver_rung2_loop_phi() {
         echo "[self-host-parity:driver-rung2] $backend live branch phi was lost" >&2
         exit 1
     }
+    ! grep -Fq '"succ_true":2,"succ_false":7' "$self_mir_json" || {
+        echo "[self-host-parity:driver-rung2] $backend constant-true loop retained an infeasible exit edge" >&2
+        exit 1
+    }
+    grep -Fq '"succ_true":2}' "$self_mir_json" || {
+        echo "[self-host-parity:driver-rung2] $backend constant-true loop lost its body edge" >&2
+        exit 1
+    }
     forged_header_phi='{"id":1,"reachable":true,"instructions":[{"id":99,"kind":"phi","name":"largest","result":"largest.99","arg0":"phi","arg1":null,"expr0":null,"expr0_graph":null,"expr1":null,"expr1_graph":null,"source_type":null,"machine_contact_kind":"","machine_layer":null,"match_patterns":[],"match_variant":null,"match_bindings":[],"destructure_bindings":[],"uses":["largest.1"]},{"id":0,"kind":"branch"'
     forged="$BUILD_DIR/${base}_${backend}.forged-header-phi.mir.json"
     pgy_replace_first_literal \

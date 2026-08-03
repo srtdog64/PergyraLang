@@ -1,0 +1,47 @@
+// Canonical latest dominating ValueId for one source-local use point.
+
+import "phi_predecessor_binding_fact_owner.pgy";
+
+func MirRoutineLatestDominatingLocalValueMatches(
+    ref index: MirRoutineFactIndex,
+    value_names: Array<String>,
+    value_local_rows: Array<Int>,
+    selected_value_row: Int,
+    use_block: Int,
+    use_instruction_row: Int
+) -> Bool {
+    if selected_value_row < 0 ||
+        selected_value_row >= ArrayLength(value_names) ||
+        ArrayLength(value_names) != ArrayLength(value_local_rows) {
+        return false;
+    }
+    let selected: MirRoutineResultDefinitionFact =
+        MirRoutineFactIndexUniqueResultDefinition(
+            index, value_names[selected_value_row]
+        );
+    if !MirRoutineDefinitionDominatesInstruction(
+        index, selected, use_block, use_instruction_row
+    ) {
+        return false;
+    }
+    let candidate_row: Int = 0;
+    while candidate_row < ArrayLength(value_names) {
+        if candidate_row != selected_value_row &&
+            value_local_rows[candidate_row] ==
+                value_local_rows[selected_value_row] {
+            let candidate: MirRoutineResultDefinitionFact =
+                MirRoutineFactIndexUniqueResultDefinition(
+                    index, value_names[candidate_row]
+                );
+            if MirRoutineDefinitionDominatesInstruction(
+                    index, candidate, use_block, use_instruction_row
+                ) && MirRoutineDefinitionStrictlyPrecedes(
+                    index, selected, candidate
+                ) {
+                return false;
+            }
+        }
+        candidate_row = candidate_row + 1;
+    }
+    return true;
+}

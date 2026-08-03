@@ -163,7 +163,13 @@ func SelfMirLowerWhileFromArtifact(
         );
         break_i = break_i + 1;
     }
+    let condition_exit: Int = loop_exit;
+    if SelfMirLoopConstantTrueExitInfeasible(
+        condition_graph, reachability, ArrayLength(while_break_blocks)
+    ) {
+        condition_exit = -1;
+    }
     return SelfMirRoutineSetSuccessors(
-        build, header, loop_body, loop_exit
+        build, header, loop_body, condition_exit
     );
 }

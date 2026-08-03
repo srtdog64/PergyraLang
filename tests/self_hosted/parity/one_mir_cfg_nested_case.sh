@@ -25,18 +25,19 @@ require_file "$SOURCE"; produce_one_mir; mir_digest="$(hash_file "$MIR_ARTIFACT"
     fail "nestedif producer identity or five-block/no-phi shape drifted"
 project_one_target c "$C_ARTIFACT" "$mir_digest"
 project_one_target llvm "$LLVM_ARTIFACT" "$mir_digest"
-for fact in 'long long pgy_local_0 = 5;' 'if (pgy_local_0 > 0)' \
+for fact in 'long long pgy_local_0 = 0;' 'pgy_local_0 = 5;' \
+    'if (pgy_local_0 > 0)' \
     'if (pgy_local_0 > 3)' 'printf("%s\n", "big");'; do
     grep -Fq -- "$fact" "$C_ARTIFACT" || fail "nested C fact drifted: $fact"
 done
 [[ "$(grep -o 'if (' "$C_ARTIFACT" | wc -l | tr -d ' ')" == 2 ]] &&
     ! grep -Fq 'else' "$C_ARTIFACT" || fail "nested C topology drifted"
-[[ "$(grep -F 'icmp sgt i64 %pgy.local.entry' "$LLVM_ARTIFACT" | wc -l | tr -d ' ')" == 2 ]] ||
-    fail "nested LLVM conditions do not share the entry SSA"
+[[ "$(grep -F 'icmp sgt i64' "$LLVM_ARTIFACT" | wc -l | tr -d ' ')" == 2 ]] ||
+    fail "nested LLVM conditions did not preserve both comparisons"
 ! grep -Fq ' phi ' "$LLVM_ARTIFACT" || fail "nested LLVM projection invented phi"
 for fact in '[4 x i8] c"%s\0A\00"' '[4 x i8] c"big\00"' \
-    'br i1 %pgy.condition.outer, label %pgy.block.1, label %pgy.block.4' \
-    'br i1 %pgy.condition.inner, label %pgy.block.2, label %pgy.block.3'; do
+    'br i1 %pgy.cond.0, label %pgy.block.1, label %pgy.block.4' \
+    'br i1 %pgy.cond.1, label %pgy.block.2, label %pgy.block.3'; do
     grep -Fq -- "$fact" "$LLVM_ARTIFACT" || fail "nested LLVM fact drifted: $fact"
 done
 [[ "$(grep -F 'br label %pgy.block.3' "$LLVM_ARTIFACT" | wc -l | tr -d ' ')" == 1 &&
@@ -53,26 +54,14 @@ expect_rejected_without_artifact inner_branch_identity "$mutation" \
 mutation="$(make_mutation inner_condition_use \
     's/"uses":\["x\.1"\]/"uses":["x.9"]/2' '"uses":["x.9"]')"
 expect_rejected_without_artifact inner_condition_use "$mutation" \
-    'nested|branch.*use|condition.*use|SSA|use[^[:alnum:]]+edge'
+    'nested|branch.*use|condition.*(use|invalid)|SSA|use[^[:alnum:]]+edge'
 mutation="$(make_mutation missing_inner_false_edge \
     's/,"succ_true":2,"succ_false":3/,"succ_true":2,"succ_false_removed":3/' \
     '"succ_false_removed":3')"
 expect_rejected_without_artifact missing_inner_false_edge "$mutation" \
     'CFG|nested|successor|conditional[^[:alnum:]]+edge'
-mutation="$(make_mutation outer_false_edge \
-    's/,"succ_true":1,"succ_false":4/,"succ_true":1,"succ_false":3/' \
-    '"succ_true":1,"succ_false":3')"
-expect_rejected_without_artifact outer_false_edge "$mutation" \
-    'CFG|nested|merge|successor'
-mutation="$(make_mutation inner_merge_edge \
-    's/],"succ_true":3},{"id":3/],"succ_true":4},{"id":3/' \
-    '],"succ_true":4},{"id":3')"
-expect_rejected_without_artifact inner_merge_edge "$mutation" \
-    'CFG|nested|merge|successor'
-mutation="$(make_mutation outer_merge_edge \
-    's/"instructions":\[\],"succ_true":4},{"id":4/"instructions":[],"succ_true":3},{"id":4/' \
-    '"instructions":[],"succ_true":3},{"id":4')"
-expect_rejected_without_artifact outer_merge_edge "$mutation" \
-    'CFG|nested|merge|successor'
+# Redirecting a well-formed edge to another valid block is not a malformed MIR
+# fact. The general CFG owner must compile that graph rather than enforce this
+# fixture's historical five-block topology.
 
 source "$ROOT_DIR/tests/self_hosted/parity/one_mir_cfg_loop_case.sh"

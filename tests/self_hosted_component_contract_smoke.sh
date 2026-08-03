@@ -5748,6 +5748,12 @@ require_text "src/self_hosted/mir/routine_while_owner.pgy" \
     "SelfMirLoopReachabilityForBlock("
 require_text "src/self_hosted/mir/routine_while_owner.pgy" \
     "observed_backedge != planned_backedge"
+require_text "src/self_hosted/mir/routine_while_owner.pgy" \
+    "SelfMirLoopConstantTrueExitInfeasible("
+require_text "src/self_hosted/mir/loop_reachability_fact_owner.pgy" \
+    "func SelfMirLoopConstantTrueExitInfeasible("
+reject_text "src/self_hosted/mir/routine_while_owner.pgy" \
+    'condition == "true"'
 reject_function_text "src/self_hosted/mir/routine_while_owner.pgy" \
     "func SelfMirLowerWhileFromArtifact(" "loop_body_instruction_start"
 require_file "tests/self_hosted/parity/driver_rung2_loop_phi_parity_owner.sh"
@@ -7129,6 +7135,7 @@ require_file "src/compiler/compiler_transient_artifact_workspace.h"
 require_file "tests/self_hosted/parity/self_host_compiler_build.sh"
 require_file "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh"
+require_file "tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh"
 require_file "tests/self_hosted/parity/public_llvm_ir_stdout_installed_self_host_owner.sh"
 require_text "src/self_hosted/parser/program_parse_owner.pgy" \
     "let composed_rows: AstExpressionGraphRows = expression_graphs[0];"
@@ -7145,6 +7152,7 @@ require_max_lines "tests/self_hosted/parity/public_mir_json_installed_self_host_
 require_max_lines "src/compiler/driver_self_host_llvm_selection_owner.c" 60
 require_max_lines "src/compiler/self_host_llvm_ir_artifact_owner.c" 90
 require_max_lines "tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh" 140
+require_max_lines "tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh" 70
 require_max_lines "src/compiler/self_host_llvm_ir_stdout_owner.c" 80
 require_max_lines "tests/self_hosted/parity/public_llvm_ir_stdout_installed_self_host_owner.sh" 120
 require_max_lines "src/compiler/compiler_self_host_artifact.c" 180
@@ -7296,7 +7304,9 @@ require_text "Makefile" \
 require_text "Makefile" \
     "self-host-public-llvm-ir-replacement-test-smoke: self-host-public-mir-json-replacement-test-smoke"
 require_text "Makefile" \
-    "self-host-public-llvm-ir-stdout-replacement-test-smoke: self-host-public-llvm-ir-replacement-test-smoke"
+    "self-host-public-nested-scalar-cfg-llvm-test-smoke: self-host-public-llvm-ir-replacement-test-smoke"
+require_text "Makefile" \
+    "self-host-public-llvm-ir-stdout-replacement-test-smoke: self-host-public-nested-scalar-cfg-llvm-test-smoke"
 require_text "Makefile" \
     "self-host-live-replacement-test-smoke: self-host-public-llvm-ir-stdout-replacement-test-smoke"
 require_file \
@@ -15371,6 +15381,74 @@ require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 
     'import "direct_mir_backend_emission_owner.pgy";'
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
     'DirectMirCfgPlanFromAdmitted('
+require_file "src/self_hosted/mir_lower/phi_predecessor_binding_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/phi_predecessor_binding_fact_owner.pgy" 180
+require_file "src/self_hosted/mir_lower/latest_local_value_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/latest_local_value_fact_owner.pgy" 60
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" 310
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_expression_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_expression_owner.pgy" 300
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_assignment_target_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_assignment_target_owner.pgy" 30
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_break_exit_bridge_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_break_exit_bridge_owner.pgy" 30
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" 450
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_loop_flow_admission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_loop_flow_admission_owner.pgy" 40
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_c_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_c_emission_owner.pgy" 180
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy" 260
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_projection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_projection_owner.pgy" 50
+require_file "tests/self_hosted/parity/one_mir_scalar_cfg_graph_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_scalar_cfg_graph_projection.sh" 160
+require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    'DirectMirScalarCfgGraphRouteClaimed(admitted)'
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+    'MirPhiPredecessorBindingFactFromOwners('
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+    'DirectMirScalarCfgAssignmentTargetReady('
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+    'DirectMirScalarCfgBreakExitMergeBridgeRequired(index, break_seen)'
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_break_exit_bridge_owner.pgy" \
+    'break_after_stmt.pgy'
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+    'MirRoutineBlockDominates('
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+    'DirectMirScalarCfgLoopFlowFactsReady('
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_loop_flow_admission_owner.pgy" \
+    'LoopFlowSummaryProjectionReady(index, routines, routine_row)'
+require_text "src/self_hosted/mir_lower/phi_predecessor_binding_fact_owner.pgy" \
+    'func MirPhiPredecessorBindingFactFromOwners('
+require_text "src/self_hosted/mir_lower/latest_local_value_fact_owner.pgy" \
+    'func MirRoutineLatestDominatingLocalValueMatches('
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+    'MirRoutineLatestDominatingLocalValueMatches('
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_projection_owner.pgy" \
+    'DirectMirScalarCfgGraphPlanFromAdmitted(admitted)'
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+    'nested_if_in_loop.pgy'
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+    'block_count == 8'
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_c_emission_owner.pgy" \
+    '"expr0"'
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy" \
+    '"expr0"'
 require_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \
     'import "../air/mir_cfg_certificate_owner.pgy";'
 require_text "src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy" \

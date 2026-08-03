@@ -77,3 +77,23 @@ func SelfMirLoopReachabilityForBlock(
         true, reaches_backedge, falls_through
     );
 }
+
+func SelfMirLoopConstantTrueExitInfeasible(
+    ref condition: SemanticExpressionGraphView,
+    reachability: SelfMirLoopReachabilityFact,
+    break_exit_count: Int
+) -> Bool {
+    if !condition.ok || !reachability.ok || break_exit_count < 1 ||
+        reachability.reaches_backedge || reachability.falls_through {
+        return false;
+    }
+    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+        condition.graph, condition.root_id
+    );
+    let text_opt: Option<String> = SemanticExpressionGraphNodeText(
+        condition.graph, condition.root_id
+    );
+    return IsSome(kind_opt) && IsSome(text_opt) &&
+        UnwrapOption(kind_opt) == AstExpressionNodeBoolLiteral() &&
+        UnwrapOption(text_opt) == "true";
+}

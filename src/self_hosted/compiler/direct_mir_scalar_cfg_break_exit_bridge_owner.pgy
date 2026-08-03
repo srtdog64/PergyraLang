@@ -1,0 +1,20 @@
+// Explicit bridge for loop-break graphs whose feasible condition exit still
+// lacks a producer-owned exit phi. The legacy loop-break plan owns this slice.
+
+import "../mir_lower/routine_fact_index_owner.pgy";
+
+func DirectMirScalarCfgBreakExitMergeBridgeRequired(
+    ref index: MirRoutineFactIndex,
+    break_seen: Bool
+) -> Bool {
+    if !break_seen { return false; }
+    let block: Int = 0;
+    while block < ArrayLength(index.block_starts) {
+        if index.backedge_headers[block] == 1 &&
+            index.block_succ_false[block] >= 0 {
+            return true;
+        }
+        block = block + 1;
+    }
+    return false;
+}
