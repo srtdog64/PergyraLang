@@ -6,6 +6,43 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-03 - `ArrayLength(parts)` and `parts[i]` substitute in C and LLVM
+
+- Landed executable checkpoint `593633b8`. The installed self producer's
+  7,718-byte `str_array_concat.pgy` MIR
+  (`8FF9C7201C6A231C584EEFA054BBD374B3BFED49A32C9D8116E133FB8A806340`)
+  now emits C and LLVM artifacts that both compile and execute exact `xyz`.
+- Corrected producer ownership first. Native and self range branches derive
+  SSA uses from their persisted stop graph, so `ArrayLength(parts)` carries
+  `parts.1`; the start graph is no longer accidentally treated as the branch
+  use owner.
+- Added an exclusive range-bound owner: either one canonical integer literal
+  or one exact direct `ArrayLength(ValueId)` graph. The old single-node
+  validator was not weakened. A shared target-neutral `Array<String>`
+  collection owner now supplies literal elements, ABI, and storage identity to
+  both foreach and indexed reads.
+- Added one indexed receipt joining bound, collection, index LocalRef,
+  `Concat(acc, parts[i])`, result ValueId, CFG rows, and ABI offsets. Existing
+  `ConcatString` semantics are reused. C projects `.length/.data[i]`; LLVM
+  projects ABI length/data extraction, `icmp ult`, and a receipt-justified
+  inbounds GEP. Capacity-as-length is negative-gated.
+- Removed display `expr0/expr1` as a redundant range authority. Display-only
+  mutation is byte-equal, graph-only `a/bb/ccc` mutation executes `abbccc`, and
+  thirteen independent stale/forged facts fail before artifact publication
+  without legacy literal or Option retry.
+- No hard cap increased. The graph input setup was extracted into a named
+  owner, shared C/LLVM Array materializers replaced duplicate foreach logic,
+  and the old one-use iteration helper was removed. The component ratchet and
+  cumulative CFG integration are green.
+- Final cumulative integration completed in 247.318 seconds at 0.019 GiB peak
+  working set / 0.008 GiB peak private memory. This was the sole final pressure
+  measurement; routine focused gates were not repeatedly sampled.
+- The next rung is `str_array.pgy` (MIR
+  `4B992433D9D40A7D1FA6DFB4BAE1AF41D2F86FCF57D32C229C0B5341DFCAA75F`),
+  expected `alice/bob/carol/BOB`, currently rejected at the collection local
+  inventory boundary. It must extend indexed collection ownership to while,
+  indexed Log, and ArraySet without a new topology compiler.
+
 ## 2026-08-03 - Returned `Array<Int>` calls compose with nested/sequential foreach
 
 - Landed executable checkpoint `7069f852`. The installed Pergyra producer's

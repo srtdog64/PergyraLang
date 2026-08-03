@@ -6,6 +6,56 @@
 
 ---
 
+## GCC says it cannot create a temporary file under `C:\Windows`
+
+Symptom: a self-host driver build launched through Git Bash fails during host
+C compilation with a message such as `Cannot create temporary file in
+C:\Windows`, although the generated C and compiler are otherwise valid.
+
+This is an execution-environment boundary, not a Pergyra semantic failure and
+not evidence of compiler memory pressure. In the observed Windows setup, Git
+Bash handed GCC an unsuitable temporary directory. Run the build through the
+MSYS2 shell that owns the UCRT toolchain, put that toolchain first on `PATH`,
+and bind all three temporary-directory variables to one repository-local
+directory:
+
+```powershell
+& 'C:\msys64\usr\bin\bash.exe' -lc '
+  export PATH=/ucrt64/bin:/usr/bin:$PATH
+  export TMPDIR=/d/PergyraLang/.tmp/compiler_tmp
+  export TMP=$TMPDIR
+  export TEMP=$TMPDIR
+  cd /d/PergyraLang
+  PGY_SELF_DRIVER_BIN=/d/PergyraLang/bin/pgy-self-driver.exe \
+    ./tests/self_hosted/parity/self_host_compiler_build.sh
+'
+```
+
+Do not increase a memory limit, retry under multiple shells, or delete object
+caches before identifying this boundary. A different shell can also change
+the detected compiler-machine stamp and trigger a full rebuild, which is not a
+performance regression in the source change itself.
+
+## An owner extraction makes old gates demand the former file or diagnostic
+
+An extraction is incomplete when runtime behavior is green but structural
+gates still require the moved constructor from the old owner. Move the gate's
+requirement to the new named owner and keep a negative assertion against the
+old location. Do not copy the constructor back merely to satisfy source text.
+
+Diagnostic identity must be preserved unless the new owner is intentionally
+more precise. During the indexed String rung, `phi` validation temporarily lost
+the word `phi`, while nested-range inventory and latch mutations acquired more
+precise owner diagnostics. The correction restored the phi boundary and
+updated nested-range falsifiers to the exact inventory/CFG owner messages.
+Artifact absence and no-legacy-retry remained mandatory throughout.
+
+For memory, sample the final integration boundary once. The 2026-08-03 indexed
+String cumulative CFG run completed in 247.318 seconds at 0.019 GiB peak
+working set and 0.008 GiB peak private memory. This is not a replacement for a
+full compiler/bootstrap pressure measurement; it only proves that this gate
+graph stayed below the 2.4 GiB attention and 3 GiB hard-stop thresholds.
+
 ## A self-host parity gate exits with an empty compile log under Git Bash
 
 Symptom: `self_host_execution_lane_parity_smoke.sh` reports

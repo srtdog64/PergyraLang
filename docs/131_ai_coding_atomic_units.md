@@ -341,6 +341,28 @@ this mismatch but does not eliminate it; the mismatch must be managed through
 explicit owners, objective cards, falsifiers, evidence scope, and bounded
 rollback.
 
+### External anecdote: language consistency is steerable; architecture is not
+
+An independent language author described essentially the same asymmetry in an
+[Hacker News comment](https://news.ycombinator.com/item?id=49158565): AI was
+useful for design and implementation, language consistency could be steered,
+but architecture steering forced the author to learn substantially more
+compiler internals than the side project was meant to require.
+
+This is one anecdote, not benchmark evidence. It is useful because it separates
+two failure classes that are often conflated:
+
+- surface consistency can be constrained with one registry, syntax examples,
+  diagnostics, and parity fixtures;
+- architecture needs explicit fact ownership, evidence lifetime, last
+  consumers, forbidden fallbacks, hard caps, and negative gates.
+
+Pergyra's response is not to claim that agents understand compiler
+architecture. It is to reduce the architecture they are allowed to invent:
+one active executable rung, one objective card, responsibility-named owners,
+no generic helper expansion, no dual authority, and integration evidence that
+cannot be replaced by fixture count or generated LOC.
+
 The central rule is:
 
 > **When AI-generated code volume exceeds human understanding speed,
