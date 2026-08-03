@@ -1,10 +1,56 @@
 # Build Troubleshooting
 
-마지막 업데이트: 2026-08-03
+마지막 업데이트: 2026-08-04
 
 빌드/회귀 도중 자주 마주치는 문제와 대응. **항상 `mingw32-make rebuild`를 먼저 시도**하면 절반은 풀린다.
 
 ---
+
+## String-array self-host plan fails before backend emission
+
+The direct-MIR String-array replacement exposed three self-host language and
+ABI constraints that can look like ordinary graph-admission failures.
+
+### Equal primitive-column lengths but `facts_ok=false`
+
+If a column-set constructor has equal array lengths yet the minimal import or
+source check reports a semantic expression-graph failure, inspect global symbol
+identity before changing the plan shape. A function named
+`DirectMirScalarCfgStringArrayAccessSet` collided with a struct of the same
+name. The resulting diagnostic appeared at construction, not at the
+declaration that created the ambiguity. Keep type and function identities
+distinct; in this case the kind classifier is
+`DirectMirScalarCfgStringArrayAccessSetKind`. Confirm the smallest import with
+`--check-source` before rebuilding the whole driver.
+
+### `undefined_symbol: rows.<column>` at `ArrayPush` or `ArraySet`
+
+Pergyra's growable-array builtins require an addressable inout binding. A member
+array reached through an immutable fact-set value is not such a binding. Do not
+add a mutating helper or make the semantic set globally mutable. Copy each
+primitive column to a local array, update those local bindings, and reconstruct
+the immutable column set. This keeps one set owner and makes the mutation
+boundary explicit.
+
+### `unsupported C ABI value type Array<CustomFact>`
+
+The installed self-host C ABI does not yet admit an arbitrary
+`Array<CustomStruct>` value across this compiler boundary. A convenient array
+of plan-row structs therefore cannot be used as evidence that aggregate arrays
+are generally supported. Until the ABI owner closes that type family, retain
+primitive parallel columns plus a typed row view, and ratchet their equal
+lengths and bounds. Do not create a backend-only struct-array representation.
+
+### Exact output is not sufficient for unsigned indexing
+
+C `size_t` casts and LLVM `icmp ult`/`inbounds` require a nonnegative-index
+proof owned before emission. For the closed while slice, admission requires
+zero initialization, a unit positive increment, a unique guard true-edge
+predecessor, and guard dominance over each dynamic access. Literal indices must
+be nonnegative and below the canonical collection length. Check value/local row
+bounds before dereferencing a receipt; otherwise a stale row can crash the
+compiler rather than fail closed. The focused negative gate must include a
+negative initial value, negative step, guard-bypass predecessor, and stale row.
 
 ## GCC says it cannot create a temporary file under `C:\Windows`
 
