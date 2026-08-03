@@ -5120,7 +5120,9 @@ $env:PGY_SELFHOST_ONE_MIR_DRIVER_BIN='D:/PergyraLang/bin/pgy-self-driver.exe'
   tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh
 ```
 
-동일 source에서 이 경로는 209.5초에 green이었다. 최종 component gate의
+`c91def86` current-source driver에서 이 경로는 307.8초에 green이었다. 기본
+`.tmp/.../driver_seed.exe`는 같은 실행에서 `unknown source MIR pressure token`을
+냈으므로 stale seed 결과를 current-driver 회귀로 기록하면 안 된다. 최종 component gate의
 프로세스 트리만 샘플링한 peak는 working 79,863,808 bytes(0.074 GiB),
 private 46,170,112 bytes(0.043 GiB)였고 3 GiB hard stop은 발동하지 않았다.
 일상 focused gate마다 pressure sampling을 반복하지 않고 최종 integration
@@ -5172,3 +5174,13 @@ typed-readiness가 `i + 1`의 오른쪽 literal을 ValueId/local 타입 조회�
 foreach receipt가 0개이면 기존 `stdio.h` preamble을 그대로 사용해야 한다.
 `one_mir_cfg_air_plan_projection.sh`가 while/range/nested/collection 경로를 함께
 실행해 이 두 종류의 회귀를 막는다.
+
+같은 rung의 첫 likeness 전수 검사에서는 새 ABI projection이 C target의 없는
+인덱스를 네 번 `-1`과 비교하고, String element-start lookup도 찾지 못함을
+`-1`로 반환한 사실이 드러났다. 첫 경로는 이미 검증된 element-neutral storage
+projection의 index facts를 그대로 비교하고, 두 번째는 `Option<Int>`를 반환하게
+고쳤다. focused C/LLVM, current-driver cumulative CFG, component ratchet은 다시
+green이다. 전체 likeness gate는 sentinel `49 -> 44`로 줄었지만 과거 기준
+`22`를 아직 넘고 zone-bound step도 `26/29`라 red다. 이 경우 기준을 현재값으로
+올리지 말고, 활성 실행 rung과 분리된 기존 owner별 typed Option/Result 치환
+부채로 기록한다.

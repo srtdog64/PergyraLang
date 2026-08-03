@@ -6,73 +6,88 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — mixed collection foreach
+## Active self-host context — indexed String range projection
 
-- Executable checkpoint: `7069f852` on `main`. This documentation handoff is
-  its intended docs-only descendant. The current-source installed sibling is
-  4,400,193 bytes with SHA-256
-  `6B92072ADCE6DA34DB31984727F2F317FD209E832C8C53C2CB5B399CF56E28DE`.
-- Closed executable rung: `src/self_hosted/mir_lower/fixture/for_each_call.pgy`.
-  Its 17,155-byte self-produced MIR has SHA-256
-  `F569D00CA64B92042203160511B969B2F695C12EE0EF884EF3C7BA489F269958`.
-  Exact `Main` and `MakeValues() -> Array<Int>` identities are selected without
-  routine-row authority, and three synthetic call-result ValueIds feed nested
-  outer/inner loops plus one trailing loop.
-- `DirectMirArrayIntProducerFact` owns the pure no-parameter returned literal,
-  ABI, stable producer identity, and one storage identity. Hoisted call-result
-  definitions meet local literals at
-  `DirectMirScalarCfgForEachCollectionFromOwners`; no source/call text,
-  backend lookup, or second document index participates.
-- The scalar-CFG plan now accepts one exact routine row and optional producer
-  receipt. The single-routine route passes an empty receipt; the multi-routine
-  composition passes the admitted producer. This is one planner with exclusive
-  classification, not a new/old fallback pair.
-- The three foreach facts share one returned collection materialization and
-  retain independent cursors. Final artifacts are 1,821-byte C
-  (`6FFEBAFCE899580795FB33FF8C8861561BB992517A90C696E6D0C005620696E9`)
-  and 6,083-byte LLVM
-  (`955DD7245D3F6E2B1F7239E3EF03E1923118B20B5CFE8EA097BE6EA105BBD7DB`).
-  Both compile and execute exact `30`.
-- The focused gate pins routine-permutation byte equality, one materialization,
-  producer graph-only `[4,5]` exact `36`, and seven ABI, call target/leaf/ref,
-  hoist, result-name, and binder LocalRef negatives. Invalid claimed programs
-  publish no artifact and never retry the legacy return-only route.
-- Final observed evidence: current-source installed build 136.9 seconds;
-  returned/local/general scalar CFG gates 33.5 seconds; final structural
-  component/removed-path body 245.2 seconds. No fixed cap increased. Route and
-  foreach set owners are exactly 70/70 and 320/320; graph admission is 448/450,
-  so the next rung must not add responsibility to them.
-- Known omission: `one_mir_array_return_projection.sh` exits before behavior
-  because its stale local cap is 200 for the already-237-line backend
-  projection owner. It was not claimed green and the cap was not raised. Full
-  CI, current gen2==gen3, public driver suites, pressure integration, and
-  Coq/Rocq did not run.
-- Classification: pure returned `Array<Int>` nested/sequential foreach is
-  bounded `SUBSTITUTING` in installed C and LLVM. Effectful producers, mutable
-  identity observation, arbitrary element ABI, mixed string operations, and
-  whole-compiler replacement remain open.
-- Next objective card: `src/self_hosted/codegen/fixture/for_each.pgy` is the
-  only active rung. Its 14,425-byte self MIR has SHA-256
+- Executable checkpoint: `c91def868b8c7d45dbb9cc4e212dad2b6095bcd2` on
+  `main`. This handoff is its intended docs-only descendant. The installed
+  current-source sibling is 4,441,513 bytes with SHA-256
+  `A7AAD0A55D6F936E2CE2C7B45916EE4CAA43CFB00DC33F18729368E6DD11110A`.
+- Closed executable rung: `src/self_hosted/codegen/fixture/for_each.pgy`. Its
+  14,425-byte self-produced MIR has SHA-256
   `1D0771BFE62C6C20A5E671A82F0A0DD956A198D4495F08B43D5D86303DD40397`
-  and contains sequential `Array<Int>` and `Array<String>` loops with expected
-  output `60` and `abbccc`. Both direct targets currently reject before
-  artifact publication at `direct MIR Option match routine fact owner is
+  and one typed scalar-CFG plan executes sequential `Array<Int>` and
+  `Array<String>` foreach loops through both installed direct targets.
+- Final artifacts are 1,996-byte C
+  (`BA6830C22D3CD427B07A63196DF7ED30F2CD3370EE9D78D153DB827FE1265D35`)
+  and 6,962-byte LLVM
+  (`D1BAEE876843D8112A5C3BA4F299C95AC0F4F87BE16738CFD561F63139DE67C2`).
+  Both host-compile and execute exact `60` then `abbccc`; graph-only String
+  payload mutation executes `xyyzzz` in both targets.
+- One scalar type-family owner now classifies `Int`/`String` and their admitted
+  Array iteration pairs. Element-neutral array-layout and literal-spine owners
+  feed canonical `Array<Int>` and `Array<String>` ABI owners. A
+  loop-syntax-keyed companion receipt owns element type and String pool while
+  the existing primitive foreach receipt continues to own topology, storage
+  identity, length, cursor, and binder identity.
+- The sealed plan carries local/result types, typed String literal/copy/phi/
+  concat/log operations, the companion foreach receipt, and one selected
+  concat runtime ABI identity. C and LLVM operation/foreach emitters consume
+  only these receipts. Stable public consumer names remain thin delegates; no
+  second String foreach compiler or backend graph reader exists.
+- The focused gate pins exact C/LLVM execution, graph-only String changes,
+  iteration-order and display-`expr0` byte equality, and thirteen independent
+  type, ABI, array-spine, concat-target/edge, LocalRef, and stale-use negatives.
+  Invalid claimed programs publish no artifact and never retry Option match.
+- The cumulative gate exposed and closed two compatibility seams: typed
+  readiness now accepts an already-admitted `AddInt` literal slot without
+  reparsing text, and a zero-foreach C plan preserves its previous preamble
+  bytes. Single/nested range LocalRef negatives now pin their exact range/local
+  inventory owner diagnostics rather than one stale generic message.
+- Follow-up `c91def86` removes every sentinel introduced by the mixed rung.
+  The C `Array<String>` projection now consumes the element-neutral storage
+  owner's absent-index facts instead of comparing four duplicated `-1` values,
+  and String element-start lookup returns `Option<Int>` rather than `-1`.
+- Final observed evidence after that follow-up: current-source installed build
+  124.5 seconds; mixed focused gate 14.0 seconds; corrected current-driver
+  cumulative CFG integration 307.8 seconds; final structural component/removed-
+  path gate 262.4 seconds. Route is 62/70, foreach set remains 320/320, graph admission
+  remains 449/450, typed C is 221/240, typed LLVM is 219/220, and typed
+  readiness is 154/180. No existing cap increased.
+- Full CI, current gen2==gen3 fixpoint, public driver matrices, pressure
+  integration, and Coq/Rocq did not run. Memory was not sampled per focused
+  gate. The last accepted final-integration policy remains 2.4 GiB attention
+  and 3 GiB hard stop.
+- `self_host_pergyra_likeness_smoke.sh` remains known red and was not rebased:
+  sentinel debt is 44/22 and compiler-zone-bound steps are 26/29. The mixed
+  follow-up reduced the observed sentinel count from 49 to 44, while the other
+  metrics include `core_string_munge=78/79`, `ast_string_surface=0/0`, and
+  `result_use=3542/2254`. This cross-owner historical debt is not the active
+  indexed-String executable rung.
+- Classification: bounded local-literal `Array<Int>`/`Array<String>` foreach
+  plus the earlier pure returned `Array<Int>` composition are `SUBSTITUTING`
+  in installed C and LLVM. Arbitrary element ABI, indexed aggregate reads,
+  effectful collection mutation/producers, and whole-compiler replacement
+  remain open.
+- Next objective card: `src/self_hosted/codegen/fixture/str_array_concat.pgy`
+  is the only active rung. Its 7,709-byte self MIR has SHA-256
+  `DBE3B8FF0D4DCFBF69A10A1D416BA08AA165C173416478CB4E61560BD428DAEE`
+  and should execute exact `xyz`. Both direct targets currently fail before
+  artifact publication with `direct MIR CFG single-node literal graph is
   invalid`.
-- Priority is exact mixed-collection route classification, canonical
-  `Array<String>` ABI/element receipt, String accumulator operations, then one
-  shared scalar-CFG execution/parity gate. The fact owners are typed iteration
-  rows, persisted expression graphs, Array layout rows, LocalRefs, and the
-  existing collection receipt. The last legitimate consumer is
-  `CompileAdmittedDirectMirForTarget`.
-- Forbidden fallback: `block_count == 7` as foreach meaning, a fixture-specific
-  compiler, weakening the Option plan, raw `expr0`/source reparsing, treating
-  `capacity` as length, backend-specific String collection reconstruction,
-  duplicating the returned/local collection protocol, or adding responsibility
-  to the already-full route/set owners. The first gate must mutate exact type,
-  ABI, graph, and LocalRef facts and prove no Option-match retry.
+- Priority is exact route ownership, canonical `ArrayLength(parts)` bound fact,
+  dynamic `parts[i]` String element receipt, then reuse of the existing String
+  concat/local/result plan. Fact owners are persisted expression graphs,
+  `Array<String>` ABI, range iteration/LocalRef receipts, and typed ValueIds.
+  The last legitimate consumer is `CompileAdmittedDirectMirForTarget`.
+- Forbidden fallback: fixture-name or block-count routing, source/`expr0`
+  reparsing, treating array capacity as length, backend-specific index
+  reconstruction, a second range compiler, weakening the older direct-CFG
+  claimant, or adding responsibility to the full foreach-set/graph-admission/
+  typed-LLVM owners. The first gate must mutate length/index graph, ABI,
+  ValueId, and LocalRef facts and prove no legacy claimant retry.
 - Memory remains final-integration-only: attention at 2.4 GiB and hard stop at
-  3 GiB. Do not reintroduce per-row cumulative graph validation or per-test
-  memory pressure work.
+  3 GiB. Do not add a cache, shard, worker, or per-test pressure loop before
+  identifying a repeated owned operation at the reached boundary.
 
 ## Historical checkpoint archive — returned-array foreach composition
 

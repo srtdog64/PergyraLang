@@ -1,29 +1,44 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-08-03 lexical LocalRef substitution
+## Active self-host context — 2026-08-03 indexed String range projection
 
-- Pushed executable checkpoint `9cabfd84` closes the same-spelling outer/range
-  binding through the installed self-host C and LLVM routes. The self producer
-  restores the outer scope after `for`, carries `declaration:6:0` and
-  `iteration:7:0`, and both backends execute exact `0,1,2,40` from one MIR.
-- One `local_ref_identity_owner` owns the role/syntax/index grammar. LocalRef
-  rows remain aligned with instructions and direct expression leaves; wire
-  projection is conditional on duplicate spelling. The general scalar-CFG plan
-  normalizes those identities to storage slots. No emitter, fixture route,
-  source-local row coordinate, or name-first/name-last recovery owns semantics.
-- Nine missing/forged/orphan identity and use mutations reject before C/LLVM
-  artifact publication. Existing break, for-break, continue, cumulative CFG,
-  public LLVM, and structural gates remain green. The slice is bounded
-  `SUBSTITUTING`, not whole-compiler replacement.
-- A producer hot-path uniqueness experiment made final driver smoke breach the
-  3 GiB cap and was removed. Recovery build completed at 2.089 GiB. The build
-  now smoke-tests its temporary candidate before installing or stamping it, so
-  a failed smoke cannot overwrite a green installed driver.
-- The next executable falsifier is nested same-spelling range binders with exact
-  output `0,1,0,0,1,1,40`. Generalize range receipts as an identity-indexed
-  array; do not add a nested-loop topology compiler or backend scope recovery.
+- Executable checkpoint `c91def868b8c7d45dbb9cc4e212dad2b6095bcd2`
+  closes `for_each.pgy` through the installed self-host C and LLVM routes. One
+  typed scalar-CFG plan executes local `Array<Int>` and `Array<String>` foreach
+  loops with exact `60,abbccc`; graph-only String mutation executes `xyyzzz`.
+- One type-family owner, element-neutral Array ABI/literal-spine owners, and a
+  loop-identity companion receipt extend the existing foreach topology/storage
+  receipt. Local/result types and String literal/copy/phi/concat/log operations
+  are sealed before C/LLVM emission. No fixture route, source/`expr0` reparse,
+  backend collection reconstruction, or Option retry remains.
+- Thirteen independent type/ABI/graph/LocalRef negatives reject without an
+  artifact. The follow-up also replaced the new String element-start `-1`
+  sentinel with `Option<Int>` and made the String ABI projection consume the
+  element-neutral storage owner's index facts. The current-driver cumulative
+  CFG gate is green in 307.8 seconds; the structural ratchet is green in 262.4
+  seconds with no cap increase.
+- Classification is bounded `SUBSTITUTING`, not general collection execution or
+  whole-compiler replacement. Full CI, current fixpoint, pressure integration,
+  and proof suites did not run. The separate Pergyra-likeness gate remains known
+  red at sentinel 44/22 and zone-bound steps 26/29; its baselines were not
+  loosened and that historical cross-owner cleanup is not this active rung.
+- The next executable falsifier is `str_array_concat.pgy`, expected exact
+  `xyz`. Its 7,709-byte self MIR is
+  `DBE3B8FF0D4DCFBF69A10A1D416BA08AA165C173416478CB4E61560BD428DAEE`;
+  both direct targets currently reject with `direct MIR CFG single-node literal
+  graph is invalid`. Close `ArrayLength(parts)` and dynamic `parts[i]` through
+  persisted graph/ABI/LocalRef receipts without a second range compiler.
 
 ## Historical self-host ledger — inactive navigation evidence
+
+### Previous 2026-08-03 lexical LocalRef substitution
+
+- Checkpoint `9cabfd84` closed the same-spelling outer/range binding through
+  exact installed C/LLVM execution `0,1,2,40`. One LocalRef identity grammar
+  and normalized storage plan rejected nine missing/forged/orphan mutations.
+- The build transaction was also fixed to smoke-test a temporary candidate
+  before install/stamp publication. The removed hot-path experiment had crossed
+  the 3 GiB hard stop; the recovered integration build peaked at 2.089 GiB.
 
 ### Previous 2026-08-03 for-loop break exit merge
 
