@@ -6,84 +6,89 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - initialized `Array<Int>` sum/set closed
+## Active self-host context - read-only `Array<Int>` maximum closed
 
-- Executable checkpoint: `e3423436995409438f1044570d5af4fb10b760d2` on
+- Executable checkpoint: `4be9ac088bc870f15b92d934c793700b74e6abeb` on
   `main`, with this handoff as its intended docs-only descendant. The
-  current-source Pergyra-built driver used for final evidence is 4,581,465
+  current-source Pergyra-built driver used for final evidence is 4,613,637
   bytes with SHA-256
-  `FB8B72986CE16C03058D8219EFB6756894E32680343C5C09B7E61B7C2D092A0E`.
-- Closed executable rung: `src/self_hosted/codegen/fixture/array_sum.pgy`.
-  Its 12,383-byte self-produced MIR has SHA-256
-  `1496AA7537842ED4AECA0E417A3F0FE362E1A908147FD68FA4C7CE80087E7735`.
-  The same MIR emits a 1,019-byte C artifact
-  (`8FDDE2AD5D2A3E5906C62414E0E80056FA8C36855E5BFA878D7F1FF7631FD8E8`)
-  and a 3,633-byte LLVM artifact
-  (`1565F40A8B21C38E6CDAD498FB2A71ADA6CE2CAB2C8B33B6C9306F5C82B9B141`).
-  Both host-compile and execute exact `60`, `99`, then `3`.
+  `CF1178FAB3E78BA717676E91F88537384661973ABEEFEFCC2C5D5E193F4A7443`.
+- Closed executable rung: `src/self_hosted/codegen/fixture/array_max.pgy`.
+  Its 9,706-byte self-produced MIR has SHA-256
+  `F3200219061C8257830EF18A2A0E201B4D2C4460E2384C05A204AD7144CE10F3`.
+  The same MIR emits a 1,022-byte C artifact
+  (`0A0C028BDDD8AB273EAE22395CD7D8296F3DECCABCECD91A8A07537BA959458F`)
+  and a 3,936-byte LLVM artifact
+  (`32F5B7296DC777837FAFC6F4007B2B38EBA29E18BB1502FC75FD901D7E6AFD98`).
+  Both host-compile and execute exact `9`.
 - The same target-neutral scalar-CFG `GraphPlan` and one Array program receipt
-  now own two mutually exclusive modes. Dynamic push retains its closed empty-
-  array producer/consumer contract. Initialized static set owns literal
-  elements, the current-length while sum, one in-bounds set, post-set index
-  observation, and unchanged length. The old registry key
-  `projection.direct_mir_array_int_loop_push` is rejected; the single promoted
-  key is `projection.direct_mir_array_int_program`.
-- Collection, graph, operation, identity, readiness, storage, and target
-  responsibilities were split into named owners without raising an existing
-  line cap. This remains one import-composed compiler graph. There is no fixture
-  route, second Array planner, policy-bearing helper bucket, backend MIR re-read,
-  native/runtime collection fallback, or dynamic-then-static plan retry.
-- C initializes bounded `int32_t[3]` storage behind the canonical public
-  four-field object. LLVM initializes `[3 x i32]` and one mutable four-field
-  object. Both use current length, perform the set before the indexed read, and
-  keep length/capacity at 3.
-- The focused gate proved exact parity, display/phi-order artifact equality,
-  four semantic graph variants, and 35 no-artifact negatives across literal,
-  ABI, LocalRef, guard, topology, phi, read, mutation, order, length, and extra
-  use. The prior dynamic-push and String mutation regressions remained green.
-- Observed evidence: composed source check 8.4 seconds; current-source driver
-  build 125.7 seconds; focused parity 44.8 seconds; dynamic-push regression
-  about 40 seconds; String mutation regression 22.3 seconds;
-  component/removed-path ratchet 246.9 seconds after final documentation; and
-  cumulative scalar-CFG integration 348.268 seconds. LLVM emitted only the
-  already tolerated target-triple override warnings.
-- Memory was sampled only for the final cumulative boundary. The
-  `array-int-sum-final-cumulative-20260804` run peaked at 0.367 GiB working set
-  and 0.323 GiB private memory. Neither the 2.4 GiB attention threshold nor the
-  3 GiB hard stop fired. This is test-inclusive cumulative evidence, not an
-  ordinary compile-latency claim.
-- Classification: bounded `SUBSTITUTING` for this exact nonescaping initialized
-  local `Array<Int>` sum/static-set shape in installed C/LLVM, alongside the
-  previously closed dynamic-push mode. It is not read-only/range-only arrays,
-  aliases, parameters, returns, general growth, arbitrary element expressions,
-  or whole-compiler replacement.
-- The independent Hacker News observation that language consistency is easier
-  to steer than compiler architecture is retained in
-  `docs/131_ai_coding_atomic_units.md` as an anecdote. The repository-local
-  evidence is the one-owner extension and its fallback/negative gates, not the
-  external comment itself.
+  now own three mutually exclusive modes: dynamic push, initialized static set,
+  and initialized read-only range maximum. The five old loop-mutation owner
+  paths and `LoopMutation` symbols were retired without an alias and are now
+  negative-ratcheted.
+- The read-only mode consumes the existing collection/literal/ABI, generic
+  range, expression, ValueId, LocalRef, phi, and log facts. It owns only the
+  range syntax binding, greater-condition/update roles, exact predecessor/value
+  joins, and final readiness. There is no duplicate range planner, per-operation
+  whole-graph validation, fixture route, or backend MIR re-read.
+- C and LLVM use current length, initialize the accumulator from `xs[0]`, read
+  dynamic `xs[i]`, update the same phi-owned `best`, and log the final value.
+  Capacity is never treated as length, `9` is not precomputed, and neither
+  target retries another Array mode or escapes to native collection semantics.
+- The focused gate proves baseline `9`, first-max `12`, last-max `14`,
+  all-negative `-2`, display/phi-order artifact equality, and 23 no-artifact
+  negatives. The prior initialized sum/set and dynamic-push paths remained
+  executable regressions.
+- Observed evidence after the final split: composed source check about 6.0
+  seconds; current-source driver build 128.7 seconds; final max/sum/push
+  regression 102.3 seconds; component/removed-path ratchet 245.8 seconds; and
+  cumulative scalar-CFG integration 388.539 seconds. LLVM emitted only the
+  tolerated target-triple override warnings.
+- The final cumulative process tree was sampled every 500 ms. It observed
+  0.027 GiB peak working set and 0.010 GiB peak private memory; the low sample
+  can miss short-lived child peaks, so it is integration-test evidence rather
+  than an ordinary compiler-build memory claim. Neither the 2.4 GiB attention
+  threshold nor the 3 GiB hard stop fired.
+- No existing line cap was raised. The mixed operation binder was split into a
+  responsibility-named mutating owner plus a 23-line dispatcher, whose cap is
+  now 25. Classification is bounded `SUBSTITUTING` only for the exact local
+  read-only range/if/phi maximum shape, beside the two prior Array modes.
+- The Hacker News observation about AI language consistency versus compiler
+  architecture is retained as anecdote in
+  `docs/131_ai_coding_atomic_units.md`. Repository-local evidence is narrower:
+  this rung exposed an obsolete owner identity, duplicate range facts, an
+  invalid absence sentinel, and an SSA name/ID mismatch, all now covered by
+  named owners and negative gates.
 - Known independent red: `python scripts/sot_registry_gate.py` still exits 1 at
   the pre-existing `registry contains duplicate Coq fact authorities`. This
   rung did not add or weaken that conflict. Full CI, public matrices, current
   gen2==gen3 fixpoint, and proof suites did not run.
-- Next objective card: only `src/self_hosted/codegen/fixture/array_max.pgy` is
-  active. The current driver produces a 9,706-byte MIR with SHA-256
-  `F3200219061C8257830EF18A2A0E201B4D2C4460E2384C05A204AD7144CE10F3`.
+- Next objective card: only `src/self_hosted/codegen/fixture/array_reverse.pgy`
+  is active. The current driver produces a 7,260-byte MIR with SHA-256
+  `7D4FDBA6CC28906541B406DC508FE6C0870DC8B5DB638C2A41787FF711C8F64D`.
   Both direct targets reject before artifact publication with
-  `direct MIR scalar CFG foreach local inventory is invalid` because the Array
-  program receipt has no read-only initialized mode for the range/if graph.
-- Objective: extend that one receipt with a read-only initialized mode and bind
-  existing range, index, comparison, nested-if, and best-value phi facts for
-  exact `9`. Priority is one collection/local-inventory owner, typed range/read
-  evidence, fallback exclusion, then parity. The canonical Array ABI, literal
-  spine, range, CFG, expression, ValueId, and LocalRef owners supply facts;
-  `CompileAdmittedDirectMirForTarget` is the last legitimate consumer.
-- Forbidden fallback: fixture or block-count routing, pretending read-only is a
-  static-set program, backend MIR/graph reads, precomputed maximum, capacity as
-  length, native/runtime escape, another collection planner, or trying another
-  plan after the named owner rejects the program.
+  `direct MIR scalar local type inventory is missing or invalid` because no
+  current receipt claims both the source `nums` and fresh result `reversed`
+  collection identities across the `ArrayReverse` call.
+- Objective: extend the one scalar-CFG plan with an explicit fresh-value Array
+  transform receipt and execute exact `3`, `2`, `1`. Priority is source/result
+  identity and non-aliasing semantics, owner-directed call/result facts,
+  fallback exclusion, then C/LLVM parity. The canonical Array ABI, literal
+  spine, expression graph, LocalRef, runtime ABI, and local inventory owners
+  supply facts; `CompileAdmittedDirectMirForTarget` is the last legitimate
+  consumer.
+- Forbidden fallback: fixture/text or block-count routing, backend MIR reads,
+  precomputed output, silently aliasing source and result, a second Array
+  planner, or trying another plan after the named owner rejects the program.
 
 ## Historical checkpoint archive - inactive navigation evidence
+
+### Previous initialized `Array<Int>` sum/set closure
+
+- Executable checkpoint `e3423436995409438f1044570d5af4fb10b760d2`
+  closes `array_sum.pgy` in direct C/LLVM with exact `60`, `99`, `3`, four
+  semantic variants, and 35 no-artifact negatives. Its one-receipt two-mode
+  design is now historical input to the three-mode program owner above.
 
 ### Previous bounded `Array<Int>` loop push closure
 
