@@ -6,87 +6,93 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — String-array push continuation
+## Active self-host context — dynamic `Array<Int>` push continuation
 
-- Executable checkpoint: `c786778a` on `main`, with this documentation as
-  its intended docs-only descendant. The release-profile self-host driver used
-  for final evidence is 4,516,693 bytes with SHA-256
-  `CD843E59846DD5D0516EC0786FF46FCA13C87E584E633C7ACF9FFF188EA47AAC`.
-- Closed executable rung: `src/self_hosted/codegen/fixture/str_array.pgy`.
-  Its 8,408-byte installed self-produced MIR has SHA-256
-  `4B992433D9D40A7D1FA6DFB4BAE1AF41D2F86FCF57D32C229C0B5341DFCAA75F`.
-  The same MIR emits an 813-byte C artifact
-  (`75AB8C27C20F1377E987123898A273F4EBECACC53855D6CEF1AC36E7356AD687`)
-  and a 3,431-byte LLVM artifact
-  (`AAB5F42BEE7A5EBCFF52C666312BDC184DC135359EE43767199C5B3AA8A929DF`).
-  Both host-compile and execute exact `alice`, `bob`, `carol`, `BOB`.
-- One target-neutral String-array plan owns the join between the canonical
-  `Array<String>` local/literal/storage/ABI facts, `ArrayLength` while
-  condition, exact indexed reads, admitted `ArraySet`, operation order, CFG
-  edges, and ValueId/local identity. C and LLVM are terminal consumers of the
-  same plan and do not reconstruct those decisions.
-- Dynamic unsigned indexing is admitted only for the exact zero-initialized,
-  unit-incremented while induction proved by the plan. The true guard edge has
-  one predecessor and dominates dynamic accesses. Literal read/set indices are
-  nonnegative and in bounds. Graph readiness rejects stale value/local rows
-  before lookup.
-- The negative matrix covers display independence, graph-owned initial/set/empty
-  String values, set/log order, branch and length identity, dynamic and literal
-  index identity, nonnegative induction, guard edge and bypass, receiver/value
-  kinds, ABI length/capacity drift, stale collection rows, and absence of a
-  legacy retry. All rejected inputs fail before artifact publication for both
-  targets.
-- Six indexed-String-only owner files were deleted, and their facts moved behind
-  responsibility-named collection, plan, readiness, safety, and emission
-  owners. The foreach-only collection-definition owner was generalized without
-  adding a helper bucket. The prior indexed concat route now consumes this same
-  plan and remains green.
-- Observed evidence: release driver build 129.2 seconds; new focused parity
-  32.2 seconds; prior indexed concat 27.5 seconds; scalar CFG,
-  `Array<Int>` foreach, mixed-foreach, and the closed plan regressions green;
-  component/removed-path ratchet 242.6 seconds; final cumulative installed
-  integration 253.339 seconds.
-- Memory was sampled only for the final cumulative integration. The recorded
-  `str-array-final-cumulative-20260804` run exited 0 with 0.019 GiB peak
-  working set and 0.008 GiB peak private memory. The 2.4 GiB attention threshold
-  and 3 GiB hard stop did not fire.
-- Fixed caps remain below their hard ceilings without increases: graph admission
-  450/450; graph identity 100/100; graph readiness 240/240; String-array plan
-  admission 417/420; plan fact 160/180; lookup 155/180; identity 86/100;
-  readiness 188/200; append 109/120; binding 121/140; dominance 77/80; index
-  safety 89/100; graph shape 125/140; graph readiness 127/140; C 133/140; LLVM
-  205/220; mutation script 167/180; focused gate 121/130.
-- Classification: bounded `SUBSTITUTING` for one local non-empty ASCII-literal
-  `Array<String>` with zero-start/unit-step `ArrayLength` iteration, indexed
-  `Log`, a literal in-bounds `ArraySet`, and a later literal indexed
-  `Log`. It does not cover generic `ArraySet<T>`, dynamic set indices,
-  empty/pushed/reallocated arrays, parameters, aliases, returned arrays,
-  arbitrary while induction, or the whole compiler.
+- Executable checkpoint: `32368d54` on `main`, with this handoff as its
+  intended docs-only descendant. The current-source Pergyra-built driver used
+  for final evidence is 4,531,196 bytes with SHA-256
+  `9A7C5955D44BFB92A22C83A67F3D69186696D893D2CA8FF78D7F682E51CEEA5B`.
+- Closed executable rung: `src/self_hosted/codegen/fixture/str_array_push.pgy`.
+  Its 11,764-byte self-produced MIR has SHA-256
+  `947C394AEB05CF69F3518812CEF2BCB3A6337294AE850ABC4D8DD6AE7AFE06FA`.
+  The same MIR emits a 1,431-byte C artifact
+  (`32B13A95D55589F752A9A2E358409C2A8822546423710FE4C0F32C4F42BCDC76`)
+  and a 4,808-byte LLVM artifact
+  (`022700ADD8F8EDBABC376F3C7A0FF2CFA29D5EBFD329F057FEA00E76205866E3`).
+  Both host-compile and execute exact `abbccc` then `3`.
+- One target-neutral String-array plan now distinguishes an owned empty literal
+  from a missing graph, carries each literal push in source operation order,
+  and owns current length separately from final bounded capacity. The direct C
+  lane exposes the public four-field `PgyArray_String`; the direct LLVM lane
+  uses one mutable four-field object. Neither target calls `pgy_as_push`,
+  discovers pushes, or snapshots post-mutation length in an immutable value.
+- The admitted boundary is deliberately narrow: one nonescaping local literal,
+  literal push values, and an entry-block prefix. Each push stores its value
+  before advancing length. Every length/read/set consumer occurs after the
+  last push, and no CFG successor may target entry block zero. The latter
+  closes the audit-discovered case where locally correct push code could be
+  re-executed while static capacity was counted only once.
+- The negative matrix covers empty-vs-missing identity, graph-only String
+  values, receiver/use cardinality, operation order, pre-definition,
+  intermediate-length observation, branch/loop/late push, exit-to-entry
+  re-entry, ArrayLength graph edges and target, ABI layout, stale collection
+  identity, capacity-as-length, immutable LLVM reconstruction, and absence of a
+  legacy retry. Invalid inputs publish no C or LLVM artifact.
+- Observed evidence at this checkpoint: composed source check 8.1 seconds;
+  current-source driver build 123.2 seconds; focused push parity 26.3 seconds;
+  prior indexed String regression 34.7 seconds; static `ArraySet` regression
+  42.3 seconds; component/removed-path ratchet 255.9 seconds; current-driver
+  cumulative scalar-CFG integration 297.568 seconds. All observed exits are 0.
+- Memory was sampled only for the final cumulative integration. The
+  `str-array-push-final2-cumulative-20260804` run exited 0 with 0.365 GiB peak
+  working set and 0.321 GiB peak private memory. The 2.4 GiB attention
+  threshold and 3 GiB hard stop did not fire.
+- Fixed hard caps remain in force: array-literal spine 60/60; C operation owner
+  130/130; LLVM operation owner 190/190; String-array plan admission 394/420;
+  plan fact 165/180; readiness 189/200; graph readiness 128/140; C terminal
+  owner 76/140; LLVM terminal owner 141/220; entry execution 34/40; push
+  dominance 110/110; focused gate 127/140; mutations 174/175; artifact contract
+  55/60. Responsibility was split into named owners rather than a helper bucket.
+- Classification: bounded `SUBSTITUTING` for one empty local
+  `Array<String>`, exactly admitted once-only straight-line literal pushes, and
+  the already closed length/index/concat consumers in both installed direct
+  targets. It is not general runtime growth, reallocation, dynamic push values,
+  branch/loop mutation, aliases, parameters, returns, arbitrary element types,
+  or whole-compiler replacement.
+- The independent Hacker News anecdote about AI being steerable on language
+  consistency but difficult on compiler architecture is recorded in
+  `docs/131_ai_coding_atomic_units.md` as anecdote, not benchmark evidence. This
+  rung supplies the local evidence: output parity did not expose entry re-entry
+  or stale-length ownership; owner/consumer/fallback gates did.
 - Known independent reds: `python scripts/sot_registry_gate.py` still stops on
-  the pre-existing duplicate Coq fact-authority rows, and
-  `tests/self_hosted_scaffold_smoke.sh` stops because the pre-existing
+  the pre-existing duplicate Coq fact-authority rows, and the previously
+  observed scaffold gate stops because
   `src/self_hosted/tools/expression_graph_persisted_read_probe/` has no
   `intent.md`. This rung did not modify or weaken either conflict. Full CI,
   public matrices, current gen2==gen3 fixpoint, and proof suites did not run.
-- Next objective card: only
-  `src/self_hosted/codegen/fixture/str_array_push.pgy` is active. Its
-  11,764-byte self-produced MIR has SHA-256
-  `947C394AEB05CF69F3518812CEF2BCB3A6337294AE850ABC4D8DD6AE7AFE06FA`
-  and should execute `abbccc` then `3`. C and LLVM currently reject it
-  before publication with `direct MIR String array collection is invalid`.
-- Objective: preserve one collection identity from an empty
-  `Array<String>` through three ordered `ArrayPush` operations, then feed
-  the result to the already closed length/index/concat path. Priority:
-  semantic identity, operation order and length/capacity correctness, fallback
-  removal, negative ratchet, artifact parity. Fact owners are the existing
-  graph, operation, collection ABI/storage, CFG, and ValueId owners; the last
-  legitimate consumer remains `CompileAdmittedDirectMirForTarget`.
-  Forbidden fallback: fixture/block-count selection, treating empty as missing,
-  capacity-as-length, backend-owned push/reallocation discovery, a second
-  ArrayPush compiler, repeated whole-graph validation per operation, or
-  weakening the closed literal/mutation claim. First falsifiers: push order,
-  pushed String identity, length/capacity drift, empty-vs-missing identity,
-  stale collection version, and no legacy retry.
+- Next objective card: only `src/self_hosted/codegen/fixture/array_push.pgy` is
+  active. The current driver produces a 13,824-byte MIR with SHA-256
+  `AE1427524AA69F54A180C99BB6F5D3678C5C95353F7BBC74963197787AE82220`.
+  It builds an empty `Array<Int>`, pushes `i * i` in a five-iteration loop,
+  then should execute exact `30` and `5`. Both direct C and LLVM currently fail
+  before publication with
+  `direct MIR scalar CFG foreach local inventory is invalid`.
+- Objective: preserve one `Array<Int>` identity through a loop-owned dynamic
+  value push, current-length versioning, indexed summation, and final length.
+  Priority is semantic collection/local identity, exact loop-effect ownership,
+  length/capacity and growth boundary, old-route rejection, then C/LLVM parity.
+  Existing Array ABI/storage, scalar-CFG loop/range, operation, ValueId, and
+  LocalRef facts are the starting owners; the last legitimate consumer remains
+  `CompileAdmittedDirectMirForTarget`. The first task is to explain and close
+  the exact typed foreach-local inventory rejection, not to add a second
+  collection compiler.
+- Forbidden fallback: fixture or block-count routing, pre-baking the five
+  squares, treating capacity as current length, backend-owned push discovery,
+  native/runtime push escape, per-operation whole-graph validation, a generic
+  cache/query engine, or weakening the closed String push claim. First
+  falsifiers are dynamic pushed-value identity, loop/backedge effect ownership,
+  zero/five/current length versions, insufficient capacity or unproved growth,
+  stale collection/LocalRef, and no-artifact/no-retry behavior.
 
 ## Historical checkpoint archive — mixed foreach and indexed-String setup
 
