@@ -5430,13 +5430,19 @@ public stdout slice is `SUBSTITUTING`; the wider `mir.execution_graph` row stays
 Coq/Rocq, full bootstrap, or current-source gen2==gen3 run is inferred from this
 selector closure.
 
-The next exact production rung is file-form public
-`pgy <source> --emit-llvm -o <output.ll>`. It must reuse the installed
-source-MIR producer and `DirectMirLlvm` projector already used by the public
-LLVM compile path; no new semantic or backend owner is admitted. The native
-`driver_run_pipeline -> compiler_emit_llvm_ir_to_file` bypass must become
-unreachable for this envelope, and producer/projector failure must publish no
-stale artifact or retry native libLLVM. Stdout `--emit-llvm` remains open.
+At `279d0646`, file-form public
+`pgy <source> --emit-llvm -o <output.ll>` reuses the installed source-MIR
+producer and `DirectMirLlvm` projector already used by the public LLVM compile
+path. No new semantic or backend owner was added. The native
+`driver_run_pipeline -> compiler_emit_llvm_ir_to_file` bypass is unreachable
+for this envelope; producer/projector failure publishes no stale artifact and
+cannot retry native libLLVM. Public/direct LLVM IR is byte-equal and host clang
+executes exact `7\n11\n5\n`. This file form is bounded `SUBSTITUTING`.
+
+The next exact production rung is stdout public
+`pgy <source> --emit-llvm`. It must stream the same installed projection as
+opaque bytes, without a whole-artifact string copy, textual policy inference,
+second projector, or native `compiler_emit_llvm_ir` retry.
 
 After the selector is closed, the smallest known LLVM breadth falsifier is
 `nested_if_in_loop.pgy`: its eight-block CFG is already carried by the existing

@@ -2115,6 +2115,14 @@ inventory must not become a second fact-family owner registry.
   artifact-effect executor. It delegates read variants to the read owner and
   publishes only typed artifact variants through the compiler-world and atomic
   transaction owners.
+- `src/compiler/driver_self_host_llvm_selection_owner.c` -- native public LLVM
+  request admission adapter. It distinguishes plain binary and exact file-form
+  IR requests but owns no source, MIR, or backend fact.
+- `src/compiler/self_host_llvm_ir_artifact_owner.c` -- exact public LLVM IR file
+  publication boundary. It materializes the installed source-MIR/projector pair
+  in a private same-directory workspace and publishes opaque bytes only after
+  success. Native semantics, libLLVM retry, and LLVM text inspection are
+  forbidden. Stdout delivery remains open.
 - `src/self_hosted/compiler/driver_rung2_cli_owner.pgy` -- 11-line standalone
   wrapper that performs one argv admission and one read-only execution.
 - `src/self_hosted/compiler/driver_rung2_fixture_manifest_cli_owner.pgy` and

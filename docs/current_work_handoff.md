@@ -6,72 +6,64 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — public LLVM IR artifact takeover
+## Active self-host context — public LLVM IR stdout takeover
 
-- Executable checkpoint: `ced304fbd830a155e2768db99748b25d91db81fa` on
-  `main`. `bin/pgy.exe` is 4,623,095 bytes, SHA-256
-  `2E41E179E0D285423033A14F0CA1CEBD9B5F6136C4CDE15E986DFA48E0422027`.
+- Executable checkpoint: `279d0646aa150ae5cce44ff69ac8283293e97923` on
+  `main`. `bin/pgy.exe` is 4,624,892 bytes, SHA-256
+  `93DF89B38F942F113DFEFD6E7B67A19F1C3BE5A56799386FB03AFF86C632C0D5`.
   The installed Pergyra-built sibling remains 4,252,131 bytes, SHA-256
   `0116E8A20A5504E4BB2010B36DC071870155FD52A4E2F00EBB2E3E177D57DC95`.
-- Closed executable rung: public `pgy --mir-json <source>` now validates one
-  exact option envelope and invokes the installed sibling's
-  `--emit-mir-json-verified` action. It cannot retry the native
-  `driver_run_pipeline -> mir_dump_json` path after missing-sibling, rejected-
-  source, or unsupported-option failure. This bounded stdout path is
-  `SUBSTITUTING`; the wider `mir.execution_graph` family remains `BRIDGE`.
-- Native MIR independence is explicit and test-only through
-  `--test-native-mir-json-oracle`. Existing native-carrier tests use this frozen
-  selector rather than public `--mir-json`, preventing both self-versus-self
-  parity and a clean-bootstrap cycle that would require an installed sibling
-  before constructing it.
-- Fresh executable evidence: public/self MIR is byte-equal at 46,727 bytes;
-  frozen-native/self canonical MIR is byte-equal at 50,091 bytes; rejected
-  source status and diagnostics agree; missing sibling, unsupported runtime,
-  and mixed public/test mode fail with no MIR artifact. The focused public gate
-  passed in 4.5 seconds, all thirteen live rows in 51.4 seconds, hard contract
-  in 50.4 seconds, component/removed-path ratchet in 179.9 seconds, and all 45
-  changed shell scripts passed `bash -n`.
-- One broad generic-method smoke reached and passed its frozen native MIR phase
-  but later failed in an already-substituted public C compile/run phase without
-  publishing a program artifact. That failure is outside the closed selector
-  claim and remains unclassified; do not record the whole smoke as green or
-  infer a platform cause without a focused reproduction.
-- The August 2 architecture review observed `bac9b3f1`. Its Pair/aggregate
-  implementation frontier is stale because the general aggregate value-flow
-  promotion and later identity closures are already present. Its durable
-  constraints remain active: do not add topology-specific mini-compilers,
-  storage layout is not target call ABI, and pressure/fixed-point evidence
-  belongs at an integration boundary.
-- Active objective card: move exact public
-  `pgy <source> --emit-llvm -o <output.ll>` from the native LLVM compiler path
-  to the already installed two-action composition. Priority is source/MIR
-  identity, owner reuse, native bypass deletion, negative ratchet, then patch
-  size. Source-to-MIR facts are owned by `DriverSourceMirExecution` and
-  `SelfMirProgramFacts`; target admission is owned by
-  `CompilerTargetProjectionFact`; MIR-to-LLVM is owned by
-  `DriverRung2Execution.EmitDirectMir` and
-  `CompileMirJsonToDirectBackendVerified`. The last legitimate consumer is
-  `DriverRung2InstalledPublishDirectMir(..., DirectMirLlvm)`.
-- Direct bypass to delete for this exact selector:
+- Closed executable rung: exact public
+  `pgy <source> --emit-llvm -o <output.ll>` now selects the installed
+  source-MIR producer and `DirectMirLlvm` projector before the final native
+  pipeline. `driver_self_host_llvm_ir_file_request_supported` owns admission;
+  `driver_publish_self_host_llvm_ir_file` owns only private workspace and file
+  publication. It contains no semantic, MIR, LLVM, or native fallback owner.
+- `option_struct_value_flow.pgy` produced a public `.ll` byte-equal to direct
+  installed projection of the same public MIR; host clang executed exact
+  `7\n11\n5\n`. A counting sibling observed producer/backend exactly once each.
+  Missing sibling, unsupported runtime, producer rejection, projector
+  rejection, and source/output identity all fail without stale/partial output
+  or native pipeline timing. The focused gate passed in 17.8 seconds.
+- The adjacent public MIR and thirteen-row live replacement gates, hard
+  substitution contract, and component/removed-path ratchet all passed in one
+  312.6-second regression sequence. Both public selector gates are 139/140
+  lines; C selection owners are 86/100 and 37/60 lines, and the file publication
+  owner is 64/90 lines. No cap was relaxed.
+- The file form is bounded `SUBSTITUTING`; it does not imply general LLVM
+  coverage. `mir.execution_graph` remains `BRIDGE`, and public stdout
+  `pgy <source> --emit-llvm` still reaches
+  `driver_run_pipeline -> llvm_runner_execute -> compiler_emit_llvm_ir`.
+- The August 2 review's Pair/enum frontiers are stale and must not be revived.
+  Its durable constraints remain active: no topology-specific mini-compiler,
+  storage layout is distinct from target call ABI, and pressure/fixed-point
+  evidence belongs at an integration boundary. After selector closure, the
+  smallest known LLVM breadth falsifier is the existing eight-block
+  `nested_if_in_loop.pgy`, not another aggregate fixture.
+- Active objective card: move exact public stdout
+  `pgy <source> --emit-llvm` to the same installed two-action composition.
+  Priority is byte-exact projection, bounded streaming transport, native bypass
+  deletion, failure purity, then patch size. Semantic/fact owners remain
+  `DriverSourceMirExecution`, `SelfMirProgramFacts`,
+  `CompilerTargetProjectionFact`, `DriverRung2Execution.EmitDirectMir`, and
+  `CompileMirJsonToDirectBackendVerified`; the C launcher may own only temporary
+  artifact lifetime and opaque stdout delivery. The last legitimate Pergyra
+  consumer remains `DriverRung2InstalledPublishDirectMir(..., DirectMirLlvm)`.
+- Direct bypass to delete for this exact stdout selector:
   `pgy_driver.c`'s final `driver_run_pipeline` into
-  `llvm_runner.c::compiler_emit_llvm_ir_to_file`. Reuse
-  `driver_materialize_self_host_llvm_artifacts` as the C orchestration adapter;
-  do not create another semantic or projection owner. Missing producer,
-  producer rejection, or projector rejection must fail without native libLLVM
-  retry and without a stale/partial `.ll` artifact. Stdout `--emit-llvm`
-  remains open until separately admitted.
-- Next falsifier: `option_struct_value_flow.pgy` must call the installed MIR
-  producer and LLVM projector exactly once each; public file-form `.ll` must be
-  byte-equal to direct installed projection from the same public MIR and must
-  compile/run through host clang with exact `7\n11\n5\n`. Missing sibling and
-  producer/projector failures publish no artifact, and structural ratchets
-  forbid reintroducing native `driver_run_pipeline` or `compiler_emit_llvm_ir*`
-  for the selected envelope.
+  `llvm_runner.c::compiler_emit_llvm_ir`. Do not read the whole LLVM artifact
+  into one string, reinterpret its text, add a second projector, or retry native
+  libLLVM after an installed failure.
+- Next falsifier: stdout bytes for `option_struct_value_flow.pgy` must equal the
+  closed public file form and direct installed `.ll`; counting must remain one
+  producer plus one projector; producer/projector failure must emit no LLVM
+  payload and no native timing. Then run the emitted stdout IR through host
+  clang for exact `7\n11\n5\n`. Only after this selector closes should
+  `nested_if_in_loop.pgy` become the active semantic breadth rung.
 - No pressure probe, full CI, full bootstrap, current-source gen2==gen3, or
-  Coq/Rocq suite ran for this rung. The 19.8-second incremental native link was
-  setup recovery, not a performance or pressure sample. Historical peaks are
-  not attached to the current driver. Memory remains final-integration-only:
-  attention at 2.4 GiB, hard stop at 3 GiB.
+  Coq/Rocq suite ran for this rung. Historical peaks are not attached to the
+  current driver. Memory remains final-integration-only: attention at 2.4 GiB,
+  hard stop at 3 GiB.
 
 ## Historical checkpoint archive — inactive evidence
 

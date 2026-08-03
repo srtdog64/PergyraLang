@@ -4824,3 +4824,24 @@ path가 `C:\Windows`로 떨어져 permission error가 났다. MSYS2 bash를 직�
 수를 확인한 뒤 올바른 MSYS2 환경에서 증분을 재개한다. 이번 재개는 `-j4`로 남은
 오브젝트와 link를 19.8초에 끝냈지만 pressure 표본은 아니므로 메모리 최대값으로
 기록하지 않는다.
+
+## public `--emit-llvm -o`가 native libLLVM으로 되돌아가는 경우
+
+`279d0646`부터 exact file form은 installed source-MIR producer와
+`--mir-json-backend=llvm` projector를 각각 한 번 실행한다. 일반
+`driver_run_pipeline`이나 `compiler_emit_llvm_ir_to_file`은 이 selector의 fallback이
+아니다. Runtime/debug/dev/json-diagnostic처럼 아직 admit하지 않은 옵션은 native로
+넘기지 않고 selector에서 실패한다.
+
+Final path에 직접 생성하면 projector 실패가 옛 `.ll`을 남기거나 partial file을
+노출할 수 있다. 현재 publication owner는 output directory 안의 private workspace에
+MIR과 LLVM artifact를 완성한 뒤 성공한 `.ll`만 rename한다. 실행 전에 stale final을
+지우며 producer/projector failure 뒤에는 final artifact가 없다. Source와 output의
+spelling이 같으면 source를 지우기 전에 fail closed한다.
+
+Focused gate는
+`tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh`다. Public/direct
+LLVM byte equality, host clang exact `7/11/5`, producer/backend exact-once,
+missing/unsupported/rejected action, stale output, source/output identity, native timing
+부재를 확인한다. Stdout `--emit-llvm`은 아직 native 경로이므로 이 file-form green을
+전체 explicit LLVM emission 치환으로 과장하지 않는다.

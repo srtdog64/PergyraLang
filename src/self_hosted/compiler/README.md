@@ -185,6 +185,13 @@ requests fail without native retry. This does not make the whole world or every
 source/MIR feature `SUBSTITUTING`; the remaining slices keep their independently
 measured grade.
 
+Exact public `pgy <source> --emit-llvm -o <output.ll>` is also a bounded
+`SUBSTITUTING` slice. The C launcher admits only that file form, materializes
+the existing installed source-MIR plus `DirectMirLlvm` actions in a private
+workspace, and publishes opaque bytes. It cannot re-enter native semantics or
+libLLVM after failure. Stdout `--emit-llvm` remains open and must reuse the same
+Pergyra owners rather than adding another backend.
+
 ## Pergyra-Style Check
 
 A self-hosted compiler slice is accepted only when it reads as a Pergyra

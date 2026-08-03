@@ -383,10 +383,13 @@ migrated to that explicit boundary so bootstrap and parity do not become
 circular or compare self with self. This bounded stdout slice is
 `SUBSTITUTING`; `mir.execution_graph` remains `BRIDGE` for its documented open
 semantic/CFG families. The next exact production selector is public
-`pgy <source> --emit-llvm -o <output.ll>`: reuse the installed source-MIR and
-DirectMirLlvm owners, delete its native `compiler_emit_llvm_ir_to_file` bypass,
-and fail without artifact or native retry when either installed action fails.
-The stdout form remains open until separately admitted.
+`pgy <source> --emit-llvm -o <output.ll>`. Checkpoint `279d0646` now reuses the
+installed source-MIR and DirectMirLlvm owners, deletes that selector's native
+`compiler_emit_llvm_ir_to_file` bypass, and fails without stale/partial artifact
+or native retry when either installed action fails. Public file/direct LLVM IR
+is byte-equal and host clang executes exact `7\n11\n5\n`. This file form is a
+bounded `SUBSTITUTING` slice; stdout `--emit-llvm` remains the active selector
+before the existing eight-block `nested_if_in_loop.pgy` LLVM breadth falsifier.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
