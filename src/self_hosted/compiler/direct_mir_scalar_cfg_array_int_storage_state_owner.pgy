@@ -1,26 +1,28 @@
 // Initial length and bounded capacity derived from the sealed Array<Int> mode.
 
-import "direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
 
 func DirectMirScalarCfgArrayIntCapacity(
-    ref fact: DirectMirScalarCfgArrayIntLoopMutationFact
+    ref fact: DirectMirScalarCfgArrayIntProgramFact
 ) -> Int {
     if !fact.valid { return -1; }
     if fact.mode == DirectMirScalarCfgArrayIntDynamicPushMode() {
         return fact.producer.bound;
     }
-    if fact.mode == DirectMirScalarCfgArrayIntStaticSetMode() {
+    if fact.mode == DirectMirScalarCfgArrayIntStaticSetMode() ||
+        fact.mode == DirectMirScalarCfgArrayIntReadOnlyInitializedMode() {
         return ArrayLength(fact.collection.elements);
     }
     return -1;
 }
 
 func DirectMirScalarCfgArrayIntInitialLength(
-    ref fact: DirectMirScalarCfgArrayIntLoopMutationFact
+    ref fact: DirectMirScalarCfgArrayIntProgramFact
 ) -> Int {
     if !fact.valid { return -1; }
     if fact.mode == DirectMirScalarCfgArrayIntDynamicPushMode() { return 0; }
-    if fact.mode == DirectMirScalarCfgArrayIntStaticSetMode() {
+    if fact.mode == DirectMirScalarCfgArrayIntStaticSetMode() ||
+        fact.mode == DirectMirScalarCfgArrayIntReadOnlyInitializedMode() {
         return ArrayLength(fact.collection.elements);
     }
     return -1;

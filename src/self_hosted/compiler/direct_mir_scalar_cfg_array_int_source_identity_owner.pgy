@@ -1,6 +1,6 @@
 // Shared typed source and instruction-use identity for Array<Int> plans.
 
-import "direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
 
 func DirectMirScalarCfgArrayIntSourceLocalReady(

@@ -5,7 +5,7 @@ import "direct_mir_scalar_cfg_loop_flow_admission_owner.pgy";
 import "direct_mir_scalar_cfg_range_transfer_admission_owner.pgy";
 import "direct_mir_scalar_cfg_foreach_admission_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_admission_owner.pgy";
-import "direct_mir_scalar_cfg_array_int_loop_mutation_admission_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_admission_owner.pgy";
 import "../mir_lower/phi_fact_owner.pgy";
 
 struct DirectMirScalarCfgGraphInput {
@@ -16,7 +16,7 @@ struct DirectMirScalarCfgGraphInput {
     let foreach_facts: DirectMirScalarCfgForEachFactSet;
     let foreach_elements: DirectMirScalarCfgForEachElementFacts;
     let string_arrays: DirectMirScalarCfgStringArrayPlan;
-    let array_int_loop_mutation: DirectMirScalarCfgArrayIntLoopMutationFact;
+    let array_int_program: DirectMirScalarCfgArrayIntProgramFact;
 }
 
 func DirectMirScalarCfgGraphInputFromAdmitted(
@@ -76,10 +76,10 @@ func DirectMirScalarCfgGraphInputFromAdmitted(
         !DirectMirScalarCfgStringArrayPlanShapeReady(string_arrays, false) {
         Die("direct MIR scalar CFG String array plan is invalid");
     }
-    let array_int_loop_mutation:
-        DirectMirScalarCfgArrayIntLoopMutationFact =
-        DirectMirScalarCfgArrayIntLoopMutationFromOwners(
-            admitted, index, use_facts, wire, foreach_facts
+    let array_int_program:
+        DirectMirScalarCfgArrayIntProgramFact =
+        DirectMirScalarCfgArrayIntProgramFromOwners(
+            admitted, index, use_facts, wire, foreach_facts, ranges
         );
     if !MirRoutineInstructionFactBundleReady(
             index.instruction_facts, ArrayLength(index.block_starts)
@@ -92,6 +92,6 @@ func DirectMirScalarCfgGraphInputFromAdmitted(
     }
     return DirectMirScalarCfgGraphInput(
         index, use_facts, wire, ranges, foreach_facts,
-        foreach_admission.elements, string_arrays, array_int_loop_mutation
+        foreach_admission.elements, string_arrays, array_int_program
     );
 }

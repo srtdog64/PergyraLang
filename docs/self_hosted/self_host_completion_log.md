@@ -10483,3 +10483,48 @@ Released/default replacement remains 0%.
   delta is a read-only initialized mode in the same Array program receipt,
   followed by range/index/comparison/if/phi binding and exact `9`; fixture routes,
   precomputed maxima, backend MIR reads, and plan retry remain forbidden.
+
+## 2026-08-04 - read-only initialized `Array<Int>` maximum substitutes
+
+- Closed `src/self_hosted/codegen/fixture/array_max.pgy` through the
+  current-source Pergyra-built direct C and LLVM routes. Its 9,706-byte MIR
+  (`F3200219061C8257830EF18A2A0E201B4D2C4460E2384C05A204AD7144CE10F3`)
+  emits 1,022-byte C
+  (`0A0C028BDDD8AB273EAE22395CD7D8296F3DECCABCECD91A8A07537BA959458F`)
+  and 3,936-byte LLVM
+  (`32F5B7296DC777837FAFC6F4007B2B38EBA29E18BB1502FC75FD901D7E6AFD98`).
+  Both host-compile and execute exact `9`.
+- The single target-neutral Array program receipt now has three mutually
+  exclusive modes. The new read-only mode joins the existing initialized
+  collection and generic range facts to exact index reads, comparison/update
+  roles, predecessor-bound phis, and final log. It does not duplicate the
+  range owner or reopen MIR in either backend.
+- The former `LoopMutation` identity and five owner filenames were retired in
+  favor of program ownership with no alias. Component ratchets reject both the
+  retired symbols and files. A 66-line mixed operation binder was split into a
+  23-line dispatcher and a responsibility-named mutating owner; its hard cap
+  was tightened to 25 rather than raised.
+- The focused gate passed baseline, first/last maximum, all-negative,
+  display/phi-order equality, and 23 C/LLVM no-artifact negatives. The final
+  max/sum/push regression took 102.3 seconds, the component/removed-path gate
+  took 245.8 seconds, and cumulative scalar-CFG integration took 388.539
+  seconds. The current-source driver build took 128.7 seconds.
+- Memory was sampled once at the final cumulative boundary. The 500 ms
+  process-tree sample observed 0.027 GiB peak working set and 0.010 GiB peak
+  private memory; this can miss short-lived child peaks and is not presented as
+  ordinary compiler-build evidence. The attention and hard-stop thresholds did
+  not fire. Full CI, proof suites, public matrices, and current gen2==gen3 were
+  not run.
+- The Hacker News observation that AI language work can stay superficially
+  coherent while compiler architecture drifts remains anecdote, not benchmark
+  evidence. Local evidence in this rung was an obsolete owner name, duplicated
+  range facts, an invalid absence sentinel, and an SSA name/ID mismatch. The
+  owner registry and focused negatives are the durable correction.
+- The next sole falsifier is `array_reverse.pgy`. Its 7,260-byte MIR
+  (`7D4FDBA6CC28906541B406DC508FE6C0870DC8B5DB638C2A41787FF711C8F64D`)
+  is produced successfully, while both direct targets fail closed with
+  `direct MIR scalar local type inventory is missing or invalid`. The next
+  owner delta must claim both source and fresh result Array identities across
+  `ArrayReverse`, preserve its fresh-value contract, and execute exact
+  `3`, `2`, `1` without fixture routing, backend MIR reads, output
+  precomputation, silent aliasing, a second Array planner, or plan retry.

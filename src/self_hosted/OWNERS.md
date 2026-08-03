@@ -2219,31 +2219,35 @@ inventory must not become a second fact-family owner registry.
   String-named compatibility view delegates here and owns no second shape.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_collection_owner.pgy`,
   `direct_mir_scalar_cfg_array_int_collection_admission_owner.pgy`,
-  `direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy`, and
-  `direct_mir_scalar_cfg_array_int_static_mutation_fact_owner.pgy` -- one
+  `direct_mir_scalar_cfg_array_int_program_fact_owner.pgy`, and
+  the static/read-only fact owners -- one
   public-ABI `Array<Int>` identity and one program receipt with mutually
-  exclusive dynamic-push and initialized-static-set modes. Initial elements,
-  current length, capacity, and the optional set receipt are facts; a backend
-  cannot reinterpret an empty collection as initialized storage or vice versa.
+  exclusive dynamic-push, initialized-static-set, and initialized-read-only
+  modes. Initial elements, current length, capacity, and selected child receipt
+  are facts; a backend cannot reinterpret one mode as another.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_graph_shape_owner.pgy`,
-  `direct_mir_scalar_cfg_array_int_loop_mutation_admission_owner.pgy`,
+  `direct_mir_scalar_cfg_array_int_program_admission_owner.pgy`,
   `direct_mir_scalar_cfg_array_int_static_graph_owner.pgy`, and
-  `direct_mir_scalar_cfg_array_int_static_mutation_admission_owner.pgy` -- admit
+  the static/read-only admission owners -- admit
   either the bounded producer/push/consumer topology or the initialized
   current-length while sum followed by one in-bounds set, indexed observation,
-  and final length observation. `loop_flow_summary.effect_delta` is not mutation
-  authority, and the two modes are never tried as compatibility fallbacks.
-- `src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_binding_owner.pgy`,
+  and final length observation, or one read-only range maximum with two indexed
+  reads, a greater branch, exact phi joins, and final Log. The read-only source
+  and phi/topology owners consume the existing range receipt rather than
+  duplicating its block facts. `loop_flow_summary.effect_delta` is not mutation
+  authority, and no mode is tried as a compatibility fallback.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_binding_owner.pgy`,
   `direct_mir_scalar_cfg_array_int_operation_binding_owner.pgy`,
-  `direct_mir_scalar_cfg_array_int_loop_mutation_identity_owner.pgy`,
+  `direct_mir_scalar_cfg_array_int_program_identity_owner.pgy`,
   `direct_mir_scalar_cfg_array_int_static_mutation_identity_owner.pgy`,
-  `direct_mir_scalar_cfg_array_int_expression_owner.pgy`, and
-  the dynamic/static readiness owners -- bind exact ValueId/operation rows,
+  the read-only binding/identity/expression owners, and the three mode
+  readiness owners -- bind exact ValueId/LocalRef/operation rows,
   include the single receipt and explicit mode in `GraphPlan` identity, and
   prove loop induction, accumulator recurrence, mutation ordering, derived
-  storage state, and target operation shape. The C/LLVM storage, initialization,
-  and static-operation owners consume that receipt without reopening MIR or
-  calling a native/runtime collection path.
+  storage state, range bounds, greater-condition projection, predecessor/value
+  phi joins, and target operation shape. The C/LLVM storage, initialization,
+  program-operation, and read-only emission owners consume that receipt without
+  reopening MIR or calling a native/runtime collection path.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy`,
   `direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy`,
   `direct_mir_scalar_cfg_string_array_plan_append_owner.pgy`, and

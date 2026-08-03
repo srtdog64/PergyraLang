@@ -31,7 +31,7 @@ command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required"
 
-FACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy"
+FACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_fact_owner.pgy"
 STATIC="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_mutation_admission_owner.pgy"
 for owner in \
     "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_c_emission_owner.pgy" \

@@ -1,0 +1,58 @@
+// Exact operation rows for read-only Array<Int> indexed reads and final log.
+
+import "direct_mir_scalar_cfg_operation_position_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReadOnlyOperationReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    operation: Int, result: Int, local: Int, literal: String,
+    block: Int
+) -> Bool {
+    return operation >= 0 && operation < ArrayLength(plan.operation_kinds) &&
+        plan.operation_kinds[operation] == DirectMirScalarCfgOpArrayReadInt() &&
+        plan.operation_result_values[operation] == result &&
+        plan.operation_left_values[operation] == -1 &&
+        plan.operation_left_locals[operation] == local &&
+        plan.operation_left_literals[operation] == literal &&
+        plan.operation_right_values[operation] == -1 &&
+        plan.operation_right_locals[operation] == -1 &&
+        plan.operation_right_literals[operation] == "" &&
+        DirectMirScalarCfgOperationBlock(plan, operation) == block;
+}
+
+func DirectMirScalarCfgArrayIntReadOnlyOperationsReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref fact: DirectMirScalarCfgArrayIntReadOnlyRangeFact,
+    ref range: DirectMirScalarCfgRangeIterationFact,
+    update_block: Int
+) -> Bool {
+    if !DirectMirScalarCfgArrayIntReadOnlyOperationReady(
+            plan, fact.initial_read.operation_row,
+            fact.initial_read.result_value_row, -1, "0", range.init_block
+        ) || !DirectMirScalarCfgArrayIntReadOnlyOperationReady(
+            plan, fact.update_read.operation_row,
+            fact.update_read.result_value_row, fact.index_local_row, "",
+            update_block
+        ) || fact.log_operation_row < 0 ||
+        fact.log_operation_row >= ArrayLength(plan.operation_kinds) ||
+        plan.operation_kinds[fact.log_operation_row] !=
+            DirectMirScalarCfgOpLogInt() ||
+        plan.operation_result_values[fact.log_operation_row] != -1 ||
+        plan.operation_left_values[fact.log_operation_row] !=
+            fact.current_value_row ||
+        plan.operation_right_values[fact.log_operation_row] != -1 ||
+        DirectMirScalarCfgOperationBlock(plan, fact.log_operation_row) !=
+            range.exit_block { return false; }
+    let read_count: Int = 0; let operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        let kind: Int = plan.operation_kinds[operation];
+        if kind == DirectMirScalarCfgOpArrayReadInt() {
+            read_count = read_count + 1;
+        }
+        if kind == DirectMirScalarCfgOpArrayPushInt() ||
+            kind == DirectMirScalarCfgOpAddArrayReadInt() ||
+            kind == DirectMirScalarCfgOpArraySetInt() ||
+            kind == DirectMirScalarCfgOpLogArrayIndexInt() { return false; }
+        operation = operation + 1;
+    }
+    return read_count == 2;
+}

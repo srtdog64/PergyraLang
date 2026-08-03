@@ -1,0 +1,45 @@
+// C indexed reads and greater condition from the sealed read-only receipt.
+
+import "direct_mir_scalar_cfg_array_int_condition_role_owner.pgy";
+import "direct_mir_scalar_cfg_c_operand_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReadOnlyCRead(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> String {
+    let fact: DirectMirScalarCfgArrayIntReadOnlyRangeFact =
+        plan.array_int_program.read_only;
+    if !fact.valid || (operation != fact.initial_read.operation_row &&
+        operation != fact.update_read.operation_row) {
+        Die("direct MIR scalar CFG read-only Array<Int> C read is invalid");
+    }
+    let output: String = Concat("    ", DirectMirScalarCfgCLocal(
+        plan, plan.operation_result_values[operation]
+    ));
+    output = Concat(output, " = pgy_array_int_collection.data[(size_t)");
+    output = Concat(output, DirectMirScalarCfgCOperand(
+        plan, plan.operation_left_values[operation],
+        plan.operation_left_locals[operation],
+        plan.operation_left_literals[operation]
+    ));
+    return Concat(output, "];\n");
+}
+
+func DirectMirScalarCfgArrayIntReadOnlyCCondition(
+    ref plan: DirectMirScalarCfgGraphPlan, block: Int
+) -> String {
+    if !DirectMirScalarCfgArrayIntIndexedConditionBlock(plan, block) {
+        Die("direct MIR scalar CFG read-only Array<Int> C condition is invalid");
+    }
+    let output: String = "pgy_array_int_collection.data[(size_t)";
+    output = Concat(output, DirectMirScalarCfgCOperand(
+        plan, plan.block_condition_left_values[block],
+        plan.block_condition_left_locals[block],
+        plan.block_condition_left_literals[block]
+    ));
+    output = Concat(output, "] > ");
+    return Concat(output, DirectMirScalarCfgCOperand(
+        plan, plan.block_condition_right_values[block],
+        plan.block_condition_right_locals[block],
+        plan.block_condition_right_literals[block]
+    ));
+}

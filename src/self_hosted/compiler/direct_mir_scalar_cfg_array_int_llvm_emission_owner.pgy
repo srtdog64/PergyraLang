@@ -2,19 +2,22 @@
 
 import "direct_mir_scalar_cfg_array_int_llvm_storage_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_operand_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_read_only_llvm_emission_owner.pgy";
 
 func DirectMirScalarCfgArrayIntLlvmCondition(
     ref plan: DirectMirScalarCfgGraphPlan, block: Int
 ) -> String {
-    let fact: DirectMirScalarCfgArrayIntLoopMutationFact =
-        plan.array_int_loop_mutation;
-    if !fact.valid || block != fact.consumer.header_block {
+    if DirectMirScalarCfgArrayIntIndexedConditionBlock(plan, block) {
+        return DirectMirScalarCfgArrayIntReadOnlyLlvmCondition(plan, block);
+    }
+    if !DirectMirScalarCfgArrayIntLengthConditionBlock(plan, block) {
         Die("direct MIR scalar CFG Array<Int> LLVM condition is invalid");
     }
     let output: String = Concat("  %pgy.cond.", ToString(block));
     output = Concat(output, ".left = load i64, ptr ");
     output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
-        plan, fact.consumer.index_value_row, -1
+        plan, plan.block_condition_left_values[block],
+        plan.block_condition_left_locals[block]
     ));
     output = Concat(output, ", align 8\n");
     output = Concat(output, Concat("  %pgy.cond.", ToString(block)));
@@ -30,8 +33,8 @@ func DirectMirScalarCfgArrayIntLlvmCondition(
 func DirectMirScalarCfgArrayIntLlvmPush(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int
 ) -> String {
-    let fact: DirectMirScalarCfgArrayIntLoopMutationFact =
-        plan.array_int_loop_mutation;
+    let fact: DirectMirScalarCfgArrayIntProgramFact =
+        plan.array_int_program;
     if !fact.valid || operation != fact.producer.push_operation_row {
         Die("direct MIR scalar CFG Array<Int> LLVM push is invalid");
     }
@@ -71,8 +74,8 @@ func DirectMirScalarCfgArrayIntLlvmPush(
 func DirectMirScalarCfgArrayIntLlvmRead(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int
 ) -> String {
-    let fact: DirectMirScalarCfgArrayIntLoopMutationFact =
-        plan.array_int_loop_mutation;
+    let fact: DirectMirScalarCfgArrayIntProgramFact =
+        plan.array_int_program;
     if !fact.valid || operation != fact.consumer.read_operation_row {
         Die("direct MIR scalar CFG Array<Int> LLVM read is invalid");
     }
@@ -110,8 +113,8 @@ func DirectMirScalarCfgArrayIntLlvmLengthLog(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
     formatted_print: CompilerRuntimeCallAbiFact
 ) -> String {
-    if !plan.array_int_loop_mutation.valid || operation !=
-            plan.array_int_loop_mutation.consumer.length_log_operation_row {
+    if !plan.array_int_program.valid || operation !=
+            plan.array_int_program.consumer.length_log_operation_row {
         Die("direct MIR scalar CFG Array<Int> LLVM length Log is invalid");
     }
     let stem: String = Concat("%pgy.op.", ToString(operation));

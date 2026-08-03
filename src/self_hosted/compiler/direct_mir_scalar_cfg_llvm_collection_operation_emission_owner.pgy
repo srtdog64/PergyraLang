@@ -2,7 +2,7 @@
 
 import "direct_mir_scalar_cfg_string_array_llvm_mutation_emission_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_llvm_emission_owner.pgy";
-import "direct_mir_scalar_cfg_array_int_static_llvm_operation_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_llvm_program_operation_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_collection_operation_fact_owner.pgy";
 
 func DirectMirScalarCfgEmitLlvmCollectionOperation(
@@ -33,13 +33,13 @@ func DirectMirScalarCfgEmitLlvmCollectionOperation(
             true, DirectMirScalarCfgArrayIntLlvmRead(plan, operation)
         );
     }
-    let static_array_int: DirectMirScalarCfgLlvmCollectionOperationEmission =
-        DirectMirScalarCfgArrayIntStaticLlvmOperation(
+    let array_int: DirectMirScalarCfgLlvmCollectionOperationEmission =
+        DirectMirScalarCfgArrayIntLlvmProgramOperation(
             plan, operation, formatted_print
         );
-    if static_array_int.valid { return static_array_int; }
+    if array_int.valid { return array_int; }
     if kind == DirectMirScalarCfgOpLogArrayLength() {
-        if operation == plan.array_int_loop_mutation.consumer.
+        if operation == plan.array_int_program.consumer.
                 length_log_operation_row {
             return DirectMirScalarCfgLlvmCollectionOperationEmission(
                 true, DirectMirScalarCfgArrayIntLlvmLengthLog(

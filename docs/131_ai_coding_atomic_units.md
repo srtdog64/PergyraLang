@@ -398,10 +398,24 @@ extra-use mutations publish no artifact and cannot escape through the older
 dynamic path. This is the architectural ratchet the external anecdote says AI
 does not supply on its own.
 
+The next read-only `Array<Int>` range-maximum rung exposed the same distinction
+inside the implementation itself. The syntax and generated MIR were already
+consistent, but an initial implementation gave the outer receipt the obsolete
+`LoopMutationFact` identity, duplicated generic range block facts, treated the
+semantic call-target `none` sentinel as integer zero, and compared SSA ValueIds
+as though they were source-local names. Output testing alone could not explain
+or prevent those errors. The corrected design renamed the single receipt to
+`ProgramFact` without an alias, kept range topology with the existing range
+owner, used `SemanticCallTargetNone()`, joined `best.1`/`best.4`/`best.7` through
+the source-local `best` identity, and sealed exact predecessor/value phi pairs.
+Its C/LLVM gate executes `9`, first-max `12`, last-max `14`, and all-negative
+`-2`; 23 malformed identity, range, read, CFG, phi, and Log variants publish no
+artifact and never retry another mode.
+
 The lesson is that consistency tests constrain language surface;
 owner/consumer/fallback gates constrain compiler architecture. The external
-comment is therefore a warning signal, while the two executable rungs are the
-repository-local evidence.
+comment is therefore a warning signal, while these three executable rungs are
+the repository-local evidence.
 
 The central rule is:
 

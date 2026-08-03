@@ -1,0 +1,173 @@
+// Source identities for one initialized Array<Int> range maximum.
+
+import "direct_mir_scalar_cfg_array_int_read_only_graph_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_source_identity_owner.pgy";
+import "direct_mir_scalar_cfg_instruction_graph_owner.pgy";
+
+struct DirectMirScalarCfgArrayIntReadOnlySourceFact {
+    let valid: Bool;
+    let initial_global_row: Int;
+    let initial_result_value_id: String;
+    let condition_global_row: Int;
+    let condition_block: Int;
+    let current_value_id: String;
+    let update_global_row: Int;
+    let update_result_value_id: String;
+    let update_block: Int;
+    let log_global_row: Int;
+}
+
+func DirectMirScalarCfgArrayIntReadOnlySourceFactEmpty(
+) -> DirectMirScalarCfgArrayIntReadOnlySourceFact {
+    return DirectMirScalarCfgArrayIntReadOnlySourceFact(
+        false, -1, "", -1, -1, "", -1, "", -1, -1
+    );
+}
+
+func DirectMirScalarCfgArrayIntReadOnlySourceFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref uses: MirRoutineInstructionUseFacts,
+    collection: DirectMirScalarCfgArrayIntCollectionFact,
+    range: DirectMirScalarCfgRangeIterationFact
+) -> DirectMirScalarCfgArrayIntReadOnlySourceFact {
+    let empty: DirectMirScalarCfgArrayIntReadOnlySourceFact =
+        DirectMirScalarCfgArrayIntReadOnlySourceFactEmpty();
+    let initial_global: Int = -1; let initial_result: String = "";
+    let condition_global: Int = -1; let condition_block: Int = -1;
+    let current_id: String = ""; let current_name: String = "";
+    let update_global: Int = -1;
+    let update_result: String = ""; let update_block: Int = -1;
+    let log_global: Int = -1; let logged_id: String = "";
+    let collection_uses: Int = 0; let claimed_uses: Int = 0;
+    let block: Int = 0;
+    while block < ArrayLength(index.block_starts) {
+        let local: Int = 0;
+        while local < index.block_instruction_counts[block] {
+            let instruction: Int = index.block_instruction_starts[block] + local;
+            let global: Int = index.instruction_facts.global_start + instruction;
+            let kind: String = admitted.routines.instruction_kinds[global];
+            let source: String = admitted.routines.instruction_source_types[global];
+            let capture: MirRoutineInstructionScalarCapture =
+                MirRoutineInstructionFactBundleAtGlobal(
+                    index.instruction_facts, global
+                );
+            let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+                admitted.routines.source_json,
+                admitted.routines.instruction_starts[global],
+                admitted.routines.instruction_ends[global]
+            );
+            let graph: MirExpressionGraphSequence =
+                DirectMirScalarCfgInstructionGraphAt(object, "expr0_graph");
+            let use_row: Int = 0;
+            while use_row < MirRoutineInstructionUseCountAtGlobal(uses, global) {
+                if DirectMirScalarCfgArrayIntUseAt(
+                    uses, global, use_row, collection.collection_value_id
+                ) { collection_uses = collection_uses + 1; }
+                use_row = use_row + 1;
+            }
+            if global == range.branch_global_row {
+                if kind != "branch" || source != "AST_FOR_LOOP" ||
+                    MirRoutineInstructionUseCountAtGlobal(uses, global) != 1 ||
+                    !DirectMirScalarCfgArrayIntUseAt(
+                        uses, global, 0, collection.collection_value_id
+                    ) { Die("direct MIR scalar CFG read-only range bound is invalid"); }
+                claimed_uses = claimed_uses + 1;
+            } else if kind == "def" && source == "AST_LET_DECL" &&
+                    capture.abi_type_name == CompilerAbiLayoutIntTypeName() {
+                let read: DirectMirScalarCfgArrayIntIndexReadGraphFact =
+                    DirectMirScalarCfgArrayIntIndexReadGraphFactFrom(graph);
+                if read.valid && read.collection_name == collection.collection_name {
+                    if initial_global >= 0 || read.index_name != "" ||
+                        read.index_literal != 0 || capture.result == "" ||
+                        capture.arg0 == "" || capture.arg1 != "" ||
+                        MirRoutineInstructionUseCountAtGlobal(uses, global) != 1 ||
+                        !DirectMirScalarCfgArrayIntUseAt(
+                            uses, global, 0, collection.collection_value_id
+                        ) { Die("direct MIR scalar CFG initial Array read is invalid"); }
+                    initial_global = global; initial_result = capture.result;
+                    claimed_uses = claimed_uses + 1;
+                }
+            } else if kind == "branch" && source == "AST_BINARY" {
+                let maximum: DirectMirScalarCfgArrayIntMaxConditionGraphFact =
+                    DirectMirScalarCfgArrayIntMaxConditionGraphFactFrom(graph);
+                if maximum.valid && maximum.collection_name ==
+                        collection.collection_name {
+                    if condition_global >= 0 ||
+                        maximum.index_name != range.binding_name ||
+                        MirRoutineInstructionUseCountAtGlobal(uses, global) != 2 ||
+                        !DirectMirScalarCfgArrayIntUseAt(
+                            uses, global, 0, collection.collection_value_id
+                        ) { Die("direct MIR scalar CFG indexed comparison use is invalid"); }
+                    let current: Option<String> =
+                        MirRoutineInstructionUseAtGlobal(uses, global, 1);
+                    if !IsSome(current) || !MirSsaNameMatches(
+                        UnwrapOption(current), maximum.current_name, true
+                    ) { Die("direct MIR scalar CFG indexed comparison value is invalid"); }
+                    condition_global = global; condition_block = block;
+                    current_id = UnwrapOption(current);
+                    current_name = maximum.current_name;
+                    claimed_uses = claimed_uses + 1;
+                }
+            } else if kind == "def" && source == "AST_ASSIGNMENT" &&
+                    capture.abi_type_name == CompilerAbiLayoutIntTypeName() {
+                let read: DirectMirScalarCfgArrayIntIndexReadGraphFact =
+                    DirectMirScalarCfgArrayIntIndexReadGraphFactFrom(graph);
+                if read.valid && read.collection_name == collection.collection_name {
+                    if update_global >= 0 ||
+                        read.index_name != range.binding_name ||
+                        read.index_literal >= 0 || capture.result == "" ||
+                        capture.arg0 == "" || capture.arg1 != "local" ||
+                        MirRoutineInstructionUseCountAtGlobal(uses, global) != 1 ||
+                        !DirectMirScalarCfgArrayIntUseAt(
+                            uses, global, 0, collection.collection_value_id
+                        ) { Die("direct MIR scalar CFG update Array read is invalid"); }
+                    update_global = global; update_result = capture.result;
+                    update_block = block; claimed_uses = claimed_uses + 1;
+                }
+            } else if kind == "stmt" && capture.arg0 == "Log" {
+                let log_name: String = DirectMirScalarCfgArrayIntMaxLogName(graph);
+                if log_name != "" {
+                    if log_global >= 0 ||
+                        MirRoutineInstructionUseCountAtGlobal(uses, global) != 1 {
+                        Die("direct MIR scalar CFG read-only final Log is ambiguous");
+                    }
+                    let logged: Option<String> =
+                        MirRoutineInstructionUseAtGlobal(uses, global, 0);
+                    if !IsSome(logged) || !MirSsaNameMatches(
+                        UnwrapOption(logged), log_name, true
+                    ) { Die("direct MIR scalar CFG read-only final Log use is invalid"); }
+                    log_global = global; logged_id = UnwrapOption(logged);
+                }
+            }
+            local = local + 1;
+        }
+        block = block + 1;
+    }
+    if initial_global < 0 || initial_result == "" {
+        Die("direct MIR scalar CFG read-only Array<Int> initial read is missing");
+    }
+    if condition_global < 0 || condition_block != range.body_block ||
+        current_id == "" {
+        Die("direct MIR scalar CFG read-only Array<Int> comparison is missing");
+    }
+    if update_global < 0 || update_result == "" || update_block < 0 {
+        Die("direct MIR scalar CFG read-only Array<Int> update read is missing");
+    }
+    if log_global < 0 || logged_id != current_id {
+        Die("direct MIR scalar CFG read-only Array<Int> final Log is invalid");
+    }
+    if collection_uses != 4 || claimed_uses != 4 {
+        Die("direct MIR scalar CFG read-only Array<Int> use inventory is invalid");
+    }
+    if !MirSsaNameMatches(initial_result, current_name, false) ||
+        !MirSsaNameMatches(current_id, current_name, true) ||
+        !MirSsaNameMatches(update_result, current_name, false) {
+        Die("direct MIR scalar CFG read-only Array<Int> value identity is invalid");
+    }
+    return DirectMirScalarCfgArrayIntReadOnlySourceFact(
+        true, initial_global, initial_result, condition_global,
+        condition_block, current_id, update_global, update_result,
+        update_block, log_global
+    );
+}

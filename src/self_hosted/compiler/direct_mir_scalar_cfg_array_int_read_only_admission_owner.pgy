@@ -1,0 +1,59 @@
+// Assemble one read-only initialized Array<Int> program receipt.
+
+import "direct_mir_scalar_cfg_array_int_read_only_phi_topology_owner.pgy";
+import "direct_mir_scalar_cfg_range_set_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReadOnlyRangeFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref uses: MirRoutineInstructionUseFacts,
+    collection: DirectMirScalarCfgArrayIntCollectionFact,
+    ref ranges: DirectMirScalarCfgRangeFactSet
+) -> DirectMirScalarCfgArrayIntProgramFact {
+    let empty: DirectMirScalarCfgArrayIntProgramFact =
+        DirectMirScalarCfgArrayIntProgramFactEmpty();
+    if !DirectMirScalarCfgArrayIntCollectionFactReady(collection) ||
+        ArrayLength(collection.elements) < 1 ||
+        DirectMirScalarCfgRangeFactCount(ranges) != 1 { return empty; }
+    let range: DirectMirScalarCfgRangeIterationFact =
+        DirectMirScalarCfgRangeFactAt(ranges, 0);
+    if !range.valid || range.start_literal != "1" ||
+        range.stop_literal != "" ||
+        range.stop_value_id != collection.collection_value_id ||
+        range.step_literal != "1" ||
+        ArrayLength(range.backedge_blocks) != 1 { return empty; }
+    let source: DirectMirScalarCfgArrayIntReadOnlySourceFact =
+        DirectMirScalarCfgArrayIntReadOnlySourceFromOwners(
+            admitted, index, uses, collection, range
+        );
+    if !source.valid {
+        Die("direct MIR scalar CFG read-only Array<Int> source is invalid");
+    }
+    let topology: DirectMirScalarCfgArrayIntReadOnlyPhiTopologyFact =
+        DirectMirScalarCfgArrayIntReadOnlyPhiTopologyFromOwners(
+            admitted, index, uses, collection, range, source
+        );
+    if !topology.valid {
+        Die("direct MIR scalar CFG read-only Array<Int> phi topology is invalid");
+    }
+    return DirectMirScalarCfgArrayIntProgramFact(
+        true, DirectMirScalarCfgArrayIntReadOnlyInitializedMode(), collection,
+        DirectMirScalarCfgArrayIntProducerFactEmpty(),
+        DirectMirScalarCfgArrayIntConsumerFact(
+            false, -1, -1, -1, -1, -1, -1, "", -1,
+            "", -1, "", -1, -1, -1
+        ), DirectMirScalarCfgArrayIntStaticMutationFactEmpty(),
+        DirectMirScalarCfgArrayIntReadOnlyRangeFact(
+            true, range.loop_syntax_id, source.condition_block,
+            DirectMirScalarCfgArrayIntReadAccessFact(
+                true, source.initial_global_row, 0, "",
+                source.initial_result_value_id, -1, -1
+            ), source.condition_global_row, source.current_value_id, -1,
+            DirectMirScalarCfgArrayIntReadAccessFact(
+                true, source.update_global_row, -1, range.binding_name,
+                source.update_result_value_id, -1, -1
+            ), topology.joined_value_id, -1, source.log_global_row,
+            -1, -1
+        )
+    );
+}

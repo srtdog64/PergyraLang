@@ -1,0 +1,129 @@
+// Phi and CFG topology joined to one read-only Array<Int> source fact.
+
+import "direct_mir_scalar_cfg_array_int_read_only_source_admission_owner.pgy";
+import "direct_mir_scalar_cfg_instruction_position_owner.pgy";
+import "../mir_lower/routine_definition_dominance_fact_owner.pgy";
+
+struct DirectMirScalarCfgArrayIntReadOnlyPhiTopologyFact {
+    let valid: Bool;
+    let joined_value_id: String;
+}
+
+func DirectMirScalarCfgArrayIntReadOnlyUsePairMatches(
+    ref uses: MirRoutineInstructionUseFacts,
+    global_row: Int, left: String, right: String
+) -> Bool {
+    if MirRoutineInstructionUseCountAtGlobal(uses, global_row) != 2 {
+        return false;
+    }
+    let first: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, global_row, 0
+    );
+    let second: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, global_row, 1
+    );
+    return IsSome(first) && IsSome(second) &&
+        ((UnwrapOption(first) == left && UnwrapOption(second) == right) ||
+         (UnwrapOption(first) == right && UnwrapOption(second) == left));
+}
+
+func DirectMirScalarCfgArrayIntReadOnlyPhiTopologyFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref uses: MirRoutineInstructionUseFacts,
+    collection: DirectMirScalarCfgArrayIntCollectionFact,
+    range: DirectMirScalarCfgRangeIterationFact,
+    source: DirectMirScalarCfgArrayIntReadOnlySourceFact
+) -> DirectMirScalarCfgArrayIntReadOnlyPhiTopologyFact {
+    let invalid: DirectMirScalarCfgArrayIntReadOnlyPhiTopologyFact =
+        DirectMirScalarCfgArrayIntReadOnlyPhiTopologyFact(false, "");
+    if !source.valid || ArrayLength(range.backedge_blocks) != 1 {
+        return invalid;
+    }
+    let join_block: Int = range.backedge_blocks[0];
+    let joined_id: String = ""; let header_phi_count: Int = 0;
+    let join_phi_count: Int = 0; let block: Int = 0;
+    while block < ArrayLength(index.block_starts) {
+        let local: Int = 0;
+        while local < index.block_instruction_counts[block] {
+            let instruction: Int = index.block_instruction_starts[block] + local;
+            let global: Int = index.instruction_facts.global_start + instruction;
+            if admitted.routines.instruction_kinds[global] == "phi" {
+                let capture: MirRoutineInstructionScalarCapture =
+                    MirRoutineInstructionFactBundleAtGlobal(
+                        index.instruction_facts, global
+                    );
+                if block == range.header_block &&
+                        capture.result == source.current_value_id {
+                    if MirRoutineInstructionUseCountAtGlobal(uses, global) != 2 {
+                        return invalid;
+                    }
+                    let first: Option<String> =
+                        MirRoutineInstructionUseAtGlobal(uses, global, 0);
+                    let second: Option<String> =
+                        MirRoutineInstructionUseAtGlobal(uses, global, 1);
+                    if !IsSome(first) || !IsSome(second) { return invalid; }
+                    if UnwrapOption(first) == source.initial_result_value_id {
+                        joined_id = UnwrapOption(second);
+                    } else if UnwrapOption(second) ==
+                            source.initial_result_value_id {
+                        joined_id = UnwrapOption(first);
+                    } else { return invalid; }
+                    header_phi_count = header_phi_count + 1;
+                }
+                if block == join_block { join_phi_count = join_phi_count + 1; }
+            }
+            local = local + 1;
+        }
+        block = block + 1;
+    }
+    let join_phi_global: Int = index.instruction_facts.global_start +
+        index.block_instruction_starts[join_block];
+    let join_phi: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, join_phi_global
+        );
+    if joined_id == "" || header_phi_count != 1 || join_phi_count != 1 ||
+        admitted.routines.instruction_kinds[join_phi_global] != "phi" ||
+        join_phi.result != joined_id ||
+        !DirectMirScalarCfgArrayIntReadOnlyUsePairMatches(
+            uses, join_phi_global, source.update_result_value_id,
+            source.current_value_id
+        ) { return invalid; }
+    let initial_position: DirectMirScalarCfgInstructionPositionFact =
+        DirectMirScalarCfgInstructionPositionAt(index, source.initial_global_row);
+    let init_position: DirectMirScalarCfgInstructionPositionFact =
+        DirectMirScalarCfgInstructionPositionAt(index, range.init_global_row);
+    let condition_position: DirectMirScalarCfgInstructionPositionFact =
+        DirectMirScalarCfgInstructionPositionAt(index, source.condition_global_row);
+    let update_position: DirectMirScalarCfgInstructionPositionFact =
+        DirectMirScalarCfgInstructionPositionAt(index, source.update_global_row);
+    let log_position: DirectMirScalarCfgInstructionPositionFact =
+        DirectMirScalarCfgInstructionPositionAt(index, source.log_global_row);
+    let definition: MirRoutineResultDefinitionFact =
+        MirRoutineFactIndexUniqueResultDefinition(
+            index, collection.collection_value_id
+        );
+    if !initial_position.valid || !init_position.valid ||
+        initial_position.block != range.init_block ||
+        init_position.block != range.init_block ||
+        initial_position.local >= init_position.local ||
+        !condition_position.valid ||
+        condition_position.block != source.condition_block ||
+        !update_position.valid || update_position.block != source.update_block ||
+        !log_position.valid || log_position.block != range.exit_block ||
+        index.block_succ_true[source.condition_block] != source.update_block ||
+        index.block_succ_false[source.condition_block] != join_block ||
+        index.block_succ_true[source.update_block] != join_block ||
+        index.block_succ_false[source.update_block] >= 0 ||
+        index.block_succ_true[join_block] != range.header_block ||
+        index.block_succ_false[join_block] >= 0 ||
+        !MirRoutineDefinitionDominatesInstruction(
+            index, definition, initial_position.block, initial_position.local
+        ) || !MirRoutineDefinitionDominatesInstruction(
+            index, definition, condition_position.block, condition_position.local
+        ) || !MirRoutineDefinitionDominatesInstruction(
+            index, definition, update_position.block, update_position.local
+        ) { return invalid; }
+    return DirectMirScalarCfgArrayIntReadOnlyPhiTopologyFact(true, joined_id);
+}

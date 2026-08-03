@@ -6,7 +6,7 @@ func DirectMirScalarCfgArrayIntCSet(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int
 ) -> String {
     let mutation: DirectMirScalarCfgArrayIntStaticMutationFact =
-        plan.array_int_loop_mutation.static_mutation;
+        plan.array_int_program.static_mutation;
     if !mutation.valid || operation != mutation.set_operation_row {
         Die("direct MIR scalar CFG Array<Int> C set is invalid");
     }
@@ -25,7 +25,7 @@ func DirectMirScalarCfgArrayIntCIndexedLog(
     int_line_format: String, int_c_type: String
 ) -> String {
     let mutation: DirectMirScalarCfgArrayIntStaticMutationFact =
-        plan.array_int_loop_mutation.static_mutation;
+        plan.array_int_program.static_mutation;
     if !mutation.valid || operation !=
             mutation.indexed_log_operation_row {
         Die("direct MIR scalar CFG Array<Int> C indexed Log is invalid");

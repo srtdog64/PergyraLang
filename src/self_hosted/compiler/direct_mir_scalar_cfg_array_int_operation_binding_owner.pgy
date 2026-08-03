@@ -1,56 +1,23 @@
-// Bind Array<Int> source instruction rows to sealed GraphPlan operations.
+// Exclusive Array<Int> mode dispatch for GraphPlan operation binding.
 
-import "direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_read_only_operation_binding_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_mutating_operation_binding_owner.pgy";
 
-func DirectMirScalarCfgArrayIntLoopMutationAtOperation(
-    fact: DirectMirScalarCfgArrayIntLoopMutationFact,
+func DirectMirScalarCfgArrayIntProgramAtOperation(
+    fact: DirectMirScalarCfgArrayIntProgramFact,
     global_row: Int, operation_row: Int
-) -> DirectMirScalarCfgArrayIntLoopMutationFact {
+) -> DirectMirScalarCfgArrayIntProgramFact {
     if !fact.valid || operation_row < 0 { return fact; }
-    let push: Int = fact.producer.push_operation_row;
-    let read: Int = fact.consumer.read_operation_row;
-    let length_log: Int = fact.consumer.length_log_operation_row;
-    let set: Int = fact.static_mutation.set_operation_row;
-    let indexed_log: Int = fact.static_mutation.indexed_log_operation_row;
-    if fact.producer.valid &&
-        global_row == fact.producer.push_global_row { push = operation_row; }
-    else if global_row == fact.consumer.read_global_row {
-        read = operation_row;
-    } else if global_row == fact.consumer.length_log_global_row {
-        length_log = operation_row;
-    } else if fact.static_mutation.valid &&
-        global_row == fact.static_mutation.set_global_row {
-        set = operation_row;
-    } else if fact.static_mutation.valid &&
-        global_row == fact.static_mutation.indexed_log_global_row {
-        indexed_log = operation_row;
-    } else { return fact; }
-    return DirectMirScalarCfgArrayIntLoopMutationFact(
-        true, fact.mode, fact.collection,
-        DirectMirScalarCfgArrayIntProducerFact(
-            fact.producer.valid, fact.producer.header_block,
-            fact.producer.body_block, fact.producer.exit_block,
-            fact.producer.bound, fact.producer.push_global_row,
-            fact.producer.push_value_kind,
-            fact.producer.induction_value_id,
-            fact.producer.induction_value_row, push
-        ), DirectMirScalarCfgArrayIntConsumerFact(
-            true, fact.consumer.header_block, fact.consumer.body_block,
-            fact.consumer.exit_block, fact.consumer.length_global_row,
-            fact.consumer.read_global_row,
-            fact.consumer.length_log_global_row,
-            fact.consumer.index_value_id, fact.consumer.index_value_row,
-            fact.consumer.sum_left_value_id,
-            fact.consumer.sum_left_value_row,
-            fact.consumer.read_result_value_id,
-            fact.consumer.read_result_value_row, read, length_log
-        ), DirectMirScalarCfgArrayIntStaticMutationFact(
-            fact.static_mutation.valid,
-            fact.static_mutation.set_global_row,
-            fact.static_mutation.set_index,
-            fact.static_mutation.set_value,
-            fact.static_mutation.indexed_log_global_row,
-            fact.static_mutation.indexed_log_index, set, indexed_log
-        )
+    if fact.mode == DirectMirScalarCfgArrayIntReadOnlyInitializedMode() {
+        return DirectMirScalarCfgArrayIntProgramFact(
+            true, fact.mode, fact.collection, fact.producer, fact.consumer,
+            fact.static_mutation,
+            DirectMirScalarCfgArrayIntReadOnlyAtOperation(
+                fact.read_only, global_row, operation_row
+            )
+        );
+    }
+    return DirectMirScalarCfgArrayIntMutatingAtOperation(
+        fact, global_row, operation_row
     );
 }

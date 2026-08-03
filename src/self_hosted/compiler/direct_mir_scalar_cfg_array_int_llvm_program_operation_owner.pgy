@@ -1,0 +1,19 @@
+// LLVM operation dispatch for mutually exclusive Array<Int> program modes.
+
+import "direct_mir_scalar_cfg_array_int_static_llvm_operation_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_read_only_llvm_emission_owner.pgy";
+import "direct_mir_scalar_cfg_llvm_collection_operation_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntLlvmProgramOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact
+) -> DirectMirScalarCfgLlvmCollectionOperationEmission {
+    if plan.operation_kinds[operation] == DirectMirScalarCfgOpArrayReadInt() {
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(
+            true, DirectMirScalarCfgArrayIntReadOnlyLlvmRead(plan, operation)
+        );
+    }
+    return DirectMirScalarCfgArrayIntStaticLlvmOperation(
+        plan, operation, formatted_print
+    );
+}

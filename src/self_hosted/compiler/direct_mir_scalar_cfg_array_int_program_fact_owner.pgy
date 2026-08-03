@@ -2,11 +2,13 @@
 
 import "direct_mir_scalar_cfg_array_int_collection_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_static_mutation_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_read_only_fact_owner.pgy";
 
 func DirectMirScalarCfgArrayIntPushValueMultiply() -> Int { return 1; }
 func DirectMirScalarCfgArrayIntPushValueAdd() -> Int { return 2; }
 func DirectMirScalarCfgArrayIntDynamicPushMode() -> Int { return 1; }
 func DirectMirScalarCfgArrayIntStaticSetMode() -> Int { return 2; }
+func DirectMirScalarCfgArrayIntReadOnlyInitializedMode() -> Int { return 3; }
 
 struct DirectMirScalarCfgArrayIntProducerFact {
     let valid: Bool;
@@ -46,31 +48,33 @@ func DirectMirScalarCfgArrayIntProducerFactEmpty(
     );
 }
 
-struct DirectMirScalarCfgArrayIntLoopMutationFact {
+struct DirectMirScalarCfgArrayIntProgramFact {
     let valid: Bool;
     let mode: Int;
     let collection: DirectMirScalarCfgArrayIntCollectionFact;
     let producer: DirectMirScalarCfgArrayIntProducerFact;
     let consumer: DirectMirScalarCfgArrayIntConsumerFact;
     let static_mutation: DirectMirScalarCfgArrayIntStaticMutationFact;
+    let read_only: DirectMirScalarCfgArrayIntReadOnlyRangeFact;
 }
 
-func DirectMirScalarCfgArrayIntLoopMutationFactEmpty(
-) -> DirectMirScalarCfgArrayIntLoopMutationFact {
-    return DirectMirScalarCfgArrayIntLoopMutationFact(
+func DirectMirScalarCfgArrayIntProgramFactEmpty(
+) -> DirectMirScalarCfgArrayIntProgramFact {
+    return DirectMirScalarCfgArrayIntProgramFact(
         false, 0, DirectMirScalarCfgArrayIntCollectionFactEmpty(),
         DirectMirScalarCfgArrayIntProducerFactEmpty(),
         DirectMirScalarCfgArrayIntConsumerFact(
             false, -1, -1, -1, -1, -1, -1, "", -1,
             "", -1, "", -1, -1, -1
-        ), DirectMirScalarCfgArrayIntStaticMutationFactEmpty()
+        ), DirectMirScalarCfgArrayIntStaticMutationFactEmpty(),
+        DirectMirScalarCfgArrayIntReadOnlyRangeFactEmpty()
     );
 }
 
-func DirectMirScalarCfgArrayIntLoopMutationAbsent(
-    ref fact: DirectMirScalarCfgArrayIntLoopMutationFact
+func DirectMirScalarCfgArrayIntProgramAbsent(
+    ref fact: DirectMirScalarCfgArrayIntProgramFact
 ) -> Bool {
     return !fact.valid && fact.mode == 0 && !fact.collection.valid &&
         !fact.producer.valid && !fact.consumer.valid &&
-        !fact.static_mutation.valid;
+        !fact.static_mutation.valid && !fact.read_only.valid;
 }

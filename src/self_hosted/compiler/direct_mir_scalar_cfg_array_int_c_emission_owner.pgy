@@ -5,16 +5,17 @@ import "direct_mir_scalar_cfg_array_c_materialization_owner.pgy";
 import "direct_mir_scalar_cfg_c_operand_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_storage_state_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_c_storage_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_read_only_c_emission_owner.pgy";
 
 func DirectMirScalarCfgArrayIntCPreamble(
     ref plan: DirectMirScalarCfgGraphPlan,
     target: CompilerTargetProjectionFact
 ) -> String {
-    if DirectMirScalarCfgArrayIntLoopMutationAbsent(
-        plan.array_int_loop_mutation
+    if DirectMirScalarCfgArrayIntProgramAbsent(
+        plan.array_int_program
     ) { return ""; }
     let fact: DirectMirScalarCfgArrayIntCollectionFact =
-        plan.array_int_loop_mutation.collection;
+        plan.array_int_program.collection;
     let abi: DirectMirArrayIntAbiProjection =
         DirectMirArrayIntAbiProjectionFromCanonicalLayout(
             target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
@@ -32,21 +33,24 @@ func DirectMirScalarCfgArrayIntCPreamble(
 func DirectMirScalarCfgArrayIntCCondition(
     ref plan: DirectMirScalarCfgGraphPlan, block: Int
 ) -> String {
-    let fact: DirectMirScalarCfgArrayIntLoopMutationFact =
-        plan.array_int_loop_mutation;
-    if !fact.valid || block != fact.consumer.header_block {
+    if DirectMirScalarCfgArrayIntIndexedConditionBlock(plan, block) {
+        return DirectMirScalarCfgArrayIntReadOnlyCCondition(plan, block);
+    }
+    if !DirectMirScalarCfgArrayIntLengthConditionBlock(plan, block) {
         Die("direct MIR scalar CFG Array<Int> C condition is invalid");
     }
     return Concat("((size_t)", Concat(DirectMirScalarCfgCOperand(
-        plan, fact.consumer.index_value_row, -1, ""
+        plan, plan.block_condition_left_values[block],
+        plan.block_condition_left_locals[block],
+        plan.block_condition_left_literals[block]
     ), ") < pgy_array_int_collection.length"));
 }
 
 func DirectMirScalarCfgArrayIntCPush(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int
 ) -> String {
-    let fact: DirectMirScalarCfgArrayIntLoopMutationFact =
-        plan.array_int_loop_mutation;
+    let fact: DirectMirScalarCfgArrayIntProgramFact =
+        plan.array_int_program;
     if !fact.valid || operation != fact.producer.push_operation_row {
         Die("direct MIR scalar CFG Array<Int> C push is invalid");
     }
@@ -67,8 +71,8 @@ func DirectMirScalarCfgArrayIntCPush(
 func DirectMirScalarCfgArrayIntCRead(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int
 ) -> String {
-    let fact: DirectMirScalarCfgArrayIntLoopMutationFact =
-        plan.array_int_loop_mutation;
+    let fact: DirectMirScalarCfgArrayIntProgramFact =
+        plan.array_int_program;
     if !fact.valid || operation != fact.consumer.read_operation_row {
         Die("direct MIR scalar CFG Array<Int> C read is invalid");
     }
@@ -91,8 +95,8 @@ func DirectMirScalarCfgArrayIntCLengthLog(
     formatted_print: CompilerRuntimeCallAbiFact,
     int_line_format: String, int_c_type: String
 ) -> String {
-    if !plan.array_int_loop_mutation.valid || operation !=
-            plan.array_int_loop_mutation.consumer.length_log_operation_row {
+    if !plan.array_int_program.valid || operation !=
+            plan.array_int_program.consumer.length_log_operation_row {
         Die("direct MIR scalar CFG Array<Int> C length Log is invalid");
     }
     let output: String = Concat("    ", formatted_print.symbol);

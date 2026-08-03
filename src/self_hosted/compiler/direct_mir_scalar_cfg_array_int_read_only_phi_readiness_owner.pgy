@@ -1,0 +1,52 @@
+// Exact predecessor/value joins for the read-only maximum phis.
+
+import "direct_mir_scalar_cfg_operation_position_owner.pgy";
+
+func DirectMirScalarCfgArrayIntPhiHasIncoming(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    operation: Int, predecessor: Int, value: Int
+) -> Bool {
+    let matches: Int = 0; let row: Int = 0;
+    while row < plan.operation_phi_counts[operation] {
+        let incoming: Int = plan.operation_phi_starts[operation] + row;
+        if plan.phi_predecessor_blocks[incoming] == predecessor &&
+            plan.phi_incoming_values[incoming] == value {
+            matches = matches + 1;
+        }
+        row = row + 1;
+    }
+    return matches == 1;
+}
+
+func DirectMirScalarCfgArrayIntReadOnlyPhisReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref fact: DirectMirScalarCfgArrayIntReadOnlyRangeFact,
+    ref range: DirectMirScalarCfgRangeIterationFact,
+    update_block: Int, join_block: Int
+) -> Bool {
+    let header_phi: Int = DirectMirScalarCfgResultOperation(
+        plan, fact.current_value_row
+    );
+    let join_phi: Int = DirectMirScalarCfgResultOperation(
+        plan, fact.joined_value_row
+    );
+    if header_phi < 0 || join_phi < 0 ||
+        plan.operation_kinds[header_phi] != DirectMirScalarCfgOpPhiInt() ||
+        plan.operation_kinds[join_phi] != DirectMirScalarCfgOpPhiInt() ||
+        plan.operation_phi_counts[header_phi] != 2 ||
+        plan.operation_phi_counts[join_phi] != 2 ||
+        DirectMirScalarCfgOperationBlock(plan, header_phi) !=
+            range.header_block ||
+        DirectMirScalarCfgOperationBlock(plan, join_phi) != join_block {
+        return false;
+    }
+    return DirectMirScalarCfgArrayIntPhiHasIncoming(
+        plan, header_phi, range.init_block, fact.initial_read.result_value_row
+    ) && DirectMirScalarCfgArrayIntPhiHasIncoming(
+        plan, header_phi, join_block, fact.joined_value_row
+    ) && DirectMirScalarCfgArrayIntPhiHasIncoming(
+        plan, join_phi, fact.condition_block, fact.current_value_row
+    ) && DirectMirScalarCfgArrayIntPhiHasIncoming(
+        plan, join_phi, update_block, fact.update_read.result_value_row
+    );
+}

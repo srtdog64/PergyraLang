@@ -1,0 +1,36 @@
+// Digest component for the read-only Array<Int> range receipt.
+
+import "direct_mir_scalar_cfg_array_int_read_only_fact_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReadAccessDigestComponent(
+    hash: Long, ref fact: DirectMirScalarCfgArrayIntReadAccessFact
+) -> Long {
+    hash = DirectMirCfgHashInt(hash, fact.global_row);
+    hash = DirectMirCfgHashInt(hash, fact.index_literal);
+    hash = DirectMirCfgHashString(hash, fact.index_name);
+    hash = DirectMirCfgHashString(hash, fact.result_value_id);
+    hash = DirectMirCfgHashInt(hash, fact.result_value_row);
+    return DirectMirCfgHashInt(hash, fact.operation_row);
+}
+
+func DirectMirScalarCfgArrayIntReadOnlyDigestComponent(
+    hash: Long, ref fact: DirectMirScalarCfgArrayIntReadOnlyRangeFact
+) -> Long {
+    hash = DirectMirCfgHashInt(hash, fact.loop_syntax_id);
+    hash = DirectMirCfgHashInt(hash, fact.condition_block);
+    hash = DirectMirScalarCfgArrayIntReadAccessDigestComponent(
+        hash, fact.initial_read
+    );
+    hash = DirectMirCfgHashInt(hash, fact.condition_global_row);
+    hash = DirectMirCfgHashString(hash, fact.current_value_id);
+    hash = DirectMirCfgHashInt(hash, fact.current_value_row);
+    hash = DirectMirScalarCfgArrayIntReadAccessDigestComponent(
+        hash, fact.update_read
+    );
+    hash = DirectMirCfgHashString(hash, fact.joined_value_id);
+    hash = DirectMirCfgHashInt(hash, fact.joined_value_row);
+    hash = DirectMirCfgHashInt(hash, fact.log_global_row);
+    hash = DirectMirCfgHashInt(hash, fact.log_operation_row);
+    return DirectMirCfgHashInt(hash, fact.index_local_row);
+}

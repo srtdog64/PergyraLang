@@ -1,6 +1,6 @@
-// Exact graph facts for the bounded Array<Int> loop-mutation slice.
+// Exact graph facts for the bounded Array<Int> program slice.
 
-import "direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
 import "direct_mir_scalar_cfg_array_length_fact_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 

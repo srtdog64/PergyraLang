@@ -29,7 +29,7 @@ func DirectMirScalarCfgSealGraphPlan(
     foreaches: DirectMirScalarCfgForEachFactSet,
     foreach_elements: DirectMirScalarCfgForEachElementFacts,
     string_arrays: DirectMirScalarCfgStringArrayPlan,
-    array_int: DirectMirScalarCfgArrayIntLoopMutationFact
+    array_int: DirectMirScalarCfgArrayIntProgramFact
 ) -> DirectMirScalarCfgGraphPlan {
     let plan: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgGraphPlan(
         true, DirectMirScalarCfgGraphPlanSchema(),

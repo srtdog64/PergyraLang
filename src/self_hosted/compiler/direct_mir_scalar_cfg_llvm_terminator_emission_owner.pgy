@@ -34,8 +34,7 @@ func DirectMirScalarCfgLlvmTerminator(
         output = DirectMirScalarCfgStringArrayLlvmCondition(
             plan, target, block
         );
-    } else if plan.array_int_loop_mutation.valid && block ==
-            plan.array_int_loop_mutation.consumer.header_block {
+    } else if DirectMirScalarCfgArrayIntConditionBlock(plan, block) {
         output = DirectMirScalarCfgArrayIntLlvmCondition(plan, block);
     } else {
         let left: String = plan.block_condition_left_literals[block];

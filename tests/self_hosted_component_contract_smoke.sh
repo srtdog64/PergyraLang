@@ -15566,9 +15566,12 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_mutation_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_mutation_fact_owner.pgy" 20
-require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy"
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_fact_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy" 90
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_fact_owner.pgy" 80
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_fact_owner.pgy" 45
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_storage_state_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_storage_state_owner.pgy" 30
@@ -15581,42 +15584,111 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_graph_shape_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_graph_shape_owner.pgy" 130
-require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_admission_owner.pgy"
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_admission_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_admission_owner.pgy" 280
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_admission_owner.pgy" 280
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_mode_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_mode_owner.pgy" 45
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_graph_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_graph_owner.pgy" 100
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_source_admission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_source_admission_owner.pgy" 175
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_phi_topology_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_phi_topology_owner.pgy" 130
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_admission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_admission_owner.pgy" 60
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_mutation_admission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_mutation_admission_owner.pgy" 240
-require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_binding_owner.pgy"
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_binding_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_binding_owner.pgy" 90
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_binding_owner.pgy" 70
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_binding_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_binding_owner.pgy" 50
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_operation_binding_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_operation_binding_owner.pgy" 35
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_operation_binding_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_operation_binding_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_operation_binding_owner.pgy" 25
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_mutating_operation_binding_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_mutating_operation_binding_owner.pgy" 50
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_lookup_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_lookup_owner.pgy" 30
-require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_identity_owner.pgy"
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_identity_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_identity_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_identity_owner.pgy" 50
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_identity_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_identity_owner.pgy" 40
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_variant_identity_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_variant_identity_owner.pgy" 15
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_mutation_identity_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_mutation_identity_owner.pgy" 20
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_expression_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_expression_owner.pgy" 50
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_expression_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_expression_owner.pgy" 35
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_condition_expression_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_condition_expression_owner.pgy" 20
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_consumer_readiness_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_consumer_readiness_owner.pgy" 40
-require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_readiness_owner.pgy"
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_readiness_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_readiness_owner.pgy" 175
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_readiness_owner.pgy" 155
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_absence_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_absence_owner.pgy" 60
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_condition_role_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_condition_role_owner.pgy" 45
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_operation_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_operation_readiness_owner.pgy" 60
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_phi_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_phi_readiness_owner.pgy" 55
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_readiness_owner.pgy" 120
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_mutation_readiness_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_mutation_readiness_owner.pgy" 100
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_c_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_c_emission_owner.pgy" 50
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_llvm_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_llvm_emission_owner.pgy" 80
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_c_program_operation_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_c_program_operation_owner.pgy" 20
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_llvm_program_operation_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_llvm_program_operation_owner.pgy" 20
+reject_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy"
+reject_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_admission_owner.pgy"
+reject_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_binding_owner.pgy"
+reject_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_identity_owner.pgy"
+reject_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_readiness_owner.pgy"
+if grep -R -E 'LoopMutation|array_int_loop_mutation' \
+        "$ROOT_DIR/src/self_hosted/compiler" >/dev/null; then
+    fail "retired Array<Int> loop-mutation identity returned"
+fi
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_operation_shape_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_operation_shape_owner.pgy" 15

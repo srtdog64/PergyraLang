@@ -1,14 +1,30 @@
 // Bind source Array<Int> identities to sealed value and operation rows.
 
-import "direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_operation_binding_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_read_only_binding_owner.pgy";
 
-func DirectMirScalarCfgArrayIntLoopMutationAtValueRows(
-    fact: DirectMirScalarCfgArrayIntLoopMutationFact,
-    value_names: Array<String>
-) -> DirectMirScalarCfgArrayIntLoopMutationFact {
+func DirectMirScalarCfgArrayIntProgramAtValueRows(
+    fact: DirectMirScalarCfgArrayIntProgramFact,
+    value_names: Array<String>,
+    ref ranges: DirectMirScalarCfgRangeFactSet
+) -> DirectMirScalarCfgArrayIntProgramFact {
     if !fact.valid { return fact; }
+    if fact.mode == DirectMirScalarCfgArrayIntReadOnlyInitializedMode() {
+        let read_only: DirectMirScalarCfgArrayIntReadOnlyRangeFact =
+            DirectMirScalarCfgArrayIntReadOnlyAtValueRows(
+                fact.read_only, value_names, ranges
+            );
+        if !read_only.valid {
+            return DirectMirScalarCfgArrayIntProgramFactEmpty();
+        }
+        return DirectMirScalarCfgArrayIntProgramFact(
+            true, fact.mode, fact.collection,
+            DirectMirScalarCfgArrayIntProducerFactEmpty(),
+            fact.consumer, fact.static_mutation, read_only
+        );
+    }
     let induction: Int = -1;
     if fact.producer.valid {
         induction = DirectMirScalarCfgGraphValueRow(
@@ -26,7 +42,7 @@ func DirectMirScalarCfgArrayIntLoopMutationAtValueRows(
     );
     if (fact.producer.valid && induction < 0) ||
         index < 0 || sum < 0 || result < 0 {
-        return DirectMirScalarCfgArrayIntLoopMutationFactEmpty();
+        return DirectMirScalarCfgArrayIntProgramFactEmpty();
     }
     let producer: DirectMirScalarCfgArrayIntProducerFact =
         DirectMirScalarCfgArrayIntProducerFactEmpty();
@@ -38,7 +54,7 @@ func DirectMirScalarCfgArrayIntLoopMutationAtValueRows(
             fact.producer.induction_value_id, induction, -1
         );
     }
-    return DirectMirScalarCfgArrayIntLoopMutationFact(
+    return DirectMirScalarCfgArrayIntProgramFact(
         true, fact.mode, fact.collection, producer,
         DirectMirScalarCfgArrayIntConsumerFact(
             true, fact.consumer.header_block, fact.consumer.body_block,
@@ -48,6 +64,6 @@ func DirectMirScalarCfgArrayIntLoopMutationAtValueRows(
             fact.consumer.index_value_id, index,
             fact.consumer.sum_left_value_id, sum,
             fact.consumer.read_result_value_id, result, -1, -1
-        ), fact.static_mutation
+        ), fact.static_mutation, fact.read_only
     );
 }

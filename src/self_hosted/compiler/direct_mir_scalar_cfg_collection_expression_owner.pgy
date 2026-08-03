@@ -5,7 +5,7 @@ import "direct_mir_scalar_cfg_array_int_expression_owner.pgy";
 
 func DirectMirScalarCfgCollectionDefinitionExpressionFact(
     ref string_arrays: DirectMirScalarCfgStringArrayPlan,
-    ref array_int: DirectMirScalarCfgArrayIntLoopMutationFact,
+    ref array_int: DirectMirScalarCfgArrayIntProgramFact,
     scalar_type: String, ref instruction: JsonObjectFactTable,
     ref uses: MirRoutineInstructionUseFacts, global_row: Int,
     instruction_row: Int, value_names: Array<String>,
@@ -33,7 +33,7 @@ func DirectMirScalarCfgCollectionDefinitionExpressionFact(
 
 func DirectMirScalarCfgCollectionStatementExpressionFact(
     ref string_arrays: DirectMirScalarCfgStringArrayPlan,
-    ref array_int: DirectMirScalarCfgArrayIntLoopMutationFact,
+    ref array_int: DirectMirScalarCfgArrayIntProgramFact,
     scalar: MirRoutineInstructionScalarCapture,
     ref instruction: JsonObjectFactTable,
     ref uses: MirRoutineInstructionUseFacts, global_row: Int,
@@ -60,7 +60,7 @@ func DirectMirScalarCfgCollectionStatementExpressionFact(
 
 func DirectMirScalarCfgCollectionConditionExpressionFact(
     ref string_arrays: DirectMirScalarCfgStringArrayPlan,
-    ref array_int: DirectMirScalarCfgArrayIntLoopMutationFact,
+    ref array_int: DirectMirScalarCfgArrayIntProgramFact,
     ref instruction: JsonObjectFactTable,
     ref uses: MirRoutineInstructionUseFacts, global_row: Int,
     instruction_row: Int, value_names: Array<String>,

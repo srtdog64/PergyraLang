@@ -7,8 +7,8 @@ import "direct_mir_scalar_cfg_operation_position_owner.pgy";
 func DirectMirScalarCfgArrayIntStaticMutationReady(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
-    let fact: DirectMirScalarCfgArrayIntLoopMutationFact =
-        plan.array_int_loop_mutation;
+    let fact: DirectMirScalarCfgArrayIntProgramFact =
+        plan.array_int_program;
     let c: DirectMirScalarCfgArrayIntConsumerFact = fact.consumer;
     let mutation: DirectMirScalarCfgArrayIntStaticMutationFact =
         fact.static_mutation;
@@ -19,6 +19,7 @@ func DirectMirScalarCfgArrayIntStaticMutationReady(
             DirectMirScalarCfgArrayIntStaticSetMode() ||
         !DirectMirScalarCfgArrayIntCollectionFactReady(fact.collection) ||
         length < 1 || fact.producer.valid || !c.valid || !mutation.valid ||
+        !DirectMirScalarCfgArrayIntReadOnlyAbsent(fact.read_only) ||
         c.index_value_row < 0 || c.index_value_row >= values ||
         c.sum_left_value_row < 0 || c.sum_left_value_row >= values ||
         c.read_result_value_row < 0 || c.read_result_value_row >= values ||

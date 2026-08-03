@@ -8,7 +8,7 @@ import "direct_mir_scalar_cfg_operation_plan_owner.pgy";
 import "direct_mir_scalar_cfg_string_expression_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_expression_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_binding_owner.pgy";
-import "direct_mir_scalar_cfg_array_int_loop_mutation_binding_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_binding_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_program_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_collection_expression_owner.pgy";
 import "../mir_lower/phi_predecessor_binding_fact_owner.pgy";
@@ -32,8 +32,8 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
         input.foreach_facts;
     let foreach_elements: DirectMirScalarCfgForEachElementFacts = input.foreach_elements;
     let string_array_source: DirectMirScalarCfgStringArrayPlan = input.string_arrays;
-    let array_int_source: DirectMirScalarCfgArrayIntLoopMutationFact =
-        input.array_int_loop_mutation;
+    let array_int_source: DirectMirScalarCfgArrayIntProgramFact =
+        input.array_int_program;
     let local_refs: DirectMirScalarCfgLocalRefPlan =
         DirectMirScalarCfgLocalRefPlanFromOwners(
             admitted, index, use_facts, wire, range_sources, foreach_sources,
@@ -77,11 +77,11 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
     let value_names: Array<String> = local_refs.value_names;
     let value_local_rows: Array<Int> = local_refs.value_local_rows;
     let value_definition_blocks: Array<Int> = local_refs.value_definition_blocks;
-    let array_int_loop_mutation: DirectMirScalarCfgArrayIntLoopMutationFact =
-        DirectMirScalarCfgArrayIntLoopMutationAtValueRows(
-            array_int_source, value_names
+    let array_int_program: DirectMirScalarCfgArrayIntProgramFact =
+        DirectMirScalarCfgArrayIntProgramAtValueRows(
+            array_int_source, value_names, range_iterations
         );
-    if array_int_source.valid && !array_int_loop_mutation.valid {
+    if array_int_source.valid && !array_int_program.valid {
         Die("direct MIR scalar CFG Array<Int> value binding is invalid");
     }
 
@@ -133,7 +133,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                         string_arrays, global_row
                     )) || (kind == "def" &&
                     DirectMirScalarCfgArrayIntOwnsDefinition(
-                        array_int_loop_mutation, global_row
+                        array_int_program, global_row
                     )) {
                 // Collection storage is owned by the sealed foreach receipt.
             } else if kind == "def" {
@@ -147,7 +147,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                     );
                 let expression: DirectMirScalarCfgExpressionFact =
                     DirectMirScalarCfgCollectionDefinitionExpressionFact(
-                        string_arrays, array_int_loop_mutation,
+                        string_arrays, array_int_program,
                         scalar.abi_type_name, instruction, use_facts,
                         global_row, local_instruction, value_names,
                         local_refs, wire
@@ -184,9 +184,9 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                         string_arrays, global_row, ArrayLength(operation_kinds)
                     );
                 }
-                array_int_loop_mutation =
-                    DirectMirScalarCfgArrayIntLoopMutationAtOperation(
-                        array_int_loop_mutation, global_row,
+                array_int_program =
+                    DirectMirScalarCfgArrayIntProgramAtOperation(
+                        array_int_program, global_row,
                         ArrayLength(operation_kinds)
                     );
                 DirectMirScalarCfgAppendOperation(
@@ -283,14 +283,14 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                 );
                 let expression: DirectMirScalarCfgExpressionFact =
                     DirectMirScalarCfgCollectionStatementExpressionFact(
-                        string_arrays, array_int_loop_mutation, scalar,
+                        string_arrays, array_int_program, scalar,
                         instruction, use_facts, global_row,
                         local_instruction, value_names, local_refs, wire,
                         type_plan
                     );
                 let array_int_operation: Bool =
                     DirectMirScalarCfgArrayIntOperationGlobal(
-                        array_int_loop_mutation, global_row
+                        array_int_program, global_row
                     );
                 if !scalar.valid || (string_access < 0 &&
                     !array_int_operation && scalar.arg0 != "Log") ||
@@ -308,9 +308,9 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                         string_arrays, global_row, ArrayLength(operation_kinds)
                     );
                 }
-                array_int_loop_mutation =
-                    DirectMirScalarCfgArrayIntLoopMutationAtOperation(
-                        array_int_loop_mutation, global_row,
+                array_int_program =
+                    DirectMirScalarCfgArrayIntProgramAtOperation(
+                        array_int_program, global_row,
                         ArrayLength(operation_kinds)
                     );
                 DirectMirScalarCfgAppendOperation(
@@ -385,7 +385,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                 } else {
                     condition =
                         DirectMirScalarCfgCollectionConditionExpressionFact(
-                            string_arrays, array_int_loop_mutation,
+                            string_arrays, array_int_program,
                             instruction, use_facts, global_row,
                             local_instruction, value_names, local_refs, wire
                         );
@@ -440,6 +440,6 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
         operation_right_literals, operation_phi_starts,
         operation_phi_counts, phi_predecessor_blocks, phi_incoming_values,
         range_iterations, foreach_iterations, foreach_elements,
-        string_arrays, array_int_loop_mutation
+        string_arrays, array_int_program
     );
 }

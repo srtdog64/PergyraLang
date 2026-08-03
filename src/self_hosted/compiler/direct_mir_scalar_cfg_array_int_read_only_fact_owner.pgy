@@ -1,0 +1,43 @@
+// Read-only initialized Array<Int> range-max receipt.
+
+struct DirectMirScalarCfgArrayIntReadAccessFact {
+    let valid: Bool;
+    let global_row: Int;
+    let index_literal: Int;
+    let index_name: String;
+    let result_value_id: String;
+    let result_value_row: Int;
+    let operation_row: Int;
+}
+
+func DirectMirScalarCfgArrayIntReadAccessFactEmpty(
+) -> DirectMirScalarCfgArrayIntReadAccessFact {
+    return DirectMirScalarCfgArrayIntReadAccessFact(
+        false, -1, -1, "", "", -1, -1
+    );
+}
+
+struct DirectMirScalarCfgArrayIntReadOnlyRangeFact {
+    let valid: Bool;
+    let loop_syntax_id: Int;
+    let condition_block: Int;
+    let initial_read: DirectMirScalarCfgArrayIntReadAccessFact;
+    let condition_global_row: Int;
+    let current_value_id: String;
+    let current_value_row: Int;
+    let update_read: DirectMirScalarCfgArrayIntReadAccessFact;
+    let joined_value_id: String;
+    let joined_value_row: Int;
+    let log_global_row: Int;
+    let log_operation_row: Int;
+    let index_local_row: Int;
+}
+
+func DirectMirScalarCfgArrayIntReadOnlyRangeFactEmpty(
+) -> DirectMirScalarCfgArrayIntReadOnlyRangeFact {
+    return DirectMirScalarCfgArrayIntReadOnlyRangeFact(
+        false, -1, -1, DirectMirScalarCfgArrayIntReadAccessFactEmpty(),
+        -1, "", -1,
+        DirectMirScalarCfgArrayIntReadAccessFactEmpty(), "", -1, -1, -1, -1
+    );
+}

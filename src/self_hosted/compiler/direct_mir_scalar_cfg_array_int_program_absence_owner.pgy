@@ -1,0 +1,58 @@
+// Exact inactive-payload sentinels for mutually exclusive Array<Int> modes.
+
+import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntProducerAbsent(
+    ref fact: DirectMirScalarCfgArrayIntProducerFact
+) -> Bool {
+    return !fact.valid && fact.header_block == -1 && fact.body_block == -1 &&
+        fact.exit_block == -1 && fact.bound == 0 &&
+        fact.push_global_row == -1 && fact.push_value_kind == 0 &&
+        fact.induction_value_id == "" && fact.induction_value_row == -1 &&
+        fact.push_operation_row == -1;
+}
+
+func DirectMirScalarCfgArrayIntConsumerAbsent(
+    ref fact: DirectMirScalarCfgArrayIntConsumerFact
+) -> Bool {
+    return !fact.valid && fact.header_block == -1 && fact.body_block == -1 &&
+        fact.exit_block == -1 && fact.length_global_row == -1 &&
+        fact.read_global_row == -1 && fact.length_log_global_row == -1 &&
+        fact.index_value_id == "" && fact.index_value_row == -1 &&
+        fact.sum_left_value_id == "" && fact.sum_left_value_row == -1 &&
+        fact.read_result_value_id == "" &&
+        fact.read_result_value_row == -1 &&
+        fact.read_operation_row == -1 &&
+        fact.length_log_operation_row == -1;
+}
+
+func DirectMirScalarCfgArrayIntStaticMutationAbsent(
+    ref fact: DirectMirScalarCfgArrayIntStaticMutationFact
+) -> Bool {
+    return !fact.valid && fact.set_global_row == -1 && fact.set_index == -1 &&
+        fact.set_value == 0 && fact.indexed_log_global_row == -1 &&
+        fact.indexed_log_index == -1 && fact.set_operation_row == -1 &&
+        fact.indexed_log_operation_row == -1;
+}
+
+func DirectMirScalarCfgArrayIntReadAccessAbsent(
+    ref fact: DirectMirScalarCfgArrayIntReadAccessFact
+) -> Bool {
+    return !fact.valid && fact.global_row == -1 && fact.index_literal == -1 &&
+        fact.index_name == "" && fact.result_value_id == "" &&
+        fact.result_value_row == -1 && fact.operation_row == -1;
+}
+
+func DirectMirScalarCfgArrayIntReadOnlyAbsent(
+    ref fact: DirectMirScalarCfgArrayIntReadOnlyRangeFact
+) -> Bool {
+    return !fact.valid && fact.loop_syntax_id == -1 &&
+        fact.condition_block == -1 &&
+        DirectMirScalarCfgArrayIntReadAccessAbsent(fact.initial_read) &&
+        fact.condition_global_row == -1 && fact.current_value_id == "" &&
+        fact.current_value_row == -1 &&
+        DirectMirScalarCfgArrayIntReadAccessAbsent(fact.update_read) &&
+        fact.joined_value_id == "" && fact.joined_value_row == -1 &&
+        fact.log_global_row == -1 && fact.log_operation_row == -1 &&
+        fact.index_local_row == -1;
+}

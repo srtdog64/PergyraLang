@@ -1,11 +1,11 @@
 // Shared accumulator-phi readiness for Array<Int> indexed-sum consumers.
 
-import "direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
 import "direct_mir_scalar_cfg_while_induction_owner.pgy";
 
 func DirectMirScalarCfgArrayIntSumPhiReady(
     ref plan: DirectMirScalarCfgGraphPlan,
-    ref fact: DirectMirScalarCfgArrayIntLoopMutationFact
+    ref fact: DirectMirScalarCfgArrayIntProgramFact
 ) -> Bool {
     let phi: Int = DirectMirScalarCfgResultOperation(
         plan, fact.consumer.sum_left_value_row

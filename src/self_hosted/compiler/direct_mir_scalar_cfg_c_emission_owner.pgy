@@ -98,8 +98,7 @@ func DirectMirScalarCfgEmitC(
                         plan, block
                     )
                 );
-            } else if plan.array_int_loop_mutation.valid && block ==
-                    plan.array_int_loop_mutation.consumer.header_block {
+            } else if DirectMirScalarCfgArrayIntConditionBlock(plan, block) {
                 output = Concat(output,
                     DirectMirScalarCfgArrayIntCCondition(plan, block));
             } else if condition == DirectMirScalarCfgConditionBool() {

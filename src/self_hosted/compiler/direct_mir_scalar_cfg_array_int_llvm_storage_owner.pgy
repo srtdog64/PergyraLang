@@ -7,11 +7,11 @@ func DirectMirScalarCfgArrayIntLlvmDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan,
     target: CompilerTargetProjectionFact
 ) -> String {
-    if DirectMirScalarCfgArrayIntLoopMutationAbsent(
-        plan.array_int_loop_mutation
+    if DirectMirScalarCfgArrayIntProgramAbsent(
+        plan.array_int_program
     ) { return ""; }
     let fact: DirectMirScalarCfgArrayIntCollectionFact =
-        plan.array_int_loop_mutation.collection;
+        plan.array_int_program.collection;
     let abi: DirectMirArrayIntAbiProjection =
         DirectMirArrayIntAbiProjectionFromCanonicalLayout(
             target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
@@ -19,10 +19,10 @@ func DirectMirScalarCfgArrayIntLlvmDeclarations(
             fact.allocator_offset
         );
     let capacity: String = ToString(
-        DirectMirScalarCfgArrayIntCapacity(plan.array_int_loop_mutation)
+        DirectMirScalarCfgArrayIntCapacity(plan.array_int_program)
     );
     let initial_length: String = ToString(
-        DirectMirScalarCfgArrayIntInitialLength(plan.array_int_loop_mutation)
+        DirectMirScalarCfgArrayIntInitialLength(plan.array_int_program)
     );
     let output: String = Concat(
         "  %pgy.array.int.storage = alloca [", capacity

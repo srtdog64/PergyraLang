@@ -1,0 +1,34 @@
+// Bind read-only Array<Int> source globals to GraphPlan operations.
+
+import "direct_mir_scalar_cfg_array_int_read_only_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReadOnlyAtOperation(
+    fact: DirectMirScalarCfgArrayIntReadOnlyRangeFact,
+    global_row: Int, operation_row: Int
+) -> DirectMirScalarCfgArrayIntReadOnlyRangeFact {
+    if !fact.valid || operation_row < 0 { return fact; }
+    let initial: Int = fact.initial_read.operation_row;
+    let update: Int = fact.update_read.operation_row;
+    let log: Int = fact.log_operation_row;
+    if global_row == fact.initial_read.global_row { initial = operation_row; }
+    else if global_row == fact.update_read.global_row { update = operation_row; }
+    else if global_row == fact.log_global_row { log = operation_row; }
+    else { return fact; }
+    return DirectMirScalarCfgArrayIntReadOnlyRangeFact(
+        true, fact.loop_syntax_id, fact.condition_block,
+        DirectMirScalarCfgArrayIntReadAccessFact(
+            true, fact.initial_read.global_row,
+            fact.initial_read.index_literal, fact.initial_read.index_name,
+            fact.initial_read.result_value_id,
+            fact.initial_read.result_value_row, initial
+        ), fact.condition_global_row, fact.current_value_id,
+        fact.current_value_row,
+        DirectMirScalarCfgArrayIntReadAccessFact(
+            true, fact.update_read.global_row,
+            fact.update_read.index_literal, fact.update_read.index_name,
+            fact.update_read.result_value_id,
+            fact.update_read.result_value_row, update
+        ), fact.joined_value_id, fact.joined_value_row,
+        fact.log_global_row, log, fact.index_local_row
+    );
+}

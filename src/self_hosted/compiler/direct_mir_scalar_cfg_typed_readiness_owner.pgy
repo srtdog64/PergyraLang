@@ -104,6 +104,7 @@ func DirectMirScalarCfgTypedOperationsReady(
         if (kind == DirectMirScalarCfgOpConstInt() && !is_int_result) ||
             (kind == DirectMirScalarCfgOpConstString() && !is_string_result) ||
             ((kind == DirectMirScalarCfgOpCopyInt() ||
+              kind == DirectMirScalarCfgOpArrayReadInt() ||
               kind == DirectMirScalarCfgOpAddInt()) &&
                 (!is_int_result || !left_is_int ||
                  (kind == DirectMirScalarCfgOpAddInt() &&
@@ -128,7 +129,7 @@ func DirectMirScalarCfgTypedOperationsReady(
                 indexed_kind != DirectMirScalarCfgStringArrayAccessPushKind()) ||
             (kind == DirectMirScalarCfgOpLogArrayLength() &&
                 indexed_kind != DirectMirScalarCfgStringArrayAccessLengthLog() &&
-                row != plan.array_int_loop_mutation.consumer.
+                row != plan.array_int_program.consumer.
                     length_log_operation_row) ||
             (kind == DirectMirScalarCfgOpArrayPushInt() &&
                 (result >= 0 || !left_is_int || !right_is_int)) ||

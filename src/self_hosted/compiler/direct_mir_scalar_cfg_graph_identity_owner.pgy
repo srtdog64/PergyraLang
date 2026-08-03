@@ -1,7 +1,7 @@
 // Stable identity of one target-neutral scalar CFG plan.
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_identity_owner.pgy";
-import "direct_mir_scalar_cfg_array_int_loop_mutation_identity_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_identity_owner.pgy";
 
 func DirectMirScalarCfgGraphPlanDigest(
     ref plan: DirectMirScalarCfgGraphPlan
@@ -65,7 +65,7 @@ func DirectMirScalarCfgGraphPlanDigest(
     );
     hash = DirectMirCfgHashInt(hash, DirectMirScalarCfgForEachElementFactsDigest(plan.foreach_elements));
     hash = DirectMirCfgHashInt(hash, DirectMirScalarCfgStringArrayPlanDigest(plan.string_arrays));
-    hash = DirectMirCfgHashInt(hash, DirectMirScalarCfgArrayIntLoopMutationDigest(plan.array_int_loop_mutation));
+    hash = DirectMirCfgHashInt(hash, DirectMirScalarCfgArrayIntProgramDigest(plan.array_int_program));
     hash = DirectMirCfgHashInt(hash, plan.string_concat_runtime_call_abi_id);
     return DirectMirCfgBoundedDigest(hash);
 }
@@ -95,6 +95,6 @@ func DirectMirScalarCfgGraphPlanWithDigest(
         plan.operation_phi_counts, plan.phi_predecessor_blocks,
         plan.phi_incoming_values, plan.range_iterations,
         plan.foreach_iterations, plan.foreach_elements, plan.string_arrays,
-        plan.array_int_loop_mutation, plan.string_concat_runtime_call_abi_id
+        plan.array_int_program, plan.string_concat_runtime_call_abi_id
     );
 }

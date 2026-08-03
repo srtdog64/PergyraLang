@@ -1,0 +1,47 @@
+// Bind read-only Array<Int> ValueIds and range LocalRef to plan rows.
+
+import "direct_mir_scalar_cfg_array_int_read_only_fact_owner.pgy";
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_range_set_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReadOnlyAtValueRows(
+    fact: DirectMirScalarCfgArrayIntReadOnlyRangeFact,
+    value_names: Array<String>,
+    ref ranges: DirectMirScalarCfgRangeFactSet
+) -> DirectMirScalarCfgArrayIntReadOnlyRangeFact {
+    if !fact.valid { return fact; }
+    let range: DirectMirScalarCfgRangeIterationFact =
+        DirectMirScalarCfgRangeFactAtLoopSyntaxId(
+            ranges, fact.loop_syntax_id
+        );
+    let initial: Int = DirectMirScalarCfgGraphValueRow(
+        value_names, fact.initial_read.result_value_id
+    );
+    let current: Int = DirectMirScalarCfgGraphValueRow(
+        value_names, fact.current_value_id
+    );
+    let update: Int = DirectMirScalarCfgGraphValueRow(
+        value_names, fact.update_read.result_value_id
+    );
+    let joined: Int = DirectMirScalarCfgGraphValueRow(
+        value_names, fact.joined_value_id
+    );
+    if !range.valid || range.local_row < 0 || initial < 0 || current < 0 ||
+        update < 0 || joined < 0 {
+        return DirectMirScalarCfgArrayIntReadOnlyRangeFactEmpty();
+    }
+    return DirectMirScalarCfgArrayIntReadOnlyRangeFact(
+        true, fact.loop_syntax_id, fact.condition_block,
+        DirectMirScalarCfgArrayIntReadAccessFact(
+            true, fact.initial_read.global_row,
+            fact.initial_read.index_literal, fact.initial_read.index_name,
+            fact.initial_read.result_value_id, initial, -1
+        ), fact.condition_global_row, fact.current_value_id, current,
+        DirectMirScalarCfgArrayIntReadAccessFact(
+            true, fact.update_read.global_row,
+            fact.update_read.index_literal, fact.update_read.index_name,
+            fact.update_read.result_value_id, update, -1
+        ), fact.joined_value_id, joined, fact.log_global_row,
+        -1, range.local_row
+    );
+}

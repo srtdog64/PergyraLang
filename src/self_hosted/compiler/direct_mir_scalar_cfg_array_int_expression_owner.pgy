@@ -1,13 +1,19 @@
 // Scalar-CFG expression rows projected from the sealed Array<Int> receipt.
 
-import "direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
 import "direct_mir_scalar_cfg_expression_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_condition_expression_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_read_only_expression_owner.pgy";
 
 func DirectMirScalarCfgArrayIntExpressionFact(
-    ref fact: DirectMirScalarCfgArrayIntLoopMutationFact, global_row: Int
+    ref fact: DirectMirScalarCfgArrayIntProgramFact, global_row: Int
 ) -> DirectMirScalarCfgExpressionFact {
     if !fact.valid { return DirectMirScalarCfgExpressionFactEmpty(); }
+    let read_only: DirectMirScalarCfgExpressionFact =
+        DirectMirScalarCfgArrayIntReadOnlyExpressionFact(
+            fact.read_only, global_row
+        );
+    if read_only.valid { return read_only; }
     if global_row == fact.producer.push_global_row {
         return DirectMirScalarCfgExpressionFact(
             true, DirectMirScalarCfgOpArrayPushInt(),

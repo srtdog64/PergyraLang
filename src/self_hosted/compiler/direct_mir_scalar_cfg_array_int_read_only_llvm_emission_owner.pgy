@@ -1,0 +1,73 @@
+// LLVM indexed reads and greater condition from the sealed read-only receipt.
+
+import "direct_mir_scalar_cfg_array_int_condition_role_owner.pgy";
+import "direct_mir_scalar_cfg_llvm_operand_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReadOnlyLlvmRead(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> String {
+    let fact: DirectMirScalarCfgArrayIntReadOnlyRangeFact =
+        plan.array_int_program.read_only;
+    if !fact.valid || (operation != fact.initial_read.operation_row &&
+        operation != fact.update_read.operation_row) {
+        Die("direct MIR scalar CFG read-only Array<Int> LLVM read is invalid");
+    }
+    let stem: String = Concat("%pgy.op.", ToString(operation));
+    let index: String = plan.operation_left_literals[operation];
+    let output: String = "";
+    if index == "" {
+        output = Concat("  ", Concat(stem, ".read.index = load i64, ptr "));
+        output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
+            plan, plan.operation_left_values[operation],
+            plan.operation_left_locals[operation]
+        ));
+        output = Concat(output, ", align 8\n");
+        index = Concat(stem, ".read.index");
+    }
+    output = Concat(output, Concat("  ", stem));
+    output = Concat(output,
+        ".read.ptr = getelementptr inbounds i32, ptr %pgy.array.int.data, i64 ");
+    output = Concat(output, Concat(index, "\n  "));
+    output = Concat(output, Concat(stem, ".read.i32 = load i32, ptr "));
+    output = Concat(output, Concat(stem, ".read.ptr, align 4\n  "));
+    output = Concat(output, Concat(stem, ".read.i64 = sext i32 "));
+    output = Concat(output, Concat(stem, ".read.i32 to i64\n"));
+    output = Concat(output, Concat("  store i64 ", stem));
+    output = Concat(output, ".read.i64, ptr ");
+    output = Concat(output, DirectMirScalarCfgLlvmLocal(
+        plan, plan.operation_result_values[operation]
+    ));
+    return Concat(output, ", align 8\n");
+}
+
+func DirectMirScalarCfgArrayIntReadOnlyLlvmCondition(
+    ref plan: DirectMirScalarCfgGraphPlan, block: Int
+) -> String {
+    if !DirectMirScalarCfgArrayIntIndexedConditionBlock(plan, block) {
+        Die("direct MIR scalar CFG read-only Array<Int> LLVM condition is invalid");
+    }
+    let stem: String = Concat("%pgy.cond.", ToString(block));
+    let output: String = Concat("  ", stem);
+    output = Concat(output, ".index = load i64, ptr ");
+    output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
+        plan, plan.block_condition_left_values[block],
+        plan.block_condition_left_locals[block]
+    ));
+    output = Concat(output, ", align 8\n  ");
+    output = Concat(output, Concat(stem,
+        ".element.ptr = getelementptr inbounds i32, ptr %pgy.array.int.data, i64 "));
+    output = Concat(output, Concat(stem, ".index\n  "));
+    output = Concat(output, Concat(stem, ".element.i32 = load i32, ptr "));
+    output = Concat(output, Concat(stem, ".element.ptr, align 4\n  "));
+    output = Concat(output, Concat(stem, ".element = sext i32 "));
+    output = Concat(output, Concat(stem, ".element.i32 to i64\n  "));
+    output = Concat(output, Concat(stem, ".current = load i64, ptr "));
+    output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
+        plan, plan.block_condition_right_values[block],
+        plan.block_condition_right_locals[block]
+    ));
+    output = Concat(output, ", align 8\n  ");
+    output = Concat(output, Concat(stem, " = icmp sgt i64 "));
+    output = Concat(output, Concat(stem, ".element, "));
+    return Concat(output, Concat(stem, ".current"));
+}

@@ -1,0 +1,43 @@
+// Exclusive semantic mode selection for an initialized Array<Int> receipt.
+
+import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
+import "direct_mir_scalar_cfg_range_set_owner.pgy";
+
+func DirectMirScalarCfgArrayIntInitializedModeFromOwners(
+    ref index: MirRoutineFactIndex,
+    ref uses: MirRoutineInstructionUseFacts,
+    collection_value_id: String,
+    ref ranges: DirectMirScalarCfgRangeFactSet
+) -> Int {
+    let set_count: Int = 0;
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        let capture: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, global
+            );
+        if capture.name == "stmt" && capture.arg0 == "ArraySet" {
+            if MirRoutineInstructionUseCountAtGlobal(uses, global) != 1 ||
+                !DirectMirScalarCfgArrayIntUseAt(
+                    uses, global, 0, collection_value_id
+                ) { return 0; }
+            set_count = set_count + 1;
+        }
+        instruction = instruction + 1;
+    }
+    if set_count == 0 {
+        if DirectMirScalarCfgRangeFactCount(ranges) != 1 {
+            return 0;
+        }
+        let range: DirectMirScalarCfgRangeIterationFact =
+            DirectMirScalarCfgRangeFactAt(ranges, 0);
+        if !range.valid || range.stop_literal != "" ||
+            range.stop_value_id != collection_value_id {
+            return 0;
+        }
+        return DirectMirScalarCfgArrayIntReadOnlyInitializedMode();
+    }
+    if set_count == 1 { return DirectMirScalarCfgArrayIntStaticSetMode(); }
+    return 0;
+}

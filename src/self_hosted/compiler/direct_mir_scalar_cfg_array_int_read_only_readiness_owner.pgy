@@ -1,0 +1,114 @@
+// Sealed-plan closure for one initialized read-only Array<Int> range maximum.
+
+import "direct_mir_scalar_cfg_array_int_condition_role_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_absence_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_read_only_operation_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_read_only_phi_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_array_sealed_guard_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReadOnlyValueReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    value: Int, identity: String, block: Int
+) -> Bool {
+    return value >= 0 && value < ArrayLength(plan.value_names) &&
+        plan.value_names[value] == identity &&
+        plan.value_types[value] == CompilerAbiLayoutIntTypeName() &&
+        plan.value_definition_blocks[value] == block;
+}
+
+func DirectMirScalarCfgArrayIntReadOnlyReady(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let program: DirectMirScalarCfgArrayIntProgramFact =
+        plan.array_int_program;
+    let fact: DirectMirScalarCfgArrayIntReadOnlyRangeFact = program.read_only;
+    let range: DirectMirScalarCfgRangeIterationFact =
+        DirectMirScalarCfgArrayIntReadOnlyRangeAtPlan(plan);
+    if !program.valid || program.mode !=
+            DirectMirScalarCfgArrayIntReadOnlyInitializedMode() ||
+        !DirectMirScalarCfgArrayIntCollectionFactReady(program.collection) ||
+        ArrayLength(program.collection.elements) < 1 || !fact.valid ||
+        !fact.initial_read.valid || !fact.update_read.valid || !range.valid ||
+        !DirectMirScalarCfgArrayIntProducerAbsent(program.producer) ||
+        !DirectMirScalarCfgArrayIntConsumerAbsent(program.consumer) ||
+        !DirectMirScalarCfgArrayIntStaticMutationAbsent(
+            program.static_mutation
+        ) || fact.initial_read.index_literal != 0 ||
+        fact.initial_read.index_name != "" ||
+        fact.update_read.index_literal != -1 ||
+        fact.update_read.index_name != range.binding_name ||
+        fact.condition_global_row < 0 || fact.log_global_row < 0 ||
+        range.start_literal != "1" || range.step_literal != "1" ||
+        range.stop_literal != "" || range.stop_value_id !=
+            program.collection.collection_value_id ||
+        ArrayLength(range.backedge_blocks) != 1 ||
+        fact.index_local_row != range.local_row || fact.index_local_row < 0 ||
+        fact.index_local_row >= ArrayLength(plan.local_types) ||
+        plan.local_types[fact.index_local_row] !=
+            CompilerAbiLayoutIntTypeName() { return false; }
+    let join_block: Int = range.backedge_blocks[0];
+    let update_block: Int = DirectMirScalarCfgOperationBlock(
+        plan, fact.update_read.operation_row
+    );
+    if update_block < 0 || join_block < 0 ||
+        !DirectMirScalarCfgArrayIntReadOnlyValueReady(
+            plan, fact.initial_read.result_value_row,
+            fact.initial_read.result_value_id, range.init_block
+        ) || !DirectMirScalarCfgArrayIntReadOnlyValueReady(
+            plan, fact.current_value_row, fact.current_value_id,
+            range.header_block
+        ) || !DirectMirScalarCfgArrayIntReadOnlyValueReady(
+            plan, fact.update_read.result_value_row,
+            fact.update_read.result_value_id, update_block
+        ) || !DirectMirScalarCfgArrayIntReadOnlyValueReady(
+            plan, fact.joined_value_row, fact.joined_value_id, join_block
+        ) { return false; }
+    let owner_local: Int =
+        plan.value_local_rows[fact.initial_read.result_value_row];
+    if owner_local != plan.value_local_rows[fact.current_value_row] ||
+        owner_local != plan.value_local_rows[fact.update_read.result_value_row] ||
+        owner_local != plan.value_local_rows[fact.joined_value_row] ||
+        range.init_block < 0 || range.header_block < 0 ||
+        range.body_block != fact.condition_block || range.exit_block < 0 ||
+        plan.block_succ_true[range.init_block] != range.header_block ||
+        plan.block_succ_false[range.init_block] >= 0 ||
+        plan.block_succ_true[range.header_block] != fact.condition_block ||
+        plan.block_succ_false[range.header_block] != range.exit_block ||
+        plan.block_succ_true[fact.condition_block] != update_block ||
+        plan.block_succ_false[fact.condition_block] != join_block ||
+        plan.block_succ_true[update_block] != join_block ||
+        plan.block_succ_false[update_block] >= 0 ||
+        plan.block_succ_true[join_block] != range.header_block ||
+        plan.block_succ_false[join_block] >= 0 ||
+        plan.block_succ_true[range.exit_block] >= 0 ||
+        plan.block_succ_false[range.exit_block] >= 0 ||
+        !DirectMirScalarCfgSealedArrayGuardEdgeReady(
+            plan, range.header_block, fact.condition_block
+        ) || !DirectMirScalarCfgSealedArrayGuardEdgeReady(
+            plan, fact.condition_block, update_block
+        ) { return false; }
+    if plan.block_condition_kinds[range.header_block] !=
+            DirectMirScalarCfgConditionLess() ||
+        plan.block_condition_left_values[range.header_block] != -1 ||
+        plan.block_condition_left_locals[range.header_block] !=
+            fact.index_local_row ||
+        plan.block_condition_right_values[range.header_block] != -1 ||
+        plan.block_condition_right_locals[range.header_block] != -1 ||
+        plan.block_condition_right_literals[range.header_block] != "" ||
+        plan.block_condition_kinds[fact.condition_block] !=
+            DirectMirScalarCfgConditionGreater() ||
+        plan.block_condition_left_values[fact.condition_block] != -1 ||
+        plan.block_condition_left_locals[fact.condition_block] !=
+            fact.index_local_row ||
+        plan.block_condition_right_values[fact.condition_block] !=
+            fact.current_value_row ||
+        plan.block_condition_right_locals[fact.condition_block] != -1 ||
+        plan.block_condition_right_literals[fact.condition_block] != "" {
+        return false;
+    }
+    return DirectMirScalarCfgArrayIntReadOnlyOperationsReady(
+        plan, fact, range, update_block
+    ) && DirectMirScalarCfgArrayIntReadOnlyPhisReady(
+        plan, fact, range, update_block, join_block
+    );
+}

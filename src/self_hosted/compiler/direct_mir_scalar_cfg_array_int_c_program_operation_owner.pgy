@@ -1,0 +1,20 @@
+// C operation dispatch for mutually exclusive Array<Int> program modes.
+
+import "direct_mir_scalar_cfg_array_int_static_c_operation_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_read_only_c_emission_owner.pgy";
+import "direct_mir_scalar_cfg_c_collection_operation_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntCProgramOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    int_line_format: String, int_c_type: String
+) -> DirectMirScalarCfgCCollectionOperationEmission {
+    if plan.operation_kinds[operation] == DirectMirScalarCfgOpArrayReadInt() {
+        return DirectMirScalarCfgCCollectionOperationEmission(
+            true, DirectMirScalarCfgArrayIntReadOnlyCRead(plan, operation)
+        );
+    }
+    return DirectMirScalarCfgArrayIntStaticCOperation(
+        plan, operation, formatted_print, int_line_format, int_c_type
+    );
+}

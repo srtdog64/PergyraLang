@@ -13,9 +13,9 @@ func DirectMirScalarCfgArrayIntStaticMutationFromOwners(
     ref index: MirRoutineFactIndex,
     ref uses: MirRoutineInstructionUseFacts,
     collection: DirectMirScalarCfgArrayIntCollectionFact
-) -> DirectMirScalarCfgArrayIntLoopMutationFact {
-    let empty: DirectMirScalarCfgArrayIntLoopMutationFact =
-        DirectMirScalarCfgArrayIntLoopMutationFactEmpty();
+) -> DirectMirScalarCfgArrayIntProgramFact {
+    let empty: DirectMirScalarCfgArrayIntProgramFact =
+        DirectMirScalarCfgArrayIntProgramFactEmpty();
     let initial_length: Int = ArrayLength(collection.elements);
     if !DirectMirScalarCfgArrayIntCollectionFactReady(collection) ||
         initial_length < 1 { return empty; }
@@ -212,7 +212,7 @@ func DirectMirScalarCfgArrayIntStaticMutationFromOwners(
             index, definition, length_log_position.block,
             length_log_position.local
         ) { return empty; }
-    return DirectMirScalarCfgArrayIntLoopMutationFact(
+    return DirectMirScalarCfgArrayIntProgramFact(
         true, DirectMirScalarCfgArrayIntStaticSetMode(), collection,
         DirectMirScalarCfgArrayIntProducerFactEmpty(),
         DirectMirScalarCfgArrayIntConsumerFact(
@@ -222,6 +222,6 @@ func DirectMirScalarCfgArrayIntStaticMutationFromOwners(
         ), DirectMirScalarCfgArrayIntStaticMutationFact(
             true, set_global, set_index, set_value,
             indexed_log_global, indexed_log_index, -1, -1
-        )
+        ), DirectMirScalarCfgArrayIntReadOnlyRangeFactEmpty()
     );
 }
