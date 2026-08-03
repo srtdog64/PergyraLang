@@ -44,13 +44,15 @@ func DirectMirScalarCfgTypedForEachReady(
         if type_name == CompilerAbiLayoutIntTypeName() {
             if ArrayLength(strings) != 0 { return false; }
         } else if type_name == CompilerAbiLayoutStringTypeName() {
-            let start: Int =
+            let start_opt: Option<Int> =
                 DirectMirScalarCfgForEachStringElementStartAtLoopSyntaxId(
                     plan.foreach_elements, fact.loop_syntax_id
                 );
-            if start < 0 || ArrayLength(strings) != ArrayLength(fact.elements) {
+            if !IsSome(start_opt) ||
+                ArrayLength(strings) != ArrayLength(fact.elements) {
                 return false;
             }
+            let start: Int = UnwrapOption(start_opt);
             let item: Int = 0;
             while item < ArrayLength(fact.elements) {
                 if fact.elements[item] != start + item { return false; }

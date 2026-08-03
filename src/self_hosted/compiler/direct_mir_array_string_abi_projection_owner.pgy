@@ -41,9 +41,10 @@ func DirectMirArrayStringAbiProjectionReadyFor(
             projection.llvm_element_type == "" &&
             projection.llvm_length_type == "" &&
             projection.llvm_aggregate_type == "" &&
-            projection.data_index == -1 && projection.length_index == -1 &&
-            projection.capacity_index == -1 &&
-            projection.allocator_index == -1;
+            projection.data_index == projection.storage.data_index &&
+            projection.length_index == projection.storage.length_index &&
+            projection.capacity_index == projection.storage.capacity_index &&
+            projection.allocator_index == projection.storage.allocator_index;
     }
     return expected_target == CompilerTargetCpuLlvmProjection() &&
         projection.c_element_type == "" &&

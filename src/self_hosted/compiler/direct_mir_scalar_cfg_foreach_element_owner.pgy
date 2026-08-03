@@ -168,15 +168,15 @@ func DirectMirScalarCfgForEachStringElementsAtLoopSyntaxId(
 
 func DirectMirScalarCfgForEachStringElementStartAtLoopSyntaxId(
     ref facts: DirectMirScalarCfgForEachElementFacts, wanted: Int
-) -> Int {
+) -> Option<Int> {
     let row: Int = 0;
     while row < ArrayLength(facts.loop_syntax_ids) {
         if facts.loop_syntax_ids[row] == wanted {
-            return facts.string_starts[row];
+            return Some(facts.string_starts[row]);
         }
         row = row + 1;
     }
-    return -1;
+    return None;
 }
 
 struct DirectMirScalarCfgForEachAdmission {
