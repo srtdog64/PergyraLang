@@ -3,6 +3,7 @@
 import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
 import "routine_expression_use_owner.pgy";
+import "routine_break_exit_fact_owner.pgy";
 
 func SelfMirLowerControlTransferFromArtifact(
     ref input: SelfMirRoutineInput,
@@ -10,7 +11,7 @@ func SelfMirLowerControlTransferFromArtifact(
     block_node_id: Int,
     child_index: Int,
     kind: Int,
-    inout break_blocks: Array<Int>,
+    inout break_exits: SelfMirBreakExitFacts,
     continue_target: Int
 ) -> SelfMirRoutineBuild {
     let control_name: String = "break";
@@ -41,7 +42,7 @@ func SelfMirLowerControlTransferFromArtifact(
         source_type, SelfMirNoUses()
     );
     if kind == TypedAstKindBreakStmtTag() {
-        ArrayPush(break_blocks, build.current_block);
+        break_exits = SelfMirBreakExitFactsAppend(break_exits, build);
     } else {
         build = SelfMirRoutineSetSuccessors(
             build, build.current_block, continue_target, -1

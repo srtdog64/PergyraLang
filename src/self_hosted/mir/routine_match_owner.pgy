@@ -10,6 +10,7 @@ import "routine_expression_use_owner.pgy";
 import "routine_match_merge_owner.pgy";
 import "routine_match_pattern_owner.pgy";
 import "expression_fact_owner.pgy";
+import "routine_break_exit_fact_owner.pgy";
 import "../semantic/wrapper_type_owner.pgy";
 
 func SelfMirMatchCaseFactForNode(
@@ -217,7 +218,7 @@ func SelfMirLowerMatchFromArtifact(
     build: SelfMirRoutineBuild,
     node_id: Int,
     match_value: String,
-    inout break_blocks: Array<Int>,
+    inout break_exits: SelfMirBreakExitFacts,
     continue_target: Int
 ) -> SelfMirRoutineBuild {
     let first_child: Option<Int> = TypedAstArenaChildAt(
@@ -281,7 +282,7 @@ func SelfMirLowerMatchFromArtifact(
             let body_local_count: Int = ArrayLength(build.local_names);
             build = SelfMirLowerBlockFromArtifact(
                 input, build, UnwrapOption(body_opt),
-                break_blocks, continue_target, body_local_count
+                break_exits, continue_target, body_local_count
             );
             if !build.ok { return build; }
             let body_exit: Int = build.current_block;
@@ -330,7 +331,7 @@ func SelfMirLowerMatchFromArtifact(
             let default_local_count: Int = ArrayLength(build.local_names);
             build = SelfMirLowerBlockFromArtifact(
                 input, build, UnwrapOption(default_body_opt),
-                break_blocks, continue_target, default_local_count
+                break_exits, continue_target, default_local_count
             );
             if !build.ok { return build; }
             let default_exit: Int = build.current_block;

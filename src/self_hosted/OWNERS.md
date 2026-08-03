@@ -709,7 +709,13 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir/routine_match_merge_owner.pgy` -- N-way live-arm SSA
   phi emission and post-match continuation version ownership.
 - `src/self_hosted/mir/routine_while_owner.pgy` -- while-loop header, body,
-  back-edge, and exit-block lowering.
+  back-edge, and exit-block lowering, including producer-owned exit merge
+  dispatch after CFG predecessor closure.
+- `src/self_hosted/mir/routine_break_exit_fact_owner.pgy` -- exact break-edge
+  predecessor identity and local SSA-version snapshots captured at transfer.
+- `src/self_hosted/mir/routine_while_exit_phi_owner.pgy` -- while condition-exit
+  and break-exit local-version merge; it emits the exit phi before any backend
+  can observe the graph.
 - `src/self_hosted/mir/loop_reachability_fact_owner.pgy` -- loop-body exit and
   back-edge reachability facts consumed before header phi emission.
 - `src/self_hosted/mir/routine_for_owner.pgy` -- typed iteration row and
@@ -1881,11 +1887,11 @@ inventory must not become a second fact-family owner registry.
   fixed-plan replacement constructors used by the issuer and negative owner.
 - `src/self_hosted/compiler/direct_mir_cfg_plan_mutation_owner.pgy` -- repaired-
   digest negative owner for target fingerprint, phi, nested, while, range, and
-  loop-break or enum plan bindings.
+  enum plan bindings.
 - `src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy` -- fixed-size
-  v7 plan identity/readiness contract binding AIR/MIR/CFG/phi/nested/while/
-  range/loop-break/enum digests, target capability, topology, and normalized
-  shape before emission.
+  v8 plan identity/readiness contract binding AIR/MIR/CFG/phi/nested/while/
+  range/enum digests, target capability, topology, and normalized shape before
+  emission. Break CFG execution is owned by the general scalar CFG plan.
 - `src/self_hosted/compiler/direct_mir_enum_value_match_route_owner.pgy` --
   single-shot declaration-family route. Either captured declaration axis may
   claim enum input, but exact admission remains downstream and claimed failure
@@ -2063,14 +2069,6 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_range_cfg_emission_owner.pgy` -- one
   range-text responsibility containing both C and LLVM; LLVM materializes an
   alloca/load/add/store loop without fabricating a MIR phi.
-- `src/self_hosted/compiler/direct_mir_break_cfg_shape_owner.pgy` -- derives
-  the four graph literals, forwarded SSA identities, two Log graphs/uses, and
-  distinct normal/break exit values from the issued loop-break certificate.
-- `src/self_hosted/compiler/direct_mir_break_cfg_plan_fact_owner.pgy` -- fixed
-  loop-break certificate/shape compound fact carried by the one outer plan.
-- `src/self_hosted/compiler/direct_mir_break_cfg_emission_owner.pgy` -- one
-  loop-break text responsibility containing both C and LLVM. LLVM materializes
-  a separately labelled backend-only exit phi without claiming another MIR phi.
 - `src/self_hosted/compiler/direct_mir_llvm_text_format_owner.pgy` -- shared
   LLVM line-format byte encoding used by scalar and CFG text emitters.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy` --
@@ -2083,11 +2081,6 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_assignment_target_owner.pgy`
   -- exact one-leaf assignment-place graph receipt joined to the instruction's
   carried source-local identity; display target text is not a fallback.
-- `src/self_hosted/compiler/direct_mir_scalar_cfg_break_exit_bridge_owner.pgy`
-  -- explicit shrink-only capability boundary for a loop with both a feasible
-  condition exit and `break` while the producer still lacks an exit phi. That
-  slice remains with the named legacy loop-break plan; constant-true break CFGs
-  and canonical phi-bearing graphs stay on the general route.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy`
   -- topology-independent route and plan issuer over the typed MIR indices,
   use facts, dominance facts, and exact phi bindings. It claims the supported

@@ -6,7 +6,6 @@ import "direct_mir_llvm_text_format_owner.pgy";
 import "direct_mir_nested_cfg_emission_owner.pgy";
 import "direct_mir_loop_cfg_emission_owner.pgy";
 import "direct_mir_range_cfg_emission_owner.pgy";
-import "direct_mir_break_cfg_emission_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 
 func DirectMirScalarProjectionArraysReady(projection: DirectMirScalarBlockProjection) -> Bool {
@@ -190,12 +189,6 @@ func DirectMirCfgEmitC(
             formatted_print, line_format, int_c_type
         );
     }
-    if DirectMirBreakCfgPlanFactReady(plan.break_fact) {
-        return DirectMirBreakCfgEmitC(
-            plan.break_fact.shape, plan.break_fact.certificate,
-            formatted_print, line_format, int_c_type
-        );
-    }
     if plan.shape.kind == DirectMirCfgNestedConditionalShapeKind() {
         return DirectMirNestedCfgEmitC(
             plan.shape, plan.nested, formatted_print,
@@ -344,12 +337,6 @@ func DirectMirCfgEmitLlvm(
     if DirectMirRangeCfgPlanFactReady(plan.range_fact) {
         return DirectMirRangeCfgEmitLlvm(
             plan.range_fact.shape, plan.range_fact.certificate,
-            formatted_print, line_format
-        );
-    }
-    if DirectMirBreakCfgPlanFactReady(plan.break_fact) {
-        return DirectMirBreakCfgEmitLlvm(
-            plan.break_fact.shape, plan.break_fact.certificate,
             formatted_print, line_format
         );
     }

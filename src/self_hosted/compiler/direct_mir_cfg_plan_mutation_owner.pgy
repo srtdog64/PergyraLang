@@ -27,12 +27,12 @@ func DirectMirCfgPlanMutationRejected(own plan: DirectMirCfgPlan) -> Bool {
             plan.valid, plan.schema, plan.revision, 0,
             plan.certificate_digest, plan.mir_digest, plan.cfg_digest,
             bad_phi_digest, plan.nested_digest, plan.loop_digest,
-            plan.range_digest, plan.break_digest, plan.enum_digest,
+            plan.range_digest, plan.enum_digest,
             plan.target_capability_schema,
             plan.target_capability_fingerprint, plan.entry_block,
             plan.true_block, bad_false_block, plan.merge_block,
             plan.phi_count, plan.nested, plan.loop_fact,
-            plan.range_fact, plan.break_fact, plan.enum_match, plan.shape
+            plan.range_fact, plan.enum_match, plan.shape
         );
         bad_phi_binding = DirectMirCfgPlanWithDigest(
             bad_phi_binding,
@@ -85,22 +85,6 @@ func DirectMirCfgPlanMutationRejected(own plan: DirectMirCfgPlan) -> Bool {
         bad_range_rejected = !DirectMirCfgPlanReady(bad_range_plan) &&
             DirectMirRangeCfgPlanFactMutationRejected(range_for_negative);
     }
-    let bad_break_rejected: Bool = true;
-    if DirectMirBreakCfgPlanFactReady(plan.break_fact) {
-        let break_for_mutation: DirectMirBreakCfgPlanFact = plan.break_fact;
-        let bad_break: DirectMirBreakCfgPlanFact =
-            DirectMirBreakCfgPlanFactInvalidExitSelection(
-                break_for_mutation
-            );
-        let bad_break_plan: DirectMirCfgPlan =
-            DirectMirCfgPlanWithBreak(plan, bad_break);
-        bad_break_plan = DirectMirCfgPlanWithDigest(
-            bad_break_plan, DirectMirCfgPlanIdentityDigest(bad_break_plan)
-        );
-        let break_for_negative: DirectMirBreakCfgPlanFact = plan.break_fact;
-        bad_break_rejected = !DirectMirCfgPlanReady(bad_break_plan) &&
-            DirectMirBreakCfgPlanFactMutationRejected(break_for_negative);
-    }
     let bad_enum_rejected: Bool = true;
     if DirectMirEnumValueMatchPlanFactReady(plan.enum_match) {
         let bad_enum: DirectMirEnumValueMatchPlanFact =
@@ -118,5 +102,5 @@ func DirectMirCfgPlanMutationRejected(own plan: DirectMirCfgPlan) -> Bool {
     return !DirectMirCfgPlanReady(bad_digest) &&
         !DirectMirCfgPlanReady(bad_target) && bad_phi_binding_rejected &&
         bad_nested_rejected && bad_loop_rejected && bad_range_rejected &&
-        bad_break_rejected && bad_enum_rejected;
+        bad_enum_rejected;
 }

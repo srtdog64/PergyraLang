@@ -5,6 +5,7 @@ import "routine_build_owner.pgy";
 import "routine_expression_use_owner.pgy";
 import "expression_fact_owner.pgy";
 import "loop_reachability_fact_owner.pgy";
+import "routine_while_exit_phi_owner.pgy";
 
 func SelfMirLowerWhileFromArtifact(
     ref input: SelfMirRoutineInput,
@@ -82,14 +83,16 @@ func SelfMirLowerWhileFromArtifact(
     build = SelfMirRoutineAttachLastExpressionGraph(
         build, condition_graph, input.machine_declaration
     );
+    let header_versions: Array<Int> =
+        SelfMirLocalVersionsSnapshot(build.local_versions);
     build = SelfMirRoutineAddBlock(build);
     let loop_body: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineAtBlock(build, loop_body);
-    let while_break_blocks: Array<Int> = [];
+    let while_break_exits: SelfMirBreakExitFacts = SelfMirBreakExitFactsEmpty();
     let body_local_count: Int = ArrayLength(build.local_names);
     build = SelfMirLowerBlockFromArtifact(
         input, build, UnwrapOption(body_opt),
-        while_break_blocks, header, body_local_count
+        while_break_exits, header, body_local_count
     );
     let body_exit: Int = build.current_block;
     let observed_backedge: Bool = build.terminated[body_exit] == 0;
@@ -157,19 +160,22 @@ func SelfMirLowerWhileFromArtifact(
     build = SelfMirRoutineAddBlock(build);
     let loop_exit: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     let break_i: Int = 0;
-    while break_i < ArrayLength(while_break_blocks) {
+    while break_i < ArrayLength(while_break_exits.blocks) {
         build = SelfMirRoutineSetSuccessors(
-            build, while_break_blocks[break_i], loop_exit, -1
+            build, while_break_exits.blocks[break_i], loop_exit, -1
         );
         break_i = break_i + 1;
     }
     let condition_exit: Int = loop_exit;
     if SelfMirLoopConstantTrueExitInfeasible(
-        condition_graph, reachability, ArrayLength(while_break_blocks)
+        condition_graph, reachability, ArrayLength(while_break_exits.blocks)
     ) {
         condition_exit = -1;
     }
-    return SelfMirRoutineSetSuccessors(
+    build = SelfMirRoutineSetSuccessors(
         build, header, loop_body, condition_exit
+    );
+    return SelfMirWhileExitMergeLocalVersions(
+        build, header_versions, while_break_exits, condition_exit, loop_exit
     );
 }

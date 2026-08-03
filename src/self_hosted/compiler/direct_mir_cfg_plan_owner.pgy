@@ -90,8 +90,6 @@ func DirectMirCfgPlanFromAdmitted(
         DirectMirLoopCfgPlanFactEmpty();
     let range_plan: DirectMirRangeCfgPlanFact =
         DirectMirRangeCfgPlanFactEmpty();
-    let break_plan: DirectMirBreakCfgPlanFact =
-        DirectMirBreakCfgPlanFactEmpty();
     let enum_plan: DirectMirEnumValueMatchPlanFact =
         DirectMirEnumValueMatchPlanFactEmpty();
     if DirectMirIdentityMatchCfgCertificateFactReady(
@@ -105,14 +103,6 @@ func DirectMirCfgPlanFromAdmitted(
         );
     } else if enum_route.claimed {
         Die("direct MIR enum route cannot retry a legacy CFG shape");
-    } else if DirectMirBreakCfgCertificateFactReady(certificate.break_fact) {
-        let break_shape: DirectMirBreakCfgShapeFact =
-            DirectMirBreakCfgShapeFactFromOwners(
-                admitted, index, use_facts, certificate.break_fact
-            );
-        break_plan = DirectMirBreakCfgPlanFactFromOwners(
-            certificate.break_fact, break_shape
-        );
     } else if DirectMirLoopCfgCertificateFactReady(certificate.loop_fact) {
         let loop_shape: DirectMirLoopCfgShapeFact =
             DirectMirLoopCfgShapeFactFromOwners(
@@ -151,10 +141,6 @@ func DirectMirCfgPlanFromAdmitted(
         shape_ready = DirectMirCfgShapeFactsAbsent(shape) &&
             DirectMirRangeCfgPlanFactReady(range_plan);
     }
-    if DirectMirBreakCfgCertificateFactReady(certificate.break_fact) {
-        shape_ready = DirectMirCfgShapeFactsAbsent(shape) &&
-            DirectMirBreakCfgPlanFactReady(break_plan);
-    }
     if DirectMirEnumValueMatchPlanFactReady(enum_plan) {
         shape_ready = DirectMirCfgShapeFactsAbsent(shape);
     }
@@ -165,9 +151,6 @@ func DirectMirCfgPlanFromAdmitted(
         if DirectMirRangeCfgCertificateFactReady(certificate.range_fact) {
             Die("direct MIR range CFG bound, Log, or policy facts are invalid");
         }
-        if DirectMirBreakCfgCertificateFactReady(certificate.break_fact) {
-            Die("direct MIR break CFG condition, Log, exit, or graph facts are invalid");
-        }
         Die("direct MIR CFG condition, arm, or merge facts are invalid");
     }
     let plan: DirectMirCfgPlan = DirectMirCfgPlan(
@@ -175,13 +158,12 @@ func DirectMirCfgPlanFromAdmitted(
         certificate.certificate_digest, certificate.mir_digest,
         certificate.cfg_digest, certificate.phi_digest,
         certificate.nested.digest, loop_plan.digest, range_plan.digest,
-        break_plan.digest, enum_plan.digest,
+        enum_plan.digest,
         CompilerTargetCapabilitySchema(),
         CompilerTargetCapabilityFingerprint(), certificate.entry_block,
         certificate.true_block, certificate.false_block,
         certificate.merge_block, certificate.phi_count,
-        certificate.nested, loop_plan, range_plan, break_plan, enum_plan,
-        shape
+        certificate.nested, loop_plan, range_plan, enum_plan, shape
     );
     let verified: DirectMirCfgPlan = DirectMirCfgPlanWithDigest(
         plan, DirectMirCfgPlanIdentityDigest(plan)

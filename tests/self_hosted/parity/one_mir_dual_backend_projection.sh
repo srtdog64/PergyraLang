@@ -22,6 +22,7 @@ WORK_DIR="${PGY_SELFHOST_ONE_MIR_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver/on
 DIRECT_OWNER_REL="${PGY_SELFHOST_ONE_MIR_DIRECT_OWNER:-src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy}"
 DIRECT_OWNER="$ROOT_DIR/$DIRECT_OWNER_REL"
 DIRECT_ADMISSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy"; DIRECT_EMISSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy"
+CLI_REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
 RUNTIME_ABI_FACT_OWNER="$ROOT_DIR/src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy"
 CC="${PGY_SELFHOST_CC:-gcc}"
 
@@ -52,8 +53,8 @@ assert_direct_owner_ratchet() {
         fail "direct execution action gate failed"
     for term in '--mir-json-backend=c' '--mir-json-backend=llvm'; do
         grep -Fq -- "$term" \
-            "$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy" ||
-            fail "bootstrap CLI is missing direct mode: $term"
+            "$CLI_REQUEST_OWNER" ||
+            fail "CLI request owner is missing direct mode: $term"
     done
     for term in \
         '../parser/' '../semantic/' 'EmitMirProgramTree' \

@@ -49,10 +49,10 @@ func SelfMirRoutineFromInput(
         );
         p = p + 1;
     }
-    let root_break_blocks: Array<Int> = [];
+    let root_break_exits: SelfMirBreakExitFacts = SelfMirBreakExitFactsEmpty();
     build = SelfMirLowerBlockFromArtifact(
         input, build, UnwrapOption(body_opt),
-        root_break_blocks, -1, -1
+        root_break_exits, -1, -1
     );
     return build;
 }

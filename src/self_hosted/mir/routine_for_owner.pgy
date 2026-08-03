@@ -3,6 +3,7 @@
 import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
 import "routine_iteration_owner.pgy";
+import "routine_break_exit_fact_owner.pgy";
 
 func SelfMirLowerForFromArtifact(
     ref input: SelfMirRoutineInput,
@@ -107,11 +108,11 @@ func SelfMirLowerForFromArtifact(
     build = SelfMirRoutineAddBlock(build);
     let body: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineAtBlock(build, body);
-    let break_blocks: Array<Int> = [];
+    let break_exits: SelfMirBreakExitFacts = SelfMirBreakExitFactsEmpty();
     let body_local_count: Int = ArrayLength(build.local_names);
     build = SelfMirLowerBlockFromArtifact(
         input, build, UnwrapOption(body_opt),
-        break_blocks, header, body_local_count
+        break_exits, header, body_local_count
     );
     let body_exit: Int = build.current_block;
     if build.terminated[body_exit] == 0 {
@@ -120,9 +121,9 @@ func SelfMirLowerForFromArtifact(
     build = SelfMirRoutineAddBlock(build);
     let loop_exit: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     let break_i: Int = 0;
-    while break_i < ArrayLength(break_blocks) {
+    while break_i < ArrayLength(break_exits.blocks) {
         build = SelfMirRoutineSetSuccessors(
-            build, break_blocks[break_i], loop_exit, -1
+            build, break_exits.blocks[break_i], loop_exit, -1
         );
         break_i = break_i + 1;
     }

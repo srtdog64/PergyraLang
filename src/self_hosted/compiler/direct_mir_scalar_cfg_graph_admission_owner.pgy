@@ -2,7 +2,6 @@
 
 import "direct_mir_scalar_cfg_expression_owner.pgy";
 import "direct_mir_scalar_cfg_assignment_target_owner.pgy";
-import "direct_mir_scalar_cfg_break_exit_bridge_owner.pgy";
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_loop_flow_admission_owner.pgy";
 import "direct_mir_scalar_graph_admission_owner.pgy";
@@ -34,7 +33,6 @@ func DirectMirScalarCfgGraphRouteClaimed(
         local_row = local_row + 1;
     }
     let branch_seen: Bool = false;
-    let break_seen: Bool = false;
     let row: Int = 0;
     while row < ArrayLength(index.instruction_facts.starts) {
         let global_row: Int = index.instruction_facts.global_start + row;
@@ -55,14 +53,12 @@ func DirectMirScalarCfgGraphRouteClaimed(
                 return false;
             }
             branch_seen = true;
-            if source == "AST_BREAK" { break_seen = true; }
         } else {
             return false;
         }
         row = row + 1;
     }
-    return branch_seen &&
-        !DirectMirScalarCfgBreakExitMergeBridgeRequired(index, break_seen);
+    return branch_seen;
 }
 
 func DirectMirScalarCfgLocalRow(

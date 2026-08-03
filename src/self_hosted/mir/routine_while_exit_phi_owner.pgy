@@ -1,0 +1,81 @@
+// Producer-owned while exit merge over condition and break predecessors.
+
+import "routine_break_exit_fact_owner.pgy";
+
+func SelfMirWhileExitMergeLocalVersions(
+    build: SelfMirRoutineBuild,
+    header_versions: Array<Int>,
+    ref break_exits: SelfMirBreakExitFacts,
+    condition_exit: Int,
+    loop_exit: Int
+) -> SelfMirRoutineBuild {
+    if !SelfMirBreakExitFactsReady(break_exits) || loop_exit < 0 ||
+        ArrayLength(header_versions) > ArrayLength(build.local_names) {
+        return SelfMirRoutineBuildError(
+            build, "MIR while exit predecessor facts are invalid"
+        );
+    }
+    build = SelfMirRoutineAtBlock(build, loop_exit);
+    let local_row: Int = 0;
+    while local_row < ArrayLength(header_versions) {
+        let incoming_versions: Array<Int> = [];
+        if condition_exit >= 0 {
+            ArrayPush(incoming_versions, header_versions[local_row]);
+        }
+        let break_row: Int = 0;
+        while break_row < ArrayLength(break_exits.blocks) {
+            let version: Int = SelfMirBreakExitLocalVersionAt(
+                break_exits, break_row, local_row
+            );
+            if version < 0 {
+                return SelfMirRoutineBuildError(
+                    build, "MIR while break local version is missing"
+                );
+            }
+            ArrayPush(incoming_versions, version);
+            break_row = break_row + 1;
+        }
+        if ArrayLength(incoming_versions) == 0 {
+            return SelfMirRoutineBuildError(
+                build, "MIR while exit has no local-value predecessor"
+            );
+        }
+        let has_distinct_version: Bool = false;
+        let incoming_row: Int = 1;
+        while incoming_row < ArrayLength(incoming_versions) {
+            if incoming_versions[incoming_row] != incoming_versions[0] {
+                has_distinct_version = true;
+            }
+            incoming_row = incoming_row + 1;
+        }
+        if has_distinct_version {
+            let phi_uses: Array<String> = [];
+            incoming_row = 0;
+            while incoming_row < ArrayLength(incoming_versions) {
+                ArrayPush(
+                    phi_uses,
+                    SelfMirSsaName(
+                        build.local_names[local_row],
+                        incoming_versions[incoming_row]
+                    )
+                );
+                incoming_row = incoming_row + 1;
+            }
+            build = SelfMirRoutineAdvanceLocalVersion(build, local_row);
+            build = SelfMirRoutineAddInstruction(
+                build, "phi", build.local_names[local_row],
+                SelfMirSsaName(
+                    build.local_names[local_row],
+                    build.local_versions[local_row]
+                ),
+                "phi", "", "", "", "", phi_uses
+            );
+        } else {
+            build = SelfMirRoutineSetLocalVersion(
+                build, local_row, incoming_versions[0]
+            );
+        }
+        local_row = local_row + 1;
+    }
+    return build;
+}

@@ -4,6 +4,7 @@ import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
 import "routine_expression_use_owner.pgy";
 import "routine_statement_owner.pgy";
+import "routine_break_exit_fact_owner.pgy";
 import "routine_if_owner.pgy";
 import "routine_while_owner.pgy";
 import "routine_for_owner.pgy";
@@ -32,7 +33,7 @@ func SelfMirLowerTrackedStatementFromArtifact(
     build: SelfMirRoutineBuild,
     node_id: Int,
     kind: Int,
-    inout break_blocks: Array<Int>,
+    inout break_exits: SelfMirBreakExitFacts,
     continue_target: Int
 ) -> SelfMirRoutineBuild {
     let statement_index_opt: Option<Int> =
@@ -187,7 +188,7 @@ func SelfMirLowerTrackedStatementFromArtifact(
     if kind == TypedAstKindIfStmtTag() {
         return SelfMirLowerIfFromArtifact(
             input, build, node_id, payload,
-            break_blocks, continue_target
+            break_exits, continue_target
         );
     }
     if kind == TypedAstKindWhileStmtTag() {
@@ -201,7 +202,7 @@ func SelfMirLowerTrackedStatementFromArtifact(
     if kind == TypedAstKindMatchStmtTag() {
         return SelfMirLowerMatchFromArtifact(
             input, build, node_id, payload,
-            break_blocks, continue_target
+            break_exits, continue_target
         );
     }
     if kind == TypedAstKindDeferStmtTag() {

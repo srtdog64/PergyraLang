@@ -1,0 +1,68 @@
+// Exact loop-break predecessor and local-version snapshots.
+
+import "routine_build_owner.pgy";
+
+struct SelfMirBreakExitFacts {
+    let blocks: Array<Int>;
+    let version_starts: Array<Int>;
+    let version_counts: Array<Int>;
+    let versions: Array<Int>;
+}
+
+func SelfMirBreakExitFactsEmpty() -> SelfMirBreakExitFacts {
+    let blocks: Array<Int> = [];
+    let starts: Array<Int> = [];
+    let counts: Array<Int> = [];
+    let versions: Array<Int> = [];
+    return SelfMirBreakExitFacts(blocks, starts, counts, versions);
+}
+
+func SelfMirBreakExitFactsAppend(
+    facts: SelfMirBreakExitFacts,
+    build: SelfMirRoutineBuild
+) -> SelfMirBreakExitFacts {
+    let blocks: Array<Int> = facts.blocks;
+    let starts: Array<Int> = facts.version_starts;
+    let counts: Array<Int> = facts.version_counts;
+    let versions: Array<Int> = facts.versions;
+    ArrayPush(blocks, build.current_block);
+    ArrayPush(starts, ArrayLength(versions));
+    ArrayPush(counts, ArrayLength(build.local_versions));
+    let local_row: Int = 0;
+    while local_row < ArrayLength(build.local_versions) {
+        ArrayPush(versions, build.local_versions[local_row]);
+        local_row = local_row + 1;
+    }
+    return SelfMirBreakExitFacts(blocks, starts, counts, versions);
+}
+
+func SelfMirBreakExitFactsReady(ref facts: SelfMirBreakExitFacts) -> Bool {
+    if ArrayLength(facts.blocks) != ArrayLength(facts.version_starts) ||
+        ArrayLength(facts.blocks) != ArrayLength(facts.version_counts) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(facts.blocks) {
+        if facts.blocks[row] < 0 || facts.version_starts[row] < 0 ||
+            facts.version_counts[row] < 0 ||
+            facts.version_starts[row] + facts.version_counts[row] >
+                ArrayLength(facts.versions) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SelfMirBreakExitLocalVersionAt(
+    ref facts: SelfMirBreakExitFacts,
+    break_row: Int,
+    local_row: Int
+) -> Int {
+    if !SelfMirBreakExitFactsReady(facts) || break_row < 0 ||
+        break_row >= ArrayLength(facts.blocks) || local_row < 0 ||
+        local_row >= facts.version_counts[break_row] {
+        return -1;
+    }
+    return facts.versions[facts.version_starts[break_row] + local_row];
+}

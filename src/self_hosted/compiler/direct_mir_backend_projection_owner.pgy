@@ -53,7 +53,6 @@ func CompileAdmittedDirectMirCfgPayloadForTarget(
     if DirectMirEnumValueMatchPlanFactReady(plan.enum_match) ||
         DirectMirLoopCfgPlanFactReady(plan.loop_fact) ||
         DirectMirRangeCfgPlanFactReady(plan.range_fact) ||
-        DirectMirBreakCfgPlanFactReady(plan.break_fact) ||
         plan.shape.kind == DirectMirCfgPhiMergeShapeKind() {
         line_format = StringRuntimeCIntLineFormat();
     } else if plan.shape.kind != DirectMirCfgLiteralArmShapeKind() &&

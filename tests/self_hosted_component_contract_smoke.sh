@@ -660,12 +660,14 @@ for mir_producer_owner in \
     routine_statement_owner.pgy \
     routine_build_owner.pgy \
     routine_assignment_owner.pgy \
+    routine_break_exit_fact_owner.pgy \
     routine_control_transfer_owner.pgy \
     routine_if_owner.pgy \
     routine_match_owner.pgy \
     routine_match_pattern_owner.pgy \
     routine_match_merge_owner.pgy \
     routine_while_owner.pgy \
+    routine_while_exit_phi_owner.pgy \
     routine_for_owner.pgy \
     routine_tracked_statement_owner.pgy \
     routine_lower_owner.pgy \
@@ -8954,8 +8956,16 @@ require_text "src/self_hosted/mir/routine_statement_owner.pgy" '"ArraySet(", Con
 require_text "src/self_hosted/mir/routine_statement_owner.pgy" 'expression = Concat("Exit("'
 require_text "src/self_hosted/mir/routine_statement_owner.pgy" 'build = SelfMirRoutineTerminate(build);'
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'kind == TypedAstKindBreakStmtTag() ||'
-require_text "src/self_hosted/mir/routine_while_owner.pgy" 'let while_break_blocks: Array<Int> = [];'
-require_text "src/self_hosted/mir/routine_for_owner.pgy" 'let break_blocks: Array<Int> = [];'
+require_text "src/self_hosted/mir/routine_while_owner.pgy" \
+    'let while_break_exits: SelfMirBreakExitFacts = SelfMirBreakExitFactsEmpty();'
+require_text "src/self_hosted/mir/routine_for_owner.pgy" \
+    'let break_exits: SelfMirBreakExitFacts = SelfMirBreakExitFactsEmpty();'
+require_text "src/self_hosted/mir/routine_while_owner.pgy" \
+    'return SelfMirWhileExitMergeLocalVersions('
+require_text "src/self_hosted/mir/routine_control_transfer_owner.pgy" \
+    'SelfMirBreakExitFactsAppend(break_exits, build)'
+require_max_lines "src/self_hosted/mir/routine_break_exit_fact_owner.pgy" 90
+require_max_lines "src/self_hosted/mir/routine_while_exit_phi_owner.pgy" 90
 reject_text "src/self_hosted/mir/routine_while_owner.pgy" 'let loop_exit: Int = SelfMirCfgBlockCount(build.cfg);'
 reject_text "src/self_hosted/mir/routine_for_owner.pgy" 'let loop_exit: Int = SelfMirCfgBlockCount(build.cfg);'
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'build, SelfMirCfgBlockCount(build.cfg) - 1'
@@ -15040,15 +15050,6 @@ require_max_lines \
 require_file "src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy" 650
-require_file "src/self_hosted/compiler/direct_mir_break_cfg_shape_owner.pgy"
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir_break_cfg_shape_owner.pgy" 300
-require_file "src/self_hosted/compiler/direct_mir_break_cfg_plan_fact_owner.pgy"
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir_break_cfg_plan_fact_owner.pgy" 130
-require_file "src/self_hosted/compiler/direct_mir_break_cfg_emission_owner.pgy"
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir_break_cfg_emission_owner.pgy" 160
 require_file "tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh" 300
@@ -15396,9 +15397,6 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_assignment_target_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_assignment_target_owner.pgy" 30
-require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_break_exit_bridge_owner.pgy"
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_break_exit_bridge_owner.pgy" 30
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" 450
@@ -15417,16 +15415,19 @@ require_max_lines \
 require_file "tests/self_hosted/parity/one_mir_scalar_cfg_graph_projection.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_scalar_cfg_graph_projection.sh" 160
+require_file "tests/self_hosted/parity/one_mir_scalar_cfg_break_exit_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_scalar_cfg_break_exit_projection.sh" 160
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
     'DirectMirScalarCfgGraphRouteClaimed(admitted)'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
     'MirPhiPredecessorBindingFactFromOwners('
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
     'DirectMirScalarCfgAssignmentTargetReady('
-require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
-    'DirectMirScalarCfgBreakExitMergeBridgeRequired(index, break_seen)'
-reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_break_exit_bridge_owner.pgy" \
-    'break_after_stmt.pgy'
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+    'DirectMirScalarCfgBreakExitMergeBridgeRequired('
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+    'break_seen'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
     'MirRoutineBlockDominates('
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
@@ -15515,14 +15516,6 @@ require_text "src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy" \
     'func DirectMirBreakCfgCertificateFactFromIndex('
 require_text "src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy" \
     'func DirectMirBreakCfgCertificateFactMutationRejected('
-require_text "src/self_hosted/compiler/direct_mir_break_cfg_shape_owner.pgy" \
-    'func DirectMirBreakCfgShapeFactFromOwners('
-require_text "src/self_hosted/compiler/direct_mir_break_cfg_plan_fact_owner.pgy" \
-    'func DirectMirBreakCfgPlanFactMutationRejected('
-require_text "src/self_hosted/compiler/direct_mir_break_cfg_emission_owner.pgy" \
-    'func DirectMirBreakCfgEmitC('
-require_text "src/self_hosted/compiler/direct_mir_break_cfg_emission_owner.pgy" \
-    'func DirectMirBreakCfgEmitLlvm('
 reject_text "src/self_hosted/compiler/direct_mir_nested_cfg_shape_owner.pgy" \
     'BuildMirRoutineFactIndex('
 reject_text "src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy" \
@@ -15592,21 +15585,8 @@ for range_single_issuer_term in \
     [[ "$range_single_issuer_count" == 2 ]] ||
         fail "$range_single_issuer_term must have one definition and one caller"
 done
-for break_single_issuer_term in \
-    DirectMirBreakCfgCertificateFactFromIndex \
-    DirectMirBreakCfgShapeFactFromOwners \
-    DirectMirBreakCfgPlanFactFromOwners \
-    DirectMirBreakCfgEmitC DirectMirBreakCfgEmitLlvm; do
-    break_single_issuer_count="$(grep -R -F --include='*.pgy' \
-        "$break_single_issuer_term(" "$SELF_HOST_DIR" | wc -l | tr -d ' ')"
-    [[ "$break_single_issuer_count" == 2 ]] ||
-        fail "$break_single_issuer_term must have one definition and one caller"
-done
 for break_cfg_owner in \
-    src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy \
-    src/self_hosted/compiler/direct_mir_break_cfg_shape_owner.pgy \
-    src/self_hosted/compiler/direct_mir_break_cfg_plan_fact_owner.pgy \
-    src/self_hosted/compiler/direct_mir_break_cfg_emission_owner.pgy; do
+    src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy; do
     reject_text "$break_cfg_owner" 'break_after_stmt.pgy'
     reject_text "$break_cfg_owner" 'BuildMirDocumentFactIndex('
     reject_text "$break_cfg_owner" 'BuildMirRoutineFactIndex('
@@ -15625,15 +15605,20 @@ for break_certificate_graph_term in expr0_graph ExpressionGraph \
         "src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy" \
         "$break_certificate_graph_term"
 done
-for break_emission_raw_term in JsonObject JsonArray ExpressionGraph \
-    MirProgramRoutineIndex MirRoutineFactIndex MirMachineLayerAdmittedJsonInput \
-    MirDocumentFactIndex DirectMirCfgPlan source_json BuildMir MirJson; do
-    reject_text \
-        "src/self_hosted/compiler/direct_mir_break_cfg_emission_owner.pgy" \
-        "$break_emission_raw_term"
+for retired_break_owner in direct_mir_break_cfg_shape_owner.pgy \
+    direct_mir_break_cfg_plan_fact_owner.pgy \
+    direct_mir_break_cfg_emission_owner.pgy \
+    direct_mir_scalar_cfg_break_exit_bridge_owner.pgy; do
+    [[ ! -e "src/self_hosted/compiler/$retired_break_owner" ]] ||
+        fail "retired break owner reappeared: $retired_break_owner"
 done
-require_text "src/self_hosted/compiler/direct_mir_break_cfg_emission_owner.pgy" \
-    'backend-only exit value selection; not MIR evidence'
+for retired_break_term in DirectMirBreakCfgShapeFact \
+    DirectMirBreakCfgPlanFact DirectMirBreakCfgEmitC DirectMirBreakCfgEmitLlvm \
+    DirectMirScalarCfgBreakExitMergeBridgeRequired; do
+    ! grep -R -F --include='*.pgy' "$retired_break_term" \
+        src/self_hosted/compiler >/dev/null ||
+        fail "retired compiler break path reappeared: $retired_break_term"
+done
 for range_emission_raw_term in JsonObject JsonArray ExpressionGraph \
     MirProgramRoutineIndex MirRoutineFactIndex MirMachineLayerAdmittedJsonInput \
     MirDocumentFactIndex DirectMirCfgPlan source_json BuildMir MirJson; do
