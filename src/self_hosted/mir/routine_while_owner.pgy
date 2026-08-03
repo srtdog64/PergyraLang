@@ -6,6 +6,7 @@ import "routine_expression_use_owner.pgy";
 import "expression_fact_owner.pgy";
 import "loop_reachability_fact_owner.pgy";
 import "routine_loop_header_phi_owner.pgy";
+import "routine_loop_header_backedge_binding_owner.pgy";
 import "routine_loop_exit_phi_owner.pgy";
 
 func SelfMirLowerWhileFromArtifact(
@@ -66,35 +67,32 @@ func SelfMirLowerWhileFromArtifact(
     build = SelfMirRoutineAddBlock(build);
     let loop_body: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineAtBlock(build, loop_body);
-    let while_break_exits: SelfMirBreakExitFacts = SelfMirBreakExitFactsEmpty();
+    let while_break_exits: SelfMirLocalPredecessorSnapshots =
+        SelfMirLocalPredecessorSnapshotsEmpty();
+    let backedge_snapshots: SelfMirLocalPredecessorSnapshots =
+        SelfMirLocalPredecessorSnapshotsEmpty();
     let body_local_count: Int = ArrayLength(build.local_names);
     build = SelfMirLowerBlockFromArtifact(
         input, build, UnwrapOption(body_opt),
-        while_break_exits, header, body_local_count
+        while_break_exits, backedge_snapshots, header, body_local_count
     );
     let body_exit: Int = build.current_block;
-    let observed_backedge: Bool = build.terminated[body_exit] == 0;
-    let body_block_i: Int = loop_body;
-    while body_block_i < SelfMirCfgBlockCount(build.cfg) {
-        if (build.cfg.blocks.has_succ_true[body_block_i] == 1 &&
-            build.cfg.blocks.succ_true[body_block_i] == header) ||
-            (build.cfg.blocks.has_succ_false[body_block_i] == 1 &&
-             build.cfg.blocks.succ_false[body_block_i] == header) {
-            observed_backedge = true;
-        }
-        body_block_i = body_block_i + 1;
+    if build.terminated[body_exit] == 0 {
+        backedge_snapshots = SelfMirLocalPredecessorSnapshotsAppend(
+            backedge_snapshots, build
+        );
+        build = SelfMirRoutineSetSuccessors(build, body_exit, header, -1);
     }
+    let observed_backedge: Bool =
+        ArrayLength(backedge_snapshots.blocks) > 0;
     if observed_backedge != planned_backedge {
         return SelfMirRoutineBuildError(
             build, "MIR loop reachability fact disagrees with CFG"
         );
     }
     build = SelfMirLoopBindHeaderBackedgeLocalVersions(
-        build, header, observed_backedge
+        build, header, backedge_snapshots
     );
-    if build.terminated[body_exit] == 0 {
-        build = SelfMirRoutineSetSuccessors(build, body_exit, header, -1);
-    }
     build = SelfMirRoutineAddBlock(build);
     let loop_exit: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     let break_i: Int = 0;

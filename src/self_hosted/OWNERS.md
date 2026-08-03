@@ -711,11 +711,14 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir/routine_while_owner.pgy` -- while-loop header, body,
   back-edge, and exit-block lowering, including producer-owned exit merge
   dispatch after CFG predecessor closure.
-- `src/self_hosted/mir/routine_break_exit_fact_owner.pgy` -- exact break-edge
-  predecessor identity and local SSA-version snapshots captured at transfer.
+- `src/self_hosted/mir/routine_local_predecessor_snapshot_owner.pgy` -- exact
+  CFG predecessor identity and local SSA-version snapshots captured at break,
+  continue, or fallthrough transfer boundaries.
 - `src/self_hosted/mir/routine_loop_header_phi_owner.pgy` -- loop-header
-  local-version preparation and the one fallthrough-backedge binding currently
-  reached by while/range lowering.
+  local-version preparation before the body is lowered.
+- `src/self_hosted/mir/routine_loop_header_backedge_binding_owner.pgy` --
+  producer-captured continue and fallthrough predecessor versions bound to the
+  matching loop-header phi rows after CFG edges exist.
 - `src/self_hosted/mir/routine_loop_exit_phi_owner.pgy` -- completion and
   break-exit local-version merge shared by while/range lowering; it emits the
   exit phi before any backend can observe the graph.
@@ -2105,8 +2108,8 @@ inventory must not become a second fact-family owner registry.
   reconstructing a loop from a fixture topology.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy`
   -- one target-neutral range iteration receipt joining loop-init/branch rows,
-  binding LocalRef, bounds, header/body/exit, and the currently admitted single
-  fallthrough latch predecessor.
+  binding LocalRef, bounds, header/body/exit, and every admitted continue or
+  fallthrough backedge predecessor.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_range_emission_owner.pgy`
   -- target spelling for the plan-sealed range initialization and latch effect;
   it cannot reopen MIR, source, or topology.

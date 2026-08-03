@@ -11,7 +11,7 @@ func MirParityCoreFixtureCount() -> Int {
 }
 
 func MirParityExampleFixtureCount() -> Int {
-    return 1;
+    return 2;
 }
 
 func MirParityFixtureCount() -> Int {
@@ -77,6 +77,10 @@ func MirParityFixtureAt(index: Int) -> String {
     if index == MirParityCoreFixtureCount() +
         CodegenParityFixtureExpectedCount() {
         return "examples/binary_search.pgy";
+    }
+    if index == MirParityCoreFixtureCount() +
+        CodegenParityFixtureExpectedCount() + 1 {
+        return "examples/break_continue.pgy";
     }
     return "";
 }

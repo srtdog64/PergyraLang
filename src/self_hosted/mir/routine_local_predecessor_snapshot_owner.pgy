@@ -1,26 +1,29 @@
-// Exact loop-break predecessor and local-version snapshots.
+// Exact CFG predecessor identity and local-version snapshots.
 
 import "routine_build_owner.pgy";
 
-struct SelfMirBreakExitFacts {
+struct SelfMirLocalPredecessorSnapshots {
     let blocks: Array<Int>;
     let version_starts: Array<Int>;
     let version_counts: Array<Int>;
     let versions: Array<Int>;
 }
 
-func SelfMirBreakExitFactsEmpty() -> SelfMirBreakExitFacts {
+func SelfMirLocalPredecessorSnapshotsEmpty(
+) -> SelfMirLocalPredecessorSnapshots {
     let blocks: Array<Int> = [];
     let starts: Array<Int> = [];
     let counts: Array<Int> = [];
     let versions: Array<Int> = [];
-    return SelfMirBreakExitFacts(blocks, starts, counts, versions);
+    return SelfMirLocalPredecessorSnapshots(
+        blocks, starts, counts, versions
+    );
 }
 
-func SelfMirBreakExitFactsAppend(
-    facts: SelfMirBreakExitFacts,
+func SelfMirLocalPredecessorSnapshotsAppend(
+    facts: SelfMirLocalPredecessorSnapshots,
     build: SelfMirRoutineBuild
-) -> SelfMirBreakExitFacts {
+) -> SelfMirLocalPredecessorSnapshots {
     let blocks: Array<Int> = facts.blocks;
     let starts: Array<Int> = facts.version_starts;
     let counts: Array<Int> = facts.version_counts;
@@ -33,10 +36,14 @@ func SelfMirBreakExitFactsAppend(
         ArrayPush(versions, build.local_versions[local_row]);
         local_row = local_row + 1;
     }
-    return SelfMirBreakExitFacts(blocks, starts, counts, versions);
+    return SelfMirLocalPredecessorSnapshots(
+        blocks, starts, counts, versions
+    );
 }
 
-func SelfMirBreakExitFactsReady(ref facts: SelfMirBreakExitFacts) -> Bool {
+func SelfMirLocalPredecessorSnapshotsReady(
+    ref facts: SelfMirLocalPredecessorSnapshots
+) -> Bool {
     if ArrayLength(facts.blocks) != ArrayLength(facts.version_starts) ||
         ArrayLength(facts.blocks) != ArrayLength(facts.version_counts) {
         return false;
@@ -49,20 +56,27 @@ func SelfMirBreakExitFactsReady(ref facts: SelfMirBreakExitFacts) -> Bool {
                 ArrayLength(facts.versions) {
             return false;
         }
+        let prior: Int = 0;
+        while prior < row {
+            if facts.blocks[prior] == facts.blocks[row] { return false; }
+            prior = prior + 1;
+        }
         row = row + 1;
     }
     return true;
 }
 
-func SelfMirBreakExitLocalVersionAt(
-    ref facts: SelfMirBreakExitFacts,
-    break_row: Int,
+func SelfMirLocalPredecessorVersionAt(
+    ref facts: SelfMirLocalPredecessorSnapshots,
+    predecessor_row: Int,
     local_row: Int
 ) -> Int {
-    if !SelfMirBreakExitFactsReady(facts) || break_row < 0 ||
-        break_row >= ArrayLength(facts.blocks) || local_row < 0 ||
-        local_row >= facts.version_counts[break_row] {
+    if !SelfMirLocalPredecessorSnapshotsReady(facts) ||
+        predecessor_row < 0 || predecessor_row >= ArrayLength(facts.blocks) ||
+        local_row < 0 || local_row >= facts.version_counts[predecessor_row] {
         return -1;
     }
-    return facts.versions[facts.version_starts[break_row] + local_row];
+    return facts.versions[
+        facts.version_starts[predecessor_row] + local_row
+    ];
 }

@@ -309,6 +309,16 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                         ) != 0 {
                         Die("direct MIR scalar CFG break edge is invalid");
                     }
+                } else if source == "AST_CONTINUE" {
+                    if index.block_succ_true[block] < 0 ||
+                        index.block_succ_false[block] >= 0 ||
+                        !MirRoutineBlockDominates(
+                            index, index.block_succ_true[block], block
+                        ) || MirRoutineInstructionUseCountAtGlobal(
+                            use_facts, global_row
+                        ) != 0 {
+                        Die("direct MIR scalar CFG continue edge is invalid");
+                    }
                 } else if source == "AST_FOR_LOOP" {
                     if !DirectMirScalarCfgRangeIterationFactReady(
                             range_iteration, ArrayLength(index.block_starts)

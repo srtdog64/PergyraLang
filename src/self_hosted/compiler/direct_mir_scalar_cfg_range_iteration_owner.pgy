@@ -96,7 +96,7 @@ func DirectMirScalarCfgRangeIterationFactReady(
         fact.loop_syntax_id < 0 || fact.step_literal != "1" ||
         !DirectMirScalarCfgRangeCanonicalInt(fact.start_literal) ||
         !DirectMirScalarCfgRangeCanonicalInt(fact.stop_literal) ||
-        ArrayLength(fact.backedge_blocks) != 1 {
+        ArrayLength(fact.backedge_blocks) < 1 {
         return false;
     }
     let row: Int = 0;

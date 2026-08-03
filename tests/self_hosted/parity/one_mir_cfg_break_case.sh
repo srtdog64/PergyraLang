@@ -16,3 +16,11 @@ PGY_SELFHOST_ONE_MIR_DRIVER_BIN="$DRIVER_BIN" \
     bash "$FOR_BREAK_GATE" || fail "general scalar CFG for-break exit gate failed"
 
 echo "[$LABEL] for_break_exit is owned by the general scalar CFG gate"
+
+CONTINUE_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir_scalar_cfg_continue_backedge_projection.sh"
+require_file "$CONTINUE_GATE"
+PGY_SELFHOST_ONE_MIR_DRIVER_BIN="$DRIVER_BIN" \
+    PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
+    bash "$CONTINUE_GATE" || fail "general scalar CFG continue-backedge gate failed"
+
+echo "[$LABEL] break_continue is owned by producer backedge snapshots"

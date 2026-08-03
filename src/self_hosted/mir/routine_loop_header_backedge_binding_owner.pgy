@@ -1,0 +1,68 @@
+// Bind producer-captured backedge versions to loop-header phi rows.
+
+import "routine_build_owner.pgy";
+import "routine_local_predecessor_snapshot_owner.pgy";
+
+func SelfMirLoopBindHeaderBackedgeLocalVersions(
+    build: SelfMirRoutineBuild,
+    header: Int,
+    ref backedges: SelfMirLocalPredecessorSnapshots
+) -> SelfMirRoutineBuild {
+    if header < 0 || header >= SelfMirCfgBlockCount(build.cfg) ||
+        !SelfMirLocalPredecessorSnapshotsReady(backedges) {
+        return SelfMirRoutineBuildError(
+            build, "MIR loop header or backedge snapshots are invalid"
+        );
+    }
+    let instruction_row: Int = build.cfg.blocks.instruction_starts[header];
+    let instruction_end: Int = instruction_row +
+        build.cfg.blocks.instruction_counts[header];
+    while instruction_row < instruction_end {
+        if build.cfg.instructions.kinds[instruction_row] == "phi" {
+            let local_name: String =
+                build.cfg.instructions.names[instruction_row];
+            let local_opt: Option<Int> = SelfMirRoutineLocalIndex(
+                build, local_name
+            );
+            let use_count: Int =
+                build.cfg.instructions.use_counts[instruction_row];
+            if !IsSome(local_opt) || use_count != 1 ||
+                ArrayLength(backedges.blocks) == 0 {
+                return SelfMirRoutineBuildError(
+                    build, "MIR loop header phi seed is invalid"
+                );
+            }
+            let use_start: Int =
+                build.cfg.instructions.use_starts[instruction_row];
+            let phi_uses: Array<String> = [
+                build.cfg.instructions.uses[use_start]
+            ];
+            let backedge_row: Int = 0;
+            while backedge_row < ArrayLength(backedges.blocks) {
+                let block: Int = backedges.blocks[backedge_row];
+                let version: Int = SelfMirLocalPredecessorVersionAt(
+                    backedges, backedge_row, UnwrapOption(local_opt)
+                );
+                if block < 0 || block >= SelfMirCfgBlockCount(build.cfg) ||
+                    version < 0 ||
+                    !((build.cfg.blocks.has_succ_true[block] == 1 &&
+                        build.cfg.blocks.succ_true[block] == header) ||
+                      (build.cfg.blocks.has_succ_false[block] == 1 &&
+                        build.cfg.blocks.succ_false[block] == header)) {
+                    return SelfMirRoutineBuildError(
+                        build, "MIR loop backedge snapshot is unbound"
+                    );
+                }
+                ArrayPush(phi_uses, SelfMirSsaName(local_name, version));
+                backedge_row = backedge_row + 1;
+            }
+            build = SelfMirRoutineWithCfg(
+                build, SelfMirCfgSetInstructionUses(
+                    build.cfg, instruction_row, phi_uses
+                )
+            );
+        }
+        instruction_row = instruction_row + 1;
+    }
+    return build;
+}

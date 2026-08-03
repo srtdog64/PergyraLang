@@ -12,7 +12,7 @@ import "routine_expression_use_owner.pgy";
 import "routine_let_owner.pgy";
 import "routine_destructure_owner.pgy";
 import "routine_assignment_owner.pgy";
-import "routine_break_exit_fact_owner.pgy";
+import "routine_local_predecessor_snapshot_owner.pgy";
 import "routine_control_transfer_owner.pgy";
 import "routine_tracked_statement_owner.pgy";
 
@@ -20,7 +20,8 @@ func SelfMirLowerBlockFromArtifact(
     ref input: SelfMirRoutineInput,
     build: SelfMirRoutineBuild,
     block_node_id: Int,
-    inout break_exits: SelfMirBreakExitFacts,
+    inout break_exits: SelfMirLocalPredecessorSnapshots,
+    inout backedge_snapshots: SelfMirLocalPredecessorSnapshots,
     continue_target: Int,
     restore_local_count: Int
 ) -> SelfMirRoutineBuild {
@@ -63,12 +64,12 @@ func SelfMirLowerBlockFromArtifact(
             kind == TypedAstKindContinueStmtTag() {
             build = SelfMirLowerControlTransferFromArtifact(
                 input, build, block_node_id, child_index, kind,
-                break_exits, continue_target
+                break_exits, backedge_snapshots, continue_target
             );
         } else if SemanticAstStatementKindTracked(kind) {
             build = SelfMirLowerTrackedStatementFromArtifact(
                 input, build, node_id, kind,
-                break_exits, continue_target
+                break_exits, backedge_snapshots, continue_target
             );
         } else {
             return SelfMirRoutineBuildError(

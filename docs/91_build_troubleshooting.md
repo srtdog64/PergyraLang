@@ -40,11 +40,13 @@ producer/consumer cases were reached on 2026-08-03:
    completion lane with captured break snapshots before projection. The old
    range compiler shape/plan/emitter is deleted; AIR certificate evidence is
    not a retry path.
-5. Multiple actual backedges remain a distinct producer boundary. The current
-   range receipt requires exactly one fallthrough latch because the producer
-   does not yet retain a local-version snapshot per `continue` predecessor.
-   Keep this fail-closed bound until a producer-owned multi-backedge phi exists;
-   do not reconstruct it in the graph plan or either backend.
+5. `break_continue.pgy` falsified the former single-latch assumption. The
+   producer now captures an exact local-version snapshot at every reachable
+   `continue` transfer and at the final fallthrough latch, then binds all of
+   those predecessor rows to the loop-header phi. The range receipt admits the
+   resulting two backedges without reconstructing values in the graph plan or
+   either backend. Missing, stale, or retargeted continue inputs fail before
+   artifact publication.
 
 The general owner is selected by supported typed operations and source-local
 types, not fixture name or exact block count. It validates exact
@@ -60,6 +62,7 @@ Use these gates in order:
 tests/self_hosted/parity/one_mir_scalar_cfg_graph_projection.sh
 tests/self_hosted/parity/one_mir_scalar_cfg_break_exit_projection.sh
 tests/self_hosted/parity/one_mir_scalar_cfg_for_break_exit_projection.sh
+tests/self_hosted/parity/one_mir_scalar_cfg_continue_backedge_projection.sh
 tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh
 tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh
 tests/self_hosted_component_contract_smoke.sh

@@ -1,15 +1,15 @@
 // Producer-owned loop exit merge over completion and break predecessors.
 
-import "routine_break_exit_fact_owner.pgy";
+import "routine_local_predecessor_snapshot_owner.pgy";
 
 func SelfMirLoopExitMergeLocalVersions(
     build: SelfMirRoutineBuild,
     completion_versions: Array<Int>,
-    ref break_exits: SelfMirBreakExitFacts,
+    ref break_exits: SelfMirLocalPredecessorSnapshots,
     completion_reachable: Bool,
     loop_exit: Int
 ) -> SelfMirRoutineBuild {
-    if !SelfMirBreakExitFactsReady(break_exits) || loop_exit < 0 ||
+    if !SelfMirLocalPredecessorSnapshotsReady(break_exits) || loop_exit < 0 ||
         ArrayLength(completion_versions) > ArrayLength(build.local_names) {
         return SelfMirRoutineBuildError(
             build, "MIR loop exit predecessor facts are invalid"
@@ -26,7 +26,7 @@ func SelfMirLoopExitMergeLocalVersions(
         }
         let break_row: Int = 0;
         while break_row < ArrayLength(break_exits.blocks) {
-            let version: Int = SelfMirBreakExitLocalVersionAt(
+            let version: Int = SelfMirLocalPredecessorVersionAt(
                 break_exits, break_row, local_row
             );
             if version < 0 {

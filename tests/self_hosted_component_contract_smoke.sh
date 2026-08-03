@@ -660,7 +660,7 @@ for mir_producer_owner in \
     routine_statement_owner.pgy \
     routine_build_owner.pgy \
     routine_assignment_owner.pgy \
-    routine_break_exit_fact_owner.pgy \
+    routine_local_predecessor_snapshot_owner.pgy \
     routine_control_transfer_owner.pgy \
     routine_if_owner.pgy \
     routine_match_owner.pgy \
@@ -668,6 +668,7 @@ for mir_producer_owner in \
     routine_match_merge_owner.pgy \
     routine_while_owner.pgy \
     routine_loop_header_phi_owner.pgy \
+    routine_loop_header_backedge_binding_owner.pgy \
     routine_loop_exit_phi_owner.pgy \
     routine_for_owner.pgy \
     routine_tracked_statement_owner.pgy \
@@ -5986,9 +5987,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_value.applies"
-require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" "return 284;"
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" "return 285;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 284'
+    'mir_fixture_rows[@]}" -ne 285'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -6679,11 +6680,11 @@ require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
-    "return 284;"
+    "return 285;"
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 284'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 285'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/generic_multi_bound_defaults/main.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -6763,7 +6764,7 @@ require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/loop_collect_distinct_set/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
-    "return 284;"
+    "return 285;"
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" \
     "func SemanticAstLocalBindingOrdinalAt("
 require_text "src/self_hosted/semantic/array_type_shape_owner.pgy" \
@@ -8959,9 +8960,9 @@ require_text "src/self_hosted/mir/routine_statement_owner.pgy" 'expression = Con
 require_text "src/self_hosted/mir/routine_statement_owner.pgy" 'build = SelfMirRoutineTerminate(build);'
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'kind == TypedAstKindBreakStmtTag() ||'
 require_text "src/self_hosted/mir/routine_while_owner.pgy" \
-    'let while_break_exits: SelfMirBreakExitFacts = SelfMirBreakExitFactsEmpty();'
+    'SelfMirLocalPredecessorSnapshotsEmpty();'
 require_text "src/self_hosted/mir/routine_for_owner.pgy" \
-    'let break_exits: SelfMirBreakExitFacts = SelfMirBreakExitFactsEmpty();'
+    'SelfMirLocalPredecessorSnapshotsEmpty();'
 require_text "src/self_hosted/mir/routine_while_owner.pgy" \
     'return SelfMirLoopExitMergeLocalVersions('
 require_text "src/self_hosted/mir/routine_for_owner.pgy" \
@@ -8971,11 +8972,21 @@ require_text "src/self_hosted/mir/routine_for_owner.pgy" \
 require_text "src/self_hosted/mir/routine_for_owner.pgy" \
     'SelfMirLoopBindHeaderBackedgeLocalVersions('
 require_text "src/self_hosted/mir/routine_control_transfer_owner.pgy" \
-    'SelfMirBreakExitFactsAppend(break_exits, build)'
-require_max_lines "src/self_hosted/mir/routine_break_exit_fact_owner.pgy" 90
+    'backedge_snapshots = SelfMirLocalPredecessorSnapshotsAppend('
+require_text "src/self_hosted/mir/routine_loop_header_backedge_binding_owner.pgy" \
+    'SelfMirLocalPredecessorVersionAt('
+reject_file "src/self_hosted/mir/routine_break_exit_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir/routine_local_predecessor_snapshot_owner.pgy" 90
 require_max_lines "src/self_hosted/mir/routine_loop_header_phi_owner.pgy" 100
+require_max_lines \
+    "src/self_hosted/mir/routine_loop_header_backedge_binding_owner.pgy" 80
 require_max_lines "src/self_hosted/mir/routine_loop_exit_phi_owner.pgy" 90
 require_max_lines "src/self_hosted/mir/routine_for_owner.pgy" 180
+reject_text "src/self_hosted/mir/routine_for_owner.pgy" \
+    'body_block < SelfMirCfgBlockCount(build.cfg)'
+reject_text "src/self_hosted/mir/routine_while_owner.pgy" \
+    'body_block_i < SelfMirCfgBlockCount(build.cfg)'
 reject_text "src/self_hosted/mir/routine_while_owner.pgy" 'let loop_exit: Int = SelfMirCfgBlockCount(build.cfg);'
 reject_text "src/self_hosted/mir/routine_for_owner.pgy" 'let loop_exit: Int = SelfMirCfgBlockCount(build.cfg);'
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'build, SelfMirCfgBlockCount(build.cfg) - 1'
@@ -15455,6 +15466,9 @@ require_max_lines \
 require_file "tests/self_hosted/parity/one_mir_scalar_cfg_for_break_exit_projection.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_scalar_cfg_for_break_exit_projection.sh" 160
+require_file "tests/self_hosted/parity/one_mir_scalar_cfg_continue_backedge_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_scalar_cfg_continue_backedge_projection.sh" 160
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
     'DirectMirScalarCfgGraphRouteClaimed(admitted)'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
@@ -15469,6 +15483,12 @@ require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_own
     'MirRoutineBlockDominates('
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
     'DirectMirScalarCfgLoopFlowFactsReady('
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+    'source == "AST_CONTINUE"'
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
+    '"examples/break_continue.pgy"'
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" \
+    '"examples/break_continue.pgy"'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_loop_flow_admission_owner.pgy" \
     'LoopFlowSummaryProjectionReady(index, routines, routine_row)'
 require_text "src/self_hosted/mir_lower/phi_predecessor_binding_fact_owner.pgy" \

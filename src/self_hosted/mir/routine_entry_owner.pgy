@@ -49,10 +49,13 @@ func SelfMirRoutineFromInput(
         );
         p = p + 1;
     }
-    let root_break_exits: SelfMirBreakExitFacts = SelfMirBreakExitFactsEmpty();
+    let root_break_exits: SelfMirLocalPredecessorSnapshots =
+        SelfMirLocalPredecessorSnapshotsEmpty();
+    let root_backedge_snapshots: SelfMirLocalPredecessorSnapshots =
+        SelfMirLocalPredecessorSnapshotsEmpty();
     build = SelfMirLowerBlockFromArtifact(
         input, build, UnwrapOption(body_opt),
-        root_break_exits, -1, -1
+        root_break_exits, root_backedge_snapshots, -1, -1
     );
     return build;
 }

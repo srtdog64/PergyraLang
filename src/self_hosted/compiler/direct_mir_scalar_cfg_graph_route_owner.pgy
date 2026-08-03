@@ -42,7 +42,8 @@ func DirectMirScalarCfgGraphRouteClaimed(
             if source != "AST_FOR_LOOP" { return false; }
         } else if kind == "branch" {
             if source != "AST_BINARY" && source != "AST_IDENTIFIER" &&
-                source != "AST_BREAK" && source != "AST_FOR_LOOP" {
+                source != "AST_BREAK" && source != "AST_CONTINUE" &&
+                source != "AST_FOR_LOOP" {
                 return false;
             }
             branch_seen = true;
