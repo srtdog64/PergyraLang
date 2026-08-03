@@ -34,11 +34,17 @@ producer/consumer cases were reached on 2026-08-03:
    `[i.2, i.2]`. Binding must also scan every same-local routine definition and
    require the latest definition dominating that predecessor. Incoming row
    permutation may change storage order but not C/LLVM artifact bytes.
-4. A range `for` can capture break blocks and version snapshots yet still use
-   only the block list to connect exit edges. If an outer local is observed
-   after the loop, the producer must merge the header/range completion lane and
-   every reachable break snapshot before projection. Do not move that missing
-   phi to a for-specific backend or treat the block list as value authority.
+4. `for_break_exit.pgy` exposed the same missing producer fact for range loops.
+   The closed path shares loop header/exit phi owners between while and range,
+   carries the iteration binding as a sealed LocalRef, and merges the range
+   completion lane with captured break snapshots before projection. The old
+   range compiler shape/plan/emitter is deleted; AIR certificate evidence is
+   not a retry path.
+5. Multiple actual backedges remain a distinct producer boundary. The current
+   range receipt requires exactly one fallthrough latch because the producer
+   does not yet retain a local-version snapshot per `continue` predecessor.
+   Keep this fail-closed bound until a producer-owned multi-backedge phi exists;
+   do not reconstruct it in the graph plan or either backend.
 
 The general owner is selected by supported typed operations and source-local
 types, not fixture name or exact block count. It validates exact
@@ -53,6 +59,7 @@ Use these gates in order:
 ```text
 tests/self_hosted/parity/one_mir_scalar_cfg_graph_projection.sh
 tests/self_hosted/parity/one_mir_scalar_cfg_break_exit_projection.sh
+tests/self_hosted/parity/one_mir_scalar_cfg_for_break_exit_projection.sh
 tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh
 tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh
 tests/self_hosted_component_contract_smoke.sh
@@ -64,6 +71,30 @@ fallback to the older planner after the general route has claimed a graph.
 The component gate rejects restoration of the retired bridge and compiler-side
 break shape/plan/emitter. AIR may retain its bounded historical certificate,
 but no compiler planner or emitter may consume it.
+
+## A direct CFG gate fails with `unknown source MIR pressure token`
+
+Symptom: `one_mir_cfg_air_plan_projection.sh` fails in its initial hello/scalar
+setup before reaching the changed CFG fixture, even though the current
+installed sibling driver accepts the source-MIR action.
+
+Check which driver the gate selected. When invoked directly, its historical
+default is:
+
+```text
+.tmp/self_hosted/driver/bootstrap/driver_seed.exe
+```
+
+That cached seed may predate the current source-MIR pressure-token contract.
+Its failure is not evidence about the current installed path. For a current-
+source focused run, build `bin/pgy-self-driver.exe` through
+`self_host_compiler_build.sh` and pass it explicitly through
+`PGY_SELFHOST_ONE_MIR_DRIVER_BIN`. Do not weaken token validation, silently
+fall back to the cached seed, or record the stale binary as current evidence.
+
+If the active bootstrap rung specifically owns seed refresh, rebuild the seed
+at that rung instead. Otherwise prefer the already verified installed sibling
+and record the exact selected binary, size, hash, and gate scope.
 
 ## A direct-mode gate says the bootstrap root lacks CLI option strings
 

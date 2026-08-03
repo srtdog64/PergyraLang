@@ -135,6 +135,21 @@ rejected by both targets before artifact creation at the current declaration-
 free string-hello admission. It requires explicit compile-time declaration
 erasure and general integer literal execution, not silent declaration loss.
 
+Focused evidence on 2026-08-03 closes the bounded single-latch range-break
+frontier at checkpoint `c27fa4e9`. One 7,229-byte producer MIR carries both the
+outer-local header phi and the completion/break exit phi; the same immutable
+MIR drives C and LLVM to exact `3`. A general scalar CFG range receipt owns the
+iteration LocalRef, bounds, block roles and one actual latch. The former range-
+specific compiler shape, plan and emitters are deleted, and the remaining v9
+composite CFG plan cannot retry range admission. Simple range, changed bounds,
+zero-trip, range metadata negatives, while, break, repeated break, public LLVM
+file/stdout and the full component removed-path ratchet are green. This is
+bounded target-specific `SUBSTITUTING`, not arbitrary continue/foreach/nested
+loop or whole-compiler replacement. Multiple backedge snapshots are the next
+producer falsifier; current range admission intentionally fails closed unless
+there is exactly one latch. Full CI, current fixed point, pressure and prover
+suites were not rerun.
+
 ## Verified
 
 Front-end self-hosts on both backends in LLVM-enabled builds.

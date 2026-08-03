@@ -6,7 +6,85 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — for-loop break exit merge
+## Active self-host context — multi-backedge loop snapshot
+
+- Executable checkpoint: `c27fa4e9` on `main`, one commit ahead of
+  `origin/main` before this documentation update. `bin/pgy.exe` remains
+  4,626,988 bytes, SHA-256
+  `39798EA50105C9B48F26AE2FCABDB400B54AC153D15DC440B089C4E5E6402F9E`.
+  The current Pergyra-built sibling is 4,282,817 bytes, SHA-256
+  `91AC1AC29970D53DC7E48ACF77EEAD55A11065564D72FFE2EF20C11760DA4538`.
+- Closed executable rung: `for_break_exit.pgy` produces one 7,229-byte MIR,
+  SHA-256
+  `222BBEF69BE73692E7F58A22695A910BB2A2DD793AF9A9239321B963B74048AE`.
+  The producer emits header `total.3 = phi(total.1, total.5)`, exit
+  `total.8 = phi(total.3, total.5)`, and binds the final Log to `total.8`.
+  That same MIR produces a 580-byte C artifact
+  (`DA274ADBCCA1873B30E8527960A233D9174520AE08742BD46E85EDEF74FEABA1`)
+  and a 1,558-byte LLVM artifact
+  (`1F9F69D4BC755CB4F46C8A7921D62DD003707CF25612F7E000DDA12F0196F87F`);
+  both execute exact `3`.
+- Producer ownership is no longer while-specific.
+  `routine_loop_header_phi_owner.pgy` owns the admitted single-latch header
+  version, and `routine_loop_exit_phi_owner.pgy` merges the feasible
+  completion lane with every captured break snapshot for while and range
+  lowering. No backend invents either phi.
+- The target-neutral general scalar CFG plan now carries ValueId/LocalRef
+  operands plus one sealed range iteration receipt. Fact, identity, readiness,
+  route, operation assembly, operand spelling, range effect, and final C/LLVM
+  emission have responsibility-named owners. Fixed caps remain 101/310,
+  86/100, 225/240, 299/300, 397/450, 40/40, 269/280, 164/180, and 258/260;
+  no cap was raised.
+- The retired compiler range mini-path
+  (`direct_mir_range_cfg_shape_owner.pgy`,
+  `direct_mir_range_cfg_plan_fact_owner.pgy`, and
+  `direct_mir_range_cfg_emission_owner.pgy`) is deleted. The remaining
+  composite CFG plan is schema v9 and has no range plan/digest/emission arm.
+  AIR may retain bounded range certificate evidence, but compiler consumers
+  cannot retry it.
+- Header and exit incoming-row permutations produce byte-identical artifacts.
+  Stale duplicated header input, stale duplicated exit input, and a final Log
+  that bypasses the exit phi all fail before publication for C and LLVM.
+  Simple range bounds, changed bounds, zero-trip, summary/iteration/type/hoist/
+  backedge/graph/binding mutations, while, break, and repeated-break regressions
+  are green.
+- Latest observed gates: final current-source driver graph reused its
+  fingerprint in 7.1 seconds; focused for-break C/LLVM gate 6.6 seconds;
+  existing break/repeated-break gate 12.3 seconds; cumulative CFG/range matrix
+  149.3 seconds; public LLVM file/stdout 14.0 seconds; full structural
+  component/removed-path ratchet 226.7 seconds. The manifests now own 284
+  driver rows and 31 core MIR fixtures.
+- Directly running the cumulative CFG gate without an explicit driver selected
+  the stale `.tmp/self_hosted/driver/bootstrap/driver_seed.exe` and failed
+  before the range rung with `unknown source MIR pressure token`. Current
+  evidence explicitly selected `bin/pgy-self-driver.exe`; stale seed output is
+  not current-source evidence.
+- Classification: the bounded unique-`i`, outer-`total`, one-fallthrough-latch
+  range/break slice is `SUBSTITUTING`. This is not general `for`, arbitrary
+  `continue`, foreach, nested-loop, or whole-compiler replacement.
+- Active objective card: close multiple actual backedge snapshots at the MIR
+  producer. Priority is exact predecessor/version identity, one general loop
+  header owner, general scalar CFG consumption, C/LLVM parity, then removal of
+  the current single-latch admission bound. The fact owner is
+  `routine_loop_header_phi_owner.pgy`; the last legitimate consumer is
+  `DirectMirScalarCfgGraphPlan`.
+- Next falsifier: add a range loop with both a reachable `continue` edge and a
+  fallthrough latch while mutating an outer `Int`, then observe the producer
+  header phi before changing it. The current range receipt deliberately rejects
+  `backedge_blocks` cardinality other than one, because the producer currently
+  snapshots only one aggregate backedge version.
+- Forbidden fallback: consumer-side backedge value reconstruction, a
+  continue-specific or block-count-specific compiler, duplicate incoming slots
+  without predecessor snapshots, source/`expr0` recovery, planner retry,
+  fixture dispatch, native semantic/AIR/libLLVM re-entry, or raising a hard cap
+  to fit the implementation.
+- No pressure probe, full CI, full bootstrap, current-source gen2==gen3, or
+  Coq/Rocq suite ran. Memory remains final-integration-only: attention at
+  2.4 GiB and hard stop at 3 GiB.
+
+## Historical checkpoint archive — inactive evidence
+
+### Previous for-loop break exit checkpoint
 
 - Executable checkpoint: `6da669a4` on `main`. `bin/pgy.exe` remains
   4,626,988 bytes, SHA-256
@@ -56,7 +134,7 @@ owner, and the named executable gate.
   Coq/Rocq suite ran. Memory remains final-integration-only: attention at
   2.4 GiB and hard stop at 3 GiB. The prover remains unavailable locally.
 
-## Historical checkpoint archive — inactive evidence
+### Earlier checkpoint archive
 
 ### Previous first Array parameter checkpoint
 

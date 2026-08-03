@@ -6,6 +6,45 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-03 - Range break exits join the general scalar CFG plan
+
+- Landed executable checkpoint `c27fa4e9`. `for_break_exit.pgy` emits one
+  7,229-byte MIR (`222BBEF6...48AE`) with producer-owned header
+  `total.3 = phi(total.1, total.5)`, exit
+  `total.8 = phi(total.3, total.5)`, and final Log use `total.8`. The same MIR
+  drives a 580-byte C artifact and a 1,558-byte LLVM artifact; both execute
+  exact `3`.
+- While and range lowering now share responsibility-named loop header and exit
+  phi owners. The general scalar CFG plan carries a sealed range iteration
+  receipt plus ValueId/LocalRef operands. Header/exit incoming permutations are
+  artifact-equal, while stale header, stale exit, and exit-phi bypass mutations
+  reject before publication in both targets.
+- Deleted the range-specific compiler shape, plan, and C/LLVM emitter. The
+  remaining composite CFG plan is v9 and has no range field or retry arm; AIR
+  range certificates remain bounded validation evidence only. The component
+  gate rejects the three retired files and all retired compiler symbols.
+- Split graph fact/identity/readiness, expression base, route, operation plan,
+  C/LLVM operand spelling, range iteration, and range emission by owned
+  responsibility. All fixed LoC caps remain green, including expression
+  299/300, loop flow 40/40, admission 397/450, C 164/180, LLVM 258/260, and the
+  new focused gate 122/160. No cap increased.
+- Current installed sibling: 4,282,817 bytes, SHA-256
+  `91AC1AC2...4538`. Current-source rebuild completed and the final composed
+  source graph reused its fingerprint in 7.1 seconds. Focused for-break,
+  break/repeated-break, cumulative range/CFG, public LLVM file/stdout, and full
+  structural component/removed-path gates are green. The manifests now own
+  284 driver rows and 31 core MIR fixtures.
+- Direct invocation of the cumulative gate initially selected a stale
+  `.tmp/.../driver_seed.exe` and failed with
+  `unknown source MIR pressure token`. Re-running with the current installed
+  sibling passed; stale seed output is not current-source evidence.
+- The next falsifier is a range loop with both a reachable `continue` backedge
+  and a fallthrough latch while mutating an outer `Int`. Current range admission
+  deliberately rejects any backedge cardinality other than one until the MIR
+  producer owns per-predecessor header snapshots. A continue-specific compiler
+  or consumer-side value reconstruction is forbidden.
+- No pressure run, full CI/bootstrap/fixpoint, or prover suite ran.
+
 ## 2026-08-03 - Repeated break ValueIds bind by consumed phi slot
 
 - Landed executable checkpoint `6da669a4`. `multiple_break_exit.pgy` emits one
