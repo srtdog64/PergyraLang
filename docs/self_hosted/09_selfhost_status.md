@@ -161,10 +161,25 @@ display expression remains unchanged. Twelve negative families reject without
 artifact or legacy range retry. Current-source build, focused, existing
 scalar/range, public LLVM, cumulative CFG/AIR, and structural component bodies
 are green without raising a hard LoC cap. This is `SUBSTITUTING` only for the
-covered identifier-backed local literal collection. Returned-array call
-composition, nested/sequential collection foreach, arbitrary collections, and
-whole-compiler replacement remain open; `for_each_call.pgy` is the next exact
-falsifier.
+covered identifier-backed local literal collection. At that checkpoint,
+returned-array composition and nested/sequential collection foreach were
+still open and `for_each_call.pgy` was the next exact falsifier.
+
+Focused evidence at checkpoint `7069f852` closes that returned-array
+composition rung. The 17,155-byte `for_each_call.pgy` MIR identifies one pure
+`MakeValues() -> Array<Int>` producer and three synthetic call-result ValueIds
+feeding nested and sequential loops. One target-neutral producer receipt and
+the existing foreach receipt now drive 1,821-byte C and 6,083-byte LLVM
+artifacts; both execute exact `30`. Routine permutation is byte-equal, a
+producer graph-only `[4,5]` mutation executes exact `36`, and seven ABI,
+call-identity, hoist, result-name, and LocalRef mutations fail before artifact
+publication. `storage_identity` causes the pure returned collection to be
+materialized once while preserving one cursor per loop. This is bounded
+`SUBSTITUTING`, not a claim for effectful producers, identity-observable
+mutable returns, arbitrary element ABI, mixed string operations, or the whole
+compiler. The next falsifier is the 14,425-byte `for_each.pgy` mixed
+`Array<Int>`/`Array<String>` graph, currently rejected by both targets at the
+legacy Option-match claimant before artifact creation.
 
 ## Verified
 

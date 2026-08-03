@@ -6,6 +6,64 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-03 - Returned `Array<Int>` calls compose with nested/sequential foreach
+
+- Landed executable checkpoint `7069f852`. The installed Pergyra producer's
+  17,155-byte `for_each_call.pgy` MIR
+  (`F569D00CA64B92042203160511B969B2F695C12EE0EF884EF3C7BA489F269958`)
+  now drives a 1,821-byte C artifact
+  (`6FFEBAFCE899580795FB33FF8C8861561BB992517A90C696E6D0C005620696E9`)
+  and a 6,083-byte LLVM artifact
+  (`955DD7245D3F6E2B1F7239E3EF03E1923118B20B5CFE8EA097BE6EA105BBD7DB`).
+  Both compile and execute exact `30`.
+- Added one target-neutral producer receipt for a pure no-parameter
+  `Array<Int>` literal return. The multi-routine program owner selects exact
+  `Main` and producer identities independently of row order, while each
+  synthetic call-result ValueId is joined through its persisted direct-call
+  graph. No source/call text or routine-count topology reconstructs the call.
+- Generalized the scalar-CFG plan issuer to consume an exact routine row plus
+  an optional producer receipt. The original single-routine path supplies an
+  empty producer, so there is no `new ? old` read or second planner. Hoisted
+  call collections and local literals meet at one collection-definition owner
+  before the existing foreach receipt is issued.
+- Added `storage_identity` to the collection receipt. Three calls to the same
+  proven-pure producer materialize one Array body in C and one in LLVM, while
+  outer, inner, and trailing loops retain independent cursors. A repeated
+  whole-program copy is not used as a substitute for ownership.
+- Corrected the LocalRef ownership boundary reached by the composition. A
+  range-scope owner with zero range receipts no longer claims foreign foreach
+  refs; foreach and the shared direct-local resolver still require every
+  binding ref. A hidden ref on a call-result definition is an explicit
+  negative and cannot bypass either owner.
+- The focused gate pins routine-permutation byte equality, one collection
+  materialization, exact `30`, and a producer graph-only `[4,5]` mutation that
+  executes exact `36`. Seven producer ABI, call target/leaf/ref, hoist,
+  result-name, and binder LocalRef mutations reject both targets before
+  publication without retrying the legacy return-only route.
+- Final current-source build completed in 136.9 seconds. The installed sibling
+  is 4,400,193 bytes with SHA-256
+  `6B92072ADCE6DA34DB31984727F2F317FD209E832C8C53C2CB5B399CF56E28DE`.
+  Focused returned/local/scalar CFG gates were green in 33.5 seconds, and the
+  final structural component/removed-path gate was green in 245.2 seconds.
+  No fixed LoC cap increased.
+- The old `one_mir_array_return_projection.sh` did not reach its behavioral
+  body: its local cap still says 200 lines for the already-237-line
+  `direct_mir_backend_projection_owner.pgy`. This pre-existing dead ratchet is
+  recorded rather than “fixed” by raising the cap or claimed green.
+- Classification is bounded `SUBSTITUTING` for pure returned `Array<Int>`
+  collections consumed by nested/sequential scalar foreach. Effectful
+  producers, mutable identity observation, `Array<String>`, mixed scalar/string
+  operations, and whole-compiler replacement remain open.
+- The next exact falsifier is `src/self_hosted/codegen/fixture/for_each.pgy`.
+  Its 14,425-byte MIR
+  (`1D0771BFE62C6C20A5E671A82F0A0DD956A198D4495F08B43D5D86303DD40397`)
+  has sequential `Array<Int>` and `Array<String>` foreach loops with expected
+  output `60` and `abbccc`. Both direct targets currently reject before
+  artifact publication at `direct MIR Option match routine fact owner is
+  invalid`. The next rung must classify the supported mixed-collection graph
+  before that block-count legacy claimant and add element/string facts to the
+  shared receipt; a seven-block or fixture-specific compiler is forbidden.
+
 ## 2026-08-03 - `Array<Int>` foreach substitutes through one scalar-CFG receipt
 
 - Landed executable checkpoint `6122051f`. The installed Pergyra producer's

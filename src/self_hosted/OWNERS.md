@@ -1984,6 +1984,10 @@ inventory must not become a second fact-family owner registry.
   canonical captured `Array<Int>` ABI row predicate shared by local-value and
   returned-value direct-MIR plans, including every field offset, size, and
   alignment before target projection.
+- `src/self_hosted/compiler/direct_mir_array_int_producer_fact_owner.pgy` --
+  target-neutral identity, literal elements, and canonical ABI receipt for one
+  pure no-parameter `Array<Int>` producer. Direct-call consumers bind to this
+  receipt instead of reparsing the call or reopening the producer routine.
 - `src/self_hosted/compiler/direct_mir_array_return_program_identity_owner.pgy`
   -- exact-one `Main`/producer identity and strict return-signature join. It
   binds the typed direct call target to stable routine syntax IDs without the
@@ -1995,6 +1999,12 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_array_return_emission_owner.pgy` --
   final C/LLVM consumers for the same two-routine plan. Both materialize a real
   producer call with caller-owned storage and no Pergyra runtime symbol.
+- `src/self_hosted/compiler/direct_mir_returned_array_foreach_program_owner.pgy`
+  -- exclusive multi-routine identity joining one `Main` scalar CFG to one
+  admitted `Array<Int>` producer independently of routine row order.
+- `src/self_hosted/compiler/direct_mir_returned_array_foreach_projection_owner.pgy`
+  -- selected-target composition boundary that gives the producer receipt and
+  exact `Main` row to the existing scalar-CFG plan and C/LLVM consumers.
 - `src/self_hosted/compiler/direct_mir_routine_param_fact_owner.pgy` -- exact
   formal-parameter admission, including value/resource/pass carriage and the
   complete carried ABI row; a required row cannot be reconstructed by a
@@ -2113,7 +2123,9 @@ inventory must not become a second fact-family owner registry.
   exact conditional LocalRef wire decoding and shape admission.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_wire_range_scope_admission_owner.pgy`
   -- receipt-keyed direct-use completeness plus CFG-dominance validation of the
-  innermost active same-spelling range binder.
+  innermost active same-spelling range binder. With no range receipt it owns no
+  foreign foreach ref; those refs remain mandatory inputs to the foreach and
+  shared direct-local owners.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy` --
   target-neutral LocalRef-to-plan-slot normalization and source-local inventory
   multiset admission; physical JSON row order is not storage identity.
@@ -2132,8 +2144,9 @@ inventory must not become a second fact-family owner registry.
   exact phi bindings, and the range receipt. Claimed invalid graphs cannot
   retry a legacy topology path.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_route_owner.pgy` --
-  topology-independent route classification by the supported operation/type
-  envelope, never fixture names or exact block counts.
+  topology-independent per-routine classification by the supported
+  operation/type envelope, never fixture names or exact block counts. A
+  validated multi-routine composition may select its exact `Main` row.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_operation_plan_owner.pgy` --
   operation-row assembly plus latest-dominating ValueId joins.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_loop_flow_admission_owner.pgy`
@@ -2148,15 +2161,21 @@ inventory must not become a second fact-family owner registry.
   single-range shape has one possible typed receipt.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_admission_owner.pgy`
   -- joins a collection loop candidate, typed iteration row, collection
-  ValueId, exact `Array<Int>` ABI, literal expression graph, binding identity,
-  and CFG edges once. A mistyped collection loop fails here instead of being
-  retried as an integer range.
+  ValueId, resolved local-literal or direct-call collection source, binding
+  identity, and CFG edges once. A mistyped collection loop fails here instead
+  of being retried as an integer range.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_owner.pgy`
+  -- exact collection-definition join. Local literals consume their own graph
+  and ABI; hoisted calls consume the admitted producer receipt and reject call
+  target, ABI, result-name, or hidden LocalRef drift.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_fact_owner.pgy`,
   `direct_mir_scalar_cfg_foreach_set_owner.pgy`, and
   `direct_mir_scalar_cfg_foreach_append_owner.pgy` -- immutable target-neutral
   collection-iteration receipt, canonical primitive set storage, identity
-  digest, and exact lookup. The receipt owns data/length roles and literal
-  elements; neither backend reconstructs the hidden cursor protocol.
+  digest, and exact lookup. A storage identity deduplicates repeated calls to
+  the same pure producer while each loop retains its own cursor. The receipt
+  owns data/length roles and elements; neither backend reconstructs the hidden
+  cursor protocol.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_local_owner.pgy` --
   binds each foreach source binder to one scalar local slot while its
   `Array<Int>` collection remains owned by the collection receipt.

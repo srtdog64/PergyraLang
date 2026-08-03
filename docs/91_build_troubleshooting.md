@@ -6,6 +6,55 @@
 
 ---
 
+## Returned-array foreach is rejected by the return-only or Option-match route
+
+Symptom: source-to-MIR succeeds for a multi-routine program such as
+`for_each_call.pgy`, but both direct targets stop at
+`direct MIR Array<Int> return program envelope is invalid`. A single-routine
+mixed foreach graph may instead fall through to
+`direct MIR Option match routine fact owner is invalid` merely because it has
+the same historical block count.
+
+Do not broaden the bounded return-only plan or add another block-count route.
+The 2026-08-03 returned-foreach rung found that
+`DirectMirArrayReturnProgramCandidate` claimed every declaration-free
+two-routine document before checking whether `Main` was the return-only
+consumer it owns. The closed path classifies a returned-foreach program first,
+binds exact `Main` and producer routine identities, and passes only the selected
+routine row plus a target-neutral producer receipt to the existing scalar-CFG
+planner. Claimed invalid input does not retry the old return-only route.
+
+The same rung exposed a second ownership error. With several foreach loops,
+the wire is required and every instruction carries LocalRef fields. The range
+scope validator previously treated foreign foreach refs as missing range
+facts. When the range receipt count is zero it now owns no scope rows; foreach
+receipt admission and the shared direct-local resolver still require the exact
+refs. A ref hidden on a call-result definition is rejected explicitly, so this
+is an owner split rather than an ignore-and-continue fallback.
+
+The returned collection must also not be materialized once per loop. One
+producer `storage_identity` owns the Array body, while outer, inner, and
+trailing foreach receipts own distinct cursors. Validate the boundary with:
+
+```text
+tests/self_hosted/parity/one_mir_returned_array_foreach_projection.sh
+tests/self_hosted/parity/one_mir_scalar_cfg_foreach_array_int_projection.sh
+tests/self_hosted/parity/one_mir_scalar_cfg_graph_projection.sh
+tests/self_hosted_component_contract_smoke.sh
+```
+
+The first gate pins exact `30`, graph-only `[4,5]` exact `36`, routine-order
+byte equality, one C/LLVM collection materialization, seven negative families,
+and no return-only retry. It does not claim effectful producer fusion,
+identity-observable mutable returns, or a general collection ABI.
+
+Known independent ratchet defect: `one_mir_array_return_projection.sh` still
+declares a 200-line cap for the already-237-line
+`direct_mir_backend_projection_owner.pgy`, so it exits before its behavioral
+body. Do not make that gate green by increasing the fixed cap. Split the
+backend owner at a dedicated executable rung or repair the stale assertion
+with evidence; until then report that regression as not executed.
+
 ## General scalar CFG rejects a Log or silently pressures a topology mini-compiler
 
 Symptom: source-to-MIR succeeds, but direct C/LLVM projection reports
