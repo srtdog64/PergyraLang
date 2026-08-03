@@ -86,6 +86,12 @@ bin/pgy --self-driver
   -> DriverSourceMirZone.execution
   -> DriverSourceMirExecution.ProduceSourceMir
   -> DriverSourceMirProduced(payload receipt)
+
+bin/pgy --mir-json <source>
+  -> exact native selector, no pipeline fallback
+  -> installed bin/pgy-self-driver --emit-mir-json-verified <source>
+  -> same DriverRung2CliRequestFromArgsOrDie / source_mir action chain
+  -> SelfMirProgramFacts -> verified MIR stdout
 ```
 
 action이 request를 typed target projection으로 admit하고, 기존
@@ -134,7 +140,7 @@ declaration census는 gate가 다시 생성하는 관측값이며, import surfac
 | 입력 기능의 passive/mutable nominal literal direct-MIR slice | `SUBSTITUTING` | class/object/tobject value carriage와 subject/vessel stable mutable identity가 한 route/admission 뒤 배타 plan으로 installed C/LLVM exact 12/7/13을 실행한다. 이는 compiler 조직의 vessel/action/intent grade를 올리지 않는다. |
 | 입력 기능의 `binding slot` admission/runtime slice | `SUBSTITUTING` | production self source -> admitted MIR -> general C가 exact binding constructor와 projection assignment를 실행하고 native C/LLVM parity 및 valid-ID wrong-kind negatives를 통과한다 |
 | 입력 기능의 typed intent transition MIR -> self C | `SUBSTITUTING` | admitted v2 Pergyra plan consumer가 old typed direct/rollback consumer를 대체한다. compiler-root intent 증거는 아니다. |
-| `subject`, `action`, `zone`, `world` | `REACHABLE`, not `SUBSTITUTING` | direct-MIR과 source-to-MIR 두 slice가 production에서 invoke되고 typed outcome이 소비된다. 그러나 새 C-owned semantic path를 대체한 것은 아니다. |
+| `subject`, `action`, `zone`, `world` | `REACHABLE`; bounded public source-MIR stdout slice is `SUBSTITUTING` | 두 slice가 production에서 invoke되고 typed outcome이 소비된다. 그중 exact public `pgy --mir-json <source>`는 C pipeline selector를 삭제했지만, 이 한 slice가 compiler world 전체를 대체하지는 않는다. |
 | `intent` | `SURFACE` | 14개 import, production call 0 |
 | `effect`, `relation` | compiler 조직은 `SURFACE`; 입력 기능의 좁은 runtime slice는 `SUBSTITUTING` | bootstrap closure 안의 compiler declaration/call은 0이다. 별개로 self source -> MIR -> general C가 exact role/member facts를 소비해 `zone_layer_projection_runtime`을 실행한다 |
 
@@ -230,9 +236,12 @@ semantic seam이며 C-owned compiler path를 새로 대체하지 않는다. Call
 vocabulary는 이미 닫혔고, domain runtime assignment/receiver의 첫 실행 slice도
 별도 `func` owner 경로에서 닫혔다. Production source-to-MIR mode는 이제 새
 subject/action을 호출하고 typed outcome을 소비하며 옛 file-helper 우회도 삭제했다.
-그러나 이것은 Pergyra 내부 orchestration 우회를 교체한 것이지 새 C-owned semantic
-compiler path를 대체한 것이 아니다. 따라서 두 world/zone/subject/action slice는
-`REACHABLE`, not `SUBSTITUTING`이고 compiler-root intent는 계속 `SURFACE`다.
+이 내부 orchestration closure에 더해, public `pgy --mir-json <source>` selector는
+이제 installed sibling의 동일 action을 호출하고 native
+`driver_run_pipeline -> mir_dump_json`로 retry하지 않는다. 따라서 public
+source-MIR stdout slice만 bounded `SUBSTITUTING`으로 올린다. 다른
+world/zone/subject/action slice는 독립 증거가 없는 한 `REACHABLE`이고,
+compiler-root intent는 계속 `SURFACE`다.
 `function_clause_order_minimal`의 실제 production action 실행/parity와 identity,
 topology, pressure mismatch negative를 관측하기 전에는 정적 gate만으로 실행 증거를
 과장하지 않는다.
@@ -557,9 +566,13 @@ runtime singleton이나 C-owned compiler path의 대체 구현이 아니다.
 - Gate: `driver_source_mir_execution_action_gate.sh`, build-pressure contract,
   compiler-world topology/contract, focused executable parity.
 
-현재 정적 ownership/no-bypass gate까지 통과한 grade는 `REACHABLE`이다. 이 rung은
-Pergyra 내부 file-helper orchestration을 대체했지만 새 C-owned semantic path를
-대체하지 않았으므로 `SUBSTITUTING`으로 세지 않는다.
+내부 file-helper orchestration closure 자체의 grade는 `REACHABLE`이다. 이후
+`ced304fb`에서 public `pgy --mir-json <source>` selector가 installed
+Pergyra-built sibling을 호출하도록 바뀌고 native dump bypass가 production에서
+삭제됐다. Public/self byte equality, frozen-native/self canonical equality,
+rejected source, missing sibling, unsupported option, mixed-mode negative가 모두
+통과했으므로 이 정확한 stdout slice만 `SUBSTITUTING`으로 센다. Native producer는
+`--test-native-mir-json-oracle` test boundary에만 남고 일반 fallback은 아니다.
 
 ## 완료된 domain runtime assignment 실행 rung objective card
 

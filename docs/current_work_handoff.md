@@ -6,60 +6,72 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — public source-to-MIR production takeover
+## Active self-host context — public LLVM IR artifact takeover
 
-- Executable checkpoint: `01c880346264e989611c51c2471d189e882211fe` on
-  `main`. The installed Pergyra-built driver is 4,252,131 bytes, SHA-256
+- Executable checkpoint: `ced304fbd830a155e2768db99748b25d91db81fa` on
+  `main`. `bin/pgy.exe` is 4,623,095 bytes, SHA-256
+  `2E41E179E0D285423033A14F0CA1CEBD9B5F6136C4CDE15E986DFA48E0422027`.
+  The installed Pergyra-built sibling remains 4,252,131 bytes, SHA-256
   `0116E8A20A5504E4BB2010B36DC071870155FD52A4E2F00EBB2E3E177D57DC95`.
-- Closed executable rung: canonical MIR top-level assembly no longer treats the
-  JSON function/intent producer phases as source order.
-  `MirTopLevelRoutineOrderCursor` merges the two monotonic streams by admitted
-  `source_syntax_id`; methods remain declaration-owned. Same-phase reversal,
-  equal heads, and missing identities fail before output. No post-hoc ID patch,
-  phase sort, row-position fallback, source reparse, or AST-root rescan exists.
-- Dependent identity closure: a mixed `Identity<Int>` + `RunIntent` + `Main`
-  program exposed producer-local generic owner ID `93` versus canonical owner
-  ID `98`. `MirGenericSpecializationIdentityEpoch` now seals the distinct owner
-  preorder once and maps producer owners to canonical owners. Lane, call
-  ordinal, callable, actuals, symbol, and graph call identity remain exact;
-  raw numeric equality and offset inference are forbidden.
-- Fresh executable evidence: installed-driver rebuild PASS in 107.4 seconds;
-  canonical cross-phase preorder/equality/fixpoint/nonmonotonic negative PASS;
-  raw mixed generic+intent execution and ordinal negative PASS; all thirteen
-  live source/MIR replacement rows PASS in 72.1 seconds; hard substitution
-  contract PASS in 43.9 seconds; component/removed-path ratchet PASS in 166.9
-  seconds; both new shell gates pass `bash -n`; `git diff --check` was green.
-- Hard caps remain fixed: routine-order owner 104/120, generic identity-epoch
-  owner 123/140, generic decoder 322/420, routine gate 138/140, and generic
-  epoch gate 56/100. Component owns only inventory, caps, wiring, and retired
-  paths; executable gates own behavioral claims.
+- Closed executable rung: public `pgy --mir-json <source>` now validates one
+  exact option envelope and invokes the installed sibling's
+  `--emit-mir-json-verified` action. It cannot retry the native
+  `driver_run_pipeline -> mir_dump_json` path after missing-sibling, rejected-
+  source, or unsupported-option failure. This bounded stdout path is
+  `SUBSTITUTING`; the wider `mir.execution_graph` family remains `BRIDGE`.
+- Native MIR independence is explicit and test-only through
+  `--test-native-mir-json-oracle`. Existing native-carrier tests use this frozen
+  selector rather than public `--mir-json`, preventing both self-versus-self
+  parity and a clean-bootstrap cycle that would require an installed sibling
+  before constructing it.
+- Fresh executable evidence: public/self MIR is byte-equal at 46,727 bytes;
+  frozen-native/self canonical MIR is byte-equal at 50,091 bytes; rejected
+  source status and diagnostics agree; missing sibling, unsupported runtime,
+  and mixed public/test mode fail with no MIR artifact. The focused public gate
+  passed in 4.5 seconds, all thirteen live rows in 51.4 seconds, hard contract
+  in 50.4 seconds, component/removed-path ratchet in 179.9 seconds, and all 45
+  changed shell scripts passed `bash -n`.
+- One broad generic-method smoke reached and passed its frozen native MIR phase
+  but later failed in an already-substituted public C compile/run phase without
+  publishing a program artifact. That failure is outside the closed selector
+  claim and remains unclassified; do not record the whole smoke as green or
+  infer a platform cause without a focused reproduction.
 - The August 2 architecture review observed `bac9b3f1`. Its Pair/aggregate
-  implementation frontier is stale: the repository already documents the
-  completed aggregate value-flow promotion. Its durable constraints remain
-  active—no topology-specific mini-compiler, storage layout is not call ABI,
-  and pressure/fixed-point evidence belongs at an integration boundary.
-- Active objective card: move the public `bin/pgy --mir-json <source>` request
-  from `src/pgy_driver.c::main` into the installed Pergyra driver. Priority is
-  selector substitution, explicit failure, oracle independence, then patch
-  size. The fact owner is `SelfMirProgramFacts`; execution owner is
-  `DriverSourceMirExecution.ProduceSourceMir`; the last orchestration consumer
-  is `DriverRung2CliLogSourceMirPayloadOrDie`.
-- Direct bypass to delete from production selection:
-  `driver_run_pipeline -> driver_app.c`'s `dump_mir_json -> mir_dump_json`.
-  Keep the native producer only behind an explicit frozen/test-only oracle
-  boundary. `tests/self_host_live_replacement_smoke.sh` currently calls public
-  `pgy --mir-json` as its oracle, so that oracle must be split before takeover;
-  otherwise the gate would compare the self path with itself.
-- Next falsifier: for
-  `tests/self_hosted/parity/fixture/intent_typed_outcome_execution.pgy`, public
-  `pgy --mir-json` must be byte-equal to direct installed
-  `pgy-self-driver --emit-mir-json-verified`; self and frozen-native MIR must be
-  canonical-equal. A missing sibling or unsupported source must fail without
-  entering `driver_run_pipeline`, `mir_dump_json`, or another native fallback.
+  implementation frontier is stale because the general aggregate value-flow
+  promotion and later identity closures are already present. Its durable
+  constraints remain active: do not add topology-specific mini-compilers,
+  storage layout is not target call ABI, and pressure/fixed-point evidence
+  belongs at an integration boundary.
+- Active objective card: move exact public
+  `pgy <source> --emit-llvm -o <output.ll>` from the native LLVM compiler path
+  to the already installed two-action composition. Priority is source/MIR
+  identity, owner reuse, native bypass deletion, negative ratchet, then patch
+  size. Source-to-MIR facts are owned by `DriverSourceMirExecution` and
+  `SelfMirProgramFacts`; target admission is owned by
+  `CompilerTargetProjectionFact`; MIR-to-LLVM is owned by
+  `DriverRung2Execution.EmitDirectMir` and
+  `CompileMirJsonToDirectBackendVerified`. The last legitimate consumer is
+  `DriverRung2InstalledPublishDirectMir(..., DirectMirLlvm)`.
+- Direct bypass to delete for this exact selector:
+  `pgy_driver.c`'s final `driver_run_pipeline` into
+  `llvm_runner.c::compiler_emit_llvm_ir_to_file`. Reuse
+  `driver_materialize_self_host_llvm_artifacts` as the C orchestration adapter;
+  do not create another semantic or projection owner. Missing producer,
+  producer rejection, or projector rejection must fail without native libLLVM
+  retry and without a stale/partial `.ll` artifact. Stdout `--emit-llvm`
+  remains open until separately admitted.
+- Next falsifier: `option_struct_value_flow.pgy` must call the installed MIR
+  producer and LLVM projector exactly once each; public file-form `.ll` must be
+  byte-equal to direct installed projection from the same public MIR and must
+  compile/run through host clang with exact `7\n11\n5\n`. Missing sibling and
+  producer/projector failures publish no artifact, and structural ratchets
+  forbid reintroducing native `driver_run_pipeline` or `compiler_emit_llvm_ir*`
+  for the selected envelope.
 - No pressure probe, full CI, full bootstrap, current-source gen2==gen3, or
-  Coq/Rocq suite ran for this rung. Historical peaks are not attached to the
-  current driver. Memory remains final-integration-only: attention at 2.4 GiB,
-  hard stop at 3 GiB.
+  Coq/Rocq suite ran for this rung. The 19.8-second incremental native link was
+  setup recovery, not a performance or pressure sample. Historical peaks are
+  not attached to the current driver. Memory remains final-integration-only:
+  attention at 2.4 GiB, hard stop at 3 GiB.
 
 ## Historical checkpoint archive — inactive evidence
 

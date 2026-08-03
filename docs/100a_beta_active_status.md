@@ -359,24 +359,34 @@ Architecture review intake (2026-08-03): the August 2 review observed the older
 `bac9b3f1` aggregate frontier. Its durable constraints remain active—do not add
 topology-specific planners, keep storage layout distinct from call ABI, and run
 the full fixed-point/pressure evidence at an integration boundary—but its Pair
-recommendation is no longer the active rung. The current executable frontier is
-`enum_simple.pgy`: one payload-free enum value plus the real four-block match
-CFG must execute exact `2` then `300` through one target-neutral plan. Enum or
-fixture name dispatch, target-specific mini-compilers, match flattening, source
-reparse, and retry into older planners are forbidden.
+recommendation is no longer the active rung. The review's `enum_simple.pgy` and
+Pair frontiers are historical: later executable checkpoints completed those
+bounded projection and aggregate value-flow rungs. Their constraints remain
+active—no fixture or enum name dispatch, target-specific mini-compilers, match
+flattening, source reparse, or retry into older planners.
 
-Canonical routine identity update (2026-08-03): executable checkpoint
-`01c88034` closes the final live `intent-typed-outcome` drift. Function and
+Canonical routine identity and public source-MIR takeover update (2026-08-03):
+executable checkpoints `01c88034` and `ced304fb` close the final live
+`intent-typed-outcome` drift and the public selector bypass. Function and
 intent producer phases now merge by their admitted source preorder before AST
 creation; same-phase reversal fails closed. A mixed explicit-generic + intent
 fixture also removed producer/canonical numeric owner equality through one
 sealed generic-specialization identity epoch while retaining exact lane,
 ordinal, callable, actual, symbol, and graph validation. Canonical permutation,
 two fixpoints, raw mixed execution, ordinal negative, all thirteen live rows,
-hard substitution, and the component inventory are green. The next executable
-replacement is the public `pgy --mir-json <source>` selector; its native oracle
-must be split into an explicit test-only boundary before the C
-`driver_run_pipeline -> mir_dump_json` production bypass is deleted.
+hard substitution, and the component inventory are green. Public
+`pgy --mir-json <source>` now invokes the installed Pergyra-built sibling and
+is byte-equal to its direct producer. Native MIR remains independent only behind
+`--test-native-mir-json-oracle`; missing/unsupported/rejected requests cannot
+retry `driver_run_pipeline -> mir_dump_json`. Existing native carrier tests were
+migrated to that explicit boundary so bootstrap and parity do not become
+circular or compare self with self. This bounded stdout slice is
+`SUBSTITUTING`; `mir.execution_graph` remains `BRIDGE` for its documented open
+semantic/CFG families. The next exact production selector is public
+`pgy <source> --emit-llvm -o <output.ll>`: reuse the installed source-MIR and
+DirectMirLlvm owners, delete its native `compiler_emit_llvm_ir_to_file` bypass,
+and fail without artifact or native retry when either installed action fails.
+The stdout form remains open until separately admitted.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:

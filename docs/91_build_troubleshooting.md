@@ -4783,3 +4783,44 @@ declaration으로 해석된다. 다음 rung은 argv 전체를 I/O 전에 한 번
 admit해 이 이중 의미를 제거한다. 또한 PowerShell의 `>`는 native stdout을 UTF-16LE로
 저장할 수 있으므로 생성 C 캡처는 Git Bash redirection 또는 명시적 byte/UTF-8
 writer를 사용한다.
+
+## public `--mir-json` 치환 뒤 parity가 자기 자신을 oracle로 비교하는 경우
+
+2026-08-03의 `ced304fb`부터 정확한 public
+`pgy --mir-json <source>` 요청은 native `driver_run_pipeline -> mir_dump_json`으로
+들어가지 않는다. `src/pgy_driver.c`의 selector가 설치된 sibling
+`pgy-self-driver --emit-mir-json-verified <source>`를 한 번 실행한다. Sibling이
+없거나 요청에 지원 밖 runtime/output/dump 옵션이 섞이면 native pipeline으로
+retry하지 않고 명시적으로 실패한다.
+
+이 변경 직후 가장 위험한 가짜 green은 기존 parity가 public `--mir-json`을 C
+oracle이라고 계속 부르는 것이다. 그러면 self producer와 같은 self producer를
+비교하게 된다. Native producer가 필요한 테스트는 반드시 다음 test-only 경계를
+사용한다.
+
+```text
+pgy --test-native-mir-json-oracle <source>
+```
+
+이 옵션은 일반 fallback이 아니다. Public mode와 함께 지정하거나 source-MIR exact
+contract 밖 옵션을 섞으면 거부된다. 기존 native MIR carrier 테스트를 이 경계로
+옮긴 이유는 oracle 독립성뿐 아니라 clean bootstrap의 순환 의존을 막기 위해서다.
+`self-host-codegen-bootstrap-seed-test-smoke`가 아직 만들지 않은 installed sibling을
+public producer로 요구해서는 self driver를 처음부터 만들 수 없다.
+
+Focused gate는
+`tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh`다. Mixed
+generic+intent fixture에서 public/self 46,727-byte equality, frozen-native/self
+canonical equality, rejected source diagnostic equality, missing sibling, unsupported
+option, mixed public/test mode를 확인한다. 이 gate는 다른 shell test가 public
+`--mir-json`을 다시 native oracle로 사용하는 경우도 거부한다. 이어 실행한 13-row
+live matrix, hard contract, component/removed-path ratchet도 green이었다.
+
+같은 작업 중 PowerShell에서 Git Bash를 통해 MSYS Make를 실행하자 GCC temporary
+path가 `C:\Windows`로 떨어져 permission error가 났다. MSYS2 bash를 직접 사용하되
+`PATH=/ucrt64/bin:/usr/bin`과 repository-local `TEMP`/`TMP`/`TMPDIR`을 함께 주어야
+한다. Toolchain이 잠시 `CC_MACHINE=unknown`으로 관측되면 configuration stamp가
+기존 object cache를 무효화하므로, 같은 명령을 무작정 반복하지 말고 남은 object
+수를 확인한 뒤 올바른 MSYS2 환경에서 증분을 재개한다. 이번 재개는 `-j4`로 남은
+오브젝트와 link를 19.8초에 끝냈지만 pressure 표본은 아니므로 메모리 최대값으로
+기록하지 않는다.

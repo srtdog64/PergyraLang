@@ -2,44 +2,54 @@
 
 마지막 업데이트: 2026-08-03
 
-## 활성 우선순위 — public source-to-MIR production takeover
+## 활성 우선순위 — public LLVM IR artifact takeover
 
-- 실행 체크포인트 `01c880346264e989611c51c2471d189e882211fe`에서 canonical
-  MIR의 function/intent phase 순서 결함을 닫았다. JSON row 위치가 아니라 각
-  producer phase의 monotonic `source_syntax_id`를 한 cursor가 병합한다. Method는
-  declaration owner에 남고, same-phase 역행이나 같은 head ID는 출력 전에 거부한다.
-- 기존 self MIR은 `Main`을 `RunIntent`보다 먼저 싣고 native MIR은 소스 순서를
-  유지해 canonical ID가 뒤집혔다. 이제 mixed fixture의 input/canonical
-  top-level `(kind, owner, name)` source-preorder가 같고, function/intent row swap은
-  artifact-equal이며 양쪽 repeated canonicalization이 fixpoint다.
-- `Identity<Int>`와 intent를 같은 프로그램에 넣자 producer-local generic owner
-  ID `93`과 canonical ID `98`의 숫자 직접 비교가 드러났다. 새
-  `MirGenericSpecializationIdentityEpoch`는 distinct owner preorder를 한 번만
-  봉인해 canonical owner로 매핑한다. Lane/ordinal/callable/actual/symbol/graph
-  identity는 계속 exact이며 offset, 이름, row-position fallback은 없다.
-- 설치 driver는 4,252,131 bytes, SHA-256
+- 실행 체크포인트는 `ced304fbd830a155e2768db99748b25d91db81fa`다.
+  `bin/pgy.exe`는 4,623,095 bytes, SHA-256
+  `2E41E179E0D285423033A14F0CA1CEBD9B5F6136C4CDE15E986DFA48E0422027`이고,
+  installed Pergyra driver는 4,252,131 bytes, SHA-256
   `0116E8A20A5504E4BB2010B36DC071870155FD52A4E2F00EBB2E3E177D57DC95`다.
-  Direct rebuild 107.4초, routine focused gate, mixed generic epoch positive/negative,
-  live 13-row matrix 72.1초, hard contract 43.9초, component contract 166.9초가
-  green이다. 이번 rung은 pressure 표본이 아니며 full CI, Coq/Rocq, full bootstrap,
-  current-source gen2==gen3는 실행하지 않았다.
-- August 2 architecture review의 Pair/aggregate 활성 권고는 `bac9b3f1` 기준이라
-  현재 frontier가 아니다. Topology별 mini-compiler 금지, storage layout과 call ABI
-  분리, integration boundary에서 fixed-point/pressure를 측정하라는 구조적 경고만
-  현재 규칙으로 유지한다.
-- 다음 실제 `SUBSTITUTING` rung은 public `pgy --mir-json <source>`다. 현재
-  `src/pgy_driver.c::main -> driver_run_pipeline -> dump_mir_json -> mir_dump_json`의
-  C 경로가 남아 있다. 이를 installed Pergyra driver의
-  `PgyCompilerWorld.source_mir -> DriverSourceMirExecution.ProduceSourceMir ->
-  SelfMirProgramFacts` 경로로 넘긴다.
-- 먼저 native oracle을 명시적인 frozen/test-only 경계로 분리해야 한다. 현재 live
-  gate의 public `pgy --mir-json` 호출을 그대로 두고 selector를 바꾸면 self 결과를
-  자기 자신과 비교하는 허위 parity가 된다. Missing sibling·unsupported source가
-  C pipeline으로 retry하는 것도 금지한다.
-- 다음 falsifier는 `intent_typed_outcome_execution.pgy`의 public/self MIR byte
-  equality, frozen native/self canonical equality, 그리고 missing sibling에서
-  `driver_run_pipeline`과 `mir_dump_json` 미도달이다. 메모리는 매 edit가 아니라
-  integration 마지막 최대값만 기록하며 2.4 GiB attention, 3 GiB hard stop을 유지한다.
+- public `pgy --mir-json <source>`는 이제 exact option envelope를 확인한 뒤 installed
+  sibling의 `--emit-mir-json-verified`를 호출한다. Missing sibling·rejected source·
+  unsupported option 뒤에 native `driver_run_pipeline -> mir_dump_json`으로 retry하지
+  않는다. 이 bounded stdout 경로는 `SUBSTITUTING`이고, 더 넓은
+  `mir.execution_graph` fact family는 아직 `BRIDGE`다.
+- 독립 native MIR은 `--test-native-mir-json-oracle` test-only 경계에만 남겼다.
+  기존 carrier/parity test도 그 selector를 사용해 self와 self를 비교하는 허위
+  parity와 clean bootstrap이 installed sibling을 선행 요구하는 순환을 막는다.
+- 최신 증거는 public/self 46,727-byte MIR byte equality, frozen-native/self
+  50,091-byte canonical equality, rejected-source diagnostic/status equality다.
+  Missing sibling, unsupported runtime, public/test 혼용은 artifact 없이 실패했다.
+  Focused public gate 4.5초, live 13-row 51.4초, hard contract 50.4초,
+  component/removed-path 179.9초가 green이고 변경된 45개 shell script는 모두
+  `bash -n`을 통과했다.
+- Broad generic-method smoke는 frozen native MIR 단계까지 통과했지만 이미 치환된
+  public C compile/run 단계에서 program artifact를 내지 못하고 실패했다. 닫힌
+  selector의 반증은 아니지만 전체 green으로 기록하지 않으며, focused reproduction
+  전에는 플랫폼 원인을 추측하지 않는다.
+- August 2 review는 `bac9b3f1`의 Pair/aggregate frontier를 관측했으므로 그 활성
+  권고는 이미 낡았다. Topology별 mini-compiler 금지, storage layout과 target call
+  ABI 분리, integration boundary에서 fixed-point/pressure 측정이라는 구조적 제약은
+  계속 유지한다.
+- 다음 단일 `SUBSTITUTING` rung은 exact public
+  `pgy <source> --emit-llvm -o <output.ll>`다. Source-to-MIR owner는
+  `DriverSourceMirExecution`/`SelfMirProgramFacts`, target admission owner는
+  `CompilerTargetProjectionFact`, MIR-to-LLVM owner는
+  `DriverRung2Execution.EmitDirectMir`와
+  `CompileMirJsonToDirectBackendVerified`다. 마지막 consumer는
+  `DriverRung2InstalledPublishDirectMir(..., DirectMirLlvm)`다.
+- 삭제할 우회는 public selector가 마지막 `driver_run_pipeline`을 거쳐 native
+  `compiler_emit_llvm_ir_to_file`에 들어가는 경로다. 기존
+  `driver_materialize_self_host_llvm_artifacts`의 installed producer/projector 조합을
+  재사용하고 새 semantic/backend owner를 만들지 않는다. Missing/rejected producer나
+  projector 실패 뒤 native libLLVM retry와 stale/partial `.ll` publication을 금지한다.
+  Stdout `--emit-llvm` 형태는 이번 file-form rung 이후 별도 open 상태로 둔다.
+- 다음 falsifier는 `option_struct_value_flow.pgy`에서 producer/backend exact-once,
+  public file-form `.ll`과 같은 public MIR의 direct installed `.ll` byte equality,
+  host clang 실행 결과 exact `7\n11\n5\n`, missing/producer/projector failure의
+  no-artifact다. 메모리는 integration 마지막 최대값만 기록하며 2.4 GiB attention,
+  3 GiB hard stop을 유지한다. Full CI, Coq/Rocq, full bootstrap과 current-source
+  gen2==gen3는 이번 checkpoint에서 실행하지 않았다.
 
 ## 비활성 진행 기록 archive
 

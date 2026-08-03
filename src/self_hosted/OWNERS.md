@@ -1820,8 +1820,10 @@ inventory must not become a second fact-family owner registry.
   MIR request, identity/schema, detached payload/artifact receipt, rejection,
   outcome validation, and diagnostic protocol. It owns no compilation,
   artifact write, or semantic fact.
-- `src/self_hosted/compiler/driver_source_mir_execution_owner.pgy` -- reachable
-  source-to-MIR subject/action/zone boundary. It consumes the protocol owner,
+- `src/self_hosted/compiler/driver_source_mir_execution_owner.pgy` -- public
+  source-to-MIR substitution subject/action/zone boundary. The exact public
+  `pgy --mir-json <source>` selector reaches this owner through the installed
+  sibling and cannot retry the native pipeline. It consumes the protocol owner,
   admits verified versus pressure-observed execution and subject/topology
   identity, then calls exactly one existing source-to-MIR payload owner. Its
   `io_read` payload action and `io_read, io_write` artifact action share that

@@ -178,8 +178,12 @@ The bounded executable topology currently has two ordered members:
 `source_mir: DriverSourceMirZone`. The sole composition owner materializes both
 once. Production `Main` reaches their actions and consumes typed outcomes; it
 does not directly call a backend/source-MIR producer or commit the migrated
-artifact. These two slices are `REACHABLE`, not `SUBSTITUTING`, because they
-replace Pergyra orchestration bypasses rather than a new C-owned semantic path.
+artifact. The exact public `pgy --mir-json <source>` request now makes the
+`source_mir` stdout slice `SUBSTITUTING`: `pgy_driver.c` selects the installed
+Pergyra-built sibling before `driver_run_pipeline`, and missing/unsupported
+requests fail without native retry. This does not make the whole world or every
+source/MIR feature `SUBSTITUTING`; the remaining slices keep their independently
+measured grade.
 
 ## Pergyra-Style Check
 

@@ -5402,3 +5402,44 @@ the semantic decision that this operator resolves to the role method. The next
 delta must project that resolved target from semantic analysis into MIR. The
 direct planner must not reconstruct it from a unique role, `Add` spelling, or
 the source/display expression.
+
+## 2026-08-03 public source-to-MIR selector substitution
+
+The role-operator frontier named above was subsequently closed by `aa61503a`,
+including producer-carried role target identity and one target-neutral C/LLVM
+plan. Installed CLI mode ownership, canonical routine ordering, and generic
+specialization identity were then closed before the public selector moved.
+
+At `ced304fb`, exact public `pgy --mir-json <source>` no longer enters the native
+`driver_run_pipeline -> mir_dump_json` path. The native launcher admits the
+request once and executes the installed Pergyra-built sibling in
+`--emit-mir-json-verified` mode. Missing sibling, rejected source, unsupported
+options, and mixed public/test modes fail without native retry. The mixed
+generic+intent fixture produces a 46,727-byte public artifact that is byte-equal
+to the direct installed producer; the independent native artifact canonicalizes
+to the same facts.
+
+Native MIR remains available only as the explicit
+`--test-native-mir-json-oracle` boundary. Existing native-carrier and bootstrap
+tests use that boundary, so a public self producer cannot silently become its
+own oracle and a clean bootstrap does not require the sibling before building
+it. The focused public selector gate, thirteen-row live matrix, hard
+substitution contract, and component/removed-path ratchet are green. This exact
+public stdout slice is `SUBSTITUTING`; the wider `mir.execution_graph` row stays
+`BRIDGE` for its declared open feature families. No pressure, full CI,
+Coq/Rocq, full bootstrap, or current-source gen2==gen3 run is inferred from this
+selector closure.
+
+The next exact production rung is file-form public
+`pgy <source> --emit-llvm -o <output.ll>`. It must reuse the installed
+source-MIR producer and `DirectMirLlvm` projector already used by the public
+LLVM compile path; no new semantic or backend owner is admitted. The native
+`driver_run_pipeline -> compiler_emit_llvm_ir_to_file` bypass must become
+unreachable for this envelope, and producer/projector failure must publish no
+stale artifact or retry native libLLVM. Stdout `--emit-llvm` remains open.
+
+After the selector is closed, the smallest known LLVM breadth falsifier is
+`nested_if_in_loop.pgy`: its eight-block CFG is already carried by the existing
+source-MIR inventory but lies outside the current direct-LLVM admission. Pair,
+enum, generic-method, and the thirteen live rows are completed evidence rather
+than active fixtures.
