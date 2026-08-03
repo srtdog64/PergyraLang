@@ -6,6 +6,57 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-03 - `Array<Int>` foreach substitutes through one scalar-CFG receipt
+
+- Landed executable checkpoint `6122051f`. The installed Pergyra producer's
+  6,761-byte `foreach_array_int_sum.pgy` MIR
+  (`34E49B953F380D3B3909A96FA4D266575C8A351497D1F000DC68468598C9D23E`)
+  now drives a 913-byte C artifact and a 3,121-byte LLVM artifact. Both compile
+  and execute exact `6` through the existing scalar-CFG route.
+- Added one target-neutral collection-iteration receipt keyed by
+  `loop_syntax_id`. Admission joins the loop candidate, typed iteration row,
+  collection ValueId and dominating definition, exact `Array<Int>` ABI,
+  expression-graph literal elements, binder LocalRef, CFG header/body/exit,
+  and backedges once. The collection remains outside the scalar local list;
+  only the binder receives a scalar slot.
+- C and LLVM project storage, cursor, data load, length bound, binder value,
+  and latch increment from the same receipt. C uses the admitted ABI length
+  type, LLVM uses admitted aggregate indices and an unsigned bound compare.
+  Neither backend rereads `expr0`, guesses capacity as length, hardcodes the
+  element count, or retries the retired range-CFG path.
+- The focused gate proves phi-input permutation byte equality and changes only
+  the persisted literal graph from `[1,2,3]` to `[4,5]` while leaving display
+  `expr0` unchanged; both targets then execute exact `9`. Twelve ABI, typed-row,
+  ValueId, graph, int32-bound, phi, and CFG mutations fail before publication.
+- Self-host bootstrap exposed two carrier constraints rather than semantic
+  blockers: a constructor cardinality mismatch in the first primitive set and
+  non-addressable member-array mutation. The final set removes redundant
+  stored fact digests, mutates local array aliases, and reconstructs an
+  immutable set, matching the existing range-set ownership pattern.
+- Current-source build (128.7 seconds), focused gate (14.6 seconds), existing
+  scalar/range regressions, public LLVM (22.2 seconds), current-driver
+  cumulative CFG/AIR (209.5 seconds), and the structural component body are
+  green. The monitored final component body reached 79,863,808 peak working
+  bytes and 46,170,112 peak private bytes; its PowerShell wrapper failed only
+  to read the already-exited process code after the gate printed its final
+  green sentinel, so this is not recorded as a wrapper-level exit-0 claim.
+  The separate doc-link parity script stopped before scanning links because
+  its public C compile returned nonzero with an empty log; no cause or green
+  link-scan claim is inferred from that failure.
+- Classification is bounded `SUBSTITUTING` for an identifier-backed local
+  literal `Array<Int>` foreach with one carried scalar phi. It is not general
+  non-identifier foreach, returned-array call composition, nested/sequential
+  collection iteration, arbitrary element ABI, or whole-compiler replacement.
+- The next committed falsifier is `for_each_call.pgy`. Its current 17,155-byte
+  self MIR
+  (`F569D00CA64B92042203160511B969B2F695C12EE0EF884EF3C7BA489F269958`)
+  contains `MakeValues() -> Array<Int>` plus nested and trailing foreach loops.
+  Both targets fail closed at `direct MIR Array<Int> return program envelope is
+  invalid`. The next rung must compose the existing returned-array producer
+  fact with the scalar-CFG foreach receipt in the multi-routine projection;
+  broadening `DirectMirArrayReturnProgramCandidate`, source-call reparsing, or
+  a call-foreach topology compiler is forbidden.
+
 ## 2026-08-03 - Nested range transfers bind to the innermost active receipt
 
 - Landed executable checkpoint `2184c651`. The 8,363-byte MIR for

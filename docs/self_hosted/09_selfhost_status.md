@@ -150,6 +150,22 @@ binding, or whole-compiler replacement. The next producer falsifier is an outer
 local shadowed by a same-name range binding and then read after loop exit. Full
 CI, current fixed point, pressure and prover suites were not rerun.
 
+Focused evidence at checkpoint `6122051f` closes the bounded local-literal
+`Array<Int>` foreach frontier. One 6,761-byte producer MIR carries the
+collection ValueId, exact ABI layout, typed iteration and loop-flow rows,
+literal expression graph, binder identity, scalar phi, and four-block CFG.
+One target-neutral collection receipt joins those owners before the existing
+scalar-CFG plan; C and LLVM compile and execute exact `6`. Reordered phi inputs
+are byte-equal, and a graph-only `[4,5]` mutation executes exact `9` while the
+display expression remains unchanged. Twelve negative families reject without
+artifact or legacy range retry. Current-source build, focused, existing
+scalar/range, public LLVM, cumulative CFG/AIR, and structural component bodies
+are green without raising a hard LoC cap. This is `SUBSTITUTING` only for the
+covered identifier-backed local literal collection. Returned-array call
+composition, nested/sequential collection foreach, arbitrary collections, and
+whole-compiler replacement remain open; `for_each_call.pgy` is the next exact
+falsifier.
+
 ## Verified
 
 Front-end self-hosts on both backends in LLVM-enabled builds.

@@ -6,7 +6,88 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — Array foreach scalar-CFG substitution
+## Active self-host context — returned-array foreach composition
+
+- Executable checkpoint: `6122051f` on `main`; this handoff is its docs-only
+  descendant and should be clean after commit/push. `bin/pgy.exe` remains
+  4,626,988 bytes, SHA-256
+  `39798EA50105C9B48F26AE2FCABDB400B54AC153D15DC440B089C4E5E6402F9E`.
+  The rebuilt and smoke-verified Pergyra sibling is 4,384,945 bytes, SHA-256
+  `F29AC44465FB3B0B576C6716C735294232FEE5C1982CCE334CFA82684331F7B8`.
+- Closed executable rung: `foreach_array_int_sum.pgy`. Its 6,761-byte
+  self-produced MIR has SHA-256
+  `34E49B953F380D3B3909A96FA4D266575C8A351497D1F000DC68468598C9D23E`.
+  The source carries one local literal `Array<Int>`, one `Int` binder, a
+  mutable total, one header phi, and an exact four-block CFG.
+- That immutable MIR now produces a 913-byte C artifact
+  (`2AF700B1022F5CA37D45B64E62F3C972C17084EEA89EF4551E70903AEA3EA1C5`)
+  and a 3,121-byte LLVM artifact
+  (`301654DB872A8FC2F6F133088A7636D38C7C75CE47A4DB24A168B6608828708E`).
+  Both compile and execute exact `6`.
+- `DirectMirScalarCfgForEachFact` is the target-neutral receipt. It joins the
+  loop candidate, typed iteration row, collection ValueId and dominating
+  definition, exact Array ABI, persisted literal graph, binding LocalRef,
+  header/body/exit, and backedges once. The collection stays outside scalar
+  local storage; only the binder obtains a scalar local slot.
+- C and LLVM consume that same receipt for storage, ABI-owned length, data
+  access, cursor, binder load, and latch increment. There is no `expr0` read,
+  block-count route, capacity-as-length guess, hardcoded element count,
+  backend collection-protocol reconstruction, or legacy range retry.
+- The focused gate pins exact `6`, phi-input permutation byte equality, and a
+  graph-only `[4,5]` mutation that executes exact `9` while display `expr0`
+  remains unchanged. Twelve ABI, type-row, ValueId, graph, int32-bound, phi,
+  and CFG negatives reject both targets before artifact publication.
+- Fixed caps are green without increases: foreach fact 184/200, set 274/320,
+  append 80/120, admission 264/280, local binding 150/180, graph readiness
+  64/100, C projection 151/180, LLVM projection 187/220, general graph
+  admission 445/450, C emitter 175/180, LLVM emitter 190/260, loop-flow
+  admission 40/40, direct-local operand 40/40, and focused gate 103/180.
+- Latest observed evidence: current-source installed build 128.7 seconds;
+  focused foreach C/LLVM gate 14.6 seconds; existing scalar/range regressions
+  11.0–14.9 seconds; public installed LLVM 22.2 seconds; current-driver
+  cumulative CFG/AIR 209.5 seconds; structural component body 232–248 seconds.
+  The final monitored component body printed its green sentinel with peak
+  working 79,863,808 bytes (0.074 GiB) and private 46,170,112 bytes
+  (0.043 GiB); 3 GiB hard stop did not fire. The monitoring wrapper itself did
+  not recover the already-exited process code, so do not promote that wrapper
+  invocation to an exit-0 claim.
+- Classification: this identifier-backed local-literal `Array<Int>` foreach is
+  bounded `SUBSTITUTING` in installed C and LLVM. It is not returned-array call
+  composition, nested/sequential collection foreach, arbitrary element ABI,
+  general foreach, whole-compiler replacement, or a current gen2==gen3 claim.
+- Next objective card: `src/self_hosted/mir_lower/fixture/for_each_call.pgy` is
+  the only active rung. The installed Pergyra producer emits a 17,155-byte MIR,
+  SHA-256
+  `F569D00CA64B92042203160511B969B2F695C12EE0EF884EF3C7BA489F269958`,
+  with `MakeValues() -> Array<Int>`, nested outer/inner foreach loops, and a
+  trailing foreach. Both direct targets fail before publication with
+  `direct MIR Array<Int> return program envelope is invalid`.
+- Priority is returned-array producer identity and call-result ValueId,
+  composition with the existing foreach receipt, nested/sequential CFG
+  ownership, then one C/LLVM integration gate. Fact owners are the existing
+  Array return plan, call/use graph, typed iteration rows, and scalar-CFG
+  collection receipt. The last legitimate consumer is
+  `CompileAdmittedDirectMirMultiRoutineForTarget`; the over-broad competing
+  claimant is `DirectMirArrayReturnProgramCandidate` when the two-routine
+  program is not a bounded return-only consumer.
+- Forbidden fallback: source/call expression reparsing, broadening the Array
+  return candidate to swallow invalid main graphs, a fixture/topology-specific
+  call-foreach compiler, block/routine-count semantics, backend-specific call
+  composition, materializing the returned collection three times, or retrying
+  another multi-routine family after a claimed invalid plan.
+- The first unqualified cumulative CFG invocation still selects a stale
+  `.tmp/.../driver_seed.exe` and fails at `unknown source MIR pressure token`.
+  The same gate with `PGY_SELFHOST_ONE_MIR_DRIVER_BIN` bound to the installed
+  sibling is green. Full CI, full bootstrap, current-source gen2==gen3, and
+  Coq/Rocq did not run. `doc_link_checker_parity.sh` did not reach its link
+  scan: the public C compile returned nonzero with an empty compile log; its
+  cause is `Unknown` and this rung did not broaden into that toolchain repair.
+  Memory remains final-integration-only: attention at 2.4 GiB and hard stop at
+  3 GiB.
+
+## Historical checkpoint archive — inactive evidence
+
+### Previous pre-foreach snapshot
 
 - Executable checkpoint: `2184c651` on `main`; this handoff is a docs-only
   descendant and should be clean after its commit/push. `bin/pgy.exe` remains
@@ -75,7 +156,7 @@ owner, and the named executable gate.
   Memory remains final-integration-only: attention at 2.4 GiB, hard stop at
   3 GiB, and only a final pressure result is recorded.
 
-## Historical checkpoint archive — inactive evidence
+### Earlier checkpoint archive
 
 ### Previous iteration-binding scope snapshot
 

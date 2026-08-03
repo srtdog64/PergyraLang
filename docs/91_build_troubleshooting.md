@@ -5008,3 +5008,52 @@ candidate smoke가 완료됐고, 다음 동일-source 호출은 9.1초에 finger
 `host compile`, `candidate smoke` 중 어느 단계가 성장했는지 먼저 분리한다. 일상
 focused gate에 pressure sampling을 반복해서 붙이지 말고, final/integration build의
 최대값 하나만 handoff에 기록한다.
+
+## self-host codegen이 새 primitive receipt set을 거부하는 경우
+
+2026-08-03 `Array<Int>` foreach receipt 작업에서 두 오류가 연속으로
+관찰됐다.
+
+```text
+call_arity_mismatch
+func: DirectMirScalarCfgForEachFactSet
+expected: at_most_29
+actual: 30
+```
+
+이 메시지는 컴파일러 규모 메모리 부족이나 C 컴파일 실패가 아니다.
+Pergyra-built gen2 codegen이 struct constructor의 실제 인자 수와 선언된
+필드 수가 맞지 않음을 semantic 단계에서 거부한 것이다. 생성된
+`.tmp/self_hosted/compiler/bootstrap/driver.c`의 `CODEGEN ERROR`를 먼저 읽고,
+필드/constructor를 다시 센다. 이번 경우에는 중복 저장이던 per-row
+`fact_digest` 열을 제거하고 각 row에서 digest를 재계산했다. 필드 상한을
+늘리거나 set을 둘로 나눠 이중 권위를 만들지 않는다.
+
+다음 오류도 같은 단계의 소유권 진단이다.
+
+```text
+ref argument must be addressable: DirectMirScalarCfgForEachFactAt(facts, row)
+undefined_symbol: facts.definition_global_rows
+```
+
+첫 메시지는 `ref` 함수에 임시 반환값을 넘긴 경우이므로 지역 fact에
+먼저 바인딩한다. 두 번째는 값으로 받은 struct의 member array를
+`ArrayPush(facts.rows, ...)`로 직접 변경하려 한 경우였다. 기존 range set과
+같이 member array를 지역 배열 소유자로 꺼내 변경한 뒤 새 immutable set을
+constructor로 재구성해야 한다.
+
+누적 CFG gate를 직접 실행할 때 기본 `.tmp/.../driver_seed.exe`가 오래되면
+`unknown source MIR pressure token`이 먼저 나타날 수 있다. 현재 설치형
+증거를 검증할 때는 다음처럼 driver identity를 명시한다.
+
+```powershell
+$env:PGY_SELFHOST_ONE_MIR_DRIVER_BIN='D:/PergyraLang/bin/pgy-self-driver.exe'
+& 'C:\Program Files\Git\bin\bash.exe' `
+  tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh
+```
+
+동일 source에서 이 경로는 209.5초에 green이었다. 최종 component gate의
+프로세스 트리만 샘플링한 peak는 working 79,863,808 bytes(0.074 GiB),
+private 46,170,112 bytes(0.043 GiB)였고 3 GiB hard stop은 발동하지 않았다.
+일상 focused gate마다 pressure sampling을 반복하지 않고 최종 integration
+수치 하나만 기록한다.
