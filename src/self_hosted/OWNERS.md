@@ -2153,6 +2153,10 @@ inventory must not become a second fact-family owner registry.
   lookup, and set readiness; array position is not semantic identity.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_range_graph_readiness_owner.pgy`
   -- receipt-by-receipt CFG and unique latch-effect validation after plan issue.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_range_transfer_admission_owner.pgy`
+  -- pre-plan proof that every range backedge belongs to the innermost active
+  receipt; an outer dominating header cannot steal an inner continue or normal
+  fallthrough edge.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_range_emission_owner.pgy`
   -- target spelling for the plan-sealed range initialization and latch effect;
   it cannot reopen MIR, source, or topology.

@@ -1,0 +1,53 @@
+// Innermost active range ownership for every admitted loop backedge.
+
+import "direct_mir_scalar_cfg_range_set_owner.pgy";
+import "../mir_lower/routine_definition_dominance_fact_owner.pgy";
+
+func DirectMirScalarCfgRangeActiveAtBlock(
+    ref index: MirRoutineFactIndex,
+    ref range: DirectMirScalarCfgRangeIterationFact,
+    block: Int
+) -> Bool {
+    return DirectMirScalarCfgRangeIterationFactSourceReady(
+            range, ArrayLength(index.block_starts)
+        ) && MirRoutineBlockDominates(index, range.header_block, block) &&
+        !MirRoutineBlockDominates(index, range.exit_block, block);
+}
+
+func DirectMirScalarCfgRangeTransfersReady(
+    ref index: MirRoutineFactIndex,
+    ref ranges: DirectMirScalarCfgRangeFactSet
+) -> Bool {
+    if !DirectMirScalarCfgRangeFactSetSourceReady(
+        ranges, ArrayLength(index.block_starts)
+    ) { return false; }
+    let row: Int = 0;
+    while row < DirectMirScalarCfgRangeFactCount(ranges) {
+        let range: DirectMirScalarCfgRangeIterationFact =
+            DirectMirScalarCfgRangeFactAt(ranges, row);
+        let edge: Int = 0;
+        while edge < ArrayLength(range.backedge_blocks) {
+            let block: Int = range.backedge_blocks[edge];
+            if !DirectMirScalarCfgRangeActiveAtBlock(index, range, block) {
+                return false;
+            }
+            let inner_row: Int = 0;
+            while inner_row < DirectMirScalarCfgRangeFactCount(ranges) {
+                let inner: DirectMirScalarCfgRangeIterationFact =
+                    DirectMirScalarCfgRangeFactAt(ranges, inner_row);
+                if inner_row != row &&
+                    DirectMirScalarCfgRangeActiveAtBlock(
+                        index, inner, block
+                    ) && MirRoutineBlockDominates(
+                        index, range.header_block, inner.header_block
+                    ) {
+                    return false;
+                }
+                inner_row = inner_row + 1;
+            }
+            edge = edge + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}

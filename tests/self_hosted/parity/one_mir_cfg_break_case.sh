@@ -38,3 +38,10 @@ PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
     bash "$NESTED_SCOPE_GATE" || fail "nested iteration binding scope gate failed"
 
 echo "[$LABEL] nested range binders substitute through one canonical receipt set"
+
+NESTED_CONTINUE_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir_nested_iteration_continue_scope_owner.sh"
+require_file "$NESTED_CONTINUE_GATE"
+PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
+    bash "$NESTED_CONTINUE_GATE" || fail "nested iteration continue scope gate failed"
+
+echo "[$LABEL] nested continue/fallthrough transfers stay with their innermost range"

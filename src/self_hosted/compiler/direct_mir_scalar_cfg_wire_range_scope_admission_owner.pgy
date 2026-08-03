@@ -126,7 +126,14 @@ func DirectMirScalarCfgWireRangeScopesReady(
                     if MirSsaNameMatches(
                         UnwrapOption(use_opt),
                         facts.binding_names[fact_row], true
-                    ) { matched = true; }
+                    ) {
+                        let fact: DirectMirScalarCfgRangeIterationFact =
+                            DirectMirScalarCfgRangeFactAt(facts, fact_row);
+                        if DirectMirScalarCfgRangeOwnsDirectUseBlock(
+                            index, facts, fact, block
+                        ) { return false; }
+                        matched = true;
+                    }
                     fact_row = fact_row + 1;
                 }
                 if matched { matching_uses = matching_uses + 1; }

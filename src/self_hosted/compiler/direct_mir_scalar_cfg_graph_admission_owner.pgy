@@ -7,6 +7,7 @@ import "direct_mir_scalar_cfg_graph_route_owner.pgy";
 import "direct_mir_scalar_cfg_loop_flow_admission_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_operation_plan_owner.pgy";
+import "direct_mir_scalar_cfg_range_transfer_admission_owner.pgy";
 import "../mir_lower/phi_fact_owner.pgy";
 import "../mir_lower/phi_predecessor_binding_fact_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
@@ -47,6 +48,9 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
             range_sources, ArrayLength(index.block_starts)
         )) {
         Die("direct MIR scalar CFG range iteration facts are invalid");
+    }
+    if !DirectMirScalarCfgRangeTransfersReady(index, range_sources) {
+        Die("direct MIR scalar CFG range transfer is invalid");
     }
     if !index.valid || !MirRoutineInstructionFactBundleReady(
             index.instruction_facts, ArrayLength(index.block_starts)
