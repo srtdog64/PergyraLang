@@ -27,13 +27,15 @@ command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy"
 ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_admission_owner.pgy"
 DOMINANCE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_dominance_owner.pgy"
+GUARD="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_guard_dominance_owner.pgy"
 C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_emission_owner.pgy"
 LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy"
 require_text "$PLAN" 'DirectMirScalarCfgStringArrayAccessSetKind()'
 require_text "$ADMISSION" 'DirectMirScalarCfgStringArrayWhileLengthGraphFactFrom(graph)'
 require_text "$ADMISSION" 'DirectMirScalarCfgStringArrayAccessSetKind()'
-require_text "$DOMINANCE" 'MirRoutineBlockDominates('
-require_text "$DOMINANCE" 'predecessor_count == 1'
+require_text "$DOMINANCE" 'DirectMirScalarCfgArrayGuardEdgeReady('
+require_text "$GUARD" 'MirRoutineBlockDominates('
+require_text "$GUARD" 'predecessor_count == 1'
 require_text "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_graph_readiness_owner.pgy" \
     'fact.index.value_row >= ArrayLength(plan.value_types)'
 require_text "$C_OWNER" '.length'

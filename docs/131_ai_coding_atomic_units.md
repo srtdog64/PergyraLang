@@ -367,13 +367,30 @@ The bounded String-array push rung is a concrete example. Output-only testing
 could have accepted values pre-baked into final storage while leaving LLVM's
 length as an immutable stale snapshot. The architecture constraint instead
 fixed one operation-ordered length owner, one mutable backend object, a strict
-  store-before-length-update rule, and negatives for missing empty graphs,
-  reordered or late pushes, entry-block re-entry, capacity-as-length, stale
-  receivers, and backend rediscovery. The re-entry case is especially
-  architectural: the emitted values remain locally consistent, yet a CFG edge
-  back to block zero repeats mutation and invalidates the bounded-capacity
-  proof. The lesson is that consistency tests constrain language surface;
-  owner/consumer/fallback gates constrain compiler architecture.
+store-before-length-update rule, and negatives for missing empty graphs,
+reordered or late pushes, entry-block re-entry, capacity-as-length, stale
+receivers, and backend rediscovery. The re-entry case is especially
+architectural: the emitted values remain locally consistent, yet a CFG edge
+back to block zero repeats mutation and invalidates the bounded-capacity proof.
+
+The following bounded `Array<Int>` loop-push rung exposed a second local
+example. The language use was already internally consistent: an empty array,
+`ArrayPush`, `ArrayLength`, indexing, and integer arithmetic all existed. The
+first production failure was nevertheless architectural: scalar-local
+inventory had no collection claimant for the same LocalRef, and a local patch
+would have created either a second collection compiler or a weaker scalar
+admission path. The closed design instead added one collection mutation fact
+to the existing target-neutral `GraphPlan`, extracted shared CFG responsibilities
+from the older String owners, and made both backends consume that receipt. Its
+negative matrix changes receiver identity, loop/backedge effects, graph leaves,
+current length, read identity, and ABI before artifact publication. Exact
+`30`/`5` parity is supporting evidence; the important architecture evidence is
+that those mutations cannot be accepted by a hidden alternate route.
+
+The lesson is that consistency tests constrain language surface;
+owner/consumer/fallback gates constrain compiler architecture. The external
+comment is therefore a warning signal, while the two executable rungs are the
+repository-local evidence.
 
 The central rule is:
 

@@ -87,3 +87,10 @@ PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
     bash "$STRING_ARRAY_PUSH_GATE" || fail "String-array push receipt gate failed"
 
 echo "[$LABEL] empty Array<String> and ordered pushes share one mutable receipt"
+
+ARRAY_INT_PUSH_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir_array_int_loop_push_projection.sh"
+require_file "$ARRAY_INT_PUSH_GATE"
+PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
+    bash "$ARRAY_INT_PUSH_GATE" || fail "Array<Int> loop-push receipt gate failed"
+
+echo "[$LABEL] bounded dynamic Array<Int> push and indexed sum share one receipt"

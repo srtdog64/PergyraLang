@@ -1,0 +1,55 @@
+// C routing for operations owned by typed collection receipts.
+
+import "direct_mir_scalar_cfg_string_array_c_mutation_emission_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_c_emission_owner.pgy";
+
+struct DirectMirScalarCfgCCollectionOperationEmission {
+    let valid: Bool;
+    let text: String;
+}
+
+func DirectMirScalarCfgEmitCCollectionOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    int_line_format: String, int_c_type: String
+) -> DirectMirScalarCfgCCollectionOperationEmission {
+    let kind: Int = plan.operation_kinds[operation];
+    if kind == DirectMirScalarCfgOpArraySetString() {
+        return DirectMirScalarCfgCCollectionOperationEmission(
+            true, DirectMirScalarCfgStringArrayCSet(plan, operation)
+        );
+    }
+    if kind == DirectMirScalarCfgOpArrayPushString() {
+        return DirectMirScalarCfgCCollectionOperationEmission(
+            true, DirectMirScalarCfgStringArrayCPush(plan, operation)
+        );
+    }
+    if kind == DirectMirScalarCfgOpArrayPushInt() {
+        return DirectMirScalarCfgCCollectionOperationEmission(
+            true, DirectMirScalarCfgArrayIntCPush(plan, operation)
+        );
+    }
+    if kind == DirectMirScalarCfgOpAddArrayReadInt() {
+        return DirectMirScalarCfgCCollectionOperationEmission(
+            true, DirectMirScalarCfgArrayIntCRead(plan, operation)
+        );
+    }
+    if kind == DirectMirScalarCfgOpLogArrayLength() {
+        if operation == plan.array_int_loop_mutation.consumer.
+                length_log_operation_row {
+            return DirectMirScalarCfgCCollectionOperationEmission(
+                true, DirectMirScalarCfgArrayIntCLengthLog(
+                    plan, operation, formatted_print,
+                    int_line_format, int_c_type
+                )
+            );
+        }
+        return DirectMirScalarCfgCCollectionOperationEmission(
+            true, DirectMirScalarCfgStringArrayCLengthLog(
+                plan, operation, formatted_print,
+                int_line_format, int_c_type
+            )
+        );
+    }
+    return DirectMirScalarCfgCCollectionOperationEmission(false, "");
+}

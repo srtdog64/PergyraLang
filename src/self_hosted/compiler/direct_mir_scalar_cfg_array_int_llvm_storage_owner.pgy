@@ -1,0 +1,63 @@
+// Mutable four-field LLVM storage for the bounded Array<Int> receipt.
+
+import "direct_mir_array_int_abi_projection_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_llvm_storage_emission_owner.pgy";
+
+func DirectMirScalarCfgArrayIntLlvmDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact
+) -> String {
+    if DirectMirScalarCfgArrayIntLoopMutationAbsent(
+        plan.array_int_loop_mutation
+    ) { return ""; }
+    let fact: DirectMirScalarCfgArrayIntCollectionFact =
+        plan.array_int_loop_mutation.collection;
+    let abi: DirectMirArrayIntAbiProjection =
+        DirectMirArrayIntAbiProjectionFromCanonicalLayout(
+            target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
+            fact.data_offset, fact.length_offset, fact.capacity_offset,
+            fact.allocator_offset
+        );
+    let capacity: String = ToString(
+        plan.array_int_loop_mutation.producer.bound
+    );
+    let output: String = Concat(
+        "  %pgy.array.int.storage = alloca [", capacity
+    );
+    output = Concat(output, " x i32], align 4\n");
+    output = Concat(output, Concat(
+        "  %pgy.array.int.data = getelementptr inbounds [", capacity
+    ));
+    output = Concat(output,
+        " x i32], ptr %pgy.array.int.storage, i64 0, i64 0\n");
+    output = Concat(output, Concat(
+        "  %pgy.array.int.object = alloca ", abi.llvm_aggregate_type
+    ));
+    output = Concat(output, ", align 8\n");
+    output = Concat(output,
+        DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
+            "int", abi.llvm_aggregate_type, "data", abi.data_index
+        ));
+    output = Concat(output,
+        DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
+            "int", abi.llvm_aggregate_type, "length", abi.length_index
+        ));
+    output = Concat(output,
+        DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
+            "int", abi.llvm_aggregate_type, "capacity", abi.capacity_index
+        ));
+    output = Concat(output,
+        DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
+            "int", abi.llvm_aggregate_type, "allocator",
+            abi.allocator_index
+        ));
+    output = Concat(output,
+        "  store ptr %pgy.array.int.data, ptr %pgy.array.int.data.field, align 8\n");
+    output = Concat(output,
+        "  store i64 0, ptr %pgy.array.int.length.field, align 8\n");
+    output = Concat(output, Concat("  store i64 ", capacity));
+    output = Concat(output,
+        ", ptr %pgy.array.int.capacity.field, align 8\n");
+    return Concat(output,
+        "  store ptr null, ptr %pgy.array.int.allocator.field, align 8\n");
+}

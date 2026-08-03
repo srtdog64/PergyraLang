@@ -1,0 +1,127 @@
+// LLVM operations and length condition from the sealed Array<Int> receipt.
+
+import "direct_mir_scalar_cfg_array_int_llvm_storage_owner.pgy";
+import "direct_mir_scalar_cfg_llvm_operand_owner.pgy";
+
+func DirectMirScalarCfgArrayIntLlvmCondition(
+    ref plan: DirectMirScalarCfgGraphPlan, block: Int
+) -> String {
+    let fact: DirectMirScalarCfgArrayIntLoopMutationFact =
+        plan.array_int_loop_mutation;
+    if !fact.valid || block != fact.consumer.header_block {
+        Die("direct MIR scalar CFG Array<Int> LLVM condition is invalid");
+    }
+    let output: String = Concat("  %pgy.cond.", ToString(block));
+    output = Concat(output, ".left = load i64, ptr ");
+    output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
+        plan, fact.consumer.index_value_row, -1
+    ));
+    output = Concat(output, ", align 8\n");
+    output = Concat(output, Concat("  %pgy.cond.", ToString(block)));
+    output = Concat(output,
+        ".length = load i64, ptr %pgy.array.int.length.field, align 8\n");
+    output = Concat(output, Concat("  %pgy.cond.", ToString(block)));
+    output = Concat(output, Concat(" = icmp slt i64 %pgy.cond.",
+        ToString(block)));
+    return Concat(output, Concat(".left, %pgy.cond.",
+        Concat(ToString(block), ".length")));
+}
+
+func DirectMirScalarCfgArrayIntLlvmPush(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> String {
+    let fact: DirectMirScalarCfgArrayIntLoopMutationFact =
+        plan.array_int_loop_mutation;
+    if !fact.valid || operation != fact.producer.push_operation_row {
+        Die("direct MIR scalar CFG Array<Int> LLVM push is invalid");
+    }
+    let stem: String = Concat("%pgy.op.", ToString(operation));
+    let output: String = Concat("  ", stem);
+    output = Concat(output, ".push.value = load i64, ptr ");
+    output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
+        plan, fact.producer.induction_value_row, -1
+    ));
+    output = Concat(output, ", align 8\n  ");
+    output = Concat(output, Concat(stem, ".push.computed = "));
+    if fact.producer.push_value_kind ==
+            DirectMirScalarCfgArrayIntPushValueMultiply() {
+        output = Concat(output, "mul i64 ");
+    } else { output = Concat(output, "add i64 "); }
+    output = Concat(output, Concat(stem, ".push.value, "));
+    output = Concat(output, Concat(stem, ".push.value\n  "));
+    output = Concat(output, Concat(stem,
+        ".push.element = trunc i64 "));
+    output = Concat(output, Concat(stem, ".push.computed to i32\n  "));
+    output = Concat(output, Concat(stem,
+        ".push.length = load i64, ptr %pgy.array.int.length.field, align 8\n  "));
+    output = Concat(output, Concat(stem,
+        ".push.slot = getelementptr inbounds i32, ptr %pgy.array.int.data, i64 "));
+    output = Concat(output, Concat(stem, ".push.length\n"));
+    output = Concat(output, Concat("  store i32 ", stem));
+    output = Concat(output, Concat(".push.element, ptr ", stem));
+    output = Concat(output, ".push.slot, align 4\n  ");
+    output = Concat(output, Concat(stem,
+        ".push.next = add i64 "));
+    output = Concat(output, Concat(stem, ".push.length, 1\n"));
+    output = Concat(output, Concat("  store i64 ", stem));
+    return Concat(output,
+        ".push.next, ptr %pgy.array.int.length.field, align 8\n");
+}
+
+func DirectMirScalarCfgArrayIntLlvmRead(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> String {
+    let fact: DirectMirScalarCfgArrayIntLoopMutationFact =
+        plan.array_int_loop_mutation;
+    if !fact.valid || operation != fact.consumer.read_operation_row {
+        Die("direct MIR scalar CFG Array<Int> LLVM read is invalid");
+    }
+    let stem: String = Concat("%pgy.op.", ToString(operation));
+    let output: String = Concat("  ", stem);
+    output = Concat(output, ".read.left = load i64, ptr ");
+    output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
+        plan, fact.consumer.sum_left_value_row, -1
+    ));
+    output = Concat(output, ", align 8\n  ");
+    output = Concat(output, Concat(stem, ".read.index = load i64, ptr "));
+    output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
+        plan, fact.consumer.index_value_row, -1
+    ));
+    output = Concat(output, ", align 8\n  ");
+    output = Concat(output, Concat(stem,
+        ".read.ptr = getelementptr inbounds i32, ptr %pgy.array.int.data, i64 "));
+    output = Concat(output, Concat(stem, ".read.index\n  "));
+    output = Concat(output, Concat(stem, ".read.i32 = load i32, ptr "));
+    output = Concat(output, Concat(stem, ".read.ptr, align 4\n  "));
+    output = Concat(output, Concat(stem, ".read.i64 = sext i32 "));
+    output = Concat(output, Concat(stem, ".read.i32 to i64\n  "));
+    output = Concat(output, Concat(stem, ".read.sum = add i64 "));
+    output = Concat(output, Concat(stem, ".read.left, "));
+    output = Concat(output, Concat(stem, ".read.i64\n"));
+    output = Concat(output, Concat("  store i64 ", stem));
+    output = Concat(output, ".read.sum, ptr ");
+    output = Concat(output, DirectMirScalarCfgLlvmLocal(
+        plan, fact.consumer.read_result_value_row
+    ));
+    return Concat(output, ", align 8\n");
+}
+
+func DirectMirScalarCfgArrayIntLlvmLengthLog(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact
+) -> String {
+    if !plan.array_int_loop_mutation.valid || operation !=
+            plan.array_int_loop_mutation.consumer.length_log_operation_row {
+        Die("direct MIR scalar CFG Array<Int> LLVM length Log is invalid");
+    }
+    let stem: String = Concat("%pgy.op.", ToString(operation));
+    let output: String = Concat("  ", stem);
+    output = Concat(output,
+        ".length = load i64, ptr %pgy.array.int.length.field, align 8\n  ");
+    output = Concat(output, Concat(stem,
+        ".printed = call i32 (ptr, ...) @"));
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output,
+        "(ptr @.pgy.scalar.cfg.int.format, i64 ");
+    return Concat(output, Concat(stem, ".length)\n"));
+}

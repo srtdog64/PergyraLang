@@ -2,14 +2,12 @@
 
 import "direct_mir_scalar_cfg_string_array_graph_shape_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_instruction_graph_owner.pgy";
 
 func DirectMirScalarCfgStringArrayGraphAt(
     ref object: JsonObjectFactTable, key: String
 ) -> MirExpressionGraphSequence {
-    return MirExpressionGraphSequenceAppend(
-        MirExpressionGraphSequenceEmpty(),
-        JsonObjectFactObjectTable(object, key)
-    );
+    return DirectMirScalarCfgInstructionGraphAt(object, key);
 }
 
 func DirectMirScalarCfgStringArrayCollectionUse(

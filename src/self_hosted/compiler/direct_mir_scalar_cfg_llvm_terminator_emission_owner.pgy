@@ -3,6 +3,7 @@
 import "direct_mir_scalar_cfg_llvm_operand_owner.pgy";
 import "direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_llvm_emission_owner.pgy";
 
 func DirectMirScalarCfgLlvmTerminator(
     ref plan: DirectMirScalarCfgGraphPlan,
@@ -33,6 +34,9 @@ func DirectMirScalarCfgLlvmTerminator(
         output = DirectMirScalarCfgStringArrayLlvmCondition(
             plan, target, block
         );
+    } else if plan.array_int_loop_mutation.valid && block ==
+            plan.array_int_loop_mutation.consumer.header_block {
+        output = DirectMirScalarCfgArrayIntLlvmCondition(plan, block);
     } else {
         let left: String = plan.block_condition_left_literals[block];
         let right: String = plan.block_condition_right_literals[block];

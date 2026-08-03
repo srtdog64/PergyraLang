@@ -1,0 +1,19 @@
+// Operation-row to block position in one sealed scalar-CFG plan.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarCfgOperationBlock(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> Int {
+    let found: Int = -1; let block: Int = 0;
+    while block < ArrayLength(plan.block_operation_starts) {
+        let start: Int = plan.block_operation_starts[block];
+        let end: Int = start + plan.block_operation_counts[block];
+        if operation >= start && operation < end {
+            if found >= 0 { return -1; }
+            found = block;
+        }
+        block = block + 1;
+    }
+    return found;
+}

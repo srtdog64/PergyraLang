@@ -1,0 +1,66 @@
+// Immutable scalar-CFG plan construction, digesting, and mutation rejection.
+
+import "direct_mir_scalar_cfg_graph_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_graph_identity_owner.pgy";
+import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
+
+func DirectMirScalarCfgSealGraphPlan(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    block_succ_true: Array<Int>, block_succ_false: Array<Int>,
+    block_operation_starts: Array<Int>, block_operation_counts: Array<Int>,
+    block_condition_kinds: Array<Int>,
+    block_condition_left_values: Array<Int>,
+    block_condition_right_values: Array<Int>,
+    block_condition_left_locals: Array<Int>,
+    block_condition_right_locals: Array<Int>,
+    block_condition_left_literals: Array<String>,
+    block_condition_right_literals: Array<String>,
+    operation_kinds: Array<Int>, operation_result_values: Array<Int>,
+    operation_left_values: Array<Int>, operation_right_values: Array<Int>,
+    operation_left_locals: Array<Int>, operation_right_locals: Array<Int>,
+    operation_left_literals: Array<String>,
+    operation_right_literals: Array<String>,
+    operation_phi_starts: Array<Int>, operation_phi_counts: Array<Int>,
+    phi_predecessor_blocks: Array<Int>, phi_incoming_values: Array<Int>,
+    ranges: DirectMirScalarCfgRangeFactSet,
+    foreaches: DirectMirScalarCfgForEachFactSet,
+    foreach_elements: DirectMirScalarCfgForEachElementFacts,
+    string_arrays: DirectMirScalarCfgStringArrayPlan,
+    array_int: DirectMirScalarCfgArrayIntLoopMutationFact
+) -> DirectMirScalarCfgGraphPlan {
+    let plan: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgGraphPlan(
+        true, DirectMirScalarCfgGraphPlanSchema(),
+        CompilerArtifactPlanRevision(), 0,
+        DirectMirCfgMirDigest(admitted.routines.source_json),
+        DirectMirCfgDigestFromIndex(index), CompilerTargetCapabilitySchema(),
+        CompilerTargetCapabilityFingerprint(), locals.local_names,
+        types.local_types, locals.local_ref_kinds,
+        locals.local_ref_value_ids, locals.local_ref_syntax_ids,
+        locals.value_names, types.value_types, locals.value_local_rows,
+        locals.value_definition_blocks, block_succ_true, block_succ_false,
+        block_operation_starts, block_operation_counts,
+        block_condition_kinds, block_condition_left_values,
+        block_condition_right_values, block_condition_left_locals,
+        block_condition_right_locals, block_condition_left_literals,
+        block_condition_right_literals, operation_kinds,
+        operation_result_values, operation_left_values,
+        operation_right_values, operation_left_locals,
+        operation_right_locals, operation_left_literals,
+        operation_right_literals, operation_phi_starts,
+        operation_phi_counts, phi_predecessor_blocks, phi_incoming_values,
+        ranges, foreaches, foreach_elements, string_arrays, array_int,
+        DirectMirScalarCfgStringConcatRuntimeCallAbiId(operation_kinds)
+    );
+    let verified: DirectMirScalarCfgGraphPlan =
+        DirectMirScalarCfgGraphPlanWithDigest(
+            plan, DirectMirScalarCfgGraphPlanDigest(plan)
+        );
+    if !DirectMirScalarCfgGraphPlanReady(verified) ||
+        !DirectMirScalarCfgGraphPlanMutationRejected(verified) {
+        Die("direct MIR scalar CFG verified plan identity is invalid");
+    }
+    return verified;
+}

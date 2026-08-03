@@ -1,0 +1,127 @@
+// C projection from the sealed bounded Array<Int> mutation receipt.
+
+import "direct_mir_array_int_abi_projection_owner.pgy";
+import "direct_mir_scalar_cfg_array_c_materialization_owner.pgy";
+import "direct_mir_scalar_cfg_c_operand_owner.pgy";
+
+func DirectMirScalarCfgArrayIntCPreamble(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact
+) -> String {
+    if DirectMirScalarCfgArrayIntLoopMutationAbsent(
+        plan.array_int_loop_mutation
+    ) { return ""; }
+    let fact: DirectMirScalarCfgArrayIntCollectionFact =
+        plan.array_int_loop_mutation.collection;
+    let abi: DirectMirArrayIntAbiProjection =
+        DirectMirArrayIntAbiProjectionFromCanonicalLayout(
+            target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
+            fact.data_offset, fact.length_offset, fact.capacity_offset,
+            fact.allocator_offset
+        );
+    return Concat(
+        "#include <stdint.h>\n#include <stddef.h>\n",
+        DirectMirScalarCfgArrayCStruct(
+            abi.c_element_type, abi.c_length_type, "PgyArray_Int"
+        )
+    );
+}
+
+func DirectMirScalarCfgArrayIntCDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact
+) -> String {
+    if DirectMirScalarCfgArrayIntLoopMutationAbsent(
+        plan.array_int_loop_mutation
+    ) { return ""; }
+    let fact: DirectMirScalarCfgArrayIntCollectionFact =
+        plan.array_int_loop_mutation.collection;
+    let abi: DirectMirArrayIntAbiProjection =
+        DirectMirArrayIntAbiProjectionFromCanonicalLayout(
+            target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
+            fact.data_offset, fact.length_offset, fact.capacity_offset,
+            fact.allocator_offset
+        );
+    let capacity: String = ToString(
+        plan.array_int_loop_mutation.producer.bound
+    );
+    let output: String = Concat("    ", abi.c_element_type);
+    output = Concat(output, Concat(
+        " pgy_array_int_storage[", Concat(capacity, "] = {0};\n"
+    )));
+    output = Concat(output,
+        "    PgyArray_Int pgy_array_int_collection = {pgy_array_int_storage, 0, ");
+    return Concat(output, Concat(capacity, ", NULL};\n"));
+}
+
+func DirectMirScalarCfgArrayIntCCondition(
+    ref plan: DirectMirScalarCfgGraphPlan, block: Int
+) -> String {
+    let fact: DirectMirScalarCfgArrayIntLoopMutationFact =
+        plan.array_int_loop_mutation;
+    if !fact.valid || block != fact.consumer.header_block {
+        Die("direct MIR scalar CFG Array<Int> C condition is invalid");
+    }
+    return Concat("((size_t)", Concat(DirectMirScalarCfgCOperand(
+        plan, fact.consumer.index_value_row, -1, ""
+    ), ") < pgy_array_int_collection.length"));
+}
+
+func DirectMirScalarCfgArrayIntCPush(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> String {
+    let fact: DirectMirScalarCfgArrayIntLoopMutationFact =
+        plan.array_int_loop_mutation;
+    if !fact.valid || operation != fact.producer.push_operation_row {
+        Die("direct MIR scalar CFG Array<Int> C push is invalid");
+    }
+    let value: String = DirectMirScalarCfgCOperand(
+        plan, fact.producer.induction_value_row, -1, ""
+    );
+    let operator: String = " * ";
+    if fact.producer.push_value_kind ==
+            DirectMirScalarCfgArrayIntPushValueAdd() { operator = " + "; }
+    let output: String =
+        "    pgy_array_int_collection.data[pgy_array_int_collection.length] = (int32_t)(";
+    output = Concat(output, Concat(value, operator));
+    output = Concat(output, Concat(value, ");\n"));
+    return Concat(output,
+        "    pgy_array_int_collection.length = pgy_array_int_collection.length + 1;\n");
+}
+
+func DirectMirScalarCfgArrayIntCRead(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> String {
+    let fact: DirectMirScalarCfgArrayIntLoopMutationFact =
+        plan.array_int_loop_mutation;
+    if !fact.valid || operation != fact.consumer.read_operation_row {
+        Die("direct MIR scalar CFG Array<Int> C read is invalid");
+    }
+    let output: String = Concat("    ", DirectMirScalarCfgCLocal(
+        plan, fact.consumer.read_result_value_row
+    ));
+    output = Concat(output, " = ");
+    output = Concat(output, DirectMirScalarCfgCOperand(
+        plan, fact.consumer.sum_left_value_row, -1, ""
+    ));
+    output = Concat(output, " + pgy_array_int_collection.data[(size_t)");
+    output = Concat(output, DirectMirScalarCfgCOperand(
+        plan, fact.consumer.index_value_row, -1, ""
+    ));
+    return Concat(output, "];\n");
+}
+
+func DirectMirScalarCfgArrayIntCLengthLog(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    int_line_format: String, int_c_type: String
+) -> String {
+    if !plan.array_int_loop_mutation.valid || operation !=
+            plan.array_int_loop_mutation.consumer.length_log_operation_row {
+        Die("direct MIR scalar CFG Array<Int> C length Log is invalid");
+    }
+    let output: String = Concat("    ", formatted_print.symbol);
+    output = Concat(output, Concat("(\"", int_line_format));
+    output = Concat(output, Concat("\", (", int_c_type));
+    return Concat(output, ")pgy_array_int_collection.length);\n");
+}

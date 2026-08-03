@@ -2,27 +2,8 @@
 
 import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_push_dominance_owner.pgy";
+import "direct_mir_scalar_cfg_array_guard_dominance_owner.pgy";
 import "../mir_lower/routine_definition_dominance_fact_owner.pgy";
-
-func DirectMirScalarCfgStringArrayGuardEdgeReady(
-    ref index: MirRoutineFactIndex, guard_block: Int, access_block: Int
-) -> Bool {
-    if guard_block < 0 || guard_block >= ArrayLength(index.block_succ_true) {
-        return false;
-    }
-    let guarded_block: Int = index.block_succ_true[guard_block];
-    let predecessor_count: Int = 0;
-    let predecessor: Int = 0;
-    while predecessor < ArrayLength(index.block_succ_true) {
-        if index.block_succ_true[predecessor] == guarded_block ||
-            index.block_succ_false[predecessor] == guarded_block {
-            predecessor_count = predecessor_count + 1;
-        }
-        predecessor = predecessor + 1;
-    }
-    return guarded_block >= 0 && predecessor_count == 1 &&
-        MirRoutineBlockDominates(index, guarded_block, access_block);
-}
 
 func DirectMirScalarCfgStringArrayPlanDominanceReady(
     ref plan: DirectMirScalarCfgStringArrayPlan,
@@ -69,7 +50,7 @@ func DirectMirScalarCfgStringArrayPlanDominanceReady(
             index, definition, access_block, access_local
         ) { return false; }
         if fact.guard_length_row >= 0 &&
-            !DirectMirScalarCfgStringArrayGuardEdgeReady(
+            !DirectMirScalarCfgArrayGuardEdgeReady(
                 index, plan.lengths.blocks[fact.guard_length_row], access_block
             ) { return false; }
         access_row = access_row + 1;

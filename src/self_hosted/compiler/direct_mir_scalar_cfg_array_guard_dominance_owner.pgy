@@ -1,0 +1,23 @@
+// Unique guarded edge and block dominance for indexed array consumers.
+
+import "../mir_lower/routine_definition_dominance_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayGuardEdgeReady(
+    ref index: MirRoutineFactIndex, guard_block: Int, access_block: Int
+) -> Bool {
+    if guard_block < 0 || guard_block >= ArrayLength(index.block_succ_true) {
+        return false;
+    }
+    let guarded_block: Int = index.block_succ_true[guard_block];
+    let predecessor_count: Int = 0;
+    let predecessor: Int = 0;
+    while predecessor < ArrayLength(index.block_succ_true) {
+        if index.block_succ_true[predecessor] == guarded_block ||
+            index.block_succ_false[predecessor] == guarded_block {
+            predecessor_count = predecessor_count + 1;
+        }
+        predecessor = predecessor + 1;
+    }
+    return guarded_block >= 0 && predecessor_count == 1 &&
+        MirRoutineBlockDominates(index, guarded_block, access_block);
+}

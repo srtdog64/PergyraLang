@@ -1,0 +1,55 @@
+// LLVM routing for operations owned by typed collection receipts.
+
+import "direct_mir_scalar_cfg_string_array_llvm_mutation_emission_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_llvm_emission_owner.pgy";
+
+struct DirectMirScalarCfgLlvmCollectionOperationEmission {
+    let valid: Bool;
+    let text: String;
+}
+
+func DirectMirScalarCfgEmitLlvmCollectionOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    target: CompilerTargetProjectionFact
+) -> DirectMirScalarCfgLlvmCollectionOperationEmission {
+    let kind: Int = plan.operation_kinds[operation];
+    if kind == DirectMirScalarCfgOpArraySetString() {
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(
+            true, DirectMirScalarCfgStringArrayLlvmSet(
+                plan, target, operation
+            )
+        );
+    }
+    if kind == DirectMirScalarCfgOpArrayPushString() {
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(
+            true, DirectMirScalarCfgStringArrayLlvmPush(plan, operation)
+        );
+    }
+    if kind == DirectMirScalarCfgOpArrayPushInt() {
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(
+            true, DirectMirScalarCfgArrayIntLlvmPush(plan, operation)
+        );
+    }
+    if kind == DirectMirScalarCfgOpAddArrayReadInt() {
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(
+            true, DirectMirScalarCfgArrayIntLlvmRead(plan, operation)
+        );
+    }
+    if kind == DirectMirScalarCfgOpLogArrayLength() {
+        if operation == plan.array_int_loop_mutation.consumer.
+                length_log_operation_row {
+            return DirectMirScalarCfgLlvmCollectionOperationEmission(
+                true, DirectMirScalarCfgArrayIntLlvmLengthLog(
+                    plan, operation, formatted_print
+                )
+            );
+        }
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(
+            true, DirectMirScalarCfgStringArrayLlvmLengthLog(
+                plan, operation, formatted_print
+            )
+        );
+    }
+    return DirectMirScalarCfgLlvmCollectionOperationEmission(false, "");
+}

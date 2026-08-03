@@ -1,0 +1,47 @@
+// Stable target-neutral identity for one Array<Int> loop-mutation receipt.
+
+import "direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+
+func DirectMirScalarCfgArrayIntLoopMutationDigest(
+    ref fact: DirectMirScalarCfgArrayIntLoopMutationFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(
+        389L, fact.collection.definition_global_row
+    );
+    hash = DirectMirCfgHashString(hash, fact.collection.collection_value_id);
+    hash = DirectMirCfgHashString(hash, fact.collection.collection_name);
+    hash = DirectMirCfgHashString(hash, fact.collection.storage_identity);
+    hash = DirectMirCfgHashInt(hash, fact.collection.abi_layout_id);
+    hash = DirectMirCfgHashInt(hash, fact.collection.abi_size);
+    hash = DirectMirCfgHashInt(hash, fact.collection.abi_align);
+    hash = DirectMirCfgHashInt(hash, fact.collection.data_offset);
+    hash = DirectMirCfgHashInt(hash, fact.collection.length_offset);
+    hash = DirectMirCfgHashInt(hash, fact.collection.capacity_offset);
+    hash = DirectMirCfgHashInt(hash, fact.collection.allocator_offset);
+    hash = DirectMirCfgHashInt(hash, fact.producer.header_block);
+    hash = DirectMirCfgHashInt(hash, fact.producer.body_block);
+    hash = DirectMirCfgHashInt(hash, fact.producer.exit_block);
+    hash = DirectMirCfgHashInt(hash, fact.producer.bound);
+    hash = DirectMirCfgHashInt(hash, fact.producer.push_global_row);
+    hash = DirectMirCfgHashInt(hash, fact.producer.push_value_kind);
+    hash = DirectMirCfgHashString(hash, fact.producer.induction_value_id);
+    hash = DirectMirCfgHashInt(hash, fact.producer.induction_value_row);
+    hash = DirectMirCfgHashInt(hash, fact.producer.push_operation_row);
+    hash = DirectMirCfgHashInt(hash, fact.consumer.header_block);
+    hash = DirectMirCfgHashInt(hash, fact.consumer.body_block);
+    hash = DirectMirCfgHashInt(hash, fact.consumer.exit_block);
+    hash = DirectMirCfgHashInt(hash, fact.consumer.length_global_row);
+    hash = DirectMirCfgHashInt(hash, fact.consumer.read_global_row);
+    hash = DirectMirCfgHashInt(hash, fact.consumer.length_log_global_row);
+    hash = DirectMirCfgHashString(hash, fact.consumer.index_value_id);
+    hash = DirectMirCfgHashInt(hash, fact.consumer.index_value_row);
+    hash = DirectMirCfgHashString(hash, fact.consumer.sum_left_value_id);
+    hash = DirectMirCfgHashInt(hash, fact.consumer.sum_left_value_row);
+    hash = DirectMirCfgHashString(hash, fact.consumer.read_result_value_id);
+    hash = DirectMirCfgHashInt(hash, fact.consumer.read_result_value_row);
+    hash = DirectMirCfgHashInt(hash, fact.consumer.read_operation_row);
+    hash = DirectMirCfgHashInt(hash, fact.consumer.length_log_operation_row);
+    return DirectMirCfgBoundedDigest(hash);
+}

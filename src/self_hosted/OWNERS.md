@@ -2160,6 +2160,21 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy` --
   one decoded scalar-CFG input bundle shared by graph admission. It owns the
   admitted document/index/use/wire setup, not a second plan or route.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_plan_seal_owner.pgy`
+  -- the single immutable GraphPlan construction, digest, readiness, and
+  repaired-digest rejection boundary. Admission owners contribute facts; they
+  do not issue parallel plans.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_expression_owner.pgy`
+  -- type-directed String/Int collection expression routing inside that one
+  GraphPlan. It selects an already admitted receipt and never reopens a graph.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_instruction_graph_owner.pgy`,
+  `direct_mir_scalar_cfg_instruction_position_owner.pgy`,
+  `direct_mir_scalar_cfg_operation_position_owner.pgy`,
+  `direct_mir_scalar_cfg_while_induction_owner.pgy`, and
+  `direct_mir_scalar_cfg_array_guard_dominance_owner.pgy` -- element-neutral
+  graph access, source/operation positions, zero-plus-one while induction, and
+  unique true-edge dominance. String and Int collection lanes consume these
+  owners instead of retaining type-named copies.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_route_owner.pgy` --
   topology-independent per-routine classification by the supported
   operation/type envelope, never fixture names or exact block counts. A
@@ -2199,6 +2214,24 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_array_length_fact_owner.pgy`
   -- one persisted-graph `ArrayLength(collection)` subtree identity shared by
   range and while conditions. It owns no CFG or backend policy.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_array_length_log_graph_owner.pgy`
+  -- element-neutral exact `Log(ToString(ArrayLength(collection)))` graph. The
+  String-named compatibility view delegates here and owns no second shape.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_collection_owner.pgy`,
+  `direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy`,
+  `direct_mir_scalar_cfg_array_int_graph_shape_owner.pgy`, and
+  `direct_mir_scalar_cfg_array_int_loop_mutation_admission_owner.pgy` -- one
+  empty public-ABI `Array<Int>` identity plus exact bounded producer while,
+  dynamic graph-owned push value, current-length consumer while, indexed sum,
+  and final length observation. `loop_flow_summary.effect_delta` is not mutation
+  authority; the receipt owns one push effect per admitted backedge.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_binding_owner.pgy`,
+  `direct_mir_scalar_cfg_array_int_loop_mutation_identity_owner.pgy`,
+  `direct_mir_scalar_cfg_array_int_expression_owner.pgy`, and
+  `direct_mir_scalar_cfg_array_int_loop_mutation_readiness_owner.pgy` -- bind
+  exact ValueId/operation rows, include the receipt in GraphPlan identity, and
+  prove zero/unit producer and consumer induction, push-before-step order,
+  accumulator recurrence, derived capacity, and C/LLVM operation shape.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy`,
   `direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy`,
   `direct_mir_scalar_cfg_string_array_plan_append_owner.pgy`, and
@@ -2303,6 +2336,12 @@ inventory must not become a second fact-family owner registry.
   and `direct_mir_scalar_cfg_string_c_materialization_owner.pgy` -- typed C
   operation spelling and the bounded concat runtime block selected solely by
   the sealed plan and runtime ABI receipt.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_c_collection_operation_emission_owner.pgy`
+  and `direct_mir_scalar_cfg_array_int_c_emission_owner.pgy` -- collection
+  operation dispatch and public four-field `PgyArray_Int` storage. A proven
+  bound is capacity while current length starts at zero; each dynamic value is
+  stored at `data[length]` before length advances. No runtime push or realloc
+  path is available in this bounded lane.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_c_emission_owner.pgy`
   -- stable C consumer names delegated to
   `direct_mir_scalar_cfg_foreach_typed_c_emission_owner.pgy`, which owns typed
@@ -2323,6 +2362,12 @@ inventory must not become a second fact-family owner registry.
   and `direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy` -- typed
   LLVM operation spelling, String constants/arrays, and the selected concat
   helper body from sealed receipts.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_collection_operation_emission_owner.pgy`,
+  `direct_mir_scalar_cfg_array_int_llvm_storage_owner.pgy`, and
+  `direct_mir_scalar_cfg_array_int_llvm_emission_owner.pgy` -- the LLVM view of
+  the same bounded Int receipt: one mutable four-field object, explicit
+  i64-to-i32 push truncation, i32-to-i64 read extension, current-length guard,
+  and store-before-length-update order. Backends consume no MIR JSON or graph.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_array_string_llvm_value_owner.pgy`
   remains the immutable foreach value materializer. The direct indexed lane is
   instead owned by `direct_mir_scalar_cfg_string_array_llvm_storage_emission_owner.pgy`,

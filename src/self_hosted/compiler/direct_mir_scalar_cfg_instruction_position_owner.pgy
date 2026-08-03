@@ -1,0 +1,27 @@
+// Routine-global instruction position derived from the indexed block spans.
+
+import "../mir_lower/routine_fact_index_owner.pgy";
+
+struct DirectMirScalarCfgInstructionPositionFact {
+    let valid: Bool;
+    let block: Int;
+    let local: Int;
+}
+
+func DirectMirScalarCfgInstructionPositionAt(
+    ref index: MirRoutineFactIndex, global_row: Int
+) -> DirectMirScalarCfgInstructionPositionFact {
+    let block: Int = 0;
+    while block < ArrayLength(index.block_starts) {
+        let start: Int = index.instruction_facts.global_start +
+            index.block_instruction_starts[block];
+        let end: Int = start + index.block_instruction_counts[block];
+        if global_row >= start && global_row < end {
+            return DirectMirScalarCfgInstructionPositionFact(
+                true, block, global_row - start
+            );
+        }
+        block = block + 1;
+    }
+    return DirectMirScalarCfgInstructionPositionFact(false, -1, -1);
+}

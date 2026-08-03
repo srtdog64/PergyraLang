@@ -8,6 +8,7 @@ import "direct_mir_scalar_cfg_foreach_c_emission_owner.pgy";
 import "direct_mir_scalar_cfg_c_operation_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_c_materialization_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_c_emission_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_c_emission_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
 func DirectMirScalarCfgEmitC(
@@ -30,6 +31,7 @@ func DirectMirScalarCfgEmitC(
     output = Concat(output, DirectMirScalarCfgStringArrayCPreamble(
         plan, target
     ));
+    output = Concat(output, DirectMirScalarCfgArrayIntCPreamble(plan, target));
     output = Concat(output, DirectMirScalarCfgStringCPreamble(plan, concat));
     output = Concat(output, "\nint main(void) {\n");
     output = Concat(
@@ -41,6 +43,8 @@ func DirectMirScalarCfgEmitC(
     output = Concat(output, DirectMirScalarCfgStringArrayCDeclarations(
         plan, target
     ));
+    output = Concat(output,
+        DirectMirScalarCfgArrayIntCDeclarations(plan, target));
     output = Concat(output, "    goto pgy_block_0;\n");
     let block: Int = 0;
     while block < ArrayLength(plan.block_succ_true) {
@@ -94,6 +98,10 @@ func DirectMirScalarCfgEmitC(
                         plan, block
                     )
                 );
+            } else if plan.array_int_loop_mutation.valid && block ==
+                    plan.array_int_loop_mutation.consumer.header_block {
+                output = Concat(output,
+                    DirectMirScalarCfgArrayIntCCondition(plan, block));
             } else if condition == DirectMirScalarCfgConditionBool() {
                 if plan.block_condition_left_literals[block] == "true" {
                     output = Concat(output, "1");

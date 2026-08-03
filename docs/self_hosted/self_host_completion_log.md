@@ -10404,3 +10404,44 @@ Released/default replacement remains 0%.
   The focused current build sampled about 674 MiB in `pgy` and 791 MiB in
   `cc1`; the unchanged 3 GiB process-tree cap and troubleshooting procedure
   remain mandatory.
+
+## 2026-08-04 - bounded loop-owned `Array<Int>` push substitutes in C and LLVM
+
+- Closed `src/self_hosted/codegen/fixture/array_push.pgy` through the
+  current-source Pergyra-built direct C and LLVM routes. Its 13,824-byte MIR
+  (`AE1427524AA69F54A180C99BB6F5D3678C5C95353F7BBC74963197787AE82220`)
+  emits 1,306-byte C and 3,906-byte LLVM artifacts; both host-compile and
+  execute exact `30` then `5`.
+- The original failure was not missing surface syntax. The scalar-CFG local
+  inventory treated the `Array<Int>` receiver as a scalar because no
+  collection fact claimed it. The repair did not weaken scalar admission or
+  create a fixture compiler. One loop-mutation fact now belongs to the existing
+  target-neutral `GraphPlan` and both target emitters consume it.
+- Extracted shared, responsibility-named owners for instruction graphs and
+  positions, while induction, guard dominance, collection expressions, length
+  logs, and plan sealing. Existing String-array paths delegate to those owners;
+  the physical files remain one import-composed program graph rather than
+  parallel compiler implementations or a generic helper layer.
+- The receipt joins the empty local collection and canonical ABI to producer
+  and consumer induction, exact push-value graph, current length, indexed sum,
+  phi recurrence, and CFG topology. C uses bounded public four-field storage;
+  LLVM mutates one four-field object. Both store before increasing length and
+  neither calls a native/runtime push function.
+- The focused gate passed baseline `30`/`5`, graph-mutated `20`/`5`, shortened
+  `5`/`3`, display-byte-equality, phi-order-byte-equality, and 23 no-artifact
+  negatives. Prior String indexed/mutation gates and the 239-second component
+  ratchet remained green.
+- The final cumulative scalar-CFG integration passed in 326.321 seconds.
+  Memory was sampled only at this boundary: peak working set was 0.489 GiB and
+  peak private memory 0.896 GiB, below the 2.4 GiB attention and 3 GiB stop
+  thresholds. Full CI, proof suites, public matrices, and current gen2==gen3
+  were not run.
+- The independent observation that AI language consistency is easier to steer
+  than compiler architecture is retained as anecdote, not benchmark evidence.
+  This rung supplies local evidence: the syntax was coherent while LocalRef
+  ownership, evidence lifetime, last consumers, and forbidden fallback needed
+  explicit architecture gates.
+- The next sole falsifier is `array_sum.pgy`. Its 12,383-byte MIR
+  (`1496AA7537842ED4AECA0E417A3F0FE362E1A908147FD68FA4C7CE80087E7735`)
+  is produced successfully, but both direct targets reject it with
+  `direct MIR scalar CFG Array<Int> definition is invalid` before publication.

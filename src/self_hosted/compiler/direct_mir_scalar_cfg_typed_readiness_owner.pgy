@@ -127,7 +127,13 @@ func DirectMirScalarCfgTypedOperationsReady(
             (kind == DirectMirScalarCfgOpArrayPushString() &&
                 indexed_kind != DirectMirScalarCfgStringArrayAccessPushKind()) ||
             (kind == DirectMirScalarCfgOpLogArrayLength() &&
-                indexed_kind != DirectMirScalarCfgStringArrayAccessLengthLog()) {
+                indexed_kind != DirectMirScalarCfgStringArrayAccessLengthLog() &&
+                row != plan.array_int_loop_mutation.consumer.
+                    length_log_operation_row) ||
+            (kind == DirectMirScalarCfgOpArrayPushInt() &&
+                (result >= 0 || !left_is_int || !right_is_int)) ||
+            (kind == DirectMirScalarCfgOpAddArrayReadInt() &&
+                (!is_int_result || !left_is_int || !right_is_int)) {
             return false;
         }
         if kind == DirectMirScalarCfgOpConcatString() { concat_seen = true; }

@@ -1,0 +1,83 @@
+// Typed collection-expression routing behind the scalar-CFG owner boundary.
+
+import "direct_mir_scalar_cfg_string_array_expression_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_expression_owner.pgy";
+
+func DirectMirScalarCfgCollectionDefinitionExpressionFact(
+    ref string_arrays: DirectMirScalarCfgStringArrayPlan,
+    ref array_int: DirectMirScalarCfgArrayIntLoopMutationFact,
+    scalar_type: String, ref instruction: JsonObjectFactTable,
+    ref uses: MirRoutineInstructionUseFacts, global_row: Int,
+    instruction_row: Int, value_names: Array<String>,
+    ref local_refs: DirectMirScalarCfgLocalRefPlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs
+) -> DirectMirScalarCfgExpressionFact {
+    let string_access: Int = DirectMirScalarCfgStringArrayAccessRowAtGlobal(
+        string_arrays, global_row
+    );
+    if string_access >= 0 && string_arrays.accesses.kinds[string_access] ==
+            DirectMirScalarCfgStringArrayAccessConcatRead() {
+        return DirectMirScalarCfgStringArrayConcatExpressionFact(
+            string_arrays, uses, global_row, instruction_row,
+            value_names, local_refs, wire
+        );
+    }
+    let array_expression: DirectMirScalarCfgExpressionFact =
+        DirectMirScalarCfgArrayIntExpressionFact(array_int, global_row);
+    if array_expression.valid { return array_expression; }
+    return DirectMirScalarCfgTypedValueExpressionFact(
+        scalar_type, instruction, uses, global_row, instruction_row,
+        value_names, local_refs, wire
+    );
+}
+
+func DirectMirScalarCfgCollectionStatementExpressionFact(
+    ref string_arrays: DirectMirScalarCfgStringArrayPlan,
+    ref array_int: DirectMirScalarCfgArrayIntLoopMutationFact,
+    scalar: MirRoutineInstructionScalarCapture,
+    ref instruction: JsonObjectFactTable,
+    ref uses: MirRoutineInstructionUseFacts, global_row: Int,
+    instruction_row: Int, value_names: Array<String>,
+    ref local_refs: DirectMirScalarCfgLocalRefPlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref type_plan: DirectMirScalarCfgValueTypePlan
+) -> DirectMirScalarCfgExpressionFact {
+    if DirectMirScalarCfgStringArrayAccessRowAtGlobal(
+            string_arrays, global_row
+        ) >= 0 {
+        return DirectMirScalarCfgStringArrayStatementExpressionFact(
+            string_arrays, scalar, global_row
+        );
+    }
+    let array_expression: DirectMirScalarCfgExpressionFact =
+        DirectMirScalarCfgArrayIntExpressionFact(array_int, global_row);
+    if array_expression.valid { return array_expression; }
+    return DirectMirScalarCfgTypedLogExpressionFact(
+        instruction, uses, global_row, instruction_row,
+        value_names, local_refs, wire, type_plan
+    );
+}
+
+func DirectMirScalarCfgCollectionConditionExpressionFact(
+    ref string_arrays: DirectMirScalarCfgStringArrayPlan,
+    ref array_int: DirectMirScalarCfgArrayIntLoopMutationFact,
+    ref instruction: JsonObjectFactTable,
+    ref uses: MirRoutineInstructionUseFacts, global_row: Int,
+    instruction_row: Int, value_names: Array<String>,
+    ref local_refs: DirectMirScalarCfgLocalRefPlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs
+) -> DirectMirScalarCfgExpressionFact {
+    let condition: DirectMirScalarCfgExpressionFact =
+        DirectMirScalarCfgStringArrayLengthConditionFact(
+            string_arrays, global_row
+        );
+    if condition.valid { return condition; }
+    condition = DirectMirScalarCfgArrayIntLengthConditionFact(
+        array_int, global_row
+    );
+    if condition.valid { return condition; }
+    return DirectMirScalarCfgConditionExpressionFact(
+        instruction, uses, global_row, instruction_row,
+        value_names, local_refs, wire
+    );
+}

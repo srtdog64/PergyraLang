@@ -4,6 +4,7 @@ import "direct_mir_scalar_cfg_c_operand_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_c_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_c_mutation_emission_owner.pgy";
+import "direct_mir_scalar_cfg_c_collection_operation_emission_owner.pgy";
 
 func DirectMirScalarCfgEmitCOperation(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
@@ -114,14 +115,11 @@ func DirectMirScalarCfgEmitCOperation(
         }
         return Concat(output, ");\n");
     }
-    if kind == DirectMirScalarCfgOpArraySetString() {
-        return DirectMirScalarCfgStringArrayCSet(plan, operation);
-    }
-    if kind == DirectMirScalarCfgOpArrayPushString() { return DirectMirScalarCfgStringArrayCPush(plan, operation); }
-    if kind == DirectMirScalarCfgOpLogArrayLength() {
-        return DirectMirScalarCfgStringArrayCLengthLog(
-            plan, operation, formatted_print, int_line_format, int_c_type);
-    }
+    let collection: DirectMirScalarCfgCCollectionOperationEmission =
+        DirectMirScalarCfgEmitCCollectionOperation(
+            plan, operation, formatted_print, int_line_format, int_c_type
+        );
+    if collection.valid { return collection.text; }
     if kind != DirectMirScalarCfgOpPhiInt() &&
         kind != DirectMirScalarCfgOpPhiString() {
         Die("direct MIR scalar CFG C operation is unsupported");
