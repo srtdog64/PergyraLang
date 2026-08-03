@@ -163,15 +163,21 @@ func StringRuntimeCPrintBlock() -> String {
     return block;
 }
 
-func StringRuntimeCStringCoreBlock(
-    runtime_header_owns_bool_to_string: Bool
-) -> String {
+func StringRuntimeCConcatBlock() -> String {
     let block: String = "";
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCConcatFn(), "(const char *a, const char *b)\n{\n")));
     block = Concat(block, "    size_t la = strlen(a);\n    size_t lb = strlen(b);\n");
     block = Concat(block, "    char *r = (char *)malloc(la + lb + 1);\n");
     block = Concat(block, "    memcpy(r, a, la);\n    memcpy(r + la, b, lb);\n    r[la + lb] = '\\0';\n");
     block = Concat(block, "    return r;\n}\n\n");
+    return block;
+}
+
+func StringRuntimeCStringCoreBlock(
+    runtime_header_owns_bool_to_string: Bool
+) -> String {
+    let block: String = "";
+    block = Concat(block, StringRuntimeCConcatBlock());
     block = Concat(block, Concat("static long long ", Concat(StringRuntimeCStringLengthFn(), "(const char *s)\n{\n")));
     block = Concat(block, "    return (long long)strlen(s);\n}\n\n");
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCCharAtNFn(), "(const char *s, long long len, long long i)\n{\n")));

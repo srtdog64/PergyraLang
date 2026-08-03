@@ -104,7 +104,7 @@ for mutation in inner-body-ref escaped-inner-ref final-direct-ref; do
             "$WORK_REL/$mutation.json" -o "$WORK_REL/$mutation-$target.artifact") \
             >"$WORK_DIR/x.out" 2>"$WORK_DIR/x.err"; then fail "$target accepted $mutation"; fi
         [[ ! -e "$artifact" ]] || fail "$target published $mutation"
-        grep -Fq 'direct MIR scalar CFG LocalRef plan is invalid' "$WORK_DIR/x.out" "$WORK_DIR/x.err" || fail "$mutation lost diagnostic"
+        grep -Fq 'direct MIR scalar CFG range LocalRef binding is invalid' "$WORK_DIR/x.out" "$WORK_DIR/x.err" || fail "$mutation lost diagnostic"
     done
 done
 echo "[$LABEL] canonical receipt set preserves nested lexical range identity"

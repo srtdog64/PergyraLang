@@ -59,3 +59,10 @@ PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
     bash "$RETURNED_FOREACH_GATE" || fail "returned Array<Int> foreach gate failed"
 
 echo "[$LABEL] returned Array<Int> foreach composes through one producer receipt"
+
+MIXED_FOREACH_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir_mixed_collection_foreach_projection.sh"
+require_file "$MIXED_FOREACH_GATE"
+PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
+    bash "$MIXED_FOREACH_GATE" || fail "mixed Int/String foreach gate failed"
+
+echo "[$LABEL] mixed Int/String foreach substitutes through one typed receipt"

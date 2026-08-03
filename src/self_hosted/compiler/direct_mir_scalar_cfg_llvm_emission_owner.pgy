@@ -6,12 +6,15 @@ import "direct_mir_scalar_cfg_range_block_effect_owner.pgy";
 import "direct_mir_scalar_cfg_local_emission_owner.pgy";
 import "direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_terminator_emission_owner.pgy";
+import "direct_mir_scalar_cfg_llvm_operation_emission_owner.pgy";
+import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
 import "direct_mir_llvm_text_format_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
 func DirectMirScalarCfgEmitLlvm(
     ref plan: DirectMirScalarCfgGraphPlan,
     formatted_print: CompilerRuntimeCallAbiFact,
+    concat: CompilerRuntimeCallAbiFact,
     int_line_format: String,
     string_line_format: String,
     target: CompilerTargetProjectionFact
@@ -43,22 +46,9 @@ func DirectMirScalarCfgEmitLlvm(
         output, DirectMirScalarLlvmFormatPayload(string_line_format)
     );
     output = Concat(output, "\\00\", align 1\n");
-    let string_operation: Int = 0;
-    while string_operation < ArrayLength(plan.operation_kinds) {
-        if plan.operation_kinds[string_operation] ==
-                DirectMirScalarCfgOpLogString() {
-            let content: String =
-                plan.operation_left_literals[string_operation];
-            output = Concat(output, "@.pgy.scalar.cfg.string.");
-            output = Concat(output, ToString(string_operation));
-            output = Concat(output, " = private unnamed_addr constant [");
-            output = Concat(output, ToString(StringLength(content) + 1));
-            output = Concat(output, " x i8] c\"");
-            output = Concat(output, content);
-            output = Concat(output, "\\00\", align 1\n");
-        }
-        string_operation = string_operation + 1;
-    }
+    output = Concat(output, DirectMirScalarCfgStringLlvmGlobals(plan));
+    output = Concat(output,
+        DirectMirScalarCfgStringLlvmConcatBlock(plan, concat));
     output = Concat(output, "\ndeclare i32 @");
     output = Concat(output, formatted_print.symbol);
     output = Concat(output, "(ptr, ...)\n\ndefine i32 @main() {\nentry:\n");
@@ -81,94 +71,9 @@ func DirectMirScalarCfgEmitLlvm(
         let operation_end: Int = operation +
             plan.block_operation_counts[block];
         while operation < operation_end {
-            let kind: Int = plan.operation_kinds[operation];
-            if kind == DirectMirScalarCfgOpConstInt() {
-                output = Concat(output, "  store i64 ");
-                output = Concat(
-                    output, plan.operation_left_literals[operation]
-                );
-                output = Concat(output, ", ptr ");
-                output = Concat(output, DirectMirScalarCfgLlvmLocal(
-                    plan, plan.operation_result_values[operation]
-                ));
-                output = Concat(output, ", align 8\n");
-            } else if kind == DirectMirScalarCfgOpCopyInt() ||
-                    kind == DirectMirScalarCfgOpAddInt() {
-                output = Concat(output, "  %pgy.op.");
-                output = Concat(output, ToString(operation));
-                output = Concat(output, ".left = load i64, ptr ");
-                output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
-                    plan, plan.operation_left_values[operation],
-                    plan.operation_left_locals[operation]
-                ));
-                output = Concat(output, ", align 8\n");
-                let result_operand: String = Concat(
-                    "%pgy.op.", Concat(ToString(operation), ".left")
-                );
-                if kind == DirectMirScalarCfgOpAddInt() {
-                    let right_operand: String =
-                        plan.operation_right_literals[operation];
-                    if plan.operation_right_values[operation] >= 0 ||
-                        plan.operation_right_locals[operation] >= 0 {
-                        output = Concat(output, "  %pgy.op.");
-                        output = Concat(output, ToString(operation));
-                        output = Concat(output, ".right = load i64, ptr ");
-                        output = Concat(output,
-                            DirectMirScalarCfgLlvmOperandLocal(
-                            plan, plan.operation_right_values[operation],
-                            plan.operation_right_locals[operation]
-                        ));
-                        output = Concat(output, ", align 8\n");
-                        right_operand = Concat(
-                            "%pgy.op.",
-                            Concat(ToString(operation), ".right")
-                        );
-                    }
-                    output = Concat(output, "  %pgy.op.");
-                    output = Concat(output, ToString(operation));
-                    output = Concat(output, ".sum = add i64 ");
-                    output = Concat(output, result_operand);
-                    output = Concat(output, ", ");
-                    output = Concat(output, right_operand);
-                    output = Concat(output, "\n");
-                    result_operand = Concat(
-                        "%pgy.op.",
-                        Concat(ToString(operation), ".sum")
-                    );
-                }
-                output = Concat(output, "  store i64 ");
-                output = Concat(output, result_operand);
-                output = Concat(output, ", ptr ");
-                output = Concat(output, DirectMirScalarCfgLlvmLocal(
-                    plan, plan.operation_result_values[operation]
-                ));
-                output = Concat(output, ", align 8\n");
-            } else if kind == DirectMirScalarCfgOpLogInt() {
-                output = Concat(output, "  %pgy.op.");
-                output = Concat(output, ToString(operation));
-                output = Concat(output, ".log = load i64, ptr ");
-                output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
-                    plan, plan.operation_left_values[operation],
-                    plan.operation_left_locals[operation]
-                ));
-                output = Concat(output, ", align 8\n  %pgy.op.");
-                output = Concat(output, ToString(operation));
-                output = Concat(output, ".printed = call i32 (ptr, ...) @");
-                output = Concat(output, formatted_print.symbol);
-                output = Concat(output, "(ptr @.pgy.scalar.cfg.int.format, i64 %pgy.op.");
-                output = Concat(output, ToString(operation));
-                output = Concat(output, ".log)\n");
-            } else if kind == DirectMirScalarCfgOpLogString() {
-                output = Concat(output, "  %pgy.op.");
-                output = Concat(output, ToString(operation));
-                output = Concat(output, ".printed = call i32 (ptr, ...) @");
-                output = Concat(output, formatted_print.symbol);
-                output = Concat(output, "(ptr @.pgy.scalar.cfg.string.format, ptr @.pgy.scalar.cfg.string.");
-                output = Concat(output, ToString(operation));
-                output = Concat(output, ")\n");
-            } else if kind != DirectMirScalarCfgOpPhiInt() {
-                Die("direct MIR scalar CFG LLVM operation is unsupported");
-            }
+            output = Concat(output, DirectMirScalarCfgEmitLlvmOperation(
+                plan, operation, formatted_print, concat
+            ));
             operation = operation + 1;
         }
         output = Concat(

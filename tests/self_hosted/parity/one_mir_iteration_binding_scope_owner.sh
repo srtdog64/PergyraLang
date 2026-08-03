@@ -109,6 +109,14 @@ cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/c.run" &&
 for mutation in missing-def-ref forged-def-ref forged-init-ref \
     missing-body-ref forged-body-ref body-outer-use missing-outer-use \
     orphan-outer-ref duplicate-local; do
+    case "$mutation" in
+        missing-def-ref)
+            diagnostic='direct MIR scalar CFG LocalRef plan is invalid' ;;
+        duplicate-local)
+            diagnostic='direct MIR scalar CFG foreach local inventory is invalid' ;;
+        *)
+            diagnostic='direct MIR scalar CFG range LocalRef binding is invalid' ;;
+    esac
     for target in c llvm; do
         artifact="$WORK_DIR/$mutation-$target.artifact"
         if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$target" \
@@ -117,7 +125,7 @@ for mutation in missing-def-ref forged-def-ref forged-init-ref \
             fail "$target accepted $mutation"
         fi
         [[ ! -e "$artifact" ]] || fail "$target published before rejecting $mutation"
-        grep -Fq 'direct MIR scalar CFG LocalRef plan is invalid' \
+        grep -Fq "$diagnostic" \
             "$WORK_DIR/$mutation-$target.out" "$WORK_DIR/$mutation-$target.err" ||
             fail "$target lost the LocalRef boundary diagnostic for $mutation"
     done

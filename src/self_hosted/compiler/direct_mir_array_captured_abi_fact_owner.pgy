@@ -1,0 +1,29 @@
+// Shared four-field array layout admission; element identity stays explicit.
+
+import "../mir_lower/abi_layout_admission_fact_owner.pgy";
+
+func DirectMirArrayCapturedAbiReady(
+    ref abi: MirAbiLayoutRowCapture,
+    type_name: String, runtime_fn: String, inner_c_type: String
+) -> Bool {
+    return abi.valid && abi.type_name == type_name &&
+        abi.size_text == "32" && abi.align_text == "8" &&
+        ArrayLength(abi.field_names) == 4 &&
+        ArrayLength(abi.field_offsets) == 4 &&
+        ArrayLength(abi.field_sizes) == 4 &&
+        ArrayLength(abi.field_aligns) == 4 &&
+        abi.field_names[0] == "data" && abi.field_offsets[0] == "0" &&
+        abi.field_sizes[0] == "8" && abi.field_aligns[0] == "8" &&
+        abi.field_names[1] == "length" && abi.field_offsets[1] == "8" &&
+        abi.field_sizes[1] == "8" && abi.field_aligns[1] == "8" &&
+        abi.field_names[2] == "capacity" &&
+        abi.field_offsets[2] == "16" && abi.field_sizes[2] == "8" &&
+        abi.field_aligns[2] == "8" &&
+        abi.field_names[3] == "allocator" &&
+        abi.field_offsets[3] == "24" && abi.field_sizes[3] == "8" &&
+        abi.field_aligns[3] == "8" && abi.runtime_fn == runtime_fn &&
+        abi.inner_c_type == inner_c_type &&
+        abi.representation_text == "0" && abi.discriminant == "" &&
+        abi.primary_tag_text == "0" && abi.secondary_tag_text == "0" &&
+        abi.niche_none_pattern == "";
+}

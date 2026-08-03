@@ -1,0 +1,64 @@
+// One element-typed dispatcher over the shared collection definition seam.
+
+import "direct_mir_scalar_cfg_foreach_collection_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_string_collection_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+
+struct DirectMirScalarCfgForEachCollectionAdmission {
+    let valid: Bool;
+    let element_type: String;
+    let fact: DirectMirScalarCfgForEachCollectionFact;
+    let string_elements: Array<String>;
+}
+
+func DirectMirScalarCfgForEachCollectionAdmissionInvalid(
+) -> DirectMirScalarCfgForEachCollectionAdmission {
+    let strings: Array<String> = [];
+    return DirectMirScalarCfgForEachCollectionAdmission(
+        false, "", DirectMirScalarCfgForEachCollectionFactEmpty(), strings
+    );
+}
+
+func DirectMirScalarCfgForEachCollectionAdmissionFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    definition: MirRoutineResultDefinitionFact,
+    declaration: MirRoutineInstructionScalarCapture,
+    collection_value: String, collection_name: String,
+    binding_type: String, iterable_type: String, collection_hoisted: Bool,
+    ref producer: DirectMirArrayIntProducerFact
+) -> DirectMirScalarCfgForEachCollectionAdmission {
+    let invalid: DirectMirScalarCfgForEachCollectionAdmission =
+        DirectMirScalarCfgForEachCollectionAdmissionInvalid();
+    if !DirectMirScalarCfgIterationTypePairSupported(
+        binding_type, iterable_type
+    ) { return invalid; }
+    let strings: Array<String> = [];
+    if iterable_type == CompilerAbiLayoutArrayIntTypeName() {
+        let fact: DirectMirScalarCfgForEachCollectionFact =
+            DirectMirScalarCfgForEachCollectionFromOwners(
+                admitted, index, use_facts, wire, definition, declaration,
+                collection_value, collection_name, collection_hoisted,
+                producer
+            );
+        return DirectMirScalarCfgForEachCollectionAdmission(
+            DirectMirScalarCfgForEachCollectionFactReady(fact),
+            CompilerAbiLayoutIntTypeName(), fact, strings
+        );
+    }
+    if collection_hoisted { return invalid; }
+    let fact: DirectMirScalarCfgForEachCollectionFact =
+        DirectMirScalarCfgForEachStringCollectionFromOwners(
+            admitted, index, use_facts, wire, definition, declaration,
+            collection_value, collection_name, strings
+        );
+    if !DirectMirScalarCfgForEachCollectionFactReady(fact) { return invalid; }
+    if ArrayLength(strings) != ArrayLength(fact.elements) {
+        return invalid;
+    }
+    return DirectMirScalarCfgForEachCollectionAdmission(
+        true, CompilerAbiLayoutStringTypeName(), fact, strings
+    );
+}

@@ -1,0 +1,177 @@
+// String expression admission into typed scalar-CFG operation receipts.
+
+import "direct_mir_scalar_cfg_expression_owner.pgy";
+import "direct_mir_scalar_cfg_value_type_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirScalarCfgStringValueExpressionFact(
+    ref instruction: JsonObjectFactTable,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    global_row: Int, instruction_row: Int,
+    value_names: Array<String>,
+    ref local_refs: DirectMirScalarCfgLocalRefPlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs
+) -> DirectMirScalarCfgExpressionFact {
+    let sequence: MirExpressionGraphSequence =
+        DirectMirScalarCfgExpressionSequence(instruction);
+    let count: Int = ArrayLength(sequence.arena.topology.node_kinds);
+    if !sequence.ok || ArrayLength(sequence.roots) != 1 ||
+        sequence.roots[0] != count - 1 { return DirectMirScalarCfgExpressionFactEmpty(); }
+    if count == 1 && sequence.arena.topology.node_kinds[0] ==
+            AstExpressionNodeStringLiteral() &&
+        DirectMirScalarCfgNoCallTargets(sequence) &&
+        MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) == 0 {
+        let content: Option<String> = DirectMirAsciiLiteralContent(
+            sequence.arena.node_texts[0]
+        );
+        if IsSome(content) {
+            return DirectMirScalarCfgExpressionFact(
+                true, DirectMirScalarCfgOpConstString(), -1, -1, -1, -1,
+                UnwrapOption(content), ""
+            );
+        }
+    }
+    if count == 1 && sequence.arena.topology.node_kinds[0] ==
+            AstExpressionNodeLeaf() && DirectMirScalarCfgNoCallTargets(sequence) {
+        let operand: DirectMirScalarCfgLeafOperand =
+            DirectMirScalarCfgLeafOperandFromOwners(
+                use_facts, global_row, 0, instruction_row, 0,
+                sequence.arena.node_texts[0], value_names, local_refs, wire
+            );
+        if operand.valid && operand.use_count ==
+                MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) {
+            return DirectMirScalarCfgExpressionFact(
+                true, DirectMirScalarCfgOpCopyString(), operand.value_row, -1,
+                operand.local_row, -1, "", ""
+            );
+        }
+    }
+    if count != 6 || sequence.roots[0] != 5 ||
+        sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[0] != "Concat" ||
+        sequence.arena.topology.node_kinds[1] != AstExpressionNodeCall() ||
+        sequence.arena.topology.left_children[1] != 0 ||
+        sequence.arena.call_target_kinds[1] != SemanticCallTargetDirect() ||
+        sequence.arena.call_target_names[1] != "Concat" ||
+        sequence.arena.topology.node_kinds[2] != AstExpressionNodeLeaf() ||
+        sequence.arena.topology.node_kinds[3] !=
+            AstExpressionNodeCallArgument() ||
+        sequence.arena.topology.left_children[3] != 1 ||
+        sequence.arena.topology.right_children[3] != 2 ||
+        sequence.arena.topology.node_kinds[4] != AstExpressionNodeLeaf() ||
+        sequence.arena.topology.node_kinds[5] !=
+            AstExpressionNodeCallArgument() ||
+        sequence.arena.topology.left_children[5] != 3 ||
+        sequence.arena.topology.right_children[5] != 4 {
+        return DirectMirScalarCfgExpressionFactEmpty();
+    }
+    let left: DirectMirScalarCfgLeafOperand =
+        DirectMirScalarCfgLeafOperandFromOwners(
+            use_facts, global_row, 0, instruction_row, 2,
+            sequence.arena.node_texts[2], value_names, local_refs, wire
+        );
+    if !left.valid { return DirectMirScalarCfgExpressionFactEmpty(); }
+    let right: DirectMirScalarCfgLeafOperand =
+        DirectMirScalarCfgLeafOperandFromOwners(
+            use_facts, global_row, left.use_count, instruction_row, 4,
+            sequence.arena.node_texts[4], value_names, local_refs, wire
+        );
+    if !right.valid || left.use_count + right.use_count !=
+            MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) {
+        return DirectMirScalarCfgExpressionFactEmpty();
+    }
+    return DirectMirScalarCfgExpressionFact(
+        true, DirectMirScalarCfgOpConcatString(),
+        left.value_row, right.value_row, left.local_row, right.local_row,
+        "", ""
+    );
+}
+
+func DirectMirScalarCfgTypedValueExpressionFact(
+    type_name: String, ref instruction: JsonObjectFactTable,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    global_row: Int, instruction_row: Int,
+    value_names: Array<String>,
+    ref local_refs: DirectMirScalarCfgLocalRefPlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs
+) -> DirectMirScalarCfgExpressionFact {
+    if type_name == CompilerAbiLayoutIntTypeName() {
+        return DirectMirScalarCfgValueExpressionFact(
+            instruction, use_facts, global_row, instruction_row,
+            value_names, local_refs, wire
+        );
+    }
+    if type_name == CompilerAbiLayoutStringTypeName() {
+        return DirectMirScalarCfgStringValueExpressionFact(
+            instruction, use_facts, global_row, instruction_row,
+            value_names, local_refs, wire
+        );
+    }
+    return DirectMirScalarCfgExpressionFactEmpty();
+}
+
+func DirectMirScalarCfgPhiOperationKind(type_name: String) -> Int {
+    if type_name == CompilerAbiLayoutIntTypeName() {
+        return DirectMirScalarCfgOpPhiInt();
+    }
+    if type_name == CompilerAbiLayoutStringTypeName() {
+        return DirectMirScalarCfgOpPhiString();
+    }
+    return 0;
+}
+
+func DirectMirScalarCfgTypedLogExpressionFact(
+    ref instruction: JsonObjectFactTable,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    global_row: Int, instruction_row: Int,
+    value_names: Array<String>,
+    ref local_refs: DirectMirScalarCfgLocalRefPlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref types: DirectMirScalarCfgValueTypePlan
+) -> DirectMirScalarCfgExpressionFact {
+    let expression: DirectMirScalarCfgExpressionFact =
+        DirectMirScalarCfgLogExpressionFact(
+            instruction, use_facts, global_row, instruction_row,
+            value_names, local_refs, wire
+        );
+    if !expression.valid || expression.kind != DirectMirScalarCfgOpLogInt() {
+        return expression;
+    }
+    let type_name: String = DirectMirScalarCfgOperandType(
+        types, expression.left_value, expression.left_local
+    );
+    if type_name == CompilerAbiLayoutIntTypeName() { return expression; }
+    let sequence: MirExpressionGraphSequence =
+        DirectMirScalarCfgExpressionSequence(instruction);
+    if type_name != CompilerAbiLayoutStringTypeName() ||
+        sequence.ready_node_count != 1 || ArrayLength(sequence.roots) != 1 ||
+        sequence.roots[0] != 0 ||
+        sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        !DirectMirScalarCfgNoCallTargets(sequence) {
+        return DirectMirScalarCfgExpressionFactEmpty();
+    }
+    return DirectMirScalarCfgExpressionFact(
+        true, DirectMirScalarCfgOpLogStringValue(),
+        expression.left_value, -1, expression.left_local, -1, "", ""
+    );
+}
+
+func DirectMirScalarCfgStringConcatRuntimeCallAbiId(
+    operation_kinds: Array<Int>
+) -> Int {
+    let seen: Bool = false;
+    let row: Int = 0;
+    while row < ArrayLength(operation_kinds) {
+        if operation_kinds[row] == DirectMirScalarCfgOpConcatString() {
+            seen = true;
+        }
+        row = row + 1;
+    }
+    if !seen { return 0; }
+    let concat: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringConcatFact();
+    if !CompilerRuntimeCallAbiStringConcatFactReady(concat) {
+        return 0;
+    }
+    return concat.runtime_call_abi_id;
+}

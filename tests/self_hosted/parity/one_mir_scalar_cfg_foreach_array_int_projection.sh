@@ -25,8 +25,8 @@ command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required for structured falsifiers"
 ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
 FACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_fact_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_c_emission_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy"
+C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_c_emission_owner.pgy"
+LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy"
 require_text "$ADMISSION" 'DirectMirScalarCfgForEachFactsFromOwners('
 require_text "$ADMISSION" 'DirectMirScalarCfgConditionForEach()'
 require_text "$FACT" 'collection_value_id'

@@ -1,7 +1,8 @@
 // Joins typed iteration, collection ValueId, ABI, literal, and CFG facts once.
 
 import "direct_mir_scalar_cfg_foreach_append_owner.pgy";
-import "direct_mir_scalar_cfg_foreach_collection_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_collection_admission_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_element_owner.pgy";
 import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
 import "direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy";
 import "direct_mir_array_int_graph_fact_owner.pgy";
@@ -30,7 +31,9 @@ func DirectMirScalarCfgCollectionIterationCount(
             let local: Int = 0;
             while local < ArrayLength(index.source_local_names) {
                 if index.source_local_names[local] == init.expr0 &&
-                    index.source_local_types[local] == "Array<Int>" {
+                    DirectMirScalarCfgCollectionTypeSupported(
+                        index.source_local_types[local]
+                    ) {
                     matches = matches + 1;
                 }
                 local = local + 1;
@@ -49,9 +52,9 @@ func DirectMirScalarCfgForEachFactsFromOwners(
     ref use_facts: MirRoutineInstructionUseFacts,
     ref wire: DirectMirScalarCfgWireLocalRefs,
     ref producer: DirectMirArrayIntProducerFact
-) -> DirectMirScalarCfgForEachFactSet {
-    let invalid: DirectMirScalarCfgForEachFactSet =
-        DirectMirScalarCfgForEachFactSetInvalid();
+) -> DirectMirScalarCfgForEachAdmission {
+    let invalid: DirectMirScalarCfgForEachAdmission =
+        DirectMirScalarCfgForEachAdmissionInvalid();
     if !index.valid || !wire.valid ||
         ArrayLength(index.loop_flow_state_stable_indices) != 0 {
         return invalid;
@@ -61,6 +64,8 @@ func DirectMirScalarCfgForEachFactsFromOwners(
     );
     let facts: DirectMirScalarCfgForEachFactSet =
         DirectMirScalarCfgForEachFactSetEmpty();
+    let elements: DirectMirScalarCfgForEachElementFacts =
+        DirectMirScalarCfgForEachElementFactsEmpty();
     let prior_loop_id: Int = -1;
     while DirectMirScalarCfgForEachFactCount(facts) < expected {
         let type_row: Int = -1;
@@ -70,8 +75,10 @@ func DirectMirScalarCfgForEachFactsFromOwners(
             let candidate: Int =
                 index.iteration_type_facts.iteration_syntax_ids[row];
             if candidate > prior_loop_id &&
-                index.iteration_type_facts.binding_types[row] == "Int" &&
-                index.iteration_type_facts.iterable_types[row] == "Array<Int>" &&
+                DirectMirScalarCfgIterationTypePairSupported(
+                    index.iteration_type_facts.binding_types[row],
+                    index.iteration_type_facts.iterable_types[row]
+                ) &&
                 (loop_id < 0 || candidate < loop_id) {
                 loop_id = candidate; type_row = row;
             }
@@ -162,14 +169,17 @@ func DirectMirScalarCfgForEachFactsFromOwners(
             MirRoutineInstructionFactBundleAtGlobal(
                 index.instruction_facts, definition.global_row
             );
-        let collection: DirectMirScalarCfgForEachCollectionFact =
-            DirectMirScalarCfgForEachCollectionFromOwners(
+        let collection: DirectMirScalarCfgForEachCollectionAdmission =
+            DirectMirScalarCfgForEachCollectionAdmissionFromOwners(
                 admitted, index, use_facts, wire, definition, declaration,
                 collection_value, init.expr0,
+                index.iteration_type_facts.binding_types[type_row],
+                index.iteration_type_facts.iterable_types[type_row],
                 index.iteration_type_facts.collection_hoists[type_row],
                 producer
             );
-        if !DirectMirScalarCfgForEachCollectionFactReady(collection) {
+        if !collection.valid ||
+            !DirectMirScalarCfgForEachCollectionFactReady(collection.fact) {
             return invalid;
         }
         let init_expression: MirProgramInstructionExpressionFact =
@@ -207,17 +217,31 @@ func DirectMirScalarCfgForEachFactsFromOwners(
             }
             block = block + 1;
         }
+        let receipt_elements: Array<Int> = collection.fact.elements;
+        if collection.element_type == CompilerAbiLayoutStringTypeName() {
+            receipt_elements = [];
+            let string_start: Int =
+                ArrayLength(elements.string_elements);
+            let string_row: Int = 0;
+            while string_row < ArrayLength(collection.string_elements) {
+                ArrayPush(receipt_elements, string_start + string_row);
+                string_row = string_row + 1;
+            }
+        }
         let fact: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFact(
                 true, 0, definition.global_row, init_global, branch_global,
                 init_block, header, index.block_succ_true[header],
                 index.block_succ_false[header], -1, loop_id,
-                collection_value, init.expr0, collection.storage_identity,
+                collection_value, init.expr0,
+                collection.fact.storage_identity,
                 init.arg0, DirectMirScalarCfgForEachCursorIdentity(loop_id),
-                collection.elements, backedges, collection.abi_layout_id,
-                collection.abi_size, collection.abi_align,
-                collection.data_offset, collection.length_offset,
-                collection.capacity_offset, collection.allocator_offset
+                receipt_elements, backedges,
+                collection.fact.abi_layout_id,
+                collection.fact.abi_size, collection.fact.abi_align,
+                collection.fact.data_offset, collection.fact.length_offset,
+                collection.fact.capacity_offset,
+                collection.fact.allocator_offset
             );
         let verified: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFactWithDigest(
@@ -227,12 +251,18 @@ func DirectMirScalarCfgForEachFactsFromOwners(
             verified, ArrayLength(index.block_starts)
         ) { return invalid; }
         facts = DirectMirScalarCfgForEachFactSetAppend(facts, verified);
-        if !facts.valid { return invalid; }
+        elements = DirectMirScalarCfgForEachElementFactsAppend(
+            elements, loop_id, collection.element_type,
+            collection.string_elements
+        );
+        if !facts.valid || !elements.valid { return invalid; }
         prior_loop_id = loop_id;
     }
     if DirectMirScalarCfgForEachFactCount(facts) != expected ||
         !DirectMirScalarCfgForEachFactSetSourceReady(
             facts, ArrayLength(index.block_starts)
-        ) { return invalid; }
-    return facts;
+        ) || !DirectMirScalarCfgForEachElementFactsReady(elements) {
+        return invalid;
+    }
+    return DirectMirScalarCfgForEachAdmission(true, facts, elements);
 }

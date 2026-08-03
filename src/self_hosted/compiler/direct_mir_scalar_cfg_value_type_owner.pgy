@@ -1,0 +1,103 @@
+// Canonical local and ValueId types aligned with the scalar-CFG storage plan.
+
+import "direct_mir_scalar_cfg_foreach_element_owner.pgy";
+import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "../mir_lower/routine_result_definition_fact_owner.pgy";
+
+struct DirectMirScalarCfgValueTypePlan {
+    let valid: Bool;
+    let local_types: Array<String>;
+    let value_types: Array<String>;
+}
+
+func DirectMirScalarCfgValueTypePlanInvalid(
+) -> DirectMirScalarCfgValueTypePlan {
+    let strings: Array<String> = [];
+    return DirectMirScalarCfgValueTypePlan(false, strings, strings);
+}
+
+func DirectMirScalarCfgValueTypePlanFromOwners(
+    ref index: MirRoutineFactIndex,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref foreach_elements: DirectMirScalarCfgForEachElementFacts
+) -> DirectMirScalarCfgValueTypePlan {
+    let invalid: DirectMirScalarCfgValueTypePlan =
+        DirectMirScalarCfgValueTypePlanInvalid();
+    if !index.valid || !locals.valid ||
+        !DirectMirScalarCfgForEachElementFactsReady(foreach_elements) {
+        return invalid;
+    }
+    let local_types: Array<String> = [];
+    let local: Int = 0;
+    while local < ArrayLength(locals.local_names) {
+        let type_name: String = "";
+        if locals.local_ref_kinds[local] ==
+                DirectMirScalarCfgLocalRefValue() {
+            let value: Int = 0;
+            while value < ArrayLength(locals.value_names) {
+                if locals.value_local_rows[value] == local {
+                    let definition: MirRoutineResultDefinitionFact =
+                        MirRoutineFactIndexUniqueResultDefinition(
+                            index, locals.value_names[value]
+                        );
+                    if !MirRoutineResultDefinitionFactReady(definition) {
+                        return invalid;
+                    }
+                    let capture: MirRoutineInstructionScalarCapture =
+                        MirRoutineInstructionFactBundleAtGlobal(
+                            index.instruction_facts, definition.global_row
+                        );
+                    if !capture.valid { return invalid; }
+                    if capture.abi_type_name != "" {
+                        if type_name != "" &&
+                            type_name != capture.abi_type_name {
+                            return invalid;
+                        }
+                        type_name = capture.abi_type_name;
+                    }
+                }
+                value = value + 1;
+            }
+        } else if locals.local_ref_kinds[local] ==
+                DirectMirScalarCfgLocalRefIteration() {
+            type_name = CompilerAbiLayoutIntTypeName();
+        } else if locals.local_ref_kinds[local] ==
+                DirectMirScalarCfgLocalRefForEach() {
+            type_name = DirectMirScalarCfgForEachElementTypeAtLoopSyntaxId(
+                foreach_elements, locals.local_ref_syntax_ids[local]
+            );
+        }
+        if !DirectMirScalarCfgScalarTypeSupported(type_name) {
+            return invalid;
+        }
+        ArrayPush(local_types, type_name);
+        local = local + 1;
+    }
+    let value_types: Array<String> = [];
+    let value: Int = 0;
+    while value < ArrayLength(locals.value_names) {
+        let local_row: Int = locals.value_local_rows[value];
+        if local_row < 0 || local_row >= ArrayLength(local_types) {
+            return invalid;
+        }
+        ArrayPush(value_types, local_types[local_row]);
+        value = value + 1;
+    }
+    return DirectMirScalarCfgValueTypePlan(
+        true, local_types, value_types
+    );
+}
+
+func DirectMirScalarCfgOperandType(
+    ref types: DirectMirScalarCfgValueTypePlan,
+    value: Int, local: Int
+) -> String {
+    if value >= 0 && value < ArrayLength(types.value_types) && local < 0 {
+        return types.value_types[value];
+    }
+    if local >= 0 && local < ArrayLength(types.local_types) && value < 0 {
+        return types.local_types[local];
+    }
+    return "";
+}

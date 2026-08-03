@@ -1,0 +1,111 @@
+// Target spelling for one admitted Array<String> storage receipt.
+
+import "abi_layout_row_owner.pgy";
+import "direct_mir_array_storage_abi_projection_owner.pgy";
+import "direct_mir_array_storage_layout_contract_owner.pgy";
+
+struct DirectMirArrayStringAbiProjection {
+    let valid: Bool;
+    let target_projection: String;
+    let target_capability_fingerprint: Int;
+    let storage: DirectMirArrayStorageAbiProjection;
+    let c_element_type: String;
+    let c_length_type: String;
+    let c_array_type: String;
+    let llvm_element_type: String;
+    let llvm_length_type: String;
+    let llvm_aggregate_type: String;
+    let data_index: Int;
+    let length_index: Int;
+    let capacity_index: Int;
+    let allocator_index: Int;
+}
+
+func DirectMirArrayStringAbiProjectionReadyFor(
+    ref projection: DirectMirArrayStringAbiProjection,
+    expected_target: String
+) -> Bool {
+    if !projection.valid ||
+        !DirectMirArrayStorageAbiProjectionReadyFor(
+            projection.storage, expected_target
+        ) || projection.target_projection != expected_target ||
+        projection.target_capability_fingerprint !=
+            CompilerTargetCapabilityFingerprint() {
+        return false;
+    }
+    if expected_target == CompilerTargetCpuCProjection() {
+        return projection.c_element_type == "char *" &&
+            projection.c_length_type == projection.storage.c_length_type &&
+            projection.c_array_type ==
+                CompilerAbiLayoutArrayStringCValueType() &&
+            projection.llvm_element_type == "" &&
+            projection.llvm_length_type == "" &&
+            projection.llvm_aggregate_type == "" &&
+            projection.data_index == -1 && projection.length_index == -1 &&
+            projection.capacity_index == -1 &&
+            projection.allocator_index == -1;
+    }
+    return expected_target == CompilerTargetCpuLlvmProjection() &&
+        projection.c_element_type == "" &&
+        projection.c_length_type == "" && projection.c_array_type == "" &&
+        projection.llvm_element_type == "ptr" &&
+        projection.llvm_length_type == "i64" &&
+        projection.llvm_aggregate_type ==
+            projection.storage.llvm_aggregate_type &&
+        projection.data_index == projection.storage.data_index &&
+        projection.length_index == projection.storage.length_index &&
+        projection.capacity_index == projection.storage.capacity_index &&
+        projection.allocator_index == projection.storage.allocator_index;
+}
+
+func DirectMirArrayStringAbiProjectionFromCanonicalLayout(
+    target: CompilerTargetProjectionFact,
+    abi_layout_id: Int, abi_size: Int, abi_align: Int,
+    data_offset: Int, length_offset: Int,
+    capacity_offset: Int, allocator_offset: Int
+) -> DirectMirArrayStringAbiProjection {
+    let contract: DirectMirArrayStorageLayoutContract =
+        DirectMirArrayStorageLayoutContractFact();
+    let storage: DirectMirArrayStorageAbiProjection =
+        DirectMirArrayStorageAbiProjectionFromTarget(target);
+    let is_c: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuCProjection()
+    );
+    let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuLlvmProjection()
+    );
+    if (!is_c && !is_llvm) || abi_layout_id <= 0 ||
+        !DirectMirArrayStorageLayoutContractReady(contract) ||
+        abi_size != contract.size || abi_align != contract.align ||
+        data_offset != contract.data_offset ||
+        length_offset != contract.length_offset ||
+        capacity_offset != contract.capacity_offset ||
+        allocator_offset != contract.allocator_offset {
+        Die("direct MIR Array<String> ABI has no target projection");
+    }
+    let projection: DirectMirArrayStringAbiProjection =
+        DirectMirArrayStringAbiProjection(
+            true, target.projection, target.target_capability_fingerprint,
+            storage, "", "", "", "", "", "", -1, -1, -1, -1
+        );
+    if is_c {
+        projection = DirectMirArrayStringAbiProjection(
+            true, target.projection, target.target_capability_fingerprint,
+            storage, "char *", storage.c_length_type,
+            CompilerAbiLayoutArrayStringCValueType(), "", "", "",
+            -1, -1, -1, -1
+        );
+    } else {
+        projection = DirectMirArrayStringAbiProjection(
+            true, target.projection, target.target_capability_fingerprint,
+            storage, "", "", "", "ptr", "i64",
+            storage.llvm_aggregate_type, storage.data_index,
+            storage.length_index, storage.capacity_index,
+            storage.allocator_index
+        );
+    }
+    if !DirectMirArrayStringAbiProjectionReadyFor(
+        projection, target.projection
+    ) { Die("direct MIR Array<String> ABI target mapping is invalid"); }
+    return projection;
+}

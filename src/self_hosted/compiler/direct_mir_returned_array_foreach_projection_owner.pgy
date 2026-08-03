@@ -31,6 +31,8 @@ func CompileAdmittedDirectMirReturnedArrayForEachForTarget(
         );
     let formatted_print: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiFormattedPrintFact();
+    let concat: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringConcatFact();
     if !DirectMirScalarCfgGraphPlanReady(plan) ||
         !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
         Die("direct MIR returned Array<Int> foreach plan is incomplete");
@@ -39,12 +41,13 @@ func CompileAdmittedDirectMirReturnedArrayForEachForTarget(
     let string_line_format: String = StringRuntimeCStringLineFormat();
     if is_llvm {
         return DirectMirScalarCfgEmitLlvm(
-            plan, formatted_print, int_line_format, string_line_format,
+            plan, formatted_print, concat,
+            int_line_format, string_line_format,
             target_projection
         );
     }
     return DirectMirScalarCfgEmitC(
-        plan, formatted_print, int_line_format, string_line_format,
+        plan, formatted_print, concat, int_line_format, string_line_format,
         CompilerAbiLayoutIntCValueType(), target_projection
     );
 }

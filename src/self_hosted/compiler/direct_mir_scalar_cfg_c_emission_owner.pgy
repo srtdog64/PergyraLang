@@ -5,11 +5,14 @@ import "direct_mir_scalar_cfg_c_operand_owner.pgy";
 import "direct_mir_scalar_cfg_range_block_effect_owner.pgy";
 import "direct_mir_scalar_cfg_local_emission_owner.pgy";
 import "direct_mir_scalar_cfg_foreach_c_emission_owner.pgy";
+import "direct_mir_scalar_cfg_c_operation_emission_owner.pgy";
+import "direct_mir_scalar_cfg_string_c_materialization_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
 func DirectMirScalarCfgEmitC(
     ref plan: DirectMirScalarCfgGraphPlan,
     formatted_print: CompilerRuntimeCallAbiFact,
+    concat: CompilerRuntimeCallAbiFact,
     int_line_format: String,
     string_line_format: String,
     int_c_type: String,
@@ -23,6 +26,7 @@ func DirectMirScalarCfgEmitC(
         Die("direct MIR scalar CFG C plan or runtime ABI is invalid");
     }
     let output: String = DirectMirScalarCfgForEachCPreamble(plan, target);
+    output = Concat(output, DirectMirScalarCfgStringCPreamble(plan, concat));
     output = Concat(output, "\nint main(void) {\n");
     output = Concat(
         output, DirectMirScalarCfgCLocalDeclarations(plan, int_c_type)
@@ -43,65 +47,10 @@ func DirectMirScalarCfgEmitC(
         let operation_end: Int = operation +
             plan.block_operation_counts[block];
         while operation < operation_end {
-            let kind: Int = plan.operation_kinds[operation];
-            if kind == DirectMirScalarCfgOpConstInt() {
-                output = Concat(output, "    ");
-                output = Concat(output, DirectMirScalarCfgCLocal(
-                    plan, plan.operation_result_values[operation]
-                ));
-                output = Concat(output, " = ");
-                output = Concat(
-                    output, plan.operation_left_literals[operation]
-                );
-                output = Concat(output, ";\n");
-            } else if kind == DirectMirScalarCfgOpCopyInt() ||
-                    kind == DirectMirScalarCfgOpAddInt() {
-                output = Concat(output, "    ");
-                output = Concat(output, DirectMirScalarCfgCLocal(
-                    plan, plan.operation_result_values[operation]
-                ));
-                output = Concat(output, " = ");
-                output = Concat(output, DirectMirScalarCfgCOperand(
-                    plan, plan.operation_left_values[operation],
-                    plan.operation_left_locals[operation],
-                    plan.operation_left_literals[operation]
-                ));
-                if kind == DirectMirScalarCfgOpAddInt() {
-                    output = Concat(output, " + ");
-                    output = Concat(output, DirectMirScalarCfgCOperand(
-                        plan, plan.operation_right_values[operation],
-                        plan.operation_right_locals[operation],
-                        plan.operation_right_literals[operation]
-                    ));
-                }
-                output = Concat(output, ";\n");
-            } else if kind == DirectMirScalarCfgOpLogInt() {
-                output = Concat(output, "    ");
-                output = Concat(output, formatted_print.symbol);
-                output = Concat(output, "(\"");
-                output = Concat(output, int_line_format);
-                output = Concat(output, "\", (");
-                output = Concat(output, int_c_type);
-                output = Concat(output, ")");
-                output = Concat(output, DirectMirScalarCfgCOperand(
-                    plan, plan.operation_left_values[operation],
-                    plan.operation_left_locals[operation],
-                    plan.operation_left_literals[operation]
-                ));
-                output = Concat(output, ");\n");
-            } else if kind == DirectMirScalarCfgOpLogString() {
-                output = Concat(output, "    ");
-                output = Concat(output, formatted_print.symbol);
-                output = Concat(output, "(\"");
-                output = Concat(output, string_line_format);
-                output = Concat(output, "\", \"");
-                output = Concat(
-                    output, plan.operation_left_literals[operation]
-                );
-                output = Concat(output, "\");\n");
-            } else if kind != DirectMirScalarCfgOpPhiInt() {
-                Die("direct MIR scalar CFG C operation is unsupported");
-            }
+            output = Concat(output, DirectMirScalarCfgEmitCOperation(
+                plan, operation, formatted_print, concat,
+                int_line_format, string_line_format, int_c_type
+            ));
             operation = operation + 1;
         }
         output = Concat(

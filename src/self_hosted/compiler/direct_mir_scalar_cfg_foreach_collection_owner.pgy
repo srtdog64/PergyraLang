@@ -5,6 +5,7 @@
 import "direct_mir_array_int_producer_fact_owner.pgy";
 import "direct_mir_array_return_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_collection_definition_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir_lower/routine_result_definition_fact_owner.pgy";
 
@@ -68,20 +69,10 @@ func DirectMirScalarCfgForEachCollectionFromOwners(
 ) -> DirectMirScalarCfgForEachCollectionFact {
     let invalid: DirectMirScalarCfgForEachCollectionFact =
         DirectMirScalarCfgForEachCollectionFactEmpty();
-    let local_row: Int = definition.global_row -
-        index.instruction_facts.global_start;
-    if !MirRoutineResultDefinitionFactReady(definition) ||
-        local_row < 0 || local_row >= ArrayLength(wire.expr0_counts) ||
-        wire.expr0_counts[local_row] != 0 ||
-        !declaration.valid ||
-        admitted.routines.instruction_kinds[definition.global_row] != "def" ||
-        admitted.routines.instruction_source_types[definition.global_row] !=
-            "AST_LET_DECL" || declaration.name != "ssa-def" ||
-        declaration.result != collection_value ||
-        declaration.arg0 != collection_name || declaration.arg1 != "" ||
-        MirRoutineInstructionUseCountAtGlobal(
-            use_facts, definition.global_row
-        ) != 0 {
+    if !DirectMirScalarCfgForEachCollectionDefinitionReady(
+        admitted, index, use_facts, wire, definition, declaration,
+        collection_value, collection_name
+    ) {
         return invalid;
     }
     let expression: MirProgramInstructionExpressionFact =

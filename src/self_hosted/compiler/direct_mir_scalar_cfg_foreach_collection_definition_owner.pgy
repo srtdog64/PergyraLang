@@ -1,0 +1,29 @@
+// Shared collection-definition envelope before element-specific decoding.
+
+import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_result_definition_fact_owner.pgy";
+
+func DirectMirScalarCfgForEachCollectionDefinitionReady(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    definition: MirRoutineResultDefinitionFact,
+    declaration: MirRoutineInstructionScalarCapture,
+    collection_value: String, collection_name: String
+) -> Bool {
+    let local_row: Int = definition.global_row -
+        index.instruction_facts.global_start;
+    return MirRoutineResultDefinitionFactReady(definition) &&
+        local_row >= 0 && local_row < ArrayLength(wire.expr0_counts) &&
+        wire.expr0_counts[local_row] == 0 && declaration.valid &&
+        admitted.routines.instruction_kinds[definition.global_row] == "def" &&
+        admitted.routines.instruction_source_types[definition.global_row] ==
+            "AST_LET_DECL" && declaration.name == "ssa-def" &&
+        declaration.result == collection_value &&
+        declaration.arg0 == collection_name && declaration.arg1 == "" &&
+        MirRoutineInstructionUseCountAtGlobal(
+            use_facts, definition.global_row
+        ) == 0;
+}

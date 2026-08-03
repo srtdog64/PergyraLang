@@ -4,6 +4,7 @@ import "direct_mir_scalar_cfg_foreach_append_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
 import "direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy";
 import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 
 func DirectMirScalarCfgAppendForEachLocals(
@@ -96,7 +97,10 @@ func DirectMirScalarCfgForEachLocalInventoryReady(
         let source: Int = 0;
         while source < ArrayLength(index.source_local_names) {
             if !consumed[source] && index.source_local_names[source] ==
-                    local_names[row] && index.source_local_types[source] == "Int" {
+                    local_names[row] &&
+                DirectMirScalarCfgScalarTypeSupported(
+                    index.source_local_types[source]
+                ) {
                 found = source; break;
             }
             source = source + 1;
@@ -113,7 +117,9 @@ func DirectMirScalarCfgForEachLocalInventoryReady(
                 let fact: DirectMirScalarCfgForEachFact =
                     DirectMirScalarCfgForEachFactAt(facts, fact_row);
                 if fact.collection_name == index.source_local_names[row] &&
-                    index.source_local_types[row] == "Array<Int>" {
+                    DirectMirScalarCfgCollectionTypeSupported(
+                        index.source_local_types[row]
+                    ) {
                     claimed = true;
                 }
                 fact_row = fact_row + 1;

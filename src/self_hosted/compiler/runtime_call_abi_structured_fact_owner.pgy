@@ -90,6 +90,31 @@ func CompilerRuntimeCallAbiFormattedPrintFact(
     );
 }
 
+func CompilerRuntimeCallAbiStringConcatFact(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiFactFromRowInput(
+        CompilerRuntimeCallAbiRowInput(
+            "string", "concat", StringRuntimeCConcatFn(),
+            CompilerRuntimeCallAbiMaterialGeneratedHelper()
+        )
+    );
+}
+
+func CompilerRuntimeCallAbiStringConcatFactReady(
+    concat: CompilerRuntimeCallAbiFact
+) -> Bool {
+    return concat.ok && concat.domain == "string" &&
+        concat.operation == "concat" && concat.symbol ==
+            StringRuntimeCConcatFn() && concat.symbol_kind == "function" &&
+        concat.materialization ==
+            CompilerRuntimeCallAbiMaterialGeneratedHelper() &&
+        concat.call_shape ==
+            CompilerRuntimeCallAbiStringCallShape("concat") &&
+        concat.runtime_call_abi_id == CompilerRuntimeCallAbiRowId(
+            "string", "", "concat"
+        );
+}
+
 func CompilerRuntimeCallAbiFlatFactOwnerReady(
     formatted: CompilerRuntimeCallAbiFact
 ) -> Bool {

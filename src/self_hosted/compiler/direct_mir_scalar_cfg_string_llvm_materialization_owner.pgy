@@ -1,0 +1,134 @@
+// LLVM globals and concat helper selected by typed String receipts.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_array_string_abi_projection_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirScalarCfgForEachLlvmPrefix(row: Int) -> String {
+    return Concat("foreach.", ToString(row));
+}
+
+func DirectMirScalarCfgForEachStringLlvmValue(
+    row: Int, values: Array<String>,
+    ref abi: DirectMirArrayStringAbiProjection
+) -> String {
+    let count: Int = ArrayLength(values);
+    let prefix: String = DirectMirScalarCfgForEachLlvmPrefix(row);
+    let output: String = Concat("  %pgy.array.", prefix);
+    output = Concat(output, Concat(".storage = alloca [", ToString(count)));
+    output = Concat(output, " x ptr], align 8\n");
+    let item: Int = 0;
+    while item < count {
+        output = Concat(output, Concat("  %pgy.array.", prefix));
+        output = Concat(output, Concat(".slot.", ToString(item)));
+        output = Concat(output, Concat(" = getelementptr inbounds [", ToString(count)));
+        output = Concat(output, Concat(" x ptr], ptr %pgy.array.", prefix));
+        output = Concat(output, Concat(".storage, i64 0, i64 ", ToString(item)));
+        output = Concat(output, "\n  store ptr @.pgy.scalar.cfg.foreach.");
+        output = Concat(output, ToString(row));
+        output = Concat(output, Concat(".", ToString(item)));
+        output = Concat(output, Concat(", ptr %pgy.array.", prefix));
+        output = Concat(output, Concat(".slot.", ToString(item)));
+        output = Concat(output, ", align 8\n");
+        item = item + 1;
+    }
+    output = Concat(output, Concat("  %pgy.array.", prefix));
+    output = Concat(output, Concat(".data = getelementptr inbounds [", ToString(count)));
+    output = Concat(output, Concat(" x ptr], ptr %pgy.array.", prefix));
+    output = Concat(output, ".storage, i64 0, i64 0\n");
+    output = Concat(output, Concat("  %pgy.array.", prefix));
+    output = Concat(output, Concat(".0 = insertvalue ", abi.llvm_aggregate_type));
+    output = Concat(output, Concat(" poison, ptr %pgy.array.", prefix));
+    output = Concat(output, Concat(".data, ", ToString(abi.data_index)));
+    output = Concat(output, Concat("\n  %pgy.array.", prefix));
+    output = Concat(output, Concat(".1 = insertvalue ", abi.llvm_aggregate_type));
+    output = Concat(output, Concat(" %pgy.array.", prefix));
+    output = Concat(output, Concat(".0, i64 ", ToString(count)));
+    output = Concat(output, Concat(", ", ToString(abi.length_index)));
+    output = Concat(output, Concat("\n  %pgy.array.", prefix));
+    output = Concat(output, Concat(".2 = insertvalue ", abi.llvm_aggregate_type));
+    output = Concat(output, Concat(" %pgy.array.", prefix));
+    output = Concat(output, Concat(".1, i64 ", ToString(count)));
+    output = Concat(output, Concat(", ", ToString(abi.capacity_index)));
+    output = Concat(output, Concat("\n  %pgy.array.", prefix));
+    output = Concat(output, Concat(".3 = insertvalue ", abi.llvm_aggregate_type));
+    output = Concat(output, Concat(" %pgy.array.", prefix));
+    output = Concat(output, Concat(".2, ptr null, ", ToString(abi.allocator_index)));
+    return Concat(output, "\n");
+}
+
+func DirectMirScalarCfgStringLlvmConstant(
+    name: String, content: String
+) -> String {
+    let output: String = Concat("@", name);
+    output = Concat(output, " = private unnamed_addr constant [");
+    output = Concat(output, ToString(StringLength(content) + 1));
+    output = Concat(output, Concat(" x i8] c\"", content));
+    return Concat(output, "\\00\", align 1\n");
+}
+
+func DirectMirScalarCfgStringLlvmGlobals(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> String {
+    let output: String = "";
+    let operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        let kind: Int = plan.operation_kinds[operation];
+        if kind == DirectMirScalarCfgOpConstString() ||
+                kind == DirectMirScalarCfgOpLogString() {
+            output = Concat(output, DirectMirScalarCfgStringLlvmConstant(
+                Concat(".pgy.scalar.cfg.string.", ToString(operation)),
+                plan.operation_left_literals[operation]
+            ));
+        }
+        operation = operation + 1;
+    }
+    let row: Int = 0;
+    while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
+        let fact: DirectMirScalarCfgForEachFact =
+            DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
+        let strings: Array<String> =
+            DirectMirScalarCfgForEachStringElementsAtLoopSyntaxId(
+                plan.foreach_elements, fact.loop_syntax_id
+            );
+        let item: Int = 0;
+        while item < ArrayLength(strings) {
+            let name: String = Concat(
+                ".pgy.scalar.cfg.foreach.", Concat(
+                    ToString(row), Concat(".", ToString(item))
+                )
+            );
+            output = Concat(output,
+                DirectMirScalarCfgStringLlvmConstant(name, strings[item]));
+            item = item + 1;
+        }
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarCfgStringLlvmConcatBlock(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    concat: CompilerRuntimeCallAbiFact
+) -> String {
+    if plan.string_concat_runtime_call_abi_id == 0 { return ""; }
+    if !CompilerRuntimeCallAbiStringConcatFactReady(concat) ||
+        plan.string_concat_runtime_call_abi_id != concat.runtime_call_abi_id {
+        Die("direct MIR scalar CFG String concat LLVM ABI is invalid");
+    }
+    let output: String =
+        "declare i64 @strlen(ptr)\ndeclare ptr @malloc(i64)\ndeclare ptr @memcpy(ptr, ptr, i64)\n\n";
+    output = Concat(output, Concat("define internal ptr @", concat.symbol));
+    output = Concat(output, "(ptr %a, ptr %b) {\nentry:\n");
+    output = Concat(output, "  %la = call i64 @strlen(ptr %a)\n");
+    output = Concat(output, "  %lb = call i64 @strlen(ptr %b)\n");
+    output = Concat(output, "  %length = add i64 %la, %lb\n");
+    output = Concat(output, "  %size = add i64 %length, 1\n");
+    output = Concat(output, "  %result = call ptr @malloc(i64 %size)\n");
+    output = Concat(output, "  %copy.a = call ptr @memcpy(ptr %result, ptr %a, i64 %la)\n");
+    output = Concat(output, "  %tail = getelementptr inbounds i8, ptr %result, i64 %la\n");
+    output = Concat(output, "  %copy.b = call ptr @memcpy(ptr %tail, ptr %b, i64 %lb)\n");
+    output = Concat(output, "  %nul = getelementptr inbounds i8, ptr %result, i64 %length\n");
+    output = Concat(output, "  store i8 0, ptr %nul, align 1\n  ret ptr %result\n}\n\n");
+    return output;
+}

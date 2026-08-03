@@ -10008,6 +10008,7 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "static pgy_as p
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "FILE *f = fopen(path, mode);"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'FILE *f = fopen(path, \"wb\");'
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCConcatFn"
+require_max_lines "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" 320
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCStringLengthFn"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCStringJoinFn"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCLogFn"
@@ -13902,6 +13903,9 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_array_int_graph_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_array_int_graph_fact_owner.pgy" 220
+require_file "src/self_hosted/compiler/direct_mir_array_literal_spine_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_literal_spine_owner.pgy" 60
 require_file "src/self_hosted/compiler/direct_mir_array_int_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_array_int_plan_owner.pgy" 450
@@ -13960,6 +13964,18 @@ require_file \
     "src/self_hosted/compiler/direct_mir_array_int_abi_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_array_int_abi_fact_owner.pgy" 60
+require_file \
+    "src/self_hosted/compiler/direct_mir_array_captured_abi_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_captured_abi_fact_owner.pgy" 40
+require_file \
+    "src/self_hosted/compiler/direct_mir_array_string_abi_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_string_abi_fact_owner.pgy" 30
+require_file \
+    "src/self_hosted/compiler/direct_mir_array_string_abi_projection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_string_abi_projection_owner.pgy" 140
 require_file "tests/self_hosted/parity/one_mir_array_return_projection.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_array_return_projection.sh" 220
@@ -14834,7 +14850,7 @@ require_text \
     "src/self_hosted/compiler/direct_mir_aggregate_value_flow_fact_owner.pgy" \
     "caller_owned_single_storage_nested_member_by_value"
 require_text \
-    "src/self_hosted/compiler/direct_mir_array_int_abi_fact_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_array_captured_abi_fact_owner.pgy" \
     'abi.niche_none_pattern == ""'
 require_text "Makefile" \
     "SELFHOST_ONE_MIR_CONSTRUCTED_ARRAY_MEMBER_GATE ?="
@@ -15423,6 +15439,20 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" 310
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_type_family_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_type_family_owner.pgy" 60
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy" 130
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy" 200
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_typed_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_typed_readiness_owner.pgy" 180
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_typed_readiness_owner.pgy" \
+    'plan.operation_right_literals[row] != ""'
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_identity_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_identity_owner.pgy" 100
@@ -15480,6 +15510,18 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_owner.pgy" 160
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_definition_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_definition_owner.pgy" 40
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_string_collection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_string_collection_owner.pgy" 120
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_admission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_admission_owner.pgy" 90
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_element_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_element_owner.pgy" 220
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_local_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_local_owner.pgy" 180
@@ -15522,15 +15564,33 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_c_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_c_emission_owner.pgy" 180
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_c_operation_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_c_operation_emission_owner.pgy" 130
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_c_materialization_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_c_materialization_owner.pgy" 40
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_c_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_c_emission_owner.pgy" 180
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_c_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_c_emission_owner.pgy" 240
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy" 260
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_operation_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_operation_emission_owner.pgy" 190
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy" 160
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy" 220
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy" 220
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy" 60
@@ -15561,6 +15621,12 @@ require_max_lines \
 require_file "tests/self_hosted/parity/one_mir_returned_array_foreach_projection.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_returned_array_foreach_projection.sh" 180
+require_file "tests/self_hosted/parity/one_mir_mixed_collection_foreach_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_mixed_collection_foreach_projection.sh" 100
+require_file "tests/self_hosted/parity/one_mir_mixed_collection_foreach_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_mixed_collection_foreach_mutations.py" 120
 require_file "tests/self_hosted/parity/one_mir_iteration_binding_scope_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_iteration_binding_scope_owner.sh" 160
@@ -15595,6 +15661,8 @@ require_text "tests/self_hosted/parity/one_mir_cfg_break_case.sh" \
     'one_mir_scalar_cfg_foreach_array_int_projection.sh'
 require_text "tests/self_hosted/parity/one_mir_cfg_break_case.sh" \
     'one_mir_returned_array_foreach_projection.sh'
+require_text "tests/self_hosted/parity/one_mir_cfg_break_case.sh" \
+    'one_mir_mixed_collection_foreach_projection.sh'
 require_text "tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh" \
     'nested_iteration_continue_shadow.pgy'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
@@ -15653,6 +15721,18 @@ reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_c_emission_o
     '"expr0"'
 reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy" \
     '"expr0"'
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_c_emission_owner.pgy" \
+    '"expr0"'
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy" \
+    '"expr0"'
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_route_owner.pgy" \
+    'block_count == 7'
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_route_owner.pgy" \
+    'source_local_types['
+require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" \
+    'func CompilerRuntimeCallAbiStringConcatFact('
+require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" \
+    'func StringRuntimeCConcatBlock('
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
     'source == "AST_CONTINUE"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \

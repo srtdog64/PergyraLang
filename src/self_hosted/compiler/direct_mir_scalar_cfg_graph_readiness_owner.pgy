@@ -4,6 +4,7 @@ import "direct_mir_scalar_cfg_graph_identity_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_range_graph_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_foreach_graph_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_typed_readiness_owner.pgy";
 
 func DirectMirScalarCfgOperandCount(
     value: Int, local: Int, literal: String
@@ -149,7 +150,7 @@ func DirectMirScalarCfgGraphPlanReady(
         );
         let phi_count: Int = plan.operation_phi_counts[operation];
         if kind < DirectMirScalarCfgOpConstInt() ||
-            kind > DirectMirScalarCfgOpLogString() || result < -1 ||
+            kind > DirectMirScalarCfgOpLogStringValue() || result < -1 ||
             left < -1 || right < -1 || left_local < -1 ||
             right_local < -1 || result >= value_count ||
             left >= value_count || right >= value_count ||
@@ -158,7 +159,8 @@ func DirectMirScalarCfgGraphPlanReady(
             phi_count < 0 {
             return false;
         }
-        if kind == DirectMirScalarCfgOpPhiInt() {
+        if kind == DirectMirScalarCfgOpPhiInt() ||
+                kind == DirectMirScalarCfgOpPhiString() {
             if result < 0 || phi_count < 2 || left_count != 0 ||
                 right_count != 0 {
                 return false;
@@ -175,7 +177,16 @@ func DirectMirScalarCfgGraphPlanReady(
                 (result >= 0 || left_count != 1 || right_count != 0)) ||
             (kind == DirectMirScalarCfgOpLogString() &&
                 (result >= 0 || left >= 0 || left_local >= 0 ||
-                 left_literal == "" || right_count != 0)) {
+                 left_literal == "" || right_count != 0)) ||
+            (kind == DirectMirScalarCfgOpConstString() &&
+                (result < 0 || left >= 0 || left_local >= 0 ||
+                 right_count != 0)) ||
+            (kind == DirectMirScalarCfgOpCopyString() &&
+                (result < 0 || left_count != 1 || right_count != 0)) ||
+            (kind == DirectMirScalarCfgOpConcatString() &&
+                (result < 0 || left_count != 1 || right_count != 1)) ||
+            (kind == DirectMirScalarCfgOpLogStringValue() &&
+                (result >= 0 || left_count != 1 || right_count != 0)) {
             return false;
         }
         expected_phi = expected_phi + phi_count;
@@ -195,7 +206,8 @@ func DirectMirScalarCfgGraphPlanReady(
         phi_row = phi_row + 1;
     }
     if !DirectMirScalarCfgRangeGraphReady(plan) ||
-        !DirectMirScalarCfgForEachGraphReady(plan) { return false; }
+        !DirectMirScalarCfgForEachGraphReady(plan) ||
+        !DirectMirScalarCfgTypedPlanReady(plan) { return false; }
     return CompilerArtifactIdentityReady(
         CompilerEmittedCArtifactKind(), plan.revision, plan.digest
     ) && CompilerArtifactIdentityReady(

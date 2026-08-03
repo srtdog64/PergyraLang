@@ -13,10 +13,12 @@ func DirectMirScalarCfgGraphPlanDigest(
     hash = DirectMirCfgHashString(hash, plan.target_schema);
     hash = DirectMirCfgHashInt(hash, plan.target_fingerprint);
     hash = DirectMirScalarCfgHashStrings(hash, plan.local_names);
+    hash = DirectMirScalarCfgHashStrings(hash, plan.local_types);
     hash = DirectMirScalarCfgHashInts(hash, plan.local_ref_kinds);
     hash = DirectMirScalarCfgHashStrings(hash, plan.local_ref_value_ids);
     hash = DirectMirScalarCfgHashInts(hash, plan.local_ref_syntax_ids);
     hash = DirectMirScalarCfgHashStrings(hash, plan.value_names);
+    hash = DirectMirScalarCfgHashStrings(hash, plan.value_types);
     hash = DirectMirScalarCfgHashInts(hash, plan.value_local_rows);
     hash = DirectMirScalarCfgHashInts(hash, plan.value_definition_blocks);
     hash = DirectMirScalarCfgHashInts(hash, plan.block_succ_true);
@@ -60,6 +62,9 @@ func DirectMirScalarCfgGraphPlanDigest(
     hash = DirectMirCfgHashInt(
         hash, DirectMirScalarCfgForEachFactSetDigest(plan.foreach_iterations)
     );
+    hash = DirectMirCfgHashInt(hash,
+        DirectMirScalarCfgForEachElementFactsDigest(plan.foreach_elements));
+    hash = DirectMirCfgHashInt(hash, plan.string_concat_runtime_call_abi_id);
     return DirectMirCfgBoundedDigest(hash);
 }
 
@@ -70,8 +75,9 @@ func DirectMirScalarCfgGraphPlanWithDigest(
     return DirectMirScalarCfgGraphPlan(
         plan.valid, plan.schema, plan.revision, digest,
         plan.mir_digest, plan.cfg_digest, plan.target_schema,
-        plan.target_fingerprint, plan.local_names, plan.local_ref_kinds,
-        plan.local_ref_value_ids, plan.local_ref_syntax_ids, plan.value_names,
+        plan.target_fingerprint, plan.local_names, plan.local_types,
+        plan.local_ref_kinds, plan.local_ref_value_ids,
+        plan.local_ref_syntax_ids, plan.value_names, plan.value_types,
         plan.value_local_rows, plan.value_definition_blocks,
         plan.block_succ_true, plan.block_succ_false,
         plan.block_operation_starts, plan.block_operation_counts,
@@ -87,6 +93,7 @@ func DirectMirScalarCfgGraphPlanWithDigest(
         plan.operation_right_literals, plan.operation_phi_starts,
         plan.operation_phi_counts, plan.phi_predecessor_blocks,
         plan.phi_incoming_values, plan.range_iterations,
-        plan.foreach_iterations
+        plan.foreach_iterations, plan.foreach_elements,
+        plan.string_concat_runtime_call_abi_id
     );
 }

@@ -1,0 +1,194 @@
+// Element-type and String payload companion for the primitive foreach set.
+
+import "direct_mir_scalar_cfg_foreach_set_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+
+struct DirectMirScalarCfgForEachElementFacts {
+    let valid: Bool;
+    let digest: Int;
+    let loop_syntax_ids: Array<Int>;
+    let element_types: Array<String>;
+    let string_starts: Array<Int>;
+    let string_counts: Array<Int>;
+    let string_elements: Array<String>;
+}
+
+func DirectMirScalarCfgForEachElementFactsInvalid(
+) -> DirectMirScalarCfgForEachElementFacts {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return DirectMirScalarCfgForEachElementFacts(
+        false, 0, ints, strings, ints, ints, strings
+    );
+}
+
+func DirectMirScalarCfgForEachElementFactsDigest(
+    ref facts: DirectMirScalarCfgForEachElementFacts
+) -> Int {
+    if !facts.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(
+        211L, ArrayLength(facts.loop_syntax_ids)
+    );
+    hash = DirectMirScalarCfgHashInts(hash, facts.loop_syntax_ids);
+    hash = DirectMirScalarCfgHashStrings(hash, facts.element_types);
+    hash = DirectMirScalarCfgHashInts(hash, facts.string_starts);
+    hash = DirectMirScalarCfgHashInts(hash, facts.string_counts);
+    hash = DirectMirScalarCfgHashStrings(hash, facts.string_elements);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarCfgForEachElementFactsWithDigest(
+    facts: DirectMirScalarCfgForEachElementFacts, digest: Int
+) -> DirectMirScalarCfgForEachElementFacts {
+    return DirectMirScalarCfgForEachElementFacts(
+        facts.valid, digest, facts.loop_syntax_ids, facts.element_types,
+        facts.string_starts, facts.string_counts, facts.string_elements
+    );
+}
+
+func DirectMirScalarCfgForEachElementFactsEmpty(
+) -> DirectMirScalarCfgForEachElementFacts {
+    let invalid: DirectMirScalarCfgForEachElementFacts =
+        DirectMirScalarCfgForEachElementFactsInvalid();
+    let facts: DirectMirScalarCfgForEachElementFacts =
+        DirectMirScalarCfgForEachElementFacts(
+            true, 0, invalid.loop_syntax_ids, invalid.element_types,
+            invalid.string_starts, invalid.string_counts,
+            invalid.string_elements
+        );
+    return DirectMirScalarCfgForEachElementFactsWithDigest(
+        facts, DirectMirScalarCfgForEachElementFactsDigest(facts)
+    );
+}
+
+func DirectMirScalarCfgForEachElementFactsAppend(
+    facts: DirectMirScalarCfgForEachElementFacts,
+    loop_syntax_id: Int, element_type: String,
+    string_elements: Array<String>
+) -> DirectMirScalarCfgForEachElementFacts {
+    if !facts.valid || loop_syntax_id < 0 ||
+        !DirectMirScalarCfgScalarTypeSupported(element_type) ||
+        (ArrayLength(facts.loop_syntax_ids) > 0 &&
+         facts.loop_syntax_ids[ArrayLength(facts.loop_syntax_ids) - 1] >=
+            loop_syntax_id) ||
+        (element_type == CompilerAbiLayoutIntTypeName() &&
+            ArrayLength(string_elements) != 0) ||
+        (element_type == CompilerAbiLayoutStringTypeName() &&
+            ArrayLength(string_elements) < 1) {
+        return DirectMirScalarCfgForEachElementFactsInvalid();
+    }
+    let loop_ids: Array<Int> = facts.loop_syntax_ids;
+    let types: Array<String> = facts.element_types;
+    let starts: Array<Int> = facts.string_starts;
+    let counts: Array<Int> = facts.string_counts;
+    let strings: Array<String> = facts.string_elements;
+    ArrayPush(loop_ids, loop_syntax_id);
+    ArrayPush(types, element_type);
+    ArrayPush(starts, ArrayLength(strings));
+    ArrayPush(counts, ArrayLength(string_elements));
+    let row: Int = 0;
+    while row < ArrayLength(string_elements) {
+        ArrayPush(strings, string_elements[row]);
+        row = row + 1;
+    }
+    let appended: DirectMirScalarCfgForEachElementFacts =
+        DirectMirScalarCfgForEachElementFacts(
+            true, 0, loop_ids, types, starts, counts, strings
+        );
+    return DirectMirScalarCfgForEachElementFactsWithDigest(
+        appended, DirectMirScalarCfgForEachElementFactsDigest(appended)
+    );
+}
+
+func DirectMirScalarCfgForEachElementFactsReady(
+    ref facts: DirectMirScalarCfgForEachElementFacts
+) -> Bool {
+    let count: Int = ArrayLength(facts.loop_syntax_ids);
+    if !facts.valid || facts.digest == 0 ||
+        facts.digest != DirectMirScalarCfgForEachElementFactsDigest(facts) ||
+        count != ArrayLength(facts.element_types) ||
+        count != ArrayLength(facts.string_starts) ||
+        count != ArrayLength(facts.string_counts) { return false; }
+    let cursor: Int = 0;
+    let row: Int = 0;
+    while row < count {
+        let type_name: String = facts.element_types[row];
+        if facts.loop_syntax_ids[row] < 0 ||
+            (row > 0 && facts.loop_syntax_ids[row - 1] >=
+                facts.loop_syntax_ids[row]) ||
+            facts.string_starts[row] != cursor ||
+            !DirectMirScalarCfgScalarTypeSupported(type_name) ||
+            (type_name == CompilerAbiLayoutIntTypeName() &&
+                facts.string_counts[row] != 0) ||
+            (type_name == CompilerAbiLayoutStringTypeName() &&
+                facts.string_counts[row] < 1) { return false; }
+        cursor = cursor + facts.string_counts[row];
+        row = row + 1;
+    }
+    return cursor == ArrayLength(facts.string_elements);
+}
+
+func DirectMirScalarCfgForEachElementTypeAtLoopSyntaxId(
+    ref facts: DirectMirScalarCfgForEachElementFacts, wanted: Int
+) -> String {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(facts.loop_syntax_ids) {
+        if facts.loop_syntax_ids[row] == wanted {
+            if found >= 0 { return ""; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    if found < 0 { return ""; }
+    return facts.element_types[found];
+}
+
+func DirectMirScalarCfgForEachStringElementsAtLoopSyntaxId(
+    ref facts: DirectMirScalarCfgForEachElementFacts, wanted: Int
+) -> Array<String> {
+    let values: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(facts.loop_syntax_ids) {
+        if facts.loop_syntax_ids[row] == wanted {
+            let item: Int = 0;
+            while item < facts.string_counts[row] {
+                ArrayPush(
+                    values,
+                    facts.string_elements[facts.string_starts[row] + item]
+                );
+                item = item + 1;
+            }
+            return values;
+        }
+        row = row + 1;
+    }
+    return values;
+}
+
+func DirectMirScalarCfgForEachStringElementStartAtLoopSyntaxId(
+    ref facts: DirectMirScalarCfgForEachElementFacts, wanted: Int
+) -> Int {
+    let row: Int = 0;
+    while row < ArrayLength(facts.loop_syntax_ids) {
+        if facts.loop_syntax_ids[row] == wanted {
+            return facts.string_starts[row];
+        }
+        row = row + 1;
+    }
+    return -1;
+}
+
+struct DirectMirScalarCfgForEachAdmission {
+    let valid: Bool;
+    let facts: DirectMirScalarCfgForEachFactSet;
+    let elements: DirectMirScalarCfgForEachElementFacts;
+}
+
+func DirectMirScalarCfgForEachAdmissionInvalid(
+) -> DirectMirScalarCfgForEachAdmission {
+    return DirectMirScalarCfgForEachAdmission(
+        false, DirectMirScalarCfgForEachFactSetInvalid(),
+        DirectMirScalarCfgForEachElementFactsInvalid()
+    );
+}

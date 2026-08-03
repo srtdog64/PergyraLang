@@ -2098,7 +2098,21 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy` --
   immutable target-neutral scalar CFG graph facts carrying local storage,
   ValueIds/LocalRefs, blocks, conditions, operations, predecessor-bound phi
-  rows, and an optional range iteration receipt.
+  rows, typed local/value receipts, optional range/foreach receipts, and the
+  selected String-concat runtime ABI identity.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_type_family_owner.pgy` --
+  the bounded scalar-CFG type-family policy for `Int`, `Bool`, `String`, and
+  their currently admitted iteration pairs. Route classification consumes this
+  policy; it does not inspect source-local arrays or block counts itself.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy` --
+  derives one target-neutral result-ValueId type table from canonical local,
+  phi, and operation facts. Missing or conflicting result types fail closed.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy`
+  -- exact persisted-graph admission for String literals, direct `Concat`, and
+  typed String `Log`; display `expr0` and call spelling are not fallback facts.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_typed_readiness_owner.pgy` --
+  post-issue consistency for local/result types, String operation operands,
+  foreach element receipts, and the selected concat ABI identity.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_identity_owner.pgy` --
   stable digest construction and immutable digest replacement for that plan.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy` --
@@ -2162,12 +2176,35 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_admission_owner.pgy`
   -- joins a collection loop candidate, typed iteration row, collection
   ValueId, resolved local-literal or direct-call collection source, binding
-  identity, and CFG edges once. A mistyped collection loop fails here instead
-  of being retried as an integer range.
+  identity, element payload receipt, and CFG edges once. `Array<Int>` and
+  `Array<String>` use the same loop receipt; a mistyped collection loop fails
+  here instead of being retried as an integer range.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_element_owner.pgy`
+  -- loop-syntax-keyed element type and String-pool companion receipt. It keeps
+  target-specific storage out of the primitive foreach fact set.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_definition_owner.pgy`
+  -- shared definition-instruction identity predicate used by typed local
+  collection owners.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_string_collection_owner.pgy`
+  -- exact local `Array<String>` literal graph, canonical ABI, and element-pool
+  admission without source or display-text recovery.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_admission_owner.pgy`
+  -- the one type-directed join over local Int, local String, and admitted
+  returned-Int collection definitions. It exposes one collection receipt and
+  one companion element receipt to the planner.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_owner.pgy`
   -- exact collection-definition join. Local literals consume their own graph
   and ABI; hoisted calls consume the admitted producer receipt and reject call
   target, ABI, result-name, or hidden LocalRef drift.
+- `src/self_hosted/compiler/direct_mir_array_captured_abi_fact_owner.pgy` and
+  `direct_mir_array_literal_spine_owner.pgy` -- element-neutral captured-array
+  ABI and persisted array-literal spine predicates shared by the Int and String
+  collection owners.
+- `src/self_hosted/compiler/direct_mir_array_string_abi_fact_owner.pgy` and
+  `direct_mir_array_string_abi_projection_owner.pgy` -- canonical
+  `Array<String>` ABI admission and selected-target C/LLVM spelling. They
+  consume the persisted layout row; neither backend guesses offsets or runtime
+  symbols.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_fact_owner.pgy`,
   `direct_mir_scalar_cfg_foreach_set_owner.pgy`, and
   `direct_mir_scalar_cfg_foreach_append_owner.pgy` -- immutable target-neutral
@@ -2201,18 +2238,30 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_c_operand_owner.pgy` -- C
   spelling for sealed ValueId/LocalRef/literal operands.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_c_emission_owner.pgy` --
-  final C label/goto projection from the immutable scalar CFG plan, using one
-  source-local storage cell to lower verified SSA/phi facts without rereading
-  MIR.
+  final C label/goto projection from the immutable scalar CFG plan. Operation
+  spelling is delegated to the type-directed operation owner; MIR is never
+  reread.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_c_operation_emission_owner.pgy`
+  and `direct_mir_scalar_cfg_string_c_materialization_owner.pgy` -- typed C
+  operation spelling and the bounded concat runtime block selected solely by
+  the sealed plan and runtime ABI receipt.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_c_emission_owner.pgy`
-  -- C storage, ABI-length cursor, binder load, latch increment, and bound
-  projection from the sealed foreach receipt.
+  -- stable C consumer names delegated to
+  `direct_mir_scalar_cfg_foreach_typed_c_emission_owner.pgy`, which owns typed
+  Int/String storage, ABI-length cursor, binder load, latch increment, and
+  condition projection from the sealed receipts.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy` --
-  final textual LLVM block projection from that same plan and local-storage
-  policy; it owns target spelling only.
+  final textual LLVM block projection from that same plan. Operation spelling
+  is delegated to the type-directed operation owner; it owns no admission.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_operation_emission_owner.pgy`
+  and `direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy` -- typed
+  LLVM operation spelling, String constants/arrays, and the selected concat
+  helper body from sealed receipts.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy`
-  -- LLVM aggregate storage, ABI-indexed data/length access, binder widening,
-  cursor update, and condition projection from the same receipt.
+  -- stable LLVM consumer names delegated to
+  `direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy`, which owns
+  typed aggregate storage, ABI-indexed data/length access, binder load, cursor
+  update, and condition projection from the same receipts.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy` and
   `direct_mir_scalar_cfg_llvm_terminator_emission_owner.pgy` -- responsibility-
   named scalar local and LLVM terminator spelling owners extracted to preserve

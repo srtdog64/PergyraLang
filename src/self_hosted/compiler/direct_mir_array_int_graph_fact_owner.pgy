@@ -4,6 +4,7 @@
 
 import "../mir_lower/expression_graph_sequence_owner.pgy";
 import "../mir_lower/program_instruction_expression_index_owner.pgy";
+import "direct_mir_array_literal_spine_owner.pgy";
 
 func DirectMirArrayIntGraphFromExpressionFact(
     json: String, ref fact: MirProgramInstructionExpressionFact,
@@ -23,48 +24,21 @@ func DirectMirArrayIntLiteralElements(
     ref sequence: MirExpressionGraphSequence
 ) -> Array<Int> {
     let values: Array<Int> = [];
-    let count: Int = sequence.ready_node_count;
-    if !sequence.ok || count < 3 || count % 2 == 0 ||
-        ArrayLength(sequence.roots) != 1 ||
-        sequence.roots[0] != count - 1 ||
-        ArrayLength(sequence.arena.topology.node_kinds) != count ||
-        ArrayLength(sequence.arena.topology.left_children) != count ||
-        ArrayLength(sequence.arena.topology.right_children) != count ||
-        ArrayLength(sequence.arena.node_texts) != count ||
-        ArrayLength(sequence.arena.call_target_kinds) != count ||
-        ArrayLength(sequence.arena.call_target_names) != count ||
-        sequence.arena.topology.node_kinds[0] !=
-            AstExpressionNodeArrayLiteral() {
+    let nodes: Array<Int> = DirectMirArrayLiteralElementNodes(
+        sequence, AstExpressionNodeIntegerLiteral()
+    );
+    if ArrayLength(nodes) < 1 {
         Die("direct MIR Array<Int> literal graph shape is invalid");
     }
     let row: Int = 0;
-    while row < count {
-        if sequence.arena.call_target_kinds[row] !=
-                SemanticCallTargetNone() ||
-            sequence.arena.call_target_names[row] != "" {
-            Die("direct MIR Array<Int> literal graph has a call target");
-        }
-        row = row + 1;
-    }
-    let element_row: Int = 1;
-    let previous_spine: Int = 0;
-    while element_row < count {
-        let spine_row: Int = element_row + 1;
-        let literal: String = sequence.arena.node_texts[element_row];
-        if sequence.arena.topology.node_kinds[element_row] !=
-                AstExpressionNodeIntegerLiteral() ||
-            sequence.arena.topology.node_kinds[spine_row] !=
-                AstExpressionNodeArrayElement() ||
-            sequence.arena.topology.left_children[spine_row] !=
-                previous_spine ||
-            sequence.arena.topology.right_children[spine_row] !=
-                element_row || literal == "" ||
+    while row < ArrayLength(nodes) {
+        let literal: String = sequence.arena.node_texts[nodes[row]];
+        if literal == "" ||
             ToString(ToInt(literal)) != literal {
             Die("direct MIR Array<Int> element or spine fact is invalid");
         }
         ArrayPush(values, ToInt(literal));
-        previous_spine = spine_row;
-        element_row = element_row + 2;
+        row = row + 1;
     }
     return values;
 }

@@ -1,0 +1,43 @@
+// One persisted array-literal spine validator shared by element decoders.
+
+import "../mir_lower/expression_graph_sequence_owner.pgy";
+
+func DirectMirArrayLiteralElementNodes(
+    ref sequence: MirExpressionGraphSequence, element_kind: Int
+) -> Array<Int> {
+    let nodes: Array<Int> = [];
+    let count: Int = sequence.ready_node_count;
+    if !sequence.ok || count < 3 || count % 2 == 0 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != count - 1 ||
+        ArrayLength(sequence.arena.topology.node_kinds) != count ||
+        ArrayLength(sequence.arena.topology.left_children) != count ||
+        ArrayLength(sequence.arena.topology.right_children) != count ||
+        ArrayLength(sequence.arena.node_texts) != count ||
+        ArrayLength(sequence.arena.call_target_kinds) != count ||
+        ArrayLength(sequence.arena.call_target_names) != count ||
+        sequence.arena.topology.node_kinds[0] !=
+            AstExpressionNodeArrayLiteral() { return nodes; }
+    let row: Int = 0;
+    while row < count {
+        if sequence.arena.call_target_kinds[row] !=
+                SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[row] != "" { return []; }
+        row = row + 1;
+    }
+    let element: Int = 1;
+    let prior_spine: Int = 0;
+    while element < count {
+        let spine: Int = element + 1;
+        if sequence.arena.topology.node_kinds[element] != element_kind ||
+            sequence.arena.topology.node_kinds[spine] !=
+                AstExpressionNodeArrayElement() ||
+            sequence.arena.topology.left_children[spine] != prior_spine ||
+            sequence.arena.topology.right_children[spine] != element {
+            return [];
+        }
+        ArrayPush(nodes, element);
+        prior_spine = spine;
+        element = element + 2;
+    }
+    return nodes;
+}

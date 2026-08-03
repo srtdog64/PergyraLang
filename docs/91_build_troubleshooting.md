@@ -5125,3 +5125,50 @@ $env:PGY_SELFHOST_ONE_MIR_DRIVER_BIN='D:/PergyraLang/bin/pgy-self-driver.exe'
 private 46,170,112 bytes(0.043 GiB)였고 3 GiB hard stop은 발동하지 않았다.
 일상 focused gate마다 pressure sampling을 반복하지 않고 최종 integration
 수치 하나만 기록한다.
+
+## mixed foreach가 Option-match 진단으로 실패하는 경우
+
+2026-08-03 `src/self_hosted/codegen/fixture/for_each.pgy`의 직접 C/LLVM
+projection은 처음에 artifact를 만들지 못하고 다음 진단을 냈다.
+
+```text
+direct MIR Option match routine fact owner is invalid
+```
+
+입력이 Option을 사용해서가 아니었다. 일반 scalar-CFG route가
+`Int`/`Array<Int>`만 허용해 `Array<String>` local을 본 순간 claim을
+포기했고, dispatcher의 뒤쪽에 있던 7-block Option route가 블록 수만으로
+같은 routine을 잘못 claim한 것이 원인이었다. 즉 실제 결함은 backend나
+Option plan이 아니라 의미 없는 topology count가 앞선 claimant 실패를
+가린 route 분류였다.
+
+해결은 mixed-foreach 전용 compiler나 `block_count == 7` 예외를 추가하는
+것이 아니다. `direct_mir_scalar_cfg_type_family_owner.pgy`가 지원 타입과
+iteration pair를 소유하고, route는 그 정책만 소비한다. 정확한
+`Array<String>` layout, literal spine, String element pool, concat call target,
+SSA type, LocalRef는 각각의 fact/admission owner가 plan 발행 전에 검증한다.
+한번 scalar-CFG가 claim한 입력이 유효하지 않으면 Option이나 legacy plan으로
+재시도하지 않고 같은 소유자의 진단으로 fail closed한다.
+
+회귀 확인은 다음 focused gate가 소유한다.
+
+```powershell
+& 'C:\Program Files\Git\bin\bash.exe' -lc `
+  'cd /d/PergyraLang && tests/self_hosted/parity/one_mir_mixed_collection_foreach_projection.sh'
+```
+
+이 gate는 C/LLVM exact `60`, `abbccc` 실행과 graph-only 문자열 변경
+`xyyzzz`를 확인한다. 타입·ABI·문자열 spine·concat edge/target·LocalRef를
+변조한 13개 입력은 artifact 없이 거부하며, 어느 진단에도
+`direct MIR Option match`가 다시 나타나지 않아야 한다. display `expr0`와
+iteration row 순서 변경은 산출물 바이트를 바꾸지 않아야 한다.
+
+누적 CFG gate에서는 두 기존 계약 회귀도 추가로 발견됐다. 첫째,
+typed-readiness가 `i + 1`의 오른쪽 literal을 ValueId/local 타입 조회에만
+넣어 빈 타입으로 거부했다. 이때 literal을 다시 파싱하지 않고, 이미
+`AddInt`로 봉인된 operation receipt의 literal slot을 Int operand로 검증한다.
+둘째, typed foreach C preamble이 foreach가 없는 기존 scalar-CFG에도
+`stdint.h`/`stddef.h`를 출력해 실행은 같지만 byte identity를 깨뜨렸다.
+foreach receipt가 0개이면 기존 `stdio.h` preamble을 그대로 사용해야 한다.
+`one_mir_cfg_air_plan_projection.sh`가 while/range/nested/collection 경로를 함께
+실행해 이 두 종류의 회귀를 막는다.

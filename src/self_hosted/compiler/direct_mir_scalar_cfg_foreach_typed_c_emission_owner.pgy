@@ -1,0 +1,221 @@
+// Element-typed C materialization for the shared foreach receipt set.
+
+import "direct_mir_array_int_abi_projection_owner.pgy";
+import "direct_mir_array_int_emission_owner.pgy";
+import "direct_mir_array_string_abi_projection_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_graph_readiness_owner.pgy";
+
+func DirectMirScalarCfgForEachCStringList(values: Array<String>) -> String {
+    let output: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(values) {
+        if row > 0 { output = Concat(output, ", "); }
+        output = Concat(output, Concat("\"", Concat(values[row], "\"")));
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarCfgForEachCStruct(
+    element_type: String, length_type: String, array_type: String
+) -> String {
+    let output: String = "typedef struct {\n    ";
+    output = Concat(output, element_type);
+    output = Concat(output, " *data;\n    ");
+    output = Concat(output, length_type);
+    output = Concat(output, " length;\n    ");
+    output = Concat(output, length_type);
+    output = Concat(output, " capacity;\n    void *allocator;\n} ");
+    return Concat(output, Concat(array_type, ";\n"));
+}
+
+func DirectMirScalarCfgForEachTypedCPreamble(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact
+) -> String {
+    if DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) == 0 {
+        return "#include <stdio.h>\n";
+    }
+    let output: String =
+        "#include <stdint.h>\n#include <stddef.h>\n#include <stdio.h>\n";
+    let int_seen: Bool = false; let string_seen: Bool = false;
+    let row: Int = 0;
+    while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
+        let fact: DirectMirScalarCfgForEachFact =
+            DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
+        let type_name: String =
+            DirectMirScalarCfgForEachElementTypeAtLoopSyntaxId(
+                plan.foreach_elements, fact.loop_syntax_id
+            );
+        if type_name == CompilerAbiLayoutIntTypeName() && !int_seen {
+            let abi: DirectMirArrayIntAbiProjection =
+                DirectMirArrayIntAbiProjectionFromCanonicalLayout(
+                    target, fact.abi_layout_id, fact.abi_size,
+                    fact.abi_align, fact.data_offset, fact.length_offset,
+                    fact.capacity_offset, fact.allocator_offset
+                );
+            output = Concat(output, "\n");
+            output = Concat(output, DirectMirScalarCfgForEachCStruct(
+                abi.c_element_type, abi.c_length_type, abi.c_array_type
+            ));
+            int_seen = true;
+        } else if type_name == CompilerAbiLayoutStringTypeName() &&
+                !string_seen {
+            let abi: DirectMirArrayStringAbiProjection =
+                DirectMirArrayStringAbiProjectionFromCanonicalLayout(
+                    target, fact.abi_layout_id, fact.abi_size,
+                    fact.abi_align, fact.data_offset, fact.length_offset,
+                    fact.capacity_offset, fact.allocator_offset
+                );
+            output = Concat(output, "\n");
+            output = Concat(output, DirectMirScalarCfgForEachCStruct(
+                abi.c_element_type, abi.c_length_type, abi.c_array_type
+            ));
+            string_seen = true;
+        }
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarCfgForEachTypedCDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact
+) -> String {
+    let output: String = "";
+    let row: Int = 0;
+    while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
+        let fact: DirectMirScalarCfgForEachFact =
+            DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
+        let type_name: String =
+            DirectMirScalarCfgForEachElementTypeAtLoopSyntaxId(
+                plan.foreach_elements, fact.loop_syntax_id
+            );
+        let element_type: String = ""; let length_type: String = "";
+        let array_type: String = ""; let element_list: String = "";
+        let element_count: Int = ArrayLength(fact.elements);
+        if type_name == CompilerAbiLayoutIntTypeName() {
+            let abi: DirectMirArrayIntAbiProjection =
+                DirectMirArrayIntAbiProjectionFromCanonicalLayout(
+                    target, fact.abi_layout_id, fact.abi_size,
+                    fact.abi_align, fact.data_offset, fact.length_offset,
+                    fact.capacity_offset, fact.allocator_offset
+                );
+            element_type = abi.c_element_type; length_type = abi.c_length_type;
+            array_type = abi.c_array_type;
+            element_list = DirectMirArrayIntCElementList(fact.elements);
+        } else if type_name == CompilerAbiLayoutStringTypeName() {
+            let abi: DirectMirArrayStringAbiProjection =
+                DirectMirArrayStringAbiProjectionFromCanonicalLayout(
+                    target, fact.abi_layout_id, fact.abi_size,
+                    fact.abi_align, fact.data_offset, fact.length_offset,
+                    fact.capacity_offset, fact.allocator_offset
+                );
+            let strings: Array<String> =
+                DirectMirScalarCfgForEachStringElementsAtLoopSyntaxId(
+                    plan.foreach_elements, fact.loop_syntax_id
+                );
+            element_type = abi.c_element_type; length_type = abi.c_length_type;
+            array_type = abi.c_array_type;
+            element_list = DirectMirScalarCfgForEachCStringList(strings);
+        } else { Die("direct MIR scalar CFG foreach C element type is invalid"); }
+        let storage_row: Int = DirectMirScalarCfgForEachStorageRow(
+            plan.foreach_iterations, row
+        );
+        if storage_row == row {
+            output = Concat(output, Concat("    ", element_type));
+            output = Concat(output, " pgy_foreach_storage_");
+            output = Concat(output, ToString(row));
+            output = Concat(output, Concat("[", ToString(element_count)));
+            output = Concat(output, Concat("] = {", element_list));
+            output = Concat(output, "};\n    ");
+            output = Concat(output, array_type);
+            output = Concat(output, " pgy_foreach_collection_");
+            output = Concat(output, ToString(row));
+            output = Concat(output, " = {pgy_foreach_storage_");
+            output = Concat(output, ToString(row));
+            output = Concat(output, Concat(", ", ToString(element_count)));
+            output = Concat(output, Concat(", ", ToString(element_count)));
+            output = Concat(output, ", NULL};\n");
+        }
+        output = Concat(output, Concat("    ", length_type));
+        output = Concat(output, " pgy_foreach_cursor_");
+        output = Concat(output, Concat(ToString(row), " = 0;\n"));
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarCfgForEachTypedCBlockEntry(
+    ref plan: DirectMirScalarCfgGraphPlan, block: Int
+) -> String {
+    let output: String = ""; let row: Int = 0;
+    while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
+        let fact: DirectMirScalarCfgForEachFact =
+            DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
+        if block == fact.init_block {
+            output = Concat(output, "    pgy_foreach_cursor_");
+            output = Concat(output, Concat(ToString(row), " = 0;\n"));
+        }
+        if block == fact.body_block {
+            let storage_row: Int = DirectMirScalarCfgForEachStorageRow(
+                plan.foreach_iterations, row
+            );
+            output = Concat(output, "    pgy_local_");
+            output = Concat(output, ToString(fact.binding_local_row));
+            output = Concat(output, " = pgy_foreach_collection_");
+            output = Concat(output, ToString(storage_row));
+            output = Concat(output, ".data[pgy_foreach_cursor_");
+            output = Concat(output, Concat(ToString(row), "];\n"));
+        }
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarCfgForEachTypedCBlockExit(
+    ref plan: DirectMirScalarCfgGraphPlan, block: Int
+) -> String {
+    let output: String = ""; let row: Int = 0;
+    while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
+        let fact: DirectMirScalarCfgForEachFact =
+            DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
+        let edge: Int = 0;
+        while edge < ArrayLength(fact.backedge_blocks) {
+            if fact.backedge_blocks[edge] == block {
+                output = Concat(output, "    pgy_foreach_cursor_");
+                output = Concat(output, ToString(row));
+                output = Concat(output, " = pgy_foreach_cursor_");
+                output = Concat(output, ToString(row));
+                output = Concat(output, " + 1;\n");
+            }
+            edge = edge + 1;
+        }
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarCfgForEachTypedCCondition(
+    ref plan: DirectMirScalarCfgGraphPlan, block: Int
+) -> String {
+    let found: Int = -1; let row: Int = 0;
+    while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
+        let fact: DirectMirScalarCfgForEachFact =
+            DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
+        if fact.header_block == block {
+            if found >= 0 { Die("direct MIR scalar CFG foreach C header is ambiguous"); }
+            found = row;
+        }
+        row = row + 1;
+    }
+    if found < 0 { Die("direct MIR scalar CFG foreach C header is missing"); }
+    let storage_row: Int = DirectMirScalarCfgForEachStorageRow(
+        plan.foreach_iterations, found
+    );
+    return Concat("pgy_foreach_cursor_", Concat(
+        ToString(found), Concat(" < pgy_foreach_collection_", Concat(
+            ToString(storage_row), ".length"
+        ))
+    ));
+}
