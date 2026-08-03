@@ -12,12 +12,11 @@ driver_self_host_llvm_artifact_request_supported(const DriverFlags *flags)
         && flags->machine_layer_physical_manifest == NULL;
 }
 
-bool
-driver_self_host_llvm_ir_file_request_supported(const DriverFlags *flags)
+static bool
+driver_self_host_llvm_ir_request_supported(const DriverFlags *flags)
 {
     return flags != NULL
         && flags->source_path != NULL
-        && flags->output_path != NULL
         && flags->backend == BACKEND_LLVM
         && flags->emit_llvm_ir
         && !flags->emit_c_only && !flags->do_run
@@ -34,4 +33,18 @@ driver_self_host_llvm_ir_file_request_supported(const DriverFlags *flags)
         && flags->diag_format == DIAG_FORMAT_TEXT
         && flags->runtime_mode == RUNTIME_DEFAULT
         && flags->machine_layer_physical_manifest == NULL;
+}
+
+bool
+driver_self_host_llvm_ir_file_request_supported(const DriverFlags *flags)
+{
+    return driver_self_host_llvm_ir_request_supported(flags)
+        && flags->output_path != NULL;
+}
+
+bool
+driver_self_host_llvm_ir_stdout_request_supported(const DriverFlags *flags)
+{
+    return driver_self_host_llvm_ir_request_supported(flags)
+        && flags->output_path == NULL;
 }

@@ -370,6 +370,7 @@ require_text "src/pgy_driver.c" "c_runner_execute_installed_self_host_c("
 require_text "Makefile" "self-host-default-c-emit-replacement-test-smoke:"
 require_text "Makefile" "self-host-public-mir-json-replacement-test-smoke:"
 require_text "Makefile" "self-host-public-llvm-ir-replacement-test-smoke:"
+require_text "Makefile" "self-host-public-llvm-ir-stdout-replacement-test-smoke:"
 require_text "Makefile" \
     "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh"
 require_text "Makefile" \
@@ -956,6 +957,18 @@ require_text "src/compiler/self_host_llvm_ir_artifact_owner.c" \
 forbid_text "src/compiler/self_host_llvm_ir_artifact_owner.c" \
     "driver_run_pipeline("
 forbid_text "src/compiler/self_host_llvm_ir_artifact_owner.c" \
+    "compiler_emit_llvm_ir"
+require_text "src/pgy_driver.c" \
+    "driver_self_host_llvm_ir_stdout_request_supported"
+require_text "src/pgy_driver.c" \
+    "driver_write_self_host_llvm_ir_stdout"
+require_text "src/compiler/self_host_llvm_ir_stdout_owner.c" \
+    "driver_materialize_self_host_llvm_artifacts("
+forbid_text "src/compiler/self_host_llvm_ir_stdout_owner.c" \
+    "path_read_file("
+forbid_text "src/compiler/self_host_llvm_ir_stdout_owner.c" \
+    "driver_run_pipeline("
+forbid_text "src/compiler/self_host_llvm_ir_stdout_owner.c" \
     "compiler_emit_llvm_ir"
 require_text "src/compiler/self_host_llvm_driver.c" \
     'producer_argv[1] = "--emit-mir-json-verified"'
