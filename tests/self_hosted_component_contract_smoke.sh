@@ -7117,11 +7117,16 @@ require_file "src/compiler/self_host_llvm_driver.c"
 require_file "src/compiler/self_host_llvm_driver.h"
 require_file "src/compiler/driver_self_host_selection_owner.c"
 require_file "src/compiler/driver_self_host_selection_owner.h"
+require_file "src/compiler/driver_self_host_llvm_selection_owner.c"
+require_file "src/compiler/driver_self_host_llvm_selection_owner.h"
+require_file "src/compiler/self_host_llvm_ir_artifact_owner.c"
+require_file "src/compiler/self_host_llvm_ir_artifact_owner.h"
 require_file "src/compiler/compiler_self_host_artifact.c"
 require_file "src/compiler/compiler_transient_artifact_workspace.c"
 require_file "src/compiler/compiler_transient_artifact_workspace.h"
 require_file "tests/self_hosted/parity/self_host_compiler_build.sh"
 require_file "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh"
+require_file "tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh"
 require_text "src/self_hosted/parser/program_parse_owner.pgy" \
     "let composed_rows: AstExpressionGraphRows = expression_graphs[0];"
 reject_text "src/self_hosted/parser/program_parse_owner.pgy" \
@@ -7134,6 +7139,9 @@ require_max_lines "src/compiler/self_host_driver.c" 200
 require_max_lines "src/compiler/self_host_llvm_driver.c" 120
 require_max_lines "src/compiler/driver_self_host_selection_owner.c" 100
 require_max_lines "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh" 140
+require_max_lines "src/compiler/driver_self_host_llvm_selection_owner.c" 60
+require_max_lines "src/compiler/self_host_llvm_ir_artifact_owner.c" 90
+require_max_lines "tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh" 140
 require_max_lines "src/compiler/compiler_self_host_artifact.c" 180
 require_max_lines "src/compiler/compiler_transient_artifact_workspace.c" 160
 require_max_lines "src/pgy_driver.c" 320
@@ -7144,6 +7152,10 @@ require_text "src/pgy_driver.c" 'strcmp(argv[1], "--self-driver") == 0'
 require_text "src/pgy_driver.c" "driver_run_self_host_command"
 require_text "src/pgy_driver.c" "driver_self_host_mir_json_request_supported"
 require_text "src/pgy_driver.c" "driver_run_self_host_mir_json"
+require_text "src/pgy_driver.c" \
+    "driver_self_host_llvm_ir_file_request_supported"
+require_text "src/pgy_driver.c" \
+    "driver_publish_self_host_llvm_ir_file"
 require_text "src/pgy_driver.c" 'if (flags.test_native_mir_json_oracle) {'
 require_text "src/pgy_driver.c" 'if (flags.dump_mir_json) {'
 require_text "src/pgy_driver.c" "driver_self_host_c_artifact_request_supported"
@@ -7161,6 +7173,12 @@ require_text "src/compiler/driver_self_host_selection_owner.c" \
 require_text "src/compiler/driver_self_host_selection_owner.c" \
     "flags->runtime_mode == RUNTIME_DEFAULT"
 reject_text "src/compiler/driver_self_host_selection_owner.c" "driver_run_pipeline("
+require_text "src/compiler/driver_self_host_llvm_selection_owner.c" \
+    "driver_self_host_llvm_ir_file_request_supported("
+require_text "src/compiler/driver_self_host_llvm_selection_owner.c" \
+    "flags->output_path != NULL"
+reject_text "src/compiler/driver_self_host_llvm_selection_owner.c" \
+    "driver_run_pipeline("
 require_text "src/compiler/self_host_driver.c" 'getenv("PGY_SELF_DRIVER_BIN")'
 require_text "src/compiler/self_host_driver.c" 'path_join_dup(directory, "pgy-self-driver")'
 require_text "src/compiler/self_host_driver.c" \
@@ -7194,6 +7212,14 @@ reject_text "src/compiler/self_host_llvm_driver.c" "strstr("
 reject_text "src/compiler/self_host_llvm_driver.c" "driver_run_pipeline("
 reject_text "src/compiler/self_host_llvm_driver.c" "compiler_build_native_llvm("
 reject_text "src/compiler/self_host_llvm_driver.c" "compiler_runtime_object"
+require_text "src/compiler/self_host_llvm_ir_artifact_owner.c" \
+    "driver_materialize_self_host_llvm_artifacts("
+require_text "src/compiler/self_host_llvm_ir_artifact_owner.c" \
+    "compiler_transient_artifact_workspace_open("
+reject_text "src/compiler/self_host_llvm_ir_artifact_owner.c" \
+    "driver_run_pipeline("
+reject_text "src/compiler/self_host_llvm_ir_artifact_owner.c" \
+    "compiler_emit_llvm_ir"
 require_text "src/compiler/compiler_self_host_artifact.c" \
     'compile_link_argv[argc++] = "ir"'
 reject_text "src/compiler/compiler_self_host_artifact.c" "CompilerIRBundle"
@@ -7249,7 +7275,9 @@ require_text "Makefile" \
 require_text "Makefile" \
     "self-host-public-mir-json-replacement-test-smoke: self-host-generic-specialization-identity-epoch-test-smoke"
 require_text "Makefile" \
-    "self-host-live-replacement-test-smoke: self-host-public-mir-json-replacement-test-smoke"
+    "self-host-public-llvm-ir-replacement-test-smoke: self-host-public-mir-json-replacement-test-smoke"
+require_text "Makefile" \
+    "self-host-live-replacement-test-smoke: self-host-public-llvm-ir-replacement-test-smoke"
 require_file \
     "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh"
 require_max_lines \

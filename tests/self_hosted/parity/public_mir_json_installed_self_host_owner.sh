@@ -125,7 +125,8 @@ require_text "$SIBLING_OWNER" 'return driver_run_self_host_command(launcher_path
 grep -Fq 'driver_run_pipeline(' "$SIBLING_OWNER" &&
     fail "installed sibling launcher regained a native pipeline fallback"
 unseparated_oracles="$(find "$ROOT_DIR/tests" -type f -name '*.sh' \
-    ! -name 'public_mir_json_installed_self_host_owner.sh' -exec awk '
+    ! -name 'public_mir_json_installed_self_host_owner.sh' \
+    ! -name 'public_llvm_ir_installed_self_host_owner.sh' -exec awk '
         /"\$PGY"/ { pgy_window = 3; self_mode = /--self-driver/ }
         pgy_window > 0 && /--mir-json/ && !/--test-native-mir-json-oracle/ && !self_mode {
             print FILENAME ":" FNR

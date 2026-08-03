@@ -15,6 +15,8 @@
 #include "compiler/debugger.h"
 #include "compiler/self_host_driver.h"
 #include "compiler/driver_self_host_selection_owner.h"
+#include "compiler/driver_self_host_llvm_selection_owner.h"
+#include "compiler/self_host_llvm_ir_artifact_owner.h"
 #include "compiler/c_runner.h"
 #include "compiler/llvm_runner.h"
 
@@ -252,6 +254,15 @@ main(int argc, char *argv[])
             return 1;
         }
         return driver_run_self_host_mir_json(argv[0], flags.source_path);
+    }
+    if (flags.emit_llvm_ir && flags.output_path != NULL) {
+        if (!driver_self_host_llvm_ir_file_request_supported(&flags)) {
+            fprintf(stderr,
+                    "pgy: --emit-llvm file options are outside the installed self-host driver contract\n");
+            return 1;
+        }
+        return driver_publish_self_host_llvm_ir_file(
+            argv[0], flags.source_path, flags.output_path);
     }
     if (flags.emit_c_only) {
         if (flags.do_run
