@@ -7,12 +7,29 @@ func SelfMirLoopPrepareHeaderLocalVersions(
     ref input: SelfMirRoutineInput,
     build: SelfMirRoutineBuild,
     body_node_id: Int,
-    planned_backedge: Bool
+    planned_backedge: Bool,
+    loop_local_start: Int
 ) -> SelfMirRoutineBuild {
     if !planned_backedge { return build; }
+    if loop_local_start < 0 ||
+        loop_local_start > ArrayLength(build.local_names) {
+        return SelfMirRoutineBuildError(
+            build, "MIR loop-local scope boundary is invalid"
+        );
+    }
     let local_row: Int = 0;
     while local_row < ArrayLength(build.local_names) {
-        if SelfMirLoopAssignedLocal(
+        let shadowed_by_loop_local: Bool = false;
+        let loop_local_row: Int = loop_local_start;
+        while loop_local_row < ArrayLength(build.local_names) {
+            if loop_local_row != local_row &&
+                build.local_names[loop_local_row] ==
+                    build.local_names[local_row] {
+                shadowed_by_loop_local = true;
+            }
+            loop_local_row = loop_local_row + 1;
+        }
+        if !shadowed_by_loop_local && SelfMirLoopAssignedLocal(
             input, body_node_id, build.local_names[local_row]
         ) {
             let old_version: Int = build.local_versions[local_row];

@@ -8966,7 +8966,9 @@ require_text "src/self_hosted/mir/routine_for_owner.pgy" \
 require_text "src/self_hosted/mir/routine_while_owner.pgy" \
     'return SelfMirLoopExitMergeLocalVersions('
 require_text "src/self_hosted/mir/routine_for_owner.pgy" \
-    'return SelfMirLoopExitMergeLocalVersions('
+    'build = SelfMirLoopExitMergeLocalVersions('
+require_text "src/self_hosted/mir/routine_for_owner.pgy" \
+    'return SelfMirRoutineAtLocalCount(build, iteration_scope_local_count);'
 require_text "src/self_hosted/mir/routine_for_owner.pgy" \
     'SelfMirLoopPrepareHeaderLocalVersions('
 require_text "src/self_hosted/mir/routine_for_owner.pgy" \
@@ -15469,6 +15471,9 @@ require_max_lines \
 require_file "tests/self_hosted/parity/one_mir_scalar_cfg_continue_backedge_projection.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_scalar_cfg_continue_backedge_projection.sh" 160
+require_file "tests/self_hosted/parity/one_mir_iteration_binding_scope_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_iteration_binding_scope_owner.sh" 160
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
     'DirectMirScalarCfgGraphRouteClaimed(admitted)'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \

@@ -400,12 +400,28 @@ func SelfMirRoutineDeclareLocal(
         build.local_versions[UnwrapOption(active)] >= version {
         version = build.local_versions[UnwrapOption(active)] + 1;
     }
+    return SelfMirRoutinePushLocal(build, name, type_name, version);
+}
+
+func SelfMirRoutinePushLocal(
+    build: SelfMirRoutineBuild,
+    name: String,
+    type_name: String,
+    initial_version: Int
+) -> SelfMirRoutineBuild {
+    if name == "" || type_name == "" || initial_version < 0 ||
+        ArrayLength(build.local_names) != ArrayLength(build.local_types) ||
+        ArrayLength(build.local_names) != ArrayLength(build.local_versions) {
+        return SelfMirRoutineBuildError(
+            build, "MIR lexical local identity is invalid"
+        );
+    }
     let names: Array<String> = build.local_names;
     let types: Array<String> = build.local_types;
     let versions: Array<Int> = build.local_versions;
     ArrayPush(names, name);
     ArrayPush(types, type_name);
-    ArrayPush(versions, version);
+    ArrayPush(versions, initial_version);
     return SelfMirRoutineBuild(
         build.ok, build.diagnostic_message, build.cfg, build.current_block,
         build.next_instruction_id, build.terminated, names, types, versions
@@ -474,6 +490,19 @@ func SelfMirLocalVersionsSnapshot(versions: Array<Int>) -> Array<Int> {
     let snapshot: Array<Int> = [];
     let i: Int = 0;
     while i < ArrayLength(versions) {
+        ArrayPush(snapshot, versions[i]);
+        i = i + 1;
+    }
+    return snapshot;
+}
+
+func SelfMirLocalVersionsPrefix(
+    versions: Array<Int>, count: Int
+) -> Array<Int> {
+    let snapshot: Array<Int> = [];
+    if count < 0 || count > ArrayLength(versions) { return snapshot; }
+    let i: Int = 0;
+    while i < count {
         ArrayPush(snapshot, versions[i]);
         i = i + 1;
     }

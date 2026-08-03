@@ -50,7 +50,8 @@ func SelfMirLowerWhileFromArtifact(
     build = SelfMirRoutineSetSuccessors(build, preheader, header, -1);
     build = SelfMirRoutineAtBlock(build, header);
     build = SelfMirLoopPrepareHeaderLocalVersions(
-        input, build, UnwrapOption(body_opt), planned_backedge
+        input, build, UnwrapOption(body_opt), planned_backedge,
+        ArrayLength(build.local_names)
     );
     build = SelfMirRoutineAddInstruction(
         build, "branch", "branch", "", "", "", condition, "",

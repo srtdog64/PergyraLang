@@ -1,0 +1,7 @@
+func Main() -> Void {
+    let i: Int = 40;
+    for i in 0..3 {
+        Log(i);
+    }
+    Log(i);
+}

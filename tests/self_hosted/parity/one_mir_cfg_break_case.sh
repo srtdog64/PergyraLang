@@ -24,3 +24,10 @@ PGY_SELFHOST_ONE_MIR_DRIVER_BIN="$DRIVER_BIN" \
     bash "$CONTINUE_GATE" || fail "general scalar CFG continue-backedge gate failed"
 
 echo "[$LABEL] break_continue is owned by producer backedge snapshots"
+
+ITERATION_SCOPE_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir_iteration_binding_scope_owner.sh"
+require_file "$ITERATION_SCOPE_GATE"
+PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
+    bash "$ITERATION_SCOPE_GATE" || fail "iteration binding scope gate failed"
+
+echo "[$LABEL] iteration binding shadow is lexical and still fail-closed"
