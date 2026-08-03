@@ -302,7 +302,7 @@ fi
 
 CASE="tests/cases/backend_compare/device_slot_machine_layer/main.pgy"
 RIR_CASE="$SOURCE_REMOTE_CASE"
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$CASE")" >"$MIR_JSON")
 MIR_REL="${MIR_JSON#$ROOT_DIR/}"
 if ! (cd "$ROOT_DIR" && "$LOWER_BIN" "$MIR_REL" "$MACHINE_MANIFEST_REL" >"$AST_OUT" 2>&1); then

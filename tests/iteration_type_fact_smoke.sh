@@ -44,7 +44,7 @@ TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_iteration_fact.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 JSON="$WORK_DIR/loop.json"
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/examples/break_continue.pgy")" \
     >"$JSON")
 grep -Fq '"iteration_type_fact_count":1' "$JSON"

@@ -61,14 +61,14 @@ mkdir -p "$BUILD_DIR"
 "$PYTHON_BIN" "$CORPUS_OWNER" generate-multi-source \
     "$FIXTURE" "$MULTI_FIXTURE"
 
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$FIXTURE")" \
     2>"$BUILD_DIR/native.err" | tr -d '\r' >"$VALID") \
     || { cat "$BUILD_DIR/native.err" >&2; \
          fail "native canonical MIR production failed"; }
 [[ -s "$VALID" ]] || fail "native canonical MIR JSON is empty"
 
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$MULTI_FIXTURE")" \
     2>"$BUILD_DIR/multi_routine.native.err" | tr -d '\r' >"$MULTI_VALID") \
     || { cat "$BUILD_DIR/multi_routine.native.err" >&2; \

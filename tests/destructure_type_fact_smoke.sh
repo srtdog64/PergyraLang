@@ -23,9 +23,10 @@ if [[ -z "$PYTHON_BIN" ]]; then
 fi
 
 mkdir -p "$(dirname "$OUT")"
-"$PGY" "$(pgy_path_for_compiler "$PGY" "$SOURCE")" --mir-json >"$OUT"
-"$PGY" "$(pgy_path_for_compiler "$PGY" "$FIELD_SOURCE")" \
-    --mir-json >"$FIELD_OUT"
+"$PGY" --test-native-mir-json-oracle \
+    "$(pgy_path_for_compiler "$PGY" "$SOURCE")" >"$OUT"
+"$PGY" --test-native-mir-json-oracle \
+    "$(pgy_path_for_compiler "$PGY" "$FIELD_SOURCE")" >"$FIELD_OUT"
 
 "$PYTHON_BIN" - "$ROOT_DIR" "$OUT" "$FIELD_OUT" <<'PY'
 import json

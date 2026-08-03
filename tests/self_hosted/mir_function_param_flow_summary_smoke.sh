@@ -58,7 +58,7 @@ if ((compile_rc != 0)); then
 fi
 
 CASE="tests/cases/function_param_flow_summary/main.pgy"
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$CASE")" >"$MIR_JSON")
 MIR_REL="${MIR_JSON#$ROOT_DIR/}"
 if ! (cd "$ROOT_DIR" && "$LOWER_BIN" "$MIR_REL" >"$AST_OUT" 2>&1); then

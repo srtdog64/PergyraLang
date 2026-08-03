@@ -60,7 +60,7 @@ if ((compile_rc != 0)); then
 fi
 
 CASE="tests/cases/function_param_flow_summary/main.pgy"
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$CASE")" >"$MIR_JSON")
 grep -Fq -- '"resource_flow_symbol_count"' "$MIR_JSON"
 grep -Fq -- '"resource_flow_symbols"' "$MIR_JSON"

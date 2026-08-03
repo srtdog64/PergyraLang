@@ -361,10 +361,16 @@ require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
 forbid_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'DRIVER_SOURCE="src/self_hosted/compiler/driver_rung2_main.pgy"'
 require_text "src/pgy_driver.c" "if (flags.emit_c_only) {"
+require_text "src/pgy_driver.c" "if (flags.dump_mir_json) {"
+require_text "src/pgy_driver.c" "driver_run_self_host_mir_json("
+require_text "src/pgy_driver.c" "--test-native-mir-json-oracle"
 require_text "src/pgy_driver.c" "driver_run_self_host_c_emit_artifact("
 require_text "src/pgy_driver.c" "driver_plain_c_binary_target_requested("
 require_text "src/pgy_driver.c" "c_runner_execute_installed_self_host_c("
 require_text "Makefile" "self-host-default-c-emit-replacement-test-smoke:"
+require_text "Makefile" "self-host-public-mir-json-replacement-test-smoke:"
+require_text "Makefile" \
+    "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh"
 require_text "Makefile" \
     "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh"
 require_text "Makefile" "self-host-default-c-compile-replacement-test-smoke:"

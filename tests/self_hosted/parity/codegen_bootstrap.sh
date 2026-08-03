@@ -500,7 +500,7 @@ if [[ -f "$MIR_LOWER_SOURCE" ]]; then
         -o "$(pgy_path_for_compiler "$PGY" "$B/mir_lower_oracle.exe")" >/dev/null 2>&1)
     for mir_base in "${BOOTSTRAP_MIR_FIXTURES[@]}"; do
         mir_json_rel="$B_REL/mir_${mir_base}.json"
-        (cd "$ROOT_DIR" && "$PGY" --mir-json \
+        (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
             "${MIR_FIXTURE_DIR#"$ROOT_DIR"/}/${mir_base}.pgy" \
             2>/dev/null | tr -d '\r' > "$mir_json_rel")
         mir_via="$(run_native_stdout "mir_${mir_base}_self_run" "$B/mir_lower_self.exe" "$mir_json_rel")"

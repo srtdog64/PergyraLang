@@ -100,7 +100,8 @@ if [[ -z "$PYTHON_BIN" ]]; then
 fi
 
 mir_json="$tmp_dir/topology.mir.json"
-"$PGY" --mir-json "$source_arg" >"$mir_json" 2>"$tmp_dir/mir-json.log" \
+"$PGY" --test-native-mir-json-oracle "$source_arg" \
+    >"$mir_json" 2>"$tmp_dir/mir-json.log" \
     || fail "native MIR topology JSON emission failed"
 
 "$PYTHON_BIN" - "$mir_json" <<'PY'
@@ -183,7 +184,8 @@ for row in rows:
 PY
 
 state_alias_mir_json="$tmp_dir/topology-state-alias.mir.json"
-"$PGY" --mir-json "$state_alias_source_arg" >"$state_alias_mir_json" \
+"$PGY" --test-native-mir-json-oracle "$state_alias_source_arg" \
+    >"$state_alias_mir_json" \
     2>"$tmp_dir/mir-json-state-alias.log" \
     || fail "native apply-state alias topology JSON emission failed"
 

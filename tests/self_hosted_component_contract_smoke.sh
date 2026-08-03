@@ -7121,6 +7121,7 @@ require_file "src/compiler/compiler_self_host_artifact.c"
 require_file "src/compiler/compiler_transient_artifact_workspace.c"
 require_file "src/compiler/compiler_transient_artifact_workspace.h"
 require_file "tests/self_hosted/parity/self_host_compiler_build.sh"
+require_file "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh"
 require_text "src/self_hosted/parser/program_parse_owner.pgy" \
     "let composed_rows: AstExpressionGraphRows = expression_graphs[0];"
 reject_text "src/self_hosted/parser/program_parse_owner.pgy" \
@@ -7132,6 +7133,7 @@ require_text "src/self_hosted/parser/program_parse_owner.pgy" \
 require_max_lines "src/compiler/self_host_driver.c" 200
 require_max_lines "src/compiler/self_host_llvm_driver.c" 120
 require_max_lines "src/compiler/driver_self_host_selection_owner.c" 100
+require_max_lines "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh" 140
 require_max_lines "src/compiler/compiler_self_host_artifact.c" 180
 require_max_lines "src/compiler/compiler_transient_artifact_workspace.c" 160
 require_max_lines "src/pgy_driver.c" 320
@@ -7140,6 +7142,10 @@ require_max_lines "src/compiler/llvm_runner.c" 300
 require_max_lines "src/compiler/compiler.c" 560
 require_text "src/pgy_driver.c" 'strcmp(argv[1], "--self-driver") == 0'
 require_text "src/pgy_driver.c" "driver_run_self_host_command"
+require_text "src/pgy_driver.c" "driver_self_host_mir_json_request_supported"
+require_text "src/pgy_driver.c" "driver_run_self_host_mir_json"
+require_text "src/pgy_driver.c" 'if (flags.test_native_mir_json_oracle) {'
+require_text "src/pgy_driver.c" 'if (flags.dump_mir_json) {'
 require_text "src/pgy_driver.c" "driver_self_host_c_artifact_request_supported"
 require_text "src/pgy_driver.c" "if (flags.emit_c_only) {"
 require_text "src/pgy_driver.c" "driver_run_self_host_c_emit_artifact("
@@ -7169,6 +7175,8 @@ require_text "src/compiler/self_host_driver.c" 'mir_json_mode = strcmp(argv[0], 
 require_text "src/compiler/self_host_driver.c" 'mir_producer_mode = strcmp(argv[0], "--emit-mir-json-verified") == 0'
 require_text "src/compiler/self_host_driver.c" 'mir_canonicalize_mode = strcmp(argv[0], "--canonicalize-mir-json") == 0'
 require_text "src/compiler/self_host_driver.c" 'child_argv[child_argc++] = argv[1]'
+require_text "src/compiler/self_host_driver.c" \
+    'args[0] = (char *)"--emit-mir-json-verified";'
 require_text "src/compiler/self_host_driver.c" "pgy_exec_argv(child_argv, false)"
 require_text "src/compiler/self_host_driver.c" "self-host driver is unavailable"
 reject_text "src/compiler/self_host_driver.c" "driver_run_pipeline("
@@ -7239,7 +7247,9 @@ require_max_lines \
 require_text "Makefile" \
     "self-host-generic-specialization-identity-epoch-test-smoke: self-host-canonical-mir-routine-phase-identity-test-smoke"
 require_text "Makefile" \
-    "self-host-live-replacement-test-smoke: self-host-generic-specialization-identity-epoch-test-smoke"
+    "self-host-public-mir-json-replacement-test-smoke: self-host-generic-specialization-identity-epoch-test-smoke"
+require_text "Makefile" \
+    "self-host-live-replacement-test-smoke: self-host-public-mir-json-replacement-test-smoke"
 require_file \
     "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh"
 require_max_lines \

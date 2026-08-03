@@ -107,7 +107,7 @@ assert "CodegenDomainRuntimeFactsReady(" not in function_slice(
 )
 PY
 
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$FIXTURE")" \
     2>"$BUILD_DIR/native.mir.err" | tr -d '\r' >"$NATIVE_MIR") \
     || { cat "$BUILD_DIR/native.mir.err" >&2; fail "native MIR production failed"; }

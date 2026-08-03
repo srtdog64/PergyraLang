@@ -134,7 +134,7 @@ rm -f "$MIR"
     "$(root_relative "$SOURCE")" -o "$(root_relative "$MIR")") ||
     fail "source-to-MIR producer rejected array_literal_call_argument.pgy"
 mir_digest="$(hash_file "$MIR")"
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$SOURCE")" >"$NATIVE_MIR") ||
     fail "native MIR oracle rejected array_literal_call_argument.pgy"
 "$PYTHON_BIN" \

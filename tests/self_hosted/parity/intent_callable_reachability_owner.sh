@@ -93,7 +93,8 @@ done
 
 native_mir="$BUILD_DIR/native.mir.log"
 native_dir="$BUILD_DIR/native.dir.log"
-(cd "$ROOT_DIR" && "$PGY" --mir-json "$FIXTURE" >"$native_mir" 2>&1) \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
+    "$FIXTURE" >"$native_mir" 2>&1) \
     || { cat "$native_mir" >&2; fail "native MIR oracle failed"; }
 (cd "$ROOT_DIR" && "$PGY" --dir "$FIXTURE" >"$native_dir" 2>&1) \
     || { cat "$native_dir" >&2; fail "native DIR oracle failed"; }
@@ -128,7 +129,7 @@ for fact in '"name":"IntakeSource","kind":"intent"' \
         || fail "nested intent self MIR lost fact: $fact"
 done
 nested_native="$BUILD_DIR/nested.native.mir.log"
-(cd "$ROOT_DIR" && "$PGY" --mir-json "$NESTED_FIXTURE" \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle "$NESTED_FIXTURE" \
     >"$nested_native" 2>&1) \
     || { cat "$nested_native" >&2; fail "nested native MIR oracle failed"; }
 assert_graph_id_parity "$nested_out" "$nested_native" "nested-intent"
@@ -224,7 +225,7 @@ two_step_dir="$BUILD_DIR/two-step.native.dir.log"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$two_step_source" \
     >"$two_step_self" 2>"$BUILD_DIR/two-step.self.err") \
     || { cat "$two_step_self" "$BUILD_DIR/two-step.self.err" >&2; fail "two-step self DIR failed"; }
-(cd "$ROOT_DIR" && "$PGY" --mir-json "$two_step_source" \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle "$two_step_source" \
     >"$two_step_native" 2>&1) \
     || { cat "$two_step_native" >&2; fail "two-step native MIR failed"; }
 (cd "$ROOT_DIR" && "$PGY" --dir "$two_step_source" \

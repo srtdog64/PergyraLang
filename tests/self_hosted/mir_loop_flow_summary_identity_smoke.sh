@@ -41,7 +41,7 @@ if ((compile_rc != 0)); then
 fi
 
 CASE="tests/cases/semantic_loop_flow/summary_hit.pgy"
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$CASE")" >"$MIR_JSON")
 grep -Eq -- '"loop_flow_summary_count":[1-9][0-9]*' "$MIR_JSON"
 grep -Fq -- '"loop_flow_summaries"' "$MIR_JSON"

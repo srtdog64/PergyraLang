@@ -69,7 +69,9 @@ MIR_JSON="$WORK_DIR/mir.json"
 CERT_JSON="$WORK_DIR/certificate.json"
 
 "$PGY" --air-json "$(pgy_path_for_compiler "$PGY" "$SOURCE")" --backend=c >"$AIR_JSON" 2>"$WORK_DIR/air.err"
-"$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$SOURCE")" --backend=c >"$MIR_JSON" 2>"$WORK_DIR/mir.err"
+"$PGY" --test-native-mir-json-oracle \
+    "$(pgy_path_for_compiler "$PGY" "$SOURCE")" --backend=c \
+    >"$MIR_JSON" 2>"$WORK_DIR/mir.err"
 
 "$PYTHON_BIN" - "$SOURCE" "$AIR_JSON" "$MIR_JSON" "$CERT_JSON" <<'PY'
 import copy

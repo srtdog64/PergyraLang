@@ -2,7 +2,7 @@
 # MIR-JSON self-host coverage probe (companion to mir_json_parity.sh).
 #
 # The parity gate proves the committed fixture set passes the self-host lowering
-# path (pgy --mir-json | mir_lower | codegen | gcc == C oracle). This probe maps
+# path (frozen native MIR | mir_lower | codegen | gcc == C oracle). This probe maps
 # the BOUNDARY of that path: it runs a spread of language constructs through the
 # same pipeline and reports, per construct, exactly where it stands --
 #
@@ -112,7 +112,8 @@ classify() {
     orc_rc=$?
     if [[ $orc_rc -ne 0 ]]; then printf '  %-18s ORACLE-skip\n' "$name"; return; fi
 
-    (cd "$ROOT_DIR" && "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$src_file")" \
+    (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
+        "$(pgy_path_for_compiler "$PGY" "$src_file")" \
         2>/dev/null | tr -d '\r' > "$mj")
     if ! grep -q '"schema":"pgy.mir.v1"' "$mj"; then printf '  %-18s MIRJSON-skip\n' "$name"; return; fi
 

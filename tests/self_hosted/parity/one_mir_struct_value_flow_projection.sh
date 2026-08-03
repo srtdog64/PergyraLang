@@ -74,7 +74,7 @@ mkdir -p "$WORK_DIR"; rm -f "$MIR" "$NATIVE_MIR"
 # The gate must produce source MIR exactly once; all projections reuse it.
 (cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified "$(root_relative "$SOURCE")" -o "$(root_relative "$MIR")") || fail "source-to-MIR producer rejected value-flow fixture"
 mir_digest="$(hash_file "$MIR")"
-(cd "$ROOT_DIR" && "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$SOURCE")" >"$NATIVE_MIR") || fail "native MIR oracle rejected value-flow fixture"
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle "$(pgy_path_for_compiler "$PGY" "$SOURCE")" >"$NATIVE_MIR") || fail "native MIR oracle rejected value-flow fixture"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_struct_value_flow_mutations.py" "$MIR" "$NATIVE_MIR" compare || fail "native/self semantic-slot ABI parity drifted"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_struct_value_flow_mutations.py" "$MIR" "$WORK_DIR"
 project "$MIR" c "$WORK_DIR/baseline.c"; [[ "$(hash_file "$MIR")" == "$mir_digest" ]] || fail "C projection mutated MIR"

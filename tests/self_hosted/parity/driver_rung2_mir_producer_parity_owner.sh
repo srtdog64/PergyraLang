@@ -11,7 +11,7 @@ pgy_selfhost_prepare_driver_rung2_mir_oracles() {
             echo "[self-host-parity:driver-rung2] missing MIR fixture: $fixture_rel" >&2
             exit 1
         }
-        (cd "$ROOT_DIR" && "$PGY" --mir-json \
+        (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
             "$(pgy_path_for_compiler "$PGY" "$fixture_abs")" 2>/dev/null) \
             | tr -d '\r' >"$mir_json"
         grep -Fq '"schema":"pgy.mir.v1"' "$mir_json" || {

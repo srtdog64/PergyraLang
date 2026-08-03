@@ -29,7 +29,7 @@ if [[ -z "$PYTHON_BIN" ]]; then
 fi
 
 mkdir -p "$BUILD_DIR"
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$SOURCE")" >"$MIR_JSON")
 
 "$PYTHON_BIN" - "$MIR_JSON" "$MIR_MISSING" "$MIR_UNKNOWN" \

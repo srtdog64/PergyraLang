@@ -7,7 +7,7 @@
 # codegen fixture surfaces that already lower from MIR facts without reading
 # transitional AST text:
 #
-#   pgy --mir-json fixture.pgy            (MIR JSON facts)
+#   pgy --test-native-mir-json-oracle fixture.pgy (frozen native MIR JSON facts)
 #     | mir_lower   (Pergyra: MIR-JSON facts -> reconstructed --ast tree)
 #     | codegen     (Pergyra: --ast tree -> standalone C)
 #     -> gcc -> run-stdout
@@ -268,7 +268,7 @@ parallel_src="$ROOT_DIR/tests/cases/backend_compare/parallel_join_stencil/main.p
 parallel_mir="$B/parallel_capture_valid.mirjson"
 parallel_bad_kind="$B/parallel_capture_bad_kind.mirjson"
 parallel_bad_writer="$B/parallel_capture_bad_writer.mirjson"
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$parallel_src")" \
     2>/dev/null | tr -d '\r' >"$parallel_mir")
 if ! (cd "$ROOT_DIR" && "$B/mir_lower.exe" --verify-input \
@@ -313,10 +313,11 @@ for fixture_entry in "${FIXTURES[@]}"; do
     via_c="$B/$base.c"
 
     # Pergyra MIR -> C path.
-    (cd "$ROOT_DIR" && "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$src")" \
+    (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
+        "$(pgy_path_for_compiler "$PGY" "$src")" \
         2>/dev/null | tr -d '\r' > "$mj")
     if ! grep -q '"schema":"pgy.mir.v1"' "$mj"; then
-        echo "[self-host-parity:mir-json] $base: oracle --mir-json did not emit pgy.mir.v1" >&2
+        echo "[self-host-parity:mir-json] $base: frozen native oracle did not emit pgy.mir.v1" >&2
         exit 1
     fi
     if ! grep -q '"expr0":' "$mj" || ! grep -q '"source_type":' "$mj" || ! grep -q '"source_locals":\[' "$mj"; then
@@ -955,4 +956,4 @@ for fixture_entry in "${FIXTURES[@]}"; do
     pass=$((pass + 1))
 done
 
-echo "[self-host-parity:mir-json] rung-0b MIR->C parity ok (${pass} fixtures, 0 clean rejects; pgy --mir-json | mir_lower | codegen == C oracle)"
+echo "[self-host-parity:mir-json] rung-0b MIR->C parity ok (${pass} fixtures, 0 clean rejects; frozen native MIR | mir_lower | codegen == C oracle)"

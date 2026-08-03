@@ -71,7 +71,7 @@ fi
     >/dev/null)
 [[ -s "$MIR_LOWER" ]] || fail "mir_lower tool was not built"
 
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$FIXTURE")" \
     2>/dev/null | tr -d '\r' >"$VALID")
 

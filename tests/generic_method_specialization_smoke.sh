@@ -32,7 +32,7 @@ FIXTURE="$ROOT_DIR/src/self_hosted/mir_lower/fixture/generic_member_inferred_flo
 MIR_JSON="$BUILD_DIR/native.mir.json"
 mkdir -p "$BUILD_DIR" "$TEST_TMP_DIR"
 
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$FIXTURE")") \
     | tr -d '\r' >"$MIR_JSON"
 grep -Fq '"generic_method_specializations":[{' "$MIR_JSON" || {

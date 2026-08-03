@@ -101,7 +101,7 @@ rm -f "$MIR" "$NATIVE_MIR"
     "$(root_relative "$SOURCE")" -o "$(root_relative "$MIR")") ||
     fail "source-to-MIR producer rejected Option nominal fixture"
 mir_digest="$(hash_file "$MIR")"
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$SOURCE")" >"$NATIVE_MIR") ||
     fail "native MIR oracle rejected Option nominal fixture"
 "$PYTHON_BIN" \

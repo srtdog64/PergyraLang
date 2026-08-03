@@ -69,6 +69,7 @@ typedef struct
     bool        dump_air_json;
     bool        dump_mir;
     bool        dump_mir_json;
+    bool        test_native_mir_json_oracle;
     bool        dump_hir;
     HIRDumpMode hir_dump_mode;
     bool        check_only;   /* Package/tooling command: validate through MIR/AIR without backend output. */

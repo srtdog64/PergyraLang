@@ -22,20 +22,21 @@ fail() {
 
 mkdir -p "$WORK_DIR"
 
-if PGY_SEMANTIC_STEP_BUDGET=1 "$PGY" --mir-json "$VALID_SOURCE" \
+if PGY_SEMANTIC_STEP_BUDGET=1 "$PGY" --test-native-mir-json-oracle "$VALID_SOURCE" \
     >"$BUDGET_OUT" 2>"$BUDGET_ERR"; then
     fail "step-budget exhaustion was accepted"
 fi
 grep -Fq "semantic analysis exceeded its termination-contract step budget" \
     "$BUDGET_ERR" || fail "step-budget diagnostic was not emitted"
 
-PGY_SEMANTIC_STEP_BUDGET=0 "$PGY" --mir-json "$VALID_SOURCE" \
+PGY_SEMANTIC_STEP_BUDGET=0 "$PGY" --test-native-mir-json-oracle "$VALID_SOURCE" \
     >"$BUDGET_OUT" 2>"$BUDGET_ERR" ||
     fail "explicitly disabled step budget rejected a valid program"
 
 printf 'func Main() -> Void {\n    Log("visible");\000Log("hidden");\n}\n' \
     >"$NUL_SOURCE"
-if "$PGY" --mir-json "$NUL_SOURCE" >"$NUL_OUT" 2>"$NUL_ERR"; then
+if "$PGY" --test-native-mir-json-oracle "$NUL_SOURCE" \
+    >"$NUL_OUT" 2>"$NUL_ERR"; then
     fail "embedded NUL source was accepted"
 fi
 grep -Fq "contains an embedded NUL byte" "$NUL_ERR" ||

@@ -26,7 +26,7 @@ WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pgy-mir-param-carriage.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 MIR_JSON="$WORK_DIR/carriage.json"
 
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     tests/cases/abi_param_carriage/main.pgy --backend=c >"$MIR_JSON")
 
 "$PYTHON_BIN" - "$MIR_JSON" <<'PY'

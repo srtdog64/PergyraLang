@@ -81,7 +81,8 @@ check_live_mir_source() {
     local live_arg
     local self_arg
 
-    (cd "$ROOT_DIR" && "$PGY" --mir-json "$source" 2>/dev/null) \
+    (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
+        "$source" 2>/dev/null) \
         | tr -d '\r' >"$live_mir"
     grep -Fq '"schema":"pgy.mir.v1"' "$live_mir" || {
         echo "[self-host-live] $label: C oracle did not produce MIR" >&2

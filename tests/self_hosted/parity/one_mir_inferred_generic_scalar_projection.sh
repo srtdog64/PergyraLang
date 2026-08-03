@@ -99,7 +99,7 @@ rm -f "$MIR" "$NATIVE_MIR"
 # The gate must produce source MIR exactly once; every projection reuses it.
 (cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified "$(root_relative "$SOURCE")" -o "$(root_relative "$MIR")") || fail "source-to-MIR producer rejected inferred generic scalar fixture"
 mir_digest="$(hash_file "$MIR")"
-(cd "$ROOT_DIR" && "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$SOURCE")" >"$NATIVE_MIR") || fail "native MIR oracle rejected inferred generic scalar fixture"
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle "$(pgy_path_for_compiler "$PGY" "$SOURCE")" >"$NATIVE_MIR") || fail "native MIR oracle rejected inferred generic scalar fixture"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_inferred_generic_scalar_mutations.py" "$MIR" "$NATIVE_MIR" compare || fail "native/self inferred scalar graph or ABI parity drifted"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_inferred_generic_scalar_mutations.py" "$MIR" "$WORK_DIR"
 

@@ -120,7 +120,7 @@ mkdir -p "$WORK_DIR"
 rm -f "$MIR" "$NATIVE_MIR"
 (cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified "$(root_relative "$SOURCE")" -o "$(root_relative "$MIR")") || fail "source-to-MIR rejected record Array fixture"
 mir_digest="$(hash_file "$MIR")"
-(cd "$ROOT_DIR" && "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$SOURCE")" >"$NATIVE_MIR") || fail "native MIR oracle rejected record Array fixture"
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle "$(pgy_path_for_compiler "$PGY" "$SOURCE")" >"$NATIVE_MIR") || fail "native MIR oracle rejected record Array fixture"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_constructed_record_array_member_mutations.py" "$MIR" "$NATIVE_MIR" compare || fail "native/self record Array semantics drifted"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_constructed_record_array_member_mutations.py" "$MIR" "$WORK_DIR"
 

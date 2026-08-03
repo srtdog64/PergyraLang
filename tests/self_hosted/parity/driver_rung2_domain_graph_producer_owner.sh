@@ -69,7 +69,8 @@ pgy_selfhost_verify_driver_rung2_domain_graph_producer() {
         echo "[self-host-parity:driver-rung2] $backend bare authority was rejected" >&2
         return 1
     fi
-    if ! (cd "$ROOT_DIR" && "$PGY" --mir-json "$optional_source" \
+    if ! (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
+            "$optional_source" \
             >"$optional_native" 2>"$optional_native.err"); then
         cat "$optional_native" "$optional_native.err" >&2
         echo "[self-host-parity:driver-rung2] native bare authority oracle failed" >&2

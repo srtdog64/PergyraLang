@@ -95,6 +95,21 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
 }
 
 int
+driver_run_self_host_mir_json(const char *launcher_path,
+                              const char *source_path)
+{
+    char *args[2];
+
+    if (source_path == NULL || source_path[0] == '\0') {
+        fprintf(stderr, "pgy: self-host MIR emission requires a source path\n");
+        return 1;
+    }
+    args[0] = (char *)"--emit-mir-json-verified";
+    args[1] = (char *)source_path;
+    return driver_run_self_host_command(launcher_path, 2, args);
+}
+
+int
 driver_materialize_self_host_c_artifact(const char *launcher_path,
                                         const char *source_path,
                                         const char *output_path,

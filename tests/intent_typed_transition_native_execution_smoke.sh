@@ -55,7 +55,7 @@ run_backend() {
         | sed -e '/^pgy: compiled/d' -e '/^pgy: wrote/d' >"$output"
 }
 
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$FIXTURE")" --backend=c) \
     >"$MIR_JSON" 2>"$BUILD_DIR/intent.mir.err" \
     || { cat "$BUILD_DIR/intent.mir.err" >&2; fail "MIR JSON emission failed"; }

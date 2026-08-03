@@ -89,7 +89,7 @@ produce_pair() {
     fixture_rel="${fixture#$ROOT_DIR/}"
     native_mir="$BUILD_DIR/${label}.native.mir.json"
     self_mir="$BUILD_DIR/${label}.self.mir.json"
-    (cd "$ROOT_DIR" && "$PGY" --mir-json \
+    (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
         "$(pgy_path_for_compiler "$PGY" "$fixture")" 2>/dev/null) \
         | tr -d '\r' >"$native_mir"
     (cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified \
@@ -109,7 +109,7 @@ produce_pair "value" "$VALUE_FIXTURE"
 produce_pair "identity" "$IDENTITY_FIXTURE"
 
 INTENT_MIR="$BUILD_DIR/intent.native.mir.json"
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$INTENT_FIXTURE")" 2>/dev/null) \
     | tr -d '\r' >"$INTENT_MIR"
 (cd "$ROOT_DIR" && "$MIR_LOWER" --verify-input \

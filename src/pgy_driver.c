@@ -57,6 +57,7 @@ static const DriverOptionSpec k_driver_options[] = {
     { "--hir-ssa", DRIVER_OPTION_HIR_DUMP, 0, HIR_DUMP_SSA },
     { "--mir", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_mir), true },
     { "--mir-json", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_mir_json), true },
+    { "--test-native-mir-json-oracle", DRIVER_OPTION_BOOL, offsetof(DriverFlags, test_native_mir_json_oracle), true },
     { "--machine-manifest-json", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_machine_manifest_json), true },
     { "--opt=dev", DRIVER_OPTION_OPT_PROFILE, 0, PGY_OPT_DEV },
     { "--opt=release", DRIVER_OPTION_OPT_PROFILE, 0, PGY_OPT_RELEASE },
@@ -229,6 +230,29 @@ main(int argc, char *argv[])
     DriverFlags flags = parse_args(argc, argv);
     if (flags.repl)
         return repl_run();
+    if (flags.test_native_mir_json_oracle) {
+        if (flags.dump_mir_json) {
+            fprintf(stderr,
+                    "pgy: --test-native-mir-json-oracle is an exact test-only mode\n");
+            return 1;
+        }
+        flags.test_native_mir_json_oracle = false;
+        flags.dump_mir_json = true;
+        if (!driver_self_host_mir_json_request_supported(&flags)) {
+            fprintf(stderr,
+                    "pgy: native MIR oracle options are outside the frozen test contract\n");
+            return 1;
+        }
+        return driver_run_pipeline(&flags);
+    }
+    if (flags.dump_mir_json) {
+        if (!driver_self_host_mir_json_request_supported(&flags)) {
+            fprintf(stderr,
+                    "pgy: --mir-json options are outside the installed self-host driver contract\n");
+            return 1;
+        }
+        return driver_run_self_host_mir_json(argv[0], flags.source_path);
+    }
     if (flags.emit_c_only) {
         if (flags.do_run
             || !driver_self_host_c_artifact_request_supported(&flags)) {

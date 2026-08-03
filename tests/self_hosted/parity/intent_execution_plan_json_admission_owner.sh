@@ -44,7 +44,7 @@ done
     >"$BUILD_DIR/probe.compile.log" 2>&1) \
     || { tail -c 65536 "$BUILD_DIR/probe.compile.log" >&2; fail "probe build failed"; }
 
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$LEGACY_SOURCE")" \
     2>"$BUILD_DIR/legacy.native.err" | tr -d '\r' >"$LEGACY_JSON") \
     || { cat "$BUILD_DIR/legacy.native.err" >&2; fail "legacy MIR JSON failed"; }

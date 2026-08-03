@@ -52,7 +52,7 @@ emit_and_run_self() {
     local run="$BUILD_DIR/$label.self.run"
     local mir_rel
 
-    (cd "$ROOT_DIR" && "$PGY" --mir-json \
+    (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
         "$(pgy_path_for_compiler "$PGY" "$source")" --backend=c) \
         >"$mir" 2>"$BUILD_DIR/$label.mir.err" \
         || { cat "$BUILD_DIR/$label.mir.err" >&2; fail "$label MIR emission failed"; }

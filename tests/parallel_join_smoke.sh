@@ -121,9 +121,9 @@ grep -Fq 'MIR_PARALLEL_CAPTURE_JOIN_READONLY' \
 
 INDEX_MIR="$OUT_DIR/join_index.mir.json"
 STENCIL_MIR="$OUT_DIR/join_stencil.mir.json"
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$INDEX_SRC")") >"$INDEX_MIR"
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$STENCIL_SRC")") >"$STENCIL_MIR"
 grep -Fq '"kind":"join_index_disjoint"' "$INDEX_MIR" \
     || fail "MIR JSON omits index-disjoint capture facts"

@@ -58,7 +58,8 @@ compiler_path() {
     pgy_path_for_compiler "$PGY" "$1"
 }
 
-"$PGY" --mir-json "$(compiler_path "$SOURCE_REMOTE")" >"$MIR_JSON" 2>"$WORK_DIR/mir.err" || {
+"$PGY" --test-native-mir-json-oracle "$(compiler_path "$SOURCE_REMOTE")" \
+    >"$MIR_JSON" 2>"$WORK_DIR/mir.err" || {
     cat "$WORK_DIR/mir.err" >&2
     fail "MIR pipeline rejected the existing DeviceSlot fixture"
 }
@@ -74,7 +75,8 @@ compiler_path() {
     cat "$WORK_DIR/air.err" >&2
     fail "AIR pipeline rejected the existing DeviceSlot fixture"
 }
-"$PGY" --mir-json "$(compiler_path "$SOURCE_READ")" >"$MIR_READ_JSON" 2>"$WORK_DIR/mir_read.err" || {
+"$PGY" --test-native-mir-json-oracle "$(compiler_path "$SOURCE_READ")" \
+    >"$MIR_READ_JSON" 2>"$WORK_DIR/mir_read.err" || {
     cat "$WORK_DIR/mir_read.err" >&2
     fail "MIR pipeline rejected the direct DeviceRead fixture"
 }
