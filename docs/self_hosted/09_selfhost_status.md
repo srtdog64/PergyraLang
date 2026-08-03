@@ -135,20 +135,20 @@ rejected by both targets before artifact creation at the current declaration-
 free string-hello admission. It requires explicit compile-time declaration
 erasure and general integer literal execution, not silent declaration loss.
 
-Focused evidence on 2026-08-03 closes the bounded single-latch range-break
-frontier at checkpoint `c27fa4e9`. One 7,229-byte producer MIR carries both the
-outer-local header phi and the completion/break exit phi; the same immutable
-MIR drives C and LLVM to exact `3`. A general scalar CFG range receipt owns the
-iteration LocalRef, bounds, block roles and one actual latch. The former range-
-specific compiler shape, plan and emitters are deleted, and the remaining v9
-composite CFG plan cannot retry range admission. Simple range, changed bounds,
-zero-trip, range metadata negatives, while, break, repeated break, public LLVM
-file/stdout and the full component removed-path ratchet are green. This is
-bounded target-specific `SUBSTITUTING`, not arbitrary continue/foreach/nested
-loop or whole-compiler replacement. Multiple backedge snapshots are the next
-producer falsifier; current range admission intentionally fails closed unless
-there is exactly one latch. Full CI, current fixed point, pressure and prover
-suites were not rerun.
+Focused evidence on 2026-08-03 closes the bounded continue-plus-fallthrough
+range frontier at checkpoint `aefebe13`. One 7,796-byte producer MIR carries
+header `sum.3 = phi(sum.1, sum.3, sum.9)` over its preheader, continue, and
+fallthrough predecessors; the same immutable MIR drives C and LLVM to exact
+`42`. A general predecessor snapshot owner captures local versions at control
+transfer, and the header binding owner verifies the actual backedge before
+publishing the phi. The compiler does not rescan CFG roots or reconstruct a
+continue value. Missing, stale, and retargeted continue inputs reject before
+artifact publication; focused, cumulative CFG/range, public LLVM, and full
+component removed-path gates are green. This is bounded target-specific
+`SUBSTITUTING`, not arbitrary foreach, nested/multiple loop, scoped iteration-
+binding, or whole-compiler replacement. The next producer falsifier is an outer
+local shadowed by a same-name range binding and then read after loop exit. Full
+CI, current fixed point, pressure and prover suites were not rerun.
 
 ## Verified
 

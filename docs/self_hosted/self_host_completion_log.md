@@ -6,6 +6,40 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-03 - Continue and fallthrough backedges bind at the producer
+
+- Landed executable checkpoint `aefebe13`. `examples/break_continue.pgy`
+  emits one 7,796-byte, eight-block MIR
+  (`B63639FD...36DD`). The producer-owned header phi is
+  `sum.3 = phi(sum.1, sum.3, sum.9)`: block 5 is the reachable continue
+  predecessor, block 6 is the fallthrough predecessor, and both target header
+  block 1. The break predecessor targets exit block 7 and the final Log uses
+  `sum.3`.
+- Replaced the break-specific snapshot owner with one general exact CFG
+  predecessor/local-version snapshot owner. Continue captures its state at the
+  transfer; the final fallthrough captures independently; the loop-header
+  binding owner validates each predecessor edge before appending its version.
+  The old post-lowering CFG rescan in `for` and `while` is removed.
+- The general scalar CFG route now admits `AST_CONTINUE` only as a use-free,
+  unconditional edge to a dominating header. Range admission accepts all
+  sealed backedge predecessors. The same MIR drives a 732-byte C artifact and
+  a 1,950-byte LLVM artifact; both execute exact `42`. Incoming-row permutation
+  is artifact-equal, while missing, stale, and retargeted continue inputs fail
+  before C or LLVM publication.
+- Current installed sibling: 4,285,412 bytes, SHA-256
+  `1A2BDC16...E091`. Current-source rebuild took 109.2 seconds. The focused
+  continue gate took 6.7 seconds, prior for-break plus break/repeated-break
+  gates 16.5 seconds, cumulative CFG/range integration 151.9 seconds, public
+  LLVM file/stdout 15.1 seconds, and the full structural component/removed-path
+  ratchet 225.4 seconds. The manifests now own 285 driver rows, 31 core MIR
+  fixtures, and 2 example MIR fixtures. All fixed LoC caps remain unchanged.
+- The next falsifier is an outer local whose name is reused as a range
+  iteration binding and read again after the loop. `SelfMirRoutineAddLocal`
+  currently advances an existing same-name row instead of opening a scoped
+  binding, so the producer must prove exact binding identity and restore the
+  outer local without asking a backend to resolve source names.
+- No pressure run, full CI/bootstrap/fixpoint, or prover suite ran.
+
 ## 2026-08-03 - Range break exits join the general scalar CFG plan
 
 - Landed executable checkpoint `c27fa4e9`. `for_break_exit.pgy` emits one
