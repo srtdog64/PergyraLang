@@ -4843,5 +4843,12 @@ Focused gate는
 `tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh`다. Public/direct
 LLVM byte equality, host clang exact `7/11/5`, producer/backend exact-once,
 missing/unsupported/rejected action, stale output, source/output identity, native timing
-부재를 확인한다. Stdout `--emit-llvm`은 아직 native 경로이므로 이 file-form green을
-전체 explicit LLVM emission 치환으로 과장하지 않는다.
+부재를 확인한다. 이 file-form green 하나만으로 stdout까지 치환됐다고 과장하지
+않는다.
+
+후속 `8bc7f525`에서 stdout도 같은 installed producer/projector로 넘어갔다.
+Projector 성공 전에는 stdout을 쓰지 않고, 완료된 private `.ll`을 Windows binary
+mode의 16 KiB 고정 버퍼로 전달한다. `path_read_file`이나 whole-artifact allocation을
+추가하면 이전 메모리/복사 결함을 되살리므로 금지된다. Focused stdout gate는
+file/stdout byte equality, clang exact `7/11/5`, exact-once와 failure zero-payload를
+검사한다. 이제 둘 다 bounded substitution이지만 general CFG coverage는 별도다.

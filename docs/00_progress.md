@@ -2,51 +2,46 @@
 
 마지막 업데이트: 2026-08-03
 
-## 활성 우선순위 — public LLVM IR stdout takeover
+## 활성 우선순위 — 8-block nested CFG LLVM admission
 
-- 실행 체크포인트는 `279d0646aa150ae5cce44ff69ac8283293e97923`다.
-  `bin/pgy.exe`는 4,624,892 bytes, SHA-256
-  `93DF89B38F942F113DFEFD6E7B67A19F1C3BE5A56799386FB03AFF86C632C0D5`이고,
+- 실행 체크포인트는 `8bc7f525`다. `bin/pgy.exe`는 4,626,988 bytes, SHA-256
+  `39798EA50105C9B48F26AE2FCABDB400B54AC153D15DC440B089C4E5E6402F9E`이고,
   installed Pergyra driver는 4,252,131 bytes, SHA-256
   `0116E8A20A5504E4BB2010B36DC071870155FD52A4E2F00EBB2E3E177D57DC95`다.
-- exact public `pgy <source> --emit-llvm -o <output.ll>`는 이제 final native
-  pipeline 전에 installed source-MIR producer와 `DirectMirLlvm` projector를
-  선택한다. `driver_self_host_llvm_ir_file_request_supported`가 요청을 판별하고
-  `driver_publish_self_host_llvm_ir_file`은 private workspace와 file publication만
-  소유한다. Semantic/MIR/LLVM 의미나 native fallback은 소유하지 않는다.
-- `option_struct_value_flow.pgy`의 public `.ll`은 같은 public MIR의 direct installed
-  projection과 byte-equal이고 host clang 실행은 정확히 `7\n11\n5\n`이다.
-  Counting sibling은 producer/backend를 각각 한 번 관찰했다. Missing sibling,
-  unsupported runtime, producer/projector failure, source/output identity는 stale·partial
-  artifact와 native pipeline timing 없이 실패했다. Focused gate는 17.8초였다.
-- public MIR, live 13-row, hard substitution, component/removed-path를 잇는 인접
-  regression은 312.6초에 모두 green이었다. 두 public selector gate는 각각
-  139/140줄, C selector owner는 86/100과 37/60줄, publication owner는 64/90줄이다.
-  하드캡은 하나도 완화하지 않았다.
-- 이 file form만 bounded `SUBSTITUTING`이다. `mir.execution_graph`는 계속
-  `BRIDGE`이고 public stdout `pgy <source> --emit-llvm`은 아직
-  `driver_run_pipeline -> llvm_runner_execute -> compiler_emit_llvm_ir`에 도달한다.
-- August 2 review의 Pair/enum frontier는 이미 닫힌 과거 증거다. Topology별
-  mini-compiler 금지, storage layout과 target call ABI 분리, integration boundary에서
-  pressure/fixed-point 측정이라는 제약은 유지한다. 모든 selector를 닫은 뒤의 가장
-  작은 LLVM breadth falsifier는 aggregate가 아니라 8-block
-  `nested_if_in_loop.pgy`다.
-- 다음 단일 rung은 exact public stdout `pgy <source> --emit-llvm`이다. Fact owner는
-  계속 `DriverSourceMirExecution`, `SelfMirProgramFacts`,
-  `CompilerTargetProjectionFact`, `DriverRung2Execution.EmitDirectMir`,
-  `CompileMirJsonToDirectBackendVerified`이며, C launcher는 temporary artifact lifetime과
-  opaque stdout delivery만 소유할 수 있다. 마지막 Pergyra consumer는
-  `DriverRung2InstalledPublishDirectMir(..., DirectMirLlvm)`다.
-- 삭제할 우회는 stdout selector가 final `driver_run_pipeline`을 거쳐 native
-  `compiler_emit_llvm_ir`에 들어가는 경로다. LLVM artifact 전체를 한 문자열로
-  복사하거나 내용을 재해석하거나 두 번째 projector를 만들거나 installed 실패 뒤
-  native libLLVM으로 retry해서는 안 된다.
-- 다음 falsifier는 stdout bytes와 닫힌 public file/direct installed `.ll` equality,
-  producer/backend exact-once, producer/projector failure의 zero LLVM payload와 zero
-  native timing, host clang exact `7\n11\n5\n`이다. 그 selector 뒤에만
-  `nested_if_in_loop.pgy`를 활성 semantic breadth rung으로 올린다. 메모리는 최종
-  integration 최대값만 기록하며 2.4 GiB attention, 3 GiB hard stop을 유지한다.
-  Full CI, Coq/Rocq, full bootstrap, current-source gen2==gen3는 실행하지 않았다.
+- public `--emit-llvm` file/stdout 두 exact form은 모두 installed source-MIR와
+  `DirectMirLlvm` projector를 final native pipeline 전에 선택한다. File은 같은
+  directory의 private workspace 뒤 publish하고 stdout은 binary mode에서 16 KiB
+  fixed buffer로 전달한다. 전체 artifact string copy, LLVM text inspection, native
+  libLLVM retry는 없다.
+- 두 형태는 `option_struct_value_flow.pgy`에서 byte-equal이고 host clang exact
+  `7\n11\n5\n`이다. 각 selector는 producer/projector를 정확히 한 번 호출한다.
+  Missing/unsupported/rejected action, stale output, source/output identity도 LLVM payload와
+  native timing 없이 실패했다. Focused file/stdout은 17.8/14.4초, 최신 public
+  MIR/live/hard/component 묶음은 351.7초에 green이었다.
+- 하드캡은 LLVM selector 50/60, file publisher 64/90, stdout delivery 69/80,
+  file gate 139/140, stdout gate 116/120, public MIR gate 139/140,
+  `pgy_driver.c` 306/320이다. 두 LLVM IR selector는 bounded `SUBSTITUTING`이고
+  `mir.execution_graph`는 계속 `BRIDGE`다.
+- August 2 review의 Pair/enum frontier는 닫힌 과거 증거다. Topology별 mini-compiler
+  금지, storage layout과 call ABI 분리, integration boundary pressure/fixed-point
+  규칙은 유지한다. 이제 다음 frontier는 새 aggregate가 아니라 기존 CFG breadth다.
+- 다음 단일 rung은
+  `src/self_hosted/mir_lower/fixture/nested_if_in_loop.pgy`의 8-block CFG를 general
+  direct-MIR LLVM plan에 admit하는 것이다. Fact owner는
+  `MirProgramRoutineIndex`, expression graph, nested/loop CFG certificate,
+  `DirectMirCfgPlan`이고 마지막 consumer는 LLVM으로 선택된
+  `DirectMirBackendProjection`이다.
+- `8bc7f525` fresh public LLVM probe는 exit 1, no binary이며
+  `direct MIR backend projection rejected unsupported CFG shape` 뒤
+  `self-host LLVM projector failed with code 1`을 출력했다.
+- Fixture name, block count 자체를 semantic identity로 사용, nested branch/loop
+  flattening, source text reconstruction, topology-specific mini-compiler, older planner
+  retry, native semantic/AIR/libLLVM re-entry를 금지한다.
+- 다음 gate는 source-to-MIR once, 한 8-block plan의 C/LLVM projection, exact
+  `1\n1\n`, 허용되는 block/routine permutation, nested branch role·loop
+  header/backedge/exit·break edge·SSA use negative, public LLVM compile/run이다.
+  메모리는 최종 integration 최대값만 기록하며 2.4 GiB attention, 3 GiB hard stop을
+  유지한다. Full CI, Coq/Rocq, full bootstrap, current-source gen2==gen3는 실행하지 않았다.
 
 ## 비활성 진행 기록 archive
 

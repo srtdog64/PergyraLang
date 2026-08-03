@@ -2122,7 +2122,11 @@ inventory must not become a second fact-family owner registry.
   publication boundary. It materializes the installed source-MIR/projector pair
   in a private same-directory workspace and publishes opaque bytes only after
   success. Native semantics, libLLVM retry, and LLVM text inspection are
-  forbidden. Stdout delivery remains open.
+  forbidden.
+- `src/compiler/self_host_llvm_ir_stdout_owner.c` -- exact public LLVM IR
+  stdout delivery boundary. It completes the same installed artifact pair
+  before output and streams opaque bytes with one fixed buffer. Whole-artifact
+  strings, LLVM policy inference, and native fallback are forbidden.
 - `src/self_hosted/compiler/driver_rung2_cli_owner.pgy` -- 11-line standalone
   wrapper that performs one argv admission and one read-only execution.
 - `src/self_hosted/compiler/driver_rung2_fixture_manifest_cli_owner.pgy` and

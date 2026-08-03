@@ -6,60 +6,54 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — public LLVM IR stdout takeover
+## Active self-host context — eight-block nested CFG LLVM admission
 
-- Executable checkpoint: `279d0646aa150ae5cce44ff69ac8283293e97923` on
-  `main`. `bin/pgy.exe` is 4,624,892 bytes, SHA-256
-  `93DF89B38F942F113DFEFD6E7B67A19F1C3BE5A56799386FB03AFF86C632C0D5`.
+- Executable checkpoint: `8bc7f525` on `main`. `bin/pgy.exe` is 4,626,988
+  bytes, SHA-256
+  `39798EA50105C9B48F26AE2FCABDB400B54AC153D15DC440B089C4E5E6402F9E`.
   The installed Pergyra-built sibling remains 4,252,131 bytes, SHA-256
   `0116E8A20A5504E4BB2010B36DC071870155FD52A4E2F00EBB2E3E177D57DC95`.
-- Closed executable rung: exact public
-  `pgy <source> --emit-llvm -o <output.ll>` now selects the installed
-  source-MIR producer and `DirectMirLlvm` projector before the final native
-  pipeline. `driver_self_host_llvm_ir_file_request_supported` owns admission;
-  `driver_publish_self_host_llvm_ir_file` owns only private workspace and file
-  publication. It contains no semantic, MIR, LLVM, or native fallback owner.
-- `option_struct_value_flow.pgy` produced a public `.ll` byte-equal to direct
-  installed projection of the same public MIR; host clang executed exact
-  `7\n11\n5\n`. A counting sibling observed producer/backend exactly once each.
-  Missing sibling, unsupported runtime, producer rejection, projector
-  rejection, and source/output identity all fail without stale/partial output
-  or native pipeline timing. The focused gate passed in 17.8 seconds.
-- The adjacent public MIR and thirteen-row live replacement gates, hard
-  substitution contract, and component/removed-path ratchet all passed in one
-  312.6-second regression sequence. Both public selector gates are 139/140
-  lines; C selection owners are 86/100 and 37/60 lines, and the file publication
-  owner is 64/90 lines. No cap was relaxed.
-- The file form is bounded `SUBSTITUTING`; it does not imply general LLVM
-  coverage. `mir.execution_graph` remains `BRIDGE`, and public stdout
-  `pgy <source> --emit-llvm` still reaches
-  `driver_run_pipeline -> llvm_runner_execute -> compiler_emit_llvm_ir`.
+- Closed executable rung: both exact public LLVM IR forms now select the
+  installed source-MIR producer and `DirectMirLlvm` projector before the final
+  native pipeline. File publication uses a private same-directory workspace;
+  stdout uses binary mode and one fixed 16 KiB buffer. Neither path reads the
+  whole artifact, inspects LLVM text, or retries native libLLVM.
+- File and stdout are byte-equal on `option_struct_value_flow.pgy`; host clang
+  executes exact `7\n11\n5\n`. Counting observes one producer and one projector
+  per selector. Missing sibling, unsupported runtime, producer/projector
+  rejection, stale output, and source/output identity fail without LLVM payload
+  or native timing. File and stdout focused gates passed in 17.8 and 14.4
+  seconds. The latest public MIR/live/hard/component sequence passed in 351.7
+  seconds.
+- Caps remain fixed: LLVM selector 50/60, file publisher 64/90, stdout delivery
+  69/80, file gate 139/140, stdout gate 116/120, public MIR gate 139/140, and
+  `pgy_driver.c` 306/320. These exact public LLVM IR forms are bounded
+  `SUBSTITUTING`; `mir.execution_graph` remains `BRIDGE`.
 - The August 2 review's Pair/enum frontiers are stale and must not be revived.
   Its durable constraints remain active: no topology-specific mini-compiler,
   storage layout is distinct from target call ABI, and pressure/fixed-point
-  evidence belongs at an integration boundary. After selector closure, the
-  smallest known LLVM breadth falsifier is the existing eight-block
-  `nested_if_in_loop.pgy`, not another aggregate fixture.
-- Active objective card: move exact public stdout
-  `pgy <source> --emit-llvm` to the same installed two-action composition.
-  Priority is byte-exact projection, bounded streaming transport, native bypass
-  deletion, failure purity, then patch size. Semantic/fact owners remain
-  `DriverSourceMirExecution`, `SelfMirProgramFacts`,
-  `CompilerTargetProjectionFact`, `DriverRung2Execution.EmitDirectMir`, and
-  `CompileMirJsonToDirectBackendVerified`; the C launcher may own only temporary
-  artifact lifetime and opaque stdout delivery. The last legitimate Pergyra
-  consumer remains `DriverRung2InstalledPublishDirectMir(..., DirectMirLlvm)`.
-- Direct bypass to delete for this exact stdout selector:
-  `pgy_driver.c`'s final `driver_run_pipeline` into
-  `llvm_runner.c::compiler_emit_llvm_ir`. Do not read the whole LLVM artifact
-  into one string, reinterpret its text, add a second projector, or retry native
-  libLLVM after an installed failure.
-- Next falsifier: stdout bytes for `option_struct_value_flow.pgy` must equal the
-  closed public file form and direct installed `.ll`; counting must remain one
-  producer plus one projector; producer/projector failure must emit no LLVM
-  payload and no native timing. Then run the emitted stdout IR through host
-  clang for exact `7\n11\n5\n`. Only after this selector closes should
-  `nested_if_in_loop.pgy` become the active semantic breadth rung.
+  evidence belongs at an integration boundary. The next frontier is existing
+  CFG breadth, not another aggregate or selector wrapper.
+- Active objective card: admit the existing
+  `src/self_hosted/mir_lower/fixture/nested_if_in_loop.pgy` eight-block CFG into
+  the general direct-MIR LLVM plan. Priority is graph identity and AIR
+  certificate, one target-neutral plan, C/LLVM parity, fail-closed mutation,
+  then patch size. Fact owners are `MirProgramRoutineIndex`, the MIR expression
+  graph, nested/loop CFG certificate owners, and `DirectMirCfgPlan`; the last
+  legitimate consumer is `DirectMirBackendProjection` selected as LLVM.
+- Fresh falsifying observation at `8bc7f525`: public LLVM compile exits 1,
+  publishes no binary, and reports
+  `CODEGEN ERROR: direct MIR backend projection rejected unsupported CFG shape`
+  followed by `self-host LLVM projector failed with code 1`.
+- Forbidden fallback: fixture name, exact block count as semantic identity,
+  flattening the nested branch/loop, reconstructing from source text, adding a
+  topology-specific mini-compiler, retrying an older planner, or native
+  semantic/AIR/libLLVM re-entry.
+- Next gate: self source-to-MIR once, one admitted eight-block plan feeding C
+  and LLVM, exact `1\n1\n`, block/routine permutation stability where the
+  existing identity contract permits it, and pre-artifact negatives for nested
+  branch roles, loop header/backedge/exit, break edge, and SSA uses. Public LLVM
+  compile/run must then pass without native fallback.
 - No pressure probe, full CI, full bootstrap, current-source gen2==gen3, or
   Coq/Rocq suite ran for this rung. Historical peaks are not attached to the
   current driver. Memory remains final-integration-only: attention at 2.4 GiB,

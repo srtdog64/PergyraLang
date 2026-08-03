@@ -192,6 +192,12 @@ workspace, and publishes opaque bytes. It cannot re-enter native semantics or
 libLLVM after failure. Stdout `--emit-llvm` remains open and must reuse the same
 Pergyra owners rather than adding another backend.
 
+Checkpoint `8bc7f525` closes that stdout form through the same two installed
+actions. A fixed 16 KiB binary stream transports the completed private
+artifact without a whole-file string or text inspection. Public file/stdout
+LLVM IR is byte-equal. General direct-LLVM CFG coverage remains independently
+open.
+
 ## Pergyra-Style Check
 
 A self-hosted compiler slice is accepted only when it reads as a Pergyra

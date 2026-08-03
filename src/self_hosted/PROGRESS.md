@@ -5439,12 +5439,14 @@ for this envelope; producer/projector failure publishes no stale artifact and
 cannot retry native libLLVM. Public/direct LLVM IR is byte-equal and host clang
 executes exact `7\n11\n5\n`. This file form is bounded `SUBSTITUTING`.
 
-The next exact production rung is stdout public
-`pgy <source> --emit-llvm`. It must stream the same installed projection as
-opaque bytes, without a whole-artifact string copy, textual policy inference,
-second projector, or native `compiler_emit_llvm_ir` retry.
+At `8bc7f525`, stdout public `pgy <source> --emit-llvm` streams the same
+installed projection with a fixed 16 KiB binary buffer. It performs no
+whole-artifact string copy, textual policy inference, second projection, or
+native `compiler_emit_llvm_ir` retry. File and stdout bytes are equal and host
+clang executes exact `7\n11\n5\n`. The complete exact public LLVM IR selector
+family is now bounded `SUBSTITUTING`.
 
-After the selector is closed, the smallest known LLVM breadth falsifier is
+The next active LLVM breadth falsifier is
 `nested_if_in_loop.pgy`: its eight-block CFG is already carried by the existing
 source-MIR inventory but lies outside the current direct-LLVM admission. Pair,
 enum, generic-method, and the thirteen live rows are completed evidence rather

@@ -141,7 +141,7 @@ declaration census는 gate가 다시 생성하는 관측값이며, import surfac
 | 입력 기능의 `binding slot` admission/runtime slice | `SUBSTITUTING` | production self source -> admitted MIR -> general C가 exact binding constructor와 projection assignment를 실행하고 native C/LLVM parity 및 valid-ID wrong-kind negatives를 통과한다 |
 | 입력 기능의 typed intent transition MIR -> self C | `SUBSTITUTING` | admitted v2 Pergyra plan consumer가 old typed direct/rollback consumer를 대체한다. compiler-root intent 증거는 아니다. |
 | `subject`, `action`, `zone`, `world` | `REACHABLE`; bounded public source-MIR stdout slice is `SUBSTITUTING` | 두 slice가 production에서 invoke되고 typed outcome이 소비된다. 그중 exact public `pgy --mir-json <source>`는 C pipeline selector를 삭제했지만, 이 한 slice가 compiler world 전체를 대체하지는 않는다. |
-| public LLVM IR file delivery | bounded `SUBSTITUTING` | exact `pgy <source> --emit-llvm -o <output.ll>`가 installed source-MIR와 DirectMirLlvm action을 각 한 번 소비하고 native libLLVM file emitter 우회를 삭제했다. Stdout form과 general CFG coverage는 open이다. |
+| public LLVM IR file/stdout delivery | bounded `SUBSTITUTING` | exact `pgy <source> --emit-llvm [-o <output.ll>]`가 installed source-MIR와 DirectMirLlvm action을 각 한 번 소비하고 native libLLVM emitter 우회를 삭제했다. General CFG coverage는 open이다. |
 | `intent` | `SURFACE` | 14개 import, production call 0 |
 | `effect`, `relation` | compiler 조직은 `SURFACE`; 입력 기능의 좁은 runtime slice는 `SUBSTITUTING` | bootstrap closure 안의 compiler declaration/call은 0이다. 별개로 self source -> MIR -> general C가 exact role/member facts를 소비해 `zone_layer_projection_runtime`을 실행한다 |
 
@@ -580,8 +580,9 @@ rejected source, missing sibling, unsupported option, mixed-mode negative가 모
 `DirectMirLlvm` action 조합으로 넘어갔다. Public/direct `.ll` byte equality,
 producer/projector exact-once, host clang exact `7\n11\n5\n`, missing/rejected
 action과 stale/source-identity negative가 통과했고 native libLLVM retry는 없다.
-따라서 이 file form도 bounded `SUBSTITUTING`으로 센다. Stdout `--emit-llvm`과
-general LLVM CFG coverage는 아직 별도 open 경계다.
+따라서 이 file form도 bounded `SUBSTITUTING`으로 센다. `8bc7f525`에서 stdout도
+같은 두 action 뒤 fixed 16 KiB binary stream으로 치환됐고 file/stdout bytes가 같다.
+General LLVM CFG coverage는 아직 별도 open 경계다.
 
 ## 완료된 domain runtime assignment 실행 rung objective card
 

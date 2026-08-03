@@ -388,8 +388,10 @@ installed source-MIR and DirectMirLlvm owners, deletes that selector's native
 `compiler_emit_llvm_ir_to_file` bypass, and fails without stale/partial artifact
 or native retry when either installed action fails. Public file/direct LLVM IR
 is byte-equal and host clang executes exact `7\n11\n5\n`. This file form is a
-bounded `SUBSTITUTING` slice; stdout `--emit-llvm` remains the active selector
-before the existing eight-block `nested_if_in_loop.pgy` LLVM breadth falsifier.
+bounded `SUBSTITUTING` slice. Checkpoint `8bc7f525` also closes stdout through
+the same installed actions and a fixed 16 KiB binary stream; file/stdout are
+byte-equal and failures emit no LLVM payload or native fallback. The existing
+eight-block `nested_if_in_loop.pgy` is now the active LLVM breadth falsifier.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
