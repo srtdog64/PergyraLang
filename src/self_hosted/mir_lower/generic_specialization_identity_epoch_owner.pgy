@@ -1,0 +1,123 @@
+// Generic-specialization owner identity across producer-local AST epochs.
+//
+// Source syntax IDs are preorder facts inside one epoch, not globally equal
+// numbers. This owner seals the distinct specialization-owner preorder once
+// and maps producer owners to the corresponding canonical semantic owners.
+
+import "../lib/json_fact_table.pgy";
+import "../semantic/ast_generic_specialization_query_owner.pgy";
+
+struct MirGenericSpecializationIdentityEpoch {
+    ok: Bool;
+    producer_owner_ids: Array<Int>;
+    canonical_owner_ids: Array<Int>;
+}
+
+func MirGenericSpecializationIdentityEpochInvalid(
+) -> MirGenericSpecializationIdentityEpoch {
+    let ids: Array<Int> = [];
+    return MirGenericSpecializationIdentityEpoch(false, ids, ids);
+}
+
+func MirGenericSpecializationIdentityEpochInsertOwner(
+    inout owners: Array<Int>,
+    owner_id: Int
+) -> Bool {
+    if owner_id <= 0 { return false; }
+    let i: Int = 0;
+    while i < ArrayLength(owners) {
+        if owners[i] == owner_id { return true; }
+        i = i + 1;
+    }
+    ArrayPush(owners, owner_id);
+    i = ArrayLength(owners) - 1;
+    while i > 0 && owners[i] < owners[i - 1] {
+        let prior: Int = owners[i - 1];
+        ArraySet(owners, i - 1, owners[i]);
+        ArraySet(owners, i, prior);
+        i = i - 1;
+    }
+    return true;
+}
+
+func MirGenericSpecializationIdentityEpochReady(
+    ref epoch: MirGenericSpecializationIdentityEpoch
+) -> Bool {
+    let count: Int = ArrayLength(epoch.producer_owner_ids);
+    if !epoch.ok || ArrayLength(epoch.canonical_owner_ids) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if epoch.producer_owner_ids[i] <= 0 ||
+            epoch.canonical_owner_ids[i] <= 0 ||
+            (i > 0 && (epoch.producer_owner_ids[i - 1] >=
+                    epoch.producer_owner_ids[i] ||
+                epoch.canonical_owner_ids[i - 1] >=
+                    epoch.canonical_owner_ids[i])) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func MirGenericSpecializationIdentityEpochFromFacts(
+    ref table: JsonArrayObjectFactTable,
+    ref semantic_rows: SemanticAstGenericSpecializationFacts
+) -> MirGenericSpecializationIdentityEpoch {
+    let producer_owner_ids: Array<Int> = [];
+    let canonical_owner_ids: Array<Int> = [];
+    if !JsonArrayObjectFactTableReady(table) ||
+        !SemanticAstGenericSpecializationFactsReady(semantic_rows) {
+        return MirGenericSpecializationIdentityEpochInvalid();
+    }
+    let row: Int = 0;
+    while row < JsonArrayObjectFactCount(table) {
+        let object: JsonObjectFactTable = JsonArrayObjectFactAt(table, row);
+        let owner: Option<String> = JsonObjectFactNumberFieldOpt(
+            object, "source_owner_syntax_id"
+        );
+        if !IsSome(owner) ||
+            !MirGenericSpecializationIdentityEpochInsertOwner(
+                producer_owner_ids, ToInt(UnwrapOption(owner))
+            ) {
+            return MirGenericSpecializationIdentityEpochInvalid();
+        }
+        row = row + 1;
+    }
+    row = 0;
+    while row < SemanticAstGenericSpecializationCount(semantic_rows) {
+        if !MirGenericSpecializationIdentityEpochInsertOwner(
+            canonical_owner_ids, semantic_rows.source_owner_node_ids[row]
+        ) {
+            return MirGenericSpecializationIdentityEpochInvalid();
+        }
+        row = row + 1;
+    }
+    let epoch: MirGenericSpecializationIdentityEpoch =
+        MirGenericSpecializationIdentityEpoch(
+            true, producer_owner_ids, canonical_owner_ids
+        );
+    if !MirGenericSpecializationIdentityEpochReady(epoch) {
+        return MirGenericSpecializationIdentityEpochInvalid();
+    }
+    return epoch;
+}
+
+func MirGenericSpecializationCanonicalOwnerId(
+    ref epoch: MirGenericSpecializationIdentityEpoch,
+    producer_owner_id: Int
+) -> Int {
+    if !MirGenericSpecializationIdentityEpochReady(epoch) {
+        return 0 - 1;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(epoch.producer_owner_ids) {
+        if epoch.producer_owner_ids[i] == producer_owner_id {
+            return epoch.canonical_owner_ids[i];
+        }
+        i = i + 1;
+    }
+    return 0 - 1;
+}

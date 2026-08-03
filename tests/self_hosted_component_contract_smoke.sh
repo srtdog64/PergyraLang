@@ -815,6 +815,18 @@ require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     'MirStructuredExpressionEmissionOrderReady(expression_order)'
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     'MirProgramTreeEmission('
+require_max_lines "src/self_hosted/mir_lower/program_lower.pgy" 220
+require_file \
+    "src/self_hosted/mir_lower/program_top_level_routine_order_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/program_top_level_routine_order_owner.pgy" 120
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    'MirTopLevelRoutineOrderCurrentRow(routines, cursor)'
+require_text \
+    "src/self_hosted/mir_lower/program_top_level_routine_order_owner.pgy" \
+    'routines.source_syntax_ids[cursor.function_row]'
+reject_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    'while row < MirProgramRoutineIndexCount(routines)'
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" 'return StringJoin(chunks, "");'
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'func EmitStructDecls('
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'func MirCanonicalDeclarationPhase(kind: String) -> Int'
@@ -5919,6 +5931,12 @@ require_file "src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy" 420
 require_text "src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy" \
     '"generic_method_specializations"'
+require_text "src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy" \
+    'MirGenericSpecializationCanonicalOwnerId('
+require_file \
+    "src/self_hosted/mir_lower/generic_specialization_identity_epoch_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/generic_specialization_identity_epoch_owner.pgy" 140
 reject_text "src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy" \
     '"generic_specializations"'
 reject_file "src/self_hosted/mir/generic_method_specialization_owner.pgy"
@@ -7208,8 +7226,20 @@ require_text \
     'repeated canonicalization is not a fixpoint'
 require_text "Makefile" \
     "self-host-canonical-mir-verified-projection-test-smoke: self-host-compiler"
+require_file \
+    "tests/self_hosted/parity/canonical_mir_routine_phase_identity_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/canonical_mir_routine_phase_identity_owner.sh" 140
 require_text "Makefile" \
-    "self-host-live-replacement-test-smoke: self-host-canonical-mir-verified-projection-test-smoke"
+    "self-host-canonical-mir-routine-phase-identity-test-smoke: self-host-canonical-mir-verified-projection-test-smoke"
+require_file \
+    "tests/self_hosted/parity/generic_specialization_identity_epoch_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/generic_specialization_identity_epoch_owner.sh" 100
+require_text "Makefile" \
+    "self-host-generic-specialization-identity-epoch-test-smoke: self-host-canonical-mir-routine-phase-identity-test-smoke"
+require_text "Makefile" \
+    "self-host-live-replacement-test-smoke: self-host-generic-specialization-identity-epoch-test-smoke"
 require_file \
     "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh"
 require_max_lines \

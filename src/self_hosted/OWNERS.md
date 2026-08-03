@@ -842,7 +842,12 @@ inventory must not become a second fact-family owner registry.
   lookup and appends directly into the one final sequence arena.
 - `src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy` --
   fail-closed MIR direct/member generic row decoder and final codegen-view
-  projection; semantic rows are verifier evidence, not emitted-symbol input.
+  projection; lane, call ordinal, callable, actuals, and symbol remain exact.
+  Semantic rows are verifier evidence, not emitted-symbol input.
+- `src/self_hosted/mir_lower/generic_specialization_identity_epoch_owner.pgy`
+  -- one sealed producer/canonical owner map derived from the distinct
+  within-epoch source preorder; raw numeric equality and offset inference are
+  forbidden.
 - `src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy` -- bounded
   ordered graph-sequence construction over exact persisted graph captures.
 - `src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy` --
@@ -1010,7 +1015,12 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy` --
   fail-closed comparison of carried MIR assignment modes with semantic
   assignment type facts; the named C-oracle bridge is excluded.
-- `src/self_hosted/mir_lower/program_lower.pgy` -- document-order program assembly.
+- `src/self_hosted/mir_lower/program_top_level_routine_order_owner.pgy` --
+  typed source-epoch cursor that merges function and intent producer phases;
+  row position carries only a monotonic producer-phase sequence, while source
+  IDs own cross-phase interleaving.
+- `src/self_hosted/mir_lower/program_lower.pgy` -- canonical declaration and
+  source-preorder top-level routine assembly through that cursor.
 - `src/self_hosted/mir_lower/intent_lower_owner.pgy` -- exact intent MIR
   stable import surface for the split intent routine-tree projection.
 - `src/self_hosted/mir_lower/intent_routine_tree_projection_owner.pgy` -- exact

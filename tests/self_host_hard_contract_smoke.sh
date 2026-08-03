@@ -128,6 +128,12 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "return CompileMirJsonTextToCVerified(json, machine_declaration);"
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     "func EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved("
+require_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    "MirTopLevelRoutineOrderCursorFromIndex(routines)"
+forbid_text "src/self_hosted/mir_lower/program_lower.pgy" \
+    'while row < MirProgramRoutineIndexCount(routines)'
+require_text "src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy" \
+    "MirGenericSpecializationCanonicalOwnerId("
 require_text "src/self_hosted/compiler/driver_rung2_intent_consumer_owner.pgy" \
     "EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved("
 require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \

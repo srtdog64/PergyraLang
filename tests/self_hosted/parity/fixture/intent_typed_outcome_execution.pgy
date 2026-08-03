@@ -74,6 +74,10 @@ func IntentRunAccepted(outcome: IntentRunOutcome) -> Bool {
     }
 }
 
+func Identity<T>(value: T) -> T {
+    return value;
+}
+
 intent RunIntent(
     work: IntentWorkZone,
     worker: IntentWorker,
@@ -87,7 +91,8 @@ intent RunIntent(
 }
 
 func Main() -> Void {
-    let worker = IntentWorker(0);
+    let seed: Int = Identity<Int>(0);
+    let worker = IntentWorker(seed);
     let work = IntentWorkZone(Clone(worker));
 
     let accepted: Bool = RunIntent(work, worker, true);

@@ -1,0 +1,104 @@
+// Canonical top-level routine source-preorder cursor.
+//
+// Native MIR preserves function/intent interleaving while self MIR publishes
+// the two semantic phases separately. Source syntax identity is the admitted
+// epoch's preorder fact; JSON row position is routing provenance only. Methods
+// stay with declaration lowering and never enter this cursor.
+
+import "program_routine_index_owner.pgy";
+
+struct MirTopLevelRoutineOrderCursor {
+    ok: Bool;
+    function_row: Int;
+    intent_row: Int;
+}
+
+func MirTopLevelRoutineNextKindRow(
+    ref routines: MirProgramRoutineIndex,
+    start: Int,
+    kind: String,
+    prior_source_syntax_id: Int
+) -> Int {
+    let row: Int = start;
+    while row < MirProgramRoutineIndexCount(routines) {
+        if routines.kinds[row] == kind {
+            let source_syntax_id: Int =
+                ToInt(routines.source_syntax_ids[row]);
+            if source_syntax_id <= prior_source_syntax_id {
+                return 0 - 2;
+            }
+            return row;
+        }
+        row = row + 1;
+    }
+    return 0 - 1;
+}
+
+func MirTopLevelRoutineOrderCursorFromIndex(
+    ref routines: MirProgramRoutineIndex
+) -> MirTopLevelRoutineOrderCursor {
+    if !routines.valid {
+        return MirTopLevelRoutineOrderCursor(false, 0 - 1, 0 - 1);
+    }
+    let function_row: Int = MirTopLevelRoutineNextKindRow(
+        routines, 0, "function", 0
+    );
+    let intent_row: Int = MirTopLevelRoutineNextKindRow(
+        routines, 0, "intent", 0
+    );
+    return MirTopLevelRoutineOrderCursor(
+        function_row >= (0 - 1) && intent_row >= (0 - 1),
+        function_row, intent_row
+    );
+}
+
+func MirTopLevelRoutineOrderCurrentRow(
+    ref routines: MirProgramRoutineIndex,
+    cursor: MirTopLevelRoutineOrderCursor
+) -> Int {
+    if !cursor.ok { return 0 - 1; }
+    if cursor.function_row < 0 { return cursor.intent_row; }
+    if cursor.intent_row < 0 { return cursor.function_row; }
+    let function_id: Int =
+        ToInt(routines.source_syntax_ids[cursor.function_row]);
+    let intent_id: Int =
+        ToInt(routines.source_syntax_ids[cursor.intent_row]);
+    if function_id == intent_id { return 0 - 1; }
+    if function_id < intent_id { return cursor.function_row; }
+    return cursor.intent_row;
+}
+
+func MirTopLevelRoutineOrderAdvance(
+    ref routines: MirProgramRoutineIndex,
+    cursor: MirTopLevelRoutineOrderCursor,
+    emitted_row: Int
+) -> MirTopLevelRoutineOrderCursor {
+    let function_row: Int = cursor.function_row;
+    let intent_row: Int = cursor.intent_row;
+    if !cursor.ok || emitted_row < 0 {
+        return MirTopLevelRoutineOrderCursor(false, function_row, intent_row);
+    }
+    if emitted_row == function_row {
+        function_row = MirTopLevelRoutineNextKindRow(
+            routines, function_row + 1, "function",
+            ToInt(routines.source_syntax_ids[function_row])
+        );
+    } else if emitted_row == intent_row {
+        intent_row = MirTopLevelRoutineNextKindRow(
+            routines, intent_row + 1, "intent",
+            ToInt(routines.source_syntax_ids[intent_row])
+        );
+    } else {
+        return MirTopLevelRoutineOrderCursor(false, function_row, intent_row);
+    }
+    return MirTopLevelRoutineOrderCursor(
+        function_row >= (0 - 1) && intent_row >= (0 - 1),
+        function_row, intent_row
+    );
+}
+
+func MirTopLevelRoutineOrderDone(
+    cursor: MirTopLevelRoutineOrderCursor
+) -> Bool {
+    return cursor.ok && cursor.function_row < 0 && cursor.intent_row < 0;
+}

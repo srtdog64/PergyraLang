@@ -8,6 +8,7 @@ import "../semantic/ast_expression_call_identity_owner.pgy";
 import "../semantic/ast_generic_specialization_query_owner.pgy";
 import "../codegen/input/generic_specialization_codegen_view_owner.pgy";
 import "../mir/generic_specialization_owner.pgy";
+import "generic_specialization_identity_epoch_owner.pgy";
 
 struct MirGenericSpecializationStringArrayResult {
     ok: Bool;
@@ -160,6 +161,13 @@ func MirCodegenGenericSpecializationFacts(
             "MIR generic specialization row count is incomplete"
         );
     }
+    let identity_epoch: MirGenericSpecializationIdentityEpoch =
+        MirGenericSpecializationIdentityEpochFromFacts(table, semantic_rows);
+    if !MirGenericSpecializationIdentityEpochReady(identity_epoch) {
+        return MirGenericSpecializationError(
+            "MIR generic specialization identity epoch is invalid"
+        );
+    }
     let matched: Array<Bool> = [];
     let expected_i: Int = 0;
     while expected_i < SemanticAstGenericSpecializationCount(semantic_rows) {
@@ -206,9 +214,13 @@ func MirCodegenGenericSpecializationFacts(
         let owner_id: Int = ToInt(UnwrapOption(owner_id_opt));
         let lane: Int = ToInt(UnwrapOption(lane_opt));
         let ordinal: Int = ToInt(UnwrapOption(ordinal_opt));
+        let canonical_owner_id: Int =
+            MirGenericSpecializationCanonicalOwnerId(
+                identity_epoch, owner_id
+            );
         let semantic_index_opt: Option<Int> =
             MirGenericSpecializationSemanticIndex(
-                semantic_rows, owner_id, lane, ordinal
+                semantic_rows, canonical_owner_id, lane, ordinal
             );
         if !IsSome(semantic_index_opt) {
             return MirGenericSpecializationError(
@@ -281,7 +293,7 @@ func MirCodegenGenericSpecializationFacts(
             );
         }
         let call_node: Option<Int> = SemanticExpressionCallNodeForIdentity(
-            expression_surfaces, owner_id, lane, ordinal
+            expression_surfaces, canonical_owner_id, lane, ordinal
         );
         if !IsSome(call_node) ||
             UnwrapOption(call_node) != semantic_rows.call_node_ids[semantic_index] {

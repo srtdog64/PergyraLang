@@ -1,11 +1,14 @@
 // MIR document -> compact AST Program owner for self-hosted mir_lower.
 //
-// Owns document-order declaration/routine assembly. `main.pgy` supplies an
-// already validated MIR JSON document and prints this owner's result.
+// Owns canonical declaration and source-preorder routine assembly. Input row
+// position is routing provenance; the admitted syntax identity epoch owns
+// function/intent interleaving. `main.pgy` supplies an already validated MIR
+// JSON document and prints this owner's result.
 
 import "error_owner.pgy";
 import "decl_lower.pgy";
 import "program_routine_index_owner.pgy";
+import "program_top_level_routine_order_owner.pgy";
 import "routine_inventory_owner.pgy";
 import "structured_expression_emission_order_owner.pgy";
 import "routine_lower.pgy";
@@ -44,19 +47,27 @@ func EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved(
         observe_pressure, "consumer:mir-to-ast:declarations:done"
     );
     let total: Int = 0;
-    let row: Int = 0;
     if MirProgramRoutineIndexCount(routines) == 0 {
         MirLowerFailClosed("no routine name in MIR-JSON");
     }
-    while row < MirProgramRoutineIndexCount(routines) {
+    let cursor: MirTopLevelRoutineOrderCursor =
+        MirTopLevelRoutineOrderCursorFromIndex(routines);
+    if !cursor.ok {
+        MirLowerFailClosed("MIR top-level routine order is invalid");
+    }
+    while !MirTopLevelRoutineOrderDone(cursor) {
+        let row: Int =
+            MirTopLevelRoutineOrderCurrentRow(routines, cursor);
+        if row < 0 {
+            MirLowerFailClosed("MIR top-level routine identity is ambiguous");
+        }
         let kind: String = routines.kinds[row];
-        let owner: String = routines.owners[row];
         if kind == "intent" {
             ArrayPush(chunks, EmitMirIntentTreeAtRowWithExecutionPlan(
                 routines, row, expression_order, intent_execution_plan
             ));
             total = total + 1;
-        } else if kind == "function" || StringLength(owner) == 0 {
+        } else if kind == "function" {
             let observe_focused_routine: Bool = observe_pressure &&
                 (total == 16 || total == 184 || total == 185 ||
                  total == 191 || total == 242 || total == 397 ||
@@ -117,7 +128,10 @@ func EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved(
                 );
             }
         }
-        row = row + 1;
+        cursor = MirTopLevelRoutineOrderAdvance(routines, cursor, row);
+        if !cursor.ok {
+            MirLowerFailClosed("MIR top-level routine source order is invalid");
+        }
     }
 
     if total == 0 {
