@@ -4,6 +4,7 @@ import "../air/mir_cfg_identity_owner.pgy";
 import "artifact_zone_owner.pgy";
 import "target_capability_owner.pgy";
 import "direct_mir_scalar_cfg_range_iteration_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_set_owner.pgy";
 
 struct DirectMirScalarCfgGraphPlan {
     let valid: Bool;
@@ -45,10 +46,11 @@ struct DirectMirScalarCfgGraphPlan {
     let phi_predecessor_blocks: Array<Int>;
     let phi_incoming_values: Array<Int>;
     let range_iterations: DirectMirScalarCfgRangeFactSet;
+    let foreach_iterations: DirectMirScalarCfgForEachFactSet;
 }
 
 func DirectMirScalarCfgGraphPlanSchema() -> String {
-    return "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v2";
+    return "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v3";
 }
 
 func DirectMirScalarCfgOpConstInt() -> Int { return 1; }
@@ -63,6 +65,7 @@ func DirectMirScalarCfgConditionBool() -> Int { return 1; }
 func DirectMirScalarCfgConditionLess() -> Int { return 2; }
 func DirectMirScalarCfgConditionEqual() -> Int { return 3; }
 func DirectMirScalarCfgConditionGreater() -> Int { return 4; }
+func DirectMirScalarCfgConditionForEach() -> Int { return 5; }
 
 func DirectMirScalarCfgHashInts(
     hash: Long, values: Array<Int>

@@ -3,6 +3,7 @@
 import "direct_mir_scalar_cfg_graph_identity_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_range_graph_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_graph_readiness_owner.pgy";
 
 func DirectMirScalarCfgOperandCount(
     value: Int, local: Int, literal: String
@@ -28,7 +29,8 @@ func DirectMirScalarCfgGraphPlanReady(
         !DirectMirScalarCfgLocalRefsReady(
             plan.local_names, plan.local_ref_kinds,
             plan.local_ref_value_ids, plan.local_ref_syntax_ids,
-            plan.value_local_rows, plan.range_iterations
+            plan.value_local_rows, plan.range_iterations,
+            plan.foreach_iterations
         ) ||
         block_count < 2 || operation_count < 1 ||
         value_count != ArrayLength(plan.value_local_rows) ||
@@ -88,7 +90,7 @@ func DirectMirScalarCfgGraphPlanReady(
             true_target < -1 || true_target >= block_count ||
             false_target < -1 || false_target >= block_count ||
             condition < DirectMirScalarCfgConditionNone() ||
-            condition > DirectMirScalarCfgConditionGreater() ||
+            condition > DirectMirScalarCfgConditionForEach() ||
             left_value < -1 || right_value < -1 ||
             left_local < -1 || right_local < -1 ||
             left_value >= value_count || right_value >= value_count ||
@@ -103,6 +105,13 @@ func DirectMirScalarCfgGraphPlanReady(
                 ) != 0 {
                 return false;
             }
+        } else if condition == DirectMirScalarCfgConditionForEach() {
+            if true_target < 0 || false_target < 0 ||
+                DirectMirScalarCfgOperandCount(
+                    left_value, left_local, left_literal
+                ) != 0 || DirectMirScalarCfgOperandCount(
+                    right_value, right_local, right_literal
+                ) != 0 { return false; }
         } else if true_target < 0 ||
             DirectMirScalarCfgOperandCount(
                 left_value, left_local, left_literal
@@ -185,7 +194,8 @@ func DirectMirScalarCfgGraphPlanReady(
         }
         phi_row = phi_row + 1;
     }
-    if !DirectMirScalarCfgRangeGraphReady(plan) { return false; }
+    if !DirectMirScalarCfgRangeGraphReady(plan) ||
+        !DirectMirScalarCfgForEachGraphReady(plan) { return false; }
     return CompilerArtifactIdentityReady(
         CompilerEmittedCArtifactKind(), plan.revision, plan.digest
     ) && CompilerArtifactIdentityReady(

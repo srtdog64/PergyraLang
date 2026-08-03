@@ -3,6 +3,8 @@
 import "direct_mir_scalar_cfg_graph_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_c_operand_owner.pgy";
 import "direct_mir_scalar_cfg_range_block_effect_owner.pgy";
+import "direct_mir_scalar_cfg_local_emission_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_c_emission_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
 func DirectMirScalarCfgEmitC(
@@ -10,7 +12,8 @@ func DirectMirScalarCfgEmitC(
     formatted_print: CompilerRuntimeCallAbiFact,
     int_line_format: String,
     string_line_format: String,
-    int_c_type: String
+    int_c_type: String,
+    target: CompilerTargetProjectionFact
 ) -> String {
     if !DirectMirScalarCfgGraphPlanReady(plan) || !formatted_print.ok ||
         formatted_print.call_shape !=
@@ -19,22 +22,23 @@ func DirectMirScalarCfgEmitC(
         int_c_type == "" {
         Die("direct MIR scalar CFG C plan or runtime ABI is invalid");
     }
-    let output: String = "#include <stdio.h>\n\nint main(void) {\n";
-    let local_row: Int = 0;
-    while local_row < ArrayLength(plan.local_names) {
-        output = Concat(output, "    ");
-        output = Concat(output, int_c_type);
-        output = Concat(output, " pgy_local_");
-        output = Concat(output, ToString(local_row));
-        output = Concat(output, " = 0;\n");
-        local_row = local_row + 1;
-    }
+    let output: String = DirectMirScalarCfgForEachCPreamble(plan, target);
+    output = Concat(output, "\nint main(void) {\n");
+    output = Concat(
+        output, DirectMirScalarCfgCLocalDeclarations(plan, int_c_type)
+    );
+    output = Concat(
+        output, DirectMirScalarCfgForEachCDeclarations(plan, target)
+    );
     output = Concat(output, "    goto pgy_block_0;\n");
     let block: Int = 0;
     while block < ArrayLength(plan.block_succ_true) {
         output = Concat(output, "pgy_block_");
         output = Concat(output, ToString(block));
         output = Concat(output, ":\n");
+        output = Concat(
+            output, DirectMirScalarCfgForEachCBlockEntry(plan, block)
+        );
         let operation: Int = plan.block_operation_starts[block];
         let operation_end: Int = operation +
             plan.block_operation_counts[block];
@@ -106,6 +110,9 @@ func DirectMirScalarCfgEmitC(
                 ArrayLength(plan.block_succ_true), block
             )
         );
+        output = Concat(
+            output, DirectMirScalarCfgForEachCBlockExit(plan, block)
+        );
         let condition: Int = plan.block_condition_kinds[block];
         let true_target: Int = plan.block_succ_true[block];
         let false_target: Int = plan.block_succ_false[block];
@@ -119,7 +126,11 @@ func DirectMirScalarCfgEmitC(
             }
         } else {
             output = Concat(output, "    if (");
-            if condition == DirectMirScalarCfgConditionBool() {
+            if condition == DirectMirScalarCfgConditionForEach() {
+                output = Concat(
+                    output, DirectMirScalarCfgForEachCCondition(plan, block)
+                );
+            } else if condition == DirectMirScalarCfgConditionBool() {
                 if plan.block_condition_left_literals[block] == "true" {
                     output = Concat(output, "1");
                 } else {

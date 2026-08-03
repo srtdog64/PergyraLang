@@ -1,0 +1,274 @@
+// Canonical primitive storage and lookup for collection-iteration receipts.
+
+import "direct_mir_scalar_cfg_foreach_fact_owner.pgy";
+
+struct DirectMirScalarCfgForEachFactSet {
+    let valid: Bool;
+    let digest: Int;
+    let definition_global_rows: Array<Int>;
+    let init_global_rows: Array<Int>;
+    let branch_global_rows: Array<Int>;
+    let init_blocks: Array<Int>;
+    let header_blocks: Array<Int>;
+    let body_blocks: Array<Int>;
+    let exit_blocks: Array<Int>;
+    let binding_local_rows: Array<Int>;
+    let loop_syntax_ids: Array<Int>;
+    let collection_value_ids: Array<String>;
+    let collection_names: Array<String>;
+    let binding_names: Array<String>;
+    let cursor_identities: Array<String>;
+    let element_starts: Array<Int>;
+    let element_counts: Array<Int>;
+    let elements: Array<Int>;
+    let backedge_starts: Array<Int>;
+    let backedge_counts: Array<Int>;
+    let backedge_blocks: Array<Int>;
+    let abi_layout_ids: Array<Int>;
+    let abi_sizes: Array<Int>;
+    let abi_aligns: Array<Int>;
+    let data_offsets: Array<Int>;
+    let length_offsets: Array<Int>;
+    let capacity_offsets: Array<Int>;
+    let allocator_offsets: Array<Int>;
+}
+
+func DirectMirScalarCfgForEachFactSetInvalid(
+) -> DirectMirScalarCfgForEachFactSet {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return DirectMirScalarCfgForEachFactSet(
+        false, 0,
+        ints, ints, ints, ints, ints, ints, ints, ints, ints,
+        strings, strings, strings, strings,
+        ints, ints, ints, ints, ints, ints, ints,
+        ints, ints, ints, ints, ints, ints
+    );
+}
+
+func DirectMirScalarCfgForEachFactSetDigest(
+    ref facts: DirectMirScalarCfgForEachFactSet
+) -> Int {
+    if !facts.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(
+        197L, ArrayLength(facts.loop_syntax_ids)
+    );
+    let row: Int = 0;
+    while row < ArrayLength(facts.loop_syntax_ids) {
+        let fact: DirectMirScalarCfgForEachFact =
+            DirectMirScalarCfgForEachFactAt(facts, row);
+        hash = DirectMirCfgHashInt(hash, facts.loop_syntax_ids[row]);
+        hash = DirectMirCfgHashInt(
+            hash, DirectMirScalarCfgForEachFactDigest(fact)
+        );
+        row = row + 1;
+    }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarCfgForEachFactSetWithDigest(
+    facts: DirectMirScalarCfgForEachFactSet, digest: Int
+) -> DirectMirScalarCfgForEachFactSet {
+    return DirectMirScalarCfgForEachFactSet(
+        facts.valid, digest, facts.definition_global_rows,
+        facts.init_global_rows,
+        facts.branch_global_rows, facts.init_blocks, facts.header_blocks,
+        facts.body_blocks, facts.exit_blocks, facts.binding_local_rows,
+        facts.loop_syntax_ids, facts.collection_value_ids,
+        facts.collection_names, facts.binding_names, facts.cursor_identities,
+        facts.element_starts, facts.element_counts, facts.elements,
+        facts.backedge_starts, facts.backedge_counts, facts.backedge_blocks,
+        facts.abi_layout_ids, facts.abi_sizes, facts.abi_aligns,
+        facts.data_offsets, facts.length_offsets, facts.capacity_offsets,
+        facts.allocator_offsets
+    );
+}
+
+func DirectMirScalarCfgForEachFactSetEmpty(
+) -> DirectMirScalarCfgForEachFactSet {
+    let invalid: DirectMirScalarCfgForEachFactSet =
+        DirectMirScalarCfgForEachFactSetInvalid();
+    let facts: DirectMirScalarCfgForEachFactSet =
+        DirectMirScalarCfgForEachFactSet(
+            true, 0, invalid.definition_global_rows,
+            invalid.init_global_rows, invalid.branch_global_rows,
+            invalid.init_blocks, invalid.header_blocks, invalid.body_blocks,
+            invalid.exit_blocks, invalid.binding_local_rows,
+            invalid.loop_syntax_ids, invalid.collection_value_ids,
+            invalid.collection_names, invalid.binding_names,
+            invalid.cursor_identities, invalid.element_starts,
+            invalid.element_counts, invalid.elements,
+            invalid.backedge_starts, invalid.backedge_counts,
+            invalid.backedge_blocks, invalid.abi_layout_ids,
+            invalid.abi_sizes, invalid.abi_aligns, invalid.data_offsets,
+            invalid.length_offsets, invalid.capacity_offsets,
+            invalid.allocator_offsets
+        );
+    return DirectMirScalarCfgForEachFactSetWithDigest(
+        facts, DirectMirScalarCfgForEachFactSetDigest(facts)
+    );
+}
+
+func DirectMirScalarCfgForEachFactCount(
+    ref facts: DirectMirScalarCfgForEachFactSet
+) -> Int {
+    if !facts.valid { return -1; }
+    return ArrayLength(facts.loop_syntax_ids);
+}
+
+func DirectMirScalarCfgForEachFactAt(
+    ref facts: DirectMirScalarCfgForEachFactSet, row: Int
+) -> DirectMirScalarCfgForEachFact {
+    if !facts.valid || row < 0 || row >= ArrayLength(facts.loop_syntax_ids) {
+        return DirectMirScalarCfgForEachFactEmpty();
+    }
+    let elements: Array<Int> = [];
+    let item: Int = 0;
+    while item < facts.element_counts[row] {
+        ArrayPush(elements, facts.elements[facts.element_starts[row] + item]);
+        item = item + 1;
+    }
+    let backedges: Array<Int> = [];
+    item = 0;
+    while item < facts.backedge_counts[row] {
+        ArrayPush(
+            backedges, facts.backedge_blocks[facts.backedge_starts[row] + item]
+        );
+        item = item + 1;
+    }
+    let fact: DirectMirScalarCfgForEachFact = DirectMirScalarCfgForEachFact(
+        true, 0, facts.definition_global_rows[row],
+        facts.init_global_rows[row], facts.branch_global_rows[row],
+        facts.init_blocks[row], facts.header_blocks[row],
+        facts.body_blocks[row], facts.exit_blocks[row],
+        facts.binding_local_rows[row], facts.loop_syntax_ids[row],
+        facts.collection_value_ids[row], facts.collection_names[row],
+        facts.binding_names[row], facts.cursor_identities[row], elements,
+        backedges, facts.abi_layout_ids[row], facts.abi_sizes[row],
+        facts.abi_aligns[row], facts.data_offsets[row],
+        facts.length_offsets[row], facts.capacity_offsets[row],
+        facts.allocator_offsets[row]
+    );
+    return DirectMirScalarCfgForEachFactWithDigest(
+        fact, DirectMirScalarCfgForEachFactDigest(fact)
+    );
+}
+
+func DirectMirScalarCfgForEachFactAtLoopSyntaxId(
+    ref facts: DirectMirScalarCfgForEachFactSet, wanted: Int
+) -> DirectMirScalarCfgForEachFact {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < DirectMirScalarCfgForEachFactCount(facts) {
+        if facts.loop_syntax_ids[row] == wanted {
+            if found >= 0 { return DirectMirScalarCfgForEachFactEmpty(); }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return DirectMirScalarCfgForEachFactAt(facts, found);
+}
+
+func DirectMirScalarCfgForEachFactAtInitGlobalRow(
+    ref facts: DirectMirScalarCfgForEachFactSet, wanted: Int
+) -> DirectMirScalarCfgForEachFact {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < DirectMirScalarCfgForEachFactCount(facts) {
+        if facts.init_global_rows[row] == wanted {
+            if found >= 0 { return DirectMirScalarCfgForEachFactEmpty(); }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return DirectMirScalarCfgForEachFactAt(facts, found);
+}
+
+func DirectMirScalarCfgForEachFactAtBranchGlobalRow(
+    ref facts: DirectMirScalarCfgForEachFactSet, wanted: Int
+) -> DirectMirScalarCfgForEachFact {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < DirectMirScalarCfgForEachFactCount(facts) {
+        if facts.branch_global_rows[row] == wanted {
+            if found >= 0 { return DirectMirScalarCfgForEachFactEmpty(); }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return DirectMirScalarCfgForEachFactAt(facts, found);
+}
+
+func DirectMirScalarCfgForEachOwnsDefinition(
+    ref facts: DirectMirScalarCfgForEachFactSet, wanted: Int
+) -> Bool {
+    let matches: Int = 0;
+    let row: Int = 0;
+    while row < DirectMirScalarCfgForEachFactCount(facts) {
+        if facts.definition_global_rows[row] == wanted { matches = matches + 1; }
+        row = row + 1;
+    }
+    return matches == 1;
+}
+
+func DirectMirScalarCfgForEachFactSetShapeReady(
+    ref facts: DirectMirScalarCfgForEachFactSet,
+    block_count: Int, require_bound_local: Bool
+) -> Bool {
+    let count: Int = DirectMirScalarCfgForEachFactCount(facts);
+    if count < 0 || facts.digest == 0 ||
+        facts.digest != DirectMirScalarCfgForEachFactSetDigest(facts) ||
+        count != ArrayLength(facts.definition_global_rows) ||
+        count != ArrayLength(facts.init_global_rows) ||
+        count != ArrayLength(facts.branch_global_rows) ||
+        count != ArrayLength(facts.init_blocks) ||
+        count != ArrayLength(facts.header_blocks) ||
+        count != ArrayLength(facts.body_blocks) ||
+        count != ArrayLength(facts.exit_blocks) ||
+        count != ArrayLength(facts.binding_local_rows) ||
+        count != ArrayLength(facts.collection_value_ids) ||
+        count != ArrayLength(facts.collection_names) ||
+        count != ArrayLength(facts.binding_names) ||
+        count != ArrayLength(facts.cursor_identities) ||
+        count != ArrayLength(facts.element_starts) ||
+        count != ArrayLength(facts.element_counts) ||
+        count != ArrayLength(facts.backedge_starts) ||
+        count != ArrayLength(facts.backedge_counts) ||
+        count != ArrayLength(facts.abi_layout_ids) ||
+        count != ArrayLength(facts.abi_sizes) ||
+        count != ArrayLength(facts.abi_aligns) ||
+        count != ArrayLength(facts.data_offsets) ||
+        count != ArrayLength(facts.length_offsets) ||
+        count != ArrayLength(facts.capacity_offsets) ||
+        count != ArrayLength(facts.allocator_offsets) { return false; }
+    let element_cursor: Int = 0;
+    let edge_cursor: Int = 0;
+    let row: Int = 0;
+    while row < count {
+        let fact: DirectMirScalarCfgForEachFact =
+            DirectMirScalarCfgForEachFactAt(facts, row);
+        if facts.element_starts[row] != element_cursor ||
+            facts.backedge_starts[row] != edge_cursor ||
+            !DirectMirScalarCfgForEachFactShapeReady(
+                fact, block_count, require_bound_local
+            ) || (row > 0 && facts.loop_syntax_ids[row - 1] >=
+                facts.loop_syntax_ids[row]) { return false; }
+        element_cursor = element_cursor + facts.element_counts[row];
+        edge_cursor = edge_cursor + facts.backedge_counts[row];
+        row = row + 1;
+    }
+    return element_cursor == ArrayLength(facts.elements) &&
+        edge_cursor == ArrayLength(facts.backedge_blocks);
+}
+
+func DirectMirScalarCfgForEachFactSetSourceReady(
+    ref facts: DirectMirScalarCfgForEachFactSet, block_count: Int
+) -> Bool {
+    return DirectMirScalarCfgForEachFactSetShapeReady(facts, block_count, false);
+}
+
+func DirectMirScalarCfgForEachFactSetReady(
+    ref facts: DirectMirScalarCfgForEachFactSet, block_count: Int
+) -> Bool {
+    return DirectMirScalarCfgForEachFactSetShapeReady(facts, block_count, true);
+}

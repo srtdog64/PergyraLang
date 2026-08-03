@@ -15453,6 +15453,24 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy" 280
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_fact_owner.pgy" 200
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_set_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_set_owner.pgy" 320
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_append_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_append_owner.pgy" 120
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_admission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_admission_owner.pgy" 280
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_local_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_local_owner.pgy" 180
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_graph_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_graph_readiness_owner.pgy" 100
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_range_set_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_range_set_owner.pgy" 300
@@ -15489,9 +15507,21 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_c_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_c_emission_owner.pgy" 180
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_c_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_c_emission_owner.pgy" 180
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy" 260
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy" 220
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy" 60
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_terminator_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_terminator_emission_owner.pgy" 120
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_operand_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_operand_owner.pgy" 40
@@ -15510,6 +15540,9 @@ require_max_lines \
 require_file "tests/self_hosted/parity/one_mir_scalar_cfg_continue_backedge_projection.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_scalar_cfg_continue_backedge_projection.sh" 160
+require_file "tests/self_hosted/parity/one_mir_scalar_cfg_foreach_array_int_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_scalar_cfg_foreach_array_int_projection.sh" 180
 require_file "tests/self_hosted/parity/one_mir_iteration_binding_scope_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_iteration_binding_scope_owner.sh" 160
@@ -15540,6 +15573,8 @@ require_text "tests/self_hosted/parity/one_mir_cfg_break_case.sh" \
     'one_mir_nested_iteration_binding_scope_owner.sh'
 require_text "tests/self_hosted/parity/one_mir_cfg_break_case.sh" \
     'one_mir_nested_iteration_continue_scope_owner.sh'
+require_text "tests/self_hosted/parity/one_mir_cfg_break_case.sh" \
+    'one_mir_scalar_cfg_foreach_array_int_projection.sh'
 require_text "tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh" \
     'nested_iteration_continue_shadow.pgy'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
@@ -15584,6 +15619,16 @@ require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_own
     'MirRoutineBlockDominates('
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
     'DirectMirScalarCfgLoopFlowFactsReady('
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+    'DirectMirScalarCfgForEachFactsFromOwners('
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+    'DirectMirScalarCfgConditionForEach()'
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_admission_owner.pgy" \
+    'foreach_array_int_sum.pgy'
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_c_emission_owner.pgy" \
+    '"expr0"'
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy" \
+    '"expr0"'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
     'source == "AST_CONTINUE"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \

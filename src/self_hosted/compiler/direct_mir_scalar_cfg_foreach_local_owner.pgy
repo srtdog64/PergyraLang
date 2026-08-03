@@ -1,0 +1,150 @@
+// Collection-iteration binding slots and source-local inventory closure.
+
+import "direct_mir_scalar_cfg_foreach_append_owner.pgy";
+import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
+import "direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy";
+import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+
+func DirectMirScalarCfgAppendForEachLocals(
+    ref index: MirRoutineFactIndex,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref facts: DirectMirScalarCfgForEachFactSet,
+    inout local_names: Array<String>,
+    inout local_ref_kinds: Array<Int>,
+    inout local_ref_value_ids: Array<String>,
+    inout local_ref_syntax_ids: Array<Int>
+) -> Bool {
+    let row: Int = 0;
+    while row < DirectMirScalarCfgForEachFactCount(facts) {
+        let fact: DirectMirScalarCfgForEachFact =
+            DirectMirScalarCfgForEachFactAt(facts, row);
+        let expected_ref: String =
+            DirectMirScalarCfgIterationLocalRef(fact.loop_syntax_id);
+        let init_row: Int = fact.init_global_row -
+            index.instruction_facts.global_start;
+        let branch_row: Int = fact.branch_global_row -
+            index.instruction_facts.global_start;
+        if !DirectMirScalarCfgForEachFactSourceReady(
+                fact, ArrayLength(index.block_starts)
+            ) || init_row < 0 || branch_row < 0 || (wire.required &&
+                (wire.primary_refs[init_row] != expected_ref ||
+                 wire.primary_refs[branch_row] != expected_ref ||
+                 DirectMirScalarCfgLocalIdentityRow(
+                     local_ref_value_ids, expected_ref
+                 ) >= 0)) {
+            return false;
+        }
+        ArrayPush(local_names, fact.binding_name);
+        ArrayPush(local_ref_kinds, DirectMirScalarCfgLocalRefForEach());
+        if wire.required { ArrayPush(local_ref_value_ids, expected_ref); }
+        else { ArrayPush(local_ref_value_ids, ""); }
+        ArrayPush(local_ref_syntax_ids, fact.loop_syntax_id);
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarCfgForEachFactsAtLocalRows(
+    ref facts: DirectMirScalarCfgForEachFactSet,
+    local_names: Array<String>, local_ref_kinds: Array<Int>,
+    local_ref_syntax_ids: Array<Int>
+) -> DirectMirScalarCfgForEachFactSet {
+    let bound: DirectMirScalarCfgForEachFactSet =
+        DirectMirScalarCfgForEachFactSetEmpty();
+    let row: Int = 0;
+    while row < DirectMirScalarCfgForEachFactCount(facts) {
+        let fact: DirectMirScalarCfgForEachFact =
+            DirectMirScalarCfgForEachFactAt(facts, row);
+        let local: Int = -1;
+        let candidate: Int = 0;
+        while candidate < ArrayLength(local_names) {
+            if local_ref_kinds[candidate] ==
+                    DirectMirScalarCfgLocalRefForEach() &&
+                local_ref_syntax_ids[candidate] == fact.loop_syntax_id &&
+                local_names[candidate] == fact.binding_name {
+                if local >= 0 { return DirectMirScalarCfgForEachFactSetInvalid(); }
+                local = candidate;
+            }
+            candidate = candidate + 1;
+        }
+        if local < 0 { return DirectMirScalarCfgForEachFactSetInvalid(); }
+        bound = DirectMirScalarCfgForEachFactSetAppend(
+            bound, DirectMirScalarCfgForEachFactAtLocalRow(fact, local)
+        );
+        if !bound.valid { return DirectMirScalarCfgForEachFactSetInvalid(); }
+        row = row + 1;
+    }
+    return bound;
+}
+
+func DirectMirScalarCfgForEachLocalInventoryReady(
+    ref index: MirRoutineFactIndex,
+    local_names: Array<String>,
+    ref facts: DirectMirScalarCfgForEachFactSet
+) -> Bool {
+    if ArrayLength(index.source_local_names) !=
+        ArrayLength(index.source_local_types) { return false; }
+    let consumed: Array<Bool> = [];
+    let row: Int = 0;
+    while row < ArrayLength(index.source_local_names) {
+        ArrayPush(consumed, false); row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(local_names) {
+        let found: Int = -1;
+        let source: Int = 0;
+        while source < ArrayLength(index.source_local_names) {
+            if !consumed[source] && index.source_local_names[source] ==
+                    local_names[row] && index.source_local_types[source] == "Int" {
+                found = source; break;
+            }
+            source = source + 1;
+        }
+        if found < 0 { return false; }
+        ArraySet(consumed, found, true); row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(index.source_local_names) {
+        if !consumed[row] {
+            let claimed: Bool = false;
+            let fact_row: Int = 0;
+            while fact_row < DirectMirScalarCfgForEachFactCount(facts) {
+                let fact: DirectMirScalarCfgForEachFact =
+                    DirectMirScalarCfgForEachFactAt(facts, fact_row);
+                if fact.collection_name == index.source_local_names[row] &&
+                    index.source_local_types[row] == "Array<Int>" {
+                    claimed = true;
+                }
+                fact_row = fact_row + 1;
+            }
+            if !claimed { return false; }
+            ArraySet(consumed, row, true);
+        }
+        row = row + 1;
+    }
+    return ArrayLength(index.source_local_names) ==
+        ArrayLength(index.source_local_types);
+}
+
+func DirectMirScalarCfgForEachLocalsReady(
+    local_names: Array<String>, local_ref_kinds: Array<Int>,
+    local_ref_syntax_ids: Array<Int>,
+    ref facts: DirectMirScalarCfgForEachFactSet
+) -> Bool {
+    let count: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(local_names) {
+        if local_ref_kinds[row] == DirectMirScalarCfgLocalRefForEach() {
+            let fact: DirectMirScalarCfgForEachFact =
+                DirectMirScalarCfgForEachFactAtLoopSyntaxId(
+                    facts, local_ref_syntax_ids[row]
+                );
+            if !fact.valid || fact.binding_local_row != row ||
+                fact.binding_name != local_names[row] { return false; }
+            count = count + 1;
+        }
+        row = row + 1;
+    }
+    return count == DirectMirScalarCfgForEachFactCount(facts);
+}

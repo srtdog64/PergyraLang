@@ -1,0 +1,83 @@
+// LLVM terminator projection from one sealed scalar CFG block fact.
+
+import "direct_mir_scalar_cfg_llvm_operand_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy";
+
+func DirectMirScalarCfgLlvmTerminator(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact, block: Int
+) -> String {
+    let condition: Int = plan.block_condition_kinds[block];
+    let true_target: Int = plan.block_succ_true[block];
+    let false_target: Int = plan.block_succ_false[block];
+    if condition == DirectMirScalarCfgConditionNone() {
+        if true_target >= 0 {
+            return Concat("  br label %pgy.block.", Concat(
+                ToString(true_target), "\n"
+            ));
+        }
+        return "  ret i32 0\n";
+    }
+    if condition == DirectMirScalarCfgConditionBool() && false_target < 0 {
+        return Concat("  br label %pgy.block.", Concat(
+            ToString(true_target), "\n"
+        ));
+    }
+    let output: String = "";
+    if condition == DirectMirScalarCfgConditionForEach() {
+        output = DirectMirScalarCfgForEachLlvmCondition(plan, target, block);
+    } else {
+        let left: String = plan.block_condition_left_literals[block];
+        let right: String = plan.block_condition_right_literals[block];
+        if plan.block_condition_left_values[block] >= 0 ||
+            plan.block_condition_left_locals[block] >= 0 {
+            output = Concat(output, "  %pgy.cond.");
+            output = Concat(output, ToString(block));
+            output = Concat(output, ".left = load i64, ptr ");
+            output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
+                plan, plan.block_condition_left_values[block],
+                plan.block_condition_left_locals[block]
+            ));
+            output = Concat(output, ", align 8\n");
+            left = Concat("%pgy.cond.", Concat(ToString(block), ".left"));
+        }
+        if plan.block_condition_right_values[block] >= 0 ||
+            plan.block_condition_right_locals[block] >= 0 {
+            output = Concat(output, "  %pgy.cond.");
+            output = Concat(output, ToString(block));
+            output = Concat(output, ".right = load i64, ptr ");
+            output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
+                plan, plan.block_condition_right_values[block],
+                plan.block_condition_right_locals[block]
+            ));
+            output = Concat(output, ", align 8\n");
+            right = Concat("%pgy.cond.", Concat(ToString(block), ".right"));
+        }
+        output = Concat(output, "  %pgy.cond.");
+        output = Concat(output, ToString(block));
+        output = Concat(output, " = ");
+        if condition == DirectMirScalarCfgConditionBool() {
+            output = Concat(output, "icmp eq i1 ");
+            output = Concat(output, left);
+            output = Concat(output, ", true");
+        } else {
+            if condition == DirectMirScalarCfgConditionLess() {
+                output = Concat(output, "icmp slt i64 ");
+            } else if condition == DirectMirScalarCfgConditionEqual() {
+                output = Concat(output, "icmp eq i64 ");
+            } else if condition == DirectMirScalarCfgConditionGreater() {
+                output = Concat(output, "icmp sgt i64 ");
+            } else { Die("direct MIR scalar CFG LLVM condition is unsupported"); }
+            output = Concat(output, left);
+            output = Concat(output, ", ");
+            output = Concat(output, right);
+        }
+    }
+    output = Concat(output, "\n  br i1 %pgy.cond.");
+    output = Concat(output, ToString(block));
+    output = Concat(output, ", label %pgy.block.");
+    output = Concat(output, ToString(true_target));
+    output = Concat(output, ", label %pgy.block.");
+    output = Concat(output, ToString(false_target));
+    return Concat(output, "\n");
+}

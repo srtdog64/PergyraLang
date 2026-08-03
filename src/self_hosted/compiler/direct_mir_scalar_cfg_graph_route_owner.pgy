@@ -20,7 +20,9 @@ func DirectMirScalarCfgGraphRouteClaimed(
     }
     let local_row: Int = 0;
     while local_row < ArrayLength(index.source_local_types) {
-        if index.source_local_types[local_row] != "Int" { return false; }
+        let type_name: String = index.source_local_types[local_row];
+        if type_name != "Int" &&
+            type_name != CompilerAbiLayoutArrayIntTypeName() { return false; }
         local_row = local_row + 1;
     }
     let branch_seen: Bool = false;

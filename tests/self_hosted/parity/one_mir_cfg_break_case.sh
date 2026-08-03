@@ -45,3 +45,10 @@ PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
     bash "$NESTED_CONTINUE_GATE" || fail "nested iteration continue scope gate failed"
 
 echo "[$LABEL] nested continue/fallthrough transfers stay with their innermost range"
+
+FOREACH_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir_scalar_cfg_foreach_array_int_projection.sh"
+require_file "$FOREACH_GATE"
+PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
+    bash "$FOREACH_GATE" || fail "Array<Int> foreach receipt gate failed"
+
+echo "[$LABEL] Array<Int> foreach substitutes through one collection receipt"

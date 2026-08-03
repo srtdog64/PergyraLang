@@ -1,6 +1,7 @@
 // Canonical typed range-receipt construction for the general scalar CFG plan.
 
 import "direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_set_owner.pgy";
 import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
@@ -9,7 +10,8 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref index: MirRoutineFactIndex,
     ref use_facts: MirRoutineInstructionUseFacts,
-    ref wire: DirectMirScalarCfgWireLocalRefs
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref foreach_sources: DirectMirScalarCfgForEachFactSet
 ) -> DirectMirScalarCfgRangeFactSet {
     let invalid: DirectMirScalarCfgRangeFactSet =
         DirectMirScalarCfgRangeFactSetInvalid();
@@ -20,12 +22,16 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
     let range_count: Int = 0;
     let flow_row: Int = 0;
     while flow_row < ArrayLength(index.loop_flow_summary_loop_ids) {
-        if index.loop_flow_summary_kinds[flow_row] == 1 {
+        if index.loop_flow_summary_kinds[flow_row] == 1 &&
+            !DirectMirScalarCfgForEachFactAtLoopSyntaxId(
+                foreach_sources, index.loop_flow_summary_loop_ids[flow_row]
+            ).valid {
             range_count = range_count + 1;
         }
         flow_row = flow_row + 1;
     }
-    if range_count != ArrayLength(
+    if range_count + DirectMirScalarCfgForEachFactCount(foreach_sources) !=
+        ArrayLength(
         index.iteration_type_facts.iteration_syntax_ids
     ) { return invalid; }
     let facts: DirectMirScalarCfgRangeFactSet =
@@ -37,6 +43,9 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
         while flow_row < ArrayLength(index.loop_flow_summary_loop_ids) {
             let candidate: Int = index.loop_flow_summary_loop_ids[flow_row];
             if index.loop_flow_summary_kinds[flow_row] == 1 &&
+                !DirectMirScalarCfgForEachFactAtLoopSyntaxId(
+                    foreach_sources, candidate
+                ).valid &&
                 candidate > prior_loop_id &&
                 (loop_id < 0 || candidate < loop_id) {
                 loop_id = candidate;
@@ -48,6 +57,9 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
         flow_row = 0;
         while flow_row < ArrayLength(index.loop_flow_summary_loop_ids) {
             if index.loop_flow_summary_kinds[flow_row] == 1 &&
+                !DirectMirScalarCfgForEachFactAtLoopSyntaxId(
+                    foreach_sources, loop_id
+                ).valid &&
                 index.loop_flow_summary_loop_ids[flow_row] == loop_id {
                 if matched_flow >= 0 { return invalid; }
                 matched_flow = flow_row;

@@ -1,0 +1,64 @@
+// Sealed collection-iteration topology and local-binding readiness.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarCfgForEachGraphReady(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let block_count: Int = ArrayLength(plan.block_succ_true);
+    if !DirectMirScalarCfgForEachFactSetReady(
+        plan.foreach_iterations, block_count
+    ) { return false; }
+    let condition_count: Int = 0;
+    let block: Int = 0;
+    while block < block_count {
+        if plan.block_condition_kinds[block] ==
+            DirectMirScalarCfgConditionForEach() { condition_count = condition_count + 1; }
+        block = block + 1;
+    }
+    let row: Int = 0;
+    while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
+        let fact: DirectMirScalarCfgForEachFact =
+            DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
+        if !DirectMirScalarCfgForEachFactReady(fact, block_count) ||
+            plan.local_ref_kinds[fact.binding_local_row] !=
+                DirectMirScalarCfgLocalRefForEach() ||
+            plan.local_names[fact.binding_local_row] != fact.binding_name ||
+            plan.block_succ_true[fact.init_block] != fact.header_block ||
+            plan.block_succ_false[fact.init_block] >= 0 ||
+            plan.block_succ_true[fact.header_block] != fact.body_block ||
+            plan.block_succ_false[fact.header_block] != fact.exit_block ||
+            plan.block_condition_kinds[fact.header_block] !=
+                DirectMirScalarCfgConditionForEach() {
+            return false;
+        }
+        let edge: Int = 0;
+        while edge < ArrayLength(fact.backedge_blocks) {
+            let backedge: Int = fact.backedge_blocks[edge];
+            if (plan.block_succ_true[backedge] == fact.header_block) ==
+                (plan.block_succ_false[backedge] == fact.header_block) {
+                return false;
+            }
+            edge = edge + 1;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            let other: DirectMirScalarCfgForEachFact =
+                DirectMirScalarCfgForEachFactAt(
+                    plan.foreach_iterations, prior
+                );
+            if other.collection_value_id == fact.collection_value_id ||
+                other.cursor_identity == fact.cursor_identity ||
+                other.binding_local_row == fact.binding_local_row ||
+                other.init_global_row == fact.init_global_row ||
+                other.branch_global_row == fact.branch_global_row {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return condition_count == DirectMirScalarCfgForEachFactCount(
+        plan.foreach_iterations
+    );
+}

@@ -1,0 +1,38 @@
+// Target spelling for scalar local storage already sealed by the graph plan.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarCfgCLocalDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan, int_c_type: String
+) -> String {
+    if int_c_type == "" { Die("direct MIR scalar CFG C local type is empty"); }
+    let output: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(plan.local_names) {
+        output = Concat(output, "    ");
+        output = Concat(output, int_c_type);
+        output = Concat(output, " pgy_local_");
+        output = Concat(output, ToString(row));
+        output = Concat(output, " = 0;\n");
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarCfgLlvmLocalDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> String {
+    let output: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(plan.local_names) {
+        output = Concat(output, "  %pgy.local.");
+        output = Concat(output, ToString(row));
+        output = Concat(
+            output, " = alloca i64, align 8\n  store i64 0, ptr %pgy.local."
+        );
+        output = Concat(output, ToString(row));
+        output = Concat(output, ", align 8\n");
+        row = row + 1;
+    }
+    return output;
+}

@@ -1,0 +1,80 @@
+// Immutable append construction for primitive collection-iteration storage.
+
+import "direct_mir_scalar_cfg_foreach_set_owner.pgy";
+
+func DirectMirScalarCfgForEachFactSetAppend(
+    facts: DirectMirScalarCfgForEachFactSet,
+    fact: DirectMirScalarCfgForEachFact
+) -> DirectMirScalarCfgForEachFactSet {
+    let count: Int = DirectMirScalarCfgForEachFactCount(facts);
+    if count < 0 || !fact.valid || (count > 0 &&
+        facts.loop_syntax_ids[count - 1] >= fact.loop_syntax_id) {
+        return DirectMirScalarCfgForEachFactSetInvalid();
+    }
+    let definition_globals: Array<Int> = facts.definition_global_rows;
+    let init_globals: Array<Int> = facts.init_global_rows;
+    let branch_globals: Array<Int> = facts.branch_global_rows;
+    let init_blocks: Array<Int> = facts.init_blocks;
+    let headers: Array<Int> = facts.header_blocks;
+    let bodies: Array<Int> = facts.body_blocks;
+    let exits: Array<Int> = facts.exit_blocks;
+    let binding_locals: Array<Int> = facts.binding_local_rows;
+    let loop_ids: Array<Int> = facts.loop_syntax_ids;
+    let collection_ids: Array<String> = facts.collection_value_ids;
+    let collection_names: Array<String> = facts.collection_names;
+    let binding_names: Array<String> = facts.binding_names;
+    let cursor_ids: Array<String> = facts.cursor_identities;
+    let element_starts: Array<Int> = facts.element_starts;
+    let element_counts: Array<Int> = facts.element_counts;
+    let elements: Array<Int> = facts.elements;
+    let backedge_starts: Array<Int> = facts.backedge_starts;
+    let backedge_counts: Array<Int> = facts.backedge_counts;
+    let backedges: Array<Int> = facts.backedge_blocks;
+    let abi_ids: Array<Int> = facts.abi_layout_ids;
+    let abi_sizes: Array<Int> = facts.abi_sizes;
+    let abi_aligns: Array<Int> = facts.abi_aligns;
+    let data_offsets: Array<Int> = facts.data_offsets;
+    let length_offsets: Array<Int> = facts.length_offsets;
+    let capacity_offsets: Array<Int> = facts.capacity_offsets;
+    let allocator_offsets: Array<Int> = facts.allocator_offsets;
+    ArrayPush(definition_globals, fact.definition_global_row);
+    ArrayPush(init_globals, fact.init_global_row);
+    ArrayPush(branch_globals, fact.branch_global_row);
+    ArrayPush(init_blocks, fact.init_block); ArrayPush(headers, fact.header_block);
+    ArrayPush(bodies, fact.body_block); ArrayPush(exits, fact.exit_block);
+    ArrayPush(binding_locals, fact.binding_local_row);
+    ArrayPush(loop_ids, fact.loop_syntax_id);
+    ArrayPush(collection_ids, fact.collection_value_id);
+    ArrayPush(collection_names, fact.collection_name);
+    ArrayPush(binding_names, fact.binding_name);
+    ArrayPush(cursor_ids, fact.cursor_identity);
+    ArrayPush(element_starts, ArrayLength(elements));
+    ArrayPush(element_counts, ArrayLength(fact.elements));
+    let item: Int = 0;
+    while item < ArrayLength(fact.elements) {
+        ArrayPush(elements, fact.elements[item]); item = item + 1;
+    }
+    ArrayPush(backedge_starts, ArrayLength(backedges));
+    ArrayPush(backedge_counts, ArrayLength(fact.backedge_blocks));
+    item = 0;
+    while item < ArrayLength(fact.backedge_blocks) {
+        ArrayPush(backedges, fact.backedge_blocks[item]); item = item + 1;
+    }
+    ArrayPush(abi_ids, fact.abi_layout_id); ArrayPush(abi_sizes, fact.abi_size);
+    ArrayPush(abi_aligns, fact.abi_align); ArrayPush(data_offsets, fact.data_offset);
+    ArrayPush(length_offsets, fact.length_offset);
+    ArrayPush(capacity_offsets, fact.capacity_offset);
+    ArrayPush(allocator_offsets, fact.allocator_offset);
+    let appended: DirectMirScalarCfgForEachFactSet =
+        DirectMirScalarCfgForEachFactSet(
+            true, 0, definition_globals, init_globals, branch_globals,
+            init_blocks, headers, bodies, exits, binding_locals, loop_ids,
+            collection_ids, collection_names, binding_names, cursor_ids,
+            element_starts, element_counts, elements, backedge_starts,
+            backedge_counts, backedges, abi_ids, abi_sizes, abi_aligns,
+            data_offsets, length_offsets, capacity_offsets, allocator_offsets
+        );
+    return DirectMirScalarCfgForEachFactSetWithDigest(
+        appended, DirectMirScalarCfgForEachFactSetDigest(appended)
+    );
+}

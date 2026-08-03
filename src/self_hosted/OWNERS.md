@@ -2146,6 +2146,23 @@ inventory must not become a second fact-family owner registry.
   iteration and loop-flow owners; multi-range selection consumes the one
   decoded wire and exact `loop_syntax_id` LocalRefs, while the byte-stable
   single-range shape has one possible typed receipt.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_admission_owner.pgy`
+  -- joins a collection loop candidate, typed iteration row, collection
+  ValueId, exact `Array<Int>` ABI, literal expression graph, binding identity,
+  and CFG edges once. A mistyped collection loop fails here instead of being
+  retried as an integer range.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_fact_owner.pgy`,
+  `direct_mir_scalar_cfg_foreach_set_owner.pgy`, and
+  `direct_mir_scalar_cfg_foreach_append_owner.pgy` -- immutable target-neutral
+  collection-iteration receipt, canonical primitive set storage, identity
+  digest, and exact lookup. The receipt owns data/length roles and literal
+  elements; neither backend reconstructs the hidden cursor protocol.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_local_owner.pgy` --
+  binds each foreach source binder to one scalar local slot while its
+  `Array<Int>` collection remains owned by the collection receipt.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_graph_readiness_owner.pgy`
+  -- verifies receipt-to-CFG topology, condition identity, latch ownership, and
+  non-overlapping collection/cursor/binder identities after plan issue.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_range_fact_owner.pgy` --
   target-neutral per-range receipt schema, digest, and bound/unbound readiness.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_range_set_owner.pgy` -- one
@@ -2168,9 +2185,19 @@ inventory must not become a second fact-family owner registry.
   final C label/goto projection from the immutable scalar CFG plan, using one
   source-local storage cell to lower verified SSA/phi facts without rereading
   MIR.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_c_emission_owner.pgy`
+  -- C storage, ABI-length cursor, binder load, latch increment, and bound
+  projection from the sealed foreach receipt.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy` --
   final textual LLVM block projection from that same plan and local-storage
   policy; it owns target spelling only.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy`
+  -- LLVM aggregate storage, ABI-indexed data/length access, binder widening,
+  cursor update, and condition projection from the same receipt.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy` and
+  `direct_mir_scalar_cfg_llvm_terminator_emission_owner.pgy` -- responsibility-
+  named scalar local and LLVM terminator spelling owners extracted to preserve
+  the existing emitter hard caps; they own no semantic admission policy.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_operand_owner.pgy` --
   LLVM spelling for sealed ValueId/LocalRef operands.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_projection_owner.pgy` --

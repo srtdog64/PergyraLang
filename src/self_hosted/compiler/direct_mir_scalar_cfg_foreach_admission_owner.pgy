@@ -1,0 +1,264 @@
+// Joins typed iteration, collection ValueId, ABI, literal, and CFG facts once.
+
+import "direct_mir_scalar_cfg_foreach_append_owner.pgy";
+import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
+import "direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy";
+import "direct_mir_array_int_abi_fact_owner.pgy";
+import "direct_mir_array_int_graph_fact_owner.pgy";
+import "../mir_lower/abi_layout_admission_fact_owner.pgy";
+import "../mir_lower/program_instruction_expression_index_owner.pgy";
+import "../mir_lower/routine_definition_dominance_fact_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+import "../mir_lower/routine_result_definition_fact_owner.pgy";
+
+func DirectMirScalarCfgCollectionIterationCount(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex
+) -> Int {
+    let count: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + row;
+        if admitted.routines.instruction_kinds[global] == "loop-init" &&
+            admitted.routines.instruction_source_types[global] ==
+                "AST_FOR_LOOP" {
+            let init: MirRoutineInstructionScalarCapture =
+                MirRoutineInstructionFactBundleAtGlobal(
+                    index.instruction_facts, global
+                );
+            let matches: Int = 0;
+            let local: Int = 0;
+            while local < ArrayLength(index.source_local_names) {
+                if index.source_local_names[local] == init.expr0 &&
+                    index.source_local_types[local] == "Array<Int>" {
+                    matches = matches + 1;
+                }
+                local = local + 1;
+            }
+            if !init.valid || matches > 1 { return -1; }
+            if matches == 1 { count = count + 1; }
+        }
+        row = row + 1;
+    }
+    return count;
+}
+
+func DirectMirScalarCfgForEachFactsFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref wire: DirectMirScalarCfgWireLocalRefs
+) -> DirectMirScalarCfgForEachFactSet {
+    let invalid: DirectMirScalarCfgForEachFactSet =
+        DirectMirScalarCfgForEachFactSetInvalid();
+    if !index.valid || !wire.valid ||
+        ArrayLength(index.loop_flow_state_stable_indices) != 0 {
+        return invalid;
+    }
+    let expected: Int = DirectMirScalarCfgCollectionIterationCount(
+        admitted, index
+    );
+    let facts: DirectMirScalarCfgForEachFactSet =
+        DirectMirScalarCfgForEachFactSetEmpty();
+    let prior_loop_id: Int = -1;
+    while DirectMirScalarCfgForEachFactCount(facts) < expected {
+        let type_row: Int = -1;
+        let loop_id: Int = -1;
+        let row: Int = 0;
+        while row < ArrayLength(index.iteration_type_facts.iteration_syntax_ids) {
+            let candidate: Int =
+                index.iteration_type_facts.iteration_syntax_ids[row];
+            if candidate > prior_loop_id &&
+                index.iteration_type_facts.binding_types[row] == "Int" &&
+                index.iteration_type_facts.iterable_types[row] == "Array<Int>" &&
+                (loop_id < 0 || candidate < loop_id) {
+                loop_id = candidate; type_row = row;
+            }
+            row = row + 1;
+        }
+        if loop_id < 0 || type_row < 0 ||
+            index.iteration_type_facts.function_syntax_ids[type_row] !=
+                ToInt(index.source_syntax_id) ||
+            index.iteration_type_facts.collection_hoists[type_row] != 0 {
+            return invalid;
+        }
+        let flow_row: Int = -1;
+        row = 0;
+        while row < ArrayLength(index.loop_flow_summary_loop_ids) {
+            if index.loop_flow_summary_loop_ids[row] == loop_id {
+                if flow_row >= 0 { return invalid; }
+                flow_row = row;
+            }
+            row = row + 1;
+        }
+        if flow_row < 0 || index.loop_flow_summary_kinds[flow_row] != 1 ||
+            index.loop_flow_summary_effect_bases[flow_row] != 0 ||
+            index.loop_flow_summary_effect_deltas[flow_row] != 0 ||
+            index.loop_flow_summary_flags[flow_row] != 1 ||
+            index.loop_flow_summary_entry_counts[flow_row] != 0 ||
+            index.loop_flow_summary_exit_counts[flow_row] != 0 {
+            return invalid;
+        }
+        let expected_ref: String =
+            DirectMirScalarCfgIterationLocalRef(loop_id);
+        let init_global: Int = -1;
+        let branch_global: Int = -1;
+        let init_block: Int = -1;
+        let header: Int = -1;
+        let init_local_row: Int = -1;
+        let block: Int = 0;
+        while block < ArrayLength(index.block_starts) {
+            let local: Int = 0;
+            while local < index.block_instruction_counts[block] {
+                let instruction: Int = index.block_instruction_starts[block] + local;
+                let global: Int = index.instruction_facts.global_start + instruction;
+                let matches: Bool = expected == 1 || (wire.required &&
+                    wire.primary_refs[instruction] == expected_ref);
+                if matches && admitted.routines.instruction_source_types[global] ==
+                        "AST_FOR_LOOP" {
+                    if admitted.routines.instruction_kinds[global] == "loop-init" {
+                        if init_global >= 0 { return invalid; }
+                        init_global = global; init_block = block;
+                        init_local_row = local;
+                    } else if admitted.routines.instruction_kinds[global] == "branch" {
+                        if branch_global >= 0 { return invalid; }
+                        branch_global = global; header = block;
+                    }
+                }
+                local = local + 1;
+            }
+            block = block + 1;
+        }
+        if init_global < 0 || branch_global < 0 { return invalid; }
+        let init: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, init_global
+            );
+        let branch: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, branch_global
+            );
+        let collection_use: Option<String> =
+            MirRoutineInstructionUseAtGlobal(use_facts, branch_global, 0);
+        if !init.valid || !branch.valid || init.arg0 == "" ||
+            init.arg0 != branch.arg0 || init.expr0 == "" ||
+            init.expr0 != init.expr1 || branch.expr0 != init.expr0 ||
+            branch.expr1 != init.expr0 ||
+            MirRoutineInstructionUseCountAtGlobal(use_facts, init_global) != 0 ||
+            MirRoutineInstructionUseCountAtGlobal(use_facts, branch_global) != 1 ||
+            !IsSome(collection_use) {
+            return invalid;
+        }
+        let collection_value: String = UnwrapOption(collection_use);
+        let definition: MirRoutineResultDefinitionFact =
+            MirRoutineFactIndexUniqueResultDefinition(index, collection_value);
+        if !MirRoutineResultDefinitionFactReady(definition) ||
+            !MirRoutineBlockDominates(index, definition.block_id, header) ||
+            (definition.block_id == init_block &&
+             definition.block_instruction_row >= init_local_row) {
+            return invalid;
+        }
+        let declaration: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, definition.global_row
+            );
+        if !declaration.valid ||
+            admitted.routines.instruction_kinds[definition.global_row] != "def" ||
+            admitted.routines.instruction_source_types[definition.global_row] !=
+                "AST_LET_DECL" || declaration.name != "ssa-def" ||
+            declaration.result != collection_value ||
+            declaration.arg0 != init.expr0 || declaration.arg1 != "" ||
+            declaration.abi_type_name != "Array<Int>" ||
+            MirRoutineInstructionUseCountAtGlobal(
+                use_facts, definition.global_row
+            ) != 0 {
+            return invalid;
+        }
+        let abi_opt: Option<MirAbiLayoutRowCapture> =
+            MirCapturedRequiredAbiLayoutRowAdmission(
+                admitted.routines.source_json, declaration.abi_type_name,
+                declaration.abi_type_value_ready, declaration.abi_type_start,
+                declaration.abi_type_end, declaration.abi_layout_id_start,
+                declaration.abi_layout_id_end,
+                declaration.abi_layout_required_start,
+                declaration.abi_layout_required_end,
+                declaration.abi_layout_start, declaration.abi_layout_end
+            );
+        if !IsSome(abi_opt) { return invalid; }
+        let abi: MirAbiLayoutRowCapture = UnwrapOption(abi_opt);
+        if !DirectMirArrayIntCapturedAbiReady(abi) { return invalid; }
+        let def_expression: MirProgramInstructionExpressionFact =
+            MirProgramInstructionExpressionIndexAt(
+                admitted.routines.instruction_expressions,
+                definition.global_row
+            );
+        let init_expression: MirProgramInstructionExpressionFact =
+            MirProgramInstructionExpressionIndexAt(
+                admitted.routines.instruction_expressions, init_global
+            );
+        let branch_expression: MirProgramInstructionExpressionFact =
+            MirProgramInstructionExpressionIndexAt(
+                admitted.routines.instruction_expressions, branch_global
+            );
+        let def_graph: MirExpressionGraphSequence =
+            DirectMirArrayIntGraphFromExpressionFact(
+                admitted.routines.source_json, def_expression, 0
+            );
+        let init_graph: MirExpressionGraphSequence =
+            DirectMirArrayIntGraphFromExpressionFact(
+                admitted.routines.source_json, init_expression, 0
+            );
+        let branch_graph: MirExpressionGraphSequence =
+            DirectMirArrayIntGraphFromExpressionFact(
+                admitted.routines.source_json, branch_expression, 0
+            );
+        let elements: Array<Int> = DirectMirArrayIntLiteralElements(def_graph);
+        if !DirectMirArrayIntAssignmentTargetReady(init_graph, init.expr0) ||
+            !DirectMirArrayIntAssignmentTargetReady(branch_graph, init.expr0) ||
+            index.block_succ_true[init_block] != header ||
+            index.block_succ_false[init_block] >= 0 ||
+            index.block_succ_true[header] < 0 ||
+            index.block_succ_false[header] < 0 ||
+            index.backedge_headers[header] != 1 {
+            return invalid;
+        }
+        let backedges: Array<Int> = [];
+        block = 0;
+        while block < ArrayLength(index.block_starts) {
+            if block != init_block &&
+                (index.block_succ_true[block] == header ||
+                 index.block_succ_false[block] == header) {
+                ArrayPush(backedges, block);
+            }
+            block = block + 1;
+        }
+        let fact: DirectMirScalarCfgForEachFact =
+            DirectMirScalarCfgForEachFact(
+                true, 0, definition.global_row, init_global, branch_global,
+                init_block, header, index.block_succ_true[header],
+                index.block_succ_false[header], -1, loop_id,
+                collection_value, init.expr0, init.arg0,
+                DirectMirScalarCfgForEachCursorIdentity(loop_id), elements,
+                backedges, MirAbiLayoutIdFromCapture(abi), ToInt(abi.size_text),
+                ToInt(abi.align_text), ToInt(abi.field_offsets[0]),
+                ToInt(abi.field_offsets[1]), ToInt(abi.field_offsets[2]),
+                ToInt(abi.field_offsets[3])
+            );
+        let verified: DirectMirScalarCfgForEachFact =
+            DirectMirScalarCfgForEachFactWithDigest(
+                fact, DirectMirScalarCfgForEachFactDigest(fact)
+            );
+        if !DirectMirScalarCfgForEachFactSourceReady(
+            verified, ArrayLength(index.block_starts)
+        ) { return invalid; }
+        facts = DirectMirScalarCfgForEachFactSetAppend(facts, verified);
+        if !facts.valid { return invalid; }
+        prior_loop_id = loop_id;
+    }
+    if DirectMirScalarCfgForEachFactCount(facts) != expected ||
+        !DirectMirScalarCfgForEachFactSetSourceReady(
+            facts, ArrayLength(index.block_starts)
+        ) { return invalid; }
+    return facts;
+}
