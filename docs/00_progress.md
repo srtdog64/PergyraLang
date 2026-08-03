@@ -2,38 +2,32 @@
 
 마지막 업데이트: 2026-08-03
 
-## 활성 우선순위 — producer-owned loop-exit phi
+## 활성 우선순위 — repeated multi-break predecessor binding
 
-- 실행 체크포인트는 `9f20ab9a`다. `bin/pgy.exe`는 4,626,988 bytes,
-  SHA-256 `39798EA5...02F9E`이고, 재빌드된 installed Pergyra driver는
-  4,298,710 bytes, SHA-256 `0545DA4F...15E7`이다.
-- `nested_if_in_loop.pgy`는 이제 9,454-byte 8-block MIR
-  (`E8181234...5A264`)을 만든다. 모든 경로가 break인 constant-true loop의
-  불가능한 false edge를 producer가 제거해 exit Log의 `largest.8`이 지배된다.
-- 하나의 topology-independent `DirectMirScalarCfgGraphPlan`이 C와 LLVM을
-  투영하며 둘 다 exact `1\n1\n`을 실행한다. Typed expression graph, ValueId,
-  loop summary, predecessor-bound phi, latest dominating value, assignment target,
-  break edge만 읽고 fixture 이름·block-count identity·display `expr0`은 읽지 않는다.
-- public LLVM file/stdout은 installed projection과 byte-equal이고 clang exact
-  `1\n1\n`이다. Focused/public gate는 10.5/6.2초, 기존 CFG/range/break 회귀는
-  226.9초, component 하드캡은 289.2초에 green이었다.
-- admission은 449/450, graph fact 298/310, expression 290/300, C/LLVM emitter
-  172/180·251/260, phi binding 169/180, latest-value owner 47/60이다. Scalar CFG
-  plan row는 `CLOSED`, 전체 `mir.execution_graph`는 계속 `BRIDGE`다.
-- 다음 단일 rung은 조건 종료와 `break` 종료가 함께 있는 while의 exit ValueId를
-  producer-owned phi로 만드는 것이다. `break_after_stmt.pgy`의 7,082-byte MIR
-  (`8C6B45FA...F6BF9`)은 exit block 5가 header 1과 break 3에서 들어오지만
-  `i.4`만 사용해 header-false 경로를 지배하지 못한다.
-- 현재 `DirectMirScalarCfgBreakExitMergeBridgeRequired`가 이 결함을 명시적으로
-  기존 break plan에 남긴다. 다음 작업은 header/break predecessor를 정확히 덮는
-  exit phi를 생산하고, general C/LLVM exact `3\n3`, reversed-use 안정성 및
-  missing/duplicate/stale incoming negatives를 확인한 뒤 bridge와 남은 전용 break
-  경로를 삭제하는 것이다.
-- Fixture/block-count dispatch, backend가 발명한 phi, uses 순서를 predecessor로
-  해석, stale dominating ValueId 허용, source/`expr0` 재구성, native fallback을
-  금지한다. 메모리는 최종 integration 최대값만 기록하며 2.4 GiB attention,
-  3 GiB hard stop을 유지한다. Full CI, full bootstrap, current gen2==gen3는
-  실행하지 않았고 Coq/Rocq는 설치되어 있지 않았다.
+- 실행 체크포인트는 `cc2ddb14`다. installed Pergyra driver는 4,277,950
+  bytes, SHA-256 `15987177...B08A`다.
+- `break_after_stmt.pgy`의 producer MIR은 7,554 bytes
+  (`7C87AD58...ADAD`)이며 exit block 5에
+  `i.8 = phi(i.2, i.4)`를 둔다. C와 LLVM은 같은 MIR에서 exact
+  `3\n3`을 실행한다.
+- break predecessor와 로컬 SSA snapshot은 producer owner가 보유한다.
+  general scalar CFG plan이 이 경로를 인수했고 전용 break bridge,
+  shape, plan, emitter는 삭제됐다. 남은 공용 CFG plan은 `v8`이며
+  `break_fact`나 backend-only exit phi가 없다.
+- focused break, nested scalar, dual-backend, 누적 CFG, public LLVM
+  file/stdout, component removed-path gate가 모두 green이다. 새 owner hard
+  cap은 각각 90줄, focused gate cap은 160줄이며 올린 cap은 없다.
+- 다음 단일 falsifier는 feasible header exit와 동일한 `i.4`를 운반하는
+  두 break predecessor를 함께 가진 `multiple_break_exit.pgy`다. phi
+  predecessor 수는 3이고 incoming은 `[i.2, i.4, i.4]`여야 한다.
+  현재 binding owner가 동일 ValueId slot을 ambiguity로 거부하는지 먼저
+  관찰한 뒤 slot consumption을 일반적으로 고친다.
+- uses 배열 순서를 edge identity로 해석하거나 phi arity를 줄이는 것,
+  backend phi 재도입, 삭제된 break plan 복원, fixture/block-count 분기,
+  source/`expr0` 복원, native fallback은 금지한다.
+- 메모리는 최종 integration 최대값만 기록한다. 2.4 GiB attention,
+  3 GiB hard stop을 유지하며 이번 rung에서는 pressure/full bootstrap/
+  gen2==gen3/full CI를 실행하지 않았다. 로컬 prover도 없다.
 
 ## 비활성 진행 기록 archive
 

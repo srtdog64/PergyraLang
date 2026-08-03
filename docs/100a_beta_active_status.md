@@ -392,11 +392,14 @@ bounded `SUBSTITUTING` slice. Checkpoint `8bc7f525` also closes stdout through
 the same installed actions and a fixed 16 KiB binary stream; file/stdout are
 byte-equal and failures emit no LLVM payload or native fallback. Checkpoint
 `9f20ab9a` closes the former eight-block breadth falsifier: one general scalar
-CFG plan now emits C and LLVM for `nested_if_in_loop.pgy`, public file/stdout
-LLVM is byte-equal to the installed projection, and all paths execute exact
-`1\n1\n`. The next CFG falsifier is the producer-side exit-phi omission in
-`break_after_stmt.pgy`; the named break-exit bridge must shrink to zero after
-that ValueId seam is closed.
+CFG plan emits C and LLVM for `nested_if_in_loop.pgy`. Checkpoint `cc2ddb14`
+then closes the producer-side exit-phi omission in `break_after_stmt.pgy`:
+exit block 5 carries `i.8 = phi(i.2, i.4)`, both backends execute exact
+`3\n3`, and public file/stdout LLVM is byte-equal to the installed projection.
+The bridge and topology-specific break shape/plan/emitter are deleted; the
+remaining bounded CFG plan is schema v8 without a break fact. The next CFG
+falsifier is one three-predecessor exit phi with repeated latest ValueId slots,
+not another topology-specific plan.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:

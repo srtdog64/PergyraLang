@@ -1,29 +1,28 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-08-03 loop-exit ValueId ownership
+## Active self-host context — 2026-08-03 repeated multi-break binding
 
 - Resume authority is the top card in `docs/current_work_handoff.md`.
-  Executable commit `9f20ab9aba94d2cd4b44798162519517c05c4ef8`
-  closes the eight-block `nested_if_in_loop` public LLVM frontier through one
-  general target-neutral scalar CFG plan.
-- Constant-true all-break loops no longer retain an infeasible condition exit.
-  Exact phi predecessor binding, latest dominating local values, assignment
-  targets, loop summaries, and break edges are validated before either emitter.
-  Installed and public C/LLVM execution is exact `1\n1\n`; fixture names,
-  block-count identity, raw `expr0`, and native retry are negative-gated.
-- Focused scalar-CFG, public LLVM file/stdout, prior CFG/range/break regression,
-  and the complete component hard-cap ratchet are green. The general plan's
-  registry row is `CLOSED`; the broader execution graph remains `BRIDGE`.
-- The sole next executable rung is producer-owned loop-exit phi carriage for
-  `break_after_stmt.pgy`. Its exit block has a header-false and a break
-  predecessor but uses the break-path `i.4` without a phi. Close that ValueId
-  seam, execute exact `3\n3` through the general C/LLVM plan, then remove
-  `DirectMirScalarCfgBreakExitMergeBridgeRequired` and the obsolete dedicated
-  break path when no consumer remains.
-- Do not infer exit values from uses order, let a backend invent a phi, keep a
-  bridge after closure, add fixture/block-count routing, or reopen source/native
-  semantics. This rung was not pressure-measured. Full CI, bootstrap fixpoint,
-  and current-source gen2==gen3 were not run; Coq/Rocq is unavailable.
+  Executable commit `cc2ddb14c6932e9600062c3f2409f42d94041ff2` closes
+  producer-owned loop-exit phi carriage for `break_after_stmt.pgy`.
+- One 7,554-byte MIR carries `i.8 = phi(i.2, i.4)` at the exit. The same
+  general scalar CFG plan drives C and LLVM to exact `3\n3`; public LLVM
+  file/stdout are byte-equal to the installed projection.
+- Break predecessor/local-version snapshots and while exit merge are named MIR
+  owners. The bridge and topology-specific break shape/plan/emitter are deleted.
+  The remaining bounded CFG plan is schema v8 with no break fact or backend-only
+  exit phi.
+- Focused, nested, dual-backend, cumulative CFG, public, and component
+  removed-path gates are green. No hard cap increased.
+- The sole next executable falsifier is `multiple_break_exit.pgy`: a feasible
+  header exit plus two break predecessors carrying the same latest `i.4`
+  should produce a three-input phi `[i.2, i.4, i.4]` and execute exact `2`.
+  Observe the current duplicate-slot ambiguity before changing
+  `MirPhiPredecessorBindingFactFromOwners`.
+- Do not shrink phi arity, bind by uses order, reuse one incoming slot without
+  tracking consumption, invent a backend phi, revive the retired break path, or
+  add fixture/block-count routing. Pressure, full CI/bootstrap/fixpoint, and
+  prover suites did not run.
 
 ## Historical self-host ledger — inactive navigation evidence
 

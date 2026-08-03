@@ -20,11 +20,16 @@ producer/consumer cases were reached on 2026-08-03:
    inner merge value `largest.8`, which did not dominate that infeasible edge.
    The producer repair uses the owned Bool expression graph plus loop
    reachability fact to omit only that impossible edge.
-2. `break_after_stmt.pgy` has a genuinely feasible condition exit and a break
-   exit. Its exit uses break-path `i.4` without a phi covering the header-false
-   predecessor. A backend must not invent or guess that phi. Until the while
-   producer carries it, `DirectMirScalarCfgBreakExitMergeBridgeRequired` keeps
-   this exact capability with the already verified break plan.
+2. `break_after_stmt.pgy` had a genuinely feasible condition exit and a break
+   exit. Its exit used break-path `i.4` without a phi covering the header-false
+   predecessor. The closed repair captures each break predecessor/local-version
+   snapshot and emits producer-owned `i.8 = phi(i.2, i.4)` at the exit.
+   The bridge and topology-specific break plan/emitter are deleted; a backend
+   no longer invents or guesses an exit value.
+3. A future exit with header `i.2` and two break predecessors both carrying
+   `i.4` must preserve three phi slots. If predecessor binding reports
+   ambiguity, track which identical incoming slot has been consumed; do not
+   collapse phi arity or use array order as edge identity.
 
 The general owner is selected by supported typed operations and source-local
 types, not fixture name or exact block count. It validates exact
@@ -38,6 +43,7 @@ Use these gates in order:
 
 ```text
 tests/self_hosted/parity/one_mir_scalar_cfg_graph_projection.sh
+tests/self_hosted/parity/one_mir_scalar_cfg_break_exit_projection.sh
 tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh
 tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh
 tests/self_hosted_component_contract_smoke.sh
@@ -46,8 +52,21 @@ tests/self_hosted_component_contract_smoke.sh
 Do not repair the symptom with `block_count == 8`, a nested-loop emitter,
 uses-array position as predecessor identity, source/`expr0` reconstruction, or
 fallback to the older planner after the general route has claimed a graph.
-When the producer exit phi lands, delete the named break-exit bridge and prove
-that the obsolete dedicated break path has no remaining consumer.
+The component gate rejects restoration of the retired bridge and compiler-side
+break shape/plan/emitter. AIR may retain its bounded historical certificate,
+but no compiler planner or emitter may consume it.
+
+## A direct-mode gate says the bootstrap root lacks CLI option strings
+
+Symptom: the installed driver accepts `--mir-json-backend=c|llvm`, but a static
+gate reports `bootstrap CLI is missing direct mode`.
+
+The composition root no longer owns argv spelling. Check
+`driver_rung2_cli_request_owner.pgy`, which admits the complete request before
+I/O; `driver_bootstrap_main.pgy` only composes and executes that typed request.
+Pinning option strings to the root is a stale ownership assertion and can stay
+red after the executable path is correct. The dual-backend gate must inspect
+the CLI request owner while keeping the production execution action gate.
 
 ## Installed and standalone self-host drivers interpret the same argv differently
 

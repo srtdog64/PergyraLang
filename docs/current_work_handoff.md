@@ -6,63 +6,57 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — producer-owned loop-exit phi
+## Active self-host context — repeated multi-break predecessor binding
 
-- Executable checkpoint: `9f20ab9a` on `main`, one commit ahead of
-  `origin/main` before this documentation update. `bin/pgy.exe` remains
+- Executable checkpoint: `cc2ddb14` on `main`. `bin/pgy.exe` remains
   4,626,988 bytes, SHA-256
   `39798EA50105C9B48F26AE2FCABDB400B54AC153D15DC440B089C4E5E6402F9E`.
-  The rebuilt Pergyra sibling is 4,298,710 bytes, SHA-256
-  `0545DA4F770DCA023F5550FCD1FB1EB48C9B7710D710522520C3F1DFA8B815E7`.
-- Closed executable rung: `nested_if_in_loop.pgy` now produces a 9,454-byte
-  eight-block MIR (`E8181234...5A264`). The producer removes the infeasible
-  false edge from a constant-true loop whose paths all break, so the exit Log's
-  `largest.8` use is dominated. One topology-independent
-  `DirectMirScalarCfgGraphPlan` feeds C and LLVM and both execute exact
-  `1\n1\n`.
-- The plan reads typed expression graphs, ValueIds, loop summaries, exact
-  predecessor-to-phi bindings, latest dominating local values, assignment
-  targets, and break edges. It does not read fixture names, block-count
-  identities, display `expr0`, source AST, or a backend-specific MIR view.
-  Block row permutation is not claimed because the current MIR contract binds
-  block IDs to row order.
-- Public `pgy SOURCE --emit-llvm -o FILE` and stdout are byte-equal to the
-  installed projection for the active fixture; clang executes exact `1\n1\n`
-  and native pipeline timing is absent. Focused scalar-CFG/public gates passed
-  in 10.5/6.2 seconds, the prior 3–6 block CFG/range/break regression passed in
-  226.9 seconds, and the component ratchet passed in 289.2 seconds.
-- Hard caps are fixed at graph admission 449/450, graph fact 298/310,
-  expression 290/300, C emitter 172/180, LLVM emitter 251/260, phi binding
-  169/180, latest-value owner 47/60, and focused gate 149/160. The bounded
-  scalar plan row is `CLOSED`; the broader `mir.execution_graph` remains
-  `BRIDGE`.
-- Active objective card: make loop-exit value identity producer-owned when a
-  while loop has both a feasible condition exit and `break`. Priority is valid
-  SSA/ValueId identity, exact exit predecessor coverage, removal of the named
-  bridge, general-plan C/LLVM parity, then deletion of the obsolete
-  topology-specific break plan if no consumer remains. The fact owner is
-  `routine_while_owner.pgy`; the last legitimate consumers are
-  `MirPhiPredecessorBindingFactFromOwners` and the general scalar CFG plan.
-- Fresh falsifier: `break_after_stmt.pgy` is a 7,082-byte, six-block MIR
-  (`8C6B45FA...F6BF9`). Exit block 5 has predecessors from header block 1 and
-  break block 3 but uses `i.4` without an exit phi; `i.4` does not dominate the
-  header-false path. `DirectMirScalarCfgBreakExitMergeBridgeRequired` therefore
-  routes this admitted legacy slice to the existing break plan instead of
-  letting the general plan guess or repair SSA.
-- Forbidden fallback: fixture or block-count dispatch in the new plan,
-  backend-invented exit phi, uses-array order as predecessor identity,
-  treating a merely dominating stale ValueId as current, source/`expr0`
-  reconstruction, retaining the bridge after producer closure, or native
-  semantic/AIR/libLLVM re-entry.
-- Next gate: producer source-to-MIR once; an exit phi covering header-false and
-  every break predecessor; general-plan C/LLVM exact `3\n3`; reversed phi
-  use order artifact stability; missing/duplicate/stale exit incoming and
-  repaired-edge negatives; bridge and topology-specific break-path removal;
-  public LLVM file/stdout compile/run without native timing.
+  The rebuilt Pergyra sibling is 4,277,950 bytes, SHA-256
+  `15987177A11534E593DCDC48CB42AA59F58DDCD9707996B439EAEFFD07B4B08A`.
+- Closed executable rung: `break_after_stmt.pgy` now produces one 7,554-byte,
+  six-block MIR with SHA-256
+  `7C87AD58B135DBF1886E2EE05601FB58019CAE8F0F354B599374584082D3ADAD`.
+  Exit block 5 begins with producer-owned `i.8 = phi(i.2, i.4)` and the final
+  Log uses `i.8`. C and LLVM both execute exact `3\n3` from that same MIR.
+- `routine_break_exit_fact_owner.pgy` captures each break predecessor and its
+  local-version snapshot at the transfer. `routine_while_exit_phi_owner.pgy`
+  merges the feasible header-false lane with every break lane before the
+  backend sees the graph. Their hard caps are 68/90 and 81/90 lines.
+- The general `DirectMirScalarCfgGraphPlan` now owns the break program. The
+  shrink-only bridge and the topology-specific break shape, plan, and emitter
+  were deleted. The remaining bounded CFG plan schema is `v8` and has no
+  `break_fact`, break digest, or backend-only exit phi path.
+- Focused break C/LLVM plus four negative mutations passed in 6.9 seconds;
+  nested scalar CFG regression passed in the combined 15.7-second run;
+  dual-backend scalar regression passed in 32.0 seconds; cumulative
+  if/reassign/nested/while/for plus delegated break regression passed in
+  140.8 seconds; component removed-path ratchets passed in 217.5 seconds.
+  Public LLVM file and stdout are byte-equal to the installed projection for
+  both nested `1\n1` and break-exit `3\n3`, compile with clang, and show no
+  native pipeline timing (6.1 seconds).
+- The scalar plan registry row remains `CLOSED`; `mir.execution_graph` remains
+  `BRIDGE`. AIR still retains the old loop-break certificate as bounded
+  validation evidence, but it has no compiler plan/emitter consumer.
+- Active objective card: falsify repeated incoming identity when one exit phi
+  has a feasible header lane and two break predecessors carrying the same
+  latest local ValueId. Priority is exact predecessor cardinality, current
+  local identity, order-independent binding, C/LLVM parity, then a negative
+  gate against duplicate-slot ambiguity. The fact owner remains the producer
+  break snapshot plus while-exit merge; the last legitimate consumer is
+  `MirPhiPredecessorBindingFactFromOwners`.
+- Next falsifier: add `multiple_break_exit.pgy` with `i = i + 1` followed by two
+  conditional breaks. The expected producer phi has three inputs
+  `[header i.2, break i.4, break i.4]` and execution prints exact `2`. Current
+  predecessor binding is expected to reject the two equal `i.4` slots as
+  ambiguous; that observed failure must precede the fix.
+- Forbidden fallback: collapsing phi arity below predecessor count, treating
+  uses-array order as edge identity, selecting one incoming slot twice without
+  tracking slot consumption, inventing a backend exit phi, reviving the
+  deleted break plan/bridge, fixture/block-count dispatch, source/`expr0`
+  reconstruction, or native semantic/AIR/libLLVM re-entry.
 - No pressure probe, full CI, full bootstrap, current-source gen2==gen3, or
-  Coq/Rocq suite ran. `proof_spine_smoke.sh` stopped because no prover is
-  installed. Memory remains final-integration-only: attention at 2.4 GiB and
-  hard stop at 3 GiB.
+  Coq/Rocq suite ran. Memory remains final-integration-only: attention at
+  2.4 GiB and hard stop at 3 GiB. The prover remains unavailable locally.
 
 ## Historical checkpoint archive — inactive evidence
 

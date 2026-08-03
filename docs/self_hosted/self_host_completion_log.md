@@ -6,6 +6,29 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-03 - Break exit phi moves into the MIR producer
+
+- Landed executable checkpoint `cc2ddb14`. `break_after_stmt.pgy` now emits a
+  7,554-byte six-block MIR (`7C87AD58...ADAD`) whose exit begins with
+  `i.8 = phi(i.2, i.4)`. The final Log uses `i.8`; C and LLVM execute exact
+  `3\n3` from the same MIR.
+- Named producer owners capture every break predecessor plus its local-version
+  snapshot and merge it with the feasible header-false lane. The general scalar
+  CFG plan consumes that phi. It does not infer exit values from topology or
+  display expressions.
+- Deleted the shrink-only bridge and the topology-specific compiler break
+  shape, plan, and C/LLVM emitter. The remaining bounded CFG plan schema is v8
+  and carries no break fact, break digest, or backend-only exit phi.
+- The focused four-negative gate, nested scalar regression, dual-backend gate,
+  cumulative CFG chain, public LLVM file/stdout for nested and break cases, and
+  component removed-path ratchets are green. New owner caps are 90 lines and
+  the focused gate cap is 160; no cap increased.
+- The next falsifier is a feasible header exit plus two break predecessors that
+  both carry the same latest ValueId. The producer must retain three incoming
+  slots, while predecessor binding must consume identical slots without using
+  array order as semantic identity.
+- No pressure run, full CI/bootstrap/fixpoint, or prover suite ran.
+
 ## 2026-08-03 - General scalar CFG closes the eight-block public LLVM rung
 
 - Landed executable checkpoint `9f20ab9a`. The self producer emits a
