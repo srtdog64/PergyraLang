@@ -115,8 +115,11 @@ Measured examples make this concrete:
 - AIR/RIR boundary evidence joins by names plus AST pointer/subtree matching;
 - semantic type metadata is keyed by `ASTNode * -> Type *`, then later MIR
   stages recapture type spellings from AST;
-- lexical bindings and SSA values are collapsed into name and `name.version`
-  strings, so shadowing has no first-class identity;
+- native lexical bindings and most SSA values are still collapsed into name and
+  `name.version` strings. The installed self-host scalar-CFG range slice is a
+  bounded exception: producer-carried `LocalRef` identity now distinguishes
+  declaration and nested iteration binders, but general lexical identity is
+  still open;
 - dynamic ABI rows can be returned from temporary ring storage and therefore
   cannot serve as durable layout/runtime-call identity.
 - `ResourceFlowUniverse` snapshots function-local stable rows into

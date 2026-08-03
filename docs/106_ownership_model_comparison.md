@@ -1,11 +1,13 @@
 # Ownership Model Comparison And Pergyra Target
 
-Last updated: 2026-04-25
+Last updated: 2026-08-03
 
 Related documents:
 
 - `docs/19_design_philosophy.md` §0 — **core identity** (Pergyra is a systems language; ownership model is layered on that baseline)
 - `docs/74_slot_pinning_caching.md`
+- `docs/146_sea_execution_lanes.md` -- current lane evidence, runtime scaffold,
+  and precise-capture frontier
 - `docs/100_beta_readiness_checklist.md`
 - `docs/104_air_compiler_architecture.md`
 - `docs/114_async_model_positioning.md` — sister positioning doc for concurrency
@@ -97,6 +99,43 @@ What Pergyra should not take for beta:
 - Rust `Pin<&mut T>` semantics. Pergyra `pin` means slot lease, not
   self-referential future pinning.
 - `Send`/`Sync` trait surface before the fiber/task model is frozen.
+
+#### 2026 Move/Forget direction and the Pergyra boundary
+
+The accepted 2026 Rust project direction supplied for this review explores
+positive capability traits such as `Move`, `Destruct`, and `Forget`. It is a
+direction for RFC and implementation work, not a claim that stable Rust already
+has the complete feature. The target lets a type opt out of relocation or
+forgetting so self-referential values can keep a stable address and scoped task
+handles cannot evade a required finalizer.
+
+Pergyra has a different, bounded advantage in the structured-concurrency slice:
+
+- `parallel` has a scoped join contract;
+- the landed lane classifier can join pin, live-view, raw-slot, raw-channel,
+  effect, and movability evidence and reject covered contradictions;
+- the certified region slice and gated pin fixtures carry cleanup through
+  plan/CFG evidence instead of asking a backend to guess.
+
+This is not whole-language superiority. Precise closure-capture production is
+still incomplete, several executor lanes remain synchronous scaffolds, `pin` is
+a slot/view lease rather than arbitrary-type immovability, and Pergyra does not
+yet prevent every user-defined required finalizer from being forgotten.
+
+| Axis | Rust 2026 direction | Pergyra current evidence | Status / open work |
+|---|---|---|---|
+| scoped fork/join | `!Forget` can make a scoped handle non-evadable | structured `parallel` join contract | bounded; executor depth remains scaffolded |
+| authority-aware lane choice | not the proposal's primary axis | one evidence classifier and fail-closed contradiction matrix | bounded; precise capture and runtime propagation remain open |
+| arbitrary immovable user type | proposed `!Move` capability | no general equivalent | candidate `relocatable` fact, not current SoT |
+| guaranteed finalizer for arbitrary type | proposed `!Forget` capability | certified cleanup slices only | candidate `must_finalize` consumption fact, not current SoT |
+
+If `relocatable` or `must_finalize` is promoted from candidate to language fact,
+it belongs to the existing ownership classifier and must be consumed by
+spawn/parallel/region/zone plans. Do not introduce a second `Move`/`Forget`
+policy table, make routine users select scheduling lanes, or reinterpret
+Pergyra `pin` as Rust `Pin`. Missing evidence fails closed. Surface syntax is
+deferred until an actual authority, interoperability, observable-cost, or
+ownership boundary requires it.
 
 ### Project Verona
 
@@ -317,4 +356,6 @@ Pergyra's ownership identity should be:
 The best path is not to turn Pergyra into Rust. The best path is to import only
 the narrow pieces that close current pain points: RAII-style scoped cleanup,
 exclusive mutable view facts, explicit shared ownership, and generic ownership
-classification.
+classification. Relocatability and must-finalize semantics, if promoted, extend
+that one classifier and its verified plans rather than becoming a parallel type
+system.

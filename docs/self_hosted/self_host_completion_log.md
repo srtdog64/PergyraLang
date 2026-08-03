@@ -6,6 +6,52 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-03 - Nested range binders consume one canonical LocalRef receipt set
+
+- Landed executable checkpoints `d187fe9a` and `9818e2bc`. The bounded fixture
+  nests same-spelling range binders over an outer `i = 40`; its one 6,828-byte
+  MIR carries `declaration:6:0`, `iteration:7:0`, and `iteration:9:0`. The same
+  MIR emits 749-byte C and 1,979-byte LLVM artifacts; both execute exact
+  `0,1,0,0,1,1,40`.
+- Replaced the single range receipt with one canonical receipt-set owner keyed
+  by `loop_syntax_id`. Primitive parallel arrays are an internal carrier for the
+  current self-host C ABI limitation, not separate authorities. Typed
+  iteration/loop-flow order permutations remain artifact-equal.
+- The direct plan binds each receipt to one local slot and validates the
+  innermost active same-spelling binder by CFG dominance. Cross-wired init,
+  branch, body, post-inner, and final direct refs; missing typed rows; and
+  retargeted latches all fail before C/LLVM publication.
+- A read-only audit caught two SoT defects before handoff: range construction
+  reparsed `local_ref` from raw JSON and new owners rebuilt the LocalRef string
+  grammar. `9818e2bc` removes both. The constructor consumes the single decoded
+  wire, and canonical spelling comes only from `SelfMirLocalRef`; component
+  negatives prevent both paths from returning.
+- Existing single-range MIR/C/LLVM bytes are now pinned in its focused gate.
+  Fixed caps remain unchanged; the largest new owners are range set 282/300,
+  iteration-local 141/150, range-scope admission 140/150, and range LocalRef
+  identity 32/40. Manifests remain 285/31/2.
+- Current-source build, focused single/nested parity, public installed LLVM,
+  structural component, and cumulative CFG/AIR gates are green. Directly
+  invoking the cumulative script without selecting a current driver first hit
+  a stale bootstrap seed and its retired pressure-token ABI; the current
+  installed driver completed the same gate.
+- The next falsifier adds `if i == 1 { continue; }` inside an inner
+  same-spelling `0..3` range, then observes the outer range binder and final
+  declaration; expected output is `0,2,0,0,2,1,40`. A topology-specific
+  nested-loop compiler or backend scope recovery is forbidden.
+
+## 2026-08-03 - Same-spelling declaration and range binding gain LocalRef identity
+
+- Checkpoints `1f4ed639`, `9cabfd84`, and `0f19cff6` made the MIR producer open
+  and restore a lexical iteration frame instead of incrementing the outer local.
+  The wire carries canonical declaration/iteration LocalRefs only when spelling
+  collision requires them, and the target-neutral plan normalizes them before
+  either backend.
+- `iteration_binding_shadow.pgy` produces exact `0,1,2,40` through C and LLVM.
+  Missing, forged, duplicate, orphan, and wrong-scope refs reject with the
+  LocalRef boundary diagnostic. This is bounded scalar-CFG substitution, not
+  general lexical-identity closure.
+
 ## 2026-08-03 - Continue and fallthrough backedges bind at the producer
 
 - Landed executable checkpoint `aefebe13`. `examples/break_continue.pgy`

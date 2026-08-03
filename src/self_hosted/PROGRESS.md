@@ -5476,3 +5476,30 @@ The next active LLVM breadth falsifier is
 source-MIR inventory but lies outside the current direct-LLVM admission. Pair,
 enum, generic-method, and the thirteen live rows are completed evidence rather
 than active fixtures.
+
+## 2026-08-03 canonical nested range LocalRef substitution
+
+The later scalar-CFG rung supersedes the breadth note above. Checkpoints
+`d187fe9a` and `9818e2bc` replace the single range receipt with one canonical
+receipt set keyed by producer `loop_syntax_id`. The installed Pergyra-built
+driver now compiles two nested same-spelling integer range binders from one
+6,828-byte MIR to both C and LLVM. Both artifacts execute exact
+`0,1,0,0,1,1,40`, and independent typed-iteration/loop-flow row permutations
+are byte-equal.
+
+The direct consumer decodes LocalRef wire data once. Range construction consumes
+that typed view, canonical spelling is delegated to `SelfMirLocalRef`, and the
+plan validates the innermost active binder through CFG dominance before binding
+receipt-local slots. Raw JSON second reads, grammar reconstruction, singular
+receipt fields, range-local-row fallback, cross-scope refs, retargeted latches,
+and orphaned behavioral-gate hooks are negative-gated. Existing single-range
+MIR/C/LLVM bytes are pinned, all fixed caps remain unchanged, and manifests stay
+at 285 driver rows, 31 core MIR fixtures, and 2 example fixtures.
+
+Current-source build, focused single/nested C/LLVM, public installed LLVM,
+structural component, and cumulative CFG/AIR gates are green. The active next
+falsifier keeps the same nested spelling but adds `if i == 1 { continue; }`
+inside an inner `0..3` range, then observes the outer range binding and final
+declaration; expected output is `0,2,0,0,2,1,40`. This is the one active
+self-host rung; general concurrency, library adoption, Rust capability syntax,
+and unrelated SoT cleanup are not parallel implementation tracks.
