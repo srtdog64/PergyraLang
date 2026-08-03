@@ -1,5 +1,4 @@
 // Exact expression LocalRef admission for every scalar-CFG range binding.
-
 import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
 import "direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy";
 
@@ -65,7 +64,9 @@ func DirectMirScalarCfgWireRangeScopesReady(
     ref use_facts: MirRoutineInstructionUseFacts,
     ref facts: DirectMirScalarCfgRangeFactSet
 ) -> Bool {
-    if !wire.required { return DirectMirScalarCfgRangeFactCount(facts) <= 1; }
+    let range_count: Int = DirectMirScalarCfgRangeFactCount(facts);
+    if !wire.required { return range_count <= 1; }
+    if range_count == 0 { return true; }
     let instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
@@ -99,13 +100,15 @@ func DirectMirScalarCfgWireRangeScopesReady(
                         DirectMirScalarCfgRangeFactAtExpectedLocalRef(
                             facts, direct_ref
                         );
-                    if !is_leaf || !fact.valid || fact.binding_name != text ||
-                        !DirectMirScalarCfgRangeOwnsDirectUseBlock(
-                            index, facts, fact, block
-                        ) {
-                        return false;
+                    // Foreign typed iteration refs remain owned by their
+                    // foreach receipt and the shared direct-local resolver.
+                    if fact.valid {
+                        if !is_leaf || fact.binding_name != text ||
+                            !DirectMirScalarCfgRangeOwnsDirectUseBlock(
+                                index, facts, fact, block
+                            ) { return false; }
+                        direct_nodes = direct_nodes + 1;
                     }
-                    direct_nodes = direct_nodes + 1;
                 }
                 node = node + 1;
             }

@@ -1,7 +1,5 @@
 // Canonical primitive storage and lookup for collection-iteration receipts.
-
 import "direct_mir_scalar_cfg_foreach_fact_owner.pgy";
-
 struct DirectMirScalarCfgForEachFactSet {
     let valid: Bool;
     let digest: Int;
@@ -16,6 +14,7 @@ struct DirectMirScalarCfgForEachFactSet {
     let loop_syntax_ids: Array<Int>;
     let collection_value_ids: Array<String>;
     let collection_names: Array<String>;
+    let storage_identities: Array<String>;
     let binding_names: Array<String>;
     let cursor_identities: Array<String>;
     let element_starts: Array<Int>;
@@ -40,7 +39,7 @@ func DirectMirScalarCfgForEachFactSetInvalid(
     return DirectMirScalarCfgForEachFactSet(
         false, 0,
         ints, ints, ints, ints, ints, ints, ints, ints, ints,
-        strings, strings, strings, strings,
+        strings, strings, strings, strings, strings,
         ints, ints, ints, ints, ints, ints, ints,
         ints, ints, ints, ints, ints, ints
     );
@@ -75,7 +74,8 @@ func DirectMirScalarCfgForEachFactSetWithDigest(
         facts.branch_global_rows, facts.init_blocks, facts.header_blocks,
         facts.body_blocks, facts.exit_blocks, facts.binding_local_rows,
         facts.loop_syntax_ids, facts.collection_value_ids,
-        facts.collection_names, facts.binding_names, facts.cursor_identities,
+        facts.collection_names, facts.storage_identities,
+        facts.binding_names, facts.cursor_identities,
         facts.element_starts, facts.element_counts, facts.elements,
         facts.backedge_starts, facts.backedge_counts, facts.backedge_blocks,
         facts.abi_layout_ids, facts.abi_sizes, facts.abi_aligns,
@@ -95,7 +95,8 @@ func DirectMirScalarCfgForEachFactSetEmpty(
             invalid.init_blocks, invalid.header_blocks, invalid.body_blocks,
             invalid.exit_blocks, invalid.binding_local_rows,
             invalid.loop_syntax_ids, invalid.collection_value_ids,
-            invalid.collection_names, invalid.binding_names,
+            invalid.collection_names, invalid.storage_identities,
+            invalid.binding_names,
             invalid.cursor_identities, invalid.element_starts,
             invalid.element_counts, invalid.elements,
             invalid.backedge_starts, invalid.backedge_counts,
@@ -143,7 +144,8 @@ func DirectMirScalarCfgForEachFactAt(
         facts.body_blocks[row], facts.exit_blocks[row],
         facts.binding_local_rows[row], facts.loop_syntax_ids[row],
         facts.collection_value_ids[row], facts.collection_names[row],
-        facts.binding_names[row], facts.cursor_identities[row], elements,
+        facts.storage_identities[row], facts.binding_names[row],
+        facts.cursor_identities[row], elements,
         backedges, facts.abi_layout_ids[row], facts.abi_sizes[row],
         facts.abi_aligns[row], facts.data_offsets[row],
         facts.length_offsets[row], facts.capacity_offsets[row],
@@ -211,6 +213,48 @@ func DirectMirScalarCfgForEachOwnsDefinition(
     return matches == 1;
 }
 
+func DirectMirScalarCfgForEachStorageRow(
+    ref facts: DirectMirScalarCfgForEachFactSet, wanted: Int
+) -> Int {
+    if wanted < 0 || wanted >= DirectMirScalarCfgForEachFactCount(facts) {
+        return -1;
+    }
+    let row: Int = 0;
+    while row < wanted {
+        if facts.storage_identities[row] ==
+            facts.storage_identities[wanted] { return row; }
+        row = row + 1;
+    }
+    return wanted;
+}
+
+func DirectMirScalarCfgForEachStorageFactsReady(
+    ref facts: DirectMirScalarCfgForEachFactSet, row: Int
+) -> Bool {
+    let storage_row: Int = DirectMirScalarCfgForEachStorageRow(facts, row);
+    if storage_row < 0 { return false; }
+    let fact: DirectMirScalarCfgForEachFact =
+        DirectMirScalarCfgForEachFactAt(facts, row);
+    let storage: DirectMirScalarCfgForEachFact =
+        DirectMirScalarCfgForEachFactAt(facts, storage_row);
+    if fact.abi_layout_id != storage.abi_layout_id ||
+        fact.abi_size != storage.abi_size ||
+        fact.abi_align != storage.abi_align ||
+        fact.data_offset != storage.data_offset ||
+        fact.length_offset != storage.length_offset ||
+        fact.capacity_offset != storage.capacity_offset ||
+        fact.allocator_offset != storage.allocator_offset ||
+        ArrayLength(fact.elements) != ArrayLength(storage.elements) {
+        return false;
+    }
+    let item: Int = 0;
+    while item < ArrayLength(fact.elements) {
+        if fact.elements[item] != storage.elements[item] { return false; }
+        item = item + 1;
+    }
+    return true;
+}
+
 func DirectMirScalarCfgForEachFactSetShapeReady(
     ref facts: DirectMirScalarCfgForEachFactSet,
     block_count: Int, require_bound_local: Bool
@@ -228,6 +272,7 @@ func DirectMirScalarCfgForEachFactSetShapeReady(
         count != ArrayLength(facts.binding_local_rows) ||
         count != ArrayLength(facts.collection_value_ids) ||
         count != ArrayLength(facts.collection_names) ||
+        count != ArrayLength(facts.storage_identities) ||
         count != ArrayLength(facts.binding_names) ||
         count != ArrayLength(facts.cursor_identities) ||
         count != ArrayLength(facts.element_starts) ||
@@ -251,7 +296,8 @@ func DirectMirScalarCfgForEachFactSetShapeReady(
             facts.backedge_starts[row] != edge_cursor ||
             !DirectMirScalarCfgForEachFactShapeReady(
                 fact, block_count, require_bound_local
-            ) || (row > 0 && facts.loop_syntax_ids[row - 1] >=
+            ) || !DirectMirScalarCfgForEachStorageFactsReady(facts, row) ||
+            (row > 0 && facts.loop_syntax_ids[row - 1] >=
                 facts.loop_syntax_ids[row]) { return false; }
         element_cursor = element_cursor + facts.element_counts[row];
         edge_cursor = edge_cursor + facts.backedge_counts[row];

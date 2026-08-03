@@ -49,7 +49,10 @@ func DirectMirScalarCfgForEachCDeclarations(
             DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
         let abi: DirectMirArrayIntAbiProjection =
             DirectMirScalarCfgForEachCAbi(fact, target);
-        output = Concat(output, "    ");
+        let storage_row: Int = DirectMirScalarCfgForEachStorageRow(
+            plan.foreach_iterations, row
+        );
+        if storage_row == row { output = Concat(output, "    ");
         output = Concat(output, abi.c_element_type);
         output = Concat(output, " pgy_foreach_storage_");
         output = Concat(output, ToString(row));
@@ -67,7 +70,8 @@ func DirectMirScalarCfgForEachCDeclarations(
         output = Concat(output, ToString(ArrayLength(fact.elements)));
         output = Concat(output, ", ");
         output = Concat(output, ToString(ArrayLength(fact.elements)));
-        output = Concat(output, ", NULL};\n    ");
+        output = Concat(output, ", NULL};\n"); }
+        output = Concat(output, "    ");
         output = Concat(output, abi.c_length_type);
         output = Concat(output, " pgy_foreach_cursor_");
         output = Concat(output, ToString(row));
@@ -91,10 +95,13 @@ func DirectMirScalarCfgForEachCBlockEntry(
             output = Concat(output, " = 0;\n");
         }
         if block == fact.body_block {
+            let storage_row: Int = DirectMirScalarCfgForEachStorageRow(
+                plan.foreach_iterations, row
+            );
             output = Concat(output, "    pgy_local_");
             output = Concat(output, ToString(fact.binding_local_row));
             output = Concat(output, " = pgy_foreach_collection_");
-            output = Concat(output, ToString(row));
+            output = Concat(output, ToString(storage_row));
             output = Concat(output, ".data[pgy_foreach_cursor_");
             output = Concat(output, ToString(row));
             output = Concat(output, "];\n");
@@ -143,9 +150,12 @@ func DirectMirScalarCfgForEachCCondition(
         row = row + 1;
     }
     if found < 0 { Die("direct MIR scalar CFG foreach C header is missing"); }
+    let storage_row: Int = DirectMirScalarCfgForEachStorageRow(
+        plan.foreach_iterations, found
+    );
     return Concat("pgy_foreach_cursor_", Concat(
         ToString(found), Concat(" < pgy_foreach_collection_", Concat(
-            ToString(found), ".length"
+            ToString(storage_row), ".length"
         ))
     ));
 }

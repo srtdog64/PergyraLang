@@ -1,11 +1,10 @@
 // Joins typed iteration, collection ValueId, ABI, literal, and CFG facts once.
 
 import "direct_mir_scalar_cfg_foreach_append_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_collection_owner.pgy";
 import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
 import "direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy";
-import "direct_mir_array_int_abi_fact_owner.pgy";
 import "direct_mir_array_int_graph_fact_owner.pgy";
-import "../mir_lower/abi_layout_admission_fact_owner.pgy";
 import "../mir_lower/program_instruction_expression_index_owner.pgy";
 import "../mir_lower/routine_definition_dominance_fact_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
@@ -48,7 +47,8 @@ func DirectMirScalarCfgForEachFactsFromOwners(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref index: MirRoutineFactIndex,
     ref use_facts: MirRoutineInstructionUseFacts,
-    ref wire: DirectMirScalarCfgWireLocalRefs
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref producer: DirectMirArrayIntProducerFact
 ) -> DirectMirScalarCfgForEachFactSet {
     let invalid: DirectMirScalarCfgForEachFactSet =
         DirectMirScalarCfgForEachFactSetInvalid();
@@ -79,8 +79,7 @@ func DirectMirScalarCfgForEachFactsFromOwners(
         }
         if loop_id < 0 || type_row < 0 ||
             index.iteration_type_facts.function_syntax_ids[type_row] !=
-                ToInt(index.source_syntax_id) ||
-            index.iteration_type_facts.collection_hoists[type_row] != 0 {
+                ToInt(index.source_syntax_id) {
             return invalid;
         }
         let flow_row: Int = -1;
@@ -163,36 +162,16 @@ func DirectMirScalarCfgForEachFactsFromOwners(
             MirRoutineInstructionFactBundleAtGlobal(
                 index.instruction_facts, definition.global_row
             );
-        if !declaration.valid ||
-            admitted.routines.instruction_kinds[definition.global_row] != "def" ||
-            admitted.routines.instruction_source_types[definition.global_row] !=
-                "AST_LET_DECL" || declaration.name != "ssa-def" ||
-            declaration.result != collection_value ||
-            declaration.arg0 != init.expr0 || declaration.arg1 != "" ||
-            declaration.abi_type_name != "Array<Int>" ||
-            MirRoutineInstructionUseCountAtGlobal(
-                use_facts, definition.global_row
-            ) != 0 {
+        let collection: DirectMirScalarCfgForEachCollectionFact =
+            DirectMirScalarCfgForEachCollectionFromOwners(
+                admitted, index, use_facts, wire, definition, declaration,
+                collection_value, init.expr0,
+                index.iteration_type_facts.collection_hoists[type_row],
+                producer
+            );
+        if !DirectMirScalarCfgForEachCollectionFactReady(collection) {
             return invalid;
         }
-        let abi_opt: Option<MirAbiLayoutRowCapture> =
-            MirCapturedRequiredAbiLayoutRowAdmission(
-                admitted.routines.source_json, declaration.abi_type_name,
-                declaration.abi_type_value_ready, declaration.abi_type_start,
-                declaration.abi_type_end, declaration.abi_layout_id_start,
-                declaration.abi_layout_id_end,
-                declaration.abi_layout_required_start,
-                declaration.abi_layout_required_end,
-                declaration.abi_layout_start, declaration.abi_layout_end
-            );
-        if !IsSome(abi_opt) { return invalid; }
-        let abi: MirAbiLayoutRowCapture = UnwrapOption(abi_opt);
-        if !DirectMirArrayIntCapturedAbiReady(abi) { return invalid; }
-        let def_expression: MirProgramInstructionExpressionFact =
-            MirProgramInstructionExpressionIndexAt(
-                admitted.routines.instruction_expressions,
-                definition.global_row
-            );
         let init_expression: MirProgramInstructionExpressionFact =
             MirProgramInstructionExpressionIndexAt(
                 admitted.routines.instruction_expressions, init_global
@@ -200,10 +179,6 @@ func DirectMirScalarCfgForEachFactsFromOwners(
         let branch_expression: MirProgramInstructionExpressionFact =
             MirProgramInstructionExpressionIndexAt(
                 admitted.routines.instruction_expressions, branch_global
-            );
-        let def_graph: MirExpressionGraphSequence =
-            DirectMirArrayIntGraphFromExpressionFact(
-                admitted.routines.source_json, def_expression, 0
             );
         let init_graph: MirExpressionGraphSequence =
             DirectMirArrayIntGraphFromExpressionFact(
@@ -213,7 +188,6 @@ func DirectMirScalarCfgForEachFactsFromOwners(
             DirectMirArrayIntGraphFromExpressionFact(
                 admitted.routines.source_json, branch_expression, 0
             );
-        let elements: Array<Int> = DirectMirArrayIntLiteralElements(def_graph);
         if !DirectMirArrayIntAssignmentTargetReady(init_graph, init.expr0) ||
             !DirectMirArrayIntAssignmentTargetReady(branch_graph, init.expr0) ||
             index.block_succ_true[init_block] != header ||
@@ -238,12 +212,12 @@ func DirectMirScalarCfgForEachFactsFromOwners(
                 true, 0, definition.global_row, init_global, branch_global,
                 init_block, header, index.block_succ_true[header],
                 index.block_succ_false[header], -1, loop_id,
-                collection_value, init.expr0, init.arg0,
-                DirectMirScalarCfgForEachCursorIdentity(loop_id), elements,
-                backedges, MirAbiLayoutIdFromCapture(abi), ToInt(abi.size_text),
-                ToInt(abi.align_text), ToInt(abi.field_offsets[0]),
-                ToInt(abi.field_offsets[1]), ToInt(abi.field_offsets[2]),
-                ToInt(abi.field_offsets[3])
+                collection_value, init.expr0, collection.storage_identity,
+                init.arg0, DirectMirScalarCfgForEachCursorIdentity(loop_id),
+                collection.elements, backedges, collection.abi_layout_id,
+                collection.abi_size, collection.abi_align,
+                collection.data_offset, collection.length_offset,
+                collection.capacity_offset, collection.allocator_offset
             );
         let verified: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFactWithDigest(

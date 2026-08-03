@@ -22,6 +22,7 @@ func DirectMirScalarCfgForEachFactSetAppend(
     let loop_ids: Array<Int> = facts.loop_syntax_ids;
     let collection_ids: Array<String> = facts.collection_value_ids;
     let collection_names: Array<String> = facts.collection_names;
+    let storage_ids: Array<String> = facts.storage_identities;
     let binding_names: Array<String> = facts.binding_names;
     let cursor_ids: Array<String> = facts.cursor_identities;
     let element_starts: Array<Int> = facts.element_starts;
@@ -46,6 +47,7 @@ func DirectMirScalarCfgForEachFactSetAppend(
     ArrayPush(loop_ids, fact.loop_syntax_id);
     ArrayPush(collection_ids, fact.collection_value_id);
     ArrayPush(collection_names, fact.collection_name);
+    ArrayPush(storage_ids, fact.storage_identity);
     ArrayPush(binding_names, fact.binding_name);
     ArrayPush(cursor_ids, fact.cursor_identity);
     ArrayPush(element_starts, ArrayLength(elements));
@@ -69,7 +71,8 @@ func DirectMirScalarCfgForEachFactSetAppend(
         DirectMirScalarCfgForEachFactSet(
             true, 0, definition_globals, init_globals, branch_globals,
             init_blocks, headers, bodies, exits, binding_locals, loop_ids,
-            collection_ids, collection_names, binding_names, cursor_ids,
+            collection_ids, collection_names, storage_ids,
+            binding_names, cursor_ids,
             element_starts, element_counts, elements, backedge_starts,
             backedge_counts, backedges, abi_ids, abi_sizes, abi_aligns,
             data_offsets, length_offsets, capacity_offsets, allocator_offsets

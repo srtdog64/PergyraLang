@@ -31,9 +31,14 @@ func DirectMirScalarCfgForEachLlvmDeclarations(
         let abi: DirectMirArrayIntAbiProjection =
             DirectMirScalarCfgForEachLlvmAbi(fact, target);
         let prefix: String = DirectMirScalarCfgForEachLlvmPrefix(row);
-        output = Concat(output, DirectMirArrayIntEmitLlvmValue(
-            prefix, fact.elements, abi
-        ));
+        let storage_row: Int = DirectMirScalarCfgForEachStorageRow(
+            plan.foreach_iterations, row
+        );
+        if storage_row == row {
+            output = Concat(output, DirectMirArrayIntEmitLlvmValue(
+                prefix, fact.elements, abi
+            ));
+        }
         output = Concat(output, "  %pgy.foreach.");
         output = Concat(output, ToString(row));
         output = Concat(output, ".cursor = alloca i64, align 8\n");
@@ -56,6 +61,9 @@ func DirectMirScalarCfgForEachLlvmBlockEntry(
         let stem: String = Concat(
             "%pgy.foreach.", Concat(ToString(row), ".")
         );
+        let storage_row: Int = DirectMirScalarCfgForEachStorageRow(
+            plan.foreach_iterations, row
+        );
         if block == fact.init_block {
             output = Concat(output, "  store i64 0, ptr ");
             output = Concat(output, stem);
@@ -71,7 +79,9 @@ func DirectMirScalarCfgForEachLlvmBlockEntry(
             output = Concat(output, "body.data = extractvalue ");
             output = Concat(output, abi.llvm_aggregate_type);
             output = Concat(output, " %pgy.array.");
-            output = Concat(output, DirectMirScalarCfgForEachLlvmPrefix(row));
+            output = Concat(
+                output, DirectMirScalarCfgForEachLlvmPrefix(storage_row)
+            );
             output = Concat(output, ".3, ");
             output = Concat(output, ToString(abi.data_index));
             output = Concat(output, "\n  ");
@@ -165,6 +175,9 @@ func DirectMirScalarCfgForEachLlvmCondition(
     let abi: DirectMirArrayIntAbiProjection =
         DirectMirScalarCfgForEachLlvmAbi(fact, target);
     let stem: String = Concat("%pgy.cond.", ToString(block));
+    let storage_row: Int = DirectMirScalarCfgForEachStorageRow(
+        plan.foreach_iterations, found
+    );
     let output: String = Concat("  ", Concat(
         stem, Concat(".cursor = load i64, ptr %pgy.foreach.", Concat(
             ToString(found), ".cursor, align 8\n  "
@@ -174,7 +187,7 @@ func DirectMirScalarCfgForEachLlvmCondition(
     output = Concat(output, ".length = extractvalue ");
     output = Concat(output, abi.llvm_aggregate_type);
     output = Concat(output, " %pgy.array.");
-    output = Concat(output, DirectMirScalarCfgForEachLlvmPrefix(found));
+    output = Concat(output, DirectMirScalarCfgForEachLlvmPrefix(storage_row));
     output = Concat(output, ".3, ");
     output = Concat(output, ToString(abi.length_index));
     output = Concat(output, "\n  ");

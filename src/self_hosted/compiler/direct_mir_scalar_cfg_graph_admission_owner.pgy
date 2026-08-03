@@ -16,17 +16,19 @@ import "../mir_lower/routine_instruction_use_fact_owner.pgy";
 import "../mir_lower/routine_result_definition_fact_owner.pgy";
 
 func DirectMirScalarCfgGraphPlanFromAdmitted(
-    ref admitted: MirMachineLayerAdmittedJsonInput
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    routine_row: Int,
+    ref producer: DirectMirArrayIntProducerFact
 ) -> DirectMirScalarCfgGraphPlan {
-    if !DirectMirScalarCfgGraphRouteClaimed(admitted) {
+    if !DirectMirScalarCfgRoutineRouteClaimed(admitted, routine_row) {
         Die("direct MIR scalar CFG graph route was not claimed");
     }
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
-        admitted.routines, 0
+        admitted.routines, routine_row
     );
     let instruction_count: Int = ArrayLength(index.instruction_facts.starts);
     let use_facts: MirRoutineInstructionUseFacts =
-        BuildMirRoutineInstructionUseFacts(admitted.routines, 0);
+        BuildMirRoutineInstructionUseFacts(admitted.routines, routine_row);
     let wire: DirectMirScalarCfgWireLocalRefs =
         DirectMirScalarCfgWireLocalRefsFromOwners(admitted, index);
     if !wire.valid {
@@ -34,7 +36,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
     }
     let foreach_sources: DirectMirScalarCfgForEachFactSet =
         DirectMirScalarCfgForEachFactsFromOwners(
-            admitted, index, use_facts, wire
+            admitted, index, use_facts, wire, producer
         );
     if DirectMirScalarCfgForEachFactCount(foreach_sources) !=
             DirectMirScalarCfgCollectionIterationCount(admitted, index) ||
@@ -72,7 +74,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
         ) || !MirRoutineInstructionUseFactsReady(
             use_facts, instruction_count
         ) || !MirRoutinePhiFactsReady(
-            index, admitted.routines, use_facts, 0
+            index, admitted.routines, use_facts, routine_row
         ) {
         Die("direct MIR scalar CFG typed index, use, or phi facts are invalid");
     }
@@ -102,7 +104,8 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
         Die("direct MIR scalar CFG foreach local binding is invalid");
     }
     if !DirectMirScalarCfgLoopFlowFactsReady(
-        index, admitted.routines, 0, range_iterations, foreach_iterations
+        index, admitted.routines, routine_row,
+        range_iterations, foreach_iterations
     ) {
         Die("direct MIR scalar CFG loop facts are invalid");
     }
@@ -215,7 +218,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                 );
             } else if kind == "phi" {
                 let phi: MirRoutinePhiFact = MirRoutinePhiFactAt(
-                    index, admitted.routines, use_facts, 0,
+                    index, admitted.routines, use_facts, routine_row,
                     block, instruction_row
                 );
                 let binding: MirPhiPredecessorBindingFact =

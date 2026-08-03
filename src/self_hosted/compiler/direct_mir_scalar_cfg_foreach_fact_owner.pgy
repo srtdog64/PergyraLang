@@ -17,6 +17,7 @@ struct DirectMirScalarCfgForEachFact {
     let loop_syntax_id: Int;
     let collection_value_id: String;
     let collection_name: String;
+    let storage_identity: String;
     let binding_name: String;
     let cursor_identity: String;
     let elements: Array<Int>;
@@ -38,7 +39,7 @@ func DirectMirScalarCfgForEachFactEmpty() -> DirectMirScalarCfgForEachFact {
     let ints: Array<Int> = [];
     return DirectMirScalarCfgForEachFact(
         false, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        "", "", "", "", ints, ints, 0, 0, 0, 0, 0, 0, 0
+        "", "", "", "", "", ints, ints, 0, 0, 0, 0, 0, 0, 0
     );
 }
 
@@ -57,6 +58,7 @@ func DirectMirScalarCfgForEachFactDigest(
     hash = DirectMirCfgHashInt(hash, fact.loop_syntax_id);
     hash = DirectMirCfgHashString(hash, fact.collection_value_id);
     hash = DirectMirCfgHashString(hash, fact.collection_name);
+    hash = DirectMirCfgHashString(hash, fact.storage_identity);
     hash = DirectMirCfgHashString(hash, fact.binding_name);
     hash = DirectMirCfgHashString(hash, fact.cursor_identity);
     let row: Int = 0;
@@ -88,7 +90,8 @@ func DirectMirScalarCfgForEachFactWithDigest(
         fact.branch_global_row, fact.init_block, fact.header_block,
         fact.body_block, fact.exit_block, fact.binding_local_row,
         fact.loop_syntax_id, fact.collection_value_id, fact.collection_name,
-        fact.binding_name, fact.cursor_identity, fact.elements,
+        fact.storage_identity, fact.binding_name, fact.cursor_identity,
+        fact.elements,
         fact.backedge_blocks, fact.abi_layout_id, fact.abi_size,
         fact.abi_align, fact.data_offset, fact.length_offset,
         fact.capacity_offset, fact.allocator_offset
@@ -119,7 +122,8 @@ func DirectMirScalarCfgForEachFactShapeReady(
         (require_bound_local && fact.binding_local_row < 0) ||
         (!require_bound_local && fact.binding_local_row != -1) ||
         fact.loop_syntax_id < 0 || fact.collection_value_id == "" ||
-        fact.collection_name == "" || fact.binding_name == "" ||
+        fact.collection_name == "" || fact.storage_identity == "" ||
+        fact.binding_name == "" ||
         fact.cursor_identity != DirectMirScalarCfgForEachCursorIdentity(
             fact.loop_syntax_id
         ) || ArrayLength(fact.elements) < 1 ||
@@ -173,8 +177,9 @@ func DirectMirScalarCfgForEachFactAtLocalRow(
         fact.valid, 0, fact.definition_global_row, fact.init_global_row,
         fact.branch_global_row, fact.init_block, fact.header_block,
         fact.body_block, fact.exit_block, local_row, fact.loop_syntax_id,
-        fact.collection_value_id, fact.collection_name, fact.binding_name,
-        fact.cursor_identity, fact.elements, fact.backedge_blocks,
+        fact.collection_value_id, fact.collection_name,
+        fact.storage_identity, fact.binding_name, fact.cursor_identity,
+        fact.elements, fact.backedge_blocks,
         fact.abi_layout_id, fact.abi_size, fact.abi_align, fact.data_offset,
         fact.length_offset, fact.capacity_offset, fact.allocator_offset
     );

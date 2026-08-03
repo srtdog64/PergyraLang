@@ -1,0 +1,150 @@
+// Exclusive identity for a multi-routine scalar CFG whose foreach collections
+// are direct results of one admitted Array<Int> literal producer.
+
+import "direct_mir_array_int_producer_fact_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_admission_owner.pgy";
+import "direct_mir_scalar_cfg_graph_route_owner.pgy";
+
+struct DirectMirReturnedArrayForEachProgramFact {
+    let valid: Bool;
+    let digest: Int;
+    let main_row: Int;
+    let main_syntax_id: Int;
+    let collection_iteration_count: Int;
+    let producer: DirectMirArrayIntProducerFact;
+}
+
+func DirectMirReturnedArrayForEachProgramFactEmpty(
+) -> DirectMirReturnedArrayForEachProgramFact {
+    return DirectMirReturnedArrayForEachProgramFact(
+        false, 0, -1, 0, 0, DirectMirArrayIntProducerFactEmpty()
+    );
+}
+
+func DirectMirReturnedArrayForEachProgramFactDigest(
+    ref fact: DirectMirReturnedArrayForEachProgramFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(199L, fact.main_row);
+    hash = DirectMirCfgHashInt(hash, fact.main_syntax_id);
+    hash = DirectMirCfgHashInt(hash, fact.collection_iteration_count);
+    hash = DirectMirCfgHashInt(hash, fact.producer.digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirReturnedArrayForEachProgramFactWithDigest(
+    fact: DirectMirReturnedArrayForEachProgramFact,
+    digest: Int
+) -> DirectMirReturnedArrayForEachProgramFact {
+    return DirectMirReturnedArrayForEachProgramFact(
+        fact.valid, digest, fact.main_row, fact.main_syntax_id,
+        fact.collection_iteration_count, fact.producer
+    );
+}
+
+func DirectMirReturnedArrayForEachProgramFactReady(
+    ref fact: DirectMirReturnedArrayForEachProgramFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirReturnedArrayForEachProgramFactDigest(fact) &&
+        fact.main_row >= 0 && fact.main_syntax_id > 0 &&
+        fact.collection_iteration_count > 0 &&
+        DirectMirArrayIntProducerFactReady(fact.producer) &&
+        fact.main_row != fact.producer.routine_row;
+}
+
+func DirectMirReturnedArrayForEachProgramCandidate(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    if MirProgramRoutineIndexCount(admitted.routines) != 2 ||
+        !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
+        JsonArrayObjectFactCount(admitted.document.declarations) != 0 {
+        return false;
+    }
+    let main_row: Int = -1;
+    let row: Int = 0;
+    while row < 2 {
+        if admitted.routines.names[row] == "Main" {
+            if main_row >= 0 { return false; }
+            main_row = row;
+        }
+        row = row + 1;
+    }
+    return main_row >= 0 &&
+        admitted.routines.routine_block_counts[main_row] >= 2;
+}
+
+func DirectMirReturnedArrayForEachProgramFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirReturnedArrayForEachProgramFact {
+    let invalid: DirectMirReturnedArrayForEachProgramFact =
+        DirectMirReturnedArrayForEachProgramFactEmpty();
+    let generic_specializations: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(
+            admitted.document.root, "generic_method_specializations"
+        );
+    if !DirectMirReturnedArrayForEachProgramCandidate(admitted) ||
+        !admitted.document.valid || admitted.domain_topology_plan.present ||
+        admitted.document.routines.json != admitted.routines.source_json ||
+        JsonObjectFactCount(admitted.document.root) != 5 ||
+        !MirProgramRoutineIndexStructureReady(admitted.routines) ||
+        !JsonArrayObjectFactTableReady(
+            admitted.document.parallel_capture_boundaries
+        ) || JsonArrayObjectFactCount(
+            admitted.document.parallel_capture_boundaries
+        ) != 0 || !JsonArrayObjectFactTableReady(generic_specializations) ||
+        JsonArrayObjectFactCount(generic_specializations) != 0 {
+        return invalid;
+    }
+    let main_row: Int = -1;
+    let producer_row: Int = -1;
+    let row: Int = 0;
+    while row < 2 {
+        if admitted.routines.names[row] == "Main" { main_row = row; }
+        else { producer_row = row; }
+        row = row + 1;
+    }
+    if main_row < 0 || producer_row < 0 ||
+        admitted.routines.kinds[main_row] != "function" ||
+        admitted.routines.owners[main_row] != "" ||
+        !DirectMirScalarCfgRoutineRouteClaimed(admitted, main_row) {
+        return invalid;
+    }
+    let main: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json, admitted.routines.starts[main_row],
+        admitted.routines.ends[main_row]
+    );
+    if !JsonObjectFactTableReady(main) ||
+        !JsonObjectFactStringFieldEquals(main, "name", "Main") ||
+        !JsonObjectFactStringFieldEquals(main, "kind", "function") ||
+        !JsonObjectFactStringFieldEquals(main, "return", "Void") ||
+        !DirectMirObjectArrayEmpty(main, "generics") ||
+        !DirectMirObjectArrayEmpty(main, "params") {
+        return invalid;
+    }
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, main_row
+    );
+    let iteration_count: Int =
+        DirectMirScalarCfgCollectionIterationCount(admitted, index);
+    let producer: DirectMirArrayIntProducerFact =
+        DirectMirArrayIntProducerFactFromRoutine(admitted, producer_row);
+    if !index.valid || iteration_count < 1 ||
+        !DirectMirArrayIntProducerFactReady(producer) {
+        return invalid;
+    }
+    let fact: DirectMirReturnedArrayForEachProgramFact =
+        DirectMirReturnedArrayForEachProgramFact(
+            true, 0, main_row,
+            ToInt(admitted.routines.source_syntax_ids[main_row]),
+            iteration_count, producer
+        );
+    let verified: DirectMirReturnedArrayForEachProgramFact =
+        DirectMirReturnedArrayForEachProgramFactWithDigest(
+            fact, DirectMirReturnedArrayForEachProgramFactDigest(fact)
+        );
+    if !DirectMirReturnedArrayForEachProgramFactReady(verified) {
+        return invalid;
+    }
+    return verified;
+}

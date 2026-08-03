@@ -1,5 +1,7 @@
-// One verified scalar CFG plan projected to either public backend.
+// One returned-array program identity composed with the existing scalar CFG
+// foreach receipt and projected through the shared C/LLVM emitters.
 
+import "direct_mir_returned_array_foreach_program_owner.pgy";
 import "direct_mir_scalar_cfg_graph_admission_owner.pgy";
 import "direct_mir_scalar_cfg_c_emission_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_emission_owner.pgy";
@@ -7,28 +9,31 @@ import "target_projection_fact_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "abi_layout_row_owner.pgy";
 
-func CompileAdmittedDirectMirScalarCfgForTarget(
+func CompileAdmittedDirectMirReturnedArrayForEachForTarget(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     target_projection: CompilerTargetProjectionFact
 ) -> String {
+    let program: DirectMirReturnedArrayForEachProgramFact =
+        DirectMirReturnedArrayForEachProgramFactFromAdmitted(admitted);
     let is_c: Bool = CompilerTargetProjectionFactReadyFor(
         target_projection, CompilerTargetCpuCProjection()
     );
     let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
         target_projection, CompilerTargetCpuLlvmProjection()
     );
-    if !is_c && !is_llvm {
-        Die("direct MIR scalar CFG projection rejected the target fact");
+    if !DirectMirReturnedArrayForEachProgramFactReady(program) ||
+        (!is_c && !is_llvm) {
+        Die("direct MIR returned Array<Int> foreach program is invalid");
     }
-    let producer: DirectMirArrayIntProducerFact =
-        DirectMirArrayIntProducerFactEmpty();
     let plan: DirectMirScalarCfgGraphPlan =
-        DirectMirScalarCfgGraphPlanFromAdmitted(admitted, 0, producer);
+        DirectMirScalarCfgGraphPlanFromAdmitted(
+            admitted, program.main_row, program.producer
+        );
     let formatted_print: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiFormattedPrintFact();
     if !DirectMirScalarCfgGraphPlanReady(plan) ||
         !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
-        Die("direct MIR scalar CFG plan or runtime ABI is incomplete");
+        Die("direct MIR returned Array<Int> foreach plan is incomplete");
     }
     let int_line_format: String = StringRuntimeCIntLineFormat();
     let string_line_format: String = StringRuntimeCStringLineFormat();

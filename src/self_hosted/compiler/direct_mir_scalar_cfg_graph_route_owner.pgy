@@ -1,17 +1,23 @@
 // Exact route classifier for the general scalar CFG graph plan.
-
 import "direct_mir_scalar_graph_admission_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
-
-func DirectMirScalarCfgGraphRouteClaimed(
-    ref admitted: MirMachineLayerAdmittedJsonInput
-) -> Bool {
-    if !DirectMirCfgProgramEnvelopeReady(admitted) ||
-        admitted.routines.routine_block_counts[0] < 2 {
+func DirectMirScalarCfgRoutineRouteClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput, routine_row: Int) -> Bool {
+    if !MirProgramRoutineIndexRowReady(admitted.routines, routine_row) ||
+        admitted.routines.kinds[routine_row] != "function" ||
+        admitted.routines.owners[routine_row] != "" ||
+        admitted.routines.routine_block_counts[routine_row] < 2 {
+        return false;
+    }
+    let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json, admitted.routines.starts[routine_row],
+        admitted.routines.ends[routine_row]
+    );
+    if !DirectMirRoutineHasNoUnsupportedFactsExceptLoop(routine) {
         return false;
     }
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
-        admitted.routines, 0
+        admitted.routines, routine_row
     );
     if !index.valid || ArrayLength(index.source_local_names) < 1 ||
         ArrayLength(index.source_local_names) !=
@@ -55,4 +61,10 @@ func DirectMirScalarCfgGraphRouteClaimed(
         row = row + 1;
     }
     return branch_seen;
+}
+func DirectMirScalarCfgGraphRouteClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    return DirectMirCfgProgramEnvelopeReady(admitted) &&
+        DirectMirScalarCfgRoutineRouteClaimed(admitted, 0);
 }

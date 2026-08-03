@@ -13941,6 +13941,18 @@ require_file \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_array_return_emission_owner.pgy" 240
 require_file \
+    "src/self_hosted/compiler/direct_mir_array_int_producer_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_array_int_producer_fact_owner.pgy" 200
+require_file \
+    "src/self_hosted/compiler/direct_mir_returned_array_foreach_program_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_returned_array_foreach_program_owner.pgy" 180
+require_file \
+    "src/self_hosted/compiler/direct_mir_returned_array_foreach_projection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_returned_array_foreach_projection_owner.pgy" 70
+require_file \
     "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" 80
@@ -15465,6 +15477,9 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_admission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_admission_owner.pgy" 280
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_owner.pgy" 160
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_local_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_local_owner.pgy" 180
@@ -15543,6 +15558,9 @@ require_max_lines \
 require_file "tests/self_hosted/parity/one_mir_scalar_cfg_foreach_array_int_projection.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_scalar_cfg_foreach_array_int_projection.sh" 180
+require_file "tests/self_hosted/parity/one_mir_returned_array_foreach_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_returned_array_foreach_projection.sh" 180
 require_file "tests/self_hosted/parity/one_mir_iteration_binding_scope_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_iteration_binding_scope_owner.sh" 160
@@ -15575,6 +15593,8 @@ require_text "tests/self_hosted/parity/one_mir_cfg_break_case.sh" \
     'one_mir_nested_iteration_continue_scope_owner.sh'
 require_text "tests/self_hosted/parity/one_mir_cfg_break_case.sh" \
     'one_mir_scalar_cfg_foreach_array_int_projection.sh'
+require_text "tests/self_hosted/parity/one_mir_cfg_break_case.sh" \
+    'one_mir_returned_array_foreach_projection.sh'
 require_text "tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh" \
     'nested_iteration_continue_shadow.pgy'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
@@ -15621,6 +15641,10 @@ require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_own
     'DirectMirScalarCfgLoopFlowFactsReady('
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
     'DirectMirScalarCfgForEachFactsFromOwners('
+require_text "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
+    'DirectMirReturnedArrayForEachProgramCandidate(admitted)'
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_set_owner.pgy" \
+    'DirectMirScalarCfgForEachStorageRow('
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
     'DirectMirScalarCfgConditionForEach()'
 reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_admission_owner.pgy" \
@@ -15648,7 +15672,7 @@ require_text "src/self_hosted/mir_lower/latest_local_value_fact_owner.pgy" \
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_operation_plan_owner.pgy" \
     'MirRoutineLatestDominatingLocalValueMatches('
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_projection_owner.pgy" \
-    'DirectMirScalarCfgGraphPlanFromAdmitted(admitted)'
+    'DirectMirScalarCfgGraphPlanFromAdmitted(admitted, 0, producer)'
 reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
     'nested_if_in_loop.pgy'
 reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
