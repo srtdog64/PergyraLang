@@ -1,8 +1,8 @@
 // Mutable four-field LLVM storage for the bounded Array<Int> receipt.
-
 import "direct_mir_array_int_abi_projection_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_llvm_storage_emission_owner.pgy";
-
+import "direct_mir_scalar_cfg_array_int_storage_state_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_llvm_initialization_owner.pgy";
 func DirectMirScalarCfgArrayIntLlvmDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan,
     target: CompilerTargetProjectionFact
@@ -19,7 +19,10 @@ func DirectMirScalarCfgArrayIntLlvmDeclarations(
             fact.allocator_offset
         );
     let capacity: String = ToString(
-        plan.array_int_loop_mutation.producer.bound
+        DirectMirScalarCfgArrayIntCapacity(plan.array_int_loop_mutation)
+    );
+    let initial_length: String = ToString(
+        DirectMirScalarCfgArrayIntInitialLength(plan.array_int_loop_mutation)
     );
     let output: String = Concat(
         "  %pgy.array.int.storage = alloca [", capacity
@@ -30,6 +33,8 @@ func DirectMirScalarCfgArrayIntLlvmDeclarations(
     ));
     output = Concat(output,
         " x i32], ptr %pgy.array.int.storage, i64 0, i64 0\n");
+    output = Concat(output,
+        DirectMirScalarCfgArrayIntLlvmInitialElements(fact));
     output = Concat(output, Concat(
         "  %pgy.array.int.object = alloca ", abi.llvm_aggregate_type
     ));
@@ -54,7 +59,9 @@ func DirectMirScalarCfgArrayIntLlvmDeclarations(
     output = Concat(output,
         "  store ptr %pgy.array.int.data, ptr %pgy.array.int.data.field, align 8\n");
     output = Concat(output,
-        "  store i64 0, ptr %pgy.array.int.length.field, align 8\n");
+        Concat("  store i64 ", initial_length));
+    output = Concat(output,
+        ", ptr %pgy.array.int.length.field, align 8\n");
     output = Concat(output, Concat("  store i64 ", capacity));
     output = Concat(output,
         ", ptr %pgy.array.int.capacity.field, align 8\n");

@@ -1,0 +1,53 @@
+// LLVM set and post-set indexed Log from the sealed static Array<Int> receipt.
+
+func DirectMirScalarCfgArrayIntLlvmSet(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> String {
+    let mutation: DirectMirScalarCfgArrayIntStaticMutationFact =
+        plan.array_int_loop_mutation.static_mutation;
+    if !mutation.valid || operation != mutation.set_operation_row {
+        Die("direct MIR scalar CFG Array<Int> LLVM set is invalid");
+    }
+    let stem: String = Concat("%pgy.op.", ToString(operation));
+    let output: String = Concat("  ", stem);
+    output = Concat(output,
+        ".set.ptr = getelementptr inbounds i32, ptr %pgy.array.int.data, i64 ");
+    output = Concat(output, Concat(ToString(mutation.set_index), "\n"));
+    output = Concat(output, Concat("  store i32 ",
+        ToString(mutation.set_value)));
+    return Concat(output, Concat(", ptr ", Concat(
+        stem, ".set.ptr, align 4\n"
+    )));
+}
+
+func DirectMirScalarCfgArrayIntLlvmIndexedLog(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact
+) -> String {
+    let mutation: DirectMirScalarCfgArrayIntStaticMutationFact =
+        plan.array_int_loop_mutation.static_mutation;
+    if !mutation.valid || operation !=
+            mutation.indexed_log_operation_row {
+        Die("direct MIR scalar CFG Array<Int> LLVM indexed Log is invalid");
+    }
+    let stem: String = Concat("%pgy.op.", ToString(operation));
+    let output: String = Concat("  ", stem);
+    output = Concat(output,
+        ".read.ptr = getelementptr inbounds i32, ptr %pgy.array.int.data, i64 ");
+    output = Concat(output, Concat(
+        ToString(mutation.indexed_log_index), "\n  "
+    ));
+    output = Concat(output, Concat(stem,
+        ".read.i32 = load i32, ptr "));
+    output = Concat(output, Concat(stem,
+        ".read.ptr, align 4\n  "));
+    output = Concat(output, Concat(stem,
+        ".read.i64 = sext i32 "));
+    output = Concat(output, Concat(stem, ".read.i32 to i64\n  "));
+    output = Concat(output, Concat(stem,
+        ".printed = call i32 (ptr, ...) @"));
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output,
+        "(ptr @.pgy.scalar.cfg.int.format, i64 ");
+    return Concat(output, Concat(stem, ".read.i64)\n"));
+}

@@ -10445,3 +10445,41 @@ Released/default replacement remains 0%.
   (`1496AA7537842ED4AECA0E417A3F0FE362E1A908147FD68FA4C7CE80087E7735`)
   is produced successfully, but both direct targets reject it with
   `direct MIR scalar CFG Array<Int> definition is invalid` before publication.
+
+## 2026-08-04 - initialized `Array<Int>` sum and static set substitute
+
+- Closed `src/self_hosted/codegen/fixture/array_sum.pgy` through the
+  current-source Pergyra-built direct C and LLVM routes. Its 12,383-byte MIR
+  (`1496AA7537842ED4AECA0E417A3F0FE362E1A908147FD68FA4C7CE80087E7735`)
+  emits 1,019-byte C
+  (`8FDDE2AD5D2A3E5906C62414E0E80056FA8C36855E5BFA878D7F1FF7631FD8E8`)
+  and 3,633-byte LLVM
+  (`1565F40A8B21C38E6CDAD498FB2A71ADA6CE2CAB2C8B33B6C9306F5C82B9B141`).
+  Both host-compile and execute exact `60`, `99`, then `3`.
+- The prior program receipt was generalized in place rather than duplicated.
+  Explicit dynamic-push and initialized-static-set modes are mutually exclusive
+  and the same target-neutral `GraphPlan` remains the only claimant. Literal
+  elements, current length/capacity, static mutation identity, operation order,
+  and target storage are owner facts; neither backend can retry the other mode.
+- C emits bounded initialized `int32_t[3]` storage behind the canonical public
+  object. LLVM emits `[3 x i32]`, explicit element stores, and one mutable
+  four-field object. Both use current length for the while guard and final log,
+  set element 1 before reading it, and call no native/runtime collection helper.
+- The focused gate passed baseline `60`/`99`/`3`, display and phi-order artifact
+  equality, four semantic graph variants, and 35 no-artifact C/LLVM negatives.
+  The prior dynamic-push gate, String mutation regression, current-source check,
+  and 261-second component/removed-path ratchet remained green. No existing line
+  cap was increased; responsibilities were split into named owners.
+- The final cumulative scalar-CFG integration passed in 348.268 seconds. Memory
+  was sampled only at this boundary: peak working set was 0.367 GiB and peak
+  private memory 0.323 GiB, below the 2.4 GiB attention and 3 GiB stop thresholds.
+  This is test-inclusive cumulative evidence, not a claim about ordinary compile
+  latency. Full CI, proof suites, public matrices, and current gen2==gen3 were
+  not run.
+- The next sole falsifier is `array_max.pgy`. Its 9,706-byte MIR
+  (`F3200219061C8257830EF18A2A0E201B4D2C4460E2384C05A204AD7144CE10F3`)
+  is produced successfully, but both targets reject before publication with
+  `direct MIR scalar CFG foreach local inventory is invalid`. The next owner
+  delta is a read-only initialized mode in the same Array program receipt,
+  followed by range/index/comparison/if/phi binding and exact `9`; fixture routes,
+  precomputed maxima, backend MIR reads, and plan retry remain forbidden.

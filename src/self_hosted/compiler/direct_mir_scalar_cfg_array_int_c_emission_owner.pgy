@@ -3,6 +3,8 @@
 import "direct_mir_array_int_abi_projection_owner.pgy";
 import "direct_mir_scalar_cfg_array_c_materialization_owner.pgy";
 import "direct_mir_scalar_cfg_c_operand_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_storage_state_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_c_storage_owner.pgy";
 
 func DirectMirScalarCfgArrayIntCPreamble(
     ref plan: DirectMirScalarCfgGraphPlan,
@@ -25,33 +27,6 @@ func DirectMirScalarCfgArrayIntCPreamble(
             abi.c_element_type, abi.c_length_type, "PgyArray_Int"
         )
     );
-}
-
-func DirectMirScalarCfgArrayIntCDeclarations(
-    ref plan: DirectMirScalarCfgGraphPlan,
-    target: CompilerTargetProjectionFact
-) -> String {
-    if DirectMirScalarCfgArrayIntLoopMutationAbsent(
-        plan.array_int_loop_mutation
-    ) { return ""; }
-    let fact: DirectMirScalarCfgArrayIntCollectionFact =
-        plan.array_int_loop_mutation.collection;
-    let abi: DirectMirArrayIntAbiProjection =
-        DirectMirArrayIntAbiProjectionFromCanonicalLayout(
-            target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
-            fact.data_offset, fact.length_offset, fact.capacity_offset,
-            fact.allocator_offset
-        );
-    let capacity: String = ToString(
-        plan.array_int_loop_mutation.producer.bound
-    );
-    let output: String = Concat("    ", abi.c_element_type);
-    output = Concat(output, Concat(
-        " pgy_array_int_storage[", Concat(capacity, "] = {0};\n"
-    )));
-    output = Concat(output,
-        "    PgyArray_Int pgy_array_int_collection = {pgy_array_int_storage, 0, ");
-    return Concat(output, Concat(capacity, ", NULL};\n"));
 }
 
 func DirectMirScalarCfgArrayIntCCondition(

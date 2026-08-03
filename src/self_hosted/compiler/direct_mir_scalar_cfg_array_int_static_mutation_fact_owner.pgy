@@ -1,0 +1,19 @@
+// Static post-loop Array<Int> set and indexed observation receipt.
+
+struct DirectMirScalarCfgArrayIntStaticMutationFact {
+    let valid: Bool;
+    let set_global_row: Int;
+    let set_index: Int;
+    let set_value: Int;
+    let indexed_log_global_row: Int;
+    let indexed_log_index: Int;
+    let set_operation_row: Int;
+    let indexed_log_operation_row: Int;
+}
+
+func DirectMirScalarCfgArrayIntStaticMutationFactEmpty(
+) -> DirectMirScalarCfgArrayIntStaticMutationFact {
+    return DirectMirScalarCfgArrayIntStaticMutationFact(
+        false, -1, -1, 0, -1, -1, -1, -1
+    );
+}

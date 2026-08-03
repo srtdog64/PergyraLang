@@ -2218,20 +2218,32 @@ inventory must not become a second fact-family owner registry.
   -- element-neutral exact `Log(ToString(ArrayLength(collection)))` graph. The
   String-named compatibility view delegates here and owns no second shape.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_collection_owner.pgy`,
-  `direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy`,
-  `direct_mir_scalar_cfg_array_int_graph_shape_owner.pgy`, and
-  `direct_mir_scalar_cfg_array_int_loop_mutation_admission_owner.pgy` -- one
-  empty public-ABI `Array<Int>` identity plus exact bounded producer while,
-  dynamic graph-owned push value, current-length consumer while, indexed sum,
+  `direct_mir_scalar_cfg_array_int_collection_admission_owner.pgy`,
+  `direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy`, and
+  `direct_mir_scalar_cfg_array_int_static_mutation_fact_owner.pgy` -- one
+  public-ABI `Array<Int>` identity and one program receipt with mutually
+  exclusive dynamic-push and initialized-static-set modes. Initial elements,
+  current length, capacity, and the optional set receipt are facts; a backend
+  cannot reinterpret an empty collection as initialized storage or vice versa.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_graph_shape_owner.pgy`,
+  `direct_mir_scalar_cfg_array_int_loop_mutation_admission_owner.pgy`,
+  `direct_mir_scalar_cfg_array_int_static_graph_owner.pgy`, and
+  `direct_mir_scalar_cfg_array_int_static_mutation_admission_owner.pgy` -- admit
+  either the bounded producer/push/consumer topology or the initialized
+  current-length while sum followed by one in-bounds set, indexed observation,
   and final length observation. `loop_flow_summary.effect_delta` is not mutation
-  authority; the receipt owns one push effect per admitted backedge.
+  authority, and the two modes are never tried as compatibility fallbacks.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_loop_mutation_binding_owner.pgy`,
+  `direct_mir_scalar_cfg_array_int_operation_binding_owner.pgy`,
   `direct_mir_scalar_cfg_array_int_loop_mutation_identity_owner.pgy`,
+  `direct_mir_scalar_cfg_array_int_static_mutation_identity_owner.pgy`,
   `direct_mir_scalar_cfg_array_int_expression_owner.pgy`, and
-  `direct_mir_scalar_cfg_array_int_loop_mutation_readiness_owner.pgy` -- bind
-  exact ValueId/operation rows, include the receipt in GraphPlan identity, and
-  prove zero/unit producer and consumer induction, push-before-step order,
-  accumulator recurrence, derived capacity, and C/LLVM operation shape.
+  the dynamic/static readiness owners -- bind exact ValueId/operation rows,
+  include the single receipt and explicit mode in `GraphPlan` identity, and
+  prove loop induction, accumulator recurrence, mutation ordering, derived
+  storage state, and target operation shape. The C/LLVM storage, initialization,
+  and static-operation owners consume that receipt without reopening MIR or
+  calling a native/runtime collection path.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy`,
   `direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy`,
   `direct_mir_scalar_cfg_string_array_plan_append_owner.pgy`, and

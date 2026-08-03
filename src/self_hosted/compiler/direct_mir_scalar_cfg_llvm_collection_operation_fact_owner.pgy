@@ -1,0 +1,6 @@
+// Result of one collection-owned LLVM operation projection.
+
+struct DirectMirScalarCfgLlvmCollectionOperationEmission {
+    let valid: Bool;
+    let text: String;
+}

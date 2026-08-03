@@ -94,3 +94,10 @@ PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
     bash "$ARRAY_INT_PUSH_GATE" || fail "Array<Int> loop-push receipt gate failed"
 
 echo "[$LABEL] bounded dynamic Array<Int> push and indexed sum share one receipt"
+
+ARRAY_INT_SUM_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir_array_int_sum_projection.sh"
+require_file "$ARRAY_INT_SUM_GATE"
+PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
+    bash "$ARRAY_INT_SUM_GATE" || fail "Array<Int> initialized-sum receipt gate failed"
+
+echo "[$LABEL] initialized Array<Int> sum and static set share one receipt"

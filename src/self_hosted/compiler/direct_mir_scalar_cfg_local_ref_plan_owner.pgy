@@ -5,6 +5,7 @@ import "direct_mir_scalar_cfg_foreach_local_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_local_inventory_owner.pgy";
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";

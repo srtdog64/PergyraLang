@@ -1,0 +1,27 @@
+// Shared typed source and instruction-use identity for Array<Int> plans.
+
+import "direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntSourceLocalReady(
+    ref index: MirRoutineFactIndex, name: String
+) -> Bool {
+    let found: Int = 0; let row: Int = 0;
+    while row < ArrayLength(index.source_local_names) {
+        if index.source_local_names[row] == name &&
+            index.source_local_types[row] ==
+                CompilerAbiLayoutArrayIntTypeName() { found = found + 1; }
+        row = row + 1;
+    }
+    return found == 1;
+}
+
+func DirectMirScalarCfgArrayIntUseAt(
+    ref uses: MirRoutineInstructionUseFacts, global_row: Int,
+    use_row: Int, wanted: String
+) -> Bool {
+    let value: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, global_row, use_row
+    );
+    return IsSome(value) && UnwrapOption(value) == wanted;
+}

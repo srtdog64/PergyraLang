@@ -1,0 +1,16 @@
+// Current-length condition projected from the sealed Array<Int> receipt.
+
+import "direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy";
+import "direct_mir_scalar_cfg_expression_owner.pgy";
+
+func DirectMirScalarCfgArrayIntLengthConditionFact(
+    ref fact: DirectMirScalarCfgArrayIntLoopMutationFact, global_row: Int
+) -> DirectMirScalarCfgExpressionFact {
+    if !fact.valid || global_row != fact.consumer.length_global_row {
+        return DirectMirScalarCfgExpressionFactEmpty();
+    }
+    return DirectMirScalarCfgExpressionFact(
+        true, DirectMirScalarCfgConditionLess(),
+        fact.consumer.index_value_row, -1, -1, -1, "", ""
+    );
+}

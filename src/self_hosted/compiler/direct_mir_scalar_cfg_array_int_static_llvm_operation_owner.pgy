@@ -1,0 +1,24 @@
+// LLVM operation routing owned by the sealed static Array<Int> mode.
+
+import "direct_mir_scalar_cfg_array_int_static_llvm_emission_owner.pgy";
+import "direct_mir_scalar_cfg_llvm_collection_operation_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntStaticLlvmOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact
+) -> DirectMirScalarCfgLlvmCollectionOperationEmission {
+    let kind: Int = plan.operation_kinds[operation];
+    if kind == DirectMirScalarCfgOpArraySetInt() {
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(
+            true, DirectMirScalarCfgArrayIntLlvmSet(plan, operation)
+        );
+    }
+    if kind == DirectMirScalarCfgOpLogArrayIndexInt() {
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(
+            true, DirectMirScalarCfgArrayIntLlvmIndexedLog(
+                plan, operation, formatted_print
+            )
+        );
+    }
+    return DirectMirScalarCfgLlvmCollectionOperationEmission(false, "");
+}

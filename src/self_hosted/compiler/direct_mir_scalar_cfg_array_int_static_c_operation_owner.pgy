@@ -1,0 +1,25 @@
+// C operation routing owned by the sealed static Array<Int> mode.
+
+import "direct_mir_scalar_cfg_array_int_static_c_emission_owner.pgy";
+import "direct_mir_scalar_cfg_c_collection_operation_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntStaticCOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    int_line_format: String, int_c_type: String
+) -> DirectMirScalarCfgCCollectionOperationEmission {
+    let kind: Int = plan.operation_kinds[operation];
+    if kind == DirectMirScalarCfgOpArraySetInt() {
+        return DirectMirScalarCfgCCollectionOperationEmission(
+            true, DirectMirScalarCfgArrayIntCSet(plan, operation)
+        );
+    }
+    if kind == DirectMirScalarCfgOpLogArrayIndexInt() {
+        return DirectMirScalarCfgCCollectionOperationEmission(
+            true, DirectMirScalarCfgArrayIntCIndexedLog(
+                plan, operation, formatted_print, int_line_format, int_c_type
+            )
+        );
+    }
+    return DirectMirScalarCfgCCollectionOperationEmission(false, "");
+}

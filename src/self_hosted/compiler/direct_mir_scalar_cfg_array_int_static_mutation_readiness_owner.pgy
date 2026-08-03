@@ -1,0 +1,95 @@
+// Final sealed-plan readiness for initialized Array<Int> sum and static set.
+
+import "direct_mir_scalar_cfg_array_int_consumer_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_array_sealed_guard_owner.pgy";
+import "direct_mir_scalar_cfg_operation_position_owner.pgy";
+
+func DirectMirScalarCfgArrayIntStaticMutationReady(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let fact: DirectMirScalarCfgArrayIntLoopMutationFact =
+        plan.array_int_loop_mutation;
+    let c: DirectMirScalarCfgArrayIntConsumerFact = fact.consumer;
+    let mutation: DirectMirScalarCfgArrayIntStaticMutationFact =
+        fact.static_mutation;
+    let values: Int = ArrayLength(plan.value_names);
+    let operations: Int = ArrayLength(plan.operation_kinds);
+    let length: Int = ArrayLength(fact.collection.elements);
+    if !fact.valid || fact.mode !=
+            DirectMirScalarCfgArrayIntStaticSetMode() ||
+        !DirectMirScalarCfgArrayIntCollectionFactReady(fact.collection) ||
+        length < 1 || fact.producer.valid || !c.valid || !mutation.valid ||
+        c.index_value_row < 0 || c.index_value_row >= values ||
+        c.sum_left_value_row < 0 || c.sum_left_value_row >= values ||
+        c.read_result_value_row < 0 || c.read_result_value_row >= values ||
+        c.read_operation_row < 0 || c.read_operation_row >= operations ||
+        c.length_log_operation_row < 0 ||
+        c.length_log_operation_row >= operations ||
+        mutation.set_operation_row < 0 ||
+        mutation.set_operation_row >= operations ||
+        mutation.indexed_log_operation_row < 0 ||
+        mutation.indexed_log_operation_row >= operations ||
+        mutation.set_index < 0 || mutation.set_index >= length ||
+        mutation.indexed_log_index < 0 ||
+        mutation.indexed_log_index >= length ||
+        !DirectMirScalarCfgArrayIntElementValueReady(mutation.set_value) ||
+        plan.value_names[c.index_value_row] != c.index_value_id ||
+        plan.value_names[c.sum_left_value_row] != c.sum_left_value_id ||
+        plan.value_names[c.read_result_value_row] != c.read_result_value_id ||
+        plan.value_types[c.index_value_row] != "Int" ||
+        plan.value_types[c.sum_left_value_row] != "Int" ||
+        plan.value_types[c.read_result_value_row] != "Int" ||
+        plan.value_local_rows[c.sum_left_value_row] !=
+            plan.value_local_rows[c.read_result_value_row] { return false; }
+    if c.header_block < 0 || c.body_block < 0 || c.exit_block < 0 ||
+        plan.block_succ_true[c.header_block] != c.body_block ||
+        plan.block_succ_false[c.header_block] != c.exit_block ||
+        plan.block_succ_true[c.body_block] != c.header_block ||
+        plan.block_succ_false[c.body_block] >= 0 ||
+        plan.block_succ_true[c.exit_block] >= 0 ||
+        plan.block_succ_false[c.exit_block] >= 0 ||
+        !DirectMirScalarCfgSealedArrayGuardEdgeReady(
+            plan, c.header_block, c.body_block
+        ) { return false; }
+    if plan.block_condition_kinds[c.header_block] !=
+            DirectMirScalarCfgConditionLess() ||
+        plan.block_condition_left_values[c.header_block] !=
+            c.index_value_row ||
+        plan.block_condition_right_values[c.header_block] != -1 ||
+        plan.block_condition_right_locals[c.header_block] != -1 ||
+        plan.block_condition_right_literals[c.header_block] != "" {
+        return false;
+    }
+    if plan.operation_kinds[c.read_operation_row] !=
+            DirectMirScalarCfgOpAddArrayReadInt() ||
+        plan.operation_result_values[c.read_operation_row] !=
+            c.read_result_value_row ||
+        plan.operation_left_values[c.read_operation_row] !=
+            c.sum_left_value_row ||
+        plan.operation_right_values[c.read_operation_row] !=
+            c.index_value_row ||
+        DirectMirScalarCfgOperationBlock(plan, c.read_operation_row) !=
+            c.body_block ||
+        plan.operation_kinds[mutation.set_operation_row] !=
+            DirectMirScalarCfgOpArraySetInt() ||
+        plan.operation_kinds[mutation.indexed_log_operation_row] !=
+            DirectMirScalarCfgOpLogArrayIndexInt() ||
+        plan.operation_kinds[c.length_log_operation_row] !=
+            DirectMirScalarCfgOpLogArrayLength() ||
+        DirectMirScalarCfgOperationBlock(
+            plan, mutation.set_operation_row
+        ) != c.exit_block ||
+        DirectMirScalarCfgOperationBlock(
+            plan, mutation.indexed_log_operation_row
+        ) != c.exit_block ||
+        DirectMirScalarCfgOperationBlock(
+            plan, c.length_log_operation_row
+        ) != c.exit_block ||
+        mutation.set_operation_row >=
+            mutation.indexed_log_operation_row ||
+        mutation.indexed_log_operation_row >=
+            c.length_log_operation_row { return false; }
+    return DirectMirScalarCfgWhileInductionZeroUnitReady(
+        plan, c.index_value_row
+    ) && DirectMirScalarCfgArrayIntSumPhiReady(plan, fact);
+}

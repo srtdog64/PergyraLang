@@ -1,0 +1,26 @@
+// Unique guarded edge over the sealed target-neutral GraphPlan.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarCfgSealedArrayGuardEdgeReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    guard_block: Int, access_block: Int
+) -> Bool {
+    if guard_block < 0 || guard_block >= ArrayLength(
+            plan.block_succ_true
+        ) || access_block < 0 || access_block >= ArrayLength(
+            plan.block_succ_true
+        ) || plan.block_succ_true[guard_block] != access_block {
+        return false;
+    }
+    let predecessor_count: Int = 0;
+    let predecessor: Int = 0;
+    while predecessor < ArrayLength(plan.block_succ_true) {
+        if plan.block_succ_true[predecessor] == access_block ||
+            plan.block_succ_false[predecessor] == access_block {
+            predecessor_count = predecessor_count + 1;
+        }
+        predecessor = predecessor + 1;
+    }
+    return predecessor_count == 1;
+}

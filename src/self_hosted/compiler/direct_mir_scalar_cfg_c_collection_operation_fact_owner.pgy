@@ -1,0 +1,6 @@
+// Result of one collection-owned C operation projection.
+
+struct DirectMirScalarCfgCCollectionOperationEmission {
+    let valid: Bool;
+    let text: String;
+}

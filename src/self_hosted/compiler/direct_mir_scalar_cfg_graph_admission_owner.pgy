@@ -9,6 +9,7 @@ import "direct_mir_scalar_cfg_string_expression_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_expression_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_binding_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_loop_mutation_binding_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_collection_expression_owner.pgy";
 import "../mir_lower/phi_predecessor_binding_fact_owner.pgy";
 func DirectMirScalarCfgGraphPlanFromAdmitted(

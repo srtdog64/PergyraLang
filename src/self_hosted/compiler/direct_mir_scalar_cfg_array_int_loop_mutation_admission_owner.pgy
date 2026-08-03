@@ -1,35 +1,14 @@
 // Source admission for one empty Array<Int> mutated by a bounded while loop.
 
 import "direct_mir_scalar_cfg_array_int_graph_shape_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_collection_admission_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_source_identity_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_static_mutation_admission_owner.pgy";
 import "direct_mir_scalar_cfg_array_length_log_graph_owner.pgy";
 import "direct_mir_scalar_cfg_instruction_graph_owner.pgy";
 import "direct_mir_scalar_cfg_instruction_position_owner.pgy";
 import "direct_mir_scalar_cfg_foreach_set_owner.pgy";
 import "../mir_lower/routine_definition_dominance_fact_owner.pgy";
-
-func DirectMirScalarCfgArrayIntSourceLocalReady(
-    ref index: MirRoutineFactIndex, name: String
-) -> Bool {
-    let found: Int = 0; let row: Int = 0;
-    while row < ArrayLength(index.source_local_names) {
-        if index.source_local_names[row] == name &&
-            index.source_local_types[row] == CompilerAbiLayoutArrayIntTypeName() {
-            found = found + 1;
-        }
-        row = row + 1;
-    }
-    return found == 1;
-}
-
-func DirectMirScalarCfgArrayIntUseAt(
-    ref uses: MirRoutineInstructionUseFacts, global_row: Int,
-    use_row: Int, wanted: String
-) -> Bool {
-    let value: Option<String> = MirRoutineInstructionUseAtGlobal(
-        uses, global_row, use_row
-    );
-    return IsSome(value) && UnwrapOption(value) == wanted;
-}
 
 func DirectMirScalarCfgArrayIntLoopMutationFromOwners(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -74,6 +53,11 @@ func DirectMirScalarCfgArrayIntLoopMutationFromOwners(
         instruction = instruction + 1;
     }
     if !collection.valid { return empty; }
+    if ArrayLength(collection.elements) > 0 {
+        return DirectMirScalarCfgArrayIntStaticMutationFromOwners(
+            admitted, index, uses, collection
+        );
+    }
     let producer_header: Int = -1; let producer_body: Int = -1;
     let producer_exit: Int = -1; let bound: Int = 0;
     let induction_id: String = ""; let push_global: Int = -1;
@@ -257,7 +241,7 @@ func DirectMirScalarCfgArrayIntLoopMutationFromOwners(
             log_position.block, log_position.local
         ) { return empty; }
     return DirectMirScalarCfgArrayIntLoopMutationFact(
-        true, collection,
+        true, DirectMirScalarCfgArrayIntDynamicPushMode(), collection,
         DirectMirScalarCfgArrayIntProducerFact(
             true, producer_header, producer_body, producer_exit, bound,
             push_global, push_kind, induction_id, -1, -1
@@ -266,6 +250,6 @@ func DirectMirScalarCfgArrayIntLoopMutationFromOwners(
             true, consumer_header, consumer_body, consumer_exit,
             length_global, read_global, length_log_global, index_id, -1,
             sum_id, -1, read_result, -1, -1, -1
-        )
+        ), DirectMirScalarCfgArrayIntStaticMutationFactEmpty()
     );
 }

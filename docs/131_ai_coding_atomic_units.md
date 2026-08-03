@@ -387,6 +387,17 @@ current length, read identity, and ABI before artifact publication. Exact
 `30`/`5` parity is supporting evidence; the important architecture evidence is
 that those mutations cannot be accepted by a hidden alternate route.
 
+The initialized `Array<Int>` sum/set rung then tested whether that architecture
+would survive extension. It did not add another fixture planner. The same
+program receipt gained explicit, mutually exclusive dynamic-push and
+initialized-static-set modes, and the existing `GraphPlan` remained the sole
+target-neutral claimant. C and LLVM consume the selected receipt; neither tries
+the other mode after rejection. Exact `60`/`99`/`3` execution matters, but the
+stronger evidence is that 35 graph, identity, topology, order, length, ABI, and
+extra-use mutations publish no artifact and cannot escape through the older
+dynamic path. This is the architectural ratchet the external anecdote says AI
+does not supply on its own.
+
 The lesson is that consistency tests constrain language surface;
 owner/consumer/fallback gates constrain compiler architecture. The external
 comment is therefore a warning signal, while the two executable rungs are the

@@ -1,0 +1,27 @@
+// Definition, source-local, and operation lookup over one Array<Int> receipt.
+
+import "direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntOwnsDefinition(
+    ref fact: DirectMirScalarCfgArrayIntLoopMutationFact, global_row: Int
+) -> Bool {
+    return fact.valid && fact.collection.definition_global_row == global_row;
+}
+
+func DirectMirScalarCfgArrayIntOwnsSourceLocal(
+    ref fact: DirectMirScalarCfgArrayIntLoopMutationFact,
+    name: String, type_name: String
+) -> Bool {
+    return fact.valid && fact.collection.collection_name == name &&
+        type_name == CompilerAbiLayoutArrayIntTypeName();
+}
+
+func DirectMirScalarCfgArrayIntOperationGlobal(
+    ref fact: DirectMirScalarCfgArrayIntLoopMutationFact, global_row: Int
+) -> Bool {
+    return fact.valid && (fact.producer.push_global_row == global_row ||
+        fact.consumer.read_global_row == global_row ||
+        fact.consumer.length_log_global_row == global_row ||
+        fact.static_mutation.set_global_row == global_row ||
+        fact.static_mutation.indexed_log_global_row == global_row);
+}

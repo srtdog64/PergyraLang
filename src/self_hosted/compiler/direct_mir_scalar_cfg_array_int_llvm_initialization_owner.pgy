@@ -1,0 +1,27 @@
+// LLVM element initialization from the sealed Array<Int> collection fact.
+
+import "direct_mir_scalar_cfg_array_int_collection_owner.pgy";
+
+func DirectMirScalarCfgArrayIntLlvmInitialElements(
+    ref fact: DirectMirScalarCfgArrayIntCollectionFact
+) -> String {
+    let output: String = ""; let element: Int = 0;
+    while element < ArrayLength(fact.elements) {
+        output = Concat(output, Concat(
+            "  %pgy.array.int.init.", ToString(element)
+        ));
+        output = Concat(output, Concat(
+            " = getelementptr inbounds i32, ptr %pgy.array.int.data, i64 ",
+            Concat(ToString(element), "\n")
+        ));
+        output = Concat(output, Concat(
+            "  store i32 ", ToString(fact.elements[element])
+        ));
+        output = Concat(output, Concat(
+            ", ptr %pgy.array.int.init.",
+            Concat(ToString(element), ", align 4\n")
+        ));
+        element = element + 1;
+    }
+    return output;
+}

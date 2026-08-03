@@ -2,11 +2,8 @@
 
 import "direct_mir_scalar_cfg_string_array_c_mutation_emission_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_c_emission_owner.pgy";
-
-struct DirectMirScalarCfgCCollectionOperationEmission {
-    let valid: Bool;
-    let text: String;
-}
+import "direct_mir_scalar_cfg_array_int_static_c_operation_owner.pgy";
+import "direct_mir_scalar_cfg_c_collection_operation_fact_owner.pgy";
 
 func DirectMirScalarCfgEmitCCollectionOperation(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
@@ -34,6 +31,11 @@ func DirectMirScalarCfgEmitCCollectionOperation(
             true, DirectMirScalarCfgArrayIntCRead(plan, operation)
         );
     }
+    let static_array_int: DirectMirScalarCfgCCollectionOperationEmission =
+        DirectMirScalarCfgArrayIntStaticCOperation(
+            plan, operation, formatted_print, int_line_format, int_c_type
+        );
+    if static_array_int.valid { return static_array_int; }
     if kind == DirectMirScalarCfgOpLogArrayLength() {
         if operation == plan.array_int_loop_mutation.consumer.
                 length_log_operation_row {

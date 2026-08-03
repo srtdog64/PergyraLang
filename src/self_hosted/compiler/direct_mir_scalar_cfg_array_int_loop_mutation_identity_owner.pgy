@@ -1,18 +1,17 @@
 // Stable target-neutral identity for one Array<Int> loop-mutation receipt.
-
 import "direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy";
 import "direct_mir_scalar_cfg_hash_owner.pgy";
-
+import "direct_mir_scalar_cfg_array_int_static_mutation_identity_owner.pgy";
 func DirectMirScalarCfgArrayIntLoopMutationDigest(
     ref fact: DirectMirScalarCfgArrayIntLoopMutationFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(
-        389L, fact.collection.definition_global_row
-    );
+    let hash: Long = DirectMirCfgHashInt(389L, fact.mode);
+    hash = DirectMirCfgHashInt(hash, fact.collection.definition_global_row);
     hash = DirectMirCfgHashString(hash, fact.collection.collection_value_id);
     hash = DirectMirCfgHashString(hash, fact.collection.collection_name);
     hash = DirectMirCfgHashString(hash, fact.collection.storage_identity);
+    hash = DirectMirScalarCfgHashInts(hash, fact.collection.elements);
     hash = DirectMirCfgHashInt(hash, fact.collection.abi_layout_id);
     hash = DirectMirCfgHashInt(hash, fact.collection.abi_size);
     hash = DirectMirCfgHashInt(hash, fact.collection.abi_align);
@@ -43,5 +42,8 @@ func DirectMirScalarCfgArrayIntLoopMutationDigest(
     hash = DirectMirCfgHashInt(hash, fact.consumer.read_result_value_row);
     hash = DirectMirCfgHashInt(hash, fact.consumer.read_operation_row);
     hash = DirectMirCfgHashInt(hash, fact.consumer.length_log_operation_row);
+    hash = DirectMirScalarCfgArrayIntStaticMutationDigestComponent(
+        hash, fact.static_mutation
+    );
     return DirectMirCfgBoundedDigest(hash);
 }

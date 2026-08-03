@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_cfg_array_int_loop_mutation_fact_owner.pgy";
 import "direct_mir_scalar_cfg_expression_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_condition_expression_owner.pgy";
 
 func DirectMirScalarCfgArrayIntExpressionFact(
     ref fact: DirectMirScalarCfgArrayIntLoopMutationFact, global_row: Int
@@ -27,17 +28,17 @@ func DirectMirScalarCfgArrayIntExpressionFact(
             -1, -1, -1, -1, "", ""
         );
     }
-    return DirectMirScalarCfgExpressionFactEmpty();
-}
-
-func DirectMirScalarCfgArrayIntLengthConditionFact(
-    ref fact: DirectMirScalarCfgArrayIntLoopMutationFact, global_row: Int
-) -> DirectMirScalarCfgExpressionFact {
-    if !fact.valid || global_row != fact.consumer.length_global_row {
-        return DirectMirScalarCfgExpressionFactEmpty();
+    if global_row == fact.static_mutation.set_global_row {
+        return DirectMirScalarCfgExpressionFact(
+            true, DirectMirScalarCfgOpArraySetInt(),
+            -1, -1, -1, -1, "", ""
+        );
     }
-    return DirectMirScalarCfgExpressionFact(
-        true, DirectMirScalarCfgConditionLess(),
-        fact.consumer.index_value_row, -1, -1, -1, "", ""
-    );
+    if global_row == fact.static_mutation.indexed_log_global_row {
+        return DirectMirScalarCfgExpressionFact(
+            true, DirectMirScalarCfgOpLogArrayIndexInt(),
+            -1, -1, -1, -1, "", ""
+        );
+    }
+    return DirectMirScalarCfgExpressionFactEmpty();
 }

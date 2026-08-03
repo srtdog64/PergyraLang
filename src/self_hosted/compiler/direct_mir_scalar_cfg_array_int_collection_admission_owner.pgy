@@ -1,0 +1,61 @@
+// One graph/ABI admission for empty or initialized Array<Int> collection facts.
+
+import "direct_mir_scalar_cfg_array_int_collection_owner.pgy";
+import "direct_mir_array_int_graph_fact_owner.pgy";
+import "direct_mir_array_literal_spine_owner.pgy";
+import "direct_mir_scalar_cfg_collection_definition_owner.pgy";
+import "direct_mir_scalar_graph_admission_owner.pgy";
+
+func DirectMirScalarCfgArrayIntCollectionFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    definition: MirRoutineResultDefinitionFact,
+    declaration: MirRoutineInstructionScalarCapture
+) -> DirectMirScalarCfgArrayIntCollectionFact {
+    let invalid: DirectMirScalarCfgArrayIntCollectionFact =
+        DirectMirScalarCfgArrayIntCollectionFactEmpty();
+    if !DirectMirScalarCfgCollectionDefinitionReady(
+        admitted, index, use_facts, wire, definition, declaration,
+        declaration.result, declaration.arg0
+    ) || declaration.abi_type_name !=
+            CompilerAbiLayoutArrayIntTypeName() { return invalid; }
+    let abi_opt: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            admitted.routines.source_json, declaration.abi_type_name,
+            declaration.abi_type_value_ready, declaration.abi_type_start,
+            declaration.abi_type_end, declaration.abi_layout_id_start,
+            declaration.abi_layout_id_end,
+            declaration.abi_layout_required_start,
+            declaration.abi_layout_required_end,
+            declaration.abi_layout_start, declaration.abi_layout_end
+        );
+    if !IsSome(abi_opt) { return invalid; }
+    let abi: MirAbiLayoutRowCapture = UnwrapOption(abi_opt);
+    if !DirectMirArrayIntCapturedAbiReady(abi) { return invalid; }
+    let expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions,
+            definition.global_row
+        );
+    let graph: MirExpressionGraphSequence =
+        DirectMirArrayIntGraphFromExpressionFact(
+            admitted.routines.source_json, expression, 0
+        );
+    let elements: Array<Int> = [];
+    if !DirectMirArrayLiteralEmptyReady(graph) {
+        elements = DirectMirArrayIntLiteralElements(graph);
+    }
+    let fact: DirectMirScalarCfgArrayIntCollectionFact =
+        DirectMirScalarCfgArrayIntCollectionFact(
+            true, definition.global_row, declaration.result,
+            declaration.arg0, Concat("local-array:", declaration.result),
+            elements, MirAbiLayoutIdFromCapture(abi),
+            ToInt(abi.size_text), ToInt(abi.align_text),
+            ToInt(abi.field_offsets[0]), ToInt(abi.field_offsets[1]),
+            ToInt(abi.field_offsets[2]), ToInt(abi.field_offsets[3])
+        );
+    if !DirectMirScalarCfgArrayIntCollectionFactReady(fact) { return invalid; }
+    return fact;
+}

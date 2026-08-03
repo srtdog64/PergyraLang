@@ -1,0 +1,16 @@
+// Digest component for the static Array<Int> mutation receipt.
+
+import "direct_mir_scalar_cfg_array_int_static_mutation_fact_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+
+func DirectMirScalarCfgArrayIntStaticMutationDigestComponent(
+    hash: Long, ref fact: DirectMirScalarCfgArrayIntStaticMutationFact
+) -> Long {
+    hash = DirectMirCfgHashInt(hash, fact.set_global_row);
+    hash = DirectMirCfgHashInt(hash, fact.set_index);
+    hash = DirectMirCfgHashInt(hash, fact.set_value);
+    hash = DirectMirCfgHashInt(hash, fact.indexed_log_global_row);
+    hash = DirectMirCfgHashInt(hash, fact.indexed_log_index);
+    hash = DirectMirCfgHashInt(hash, fact.set_operation_row);
+    return DirectMirCfgHashInt(hash, fact.indexed_log_operation_row);
+}
