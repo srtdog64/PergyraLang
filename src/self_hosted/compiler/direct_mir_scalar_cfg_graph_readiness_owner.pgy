@@ -1,0 +1,225 @@
+// Readiness and mutation ratchet for a sealed scalar CFG plan.
+
+import "direct_mir_scalar_cfg_graph_identity_owner.pgy";
+
+func DirectMirScalarCfgOperandCount(
+    value: Int, local: Int, literal: String
+) -> Int {
+    let count: Int = 0;
+    if value >= 0 { count = count + 1; }
+    if local >= 0 { count = count + 1; }
+    if literal != "" { count = count + 1; }
+    return count;
+}
+
+func DirectMirScalarCfgGraphPlanReady(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let local_count: Int = ArrayLength(plan.local_names);
+    let value_count: Int = ArrayLength(plan.value_names);
+    let block_count: Int = ArrayLength(plan.block_succ_true);
+    let operation_count: Int = ArrayLength(plan.operation_kinds);
+    if !plan.valid || plan.schema != DirectMirScalarCfgGraphPlanSchema() ||
+        plan.revision != CompilerArtifactPlanRevision() || plan.digest == 0 ||
+        plan.digest != DirectMirScalarCfgGraphPlanDigest(plan) ||
+        plan.mir_digest == 0 || plan.cfg_digest == 0 || local_count < 1 ||
+        block_count < 2 || operation_count < 1 ||
+        value_count != ArrayLength(plan.value_local_rows) ||
+        value_count != ArrayLength(plan.value_definition_blocks) ||
+        block_count != ArrayLength(plan.block_succ_false) ||
+        block_count != ArrayLength(plan.block_operation_starts) ||
+        block_count != ArrayLength(plan.block_operation_counts) ||
+        block_count != ArrayLength(plan.block_condition_kinds) ||
+        block_count != ArrayLength(plan.block_condition_left_values) ||
+        block_count != ArrayLength(plan.block_condition_right_values) ||
+        block_count != ArrayLength(plan.block_condition_left_locals) ||
+        block_count != ArrayLength(plan.block_condition_right_locals) ||
+        block_count != ArrayLength(plan.block_condition_left_literals) ||
+        block_count != ArrayLength(plan.block_condition_right_literals) ||
+        operation_count != ArrayLength(plan.operation_result_values) ||
+        operation_count != ArrayLength(plan.operation_left_values) ||
+        operation_count != ArrayLength(plan.operation_right_values) ||
+        operation_count != ArrayLength(plan.operation_left_locals) ||
+        operation_count != ArrayLength(plan.operation_right_locals) ||
+        operation_count != ArrayLength(plan.operation_left_literals) ||
+        operation_count != ArrayLength(plan.operation_right_literals) ||
+        operation_count != ArrayLength(plan.operation_phi_starts) ||
+        operation_count != ArrayLength(plan.operation_phi_counts) ||
+        ArrayLength(plan.phi_predecessor_blocks) !=
+            ArrayLength(plan.phi_incoming_values) ||
+        plan.target_schema != CompilerTargetCapabilitySchema() ||
+        plan.target_fingerprint != CompilerTargetCapabilityFingerprint() {
+        return false;
+    }
+    let value: Int = 0;
+    while value < value_count {
+        if StringLength(plan.value_names[value]) == 0 ||
+            plan.value_local_rows[value] < 0 ||
+            plan.value_local_rows[value] >= local_count ||
+            plan.value_definition_blocks[value] < 0 ||
+            plan.value_definition_blocks[value] >= block_count {
+            return false;
+        }
+        value = value + 1;
+    }
+    let expected_operation: Int = 0;
+    let block: Int = 0;
+    while block < block_count {
+        let true_target: Int = plan.block_succ_true[block];
+        let false_target: Int = plan.block_succ_false[block];
+        let condition: Int = plan.block_condition_kinds[block];
+        let left_value: Int = plan.block_condition_left_values[block];
+        let right_value: Int = plan.block_condition_right_values[block];
+        let left_local: Int = plan.block_condition_left_locals[block];
+        let right_local: Int = plan.block_condition_right_locals[block];
+        let left_literal: String =
+            plan.block_condition_left_literals[block];
+        let right_literal: String =
+            plan.block_condition_right_literals[block];
+        if plan.block_operation_starts[block] != expected_operation ||
+            plan.block_operation_counts[block] < 0 ||
+            true_target < -1 || true_target >= block_count ||
+            false_target < -1 || false_target >= block_count ||
+            condition < DirectMirScalarCfgConditionNone() ||
+            condition > DirectMirScalarCfgConditionGreater() ||
+            left_value < -1 || right_value < -1 ||
+            left_local < -1 || right_local < -1 ||
+            left_value >= value_count || right_value >= value_count ||
+            left_local >= local_count || right_local >= local_count {
+            return false;
+        }
+        if condition == DirectMirScalarCfgConditionNone() {
+            if false_target >= 0 || DirectMirScalarCfgOperandCount(
+                    left_value, left_local, left_literal
+                ) != 0 || DirectMirScalarCfgOperandCount(
+                    right_value, right_local, right_literal
+                ) != 0 {
+                return false;
+            }
+        } else if true_target < 0 ||
+            DirectMirScalarCfgOperandCount(
+                left_value, left_local, left_literal
+            ) != 1 || (condition == DirectMirScalarCfgConditionBool() &&
+                (right_value >= 0 || right_local >= 0 ||
+                 right_literal != "" ||
+                 (left_literal != "true" && left_literal != "false"))) ||
+            (condition != DirectMirScalarCfgConditionBool() &&
+                DirectMirScalarCfgOperandCount(
+                    right_value, right_local, right_literal
+                ) != 1) {
+            return false;
+        }
+        expected_operation = expected_operation +
+            plan.block_operation_counts[block];
+        block = block + 1;
+    }
+    if expected_operation != operation_count { return false; }
+    let expected_phi: Int = 0;
+    let operation: Int = 0;
+    while operation < operation_count {
+        let kind: Int = plan.operation_kinds[operation];
+        let result: Int = plan.operation_result_values[operation];
+        let left: Int = plan.operation_left_values[operation];
+        let right: Int = plan.operation_right_values[operation];
+        let left_local: Int = plan.operation_left_locals[operation];
+        let right_local: Int = plan.operation_right_locals[operation];
+        let left_literal: String = plan.operation_left_literals[operation];
+        let right_literal: String = plan.operation_right_literals[operation];
+        let left_count: Int = DirectMirScalarCfgOperandCount(
+            left, left_local, left_literal
+        );
+        let right_count: Int = DirectMirScalarCfgOperandCount(
+            right, right_local, right_literal
+        );
+        let phi_count: Int = plan.operation_phi_counts[operation];
+        if kind < DirectMirScalarCfgOpConstInt() ||
+            kind > DirectMirScalarCfgOpLogString() || result < -1 ||
+            left < -1 || right < -1 || left_local < -1 ||
+            right_local < -1 || result >= value_count ||
+            left >= value_count || right >= value_count ||
+            left_local >= local_count || right_local >= local_count ||
+            plan.operation_phi_starts[operation] != expected_phi ||
+            phi_count < 0 {
+            return false;
+        }
+        if kind == DirectMirScalarCfgOpPhiInt() {
+            if result < 0 || phi_count < 2 || left_count != 0 ||
+                right_count != 0 {
+                return false;
+            }
+        } else if phi_count != 0 ||
+            (kind == DirectMirScalarCfgOpConstInt() &&
+                (result < 0 || left >= 0 || left_local >= 0 ||
+                 left_literal == "" || right_count != 0)) ||
+            (kind == DirectMirScalarCfgOpCopyInt() &&
+                (result < 0 || left_count != 1 || right_count != 0)) ||
+            (kind == DirectMirScalarCfgOpAddInt() &&
+                (result < 0 || left_count != 1 || right_count != 1)) ||
+            (kind == DirectMirScalarCfgOpLogInt() &&
+                (result >= 0 || left_count != 1 || right_count != 0)) ||
+            (kind == DirectMirScalarCfgOpLogString() &&
+                (result >= 0 || left >= 0 || left_local >= 0 ||
+                 left_literal == "" || right_count != 0)) {
+            return false;
+        }
+        expected_phi = expected_phi + phi_count;
+        operation = operation + 1;
+    }
+    if expected_phi != ArrayLength(plan.phi_predecessor_blocks) {
+        return false;
+    }
+    let phi_row: Int = 0;
+    while phi_row < expected_phi {
+        if plan.phi_predecessor_blocks[phi_row] < 0 ||
+            plan.phi_predecessor_blocks[phi_row] >= block_count ||
+            plan.phi_incoming_values[phi_row] < 0 ||
+            plan.phi_incoming_values[phi_row] >= value_count {
+            return false;
+        }
+        phi_row = phi_row + 1;
+    }
+    let range_ready: Bool = DirectMirScalarCfgRangeIterationFactReady(
+        plan.range_iteration, block_count
+    );
+    if !range_ready && !DirectMirScalarCfgRangeIterationFactAbsent(
+        plan.range_iteration
+    ) { return false; }
+    if range_ready {
+        let range: DirectMirScalarCfgRangeIterationFact =
+            plan.range_iteration;
+        if plan.block_succ_true[range.init_block] != range.header_block ||
+            plan.block_succ_false[range.init_block] >= 0 ||
+            plan.block_succ_true[range.header_block] != range.body_block ||
+            plan.block_succ_false[range.header_block] != range.exit_block ||
+            plan.block_condition_kinds[range.header_block] !=
+                DirectMirScalarCfgConditionLess() ||
+            plan.block_condition_left_locals[range.header_block] !=
+                range.local_row ||
+            plan.block_condition_right_literals[range.header_block] !=
+                range.stop_literal {
+            return false;
+        }
+        let latch: Int = 0;
+        while latch < ArrayLength(range.backedge_blocks) {
+            let latch_block: Int = range.backedge_blocks[latch];
+            if plan.block_succ_true[latch_block] != range.header_block ||
+                plan.block_succ_false[latch_block] >= 0 {
+                return false;
+            }
+            latch = latch + 1;
+        }
+    }
+    return CompilerArtifactIdentityReady(
+        CompilerEmittedCArtifactKind(), plan.revision, plan.digest
+    ) && CompilerArtifactIdentityReady(
+        CompilerEmittedLlvmArtifactKind(), plan.revision, plan.digest
+    );
+}
+
+func DirectMirScalarCfgGraphPlanMutationRejected(
+    plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let mutated: DirectMirScalarCfgGraphPlan =
+        DirectMirScalarCfgGraphPlanWithDigest(plan, plan.digest + 1);
+    return !DirectMirScalarCfgGraphPlanReady(mutated);
+}

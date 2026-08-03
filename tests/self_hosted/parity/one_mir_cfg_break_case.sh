@@ -8,3 +8,11 @@ PGY_SELFHOST_ONE_MIR_DRIVER_BIN="$DRIVER_BIN" \
     bash "$BREAK_GATE" || fail "general scalar CFG break-exit gate failed"
 
 echo "[$LABEL] break_after_stmt is owned by the general scalar CFG gate"
+
+FOR_BREAK_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir_scalar_cfg_for_break_exit_projection.sh"
+require_file "$FOR_BREAK_GATE"
+PGY_SELFHOST_ONE_MIR_DRIVER_BIN="$DRIVER_BIN" \
+    PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
+    bash "$FOR_BREAK_GATE" || fail "general scalar CFG for-break exit gate failed"
+
+echo "[$LABEL] for_break_exit is owned by the general scalar CFG gate"

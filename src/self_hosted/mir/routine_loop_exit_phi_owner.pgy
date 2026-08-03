@@ -1,26 +1,28 @@
-// Producer-owned while exit merge over condition and break predecessors.
+// Producer-owned loop exit merge over completion and break predecessors.
 
 import "routine_break_exit_fact_owner.pgy";
 
-func SelfMirWhileExitMergeLocalVersions(
+func SelfMirLoopExitMergeLocalVersions(
     build: SelfMirRoutineBuild,
-    header_versions: Array<Int>,
+    completion_versions: Array<Int>,
     ref break_exits: SelfMirBreakExitFacts,
-    condition_exit: Int,
+    completion_reachable: Bool,
     loop_exit: Int
 ) -> SelfMirRoutineBuild {
     if !SelfMirBreakExitFactsReady(break_exits) || loop_exit < 0 ||
-        ArrayLength(header_versions) > ArrayLength(build.local_names) {
+        ArrayLength(completion_versions) > ArrayLength(build.local_names) {
         return SelfMirRoutineBuildError(
-            build, "MIR while exit predecessor facts are invalid"
+            build, "MIR loop exit predecessor facts are invalid"
         );
     }
     build = SelfMirRoutineAtBlock(build, loop_exit);
     let local_row: Int = 0;
-    while local_row < ArrayLength(header_versions) {
+    while local_row < ArrayLength(completion_versions) {
         let incoming_versions: Array<Int> = [];
-        if condition_exit >= 0 {
-            ArrayPush(incoming_versions, header_versions[local_row]);
+        if completion_reachable {
+            ArrayPush(
+                incoming_versions, completion_versions[local_row]
+            );
         }
         let break_row: Int = 0;
         while break_row < ArrayLength(break_exits.blocks) {
@@ -29,7 +31,7 @@ func SelfMirWhileExitMergeLocalVersions(
             );
             if version < 0 {
                 return SelfMirRoutineBuildError(
-                    build, "MIR while break local version is missing"
+                    build, "MIR loop break local version is missing"
                 );
             }
             ArrayPush(incoming_versions, version);
@@ -37,7 +39,7 @@ func SelfMirWhileExitMergeLocalVersions(
         }
         if ArrayLength(incoming_versions) == 0 {
             return SelfMirRoutineBuildError(
-                build, "MIR while exit has no local-value predecessor"
+                build, "MIR loop exit has no local-value predecessor"
             );
         }
         let has_distinct_version: Bool = false;

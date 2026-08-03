@@ -31,6 +31,7 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "src/self_hosted/mir_lower/fixture/multiple_break_exit.pgy",
         "src/self_hosted/mir_lower/fixture/nested_if_in_loop.pgy",
         "src/self_hosted/mir_lower/fixture/forloop.pgy",
+        "src/self_hosted/mir_lower/fixture/for_break_exit.pgy",
         "src/self_hosted/mir_lower/fixture/nested_loop_cfg.pgy",
         "src/self_hosted/mir_lower/fixture/indexed_assignment.pgy",
         "src/self_hosted/mir_lower/fixture/member_array_index.pgy",
@@ -293,7 +294,7 @@ func DriverRung2MirFixtureRows() -> Array<String> {
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 283;
+    return 284;
 }
 
 func EmitDriverRung2MirFixtureManifest() -> Void {

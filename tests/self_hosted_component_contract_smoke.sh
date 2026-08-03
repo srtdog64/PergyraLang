@@ -667,7 +667,8 @@ for mir_producer_owner in \
     routine_match_pattern_owner.pgy \
     routine_match_merge_owner.pgy \
     routine_while_owner.pgy \
-    routine_while_exit_phi_owner.pgy \
+    routine_loop_header_phi_owner.pgy \
+    routine_loop_exit_phi_owner.pgy \
     routine_for_owner.pgy \
     routine_tracked_statement_owner.pgy \
     routine_lower_owner.pgy \
@@ -5739,7 +5740,8 @@ for driver_rung2_promoted_fixture in \
     multilet arith strlog funcparam multi_func_void random_inferred_let \
     class_decl nominal_subject nominal_object nominal_tobject nominal_vessel \
     ability_decl enum_simple role_operator_dispatch ifelse nestedif \
-    reassign_block whileloop break_after_stmt multiple_break_exit nested_if_in_loop \
+    reassign_block whileloop break_after_stmt multiple_break_exit for_break_exit \
+    nested_if_in_loop \
     array_destructure; do
     require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
         "\"src/self_hosted/mir_lower/fixture/${driver_rung2_promoted_fixture}.pgy\""
@@ -5984,9 +5986,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_value.applies"
-require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" "return 283;"
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" "return 284;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 283'
+    'mir_fixture_rows[@]}" -ne 284'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -6677,11 +6679,11 @@ require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
-    "return 283;"
+    "return 284;"
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 283'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 284'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/generic_multi_bound_defaults/main.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -6761,7 +6763,7 @@ require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/loop_collect_distinct_set/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
-    "return 283;"
+    "return 284;"
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" \
     "func SemanticAstLocalBindingOrdinalAt("
 require_text "src/self_hosted/semantic/array_type_shape_owner.pgy" \
@@ -8961,11 +8963,19 @@ require_text "src/self_hosted/mir/routine_while_owner.pgy" \
 require_text "src/self_hosted/mir/routine_for_owner.pgy" \
     'let break_exits: SelfMirBreakExitFacts = SelfMirBreakExitFactsEmpty();'
 require_text "src/self_hosted/mir/routine_while_owner.pgy" \
-    'return SelfMirWhileExitMergeLocalVersions('
+    'return SelfMirLoopExitMergeLocalVersions('
+require_text "src/self_hosted/mir/routine_for_owner.pgy" \
+    'return SelfMirLoopExitMergeLocalVersions('
+require_text "src/self_hosted/mir/routine_for_owner.pgy" \
+    'SelfMirLoopPrepareHeaderLocalVersions('
+require_text "src/self_hosted/mir/routine_for_owner.pgy" \
+    'SelfMirLoopBindHeaderBackedgeLocalVersions('
 require_text "src/self_hosted/mir/routine_control_transfer_owner.pgy" \
     'SelfMirBreakExitFactsAppend(break_exits, build)'
 require_max_lines "src/self_hosted/mir/routine_break_exit_fact_owner.pgy" 90
-require_max_lines "src/self_hosted/mir/routine_while_exit_phi_owner.pgy" 90
+require_max_lines "src/self_hosted/mir/routine_loop_header_phi_owner.pgy" 100
+require_max_lines "src/self_hosted/mir/routine_loop_exit_phi_owner.pgy" 90
+require_max_lines "src/self_hosted/mir/routine_for_owner.pgy" 180
 reject_text "src/self_hosted/mir/routine_while_owner.pgy" 'let loop_exit: Int = SelfMirCfgBlockCount(build.cfg);'
 reject_text "src/self_hosted/mir/routine_for_owner.pgy" 'let loop_exit: Int = SelfMirCfgBlockCount(build.cfg);'
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'build, SelfMirCfgBlockCount(build.cfg) - 1'
@@ -15038,15 +15048,9 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_cfg_log_shape_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_cfg_log_shape_owner.pgy" 100
-require_file "src/self_hosted/compiler/direct_mir_range_cfg_shape_owner.pgy"
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir_range_cfg_shape_owner.pgy" 230
-require_file "src/self_hosted/compiler/direct_mir_range_cfg_plan_fact_owner.pgy"
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir_range_cfg_plan_fact_owner.pgy" 120
-require_file "src/self_hosted/compiler/direct_mir_range_cfg_emission_owner.pgy"
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir_range_cfg_emission_owner.pgy" 130
+reject_file "src/self_hosted/compiler/direct_mir_range_cfg_shape_owner.pgy"
+reject_file "src/self_hosted/compiler/direct_mir_range_cfg_plan_fact_owner.pgy"
+reject_file "src/self_hosted/compiler/direct_mir_range_cfg_emission_owner.pgy"
 require_file "src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy" 650
@@ -15394,6 +15398,15 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" 310
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_identity_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_identity_owner.pgy" 100
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy" 240
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_expression_base_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_expression_base_owner.pgy" 70
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_expression_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_expression_owner.pgy" 300
@@ -15403,15 +15416,33 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" 450
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_route_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_route_owner.pgy" 70
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_operation_plan_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_operation_plan_owner.pgy" 80
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_loop_flow_admission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_loop_flow_admission_owner.pgy" 40
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy" 280
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_range_emission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_range_emission_owner.pgy" 110
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_c_operand_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_c_operand_owner.pgy" 40
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_c_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_c_emission_owner.pgy" 180
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy" 260
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_operand_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_operand_owner.pgy" 40
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_projection_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_projection_owner.pgy" 50
@@ -15421,6 +15452,9 @@ require_max_lines \
 require_file "tests/self_hosted/parity/one_mir_scalar_cfg_break_exit_projection.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_scalar_cfg_break_exit_projection.sh" 160
+require_file "tests/self_hosted/parity/one_mir_scalar_cfg_for_break_exit_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_scalar_cfg_for_break_exit_projection.sh" 160
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
     'DirectMirScalarCfgGraphRouteClaimed(admitted)'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
@@ -15445,7 +15479,7 @@ reject_text "src/self_hosted/mir_lower/phi_predecessor_binding_fact_owner.pgy" \
     'func MirRoutineBlockDominates('
 require_text "src/self_hosted/mir_lower/latest_local_value_fact_owner.pgy" \
     'func MirRoutineLatestDominatingLocalValueMatches('
-require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_operation_plan_owner.pgy" \
     'MirRoutineLatestDominatingLocalValueMatches('
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_projection_owner.pgy" \
     'DirectMirScalarCfgGraphPlanFromAdmitted(admitted)'
@@ -15511,14 +15545,12 @@ require_text "src/self_hosted/air/mir_range_cfg_certificate_fact_owner.pgy" \
     'func DirectMirRangeCfgCertificateFactFromIndex('
 require_text "src/self_hosted/air/mir_range_cfg_certificate_fact_owner.pgy" \
     'func DirectMirRangeCfgCertificateFactMutationRejected('
-require_text "src/self_hosted/compiler/direct_mir_range_cfg_shape_owner.pgy" \
-    'func DirectMirRangeCfgShapeFactFromOwners('
-require_text "src/self_hosted/compiler/direct_mir_range_cfg_plan_fact_owner.pgy" \
-    'func DirectMirRangeCfgPlanFactMutationRejected('
-require_text "src/self_hosted/compiler/direct_mir_range_cfg_emission_owner.pgy" \
-    'func DirectMirRangeCfgEmitC('
-require_text "src/self_hosted/compiler/direct_mir_range_cfg_emission_owner.pgy" \
-    'func DirectMirRangeCfgEmitLlvm('
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy" \
+    'func DirectMirScalarCfgRangeIterationFactFromOwners('
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_range_emission_owner.pgy" \
+    'func DirectMirScalarCfgRangeCBlockEffect('
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_range_emission_owner.pgy" \
+    'func DirectMirScalarCfgRangeLlvmBlockEffect('
 require_text "src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy" \
     'func DirectMirBreakCfgCertificateFactFromIndex('
 require_text "src/self_hosted/air/mir_break_cfg_certificate_fact_owner.pgy" \
@@ -15584,9 +15616,9 @@ for loop_single_issuer_term in \
 done
 for range_single_issuer_term in \
     DirectMirRangeCfgCertificateFactFromIndex \
-    DirectMirRangeCfgShapeFactFromOwners \
-    DirectMirRangeCfgPlanFactFromOwners \
-    DirectMirRangeCfgEmitC DirectMirRangeCfgEmitLlvm; do
+    DirectMirScalarCfgRangeIterationFactFromOwners \
+    DirectMirScalarCfgRangeCBlockEffect \
+    DirectMirScalarCfgRangeLlvmBlockEffect; do
     range_single_issuer_count="$(grep -R -F --include='*.pgy' \
         "$range_single_issuer_term(" "$SELF_HOST_DIR" | wc -l | tr -d ' ')"
     [[ "$range_single_issuer_count" == 2 ]] ||
@@ -15626,12 +15658,12 @@ for retired_break_term in DirectMirBreakCfgShapeFact \
         src/self_hosted/compiler >/dev/null ||
         fail "retired compiler break path reappeared: $retired_break_term"
 done
-for range_emission_raw_term in JsonObject JsonArray ExpressionGraph \
-    MirProgramRoutineIndex MirRoutineFactIndex MirMachineLayerAdmittedJsonInput \
-    MirDocumentFactIndex DirectMirCfgPlan source_json BuildMir MirJson; do
-    reject_text \
-        "src/self_hosted/compiler/direct_mir_range_cfg_emission_owner.pgy" \
-        "$range_emission_raw_term"
+for retired_range_term in DirectMirRangeCfgShapeFact \
+    DirectMirRangeCfgPlanFact DirectMirRangeCfgEmitC DirectMirRangeCfgEmitLlvm \
+    DirectMirCfgPlanWithRange; do
+    ! grep -R -F --include='*.pgy' "$retired_range_term" \
+        src/self_hosted/compiler >/dev/null ||
+        fail "retired compiler range path reappeared: $retired_range_term"
 done
 for nested_emission_raw_term in JsonObject JsonArray MirRoutineFactIndex; do
     reject_text \

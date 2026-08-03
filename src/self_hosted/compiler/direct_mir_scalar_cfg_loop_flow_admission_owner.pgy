@@ -1,11 +1,11 @@
 // Loop-flow receipt required by the general scalar CFG execution slice.
-
 import "../mir_lower/routine_lower.pgy";
+import "direct_mir_scalar_cfg_range_iteration_owner.pgy";
 
 func DirectMirScalarCfgLoopFlowFactsReady(
-    ref index: MirRoutineFactIndex,
-    ref routines: MirProgramRoutineIndex,
-    routine_row: Int
+    ref index: MirRoutineFactIndex, ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    ref range_iteration: DirectMirScalarCfgRangeIterationFact
 ) -> Bool {
     if !LoopFlowSummaryProjectionReady(index, routines, routine_row) ||
         !MirRoutineFactIndexLoopFlowFactsValid(index) ||
@@ -14,17 +14,27 @@ func DirectMirScalarCfgLoopFlowFactsReady(
     }
     let row: Int = 0;
     while row < ArrayLength(index.loop_flow_summary_loop_ids) {
-        if index.loop_flow_summary_kinds[row] != 0 ||
+        let kind: Int = index.loop_flow_summary_kinds[row];
+        if (kind != 0 && kind != 1) ||
             index.loop_flow_summary_effect_bases[row] != 0 ||
             index.loop_flow_summary_effect_deltas[row] != 0 ||
             index.loop_flow_summary_flags[row] != 1 ||
             index.loop_flow_summary_entry_starts[row] != 0 ||
             index.loop_flow_summary_entry_counts[row] != 0 ||
             index.loop_flow_summary_exit_starts[row] != 0 ||
-            index.loop_flow_summary_exit_counts[row] != 0 {
-            return false;
-        }
+            index.loop_flow_summary_exit_counts[row] != 0 { return false; }
+        if kind == 1 && (!DirectMirScalarCfgRangeIterationFactReady(
+                range_iteration, ArrayLength(index.block_starts)
+            ) || range_iteration.loop_syntax_id !=
+                index.loop_flow_summary_loop_ids[row]) { return false; }
+        if kind == 0 && !DirectMirScalarCfgRangeIterationFactAbsent(
+            range_iteration
+        ) { return false; }
         row = row + 1;
+    }
+    if ArrayLength(index.loop_flow_summary_loop_ids) == 0 &&
+        !DirectMirScalarCfgRangeIterationFactAbsent(range_iteration) {
+        return false;
     }
     return true;
 }

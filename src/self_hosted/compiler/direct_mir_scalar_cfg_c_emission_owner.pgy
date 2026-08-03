@@ -1,29 +1,9 @@
 // C projection of one verified topology-independent scalar CFG plan.
 
-import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_graph_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_c_operand_owner.pgy";
+import "direct_mir_scalar_cfg_range_emission_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
-
-func DirectMirScalarCfgCLocal(
-    ref plan: DirectMirScalarCfgGraphPlan,
-    value_row: Int
-) -> String {
-    if value_row < 0 || value_row >= ArrayLength(plan.value_local_rows) {
-        Die("direct MIR scalar CFG C ValueId is invalid");
-    }
-    return Concat("pgy_local_", ToString(plan.value_local_rows[value_row]));
-}
-
-func DirectMirScalarCfgCOperand(
-    ref plan: DirectMirScalarCfgGraphPlan,
-    value_row: Int,
-    literal: String
-) -> String {
-    if value_row >= 0 { return DirectMirScalarCfgCLocal(plan, value_row); }
-    if literal == "" {
-        Die("direct MIR scalar CFG C operand is missing");
-    }
-    return literal;
-}
 
 func DirectMirScalarCfgEmitC(
     ref plan: DirectMirScalarCfgGraphPlan,
@@ -79,12 +59,14 @@ func DirectMirScalarCfgEmitC(
                 output = Concat(output, " = ");
                 output = Concat(output, DirectMirScalarCfgCOperand(
                     plan, plan.operation_left_values[operation],
+                    plan.operation_left_locals[operation],
                     plan.operation_left_literals[operation]
                 ));
                 if kind == DirectMirScalarCfgOpAddInt() {
                     output = Concat(output, " + ");
                     output = Concat(output, DirectMirScalarCfgCOperand(
                         plan, plan.operation_right_values[operation],
+                        plan.operation_right_locals[operation],
                         plan.operation_right_literals[operation]
                     ));
                 }
@@ -97,8 +79,10 @@ func DirectMirScalarCfgEmitC(
                 output = Concat(output, "\", (");
                 output = Concat(output, int_c_type);
                 output = Concat(output, ")");
-                output = Concat(output, DirectMirScalarCfgCLocal(
-                    plan, plan.operation_left_values[operation]
+                output = Concat(output, DirectMirScalarCfgCOperand(
+                    plan, plan.operation_left_values[operation],
+                    plan.operation_left_locals[operation],
+                    plan.operation_left_literals[operation]
                 ));
                 output = Concat(output, ");\n");
             } else if kind == DirectMirScalarCfgOpLogString() {
@@ -116,6 +100,12 @@ func DirectMirScalarCfgEmitC(
             }
             operation = operation + 1;
         }
+        output = Concat(
+            output, DirectMirScalarCfgRangeCBlockEffect(
+                plan.range_iteration,
+                ArrayLength(plan.block_succ_true), block
+            )
+        );
         let condition: Int = plan.block_condition_kinds[block];
         let true_target: Int = plan.block_succ_true[block];
         let false_target: Int = plan.block_succ_false[block];
@@ -138,6 +128,7 @@ func DirectMirScalarCfgEmitC(
             } else {
                 output = Concat(output, DirectMirScalarCfgCOperand(
                     plan, plan.block_condition_left_values[block],
+                    plan.block_condition_left_locals[block],
                     plan.block_condition_left_literals[block]
                 ));
                 if condition == DirectMirScalarCfgConditionLess() {
@@ -151,6 +142,7 @@ func DirectMirScalarCfgEmitC(
                 }
                 output = Concat(output, DirectMirScalarCfgCOperand(
                     plan, plan.block_condition_right_values[block],
+                    plan.block_condition_right_locals[block],
                     plan.block_condition_right_literals[block]
                 ));
             }

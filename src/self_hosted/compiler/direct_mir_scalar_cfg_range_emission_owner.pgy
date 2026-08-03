@@ -1,0 +1,94 @@
+// Target syntax for range effects already sealed in the scalar CFG plan.
+
+import "direct_mir_scalar_cfg_range_iteration_owner.pgy";
+
+func DirectMirScalarCfgRangeBackedgeContains(
+    ref fact: DirectMirScalarCfgRangeIterationFact,
+    block: Int
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(fact.backedge_blocks) {
+        if fact.backedge_blocks[row] == block { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarCfgRangeCBlockEffect(
+    ref fact: DirectMirScalarCfgRangeIterationFact,
+    block_count: Int,
+    block: Int
+) -> String {
+    if DirectMirScalarCfgRangeIterationFactAbsent(fact) { return ""; }
+    if !DirectMirScalarCfgRangeIterationFactReady(fact, block_count) {
+        Die("direct MIR scalar CFG C range fact is invalid");
+    }
+    let local: String = Concat(
+        "pgy_local_", ToString(fact.local_row)
+    );
+    if block == fact.init_block {
+        return Concat(
+            "    ", Concat(
+                local, Concat(" = ", Concat(fact.start_literal, ";\n"))
+            )
+        );
+    }
+    if DirectMirScalarCfgRangeBackedgeContains(fact, block) {
+        return Concat(
+            "    ", Concat(
+                local, Concat(
+                    " = ", Concat(
+                        local, Concat(
+                            " + ", Concat(fact.step_literal, ";\n")
+                        )
+                    )
+                )
+            )
+        );
+    }
+    return "";
+}
+
+func DirectMirScalarCfgRangeLlvmBlockEffect(
+    ref fact: DirectMirScalarCfgRangeIterationFact,
+    block_count: Int,
+    block: Int
+) -> String {
+    if DirectMirScalarCfgRangeIterationFactAbsent(fact) { return ""; }
+    if !DirectMirScalarCfgRangeIterationFactReady(fact, block_count) {
+        Die("direct MIR scalar CFG LLVM range fact is invalid");
+    }
+    let local: String = Concat(
+        "%pgy.local.", ToString(fact.local_row)
+    );
+    if block == fact.init_block {
+        return Concat(
+            "  store i64 ", Concat(
+                fact.start_literal,
+                Concat(", ptr ", Concat(local, ", align 8\n"))
+            )
+        );
+    }
+    if !DirectMirScalarCfgRangeBackedgeContains(fact, block) { return ""; }
+    let prefix: String = Concat("%pgy.range.", ToString(block));
+    let output: String = Concat(
+        "  ", Concat(
+            prefix, Concat(".current = load i64, ptr ",
+                Concat(local, ", align 8\n"))
+        )
+    );
+    output = Concat(output, Concat(
+        "  ", Concat(prefix, Concat(
+            ".next = add i64 ", Concat(
+                prefix, Concat(
+                    ".current, ", Concat(fact.step_literal, "\n")
+                )
+            )
+        ))
+    ));
+    return Concat(output, Concat(
+        "  store i64 ", Concat(
+            prefix, Concat(".next, ptr ", Concat(local, ", align 8\n"))
+        )
+    ));
+}

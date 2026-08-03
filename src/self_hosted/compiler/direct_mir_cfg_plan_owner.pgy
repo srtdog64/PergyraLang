@@ -88,8 +88,6 @@ func DirectMirCfgPlanFromAdmitted(
     let shape: DirectMirCfgShapeFacts = DirectMirCfgShapeFactsEmpty();
     let loop_plan: DirectMirLoopCfgPlanFact =
         DirectMirLoopCfgPlanFactEmpty();
-    let range_plan: DirectMirRangeCfgPlanFact =
-        DirectMirRangeCfgPlanFactEmpty();
     let enum_plan: DirectMirEnumValueMatchPlanFact =
         DirectMirEnumValueMatchPlanFactEmpty();
     if DirectMirIdentityMatchCfgCertificateFactReady(
@@ -111,16 +109,8 @@ func DirectMirCfgPlanFromAdmitted(
         loop_plan = DirectMirLoopCfgPlanFactFromOwners(
             certificate.loop_fact, loop_shape
         );
-    } else if DirectMirRangeCfgCertificateFactReady(
-        certificate.range_fact
-    ) {
-        let range_shape: DirectMirRangeCfgShapeFact =
-            DirectMirRangeCfgShapeFactFromOwners(
-                admitted, index, use_facts, certificate.range_fact
-            );
-        range_plan = DirectMirRangeCfgPlanFactFromOwners(
-            certificate.range_fact, range_shape
-        );
+    } else if DirectMirRangeCfgCertificateFactReady(certificate.range_fact) {
+        Die("direct MIR range CFG must be claimed by the general scalar CFG plan");
     } else if DirectMirNestedCfgCertificateFactReady(certificate.nested) {
         shape = DirectMirNestedCfgShapeFactsFromOwners(
             admitted, index, use_facts, certificate
@@ -137,10 +127,6 @@ func DirectMirCfgPlanFromAdmitted(
         shape_ready = DirectMirCfgShapeFactsAbsent(shape) &&
             DirectMirLoopCfgPlanFactReady(loop_plan);
     }
-    if DirectMirRangeCfgCertificateFactReady(certificate.range_fact) {
-        shape_ready = DirectMirCfgShapeFactsAbsent(shape) &&
-            DirectMirRangeCfgPlanFactReady(range_plan);
-    }
     if DirectMirEnumValueMatchPlanFactReady(enum_plan) {
         shape_ready = DirectMirCfgShapeFactsAbsent(shape);
     }
@@ -148,22 +134,18 @@ func DirectMirCfgPlanFromAdmitted(
         if DirectMirLoopCfgCertificateFactReady(certificate.loop_fact) {
             Die("direct MIR loop CFG condition, Log, increment, or graph facts are invalid");
         }
-        if DirectMirRangeCfgCertificateFactReady(certificate.range_fact) {
-            Die("direct MIR range CFG bound, Log, or policy facts are invalid");
-        }
         Die("direct MIR CFG condition, arm, or merge facts are invalid");
     }
     let plan: DirectMirCfgPlan = DirectMirCfgPlan(
         true, DirectMirCfgPlanSchema(), CompilerArtifactPlanRevision(), 0,
         certificate.certificate_digest, certificate.mir_digest,
         certificate.cfg_digest, certificate.phi_digest,
-        certificate.nested.digest, loop_plan.digest, range_plan.digest,
-        enum_plan.digest,
+        certificate.nested.digest, loop_plan.digest, enum_plan.digest,
         CompilerTargetCapabilitySchema(),
         CompilerTargetCapabilityFingerprint(), certificate.entry_block,
         certificate.true_block, certificate.false_block,
         certificate.merge_block, certificate.phi_count,
-        certificate.nested, loop_plan, range_plan, enum_plan, shape
+        certificate.nested, loop_plan, enum_plan, shape
     );
     let verified: DirectMirCfgPlan = DirectMirCfgPlanWithDigest(
         plan, DirectMirCfgPlanIdentityDigest(plan)

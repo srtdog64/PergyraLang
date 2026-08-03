@@ -1,0 +1,86 @@
+// Stable identity of one target-neutral scalar CFG plan.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarCfgGraphPlanDigest(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(109L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashInt(hash, plan.mir_digest);
+    hash = DirectMirCfgHashInt(hash, plan.cfg_digest);
+    hash = DirectMirCfgHashString(hash, plan.target_schema);
+    hash = DirectMirCfgHashInt(hash, plan.target_fingerprint);
+    hash = DirectMirScalarCfgHashStrings(hash, plan.local_names);
+    hash = DirectMirScalarCfgHashStrings(hash, plan.value_names);
+    hash = DirectMirScalarCfgHashInts(hash, plan.value_local_rows);
+    hash = DirectMirScalarCfgHashInts(hash, plan.value_definition_blocks);
+    hash = DirectMirScalarCfgHashInts(hash, plan.block_succ_true);
+    hash = DirectMirScalarCfgHashInts(hash, plan.block_succ_false);
+    hash = DirectMirScalarCfgHashInts(hash, plan.block_operation_starts);
+    hash = DirectMirScalarCfgHashInts(hash, plan.block_operation_counts);
+    hash = DirectMirScalarCfgHashInts(hash, plan.block_condition_kinds);
+    hash = DirectMirScalarCfgHashInts(
+        hash, plan.block_condition_left_values
+    );
+    hash = DirectMirScalarCfgHashInts(
+        hash, plan.block_condition_right_values
+    );
+    hash = DirectMirScalarCfgHashInts(
+        hash, plan.block_condition_left_locals
+    );
+    hash = DirectMirScalarCfgHashInts(
+        hash, plan.block_condition_right_locals
+    );
+    hash = DirectMirScalarCfgHashStrings(
+        hash, plan.block_condition_left_literals
+    );
+    hash = DirectMirScalarCfgHashStrings(
+        hash, plan.block_condition_right_literals
+    );
+    hash = DirectMirScalarCfgHashInts(hash, plan.operation_kinds);
+    hash = DirectMirScalarCfgHashInts(hash, plan.operation_result_values);
+    hash = DirectMirScalarCfgHashInts(hash, plan.operation_left_values);
+    hash = DirectMirScalarCfgHashInts(hash, plan.operation_right_values);
+    hash = DirectMirScalarCfgHashInts(hash, plan.operation_left_locals);
+    hash = DirectMirScalarCfgHashInts(hash, plan.operation_right_locals);
+    hash = DirectMirScalarCfgHashStrings(hash, plan.operation_left_literals);
+    hash = DirectMirScalarCfgHashStrings(hash, plan.operation_right_literals);
+    hash = DirectMirScalarCfgHashInts(hash, plan.operation_phi_starts);
+    hash = DirectMirScalarCfgHashInts(hash, plan.operation_phi_counts);
+    hash = DirectMirScalarCfgHashInts(hash, plan.phi_predecessor_blocks);
+    hash = DirectMirScalarCfgHashInts(hash, plan.phi_incoming_values);
+    hash = DirectMirCfgHashInt(
+        hash, DirectMirScalarCfgRangeIterationFactDigest(
+            plan.range_iteration
+        )
+    );
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarCfgGraphPlanWithDigest(
+    plan: DirectMirScalarCfgGraphPlan,
+    digest: Int
+) -> DirectMirScalarCfgGraphPlan {
+    return DirectMirScalarCfgGraphPlan(
+        plan.valid, plan.schema, plan.revision, digest,
+        plan.mir_digest, plan.cfg_digest, plan.target_schema,
+        plan.target_fingerprint, plan.local_names, plan.value_names,
+        plan.value_local_rows, plan.value_definition_blocks,
+        plan.block_succ_true, plan.block_succ_false,
+        plan.block_operation_starts, plan.block_operation_counts,
+        plan.block_condition_kinds, plan.block_condition_left_values,
+        plan.block_condition_right_values,
+        plan.block_condition_left_locals,
+        plan.block_condition_right_locals,
+        plan.block_condition_left_literals,
+        plan.block_condition_right_literals, plan.operation_kinds,
+        plan.operation_result_values, plan.operation_left_values,
+        plan.operation_right_values, plan.operation_left_locals,
+        plan.operation_right_locals, plan.operation_left_literals,
+        plan.operation_right_literals, plan.operation_phi_starts,
+        plan.operation_phi_counts, plan.phi_predecessor_blocks,
+        plan.phi_incoming_values, plan.range_iteration
+    );
+}

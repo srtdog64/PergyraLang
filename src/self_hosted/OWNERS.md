@@ -713,14 +713,17 @@ inventory must not become a second fact-family owner registry.
   dispatch after CFG predecessor closure.
 - `src/self_hosted/mir/routine_break_exit_fact_owner.pgy` -- exact break-edge
   predecessor identity and local SSA-version snapshots captured at transfer.
-- `src/self_hosted/mir/routine_while_exit_phi_owner.pgy` -- while condition-exit
-  and break-exit local-version merge; it emits the exit phi before any backend
-  can observe the graph.
+- `src/self_hosted/mir/routine_loop_header_phi_owner.pgy` -- loop-header
+  local-version preparation and the one fallthrough-backedge binding currently
+  reached by while/range lowering.
+- `src/self_hosted/mir/routine_loop_exit_phi_owner.pgy` -- completion and
+  break-exit local-version merge shared by while/range lowering; it emits the
+  exit phi before any backend can observe the graph.
 - `src/self_hosted/mir/loop_reachability_fact_owner.pgy` -- loop-body exit and
   back-edge reachability facts consumed before header phi emission.
 - `src/self_hosted/mir/routine_for_owner.pgy` -- typed iteration row and
-  semantic source/branch graph views to loop-initializer, body, back-edge, and
-  exit-block lowering.
+  semantic source/branch graph views to loop-initializer, body, header/backedge
+  local phis, producer-owned break/normal exit merge, and exit-block lowering.
 - `src/self_hosted/mir/routine_iteration_owner.pgy` -- graph-owned collection
   hoist and foreach branch use projection; range loops retain explicit no-use
   semantics.
@@ -2065,19 +2068,20 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_loop_cfg_emission_owner.pgy` -- one
   loop-text responsibility containing both structured C and predecessor-bound
   LLVM emission; it receives only fixed loop facts and the shared print ABI.
-- `src/self_hosted/compiler/direct_mir_range_cfg_shape_owner.pgy` -- derives
-  start and exclusive stop from their MIR graph lanes and owns the fixed Int
-  less-than/+1 range policy plus zero-use Log binding.
-- `src/self_hosted/compiler/direct_mir_range_cfg_plan_fact_owner.pgy` -- fixed
-  range certificate/shape compound fact carried by the one outer CFG plan.
-- `src/self_hosted/compiler/direct_mir_range_cfg_emission_owner.pgy` -- one
-  range-text responsibility containing both C and LLVM; LLVM materializes an
-  alloca/load/add/store loop without fabricating a MIR phi.
 - `src/self_hosted/compiler/direct_mir_llvm_text_format_owner.pgy` -- shared
   LLVM line-format byte encoding used by scalar and CFG text emitters.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy` --
-  immutable target-neutral scalar CFG graph plan carrying local storage,
-  ValueIds, blocks, conditions, operations, and predecessor-bound phi rows.
+  immutable target-neutral scalar CFG graph facts carrying local storage,
+  ValueIds/LocalRefs, blocks, conditions, operations, predecessor-bound phi
+  rows, and an optional range iteration receipt.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_identity_owner.pgy` --
+  stable digest construction and immutable digest replacement for that plan.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy` --
+  sealed plan cardinality, operand exclusivity, target identity, phi, and range
+  topology readiness plus the repaired-digest negative.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_expression_base_owner.pgy` --
+  expression sequence, call-target absence, canonical Int, and exact use-row
+  joins shared by the three scalar expression admission operations.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_expression_owner.pgy` --
   typed persisted-expression-graph projection for the admitted Int/Bool
   literal, copy, comparison, addition, and Log subset; display `expr0` is not
@@ -2086,15 +2090,28 @@ inventory must not become a second fact-family owner registry.
   -- exact one-leaf assignment-place graph receipt joined to the instruction's
   carried source-local identity; display target text is not a fallback.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy`
-  -- topology-independent route and plan issuer over the typed MIR indices,
-  use facts, dominance facts, and exact phi bindings. It claims the supported
-  operation/type envelope, not fixture names or block counts, and claimed
-  invalid graphs cannot retry a legacy topology path.
+  -- target-neutral plan issuer over typed MIR indices, use/dominance facts,
+  exact phi bindings, and the range receipt. Claimed invalid graphs cannot
+  retry a legacy topology path.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_route_owner.pgy` --
+  topology-independent route classification by the supported operation/type
+  envelope, never fixture names or exact block counts.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_operation_plan_owner.pgy` --
+  operation-row assembly plus latest-dominating ValueId joins.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_loop_flow_admission_owner.pgy`
   -- scalar execution receipt over the existing loop-summary/CFG projection
-  owner. The current pure-Int slice requires while-kind, neutral effects,
-  stable flags, and empty resource-state spans without reconstructing a loop
-  from a fixture topology.
+  owner. The current pure-Int slice accepts while or a sealed range receipt,
+  neutral effects, stable flags, and empty resource-state spans without
+  reconstructing a loop from a fixture topology.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy`
+  -- one target-neutral range iteration receipt joining loop-init/branch rows,
+  binding LocalRef, bounds, header/body/exit, and the currently admitted single
+  fallthrough latch predecessor.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_range_emission_owner.pgy`
+  -- target spelling for the plan-sealed range initialization and latch effect;
+  it cannot reopen MIR, source, or topology.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_c_operand_owner.pgy` -- C
+  spelling for sealed ValueId/LocalRef/literal operands.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_c_emission_owner.pgy` --
   final C label/goto projection from the immutable scalar CFG plan, using one
   source-local storage cell to lower verified SSA/phi facts without rereading
@@ -2102,6 +2119,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy` --
   final textual LLVM block projection from that same plan and local-storage
   policy; it owns target spelling only.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_operand_owner.pgy` --
+  LLVM spelling for sealed ValueId/LocalRef operands.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_projection_owner.pgy` --
   selected-target boundary joining the one scalar CFG plan with the owned
   formatted-print ABI and C/LLVM text consumer.

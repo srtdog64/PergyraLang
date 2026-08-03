@@ -5,7 +5,8 @@ import "routine_build_owner.pgy";
 import "routine_expression_use_owner.pgy";
 import "expression_fact_owner.pgy";
 import "loop_reachability_fact_owner.pgy";
-import "routine_while_exit_phi_owner.pgy";
+import "routine_loop_header_phi_owner.pgy";
+import "routine_loop_exit_phi_owner.pgy";
 
 func SelfMirLowerWhileFromArtifact(
     ref input: SelfMirRoutineInput,
@@ -47,32 +48,9 @@ func SelfMirLowerWhileFromArtifact(
     let header: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineSetSuccessors(build, preheader, header, -1);
     build = SelfMirRoutineAtBlock(build, header);
-    let local_i: Int = 0;
-    while local_i < ArrayLength(build.local_names) {
-        if planned_backedge && SelfMirLoopAssignedLocal(
-            input, UnwrapOption(body_opt), build.local_names[local_i]
-        ) {
-            let old_version: Int = build.local_versions[local_i];
-            let phi_version: Int = build.next_instruction_id + 1;
-            let future_version: Int = phi_version + 2;
-            let phi_uses: Array<String> = [
-                SelfMirSsaName(build.local_names[local_i], old_version),
-                SelfMirSsaName(build.local_names[local_i], future_version)
-            ];
-            build = SelfMirRoutineAddInstruction(
-                build, "phi", build.local_names[local_i],
-                SelfMirSsaName(build.local_names[local_i], phi_version),
-                "phi", "", "", "", "", phi_uses
-            );
-            // The phi result itself is the current version.  Advancing once
-            // more would advertise a version with no defining instruction
-            // to nested branch merges in the loop body.
-            build = SelfMirRoutineSetLocalVersion(
-                build, local_i, phi_version
-            );
-        }
-        local_i = local_i + 1;
-    }
+    build = SelfMirLoopPrepareHeaderLocalVersions(
+        input, build, UnwrapOption(body_opt), planned_backedge
+    );
     build = SelfMirRoutineAddInstruction(
         build, "branch", "branch", "", "", "", condition, "",
         SelfMirExpressionSourceTypeName(
@@ -111,49 +89,9 @@ func SelfMirLowerWhileFromArtifact(
             build, "MIR loop reachability fact disagrees with CFG"
         );
     }
-    // The completed CFG owns whether the loop actually has a backedge.  A
-    // loop whose every path breaks has only the preheader predecessor; normal
-    // fallthrough and explicit continue retain the live local as input two.
-    let phi_instruction_i: Int = build.cfg.blocks.instruction_starts[header];
-    let phi_instruction_end: Int = phi_instruction_i +
-        build.cfg.blocks.instruction_counts[header];
-    while phi_instruction_i < phi_instruction_end {
-        if build.cfg.instructions.kinds[phi_instruction_i] == "phi" {
-            let phi_name: String = build.cfg.instructions.names[
-                phi_instruction_i
-            ];
-            let local_opt: Option<Int> = SelfMirRoutineLocalIndex(
-                build, phi_name
-            );
-            if IsSome(local_opt) {
-                let use_count: Int = build.cfg.instructions.use_counts[
-                    phi_instruction_i
-                ];
-                if use_count == 2 {
-                    let use_start: Int =
-                        build.cfg.instructions.use_starts[phi_instruction_i];
-                    let phi_uses: Array<String> = [
-                        build.cfg.instructions.uses[use_start]
-                    ];
-                    if planned_backedge {
-                        let local_i: Int = UnwrapOption(local_opt);
-                        ArrayPush(
-                            phi_uses,
-                            SelfMirSsaName(
-                                phi_name, build.local_versions[local_i]
-                            )
-                        );
-                    }
-                    build = SelfMirRoutineWithCfg(
-                        build, SelfMirCfgSetInstructionUses(
-                            build.cfg, phi_instruction_i, phi_uses
-                        )
-                    );
-                }
-            }
-        }
-        phi_instruction_i = phi_instruction_i + 1;
-    }
+    build = SelfMirLoopBindHeaderBackedgeLocalVersions(
+        build, header, observed_backedge
+    );
     if build.terminated[body_exit] == 0 {
         build = SelfMirRoutineSetSuccessors(build, body_exit, header, -1);
     }
@@ -175,7 +113,8 @@ func SelfMirLowerWhileFromArtifact(
     build = SelfMirRoutineSetSuccessors(
         build, header, loop_body, condition_exit
     );
-    return SelfMirWhileExitMergeLocalVersions(
-        build, header_versions, while_break_exits, condition_exit, loop_exit
+    return SelfMirLoopExitMergeLocalVersions(
+        build, header_versions, while_break_exits,
+        condition_exit >= 0, loop_exit
     );
 }

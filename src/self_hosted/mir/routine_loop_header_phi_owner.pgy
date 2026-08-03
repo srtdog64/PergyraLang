@@ -1,0 +1,89 @@
+// Producer-owned loop-carried local versions at a CFG header.
+
+import "routine_input_owner.pgy";
+import "routine_build_owner.pgy";
+
+func SelfMirLoopPrepareHeaderLocalVersions(
+    ref input: SelfMirRoutineInput,
+    build: SelfMirRoutineBuild,
+    body_node_id: Int,
+    planned_backedge: Bool
+) -> SelfMirRoutineBuild {
+    if !planned_backedge { return build; }
+    let local_row: Int = 0;
+    while local_row < ArrayLength(build.local_names) {
+        if SelfMirLoopAssignedLocal(
+            input, body_node_id, build.local_names[local_row]
+        ) {
+            let old_version: Int = build.local_versions[local_row];
+            let phi_version: Int = build.next_instruction_id + 1;
+            let phi_uses: Array<String> = [
+                SelfMirSsaName(build.local_names[local_row], old_version)
+            ];
+            build = SelfMirRoutineAddInstruction(
+                build, "phi", build.local_names[local_row],
+                SelfMirSsaName(
+                    build.local_names[local_row], phi_version
+                ),
+                "phi", "", "", "", "", phi_uses
+            );
+            build = SelfMirRoutineSetLocalVersion(
+                build, local_row, phi_version
+            );
+        }
+        local_row = local_row + 1;
+    }
+    return build;
+}
+
+func SelfMirLoopBindHeaderBackedgeLocalVersions(
+    build: SelfMirRoutineBuild,
+    header: Int,
+    observed_backedge: Bool
+) -> SelfMirRoutineBuild {
+    if header < 0 || header >= SelfMirCfgBlockCount(build.cfg) {
+        return SelfMirRoutineBuildError(
+            build, "MIR loop header identity is invalid"
+        );
+    }
+    let instruction_row: Int = build.cfg.blocks.instruction_starts[header];
+    let instruction_end: Int = instruction_row +
+        build.cfg.blocks.instruction_counts[header];
+    while instruction_row < instruction_end {
+        if build.cfg.instructions.kinds[instruction_row] == "phi" {
+            let local_name: String =
+                build.cfg.instructions.names[instruction_row];
+            let local_opt: Option<Int> = SelfMirRoutineLocalIndex(
+                build, local_name
+            );
+            let use_count: Int =
+                build.cfg.instructions.use_counts[instruction_row];
+            if !IsSome(local_opt) || use_count != 1 {
+                return SelfMirRoutineBuildError(
+                    build, "MIR loop header phi seed is invalid"
+                );
+            }
+            let use_start: Int =
+                build.cfg.instructions.use_starts[instruction_row];
+            let phi_uses: Array<String> = [
+                build.cfg.instructions.uses[use_start]
+            ];
+            if observed_backedge {
+                let local_row: Int = UnwrapOption(local_opt);
+                ArrayPush(
+                    phi_uses,
+                    SelfMirSsaName(
+                        local_name, build.local_versions[local_row]
+                    )
+                );
+            }
+            build = SelfMirRoutineWithCfg(
+                build, SelfMirCfgSetInstructionUses(
+                    build.cfg, instruction_row, phi_uses
+                )
+            );
+        }
+        instruction_row = instruction_row + 1;
+    }
+    return build;
+}

@@ -1,0 +1,28 @@
+// LLVM operand identity for a verified scalar CFG graph plan.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarCfgLlvmLocal(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    value_row: Int
+) -> String {
+    if value_row < 0 || value_row >= ArrayLength(plan.value_local_rows) {
+        Die("direct MIR scalar CFG LLVM ValueId is invalid");
+    }
+    return Concat("%pgy.local.", ToString(plan.value_local_rows[value_row]));
+}
+
+func DirectMirScalarCfgLlvmOperandLocal(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    value_row: Int,
+    local_row: Int
+) -> String {
+    if value_row >= 0 {
+        return DirectMirScalarCfgLlvmLocal(plan, value_row);
+    }
+    if local_row >= 0 && local_row < ArrayLength(plan.local_names) {
+        return Concat("%pgy.local.", ToString(local_row));
+    }
+    Die("direct MIR scalar CFG LLVM LocalRef is invalid");
+    return "";
+}

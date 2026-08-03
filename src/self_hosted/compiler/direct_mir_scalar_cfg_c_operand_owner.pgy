@@ -1,0 +1,29 @@
+// C operand identity for a verified scalar CFG graph plan.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarCfgCLocal(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    value_row: Int
+) -> String {
+    if value_row < 0 || value_row >= ArrayLength(plan.value_local_rows) {
+        Die("direct MIR scalar CFG C ValueId is invalid");
+    }
+    return Concat("pgy_local_", ToString(plan.value_local_rows[value_row]));
+}
+
+func DirectMirScalarCfgCOperand(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    value_row: Int,
+    local_row: Int,
+    literal: String
+) -> String {
+    if value_row >= 0 { return DirectMirScalarCfgCLocal(plan, value_row); }
+    if local_row >= 0 && local_row < ArrayLength(plan.local_names) {
+        return Concat("pgy_local_", ToString(local_row));
+    }
+    if literal == "" {
+        Die("direct MIR scalar CFG C operand is missing");
+    }
+    return literal;
+}

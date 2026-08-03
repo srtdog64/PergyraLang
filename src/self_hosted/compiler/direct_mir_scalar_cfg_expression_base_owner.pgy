@@ -1,0 +1,54 @@
+// Shared expression-graph evidence used by scalar CFG expression admission.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_graph_admission_owner.pgy";
+import "../mir_lower/expression_graph_sequence_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+import "../mir_lower/ssa_identity_owner.pgy";
+
+func DirectMirScalarCfgExpressionSequence(
+    ref instruction: JsonObjectFactTable
+) -> MirExpressionGraphSequence {
+    return MirExpressionGraphSequenceAppend(
+        MirExpressionGraphSequenceEmpty(),
+        JsonObjectFactObjectTable(instruction, "expr0_graph")
+    );
+}
+
+func DirectMirScalarCfgNoCallTargets(
+    ref sequence: MirExpressionGraphSequence
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(sequence.arena.call_target_kinds) {
+        if sequence.arena.call_target_kinds[row] !=
+                SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[row] != "" {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarCfgCanonicalInt(value: String) -> Bool {
+    return StringLength(value) > 0 && ToString(ToInt(value)) == value;
+}
+
+func DirectMirScalarCfgUseValueRow(
+    ref use_facts: MirRoutineInstructionUseFacts,
+    global_row: Int,
+    use_row: Int,
+    node_text: String,
+    value_names: Array<String>
+) -> Int {
+    let use_opt: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, global_row, use_row
+    );
+    if !IsSome(use_opt) ||
+        !MirSsaNameMatches(UnwrapOption(use_opt), node_text, true) {
+        return -1;
+    }
+    return DirectMirScalarCfgGraphValueRow(
+        value_names, UnwrapOption(use_opt)
+    );
+}

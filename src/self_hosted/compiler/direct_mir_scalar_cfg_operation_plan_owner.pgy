@@ -1,0 +1,62 @@
+// Operation-row assembly and dominance joins for the scalar CFG plan.
+
+import "direct_mir_scalar_cfg_expression_owner.pgy";
+import "../mir_lower/latest_local_value_fact_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+
+func DirectMirScalarCfgLocalRow(
+    names: Array<String>, wanted: String
+) -> Int {
+    let row: Int = 0;
+    while row < ArrayLength(names) {
+        if names[row] == wanted { return row; }
+        row = row + 1;
+    }
+    return -1;
+}
+
+func DirectMirScalarCfgValueUseDominates(
+    ref index: MirRoutineFactIndex,
+    value_names: Array<String>,
+    value_local_rows: Array<Int>,
+    value_row: Int,
+    use_block: Int,
+    use_instruction_row: Int
+) -> Bool {
+    if value_row < 0 || value_row >= ArrayLength(value_names) {
+        return false;
+    }
+    return MirRoutineLatestDominatingLocalValueMatches(
+        index, value_names, value_local_rows, value_row,
+        use_block, use_instruction_row
+    );
+}
+
+func DirectMirScalarCfgAppendOperation(
+    inout kinds: Array<Int>,
+    inout result_values: Array<Int>,
+    inout left_values: Array<Int>,
+    inout right_values: Array<Int>,
+    inout left_locals: Array<Int>,
+    inout right_locals: Array<Int>,
+    inout left_literals: Array<String>,
+    inout right_literals: Array<String>,
+    inout phi_starts: Array<Int>,
+    inout phi_counts: Array<Int>,
+    kind: Int,
+    result_value: Int,
+    expression: DirectMirScalarCfgExpressionFact,
+    phi_start: Int,
+    phi_count: Int
+) -> Void {
+    ArrayPush(kinds, kind);
+    ArrayPush(result_values, result_value);
+    ArrayPush(left_values, expression.left_value);
+    ArrayPush(right_values, expression.right_value);
+    ArrayPush(left_locals, expression.left_local);
+    ArrayPush(right_locals, expression.right_local);
+    ArrayPush(left_literals, expression.left_literal);
+    ArrayPush(right_literals, expression.right_literal);
+    ArrayPush(phi_starts, phi_start);
+    ArrayPush(phi_counts, phi_count);
+}

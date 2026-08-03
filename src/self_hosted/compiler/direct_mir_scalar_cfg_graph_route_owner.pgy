@@ -1,0 +1,55 @@
+// Exact route classifier for the general scalar CFG graph plan.
+
+import "direct_mir_scalar_graph_admission_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+
+func DirectMirScalarCfgGraphRouteClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    if !DirectMirCfgProgramEnvelopeReady(admitted) ||
+        admitted.routines.routine_block_counts[0] < 2 {
+        return false;
+    }
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, 0
+    );
+    if !index.valid || ArrayLength(index.source_local_names) < 1 ||
+        ArrayLength(index.source_local_names) !=
+            ArrayLength(index.source_local_types) {
+        return false;
+    }
+    let local_row: Int = 0;
+    while local_row < ArrayLength(index.source_local_types) {
+        if index.source_local_types[local_row] != "Int" { return false; }
+        local_row = local_row + 1;
+    }
+    let branch_seen: Bool = false;
+    let row: Int = 0;
+    while row < ArrayLength(index.instruction_facts.starts) {
+        let global_row: Int = index.instruction_facts.global_start + row;
+        let kind: String = admitted.routines.instruction_kinds[global_row];
+        let source: String =
+            admitted.routines.instruction_source_types[global_row];
+        if kind == "def" {
+            if source != "AST_LET_DECL" && source != "AST_ASSIGNMENT" {
+                return false;
+            }
+        } else if kind == "phi" {
+            if source != "" { return false; }
+        } else if kind == "stmt" {
+            if source != "AST_CALL" { return false; }
+        } else if kind == "loop-init" {
+            if source != "AST_FOR_LOOP" { return false; }
+        } else if kind == "branch" {
+            if source != "AST_BINARY" && source != "AST_IDENTIFIER" &&
+                source != "AST_BREAK" && source != "AST_FOR_LOOP" {
+                return false;
+            }
+            branch_seen = true;
+        } else {
+            return false;
+        }
+        row = row + 1;
+    }
+    return branch_seen;
+}

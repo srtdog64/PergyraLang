@@ -4,6 +4,9 @@ import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
 import "routine_iteration_owner.pgy";
 import "routine_break_exit_fact_owner.pgy";
+import "loop_reachability_fact_owner.pgy";
+import "routine_loop_header_phi_owner.pgy";
+import "routine_loop_exit_phi_owner.pgy";
 
 func SelfMirLowerForFromArtifact(
     ref input: SelfMirRoutineInput,
@@ -24,6 +27,17 @@ func SelfMirLowerForFromArtifact(
     if !IsSome(body_opt) {
         return SelfMirRoutineBuildError(build, "MIR for body block is missing");
     }
+    let reachability: SelfMirLoopReachabilityFact =
+        SelfMirLoopReachabilityForBlock(
+            input.artifact.arena, UnwrapOption(body_opt)
+        );
+    if !reachability.ok {
+        return SelfMirRoutineBuildError(
+            build, "MIR for-loop reachability fact is missing"
+        );
+    }
+    let planned_backedge: Bool = reachability.reaches_backedge ||
+        reachability.falls_through;
     let source_graph: SemanticExpressionGraphView =
         SemanticAstExpressionGraphForNode(
             input.analysis.expression_surfaces,
@@ -76,6 +90,9 @@ func SelfMirLowerForFromArtifact(
     let header: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineSetSuccessors(build, preheader, header, -1);
     build = SelfMirRoutineAtBlock(build, header);
+    build = SelfMirLoopPrepareHeaderLocalVersions(
+        input, build, UnwrapOption(body_opt), planned_backedge
+    );
     let branch_graph: SemanticExpressionGraphView = iteration_graph;
     if iteration.is_foreach && !branch_graph.ok {
         return SelfMirRoutineBuildError(
@@ -105,6 +122,8 @@ func SelfMirLowerForFromArtifact(
             ), input.machine_declaration
         );
     }
+    let header_versions: Array<Int> =
+        SelfMirLocalVersionsSnapshot(build.local_versions);
     build = SelfMirRoutineAddBlock(build);
     let body: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineAtBlock(build, body);
@@ -115,6 +134,25 @@ func SelfMirLowerForFromArtifact(
         break_exits, header, body_local_count
     );
     let body_exit: Int = build.current_block;
+    let observed_backedge: Bool = build.terminated[body_exit] == 0;
+    let body_block: Int = body;
+    while body_block < SelfMirCfgBlockCount(build.cfg) {
+        if (build.cfg.blocks.has_succ_true[body_block] == 1 &&
+            build.cfg.blocks.succ_true[body_block] == header) ||
+            (build.cfg.blocks.has_succ_false[body_block] == 1 &&
+             build.cfg.blocks.succ_false[body_block] == header) {
+            observed_backedge = true;
+        }
+        body_block = body_block + 1;
+    }
+    if observed_backedge != planned_backedge {
+        return SelfMirRoutineBuildError(
+            build, "MIR for-loop reachability fact disagrees with CFG"
+        );
+    }
+    build = SelfMirLoopBindHeaderBackedgeLocalVersions(
+        build, header, observed_backedge
+    );
     if build.terminated[body_exit] == 0 {
         build = SelfMirRoutineSetSuccessors(build, body_exit, header, -1);
     }
@@ -127,5 +165,8 @@ func SelfMirLowerForFromArtifact(
         );
         break_i = break_i + 1;
     }
-    return SelfMirRoutineSetSuccessors(build, header, body, loop_exit);
+    build = SelfMirRoutineSetSuccessors(build, header, body, loop_exit);
+    return SelfMirLoopExitMergeLocalVersions(
+        build, header_versions, break_exits, true, loop_exit
+    );
 }
