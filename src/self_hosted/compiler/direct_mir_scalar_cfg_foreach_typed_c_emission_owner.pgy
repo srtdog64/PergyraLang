@@ -4,30 +4,7 @@ import "direct_mir_array_int_abi_projection_owner.pgy";
 import "direct_mir_array_int_emission_owner.pgy";
 import "direct_mir_array_string_abi_projection_owner.pgy";
 import "direct_mir_scalar_cfg_foreach_graph_readiness_owner.pgy";
-
-func DirectMirScalarCfgForEachCStringList(values: Array<String>) -> String {
-    let output: String = "";
-    let row: Int = 0;
-    while row < ArrayLength(values) {
-        if row > 0 { output = Concat(output, ", "); }
-        output = Concat(output, Concat("\"", Concat(values[row], "\"")));
-        row = row + 1;
-    }
-    return output;
-}
-
-func DirectMirScalarCfgForEachCStruct(
-    element_type: String, length_type: String, array_type: String
-) -> String {
-    let output: String = "typedef struct {\n    ";
-    output = Concat(output, element_type);
-    output = Concat(output, " *data;\n    ");
-    output = Concat(output, length_type);
-    output = Concat(output, " length;\n    ");
-    output = Concat(output, length_type);
-    output = Concat(output, " capacity;\n    void *allocator;\n} ");
-    return Concat(output, Concat(array_type, ";\n"));
-}
+import "direct_mir_scalar_cfg_array_c_materialization_owner.pgy";
 
 func DirectMirScalarCfgForEachTypedCPreamble(
     ref plan: DirectMirScalarCfgGraphPlan,
@@ -55,7 +32,7 @@ func DirectMirScalarCfgForEachTypedCPreamble(
                     fact.capacity_offset, fact.allocator_offset
                 );
             output = Concat(output, "\n");
-            output = Concat(output, DirectMirScalarCfgForEachCStruct(
+            output = Concat(output, DirectMirScalarCfgArrayCStruct(
                 abi.c_element_type, abi.c_length_type, abi.c_array_type
             ));
             int_seen = true;
@@ -68,7 +45,7 @@ func DirectMirScalarCfgForEachTypedCPreamble(
                     fact.capacity_offset, fact.allocator_offset
                 );
             output = Concat(output, "\n");
-            output = Concat(output, DirectMirScalarCfgForEachCStruct(
+            output = Concat(output, DirectMirScalarCfgArrayCStruct(
                 abi.c_element_type, abi.c_length_type, abi.c_array_type
             ));
             string_seen = true;
@@ -117,7 +94,7 @@ func DirectMirScalarCfgForEachTypedCDeclarations(
                 );
             element_type = abi.c_element_type; length_type = abi.c_length_type;
             array_type = abi.c_array_type;
-            element_list = DirectMirScalarCfgForEachCStringList(strings);
+            element_list = DirectMirScalarCfgArrayStringCElementList(strings);
         } else { Die("direct MIR scalar CFG foreach C element type is invalid"); }
         let storage_row: Int = DirectMirScalarCfgForEachStorageRow(
             plan.foreach_iterations, row

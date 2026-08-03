@@ -2453,7 +2453,8 @@ grep -Fq "sem.type_resolution_metadata_dead_ends = 2" "$AIR_TEST_INDEX"
 ! { grep -Fq "type_resolution_metadata_materializer_fallbacks" "$SEMANTIC_INDEX" \
     || grep -Fq "type_resolution_metadata_materializer_fallbacks" "$AIR_TEST_INDEX"; }
 grep -Fq "return inst->expr0" "$ROOT_DIR/src/compiler/mir_ssa_use_edges.c"
-grep -Fq "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1" "$ROOT_DIR/src/compiler/mir_ssa_use_edges.c"
+grep -Fq "inst->branch_shape == MIR_BRANCH_FOR_RANGE" "$ROOT_DIR/src/compiler/mir_ssa_use_edges.c"
+grep -Fq "? inst->expr1" "$ROOT_DIR/src/compiler/mir_ssa_use_edges.c"
 ! grep -Fq "mir_instruction_source_payload" "$ROOT_DIR/src/compiler/mir_ssa_use_edges.c"
 ! grep -Fq "inst->ast->type" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"
 ! grep -Fq "source_statement_inventory" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"

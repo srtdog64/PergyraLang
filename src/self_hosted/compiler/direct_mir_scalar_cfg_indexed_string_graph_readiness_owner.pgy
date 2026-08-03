@@ -1,0 +1,70 @@
+// Cross-owner readiness for the one ArrayLength-bounded String index receipt.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarCfgIndexedStringGraphReady(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let fact: DirectMirScalarCfgIndexedStringArrayFact =
+        plan.indexed_string_array;
+    let dynamic_count: Int = 0;
+    let row: Int = 0;
+    while row < DirectMirScalarCfgRangeFactCount(plan.range_iterations) {
+        if DirectMirScalarCfgRangeFactAt(
+            plan.range_iterations, row
+        ).stop_value_id != "" { dynamic_count = dynamic_count + 1; }
+        row = row + 1;
+    }
+    if DirectMirScalarCfgIndexedStringArrayFactAbsent(fact) {
+        return dynamic_count == 0;
+    }
+    if dynamic_count != 1 ||
+        !DirectMirScalarCfgIndexedStringArrayFactShapeReady(fact, true) ||
+        fact.index_local_row >= ArrayLength(plan.local_names) ||
+        fact.operation_row >= ArrayLength(plan.operation_kinds) {
+        return false;
+    }
+    let range: DirectMirScalarCfgRangeIterationFact =
+        DirectMirScalarCfgRangeFactAtLoopSyntaxId(
+            plan.range_iterations, fact.loop_syntax_id
+        );
+    let result_value: Int = plan.operation_result_values[
+        fact.operation_row
+    ];
+    if !DirectMirScalarCfgRangeIterationFactReady(
+            range, ArrayLength(plan.block_succ_true)
+        ) || range.start_literal != "0" || range.stop_literal != "" ||
+        range.stop_value_id != fact.collection_value_id ||
+        range.step_literal != "1" || range.header_block != fact.header_block ||
+        range.body_block != fact.body_block ||
+        range.local_row != fact.index_local_row ||
+        plan.local_names[fact.index_local_row] != fact.index_name ||
+        plan.local_ref_kinds[fact.index_local_row] !=
+            DirectMirScalarCfgLocalRefIteration() ||
+        plan.local_ref_syntax_ids[fact.index_local_row] != fact.loop_syntax_id ||
+        result_value < 0 || result_value >= ArrayLength(plan.value_names) ||
+        plan.value_names[result_value] != fact.result_value_id ||
+        plan.value_definition_blocks[result_value] != fact.body_block ||
+        plan.operation_kinds[fact.operation_row] !=
+            DirectMirScalarCfgOpConcatString() ||
+        plan.operation_right_values[fact.operation_row] >= 0 ||
+        plan.operation_right_locals[fact.operation_row] >= 0 ||
+        plan.operation_right_literals[fact.operation_row] != "" ||
+        plan.block_condition_kinds[fact.header_block] !=
+            DirectMirScalarCfgConditionLess() ||
+        plan.block_condition_left_locals[fact.header_block] !=
+            fact.index_local_row ||
+        plan.block_condition_right_values[fact.header_block] >= 0 ||
+        plan.block_condition_right_locals[fact.header_block] >= 0 ||
+        plan.block_condition_right_literals[fact.header_block] != "" {
+        return false;
+    }
+    row = 0;
+    while row < ArrayLength(plan.value_names) {
+        if plan.value_names[row] == fact.collection_value_id {
+            return false;
+        }
+        row = row + 1;
+    }
+    return fact.length_offset != fact.capacity_offset;
+}

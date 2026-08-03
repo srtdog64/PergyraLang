@@ -30,11 +30,13 @@ command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 FOR_OWNER="$ROOT_DIR/src/self_hosted/mir/routine_for_owner.pgy"
 RANGE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy"
 ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
+INPUT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy"
 require_text "$FOR_OWNER" 'SelfMirLoopPrepareHeaderLocalVersions('
 require_text "$FOR_OWNER" 'SelfMirLoopExitMergeLocalVersions('
 require_text "$RANGE_OWNER" 'DirectMirScalarCfgRangeIterationFactsFromOwners('
-require_text "$ADMISSION" 'DirectMirScalarCfgRangeIterationFactsFromOwners('
+require_text "$INPUT_OWNER" 'DirectMirScalarCfgRangeIterationFactsFromOwners('
 reject_text "$ADMISSION" 'for_break_exit.pgy'
+reject_text "$INPUT_OWNER" 'for_break_exit.pgy'
 reject_text "$RANGE_OWNER" 'for_break_exit.pgy'
 
 mkdir -p "$WORK_DIR"

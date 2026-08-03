@@ -5,6 +5,7 @@ import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
 import "direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy";
 import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_cfg_indexed_string_array_fact_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 
 func DirectMirScalarCfgAppendForEachLocals(
@@ -82,7 +83,8 @@ func DirectMirScalarCfgForEachFactsAtLocalRows(
 func DirectMirScalarCfgForEachLocalInventoryReady(
     ref index: MirRoutineFactIndex,
     local_names: Array<String>,
-    ref facts: DirectMirScalarCfgForEachFactSet
+    ref facts: DirectMirScalarCfgForEachFactSet,
+    ref indexed_string: DirectMirScalarCfgIndexedStringArrayFact
 ) -> Bool {
     if ArrayLength(index.source_local_names) !=
         ArrayLength(index.source_local_types) { return false; }
@@ -123,6 +125,13 @@ func DirectMirScalarCfgForEachLocalInventoryReady(
                     claimed = true;
                 }
                 fact_row = fact_row + 1;
+            }
+            if indexed_string.valid &&
+                indexed_string.collection_name ==
+                    index.source_local_names[row] &&
+                index.source_local_types[row] ==
+                    CompilerAbiLayoutArrayStringTypeName() {
+                claimed = true;
             }
             if !claimed { return false; }
             ArraySet(consumed, row, true);

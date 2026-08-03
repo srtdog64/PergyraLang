@@ -1,33 +1,57 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-08-03 indexed String range projection
+## Active self-host context — 2026-08-03 indexed String collection continuation
 
-- Executable checkpoint `c91def868b8c7d45dbb9cc4e212dad2b6095bcd2`
-  closes `for_each.pgy` through the installed self-host C and LLVM routes. One
-  typed scalar-CFG plan executes local `Array<Int>` and `Array<String>` foreach
-  loops with exact `60,abbccc`; graph-only String mutation executes `xyyzzz`.
-- One type-family owner, element-neutral Array ABI/literal-spine owners, and a
-  loop-identity companion receipt extend the existing foreach topology/storage
-  receipt. Local/result types and String literal/copy/phi/concat/log operations
-  are sealed before C/LLVM emission. No fixture route, source/`expr0` reparse,
-  backend collection reconstruction, or Option retry remains.
-- Thirteen independent type/ABI/graph/LocalRef negatives reject without an
-  artifact. The follow-up also replaced the new String element-start `-1`
-  sentinel with `Option<Int>` and made the String ABI projection consume the
-  element-neutral storage owner's index facts. The current-driver cumulative
-  CFG gate is green in 307.8 seconds; the structural ratchet is green in 262.4
-  seconds with no cap increase.
-- Classification is bounded `SUBSTITUTING`, not general collection execution or
-  whole-compiler replacement. Full CI, current fixpoint, pressure integration,
-  and proof suites did not run. The separate Pergyra-likeness gate remains known
-  red at sentinel 44/22 and zone-bound steps 26/29; its baselines were not
-  loosened and that historical cross-owner cleanup is not this active rung.
-- The next executable falsifier is `str_array_concat.pgy`, expected exact
-  `xyz`. Its 7,709-byte self MIR is
-  `DBE3B8FF0D4DCFBF69A10A1D416BA08AA165C173416478CB4E61560BD428DAEE`;
-  both direct targets currently reject with `direct MIR CFG single-node literal
-  graph is invalid`. Close `ArrayLength(parts)` and dynamic `parts[i]` through
-  persisted graph/ABI/LocalRef receipts without a second range compiler.
+- The current source closes `str_array_concat.pgy` through the installed
+  self-host C and LLVM routes. Its 7,718-byte self-produced MIR is
+  `8FF9C7201C6A231C584EEFA054BBD374B3BFED49A32C9D8116E133FB8A806340`.
+  The resulting 1,088-byte C artifact
+  (`C06504F7A91D9A4129C10CAC2634B5F8801EDBD92E2FC1376278F07593A4887F`)
+  and 3,783-byte LLVM artifact
+  (`D4E0BE9EA6ABB5CFB36D0AF4E4929AA71DCEAF3FEA41D41DEFCE96DC8299896F`)
+  both compile and execute exact `xyz`.
+- Native and self producers now persist the range stop graph's `parts.1` use.
+  One target-neutral indexed receipt joins `ArrayLength(parts)`, the dominating
+  canonical `Array<String>` literal/ABI/storage fact, the range LocalRef,
+  `parts[i]`, and the existing `ConcatString` operation. C consumes `.length`
+  and `.data[i]`; LLVM consumes ABI data/length indices and unsigned
+  `icmp ult`. Capacity never owns the bound.
+- Display `expr0/expr1` is no longer a second range authority. Changing all
+  display strings leaves both artifacts byte-identical, while changing only
+  persisted String literal nodes executes exact `abbccc`. Thirteen independent
+  bound-target/edge, ValueId, LocalRef, ABI/capacity, literal-spine, concat, and
+  stale-collection mutations reject both targets before publication and never
+  retry the retired literal-bound or Option paths.
+- The release-profile installed driver is 4,467,459 bytes with SHA-256
+  `A96E0B246B62A0C36561B385F187317C435E787BC4A88A1299FB74003A68FD76`.
+  The focused installed gate is green. Existing scalar, range, nested scope,
+  foreach, returned-array, and mixed-foreach gates remain green. The structural
+  component/removed-path ratchet is green in 240.6 seconds.
+- Final cumulative CFG integration is green in 247.318 seconds. The one final
+  pressure sample recorded 0.019 GiB peak working set and 0.008 GiB peak
+  private memory, below the 2.4 GiB attention threshold and 3 GiB hard stop.
+  Focused gates were not repeatedly pressure-sampled.
+- Classification is bounded `SUBSTITUTING` for one local literal
+  `Array<String>` read by a zero-start/unit-step `ArrayLength` range and fed to
+  String concat in installed C and LLVM. It is not arbitrary indexed
+  collections, mutation, returned String arrays, general dynamic bounds, or
+  whole-compiler replacement. Full CI, current gen2==gen3 fixpoint, public
+  matrices, and proof suites did not run. The known duplicate Coq-authority SoT
+  gate remains independently red and was not weakened.
+- The next executable falsifier is `src/self_hosted/codegen/fixture/str_array.pgy`.
+  Its 8,408-byte self MIR is
+  `4B992433D9D40A7D1FA6DFB4BAE1AF41D2F86FCF57D32C229C0B5341DFCAA75F`
+  and should execute `alice`, `bob`, `carol`, then `BOB`. Both direct targets
+  currently fail before publication with
+  `direct MIR scalar CFG foreach local inventory is invalid`.
+- Next priority is to generalize the indexed collection receipt to an owned
+  while-condition/indexed-Log/ArraySet slice without treating the collection as
+  a scalar local. The fact owners are the existing persisted graphs,
+  `Array<String>` ABI/storage identity, while CFG, and ValueId/LocalRef facts;
+  the last legitimate consumer remains `CompileAdmittedDirectMirForTarget`.
+  Forbidden fallbacks are a fixture/block-count route, source/display reparse,
+  capacity-as-length, backend-specific array reconstruction, a second ArraySet
+  compiler, or weakening the closed range/foreach claimants.
 
 ## Historical self-host ledger — inactive navigation evidence
 

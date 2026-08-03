@@ -88,6 +88,12 @@ cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/c.run" && cmp -s "$WORK_DIR/c.run" "$
 
 for mutation in inner-init-ref inner-branch-ref missing-type inner-latch-target outer-latch-target; do
     diagnostic='direct MIR scalar CFG range iteration facts are invalid'
+    if [[ "$mutation" == missing-type ]]; then
+        diagnostic='direct MIR scalar CFG range inventory is invalid'
+    elif [[ "$mutation" == inner-latch-target ||
+            "$mutation" == outer-latch-target ]]; then
+        diagnostic='direct MIR scalar CFG range instruction/CFG join is invalid'
+    fi
     for target in c llvm; do
         artifact="$WORK_DIR/$mutation-$target.artifact"
         if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$target" \

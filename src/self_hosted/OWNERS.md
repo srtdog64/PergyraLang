@@ -2157,6 +2157,9 @@ inventory must not become a second fact-family owner registry.
   -- target-neutral plan issuer over typed MIR indices, use/dominance facts,
   exact phi bindings, and the range receipt. Claimed invalid graphs cannot
   retry a legacy topology path.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy` --
+  one decoded scalar-CFG input bundle shared by graph admission. It owns the
+  admitted document/index/use/wire setup, not a second plan or route.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_route_owner.pgy` --
   topology-independent per-routine classification by the supported
   operation/type envelope, never fixture names or exact block counts. A
@@ -2172,7 +2175,9 @@ inventory must not become a second fact-family owner registry.
   -- admitted-MIR construction of canonical range receipts over typed
   iteration and loop-flow owners; multi-range selection consumes the one
   decoded wire and exact `loop_syntax_id` LocalRefs, while the byte-stable
-  single-range shape has one possible typed receipt.
+  single-range shape has one possible typed receipt. Its bound is issued by
+  `direct_mir_scalar_cfg_range_bound_owner.pgy`, which admits exactly one
+  canonical integer literal or one persisted `ArrayLength(ValueId)` graph.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_admission_owner.pgy`
   -- joins a collection loop candidate, typed iteration row, collection
   ValueId, resolved local-literal or direct-call collection source, binding
@@ -2186,8 +2191,21 @@ inventory must not become a second fact-family owner registry.
   -- shared definition-instruction identity predicate used by typed local
   collection owners.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_string_collection_owner.pgy`
-  -- exact local `Array<String>` literal graph, canonical ABI, and element-pool
-  admission without source or display-text recovery.
+  -- foreach adapter over the target-neutral local `Array<String>` collection
+  fact; it does not decode a second literal graph or ABI row.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_array_string_collection_owner.pgy`
+  -- exact local `Array<String>` literal graph, canonical ABI, storage
+  identity, and element-pool admission shared by foreach and indexed reads.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_array_fact_owner.pgy`,
+  `direct_mir_scalar_cfg_indexed_string_array_admission_owner.pgy`, and
+  `direct_mir_scalar_cfg_indexed_string_graph_readiness_owner.pgy` -- one
+  immutable receipt joining the `ArrayLength(ValueId)` range, dominating
+  collection definition, canonical String-array storage, exact `parts[i]`
+  graph, iteration LocalRef, concat result, CFG row, and ABI offsets. Missing,
+  stale, or capacity-substituted facts fail before either backend publishes.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_expression_owner.pgy`
+  -- binds that receipt to the existing target-neutral `ConcatString`
+  operation without inventing a scalar collection ValueId or backend operand.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_admission_owner.pgy`
   -- the one type-directed join over local Int, local String, and admitted
   returned-Int collection definitions. It exposes one collection receipt and
@@ -2250,6 +2268,11 @@ inventory must not become a second fact-family owner registry.
   `direct_mir_scalar_cfg_foreach_typed_c_emission_owner.pgy`, which owns typed
   Int/String storage, ABI-length cursor, binder load, latch increment, and
   condition projection from the sealed receipts.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_array_c_materialization_owner.pgy`
+  and `direct_mir_scalar_cfg_indexed_string_c_emission_owner.pgy` -- shared
+  canonical C array spelling plus the indexed receipt's storage, length-bound
+  condition, and data operand. The signed range local is converted to
+  `size_t` only after admission has proved start `0` and step `1`.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy` --
   final textual LLVM block projection from that same plan. Operation spelling
   is delegated to the type-directed operation owner; it owns no admission.
@@ -2257,6 +2280,11 @@ inventory must not become a second fact-family owner registry.
   and `direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy` -- typed
   LLVM operation spelling, String constants/arrays, and the selected concat
   helper body from sealed receipts.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_array_string_llvm_value_owner.pgy`
+  and `direct_mir_scalar_cfg_indexed_string_llvm_emission_owner.pgy` -- shared
+  String-array aggregate materialization plus ABI-indexed length/data loads.
+  The indexed condition is unsigned `icmp ult`; inbounds indexing is admitted
+  only for the same collection, zero start, unit step, and its owned length.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy`
   -- stable LLVM consumer names delegated to
   `direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy`, which owns

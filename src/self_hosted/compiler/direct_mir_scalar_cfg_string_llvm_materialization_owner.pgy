@@ -3,6 +3,7 @@
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_array_string_abi_projection_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_string_llvm_value_owner.pgy";
 
 func DirectMirScalarCfgForEachLlvmPrefix(row: Int) -> String {
     return Concat("foreach.", ToString(row));
@@ -12,49 +13,13 @@ func DirectMirScalarCfgForEachStringLlvmValue(
     row: Int, values: Array<String>,
     ref abi: DirectMirArrayStringAbiProjection
 ) -> String {
-    let count: Int = ArrayLength(values);
     let prefix: String = DirectMirScalarCfgForEachLlvmPrefix(row);
-    let output: String = Concat("  %pgy.array.", prefix);
-    output = Concat(output, Concat(".storage = alloca [", ToString(count)));
-    output = Concat(output, " x ptr], align 8\n");
-    let item: Int = 0;
-    while item < count {
-        output = Concat(output, Concat("  %pgy.array.", prefix));
-        output = Concat(output, Concat(".slot.", ToString(item)));
-        output = Concat(output, Concat(" = getelementptr inbounds [", ToString(count)));
-        output = Concat(output, Concat(" x ptr], ptr %pgy.array.", prefix));
-        output = Concat(output, Concat(".storage, i64 0, i64 ", ToString(item)));
-        output = Concat(output, "\n  store ptr @.pgy.scalar.cfg.foreach.");
-        output = Concat(output, ToString(row));
-        output = Concat(output, Concat(".", ToString(item)));
-        output = Concat(output, Concat(", ptr %pgy.array.", prefix));
-        output = Concat(output, Concat(".slot.", ToString(item)));
-        output = Concat(output, ", align 8\n");
-        item = item + 1;
-    }
-    output = Concat(output, Concat("  %pgy.array.", prefix));
-    output = Concat(output, Concat(".data = getelementptr inbounds [", ToString(count)));
-    output = Concat(output, Concat(" x ptr], ptr %pgy.array.", prefix));
-    output = Concat(output, ".storage, i64 0, i64 0\n");
-    output = Concat(output, Concat("  %pgy.array.", prefix));
-    output = Concat(output, Concat(".0 = insertvalue ", abi.llvm_aggregate_type));
-    output = Concat(output, Concat(" poison, ptr %pgy.array.", prefix));
-    output = Concat(output, Concat(".data, ", ToString(abi.data_index)));
-    output = Concat(output, Concat("\n  %pgy.array.", prefix));
-    output = Concat(output, Concat(".1 = insertvalue ", abi.llvm_aggregate_type));
-    output = Concat(output, Concat(" %pgy.array.", prefix));
-    output = Concat(output, Concat(".0, i64 ", ToString(count)));
-    output = Concat(output, Concat(", ", ToString(abi.length_index)));
-    output = Concat(output, Concat("\n  %pgy.array.", prefix));
-    output = Concat(output, Concat(".2 = insertvalue ", abi.llvm_aggregate_type));
-    output = Concat(output, Concat(" %pgy.array.", prefix));
-    output = Concat(output, Concat(".1, i64 ", ToString(count)));
-    output = Concat(output, Concat(", ", ToString(abi.capacity_index)));
-    output = Concat(output, Concat("\n  %pgy.array.", prefix));
-    output = Concat(output, Concat(".3 = insertvalue ", abi.llvm_aggregate_type));
-    output = Concat(output, Concat(" %pgy.array.", prefix));
-    output = Concat(output, Concat(".2, ptr null, ", ToString(abi.allocator_index)));
-    return Concat(output, "\n");
+    let constant_prefix: String = Concat(
+        ".pgy.scalar.cfg.foreach.", ToString(row)
+    );
+    return DirectMirScalarCfgArrayStringLlvmValue(
+        prefix, constant_prefix, values, abi
+    );
 }
 
 func DirectMirScalarCfgStringLlvmConstant(

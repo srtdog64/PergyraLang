@@ -102,35 +102,27 @@ func SelfMirLowerForFromArtifact(
         iteration_scope_local_count
     );
     let branch_graph: SemanticExpressionGraphView = iteration_graph;
-    if iteration.is_foreach && !branch_graph.ok {
+    if !iteration.is_foreach {
+        branch_graph = SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneAuxiliary()
+        );
+    }
+    if !branch_graph.ok {
         return SelfMirRoutineBuildError(
-            build, "MIR foreach branch expression graph is missing"
+            build, "MIR iteration branch expression graph is missing"
         );
     }
     let branch_uses: Array<String> =
-        SelfMirIterationBranchUses(build, iteration, branch_graph);
+        SelfMirExpressionGraphUses(build, branch_graph);
     build = SelfMirRoutineAddInstruction(
         build, "branch", "branch", "", binding, "", start,
         stop, "AST_FOR_LOOP", branch_uses
     );
     build = SelfMirRoutineAttachLastPrimaryLocalRef(build, iteration_local);
-    if iteration.collection_hoisted {
-        build = SelfMirRoutineAttachLastExpressionGraph(
-            build, branch_graph,
-            input.machine_declaration
-        );
-    } else if iteration.is_foreach {
-        build = SelfMirRoutineAttachLastExpressionGraph(
-            build, branch_graph, input.machine_declaration
-        );
-    } else {
-        build = SelfMirRoutineAttachLastExpressionGraph(
-            build, SemanticAstExpressionGraphForNode(
-                input.analysis.expression_surfaces,
-                node_id, AstExpressionLaneAuxiliary()
-            ), input.machine_declaration
-        );
-    }
+    build = SelfMirRoutineAttachLastExpressionGraph(
+        build, branch_graph, input.machine_declaration
+    );
     let header_versions: Array<Int> = SelfMirLocalVersionsPrefix(
         build.local_versions, iteration_scope_local_count
     );

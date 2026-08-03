@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_cfg_c_operand_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
+import "direct_mir_scalar_cfg_indexed_string_c_emission_owner.pgy";
 
 func DirectMirScalarCfgEmitCOperation(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
@@ -55,11 +56,19 @@ func DirectMirScalarCfgEmitCOperation(
             if kind == DirectMirScalarCfgOpAddInt() {
                 output = Concat(output, " + ");
             } else { output = Concat(output, ", "); }
-            output = Concat(output, DirectMirScalarCfgCOperand(
-                plan, plan.operation_right_values[operation],
-                plan.operation_right_locals[operation],
-                plan.operation_right_literals[operation]
-            ));
+            if kind == DirectMirScalarCfgOpConcatString() &&
+                DirectMirScalarCfgIndexedStringArrayOwnsOperation(
+                    plan.indexed_string_array, operation
+                ) {
+                output = Concat(output,
+                    DirectMirScalarCfgIndexedStringCOperand(plan, operation));
+            } else {
+                output = Concat(output, DirectMirScalarCfgCOperand(
+                    plan, plan.operation_right_values[operation],
+                    plan.operation_right_locals[operation],
+                    plan.operation_right_literals[operation]
+                ));
+            }
         }
         if kind == DirectMirScalarCfgOpConcatString() {
             output = Concat(output, ")");

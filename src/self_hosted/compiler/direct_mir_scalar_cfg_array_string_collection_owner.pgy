@@ -1,0 +1,126 @@
+// Target-neutral local Array<String> definition, literal, and ABI receipt.
+
+import "direct_mir_array_string_abi_fact_owner.pgy";
+import "direct_mir_array_literal_spine_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_collection_definition_owner.pgy";
+import "direct_mir_scalar_graph_admission_owner.pgy";
+
+struct DirectMirScalarCfgArrayStringCollectionFact {
+    let valid: Bool;
+    let definition_global_row: Int;
+    let collection_value_id: String;
+    let collection_name: String;
+    let storage_identity: String;
+    let elements: Array<String>;
+    let abi_layout_id: Int;
+    let abi_size: Int;
+    let abi_align: Int;
+    let data_offset: Int;
+    let length_offset: Int;
+    let capacity_offset: Int;
+    let allocator_offset: Int;
+}
+
+func DirectMirScalarCfgArrayStringCollectionFactEmpty(
+) -> DirectMirScalarCfgArrayStringCollectionFact {
+    let elements: Array<String> = [];
+    return DirectMirScalarCfgArrayStringCollectionFact(
+        false, -1, "", "", "", elements, 0, 0, 0, 0, 0, 0, 0
+    );
+}
+
+func DirectMirScalarCfgArrayStringLiteralElements(
+    ref graph: MirExpressionGraphSequence
+) -> Array<String> {
+    let values: Array<String> = [];
+    let nodes: Array<Int> = DirectMirArrayLiteralElementNodes(
+        graph, AstExpressionNodeStringLiteral()
+    );
+    if ArrayLength(nodes) < 1 { return values; }
+    let row: Int = 0;
+    while row < ArrayLength(nodes) {
+        let content: Option<String> = DirectMirAsciiLiteralContent(
+            graph.arena.node_texts[nodes[row]]
+        );
+        if !IsSome(content) { return []; }
+        ArrayPush(values, UnwrapOption(content));
+        row = row + 1;
+    }
+    return values;
+}
+
+func DirectMirScalarCfgArrayStringCollectionFactReady(
+    ref fact: DirectMirScalarCfgArrayStringCollectionFact
+) -> Bool {
+    let layout: DirectMirArrayStorageLayoutContract =
+        DirectMirArrayStorageLayoutContractFact();
+    return fact.valid && fact.definition_global_row >= 0 &&
+        fact.collection_value_id != "" && fact.collection_name != "" &&
+        fact.storage_identity == Concat(
+            "local-array:", fact.collection_value_id
+        ) && ArrayLength(fact.elements) > 0 &&
+        DirectMirArrayStorageLayoutContractReady(layout) &&
+        fact.abi_layout_id > 0 && fact.abi_size == layout.size &&
+        fact.abi_align == layout.align &&
+        fact.data_offset == layout.data_offset &&
+        fact.length_offset == layout.length_offset &&
+        fact.capacity_offset == layout.capacity_offset &&
+        fact.allocator_offset == layout.allocator_offset;
+}
+
+func DirectMirScalarCfgArrayStringCollectionFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    definition: MirRoutineResultDefinitionFact,
+    declaration: MirRoutineInstructionScalarCapture,
+    collection_value: String, collection_name: String
+) -> DirectMirScalarCfgArrayStringCollectionFact {
+    let invalid: DirectMirScalarCfgArrayStringCollectionFact =
+        DirectMirScalarCfgArrayStringCollectionFactEmpty();
+    if !DirectMirScalarCfgForEachCollectionDefinitionReady(
+        admitted, index, use_facts, wire, definition, declaration,
+        collection_value, collection_name
+    ) || declaration.abi_type_name !=
+            CompilerAbiLayoutArrayStringTypeName() {
+        return invalid;
+    }
+    let abi_opt: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            admitted.routines.source_json, declaration.abi_type_name,
+            declaration.abi_type_value_ready, declaration.abi_type_start,
+            declaration.abi_type_end, declaration.abi_layout_id_start,
+            declaration.abi_layout_id_end,
+            declaration.abi_layout_required_start,
+            declaration.abi_layout_required_end,
+            declaration.abi_layout_start, declaration.abi_layout_end
+        );
+    if !IsSome(abi_opt) { return invalid; }
+    let abi: MirAbiLayoutRowCapture = UnwrapOption(abi_opt);
+    if !DirectMirArrayStringCapturedAbiReady(abi) { return invalid; }
+    let expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions,
+            definition.global_row
+        );
+    let graph: MirExpressionGraphSequence =
+        DirectMirArrayIntGraphFromExpressionFact(
+            admitted.routines.source_json, expression, 0
+        );
+    let elements: Array<String> =
+        DirectMirScalarCfgArrayStringLiteralElements(graph);
+    let fact: DirectMirScalarCfgArrayStringCollectionFact =
+        DirectMirScalarCfgArrayStringCollectionFact(
+            true, definition.global_row, collection_value, collection_name,
+            Concat("local-array:", declaration.result), elements,
+            MirAbiLayoutIdFromCapture(abi), ToInt(abi.size_text),
+            ToInt(abi.align_text), ToInt(abi.field_offsets[0]),
+            ToInt(abi.field_offsets[1]), ToInt(abi.field_offsets[2]),
+            ToInt(abi.field_offsets[3])
+        );
+    if !DirectMirScalarCfgArrayStringCollectionFactReady(fact) {
+        return invalid;
+    }
+    return fact;
+}

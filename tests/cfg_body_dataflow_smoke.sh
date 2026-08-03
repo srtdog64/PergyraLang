@@ -244,7 +244,8 @@ run_literal_doc_contract_smoke() {
     fi
     require_literal "src/compiler/mir_ssa_use_edges.c" "mir_def_instruction_source_expr"
     require_literal "src/compiler/mir_ssa_use_edges.c" "return inst->expr0"
-    require_literal "src/compiler/mir_ssa_use_edges.c" "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1"
+    require_literal "src/compiler/mir_ssa_use_edges.c" "inst->branch_shape == MIR_BRANCH_FOR_RANGE"
+    require_literal "src/compiler/mir_ssa_use_edges.c" "? inst->expr1"
     if grep -Fq -- "mir_instruction_source_payload" \
         "$ROOT_DIR/src/compiler/mir_ssa_use_edges.c"; then
         echo "MIR SSA use edges must consume MIR expr facts, not source payload fallback" >&2
@@ -1584,7 +1585,8 @@ required_mir_owner_terms = {
         "mir_parse_versioned_name_owned",
         "mir_def_instruction_source_expr",
         "return inst->expr0",
-        "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1",
+        "inst->branch_shape == MIR_BRANCH_FOR_RANGE",
+        "? inst->expr1",
         "mir_populate_use_edges",
     ],
     "src/compiler/mir_liveness_dce.c": [

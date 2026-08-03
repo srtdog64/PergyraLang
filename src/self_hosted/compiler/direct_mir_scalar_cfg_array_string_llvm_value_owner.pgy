@@ -1,0 +1,50 @@
+// LLVM aggregate materialization for one canonical Array<String> receipt.
+
+import "direct_mir_array_string_abi_projection_owner.pgy";
+
+func DirectMirScalarCfgArrayStringLlvmValue(
+    prefix: String, constant_prefix: String, values: Array<String>,
+    ref abi: DirectMirArrayStringAbiProjection
+) -> String {
+    let count: Int = ArrayLength(values);
+    let output: String = Concat("  %pgy.array.", prefix);
+    output = Concat(output, Concat(".storage = alloca [", ToString(count)));
+    output = Concat(output, " x ptr], align 8\n");
+    let item: Int = 0;
+    while item < count {
+        output = Concat(output, Concat("  %pgy.array.", prefix));
+        output = Concat(output, Concat(".slot.", ToString(item)));
+        output = Concat(output, Concat(" = getelementptr inbounds [", ToString(count)));
+        output = Concat(output, Concat(" x ptr], ptr %pgy.array.", prefix));
+        output = Concat(output, Concat(".storage, i64 0, i64 ", ToString(item)));
+        output = Concat(output, Concat("\n  store ptr @", constant_prefix));
+        output = Concat(output, Concat(".", ToString(item)));
+        output = Concat(output, Concat(", ptr %pgy.array.", prefix));
+        output = Concat(output, Concat(".slot.", ToString(item)));
+        output = Concat(output, ", align 8\n");
+        item = item + 1;
+    }
+    output = Concat(output, Concat("  %pgy.array.", prefix));
+    output = Concat(output, Concat(".data = getelementptr inbounds [", ToString(count)));
+    output = Concat(output, Concat(" x ptr], ptr %pgy.array.", prefix));
+    output = Concat(output, ".storage, i64 0, i64 0\n");
+    output = Concat(output, Concat("  %pgy.array.", prefix));
+    output = Concat(output, Concat(".0 = insertvalue ", abi.llvm_aggregate_type));
+    output = Concat(output, Concat(" poison, ptr %pgy.array.", prefix));
+    output = Concat(output, Concat(".data, ", ToString(abi.data_index)));
+    output = Concat(output, Concat("\n  %pgy.array.", prefix));
+    output = Concat(output, Concat(".1 = insertvalue ", abi.llvm_aggregate_type));
+    output = Concat(output, Concat(" %pgy.array.", prefix));
+    output = Concat(output, Concat(".0, i64 ", ToString(count)));
+    output = Concat(output, Concat(", ", ToString(abi.length_index)));
+    output = Concat(output, Concat("\n  %pgy.array.", prefix));
+    output = Concat(output, Concat(".2 = insertvalue ", abi.llvm_aggregate_type));
+    output = Concat(output, Concat(" %pgy.array.", prefix));
+    output = Concat(output, Concat(".1, i64 ", ToString(count)));
+    output = Concat(output, Concat(", ", ToString(abi.capacity_index)));
+    output = Concat(output, Concat("\n  %pgy.array.", prefix));
+    output = Concat(output, Concat(".3 = insertvalue ", abi.llvm_aggregate_type));
+    output = Concat(output, Concat(" %pgy.array.", prefix));
+    output = Concat(output, Concat(".2, ptr null, ", ToString(abi.allocator_index)));
+    return Concat(output, "\n");
+}

@@ -66,3 +66,10 @@ PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
     bash "$MIXED_FOREACH_GATE" || fail "mixed Int/String foreach gate failed"
 
 echo "[$LABEL] mixed Int/String foreach substitutes through one typed receipt"
+
+INDEXED_STRING_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir_indexed_string_array_projection.sh"
+require_file "$INDEXED_STRING_GATE"
+PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
+    bash "$INDEXED_STRING_GATE" || fail "indexed Array<String> gate failed"
+
+echo "[$LABEL] ArrayLength-bounded parts[i] substitutes through one indexed receipt"

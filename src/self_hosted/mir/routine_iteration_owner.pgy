@@ -161,14 +161,3 @@ func SelfMirPrepareIterationCollection(
         build, source_graph, declaration
     );
 }
-
-func SelfMirIterationBranchUses(
-    build: SelfMirRoutineBuild,
-    fact: SelfMirIterationLoweringFact,
-    branch_graph: SemanticExpressionGraphView
-) -> Array<String> {
-    if !fact.is_foreach {
-        return SelfMirNoUses();
-    }
-    return SelfMirExpressionGraphUses(build, branch_graph);
-}

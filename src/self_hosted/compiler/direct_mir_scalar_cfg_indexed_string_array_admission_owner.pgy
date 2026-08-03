@@ -1,0 +1,168 @@
+// Joins ArrayLength(ValueId), Array<String> storage, and parts[i] once.
+
+import "direct_mir_scalar_cfg_indexed_string_array_fact_owner.pgy";
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy";
+import "../mir_lower/routine_definition_dominance_fact_owner.pgy";
+
+func DirectMirScalarCfgIndexedStringConcatGraphReady(
+    ref graph: MirExpressionGraphSequence
+) -> Bool {
+    return graph.ok && graph.ready_node_count == 8 &&
+        ArrayLength(graph.roots) == 1 && graph.roots[0] == 7 &&
+        graph.arena.topology.node_kinds[0] == AstExpressionNodeLeaf() &&
+        graph.arena.node_texts[0] == "Concat" &&
+        graph.arena.topology.node_kinds[1] == AstExpressionNodeCall() &&
+        graph.arena.topology.left_children[1] == 0 &&
+        graph.arena.call_target_kinds[1] == SemanticCallTargetDirect() &&
+        graph.arena.call_target_names[1] == "Concat" &&
+        graph.arena.topology.node_kinds[2] == AstExpressionNodeLeaf() &&
+        graph.arena.topology.node_kinds[3] ==
+            AstExpressionNodeCallArgument() &&
+        graph.arena.topology.left_children[3] == 1 &&
+        graph.arena.topology.right_children[3] == 2 &&
+        graph.arena.topology.node_kinds[4] == AstExpressionNodeLeaf() &&
+        graph.arena.topology.node_kinds[5] == AstExpressionNodeLeaf() &&
+        graph.arena.topology.node_kinds[6] == AstExpressionNodeIndex() &&
+        graph.arena.topology.left_children[6] == 4 &&
+        graph.arena.topology.right_children[6] == 5 &&
+        graph.arena.topology.node_kinds[7] ==
+            AstExpressionNodeCallArgument() &&
+        graph.arena.topology.left_children[7] == 3 &&
+        graph.arena.topology.right_children[7] == 6;
+}
+
+func DirectMirScalarCfgIndexedStringArrayFactFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref ranges: DirectMirScalarCfgRangeFactSet
+) -> DirectMirScalarCfgIndexedStringArrayFact {
+    let invalid: DirectMirScalarCfgIndexedStringArrayFact =
+        DirectMirScalarCfgIndexedStringArrayFactEmpty();
+    let dynamic: DirectMirScalarCfgRangeIterationFact =
+        DirectMirScalarCfgRangeIterationFactEmpty();
+    let dynamic_count: Int = 0;
+    let row: Int = 0;
+    while row < DirectMirScalarCfgRangeFactCount(ranges) {
+        let candidate: DirectMirScalarCfgRangeIterationFact =
+            DirectMirScalarCfgRangeFactAt(ranges, row);
+        if candidate.stop_value_id != "" {
+            dynamic = candidate; dynamic_count = dynamic_count + 1;
+        }
+        row = row + 1;
+    }
+    if dynamic_count == 0 { return invalid; }
+    if dynamic_count != 1 || dynamic.start_literal != "0" ||
+        dynamic.stop_literal != "" || dynamic.step_literal != "1" {
+        Die("direct MIR indexed String range bound is invalid");
+    }
+    let definition: MirRoutineResultDefinitionFact =
+        MirRoutineFactIndexUniqueResultDefinition(
+            index, dynamic.stop_value_id
+        );
+    if !MirRoutineResultDefinitionFactReady(definition) ||
+        !MirRoutineBlockDominates(index, definition.block_id,
+            dynamic.header_block) {
+        Die("direct MIR indexed String collection dominance is invalid");
+    }
+    let declaration: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, definition.global_row
+        );
+    let collection: DirectMirScalarCfgArrayStringCollectionFact =
+        DirectMirScalarCfgArrayStringCollectionFromOwners(
+            admitted, index, use_facts, wire, definition, declaration,
+            dynamic.stop_value_id, declaration.arg0
+        );
+    if !DirectMirScalarCfgArrayStringCollectionFactReady(collection) {
+        Die("direct MIR indexed String collection is invalid");
+    }
+    let assignment_global: Int = -1;
+    let assignment_local: Int = -1;
+    let assignment: MirRoutineInstructionScalarCapture =
+        InvalidMirRoutineInstructionScalarCapture();
+    let graph: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceEmpty();
+    let local: Int = 0;
+    while local < index.block_instruction_counts[dynamic.body_block] {
+        let instruction: Int =
+            index.block_instruction_starts[dynamic.body_block] + local;
+        let global: Int = index.instruction_facts.global_start + instruction;
+        if admitted.routines.instruction_kinds[global] == "def" &&
+            admitted.routines.instruction_source_types[global] ==
+                "AST_ASSIGNMENT" {
+            let capture: MirRoutineInstructionScalarCapture =
+                MirRoutineInstructionFactBundleAtGlobal(
+                    index.instruction_facts, global
+                );
+            let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+                admitted.routines.source_json,
+                admitted.routines.instruction_starts[global],
+                admitted.routines.instruction_ends[global]
+            );
+            let candidate: MirExpressionGraphSequence =
+                DirectMirScalarCfgExpressionSequence(object);
+            if DirectMirScalarCfgIndexedStringConcatGraphReady(candidate) {
+                if assignment_global >= 0 {
+                    Die("direct MIR indexed String assignment is ambiguous");
+                }
+                assignment_global = global; assignment_local = instruction;
+                assignment = capture; graph = candidate;
+            }
+        }
+        local = local + 1;
+    }
+    if assignment_global < 0 || !assignment.valid ||
+        assignment.name != "ssa-def" || assignment.arg0 == "" ||
+        assignment.arg1 != "local" || assignment.result == "" ||
+        assignment.abi_type_name != CompilerAbiLayoutStringTypeName() ||
+        graph.arena.node_texts[2] != assignment.arg0 ||
+        graph.arena.node_texts[4] != collection.collection_name ||
+        graph.arena.node_texts[5] != dynamic.binding_name ||
+        MirRoutineInstructionUseCountAtGlobal(
+            use_facts, assignment_global
+        ) != 2 {
+        Die("direct MIR indexed String assignment facts are invalid");
+    }
+    let left_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, assignment_global, 0
+    );
+    let collection_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, assignment_global, 1
+    );
+    let index_ref: String = DirectMirScalarCfgWireExprRefAt(
+        wire, assignment_local, 5
+    );
+    if !IsSome(left_use) || !IsSome(collection_use) ||
+        !MirSsaNameMatches(UnwrapOption(left_use), graph.arena.node_texts[2], true) ||
+        UnwrapOption(collection_use) != collection.collection_value_id ||
+        (wire.required && index_ref !=
+            DirectMirScalarCfgIterationLocalRef(dynamic.loop_syntax_id)) ||
+        (!wire.required && index_ref != "") {
+        Die("direct MIR indexed String operand identity is invalid");
+    }
+    let fact: DirectMirScalarCfgIndexedStringArrayFact =
+        DirectMirScalarCfgIndexedStringArrayFact(
+            true, 0, collection.definition_global_row,
+            dynamic.branch_global_row, assignment_global,
+            dynamic.header_block, dynamic.body_block,
+            dynamic.loop_syntax_id, -1, -1,
+            collection.collection_value_id, collection.collection_name,
+            collection.storage_identity, dynamic.binding_name,
+            assignment.arg0, assignment.result, collection.elements,
+            collection.abi_layout_id, collection.abi_size,
+            collection.abi_align, collection.data_offset,
+            collection.length_offset, collection.capacity_offset,
+            collection.allocator_offset
+        );
+    let verified: DirectMirScalarCfgIndexedStringArrayFact =
+        DirectMirScalarCfgIndexedStringArrayFactWithDigest(
+            fact, DirectMirScalarCfgIndexedStringArrayFactDigest(fact)
+        );
+    if !DirectMirScalarCfgIndexedStringArrayFactShapeReady(
+        verified, false
+    ) { Die("direct MIR indexed String source receipt is invalid"); }
+    return verified;
+}

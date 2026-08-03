@@ -16,6 +16,7 @@ struct DirectMirScalarCfgRangeIterationFact {
     let binding_name: String;
     let start_literal: String;
     let stop_literal: String;
+    let stop_value_id: String;
     let step_literal: String;
     let backedge_blocks: Array<Int>;
 }
@@ -29,7 +30,7 @@ func DirectMirScalarCfgRangeIterationFactEmpty(
     let backedges: Array<Int> = [];
     return DirectMirScalarCfgRangeIterationFact(
         false, 0, -1, -1, -1, -1, -1, -1, -1, -1,
-        "", "", "", "", backedges
+        "", "", "", "", "", backedges
     );
 }
 
@@ -48,6 +49,7 @@ func DirectMirScalarCfgRangeIterationFactDigest(
     hash = DirectMirCfgHashString(hash, fact.binding_name);
     hash = DirectMirCfgHashString(hash, fact.start_literal);
     hash = DirectMirCfgHashString(hash, fact.stop_literal);
+    hash = DirectMirCfgHashString(hash, fact.stop_value_id);
     hash = DirectMirCfgHashString(hash, fact.step_literal);
     let row: Int = 0;
     while row < ArrayLength(fact.backedge_blocks) {
@@ -65,7 +67,8 @@ func DirectMirScalarCfgRangeIterationFactWithDigest(
         fact.valid, digest, fact.init_global_row, fact.branch_global_row,
         fact.init_block, fact.header_block, fact.body_block, fact.exit_block,
         fact.local_row, fact.loop_syntax_id, fact.binding_name, fact.start_literal,
-        fact.stop_literal, fact.step_literal, fact.backedge_blocks
+        fact.stop_literal, fact.stop_value_id, fact.step_literal,
+        fact.backedge_blocks
     );
 }
 
@@ -78,6 +81,7 @@ func DirectMirScalarCfgRangeIterationFactAbsent(
         fact.exit_block < 0 && fact.local_row < 0 &&
         fact.loop_syntax_id < 0 && fact.binding_name == "" &&
         fact.start_literal == "" && fact.stop_literal == "" &&
+        fact.stop_value_id == "" &&
         fact.step_literal == "" && ArrayLength(fact.backedge_blocks) == 0;
 }
 
@@ -99,7 +103,8 @@ func DirectMirScalarCfgRangeIterationFactShapeReady(
         fact.loop_syntax_id < 0 || fact.binding_name == "" ||
         fact.step_literal != "1" ||
         !DirectMirScalarCfgRangeCanonicalInt(fact.start_literal) ||
-        !DirectMirScalarCfgRangeCanonicalInt(fact.stop_literal) ||
+        (DirectMirScalarCfgRangeCanonicalInt(fact.stop_literal) ==
+            (fact.stop_value_id != "")) ||
         ArrayLength(fact.backedge_blocks) < 1 {
         return false;
     }
@@ -148,7 +153,7 @@ func DirectMirScalarCfgRangeIterationFactAtLocalRow(
             fact.init_block, fact.header_block, fact.body_block,
             fact.exit_block, local_row, fact.loop_syntax_id,
             fact.binding_name, fact.start_literal, fact.stop_literal,
-            fact.step_literal, fact.backedge_blocks
+            fact.stop_value_id, fact.step_literal, fact.backedge_blocks
         );
     return DirectMirScalarCfgRangeIterationFactWithDigest(
         bound, DirectMirScalarCfgRangeIterationFactDigest(bound)

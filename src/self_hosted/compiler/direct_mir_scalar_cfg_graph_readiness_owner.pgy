@@ -5,6 +5,7 @@ import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_range_graph_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_foreach_graph_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_typed_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_indexed_string_graph_readiness_owner.pgy";
 
 func DirectMirScalarCfgOperandCount(
     value: Int, local: Int, literal: String
@@ -86,6 +87,10 @@ func DirectMirScalarCfgGraphPlanReady(
             plan.block_condition_left_literals[block];
         let right_literal: String =
             plan.block_condition_right_literals[block];
+        let indexed_bound: Bool =
+            DirectMirScalarCfgIndexedStringArrayOwnsHeader(
+                plan.indexed_string_array, block
+            );
         if plan.block_operation_starts[block] != expected_operation ||
             plan.block_operation_counts[block] < 0 ||
             true_target < -1 || true_target >= block_count ||
@@ -123,7 +128,7 @@ func DirectMirScalarCfgGraphPlanReady(
             (condition != DirectMirScalarCfgConditionBool() &&
                 DirectMirScalarCfgOperandCount(
                     right_value, right_local, right_literal
-                ) != 1) {
+                ) != 1 && !indexed_bound) {
             return false;
         }
         expected_operation = expected_operation +
@@ -149,6 +154,10 @@ func DirectMirScalarCfgGraphPlanReady(
             right, right_local, right_literal
         );
         let phi_count: Int = plan.operation_phi_counts[operation];
+        let indexed_operand: Bool =
+            DirectMirScalarCfgIndexedStringArrayOwnsOperation(
+                plan.indexed_string_array, operation
+            );
         if kind < DirectMirScalarCfgOpConstInt() ||
             kind > DirectMirScalarCfgOpLogStringValue() || result < -1 ||
             left < -1 || right < -1 || left_local < -1 ||
@@ -184,7 +193,8 @@ func DirectMirScalarCfgGraphPlanReady(
             (kind == DirectMirScalarCfgOpCopyString() &&
                 (result < 0 || left_count != 1 || right_count != 0)) ||
             (kind == DirectMirScalarCfgOpConcatString() &&
-                (result < 0 || left_count != 1 || right_count != 1)) ||
+                (result < 0 || left_count != 1 ||
+                 (right_count != 1 && !indexed_operand))) ||
             (kind == DirectMirScalarCfgOpLogStringValue() &&
                 (result >= 0 || left_count != 1 || right_count != 0)) {
             return false;
@@ -207,6 +217,7 @@ func DirectMirScalarCfgGraphPlanReady(
     }
     if !DirectMirScalarCfgRangeGraphReady(plan) ||
         !DirectMirScalarCfgForEachGraphReady(plan) ||
+        !DirectMirScalarCfgIndexedStringGraphReady(plan) ||
         !DirectMirScalarCfgTypedPlanReady(plan) { return false; }
     return CompilerArtifactIdentityReady(
         CompilerEmittedCArtifactKind(), plan.revision, plan.digest

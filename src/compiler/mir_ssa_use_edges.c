@@ -77,7 +77,10 @@ mir_record_instruction_expr_uses(MIRRoutine *routine,
     const char **raw_uses = NULL;
     size_t raw_use_count = 0;
     size_t raw_use_capacity = 0;
-    ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1;
+    ASTNode *expr = inst->kind == MIR_INST_BRANCH
+        && inst->branch_shape == MIR_BRANCH_FOR_RANGE
+        ? inst->expr1
+        : (inst->expr0 != NULL ? inst->expr0 : inst->expr1);
 
     if (expr != NULL
         && !mir_collect_expr_identifier_uses(expr, &raw_uses,
@@ -85,7 +88,6 @@ mir_record_instruction_expr_uses(MIRRoutine *routine,
         free((void *)raw_uses);
         return false;
     }
-
     if (raw_use_count == 0
         && (inst->kind == MIR_INST_RESOURCE_OP
             || inst->kind == MIR_INST_CLEANUP_EDGE)) {

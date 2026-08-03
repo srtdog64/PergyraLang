@@ -1,0 +1,27 @@
+// C spelling for one admitted array storage layout.
+
+func DirectMirScalarCfgArrayCStruct(
+    element_type: String, length_type: String, array_type: String
+) -> String {
+    let output: String = "typedef struct {\n    ";
+    output = Concat(output, element_type);
+    output = Concat(output, " *data;\n    ");
+    output = Concat(output, length_type);
+    output = Concat(output, " length;\n    ");
+    output = Concat(output, length_type);
+    output = Concat(output, " capacity;\n    void *allocator;\n} ");
+    return Concat(output, Concat(array_type, ";\n"));
+}
+
+func DirectMirScalarCfgArrayStringCElementList(
+    values: Array<String>
+) -> String {
+    let output: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(values) {
+        if row > 0 { output = Concat(output, ", "); }
+        output = Concat(output, Concat("\"", Concat(values[row], "\"")));
+        row = row + 1;
+    }
+    return output;
+}

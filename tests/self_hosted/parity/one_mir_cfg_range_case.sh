@@ -91,10 +91,10 @@ mutation="$(make_mutation range_missing_backedge \
     '],"succ_true":3},{"id":3')"
 expect_rejected_without_artifact range_missing_backedge "$mutation" 'range|backedge|CFG'
 mutation="$(make_mutation range_start_graph \
-    's/"text":"0"/"text":"2"/' '"text":"2"')"
+    's/"text":"0"/"text":"00"/' '"text":"00"')"
 expect_rejected_without_artifact range_start_graph "$mutation" 'range|start|graph|literal'
 mutation="$(make_mutation range_stop_graph \
-    's/"text":"3"/"text":"4"/' '"text":"4"')"
+    's/"text":"3"/"text":"03"/' '"text":"03"')"
 expect_rejected_without_artifact range_stop_graph "$mutation" 'range|stop|graph|literal'
 mutation="$(make_mutation range_binding \
     's/"arg0":"i"/"arg0":"j"/2' '"arg0":"j"')"
