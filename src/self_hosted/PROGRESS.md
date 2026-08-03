@@ -5503,3 +5503,29 @@ inside an inner `0..3` range, then observes the outer range binding and final
 declaration; expected output is `0,2,0,0,2,1,40`. This is the one active
 self-host rung; general concurrency, library adoption, Rust capability syntax,
 and unrelated SoT cleanup are not parallel implementation tracks.
+
+## 2026-08-03 innermost nested range transfer substitution
+
+Checkpoint `2184c651` closes the nested-continue falsifier above. One 8,363-byte
+self-produced MIR drives 898-byte C and 2,368-byte LLVM artifacts, and both
+execute exact `0,2,0,0,2,1,40`. Typed iteration and loop-flow row permutations
+remain artifact-equal.
+
+The positive output was not the closure evidence. Before the change, both
+backends accepted an outer same-spelling SSA use while the inner range was
+active, an inner continue edge retargeted to the outer header, and an inner
+fallthrough edge retargeted to the outer header. The new range-transfer owner
+requires every backedge to belong to the innermost active receipt, while
+wire-scope admission rejects the outer ValueId fallback. All mutations now fail
+before artifact publication. Focused, cumulative CFG/AIR, public LLVM, and
+structural component/removed-path gates are green with no hard-cap increase.
+
+The only active next rung is `foreach_array_int_sum.pgy`. Its 6,761-byte MIR is
+already produced by the installed Pergyra driver, but direct C and LLVM both
+fail with `direct MIR range CFG block inventory is invalid`. The existing
+scalar-CFG route currently admits only `Int` source locals and the legacy
+four-block range certificate is topology-specific. The next change must carry
+producer-owned `Array<Int>` ABI, bounds, index, and element facts through one
+target-neutral scalar graph. Block-count routing, source/expression reparsing,
+legacy range retry, target-specific Array guesses, and a foreach mini-compiler
+remain forbidden.

@@ -6,6 +6,36 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-03 - Nested range transfers bind to the innermost active receipt
+
+- Landed executable checkpoint `2184c651`. The 8,363-byte MIR for
+  `nested_iteration_continue_shadow.pgy` drives 898-byte C and 2,368-byte LLVM
+  artifacts; both execute exact `0,2,0,0,2,1,40`.
+- The positive case already executed, but adversarial mutations proved that
+  both direct backends accepted three invalid graphs: an outer same-spelling
+  ValueId inside the inner condition, an inner continue edge to the outer
+  header, and an inner fallthrough edge to the outer header. The previous
+  dominance-only check did not establish innermost range ownership.
+- Added a target-neutral range-transfer admission owner. Every admitted
+  backedge must belong to the deepest active range receipt, and wire-scope
+  admission rejects an outer same-spelling SSA fallback while that receipt is
+  active. All three mutations now fail before artifact publication with stable
+  diagnostics in C and LLVM.
+- The focused gate pins exact CFG, LocalRefs, range increments, permutation
+  equality, exact execution, four negative families, and no-artifact behavior.
+  Current-source build, focused, cumulative CFG/AIR, public LLVM, and structural
+  component/removed-path gates are green. No fixed cap increased.
+- The next falsifier is `foreach_array_int_sum.pgy`. The installed Pergyra
+  producer emits a 6,761-byte MIR with typed `Array<Int>` iteration and carried
+  `Int` sum, while both direct backends fail closed at
+  `direct MIR range CFG block inventory is invalid`. The next delta must carry
+  collection ABI/bounds/index/element facts into the existing scalar-CFG plan;
+  a topology-specific foreach compiler or legacy block-count route is forbidden.
+- The accepted Rust 2026 `Move`/`Forget` direction remains documented as prior
+  art in `docs/106_ownership_model_comparison.md`. Pergyra's covered structured
+  slices compose more authority/effect/cleanup evidence, but general `!Move`
+  and guaranteed arbitrary user finalization are still open rather than claimed.
+
 ## 2026-08-03 - Nested range binders consume one canonical LocalRef receipt set
 
 - Landed executable checkpoints `d187fe9a` and `9818e2bc`. The bounded fixture

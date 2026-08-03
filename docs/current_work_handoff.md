@@ -6,69 +6,69 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — nested lexical LocalRef substitution
+## Active self-host context — Array foreach scalar-CFG substitution
 
-- Executable checkpoint: `9818e2bc` on `main`; this handoff is a docs-only
+- Executable checkpoint: `2184c651` on `main`; this handoff is a docs-only
   descendant and should be clean after its commit/push. `bin/pgy.exe` remains
   4,626,988 bytes, SHA-256
   `39798EA50105C9B48F26AE2FCABDB400B54AC153D15DC440B089C4E5E6402F9E`.
-  The rebuilt and smoke-verified Pergyra sibling is 4,341,695 bytes, SHA-256
-  `667FEA8CBA20948C057D8D70CA54912BDC609D9471785961D20A65C291823E66`.
-- Closed executable rung: `nested_iteration_binding_shadow.pgy` declares outer
-  `i: Int = 40`, nests two same-spelling `for i in 0..2` binders, observes the
-  outer range binding after the inner loop, then observes the declaration. Its
-  6,828-byte self-produced MIR has SHA-256
-  `121C5B446C09CD67B75A8708FC8FFDD79A8696FF20730A99C7E009B7EC639C39`.
-  Seven exact CFG blocks carry declaration `declaration:6:0` plus iteration
-  identities `iteration:7:0` and `iteration:9:0`.
-- That one MIR produces a 749-byte C artifact
-  (`0FC9EB28273D9C474E647E21FE6C99211C8B5318D620A836B9BEF92F312C8EFC`)
-  and a 1,979-byte LLVM artifact
-  (`D20EEDA42618046D47A0297FE441B00D6D3415ADF3E8FFE5EE4F170E8BC33728`).
-  Both execute exact `0,1,0,0,1,1,40`; independent iteration-type and
+  The rebuilt and smoke-verified Pergyra sibling is 4,341,923 bytes, SHA-256
+  `F9947165C26884CEAE8A4E427BE2FB3B7ECCACB1291921F9D66A34A7B1486154`.
+- Closed executable rung: `nested_iteration_continue_shadow.pgy` carries an
+  outer declaration, two same-spelling integer range binders, an inner
+  `continue`, and reads after both lexical boundaries. Its 8,363-byte
+  self-produced MIR has SHA-256
+  `A615CC9CE932217B5E1D752F37875C4167CA505CC6ABC6B2DF3BFAD145665130`.
+  The exact nine-block CFG keeps the inner continue and normal fallthrough on
+  inner header 3, then the outer latch on header 1.
+- That one MIR produces an 898-byte C artifact
+  (`2A0510677CB839653F6389EC3B0BA249AA99602D13F611CC618A8C3B62965E6C`)
+  and a 2,368-byte LLVM artifact
+  (`25A0A1945C252AF6242B2A1CBC814838DA48462A5E8FFA365D08DB4458B0B78A`).
+  Both execute exact `0,2,0,0,2,1,40`; independent iteration-type and
   loop-flow row permutations remain artifact-equal.
-- `DirectMirScalarCfgRangeFactSet` owns canonical receipt order, digest,
-  primitive storage, and exact lookup because the current self-host C ABI
-  cannot return `Array<struct>`. Array position is not semantic identity.
-  The range constructor consumes the one decoded LocalRef wire; canonical
-  spelling comes only from `SelfMirLocalRef`. Raw JSON second reads and local
-  grammar reconstruction are negative-gated.
-- The target-neutral plan binds every receipt to one local slot, validates the
-  innermost active same-spelling binder by CFG dominance, resolves leaves
-  ValueId-first, and aggregates canonical range effects for both C and LLVM.
-  Missing/swapped cross-scope refs, missing typed rows, retargeted latches, and
-  post-scope range escapes reject before artifact publication.
-- Existing single-range bytes remain pinned: 4,365-byte MIR
-  `77409191...264BB`, 468-byte C `E2724F4F...FDF31`, and 1,276-byte LLVM
-  `9CEDD99D...0C449`. The source wire remains absent only for the byte-stable
-  unique single-range shape; no first/last candidate lookup is admitted.
-- Fixed caps are green without increases: range set 282/300, range construction
-  184/280, iteration-local 141/150, range-scope admission 140/150, range
-  LocalRef identity 32/40, range readiness 55/60, direct operand 37/40,
-  C emission 164/180, LLVM emission 258/260, single gate 126/160, and nested
-  gate 110/120. Manifests remain 285 driver, 31 core MIR, and 2 examples.
-- Latest observed evidence: current-source installed build 132.3 seconds;
-  single and nested focused C/LLVM gates 15.2 and 20.9 seconds; public installed
-  LLVM 29.0 seconds; structural component/removed-path ratchet 223.0 seconds;
-  cumulative CFG/AIR integration 204.7 seconds. All are green.
-- A direct cumulative-script invocation first selected stale
-  `.tmp/self_hosted/driver/bootstrap/driver_seed.exe` and failed before CFG
-  admission with `unknown source MIR pressure token`. Explicitly selecting the
-  current installed driver passed. The CLI owner was not weakened; see
-  `docs/91_build_troubleshooting.md`.
-- Classification: nested same-spelling integer range binding is bounded
-  `SUBSTITUTING` in installed C and LLVM. This is not general foreach,
-  arbitrary lexical identity, arbitrary nested control transfer, whole-compiler
+- The positive program already executed before this change, but three
+  falsifying mutations were incorrectly accepted by both direct backends:
+  condition use of the outer same-spelling ValueId, inner `continue` retargeted
+  to the outer header, and inner normal fallthrough retargeted to that header.
+  Therefore output parity alone was not sufficient evidence.
+- `DirectMirScalarCfgRangeTransfersReady` now proves each range backedge is
+  owned by the innermost active range receipt. Wire-scope admission rejects an
+  outer same-spelling SSA use while the inner binder is active. These decisions
+  are target-neutral and both C and LLVM consume the same admitted graph; there
+  is no backend scope reconstruction or nested-loop topology compiler.
+- The focused negative gate also pins exact locals, syntax identities,
+  instruction kinds, CFG successors, LocalRefs, range increment counts,
+  permutation equality, stable failure diagnostics, and no-artifact behavior.
+  Existing single/nested range gates remain in the cumulative integration hook.
+- Fixed caps are green without increases: range transfer 53/90, graph admission
+  394/450, wire range-scope admission 147/150, focused nested-continue gate
+  105/160, cumulative hook 47/240, and public hook 60/70. Manifests remain 285
+  driver, 31 core MIR, and 2 examples.
+- Latest observed evidence: current-source installed build 119.0 seconds;
+  focused nested-continue C/LLVM gate 6.4 seconds; cumulative CFG/AIR integration
+  178.5 seconds; public installed LLVM 32.8 seconds; structural component and
+  removed-path ratchet 235.7 seconds. All are green.
+- Classification: innermost range ownership for nested same-spelling
+  `continue` and fallthrough transfers is bounded `SUBSTITUTING` in installed C
+  and LLVM. This is not general foreach, arbitrary collections, whole-compiler
   replacement, or a current gen2==gen3 claim.
-- Next objective card: exercise the same canonical receipt set when an inner
-  same-spelling `0..3` range contains `if i == 1 { continue; }`, then read the
-  outer range binder and final declaration. Expected output is
-  `0,2,0,0,2,1,40`. Priority is producer-carried identity, exact
-  predecessor/scope evidence, one target-neutral plan, and C/LLVM parity. The
-  owner remains the LocalRef grammar plus typed loop/iteration rows; the last
-  consumer is the general scalar-CFG plan. Forbidden are a nested-control-flow
-  topology compiler, source/name recovery, backend scope reconstruction, or a
-  second range-receipt authority.
+- Next objective card: `foreach_array_int_sum.pgy` is the only active rung. The
+  installed Pergyra producer emits a 6,761-byte MIR, SHA-256
+  `34E49B953F380D3B3909A96FA4D266575C8A351497D1F000DC68468598C9D23E`,
+  for `Array<Int>` values and a carried `Int` sum. Both direct C and LLVM fail
+  before publication with `direct MIR range CFG block inventory is invalid`.
+  Priority is producer-carried collection identity, ABI, bounds, index, and
+  element facts, then one target-neutral scalar graph and C/LLVM parity. The
+  fact owners are the typed iteration rows plus Array ABI/storage owners; the
+  last legitimate consumer is the scalar-CFG plan. Forbidden are a
+  topology-specific foreach compiler, block-count routing, source/expression
+  reparsing, legacy range retry, or target-specific Array guesses.
+- Rust's accepted 2026 `Move`/`Forget` direction and the bounded Pergyra
+  comparison are recorded in `docs/106_ownership_model_comparison.md`. It is
+  inactive research context for this rung: Pergyra has stronger owner/evidence
+  composition in covered structured slices, but no general arbitrary-type
+  `!Move` or `!Forget` equivalent may be inferred from that design direction.
 - Full CI, full bootstrap, current-source gen2==gen3, and Coq/Rocq did not run.
   `tests/sot_authority_edge_smoke.sh` remains independently red on pre-existing
   duplicate Coq fact-authority rows; this rung did not broaden into that repair.
