@@ -2,7 +2,7 @@
 
 import "direct_mir_scalar_cfg_c_operand_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
-import "direct_mir_scalar_cfg_indexed_string_c_emission_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_c_emission_owner.pgy";
 
 func DirectMirScalarCfgEmitCOperation(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
@@ -56,12 +56,15 @@ func DirectMirScalarCfgEmitCOperation(
             if kind == DirectMirScalarCfgOpAddInt() {
                 output = Concat(output, " + ");
             } else { output = Concat(output, ", "); }
-            if kind == DirectMirScalarCfgOpConcatString() &&
-                DirectMirScalarCfgIndexedStringArrayOwnsOperation(
-                    plan.indexed_string_array, operation
-                ) {
+            let indexed_row: Int =
+                DirectMirScalarCfgStringArrayAccessRowAtOperation(
+                    plan.string_arrays, operation
+                );
+            if kind == DirectMirScalarCfgOpConcatString() && indexed_row >= 0 &&
+                plan.string_arrays.accesses.kinds[indexed_row] ==
+                    DirectMirScalarCfgStringArrayAccessConcatRead() {
                 output = Concat(output,
-                    DirectMirScalarCfgIndexedStringCOperand(plan, operation));
+                    DirectMirScalarCfgStringArrayCRead(plan, operation));
             } else {
                 output = Concat(output, DirectMirScalarCfgCOperand(
                     plan, plan.operation_right_values[operation],
@@ -96,6 +99,12 @@ func DirectMirScalarCfgEmitCOperation(
             output = Concat(output, "\"");
             output = Concat(output, plan.operation_left_literals[operation]);
             output = Concat(output, "\"");
+        } else if DirectMirScalarCfgStringArrayAccessRowAtOperation(
+                plan.string_arrays, operation
+            ) >= 0 {
+            output = Concat(
+                output, DirectMirScalarCfgStringArrayCRead(plan, operation)
+            );
         } else {
             output = Concat(output, DirectMirScalarCfgCOperand(
                 plan, plan.operation_left_values[operation],
@@ -103,6 +112,9 @@ func DirectMirScalarCfgEmitCOperation(
             ));
         }
         return Concat(output, ");\n");
+    }
+    if kind == DirectMirScalarCfgOpArraySetString() {
+        return DirectMirScalarCfgStringArrayCSet(plan, operation);
     }
     if kind != DirectMirScalarCfgOpPhiInt() &&
         kind != DirectMirScalarCfgOpPhiString() {

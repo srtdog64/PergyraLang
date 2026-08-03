@@ -1,0 +1,417 @@
+// One target-neutral admission for Array<String> length, read, and set rows.
+
+import "direct_mir_scalar_cfg_string_array_graph_shape_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_append_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_dominance_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_set_owner.pgy";
+import "direct_mir_scalar_cfg_range_set_owner.pgy";
+
+func DirectMirScalarCfgStringArrayGraphAt(
+    ref object: JsonObjectFactTable, key: String
+) -> MirExpressionGraphSequence {
+    return MirExpressionGraphSequenceAppend(
+        MirExpressionGraphSequenceEmpty(),
+        JsonObjectFactObjectTable(object, key)
+    );
+}
+
+func DirectMirScalarCfgStringArrayCollectionUse(
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref plan: DirectMirScalarCfgStringArrayPlan,
+    global_row: Int, use_row: Int
+) -> Int {
+    let value_opt: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, global_row, use_row
+    );
+    if !IsSome(value_opt) { return -1; }
+    return DirectMirScalarCfgStringArrayCollectionRowAtValue(
+        plan, UnwrapOption(value_opt)
+    );
+}
+
+func DirectMirScalarCfgStringArrayIndexValueFact(
+    value_id: String, source_name: String
+) -> DirectMirScalarCfgStringArrayIndexFact {
+    return DirectMirScalarCfgStringArrayIndexFact(
+        DirectMirScalarCfgStringArrayIndexValue(), value_id,
+        source_name, -1, "", -1, -1
+    );
+}
+
+func DirectMirScalarCfgStringArrayIndexIterationFact(
+    syntax_id: Int, source_name: String
+) -> DirectMirScalarCfgStringArrayIndexFact {
+    return DirectMirScalarCfgStringArrayIndexFact(
+        DirectMirScalarCfgStringArrayIndexIteration(), "",
+        source_name, syntax_id, "", -1, -1
+    );
+}
+
+func DirectMirScalarCfgStringArrayIndexLiteralFact(
+    literal: String
+) -> DirectMirScalarCfgStringArrayIndexFact {
+    return DirectMirScalarCfgStringArrayIndexFact(
+        DirectMirScalarCfgStringArrayIndexLiteral(), "", "",
+        -1, literal, -1, -1
+    );
+}
+
+func DirectMirScalarCfgStringArrayDynamicGuardRow(
+    ref lengths: DirectMirScalarCfgStringArrayLengthSet,
+    collection_row: Int, index: DirectMirScalarCfgStringArrayIndexFact
+) -> Int {
+    let found: Int = -1; let row: Int = 0;
+    while row < ArrayLength(lengths.global_rows) {
+        if lengths.collection_rows[row] == collection_row &&
+            lengths.indices.kinds[row] == index.kind &&
+            lengths.indices.value_ids[row] == index.value_id &&
+            lengths.indices.iteration_syntax_ids[row] ==
+                index.iteration_syntax_id {
+            if found >= 0 { return -1; } found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarCfgStringArrayPlanFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref ranges: DirectMirScalarCfgRangeFactSet,
+    ref foreaches: DirectMirScalarCfgForEachFactSet
+) -> DirectMirScalarCfgStringArrayPlan {
+    let empty: DirectMirScalarCfgStringArrayPlan =
+        DirectMirScalarCfgStringArrayPlanEmpty();
+    let collections: DirectMirScalarCfgStringArrayCollectionSet =
+        DirectMirScalarCfgStringArrayCollectionSetEmpty(true);
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        if admitted.routines.instruction_kinds[global] == "def" &&
+            !DirectMirScalarCfgForEachOwnsDefinition(foreaches, global) {
+            let capture: MirRoutineInstructionScalarCapture =
+                MirRoutineInstructionFactBundleAtGlobal(
+                    index.instruction_facts, global
+                );
+            if capture.valid && capture.abi_type_name ==
+                    CompilerAbiLayoutArrayStringTypeName() {
+                let definition: MirRoutineResultDefinitionFact =
+                    MirRoutineFactIndexUniqueResultDefinition(
+                        index, capture.result
+                    );
+                let fact: DirectMirScalarCfgArrayStringCollectionFact =
+                    DirectMirScalarCfgArrayStringCollectionFromOwners(
+                        admitted, index, use_facts, wire, definition, capture,
+                        capture.result, capture.arg0
+                    );
+                if !DirectMirScalarCfgArrayStringCollectionFactReady(fact) {
+                    Die("direct MIR String array collection is invalid");
+                }
+                DirectMirScalarCfgStringArrayAppendCollection(collections, fact);
+            }
+        }
+        instruction = instruction + 1;
+    }
+    if ArrayLength(collections.value_ids) == 0 { return empty; }
+    let lengths: DirectMirScalarCfgStringArrayLengthSet =
+        DirectMirScalarCfgStringArrayLengthSetEmpty(true);
+    let accesses: DirectMirScalarCfgStringArrayAccessSet =
+        DirectMirScalarCfgStringArrayAccessSetEmpty(true);
+    let source: DirectMirScalarCfgStringArrayPlan =
+        DirectMirScalarCfgStringArrayPlan(
+            true, 0, collections, lengths, accesses
+        );
+    let collection_use_count: Int = 0;
+    let claimed_collection_use_count: Int = 0;
+    let block: Int = 0;
+    while block < ArrayLength(index.block_starts) {
+        let local: Int = 0;
+        while local < index.block_instruction_counts[block] {
+            let local_instruction: Int =
+                index.block_instruction_starts[block] + local;
+            let global: Int = index.instruction_facts.global_start +
+                local_instruction;
+            let use_count: Int = MirRoutineInstructionUseCountAtGlobal(
+                use_facts, global
+            );
+            let use_row: Int = 0;
+            while use_row < use_count {
+                if DirectMirScalarCfgStringArrayCollectionUse(
+                    use_facts, source, global, use_row
+                ) >= 0 { collection_use_count = collection_use_count + 1; }
+                use_row = use_row + 1;
+            }
+            let kind: String = admitted.routines.instruction_kinds[global];
+            let source_type: String =
+                admitted.routines.instruction_source_types[global];
+            let capture: MirRoutineInstructionScalarCapture =
+                MirRoutineInstructionFactBundleAtGlobal(
+                    index.instruction_facts, global
+                );
+            let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+                admitted.routines.source_json,
+                admitted.routines.instruction_starts[global],
+                admitted.routines.instruction_ends[global]
+            );
+            let graph: MirExpressionGraphSequence =
+                DirectMirScalarCfgStringArrayGraphAt(object, "expr0_graph");
+            let range: DirectMirScalarCfgRangeIterationFact =
+                DirectMirScalarCfgRangeFactAtBranchGlobalRow(ranges, global);
+            if kind == "branch" && range.valid && range.stop_value_id != "" {
+                let collection_row: Int =
+                    DirectMirScalarCfgStringArrayCollectionRowAtValue(
+                        source, range.stop_value_id
+                    );
+                if collection_row >= 0 {
+                    let length: DirectMirScalarCfgArrayLengthGraphFact =
+                        DirectMirScalarCfgArrayLengthGraphFactAt(
+                            graph, 0, 1, 2, 3
+                        );
+                    if !length.valid || use_count != 1 ||
+                        DirectMirScalarCfgStringArrayCollectionUse(
+                            use_facts, source, global, 0
+                        ) != collection_row ||
+                        length.collection_name !=
+                            collections.names[collection_row] {
+                        Die("direct MIR String array range length is invalid");
+                    }
+                    DirectMirScalarCfgStringArrayAppendLength(lengths,
+                        DirectMirScalarCfgStringArrayLengthFact(
+                        global, block, collection_row, range.loop_syntax_id,
+                        DirectMirScalarCfgStringArrayIndexIterationFact(
+                            range.loop_syntax_id, range.binding_name
+                        )
+                    ));
+                    claimed_collection_use_count =
+                        claimed_collection_use_count + 1;
+                }
+            } else if kind == "branch" && source_type == "AST_BINARY" {
+                let length: DirectMirScalarCfgStringArrayLengthGraphFact =
+                    DirectMirScalarCfgStringArrayWhileLengthGraphFactFrom(graph);
+                if length.valid {
+                    if use_count != 2 {
+                        Die("direct MIR String array while length use count is invalid");
+                    }
+                    let collection_row: Int =
+                        DirectMirScalarCfgStringArrayCollectionUse(
+                            use_facts, source, global, 1
+                        );
+                    let index_use: Option<String> =
+                        MirRoutineInstructionUseAtGlobal(use_facts, global, 0);
+                    if collection_row < 0 || !IsSome(index_use) ||
+                        length.collection_name !=
+                            collections.names[collection_row] ||
+                        !MirSsaNameMatches(
+                            UnwrapOption(index_use), length.index_name, true
+                        ) {
+                        Die("direct MIR String array while length identity is invalid");
+                    }
+                    DirectMirScalarCfgStringArrayAppendLength(lengths,
+                        DirectMirScalarCfgStringArrayLengthFact(
+                        global, block, collection_row, -1,
+                        DirectMirScalarCfgStringArrayIndexValueFact(
+                            UnwrapOption(index_use), length.index_name
+                        )
+                    ));
+                    claimed_collection_use_count =
+                        claimed_collection_use_count + 1;
+                }
+            }
+            if kind == "def" && source_type == "AST_ASSIGNMENT" {
+                let concat: DirectMirScalarCfgStringArrayConcatGraphFact =
+                    DirectMirScalarCfgStringArrayConcatGraphFactFrom(graph);
+                if concat.valid {
+                    if use_count < 2 || use_count > 3 {
+                        Die("direct MIR String array concat uses are invalid");
+                    }
+                    let left_use: Option<String> =
+                        MirRoutineInstructionUseAtGlobal(use_facts, global, 0);
+                    let collection_row: Int =
+                        DirectMirScalarCfgStringArrayCollectionUse(
+                            use_facts, source, global, 1
+                        );
+                    if !IsSome(left_use) || collection_row < 0 ||
+                        !MirSsaNameMatches(
+                            UnwrapOption(left_use), concat.left_name, true
+                        ) || concat.index.collection_name !=
+                            collections.names[collection_row] {
+                        Die("direct MIR String array concat identity is invalid");
+                    }
+                    let index_fact: DirectMirScalarCfgStringArrayIndexFact =
+                        DirectMirScalarCfgStringArrayIndexFactEmpty();
+                    if use_count == 3 {
+                        let index_use: Option<String> =
+                            MirRoutineInstructionUseAtGlobal(
+                                use_facts, global, 2
+                            );
+                        if !IsSome(index_use) || !MirSsaNameMatches(
+                            UnwrapOption(index_use), concat.index.index_name, true
+                        ) { Die("direct MIR String array concat index is invalid"); }
+                        index_fact = DirectMirScalarCfgStringArrayIndexValueFact(
+                            UnwrapOption(index_use), concat.index.index_name
+                        );
+                    } else {
+                        let range_row: Int = 0;
+                        while range_row < DirectMirScalarCfgRangeFactCount(ranges) {
+                            let candidate: DirectMirScalarCfgRangeIterationFact =
+                                DirectMirScalarCfgRangeFactAt(ranges, range_row);
+                            if candidate.stop_value_id ==
+                                    collections.value_ids[collection_row] &&
+                                candidate.binding_name == concat.index.index_name {
+                                if index_fact.kind != 0 {
+                                    Die("direct MIR String array concat range is ambiguous");
+                                }
+                                index_fact =
+                                    DirectMirScalarCfgStringArrayIndexIterationFact(
+                                        candidate.loop_syntax_id,
+                                        candidate.binding_name
+                                    );
+                            }
+                            range_row = range_row + 1;
+                        }
+                    }
+                    let guard: Int = DirectMirScalarCfgStringArrayDynamicGuardRow(
+                        lengths, collection_row, index_fact
+                    );
+                    if index_fact.kind == 0 || guard < 0 {
+                        Die("direct MIR String array concat guard is invalid");
+                    }
+                    DirectMirScalarCfgStringArrayAppendAccess(accesses,
+                        DirectMirScalarCfgStringArrayAccessFact(
+                        global, DirectMirScalarCfgStringArrayAccessConcatRead(),
+                        collection_row, guard, index_fact, false, "", -1
+                    ));
+                    claimed_collection_use_count =
+                        claimed_collection_use_count + 1;
+                }
+            } else if kind == "stmt" && capture.arg0 == "Log" {
+                let indexed: DirectMirScalarCfgStringArrayIndexGraphFact =
+                    DirectMirScalarCfgStringArrayIndexGraphFactFrom(graph);
+                if indexed.valid {
+                    let collection_row: Int =
+                        DirectMirScalarCfgStringArrayCollectionUse(
+                            use_facts, source, global, 0
+                        );
+                    if collection_row < 0 || indexed.collection_name !=
+                            collections.names[collection_row] {
+                        Die("direct MIR String array Log collection is invalid");
+                    }
+                    let index_fact: DirectMirScalarCfgStringArrayIndexFact =
+                        DirectMirScalarCfgStringArrayIndexFactEmpty();
+                    if indexed.index_literal != "" {
+                        if use_count != 1 { Die("direct MIR String array literal Log uses are invalid"); }
+                        index_fact = DirectMirScalarCfgStringArrayIndexLiteralFact(
+                            indexed.index_literal
+                        );
+                    } else if use_count == 2 {
+                        let index_use: Option<String> =
+                            MirRoutineInstructionUseAtGlobal(use_facts, global, 1);
+                        if !IsSome(index_use) || !MirSsaNameMatches(
+                            UnwrapOption(index_use), indexed.index_name, true
+                        ) { Die("direct MIR String array Log index is invalid"); }
+                        index_fact = DirectMirScalarCfgStringArrayIndexValueFact(
+                            UnwrapOption(index_use), indexed.index_name
+                        );
+                    } else {
+                        let length_row: Int = 0;
+                        while length_row < ArrayLength(lengths.global_rows) {
+                            if lengths.collection_rows[length_row] == collection_row &&
+                                lengths.indices.kinds[length_row] ==
+                                    DirectMirScalarCfgStringArrayIndexIteration() &&
+                                lengths.indices.source_names[length_row] ==
+                                    indexed.index_name {
+                                if index_fact.kind != 0 {
+                                    Die("direct MIR String array Log range is ambiguous");
+                                }
+                                index_fact = DirectMirScalarCfgStringArrayIndexAt(
+                                    lengths.indices, length_row
+                                );
+                            }
+                            length_row = length_row + 1;
+                        }
+                    }
+                    let guard: Int = -1;
+                    if index_fact.kind !=
+                            DirectMirScalarCfgStringArrayIndexLiteral() {
+                        guard = DirectMirScalarCfgStringArrayDynamicGuardRow(
+                            lengths, collection_row, index_fact
+                        );
+                    }
+                    if index_fact.kind == 0 ||
+                        (index_fact.kind !=
+                            DirectMirScalarCfgStringArrayIndexLiteral() &&
+                         guard < 0) {
+                        Die("direct MIR String array Log guard is invalid");
+                    }
+                    DirectMirScalarCfgStringArrayAppendAccess(accesses,
+                        DirectMirScalarCfgStringArrayAccessFact(
+                        global, DirectMirScalarCfgStringArrayAccessLogRead(),
+                        collection_row, guard, index_fact, false, "", -1
+                    ));
+                    claimed_collection_use_count =
+                        claimed_collection_use_count + 1;
+                }
+            } else if kind == "stmt" && capture.arg0 == "ArraySet" {
+                if use_count < 1 || DirectMirScalarCfgStringArrayCollectionUse(
+                    use_facts, source, global, 0
+                ) < 0 {
+                    Die("direct MIR String array set receiver is invalid");
+                }
+                let collection_row: Int =
+                    DirectMirScalarCfgStringArrayCollectionUse(
+                        use_facts, source, global, 0
+                    );
+                let index_graph: MirExpressionGraphSequence =
+                    DirectMirScalarCfgStringArrayGraphAt(object, "expr1_graph");
+                let value_opt: Option<String> =
+                    DirectMirScalarCfgStringArraySingleLiteral(
+                        graph, AstExpressionNodeStringLiteral()
+                    );
+                let index_opt: Option<String> =
+                    DirectMirScalarCfgStringArraySingleLiteral(
+                        index_graph, AstExpressionNodeIntegerLiteral()
+                    );
+                if use_count != 1 || !IsSome(value_opt) || !IsSome(index_opt) {
+                    Die("direct MIR String array static set lanes are invalid");
+                }
+                let value: Option<String> = DirectMirAsciiLiteralContent(
+                    UnwrapOption(value_opt)
+                );
+                if !IsSome(value) {
+                    Die("direct MIR String array set value is invalid");
+                }
+                DirectMirScalarCfgStringArrayAppendAccess(accesses,
+                    DirectMirScalarCfgStringArrayAccessFact(
+                    global, DirectMirScalarCfgStringArrayAccessSetKind(),
+                    collection_row, -1,
+                    DirectMirScalarCfgStringArrayIndexLiteralFact(
+                        UnwrapOption(index_opt)
+                    ), true, UnwrapOption(value), -1
+                ));
+                claimed_collection_use_count = claimed_collection_use_count + 1;
+            }
+            local = local + 1;
+        }
+        block = block + 1;
+    }
+    let plan: DirectMirScalarCfgStringArrayPlan =
+        DirectMirScalarCfgStringArrayPlan(
+            true, 0, collections, lengths, accesses
+        );
+    let verified: DirectMirScalarCfgStringArrayPlan =
+        DirectMirScalarCfgStringArrayPlanWithDigest(
+            plan, DirectMirScalarCfgStringArrayPlanDigest(plan)
+        );
+    if claimed_collection_use_count != collection_use_count ||
+        !DirectMirScalarCfgStringArrayPlanShapeReady(verified, false) {
+        Die("direct MIR String array source plan is invalid");
+    }
+    if !DirectMirScalarCfgStringArrayPlanDominanceReady(verified, index) {
+        Die("direct MIR String array dominance is invalid");
+    }
+    return verified;
+}

@@ -3,6 +3,7 @@
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
 
 func DirectMirScalarCfgPlanOperandType(
     ref plan: DirectMirScalarCfgGraphPlan, value: Int, local: Int
@@ -93,6 +94,13 @@ func DirectMirScalarCfgTypedOperationsReady(
         let is_int_result: Bool = result_type == CompilerAbiLayoutIntTypeName();
         let is_string_result: Bool =
             result_type == CompilerAbiLayoutStringTypeName();
+        let indexed_row: Int = DirectMirScalarCfgStringArrayAccessRowAtOperation(
+            plan.string_arrays, row
+        );
+        let indexed_kind: Int = 0;
+        if indexed_row >= 0 {
+            indexed_kind = plan.string_arrays.accesses.kinds[indexed_row];
+        }
         if (kind == DirectMirScalarCfgOpConstInt() && !is_int_result) ||
             (kind == DirectMirScalarCfgOpConstString() && !is_string_result) ||
             ((kind == DirectMirScalarCfgOpCopyInt() ||
@@ -106,14 +114,16 @@ func DirectMirScalarCfgTypedOperationsReady(
                  left_type != CompilerAbiLayoutStringTypeName() ||
                  (kind == DirectMirScalarCfgOpConcatString() &&
                   right_type != CompilerAbiLayoutStringTypeName() &&
-                  !DirectMirScalarCfgIndexedStringArrayOwnsOperation(
-                      plan.indexed_string_array, row
-                  )))) ||
+                   indexed_kind !=
+                    DirectMirScalarCfgStringArrayAccessConcatRead()))) ||
             (kind == DirectMirScalarCfgOpPhiInt() && !is_int_result) ||
             (kind == DirectMirScalarCfgOpPhiString() && !is_string_result) ||
             (kind == DirectMirScalarCfgOpLogInt() && !left_is_int) ||
             (kind == DirectMirScalarCfgOpLogStringValue() &&
-                left_type != CompilerAbiLayoutStringTypeName()) {
+                left_type != CompilerAbiLayoutStringTypeName() &&
+                indexed_kind != DirectMirScalarCfgStringArrayAccessLogRead()) ||
+            (kind == DirectMirScalarCfgOpArraySetString() &&
+                indexed_kind != DirectMirScalarCfgStringArrayAccessSetKind()) {
             return false;
         }
         if kind == DirectMirScalarCfgOpConcatString() { concat_seen = true; }

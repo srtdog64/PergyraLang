@@ -1,0 +1,67 @@
+// Source-local inventory closure across scalar and collection owners.
+
+import "direct_mir_scalar_cfg_foreach_set_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+
+func DirectMirScalarCfgLocalInventoryReady(
+    ref index: MirRoutineFactIndex,
+    local_names: Array<String>,
+    ref foreaches: DirectMirScalarCfgForEachFactSet,
+    ref string_arrays: DirectMirScalarCfgStringArrayPlan
+) -> Bool {
+    if ArrayLength(index.source_local_names) !=
+        ArrayLength(index.source_local_types) { return false; }
+    let consumed: Array<Bool> = [];
+    let row: Int = 0;
+    while row < ArrayLength(index.source_local_names) {
+        ArrayPush(consumed, false); row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(local_names) {
+        let found: Int = -1; let source: Int = 0;
+        while source < ArrayLength(index.source_local_names) {
+            if !consumed[source] && index.source_local_names[source] ==
+                    local_names[row] &&
+                DirectMirScalarCfgScalarTypeSupported(
+                    index.source_local_types[source]
+                ) { found = source; break; }
+            source = source + 1;
+        }
+        if found < 0 { return false; }
+        ArraySet(consumed, found, true); row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(index.source_local_names) {
+        if !consumed[row] {
+            let claimed: Bool = false;
+            let fact_row: Int = 0;
+            while fact_row < DirectMirScalarCfgForEachFactCount(foreaches) {
+                let fact: DirectMirScalarCfgForEachFact =
+                    DirectMirScalarCfgForEachFactAt(foreaches, fact_row);
+                if fact.collection_name == index.source_local_names[row] &&
+                    DirectMirScalarCfgCollectionTypeSupported(
+                        index.source_local_types[row]
+                    ) { claimed = true; }
+                fact_row = fact_row + 1;
+            }
+            let collection_row: Int = 0;
+            while collection_row <
+                    DirectMirScalarCfgStringArrayCollectionCount(string_arrays) {
+                if string_arrays.collections.names[collection_row] ==
+                        index.source_local_names[row] &&
+                    index.source_local_types[row] ==
+                        CompilerAbiLayoutArrayStringTypeName() {
+                    claimed = true;
+                }
+                collection_row = collection_row + 1;
+            }
+            if !claimed { return false; }
+            ArraySet(consumed, row, true);
+        }
+        row = row + 1;
+    }
+    return true;
+}

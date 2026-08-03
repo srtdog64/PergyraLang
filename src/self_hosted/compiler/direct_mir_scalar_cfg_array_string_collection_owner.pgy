@@ -2,7 +2,7 @@
 
 import "direct_mir_array_string_abi_fact_owner.pgy";
 import "direct_mir_array_literal_spine_owner.pgy";
-import "direct_mir_scalar_cfg_foreach_collection_definition_owner.pgy";
+import "direct_mir_scalar_cfg_collection_definition_owner.pgy";
 import "direct_mir_scalar_graph_admission_owner.pgy";
 
 struct DirectMirScalarCfgArrayStringCollectionFact {
@@ -79,7 +79,7 @@ func DirectMirScalarCfgArrayStringCollectionFromOwners(
 ) -> DirectMirScalarCfgArrayStringCollectionFact {
     let invalid: DirectMirScalarCfgArrayStringCollectionFact =
         DirectMirScalarCfgArrayStringCollectionFactEmpty();
-    if !DirectMirScalarCfgForEachCollectionDefinitionReady(
+    if !DirectMirScalarCfgCollectionDefinitionReady(
         admitted, index, use_facts, wire, definition, declaration,
         collection_value, collection_name
     ) || declaration.abi_type_name !=

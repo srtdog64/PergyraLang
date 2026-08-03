@@ -2,7 +2,7 @@
 
 import "direct_mir_scalar_cfg_llvm_operand_owner.pgy";
 import "direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy";
-import "direct_mir_scalar_cfg_indexed_string_llvm_emission_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy";
 
 func DirectMirScalarCfgLlvmTerminator(
     ref plan: DirectMirScalarCfgGraphPlan,
@@ -27,10 +27,10 @@ func DirectMirScalarCfgLlvmTerminator(
     let output: String = "";
     if condition == DirectMirScalarCfgConditionForEach() {
         output = DirectMirScalarCfgForEachLlvmCondition(plan, target, block);
-    } else if DirectMirScalarCfgIndexedStringArrayOwnsHeader(
-            plan.indexed_string_array, block
-        ) {
-        output = DirectMirScalarCfgIndexedStringLlvmCondition(
+    } else if DirectMirScalarCfgStringArrayLengthRowAtBlock(
+            plan.string_arrays, block
+        ) >= 0 {
+        output = DirectMirScalarCfgStringArrayLlvmCondition(
             plan, target, block
         );
     } else {

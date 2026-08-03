@@ -1,0 +1,98 @@
+// Scalar expression rows projected from the sealed String-array plan.
+
+import "direct_mir_scalar_cfg_leaf_operand_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+
+func DirectMirScalarCfgStringArrayConcatExpressionFact(
+    ref plan: DirectMirScalarCfgStringArrayPlan,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    global_row: Int, instruction_row: Int,
+    value_names: Array<String>,
+    ref local_refs: DirectMirScalarCfgLocalRefPlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs
+) -> DirectMirScalarCfgExpressionFact {
+    let access_row: Int = DirectMirScalarCfgStringArrayAccessRowAtGlobal(
+        plan, global_row
+    );
+    if access_row < 0 || plan.accesses.kinds[access_row] !=
+            DirectMirScalarCfgStringArrayAccessConcatRead() {
+        return DirectMirScalarCfgExpressionFactEmpty();
+    }
+    let left_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        use_facts, global_row, 0
+    );
+    if !IsSome(left_use) { return DirectMirScalarCfgExpressionFactEmpty(); }
+    let expected_value: Int = DirectMirScalarCfgGraphValueRow(
+        value_names, UnwrapOption(left_use)
+    );
+    if expected_value < 0 || expected_value >=
+            ArrayLength(local_refs.value_local_rows) ||
+        local_refs.value_local_rows[expected_value] < 0 ||
+        local_refs.value_local_rows[expected_value] >=
+            ArrayLength(local_refs.local_names) {
+        return DirectMirScalarCfgExpressionFactEmpty();
+    }
+    let expected_name: String = local_refs.local_names[
+        local_refs.value_local_rows[expected_value]
+    ];
+    let left: DirectMirScalarCfgLeafOperand =
+        DirectMirScalarCfgLeafOperandFromOwners(
+            use_facts, global_row, 0, instruction_row, 2,
+            expected_name,
+            value_names, local_refs, wire
+        );
+    if !left.valid || left.use_count != 1 {
+        return DirectMirScalarCfgExpressionFactEmpty();
+    }
+    return DirectMirScalarCfgExpressionFact(
+        true, DirectMirScalarCfgOpConcatString(), left.value_row, -1,
+        left.local_row, -1, "", ""
+    );
+}
+
+func DirectMirScalarCfgStringArrayStatementExpressionFact(
+    ref plan: DirectMirScalarCfgStringArrayPlan,
+    scalar: MirRoutineInstructionScalarCapture, global_row: Int
+) -> DirectMirScalarCfgExpressionFact {
+    let access_row: Int = DirectMirScalarCfgStringArrayAccessRowAtGlobal(
+        plan, global_row
+    );
+    if access_row < 0 || !scalar.valid || scalar.result != "" {
+        return DirectMirScalarCfgExpressionFactEmpty();
+    }
+    let kind: Int = plan.accesses.kinds[access_row];
+    if kind == DirectMirScalarCfgStringArrayAccessLogRead() &&
+        scalar.arg0 == "Log" {
+        return DirectMirScalarCfgExpressionFact(
+            true, DirectMirScalarCfgOpLogStringValue(),
+            -1, -1, -1, -1, "", ""
+        );
+    }
+    if kind == DirectMirScalarCfgStringArrayAccessSetKind() &&
+        scalar.arg0 == "ArraySet" {
+        return DirectMirScalarCfgExpressionFact(
+            true, DirectMirScalarCfgOpArraySetString(),
+            -1, -1, -1, -1, "", ""
+        );
+    }
+    return DirectMirScalarCfgExpressionFactEmpty();
+}
+
+func DirectMirScalarCfgStringArrayLengthConditionFact(
+    ref plan: DirectMirScalarCfgStringArrayPlan, global_row: Int
+) -> DirectMirScalarCfgExpressionFact {
+    let row: Int = 0;
+    while row < DirectMirScalarCfgStringArrayLengthCount(plan) {
+        let fact: DirectMirScalarCfgStringArrayLengthFact =
+            DirectMirScalarCfgStringArrayLengthAt(plan, row);
+        if fact.global_row == global_row {
+            return DirectMirScalarCfgExpressionFact(
+                true, DirectMirScalarCfgConditionLess(),
+                fact.index.value_row, -1, fact.index.local_row,
+                -1, "", ""
+            );
+        }
+        row = row + 1;
+    }
+    return DirectMirScalarCfgExpressionFactEmpty();
+}

@@ -73,3 +73,10 @@ PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
     bash "$INDEXED_STRING_GATE" || fail "indexed Array<String> gate failed"
 
 echo "[$LABEL] ArrayLength-bounded parts[i] substitutes through one indexed receipt"
+
+STRING_ARRAY_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir_string_array_mutation_projection.sh"
+require_file "$STRING_ARRAY_GATE"
+PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
+    bash "$STRING_ARRAY_GATE" || fail "String-array mutation receipt gate failed"
+
+echo "[$LABEL] while read and bounded static set share one String-array receipt"

@@ -1,0 +1,125 @@
+// Exact graph shapes for ArrayLength, indexed reads, and ArraySet lanes.
+
+import "direct_mir_scalar_cfg_array_length_fact_owner.pgy";
+
+struct DirectMirScalarCfgStringArrayIndexGraphFact {
+    let valid: Bool;
+    let collection_name: String;
+    let index_name: String;
+    let index_literal: String;
+}
+
+func DirectMirScalarCfgStringArrayIndexGraphFactInvalid(
+) -> DirectMirScalarCfgStringArrayIndexGraphFact {
+    return DirectMirScalarCfgStringArrayIndexGraphFact(false, "", "", "");
+}
+
+func DirectMirScalarCfgStringArrayIndexGraphFactFrom(
+    ref graph: MirExpressionGraphSequence
+) -> DirectMirScalarCfgStringArrayIndexGraphFact {
+    let invalid: DirectMirScalarCfgStringArrayIndexGraphFact =
+        DirectMirScalarCfgStringArrayIndexGraphFactInvalid();
+    if !graph.ok || graph.ready_node_count != 3 ||
+        ArrayLength(graph.roots) != 1 || graph.roots[0] != 2 ||
+        graph.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        graph.arena.topology.node_kinds[2] != AstExpressionNodeIndex() ||
+        graph.arena.topology.left_children[2] != 0 ||
+        graph.arena.topology.right_children[2] != 1 ||
+        graph.arena.node_texts[0] == "" ||
+        !DirectMirScalarCfgNoCallTargets(graph) { return invalid; }
+    let index_name: String = "";
+    let index_literal: String = "";
+    if graph.arena.topology.node_kinds[1] == AstExpressionNodeLeaf() {
+        index_name = graph.arena.node_texts[1];
+        if index_name == "" { return invalid; }
+    } else if graph.arena.topology.node_kinds[1] ==
+            AstExpressionNodeIntegerLiteral() {
+        index_literal = graph.arena.node_texts[1];
+        if !DirectMirScalarCfgCanonicalInt(index_literal) { return invalid; }
+    } else { return invalid; }
+    return DirectMirScalarCfgStringArrayIndexGraphFact(
+        true, graph.arena.node_texts[0], index_name, index_literal
+    );
+}
+
+struct DirectMirScalarCfgStringArrayConcatGraphFact {
+    let valid: Bool;
+    let left_name: String;
+    let index: DirectMirScalarCfgStringArrayIndexGraphFact;
+}
+
+func DirectMirScalarCfgStringArrayConcatGraphFactFrom(
+    ref graph: MirExpressionGraphSequence
+) -> DirectMirScalarCfgStringArrayConcatGraphFact {
+    let invalid_index: DirectMirScalarCfgStringArrayIndexGraphFact =
+        DirectMirScalarCfgStringArrayIndexGraphFactInvalid();
+    let invalid: DirectMirScalarCfgStringArrayConcatGraphFact =
+        DirectMirScalarCfgStringArrayConcatGraphFact(false, "", invalid_index);
+    if !graph.ok || graph.ready_node_count != 8 ||
+        ArrayLength(graph.roots) != 1 || graph.roots[0] != 7 ||
+        graph.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        graph.arena.node_texts[0] != "Concat" ||
+        graph.arena.topology.node_kinds[1] != AstExpressionNodeCall() ||
+        graph.arena.topology.left_children[1] != 0 ||
+        graph.arena.call_target_kinds[1] != SemanticCallTargetDirect() ||
+        graph.arena.call_target_names[1] != "Concat" ||
+        graph.arena.topology.node_kinds[2] != AstExpressionNodeLeaf() ||
+        graph.arena.topology.node_kinds[3] !=
+            AstExpressionNodeCallArgument() ||
+        graph.arena.topology.left_children[3] != 1 ||
+        graph.arena.topology.right_children[3] != 2 ||
+        graph.arena.topology.node_kinds[4] != AstExpressionNodeLeaf() ||
+        graph.arena.topology.node_kinds[5] != AstExpressionNodeLeaf() ||
+        graph.arena.topology.node_kinds[6] != AstExpressionNodeIndex() ||
+        graph.arena.topology.left_children[6] != 4 ||
+        graph.arena.topology.right_children[6] != 5 ||
+        graph.arena.topology.node_kinds[7] !=
+            AstExpressionNodeCallArgument() ||
+        graph.arena.topology.left_children[7] != 3 ||
+        graph.arena.topology.right_children[7] != 6 ||
+        graph.arena.node_texts[2] == "" ||
+        graph.arena.node_texts[4] == "" ||
+        graph.arena.node_texts[5] == "" { return invalid; }
+    let index: DirectMirScalarCfgStringArrayIndexGraphFact =
+        DirectMirScalarCfgStringArrayIndexGraphFact(
+            true, graph.arena.node_texts[4], graph.arena.node_texts[5], ""
+        );
+    return DirectMirScalarCfgStringArrayConcatGraphFact(
+        true, graph.arena.node_texts[2], index
+    );
+}
+
+struct DirectMirScalarCfgStringArrayLengthGraphFact {
+    let valid: Bool;
+    let index_name: String;
+    let collection_name: String;
+}
+
+func DirectMirScalarCfgStringArrayWhileLengthGraphFactFrom(
+    ref graph: MirExpressionGraphSequence
+) -> DirectMirScalarCfgStringArrayLengthGraphFact {
+    if !graph.ok || graph.ready_node_count != 6 ||
+        ArrayLength(graph.roots) != 1 || graph.roots[0] != 5 ||
+        graph.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        graph.arena.node_texts[0] == "" ||
+        graph.arena.topology.node_kinds[5] != AstExpressionNodeLess() ||
+        graph.arena.topology.left_children[5] != 0 ||
+        graph.arena.topology.right_children[5] != 4 {
+        return DirectMirScalarCfgStringArrayLengthGraphFact(false, "", "");
+    }
+    let length: DirectMirScalarCfgArrayLengthGraphFact =
+        DirectMirScalarCfgArrayLengthGraphFactAt(graph, 1, 2, 3, 4);
+    return DirectMirScalarCfgStringArrayLengthGraphFact(
+        length.valid, graph.arena.node_texts[0], length.collection_name
+    );
+}
+
+func DirectMirScalarCfgStringArraySingleLiteral(
+    ref graph: MirExpressionGraphSequence, expected_kind: Int
+) -> Option<String> {
+    if !graph.ok || graph.ready_node_count != 1 ||
+        ArrayLength(graph.roots) != 1 || graph.roots[0] != 0 ||
+        graph.arena.topology.node_kinds[0] != expected_kind ||
+        !DirectMirScalarCfgNoCallTargets(graph) { return None(); }
+    return Some(graph.arena.node_texts[0]);
+}

@@ -4,7 +4,7 @@ import "direct_mir_scalar_cfg_graph_route_owner.pgy";
 import "direct_mir_scalar_cfg_loop_flow_admission_owner.pgy";
 import "direct_mir_scalar_cfg_range_transfer_admission_owner.pgy";
 import "direct_mir_scalar_cfg_foreach_admission_owner.pgy";
-import "direct_mir_scalar_cfg_indexed_string_array_admission_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_admission_owner.pgy";
 import "../mir_lower/phi_fact_owner.pgy";
 
 struct DirectMirScalarCfgGraphInput {
@@ -14,7 +14,7 @@ struct DirectMirScalarCfgGraphInput {
     let ranges: DirectMirScalarCfgRangeFactSet;
     let foreach_facts: DirectMirScalarCfgForEachFactSet;
     let foreach_elements: DirectMirScalarCfgForEachElementFacts;
-    let indexed_string: DirectMirScalarCfgIndexedStringArrayFact;
+    let string_arrays: DirectMirScalarCfgStringArrayPlan;
 }
 
 func DirectMirScalarCfgGraphInputFromAdmitted(
@@ -66,25 +66,14 @@ func DirectMirScalarCfgGraphInputFromAdmitted(
     if !DirectMirScalarCfgRangeTransfersReady(index, ranges) {
         Die("direct MIR scalar CFG range transfer is invalid");
     }
-    let indexed_string: DirectMirScalarCfgIndexedStringArrayFact =
-        DirectMirScalarCfgIndexedStringArrayFactFromOwners(
-            admitted, index, use_facts, wire, ranges
+    let string_arrays: DirectMirScalarCfgStringArrayPlan =
+        DirectMirScalarCfgStringArrayPlanFromOwners(
+            admitted, index, use_facts, wire, ranges, foreach_facts
         );
-    let dynamic_range_count: Int = 0;
-    let dynamic_row: Int = 0;
-    while dynamic_row < DirectMirScalarCfgRangeFactCount(ranges) {
-        if DirectMirScalarCfgRangeFactAt(
-            ranges, dynamic_row
-        ).stop_value_id != "" { dynamic_range_count = dynamic_range_count + 1; }
-        dynamic_row = dynamic_row + 1;
+    if !DirectMirScalarCfgStringArrayPlanAbsent(string_arrays) &&
+        !DirectMirScalarCfgStringArrayPlanShapeReady(string_arrays, false) {
+        Die("direct MIR scalar CFG String array plan is invalid");
     }
-    if dynamic_range_count > 1 ||
-        (dynamic_range_count == 0 &&
-            !DirectMirScalarCfgIndexedStringArrayFactAbsent(indexed_string)) ||
-        (dynamic_range_count == 1 &&
-            !DirectMirScalarCfgIndexedStringArrayFactShapeReady(
-                indexed_string, false
-            )) { Die("direct MIR scalar CFG indexed String receipt is invalid"); }
     if !MirRoutineInstructionFactBundleReady(
             index.instruction_facts, ArrayLength(index.block_starts)
         ) || !MirRoutineInstructionUseFactsReady(
@@ -96,6 +85,6 @@ func DirectMirScalarCfgGraphInputFromAdmitted(
     }
     return DirectMirScalarCfgGraphInput(
         index, use_facts, wire, ranges, foreach_facts,
-        foreach_admission.elements, indexed_string
+        foreach_admission.elements, string_arrays
     );
 }

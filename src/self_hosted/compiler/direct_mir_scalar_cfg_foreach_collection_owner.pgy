@@ -5,7 +5,7 @@
 import "direct_mir_array_int_producer_fact_owner.pgy";
 import "direct_mir_array_return_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
-import "direct_mir_scalar_cfg_foreach_collection_definition_owner.pgy";
+import "direct_mir_scalar_cfg_collection_definition_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir_lower/routine_result_definition_fact_owner.pgy";
 
@@ -69,7 +69,7 @@ func DirectMirScalarCfgForEachCollectionFromOwners(
 ) -> DirectMirScalarCfgForEachCollectionFact {
     let invalid: DirectMirScalarCfgForEachCollectionFact =
         DirectMirScalarCfgForEachCollectionFactEmpty();
-    if !DirectMirScalarCfgForEachCollectionDefinitionReady(
+    if !DirectMirScalarCfgCollectionDefinitionReady(
         admitted, index, use_facts, wire, definition, declaration,
         collection_value, collection_name
     ) {

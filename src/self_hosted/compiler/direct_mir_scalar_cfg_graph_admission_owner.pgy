@@ -1,5 +1,4 @@
 // Admission and immutable-plan issuance for the general scalar CFG slice.
-
 import "direct_mir_scalar_cfg_expression_owner.pgy";
 import "direct_mir_scalar_cfg_assignment_target_owner.pgy";
 import "direct_mir_scalar_cfg_graph_readiness_owner.pgy";
@@ -7,9 +6,9 @@ import "direct_mir_scalar_cfg_graph_input_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_operation_plan_owner.pgy";
 import "direct_mir_scalar_cfg_string_expression_owner.pgy";
-import "direct_mir_scalar_cfg_indexed_string_expression_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_expression_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_binding_owner.pgy";
 import "../mir_lower/phi_predecessor_binding_fact_owner.pgy";
-
 func DirectMirScalarCfgGraphPlanFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     routine_row: Int,
@@ -28,14 +27,12 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
     let range_sources: DirectMirScalarCfgRangeFactSet = input.ranges;
     let foreach_sources: DirectMirScalarCfgForEachFactSet =
         input.foreach_facts;
-    let foreach_elements: DirectMirScalarCfgForEachElementFacts =
-        input.foreach_elements;
-    let indexed_string: DirectMirScalarCfgIndexedStringArrayFact =
-        input.indexed_string;
+    let foreach_elements: DirectMirScalarCfgForEachElementFacts = input.foreach_elements;
+    let string_array_source: DirectMirScalarCfgStringArrayPlan = input.string_arrays;
     let local_refs: DirectMirScalarCfgLocalRefPlan =
         DirectMirScalarCfgLocalRefPlanFromOwners(
             admitted, index, use_facts, wire, range_sources, foreach_sources,
-            indexed_string
+            string_array_source
         );
     if !local_refs.valid { Die("direct MIR scalar CFG LocalRef plan is invalid"); }
     let type_plan: DirectMirScalarCfgValueTypePlan =
@@ -43,6 +40,10 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
             index, local_refs, foreach_elements
         );
     if !type_plan.valid { Die("direct MIR scalar CFG value type plan is invalid"); }
+    let string_arrays: DirectMirScalarCfgStringArrayPlan =
+        DirectMirScalarCfgStringArrayPlanAtLocalRows(
+            string_array_source, local_refs
+        );
     let range_iterations: DirectMirScalarCfgRangeFactSet =
         DirectMirScalarCfgRangeFactsAtLocalRows(
             range_sources, local_refs.local_ref_kinds,
@@ -70,8 +71,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
     let local_names: Array<String> = local_refs.local_names;
     let value_names: Array<String> = local_refs.value_names;
     let value_local_rows: Array<Int> = local_refs.value_local_rows;
-    let value_definition_blocks: Array<Int> =
-        local_refs.value_definition_blocks;
+    let value_definition_blocks: Array<Int> = local_refs.value_definition_blocks;
 
     let block_succ_true: Array<Int> = index.block_succ_true;
     let block_succ_false: Array<Int> = index.block_succ_false;
@@ -117,8 +117,8 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
             if kind == "def" && DirectMirScalarCfgForEachOwnsDefinition(
                     foreach_iterations, global_row
                 ) || (kind == "def" &&
-                    DirectMirScalarCfgIndexedStringArrayOwnsDefinition(
-                        indexed_string, global_row
+                    DirectMirScalarCfgStringArrayOwnsDefinition(
+                        string_arrays, global_row
                     )) {
                 // Collection storage is owned by the sealed foreach receipt.
             } else if kind == "def" {
@@ -132,10 +132,13 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                     );
                 let expression: DirectMirScalarCfgExpressionFact =
                     DirectMirScalarCfgExpressionFactEmpty();
-                if indexed_string.valid &&
-                    indexed_string.assignment_global_row == global_row {
-                    expression = DirectMirScalarCfgIndexedStringExpressionFact(
-                        indexed_string, use_facts, global_row,
+                let string_access: Int = DirectMirScalarCfgStringArrayAccessRowAtGlobal(
+                    string_arrays, global_row
+                );
+                if string_access >= 0 && string_arrays.accesses.kinds[string_access] ==
+                        DirectMirScalarCfgStringArrayAccessConcatRead() {
+                    expression = DirectMirScalarCfgStringArrayConcatExpressionFact(
+                        string_arrays, use_facts, global_row,
                         local_instruction, value_names, local_refs, wire
                     );
                 } else {
@@ -169,17 +172,10 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                         )) {
                     Die("direct MIR scalar CFG definition fact is invalid");
                 }
-                if indexed_string.valid &&
-                    indexed_string.assignment_global_row == global_row {
-                    let indexed_range: DirectMirScalarCfgRangeIterationFact =
-                        DirectMirScalarCfgRangeFactAtLoopSyntaxId(
-                            range_iterations, indexed_string.loop_syntax_id
-                        );
-                    indexed_string =
-                        DirectMirScalarCfgIndexedStringArrayFactAtPlanRows(
-                            indexed_string, indexed_range.local_row,
-                            ArrayLength(operation_kinds)
-                        );
+                if string_access >= 0 {
+                    string_arrays = DirectMirScalarCfgStringArrayPlanAtOperation(
+                        string_arrays, global_row, ArrayLength(operation_kinds)
+                    );
                 }
                 DirectMirScalarCfgAppendOperation(
                     operation_kinds, operation_result_values,
@@ -270,13 +266,23 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                     MirRoutineInstructionFactBundleAtGlobal(
                         index.instruction_facts, global_row
                     );
+                let string_access: Int = DirectMirScalarCfgStringArrayAccessRowAtGlobal(
+                    string_arrays, global_row
+                );
                 let expression: DirectMirScalarCfgExpressionFact =
-                    DirectMirScalarCfgTypedLogExpressionFact(
+                    DirectMirScalarCfgExpressionFactEmpty();
+                if string_access >= 0 {
+                    expression = DirectMirScalarCfgStringArrayStatementExpressionFact(
+                        string_arrays, scalar, global_row
+                    );
+                } else {
+                    expression = DirectMirScalarCfgTypedLogExpressionFact(
                         instruction, use_facts, global_row,
                         local_instruction, value_names, local_refs, wire,
                         type_plan
                     );
-                if !scalar.valid || scalar.arg0 != "Log" ||
+                }
+                if !scalar.valid || (string_access < 0 && scalar.arg0 != "Log") ||
                     scalar.result != "" || !expression.valid ||
                     (expression.left_value >= 0 &&
                         !DirectMirScalarCfgValueUseDominates(
@@ -285,6 +291,11 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                             block, instruction_row
                         )) {
                     Die("direct MIR scalar CFG Log fact is invalid");
+                }
+                if string_access >= 0 {
+                    string_arrays = DirectMirScalarCfgStringArrayPlanAtOperation(
+                        string_arrays, global_row, ArrayLength(operation_kinds)
+                    );
                 }
                 DirectMirScalarCfgAppendOperation(
                     operation_kinds, operation_result_values,
@@ -356,10 +367,15 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                         );
                     }
                 } else {
-                    condition = DirectMirScalarCfgConditionExpressionFact(
-                        instruction, use_facts, global_row,
-                        local_instruction, value_names, local_refs, wire
+                    condition = DirectMirScalarCfgStringArrayLengthConditionFact(
+                        string_arrays, global_row
                     );
+                    if !condition.valid {
+                        condition = DirectMirScalarCfgConditionExpressionFact(
+                            instruction, use_facts, global_row,
+                            local_instruction, value_names, local_refs, wire
+                        );
+                    }
                     if !condition.valid ||
                         index.block_succ_true[block] < 0 ||
                         (index.block_succ_false[block] < 0 &&
@@ -419,7 +435,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
         operation_right_literals, operation_phi_starts,
         operation_phi_counts, phi_predecessor_blocks, phi_incoming_values,
         range_iterations, foreach_iterations, foreach_elements,
-        indexed_string,
+        string_arrays,
         string_concat_runtime_call_abi_id
     );
     let verified: DirectMirScalarCfgGraphPlan =

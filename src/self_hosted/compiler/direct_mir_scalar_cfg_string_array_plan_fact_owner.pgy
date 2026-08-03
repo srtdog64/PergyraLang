@@ -1,0 +1,160 @@
+// Target-neutral row views and column sets for String-array plans.
+
+func DirectMirScalarCfgStringArrayIndexValue() -> Int { return 1; }
+func DirectMirScalarCfgStringArrayIndexIteration() -> Int { return 2; }
+func DirectMirScalarCfgStringArrayIndexLiteral() -> Int { return 3; }
+func DirectMirScalarCfgStringArrayAccessConcatRead() -> Int { return 1; }
+func DirectMirScalarCfgStringArrayAccessLogRead() -> Int { return 2; }
+func DirectMirScalarCfgStringArrayAccessSetKind() -> Int { return 3; }
+
+struct DirectMirScalarCfgStringArrayIndexFact {
+    let kind: Int;
+    let value_id: String;
+    let source_name: String;
+    let iteration_syntax_id: Int;
+    let literal: String;
+    let value_row: Int;
+    let local_row: Int;
+}
+
+func DirectMirScalarCfgStringArrayIndexFactEmpty(
+) -> DirectMirScalarCfgStringArrayIndexFact {
+    return DirectMirScalarCfgStringArrayIndexFact(0, "", "", -1, "", -1, -1);
+}
+
+struct DirectMirScalarCfgStringArrayCollectionSet {
+    let valid: Bool;
+    let definition_global_rows: Array<Int>;
+    let value_ids: Array<String>;
+    let names: Array<String>;
+    let storage_identities: Array<String>;
+    let element_starts: Array<Int>;
+    let element_counts: Array<Int>;
+    let elements: Array<String>;
+    let abi_layout_ids: Array<Int>;
+    let abi_sizes: Array<Int>;
+    let abi_aligns: Array<Int>;
+    let data_offsets: Array<Int>;
+    let length_offsets: Array<Int>;
+    let capacity_offsets: Array<Int>;
+    let allocator_offsets: Array<Int>;
+}
+
+struct DirectMirScalarCfgStringArrayIndexSet {
+    let kinds: Array<Int>;
+    let value_ids: Array<String>;
+    let source_names: Array<String>;
+    let iteration_syntax_ids: Array<Int>;
+    let literals: Array<String>;
+    let value_rows: Array<Int>;
+    let local_rows: Array<Int>;
+}
+
+struct DirectMirScalarCfgStringArrayLengthSet {
+    let valid: Bool;
+    let global_rows: Array<Int>;
+    let blocks: Array<Int>;
+    let collection_rows: Array<Int>;
+    let control_loop_syntax_ids: Array<Int>;
+    let indices: DirectMirScalarCfgStringArrayIndexSet;
+}
+
+struct DirectMirScalarCfgStringArrayAccessSet {
+    let valid: Bool;
+    let global_rows: Array<Int>;
+    let kinds: Array<Int>;
+    let collection_rows: Array<Int>;
+    let guard_length_rows: Array<Int>;
+    let indices: DirectMirScalarCfgStringArrayIndexSet;
+    let value_present: Array<Bool>;
+    let value_literals: Array<String>;
+    let operation_rows: Array<Int>;
+}
+
+struct DirectMirScalarCfgStringArrayLengthFact {
+    let global_row: Int;
+    let block: Int;
+    let collection_row: Int;
+    let control_loop_syntax_id: Int;
+    let index: DirectMirScalarCfgStringArrayIndexFact;
+}
+
+struct DirectMirScalarCfgStringArrayAccessFact {
+    let global_row: Int;
+    let kind: Int;
+    let collection_row: Int;
+    let guard_length_row: Int;
+    let index: DirectMirScalarCfgStringArrayIndexFact;
+    let value_present: Bool;
+    let value_literal: String;
+    let operation_row: Int;
+}
+
+struct DirectMirScalarCfgStringArrayPlan {
+    let valid: Bool;
+    let digest: Int;
+    let collections: DirectMirScalarCfgStringArrayCollectionSet;
+    let lengths: DirectMirScalarCfgStringArrayLengthSet;
+    let accesses: DirectMirScalarCfgStringArrayAccessSet;
+}
+
+func DirectMirScalarCfgStringArrayIndexSetEmpty(
+) -> DirectMirScalarCfgStringArrayIndexSet {
+    let ints: Array<Int> = []; let strings: Array<String> = [];
+    return DirectMirScalarCfgStringArrayIndexSet(
+        ints, strings, strings, ints, strings, ints, ints
+    );
+}
+
+func DirectMirScalarCfgStringArrayCollectionSetEmpty(
+    valid: Bool
+) -> DirectMirScalarCfgStringArrayCollectionSet {
+    let ints: Array<Int> = []; let strings: Array<String> = [];
+    return DirectMirScalarCfgStringArrayCollectionSet(
+        valid, ints, strings, strings, strings, ints, ints, strings,
+        ints, ints, ints, ints, ints, ints, ints
+    );
+}
+
+func DirectMirScalarCfgStringArrayLengthSetEmpty(
+    valid: Bool
+) -> DirectMirScalarCfgStringArrayLengthSet {
+    let ints: Array<Int> = [];
+    return DirectMirScalarCfgStringArrayLengthSet(
+        valid, ints, ints, ints, ints,
+        DirectMirScalarCfgStringArrayIndexSetEmpty()
+    );
+}
+
+func DirectMirScalarCfgStringArrayAccessSetEmpty(
+    valid: Bool
+) -> DirectMirScalarCfgStringArrayAccessSet {
+    let ints: Array<Int> = []; let strings: Array<String> = [];
+    let bools: Array<Bool> = [];
+    return DirectMirScalarCfgStringArrayAccessSet(
+        valid, ints, ints, ints, ints,
+        DirectMirScalarCfgStringArrayIndexSetEmpty(), bools, strings, ints
+    );
+}
+
+func DirectMirScalarCfgStringArrayPlanEmpty(
+) -> DirectMirScalarCfgStringArrayPlan {
+    let collections: DirectMirScalarCfgStringArrayCollectionSet =
+        DirectMirScalarCfgStringArrayCollectionSetEmpty(false);
+    let lengths: DirectMirScalarCfgStringArrayLengthSet =
+        DirectMirScalarCfgStringArrayLengthSetEmpty(false);
+    let accesses: DirectMirScalarCfgStringArrayAccessSet =
+        DirectMirScalarCfgStringArrayAccessSetEmpty(false);
+    return DirectMirScalarCfgStringArrayPlan(
+        false, 0, collections, lengths, accesses
+    );
+}
+
+func DirectMirScalarCfgStringArrayPlanAbsent(
+    ref plan: DirectMirScalarCfgStringArrayPlan
+) -> Bool {
+    return !plan.valid && plan.digest == 0 &&
+        ArrayLength(plan.collections.value_ids) == 0 &&
+        ArrayLength(plan.lengths.global_rows) == 0 &&
+        ArrayLength(plan.accesses.global_rows) == 0;
+}

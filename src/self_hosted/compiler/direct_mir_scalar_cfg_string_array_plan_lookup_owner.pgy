@@ -1,0 +1,155 @@
+// Typed row views and unique lookups over String-array column sets.
+
+import "direct_mir_scalar_cfg_array_string_collection_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy";
+
+func DirectMirScalarCfgStringArrayCollectionCount(
+    ref plan: DirectMirScalarCfgStringArrayPlan
+) -> Int { return ArrayLength(plan.collections.value_ids); }
+
+func DirectMirScalarCfgStringArrayCollectionAt(
+    ref plan: DirectMirScalarCfgStringArrayPlan, row: Int
+) -> DirectMirScalarCfgArrayStringCollectionFact {
+    let elements: Array<String> = [];
+    if row < 0 || row >= DirectMirScalarCfgStringArrayCollectionCount(plan) {
+        return DirectMirScalarCfgArrayStringCollectionFactEmpty();
+    }
+    let item: Int = 0;
+    while item < plan.collections.element_counts[row] {
+        ArrayPush(elements, plan.collections.elements[
+            plan.collections.element_starts[row] + item
+        ]);
+        item = item + 1;
+    }
+    return DirectMirScalarCfgArrayStringCollectionFact(
+        true, plan.collections.definition_global_rows[row],
+        plan.collections.value_ids[row], plan.collections.names[row],
+        plan.collections.storage_identities[row], elements,
+        plan.collections.abi_layout_ids[row], plan.collections.abi_sizes[row],
+        plan.collections.abi_aligns[row], plan.collections.data_offsets[row],
+        plan.collections.length_offsets[row],
+        plan.collections.capacity_offsets[row],
+        plan.collections.allocator_offsets[row]
+    );
+}
+
+func DirectMirScalarCfgStringArrayIndexAt(
+    ref rows: DirectMirScalarCfgStringArrayIndexSet, row: Int
+) -> DirectMirScalarCfgStringArrayIndexFact {
+    if row < 0 || row >= ArrayLength(rows.kinds) {
+        return DirectMirScalarCfgStringArrayIndexFactEmpty();
+    }
+    return DirectMirScalarCfgStringArrayIndexFact(
+        rows.kinds[row], rows.value_ids[row], rows.source_names[row],
+        rows.iteration_syntax_ids[row], rows.literals[row],
+        rows.value_rows[row], rows.local_rows[row]
+    );
+}
+
+func DirectMirScalarCfgStringArrayLengthCount(
+    ref plan: DirectMirScalarCfgStringArrayPlan
+) -> Int { return ArrayLength(plan.lengths.global_rows); }
+
+func DirectMirScalarCfgStringArrayLengthAt(
+    ref plan: DirectMirScalarCfgStringArrayPlan, row: Int
+) -> DirectMirScalarCfgStringArrayLengthFact {
+    if row < 0 || row >= DirectMirScalarCfgStringArrayLengthCount(plan) {
+        return DirectMirScalarCfgStringArrayLengthFact(
+            -1, -1, -1, -1, DirectMirScalarCfgStringArrayIndexFactEmpty()
+        );
+    }
+    return DirectMirScalarCfgStringArrayLengthFact(
+        plan.lengths.global_rows[row], plan.lengths.blocks[row],
+        plan.lengths.collection_rows[row],
+        plan.lengths.control_loop_syntax_ids[row],
+        DirectMirScalarCfgStringArrayIndexAt(plan.lengths.indices, row)
+    );
+}
+
+func DirectMirScalarCfgStringArrayAccessCount(
+    ref plan: DirectMirScalarCfgStringArrayPlan
+) -> Int { return ArrayLength(plan.accesses.global_rows); }
+
+func DirectMirScalarCfgStringArrayAccessAt(
+    ref plan: DirectMirScalarCfgStringArrayPlan, row: Int
+) -> DirectMirScalarCfgStringArrayAccessFact {
+    if row < 0 || row >= DirectMirScalarCfgStringArrayAccessCount(plan) {
+        return DirectMirScalarCfgStringArrayAccessFact(
+            -1, 0, -1, -1, DirectMirScalarCfgStringArrayIndexFactEmpty(),
+            false, "", -1
+        );
+    }
+    return DirectMirScalarCfgStringArrayAccessFact(
+        plan.accesses.global_rows[row], plan.accesses.kinds[row],
+        plan.accesses.collection_rows[row],
+        plan.accesses.guard_length_rows[row],
+        DirectMirScalarCfgStringArrayIndexAt(plan.accesses.indices, row),
+        plan.accesses.value_present[row], plan.accesses.value_literals[row],
+        plan.accesses.operation_rows[row]
+    );
+}
+
+func DirectMirScalarCfgStringArrayCollectionRowAtValue(
+    ref plan: DirectMirScalarCfgStringArrayPlan, value_id: String
+) -> Int {
+    let found: Int = -1; let row: Int = 0;
+    while row < DirectMirScalarCfgStringArrayCollectionCount(plan) {
+        if plan.collections.value_ids[row] == value_id {
+            if found >= 0 { return -1; } found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarCfgStringArrayOwnsDefinition(
+    ref plan: DirectMirScalarCfgStringArrayPlan, global_row: Int
+) -> Bool {
+    let row: Int = 0;
+    while row < DirectMirScalarCfgStringArrayCollectionCount(plan) {
+        if plan.collections.definition_global_rows[row] == global_row {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarCfgStringArrayLengthRowAtBlock(
+    ref plan: DirectMirScalarCfgStringArrayPlan, block: Int
+) -> Int {
+    let found: Int = -1; let row: Int = 0;
+    while row < DirectMirScalarCfgStringArrayLengthCount(plan) {
+        if plan.lengths.blocks[row] == block {
+            if found >= 0 { return -1; } found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarCfgStringArrayAccessRowAtGlobal(
+    ref plan: DirectMirScalarCfgStringArrayPlan, global_row: Int
+) -> Int {
+    let found: Int = -1; let row: Int = 0;
+    while row < DirectMirScalarCfgStringArrayAccessCount(plan) {
+        if plan.accesses.global_rows[row] == global_row {
+            if found >= 0 { return -1; } found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarCfgStringArrayAccessRowAtOperation(
+    ref plan: DirectMirScalarCfgStringArrayPlan, operation: Int
+) -> Int {
+    let found: Int = -1; let row: Int = 0;
+    while row < DirectMirScalarCfgStringArrayAccessCount(plan) {
+        if plan.accesses.operation_rows[row] == operation {
+            if found >= 0 { return -1; } found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}

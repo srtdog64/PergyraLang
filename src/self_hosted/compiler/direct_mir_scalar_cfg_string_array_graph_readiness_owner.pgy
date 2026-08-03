@@ -1,0 +1,127 @@
+// Cross-owner readiness for String-array storage, guards, and operations.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_index_safety_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+
+func DirectMirScalarCfgStringArrayOperandCount(
+    value: Int, local: Int, literal: String
+) -> Int {
+    let count: Int = 0;
+    if value >= 0 { count = count + 1; }
+    if local >= 0 { count = count + 1; }
+    if literal != "" { count = count + 1; }
+    return count;
+}
+
+func DirectMirScalarCfgStringArrayGraphReady(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let arrays: DirectMirScalarCfgStringArrayPlan = plan.string_arrays;
+    if DirectMirScalarCfgStringArrayPlanAbsent(arrays) { return true; }
+    if !DirectMirScalarCfgStringArrayPlanShapeReady(arrays, true) {
+        return false;
+    }
+    let collection: Int = 0;
+    while collection < DirectMirScalarCfgStringArrayCollectionCount(arrays) {
+        let fact: DirectMirScalarCfgArrayStringCollectionFact =
+            DirectMirScalarCfgStringArrayCollectionAt(arrays, collection);
+        if fact.length_offset == fact.capacity_offset { return false; }
+        let value: Int = 0;
+        while value < ArrayLength(plan.value_names) {
+            if plan.value_names[value] == fact.collection_value_id {
+                return false;
+            }
+            value = value + 1;
+        }
+        collection = collection + 1;
+    }
+    let row: Int = 0;
+    while row < DirectMirScalarCfgStringArrayLengthCount(arrays) {
+        let fact: DirectMirScalarCfgStringArrayLengthFact =
+            DirectMirScalarCfgStringArrayLengthAt(arrays, row);
+        let index: DirectMirScalarCfgStringArrayIndexFact = fact.index;
+        if fact.block >= ArrayLength(plan.block_succ_true) ||
+            plan.block_succ_true[fact.block] < 0 ||
+            plan.block_succ_false[fact.block] < 0 ||
+            plan.block_condition_kinds[fact.block] !=
+                DirectMirScalarCfgConditionLess() ||
+            plan.block_condition_left_values[fact.block] != index.value_row ||
+            plan.block_condition_left_locals[fact.block] != index.local_row ||
+            plan.block_condition_left_literals[fact.block] != "" ||
+            plan.block_condition_right_values[fact.block] != -1 ||
+            plan.block_condition_right_locals[fact.block] != -1 ||
+            plan.block_condition_right_literals[fact.block] != "" ||
+            (index.value_row >= 0 &&
+                (index.value_row >= ArrayLength(plan.value_types) ||
+                 plan.value_types[index.value_row] != "Int")) ||
+            (index.local_row >= 0 &&
+                (index.local_row >= ArrayLength(plan.local_types) ||
+                 plan.local_types[index.local_row] != "Int")) ||
+            !DirectMirScalarCfgStringArrayIndexNonnegative(plan, index) {
+            return false;
+        }
+        if index.kind == DirectMirScalarCfgStringArrayIndexIteration() {
+            let range: DirectMirScalarCfgRangeIterationFact =
+                DirectMirScalarCfgRangeFactAtLoopSyntaxId(
+                    plan.range_iterations, index.iteration_syntax_id
+                );
+            if !range.valid || fact.control_loop_syntax_id !=
+                    index.iteration_syntax_id || range.header_block != fact.block ||
+                range.stop_value_id != arrays.collections.value_ids[
+                    fact.collection_row
+                ] || range.local_row != index.local_row {
+                return false;
+            }
+        } else if fact.control_loop_syntax_id != -1 { return false; }
+        row = row + 1;
+    }
+    row = 0;
+    while row < DirectMirScalarCfgStringArrayAccessCount(arrays) {
+        let fact: DirectMirScalarCfgStringArrayAccessFact =
+            DirectMirScalarCfgStringArrayAccessAt(arrays, row);
+        let operation: Int = fact.operation_row;
+        if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
+            (fact.index.value_row >= 0 &&
+                (fact.index.value_row >= ArrayLength(plan.value_types) ||
+                 plan.value_types[fact.index.value_row] != "Int")) ||
+            (fact.index.local_row >= 0 &&
+                (fact.index.local_row >= ArrayLength(plan.local_types) ||
+                 plan.local_types[fact.index.local_row] != "Int")) ||
+            plan.operation_right_values[operation] != -1 ||
+            plan.operation_right_locals[operation] != -1 ||
+            plan.operation_right_literals[operation] != "" {
+            return false;
+        }
+        let kind: Int = plan.operation_kinds[operation];
+        if (fact.kind == DirectMirScalarCfgStringArrayAccessConcatRead() &&
+                (kind != DirectMirScalarCfgOpConcatString() ||
+                 plan.operation_result_values[operation] < 0 ||
+                 DirectMirScalarCfgStringArrayOperandCount(
+                    plan.operation_left_values[operation],
+                    plan.operation_left_locals[operation],
+                    plan.operation_left_literals[operation]
+                 ) != 1)) ||
+            (fact.kind == DirectMirScalarCfgStringArrayAccessLogRead() &&
+                (kind != DirectMirScalarCfgOpLogStringValue() ||
+                 plan.operation_result_values[operation] != -1 ||
+                 DirectMirScalarCfgStringArrayOperandCount(
+                    plan.operation_left_values[operation],
+                    plan.operation_left_locals[operation],
+                    plan.operation_left_literals[operation]
+                 ) != 0)) ||
+            (fact.kind == DirectMirScalarCfgStringArrayAccessSetKind() &&
+                (kind != DirectMirScalarCfgOpArraySetString() ||
+                 plan.operation_result_values[operation] != -1 ||
+                 DirectMirScalarCfgStringArrayOperandCount(
+                    plan.operation_left_values[operation],
+                    plan.operation_left_locals[operation],
+                    plan.operation_left_literals[operation]
+                 ) != 0)) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}

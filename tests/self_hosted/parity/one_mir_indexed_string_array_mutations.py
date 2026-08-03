@@ -118,6 +118,12 @@ def bad_capacity_layout(routine):
 
 emit("graph-values", graph_values)
 emit("display-only", display_only)
+emit(
+    "bad-range-start",
+    lambda r: find_instruction(r, "loop-init", "AST_FOR_LOOP")[
+        "expr0_graph"
+    ]["nodes"][0].__setitem__("text", "-1"),
+)
 emit("bad-branch-use", lambda r: branch(r).__setitem__("uses", []))
 emit(
     "bad-bound-target",

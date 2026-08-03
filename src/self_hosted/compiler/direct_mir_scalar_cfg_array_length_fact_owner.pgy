@@ -1,0 +1,41 @@
+// One graph-owned ArrayLength(collection) subtree identity.
+
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+
+struct DirectMirScalarCfgArrayLengthGraphFact {
+    let valid: Bool;
+    let collection_name: String;
+}
+
+func DirectMirScalarCfgArrayLengthGraphFactInvalid(
+) -> DirectMirScalarCfgArrayLengthGraphFact {
+    return DirectMirScalarCfgArrayLengthGraphFact(false, "");
+}
+
+func DirectMirScalarCfgArrayLengthGraphFactAt(
+    ref sequence: MirExpressionGraphSequence,
+    call_leaf: Int, call: Int, collection: Int, argument: Int
+) -> DirectMirScalarCfgArrayLengthGraphFact {
+    if !sequence.ok || call_leaf < 0 || call < 0 || collection < 0 ||
+        argument < 0 || argument >= sequence.ready_node_count ||
+        sequence.arena.topology.node_kinds[call_leaf] !=
+            AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[call_leaf] != "ArrayLength" ||
+        sequence.arena.topology.node_kinds[call] != AstExpressionNodeCall() ||
+        sequence.arena.topology.left_children[call] != call_leaf ||
+        sequence.arena.call_target_kinds[call] !=
+            SemanticCallTargetDirect() ||
+        sequence.arena.call_target_names[call] != "ArrayLength" ||
+        sequence.arena.topology.node_kinds[collection] !=
+            AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[collection] == "" ||
+        sequence.arena.topology.node_kinds[argument] !=
+            AstExpressionNodeCallArgument() ||
+        sequence.arena.topology.left_children[argument] != call ||
+        sequence.arena.topology.right_children[argument] != collection {
+        return DirectMirScalarCfgArrayLengthGraphFactInvalid();
+    }
+    return DirectMirScalarCfgArrayLengthGraphFact(
+        true, sequence.arena.node_texts[collection]
+    );
+}

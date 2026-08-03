@@ -1,0 +1,86 @@
+// Stable identity for the String-array companion plan.
+
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+
+func DirectMirScalarCfgStringArrayIndexDigest(
+    hash: Long, fact: DirectMirScalarCfgStringArrayIndexFact
+) -> Long {
+    hash = DirectMirCfgHashInt(hash, fact.kind);
+    hash = DirectMirCfgHashString(hash, fact.value_id);
+    hash = DirectMirCfgHashString(hash, fact.source_name);
+    hash = DirectMirCfgHashInt(hash, fact.iteration_syntax_id);
+    hash = DirectMirCfgHashString(hash, fact.literal);
+    hash = DirectMirCfgHashInt(hash, fact.value_row);
+    return DirectMirCfgHashInt(hash, fact.local_row);
+}
+
+func DirectMirScalarCfgStringArrayPlanDigest(
+    ref plan: DirectMirScalarCfgStringArrayPlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(
+        251L, DirectMirScalarCfgStringArrayCollectionCount(plan)
+    );
+    let row: Int = 0;
+    while row < DirectMirScalarCfgStringArrayCollectionCount(plan) {
+        let fact: DirectMirScalarCfgArrayStringCollectionFact =
+            DirectMirScalarCfgStringArrayCollectionAt(plan, row);
+        hash = DirectMirCfgHashInt(hash, fact.definition_global_row);
+        hash = DirectMirCfgHashString(hash, fact.collection_value_id);
+        hash = DirectMirCfgHashString(hash, fact.collection_name);
+        hash = DirectMirCfgHashString(hash, fact.storage_identity);
+        hash = DirectMirScalarCfgHashStrings(hash, fact.elements);
+        hash = DirectMirCfgHashInt(hash, fact.abi_layout_id);
+        hash = DirectMirCfgHashInt(hash, fact.abi_size);
+        hash = DirectMirCfgHashInt(hash, fact.abi_align);
+        hash = DirectMirCfgHashInt(hash, fact.data_offset);
+        hash = DirectMirCfgHashInt(hash, fact.length_offset);
+        hash = DirectMirCfgHashInt(hash, fact.capacity_offset);
+        hash = DirectMirCfgHashInt(hash, fact.allocator_offset);
+        row = row + 1;
+    }
+    hash = DirectMirCfgHashInt(
+        hash, DirectMirScalarCfgStringArrayLengthCount(plan)
+    );
+    row = 0;
+    while row < DirectMirScalarCfgStringArrayLengthCount(plan) {
+        let fact: DirectMirScalarCfgStringArrayLengthFact =
+            DirectMirScalarCfgStringArrayLengthAt(plan, row);
+        hash = DirectMirCfgHashInt(hash, fact.global_row);
+        hash = DirectMirCfgHashInt(hash, fact.block);
+        hash = DirectMirCfgHashInt(hash, fact.collection_row);
+        hash = DirectMirCfgHashInt(hash, fact.control_loop_syntax_id);
+        hash = DirectMirScalarCfgStringArrayIndexDigest(hash, fact.index);
+        row = row + 1;
+    }
+    hash = DirectMirCfgHashInt(
+        hash, DirectMirScalarCfgStringArrayAccessCount(plan)
+    );
+    row = 0;
+    while row < DirectMirScalarCfgStringArrayAccessCount(plan) {
+        let fact: DirectMirScalarCfgStringArrayAccessFact =
+            DirectMirScalarCfgStringArrayAccessAt(plan, row);
+        hash = DirectMirCfgHashInt(hash, fact.global_row);
+        hash = DirectMirCfgHashInt(hash, fact.kind);
+        hash = DirectMirCfgHashInt(hash, fact.collection_row);
+        hash = DirectMirCfgHashInt(hash, fact.guard_length_row);
+        hash = DirectMirScalarCfgStringArrayIndexDigest(hash, fact.index);
+        let value_present: Int = 0;
+        if fact.value_present { value_present = 1; }
+        hash = DirectMirCfgHashInt(hash, value_present);
+        hash = DirectMirCfgHashString(hash, fact.value_literal);
+        hash = DirectMirCfgHashInt(hash, fact.operation_row);
+        row = row + 1;
+    }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarCfgStringArrayPlanWithDigest(
+    plan: DirectMirScalarCfgStringArrayPlan, digest: Int
+) -> DirectMirScalarCfgStringArrayPlan {
+    return DirectMirScalarCfgStringArrayPlan(
+        plan.valid, digest, plan.collections, plan.lengths, plan.accesses
+    );
+}

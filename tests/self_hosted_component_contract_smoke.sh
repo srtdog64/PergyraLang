@@ -15440,7 +15440,7 @@ require_max_lines \
     "src/self_hosted/mir_lower/latest_local_value_fact_owner.pgy" 60
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" 310
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" 120
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_type_family_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_type_family_owner.pgy" 60
@@ -15518,27 +15518,60 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_owner.pgy" 160
-require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_definition_owner.pgy"
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_definition_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_definition_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_definition_owner.pgy" 40
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_string_collection_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_string_collection_owner.pgy" 120
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_string_collection_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_string_collection_owner.pgy" 140
-require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_array_fact_owner.pgy"
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_length_fact_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_array_fact_owner.pgy" 180
-require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_array_admission_owner.pgy"
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_length_fact_owner.pgy" 50
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_hash_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_array_admission_owner.pgy" 180
-require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_expression_owner.pgy"
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_hash_owner.pgy" 30
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_local_inventory_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_expression_owner.pgy" 50
-require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_graph_readiness_owner.pgy"
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_local_inventory_owner.pgy" 80
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_graph_readiness_owner.pgy" 80
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy" 180
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy" 180
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_identity_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_identity_owner.pgy" 100
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_readiness_owner.pgy" 200
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_append_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_append_owner.pgy" 120
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_binding_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_binding_owner.pgy" 140
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_dominance_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_dominance_owner.pgy" 80
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_index_safety_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_index_safety_owner.pgy" 100
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_graph_shape_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_graph_shape_owner.pgy" 140
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_admission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_admission_owner.pgy" 420
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_expression_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_expression_owner.pgy" 110
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_graph_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_graph_readiness_owner.pgy" 140
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_admission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_admission_owner.pgy" 90
@@ -15602,9 +15635,9 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_c_materialization_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_c_materialization_owner.pgy" 40
-require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_c_emission_owner.pgy"
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_emission_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_c_emission_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_emission_owner.pgy" 140
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy" 260
@@ -15617,9 +15650,9 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_string_llvm_value_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_string_llvm_value_owner.pgy" 60
-require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_llvm_emission_owner.pgy"
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_llvm_emission_owner.pgy" 120
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy" 220
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_llvm_emission_owner.pgy" 220
@@ -15668,6 +15701,12 @@ require_max_lines \
 require_file "tests/self_hosted/parity/one_mir_indexed_string_array_mutations.py"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_indexed_string_array_mutations.py" 180
+require_file "tests/self_hosted/parity/one_mir_string_array_mutation_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_string_array_mutation_projection.sh" 130
+require_file "tests/self_hosted/parity/one_mir_string_array_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_string_array_mutations.py" 180
 require_file "tests/self_hosted/parity/one_mir_iteration_binding_scope_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_iteration_binding_scope_owner.sh" 160
@@ -15706,6 +15745,8 @@ require_text "tests/self_hosted/parity/one_mir_cfg_break_case.sh" \
     'one_mir_mixed_collection_foreach_projection.sh'
 require_text "tests/self_hosted/parity/one_mir_cfg_break_case.sh" \
     'one_mir_indexed_string_array_projection.sh'
+require_text "tests/self_hosted/parity/one_mir_cfg_break_case.sh" \
+    'one_mir_string_array_mutation_projection.sh'
 require_text "tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh" \
     'nested_iteration_continue_shadow.pgy'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy" \
@@ -15736,6 +15777,17 @@ reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy
 ! grep -R -F --include='*.pgy' 'range_local_row' \
     src/self_hosted/compiler >/dev/null ||
     fail "singular scalar CFG range-local row reappeared"
+reject_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_definition_owner.pgy"
+reject_file "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_array_fact_owner.pgy"
+reject_file "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_array_admission_owner.pgy"
+reject_file "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_expression_owner.pgy"
+reject_file "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_graph_readiness_owner.pgy"
+reject_file "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_c_emission_owner.pgy"
+reject_file "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_llvm_emission_owner.pgy"
+! grep -R -F --include='*.pgy' 'DirectMirScalarCfgIndexedString' \
+    src/self_hosted >/dev/null || fail "singular indexed String owner reappeared"
+! grep -R -F --include='*.pgy' 'DirectMirScalarCfgForEachCollectionDefinitionReady' \
+    src/self_hosted >/dev/null || fail "foreach-only collection definition owner reappeared"
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
     'DirectMirScalarCfgGraphRouteClaimed(admitted)'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \

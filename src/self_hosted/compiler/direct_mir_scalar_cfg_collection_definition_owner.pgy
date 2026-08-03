@@ -4,7 +4,7 @@ import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir_lower/routine_result_definition_fact_owner.pgy";
 
-func DirectMirScalarCfgForEachCollectionDefinitionReady(
+func DirectMirScalarCfgCollectionDefinitionReady(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref index: MirRoutineFactIndex,
     ref use_facts: MirRoutineInstructionUseFacts,

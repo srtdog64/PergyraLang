@@ -1,0 +1,133 @@
+// C projection from the sealed multi-row String-array plan.
+
+import "direct_mir_scalar_cfg_array_c_materialization_owner.pgy";
+import "direct_mir_scalar_cfg_c_operand_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_graph_readiness_owner.pgy";
+import "direct_mir_array_string_abi_projection_owner.pgy";
+
+func DirectMirScalarCfgStringArrayCPreamble(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact
+) -> String {
+    if DirectMirScalarCfgStringArrayPlanAbsent(plan.string_arrays) { return ""; }
+    let fact: DirectMirScalarCfgArrayStringCollectionFact =
+        DirectMirScalarCfgStringArrayCollectionAt(plan.string_arrays, 0);
+    let abi: DirectMirArrayStringAbiProjection =
+        DirectMirArrayStringAbiProjectionFromCanonicalLayout(
+            target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
+            fact.data_offset, fact.length_offset, fact.capacity_offset,
+            fact.allocator_offset
+        );
+    return Concat(
+        "#include <stdint.h>\n#include <stddef.h>\n",
+        DirectMirScalarCfgArrayCStruct(
+            abi.c_element_type, abi.c_length_type, abi.c_array_type
+        )
+    );
+}
+
+func DirectMirScalarCfgStringArrayCDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact
+) -> String {
+    let output: String = ""; let row: Int = 0;
+    while row < DirectMirScalarCfgStringArrayCollectionCount(
+        plan.string_arrays
+    ) {
+        let fact: DirectMirScalarCfgArrayStringCollectionFact =
+            DirectMirScalarCfgStringArrayCollectionAt(plan.string_arrays, row);
+        let abi: DirectMirArrayStringAbiProjection =
+            DirectMirArrayStringAbiProjectionFromCanonicalLayout(
+                target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
+                fact.data_offset, fact.length_offset, fact.capacity_offset,
+                fact.allocator_offset
+            );
+        let count: String = ToString(ArrayLength(fact.elements));
+        output = Concat(output, Concat("    ", abi.c_element_type));
+        output = Concat(output, " pgy_indexed_storage_");
+        output = Concat(output, Concat(ToString(row), Concat("[", count)));
+        output = Concat(output, "] = {");
+        output = Concat(
+            output, DirectMirScalarCfgArrayStringCElementList(fact.elements)
+        );
+        output = Concat(output, Concat("};\n    ", abi.c_array_type));
+        output = Concat(output, " pgy_indexed_collection_");
+        output = Concat(output, Concat(ToString(row), " = {pgy_indexed_storage_"));
+        output = Concat(output, Concat(ToString(row), ", "));
+        output = Concat(output, Concat(count, Concat(", ", count)));
+        output = Concat(output, ", NULL};\n");
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarCfgStringArrayCIndex(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    fact: DirectMirScalarCfgStringArrayIndexFact
+) -> String {
+    return DirectMirScalarCfgCOperand(
+        plan, fact.value_row, fact.local_row, fact.literal
+    );
+}
+
+func DirectMirScalarCfgStringArrayCCondition(
+    ref plan: DirectMirScalarCfgGraphPlan, block: Int
+) -> String {
+    let row: Int = DirectMirScalarCfgStringArrayLengthRowAtBlock(
+        plan.string_arrays, block
+    );
+    if row < 0 { Die("direct MIR String array C condition is missing"); }
+    let fact: DirectMirScalarCfgStringArrayLengthFact =
+        DirectMirScalarCfgStringArrayLengthAt(plan.string_arrays, row);
+    let output: String = Concat(
+        "((size_t)", DirectMirScalarCfgStringArrayCIndex(plan, fact.index)
+    );
+    return Concat(output, Concat(") < pgy_indexed_collection_", Concat(
+        ToString(fact.collection_row), ".length"
+    )));
+}
+
+func DirectMirScalarCfgStringArrayCRead(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> String {
+    let row: Int = DirectMirScalarCfgStringArrayAccessRowAtOperation(
+        plan.string_arrays, operation
+    );
+    if row < 0 || plan.string_arrays.accesses.kinds[row] ==
+            DirectMirScalarCfgStringArrayAccessSetKind() {
+        Die("direct MIR String array C read is missing");
+    }
+    let fact: DirectMirScalarCfgStringArrayAccessFact =
+        DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, row);
+    let output: String = Concat(
+        "pgy_indexed_collection_", ToString(fact.collection_row)
+    );
+    return Concat(output, Concat(".data[",
+        Concat(DirectMirScalarCfgStringArrayCIndex(plan, fact.index), "]")
+    ));
+}
+
+func DirectMirScalarCfgStringArrayCSet(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> String {
+    let row: Int = DirectMirScalarCfgStringArrayAccessRowAtOperation(
+        plan.string_arrays, operation
+    );
+    if row < 0 || plan.string_arrays.accesses.kinds[row] !=
+            DirectMirScalarCfgStringArrayAccessSetKind() {
+        Die("direct MIR String array C set is missing");
+    }
+    let fact: DirectMirScalarCfgStringArrayAccessFact =
+        DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, row);
+    let value: Array<String> = [];
+    ArrayPush(value, fact.value_literal);
+    let output: String = Concat(
+        "    pgy_indexed_collection_", ToString(fact.collection_row)
+    );
+    output = Concat(output, Concat(".data[",
+        DirectMirScalarCfgStringArrayCIndex(plan, fact.index)
+    ));
+    output = Concat(output, "] = ");
+    output = Concat(output, DirectMirScalarCfgArrayStringCElementList(value));
+    return Concat(output, ";\n");
+}

@@ -1,0 +1,23 @@
+// Stable hashing of scalar-CFG parallel arrays.
+
+import "../air/mir_cfg_identity_owner.pgy";
+
+func DirectMirScalarCfgHashInts(hash: Long, values: Array<Int>) -> Long {
+    hash = DirectMirCfgHashInt(hash, ArrayLength(values));
+    let row: Int = 0;
+    while row < ArrayLength(values) {
+        hash = DirectMirCfgHashInt(hash, values[row]); row = row + 1;
+    }
+    return hash;
+}
+
+func DirectMirScalarCfgHashStrings(
+    hash: Long, values: Array<String>
+) -> Long {
+    hash = DirectMirCfgHashInt(hash, ArrayLength(values));
+    let row: Int = 0;
+    while row < ArrayLength(values) {
+        hash = DirectMirCfgHashString(hash, values[row]); row = row + 1;
+    }
+    return hash;
+}

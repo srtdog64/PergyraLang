@@ -2,7 +2,9 @@
 
 import "direct_mir_scalar_cfg_iteration_local_owner.pgy";
 import "direct_mir_scalar_cfg_foreach_local_owner.pgy";
-import "direct_mir_scalar_cfg_indexed_string_array_fact_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_local_inventory_owner.pgy";
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
 import "../mir_lower/routine_result_definition_fact_owner.pgy";
@@ -45,7 +47,7 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(
     ref wire: DirectMirScalarCfgWireLocalRefs,
     ref ranges: DirectMirScalarCfgRangeFactSet,
     ref foreach_sources: DirectMirScalarCfgForEachFactSet,
-    ref indexed_string: DirectMirScalarCfgIndexedStringArrayFact
+    ref string_arrays: DirectMirScalarCfgStringArrayPlan
 ) -> DirectMirScalarCfgLocalRefPlan {
     let empty: DirectMirScalarCfgLocalRefPlan =
         DirectMirScalarCfgLocalRefPlanEmpty();
@@ -76,8 +78,8 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(
         }
         if result != "" && !DirectMirScalarCfgForEachOwnsDefinition(
             foreach_sources, global
-        ) && !DirectMirScalarCfgIndexedStringArrayOwnsDefinition(
-            indexed_string, global
+        ) && !DirectMirScalarCfgStringArrayOwnsDefinition(
+            string_arrays, global
         ) {
             if kind != "def" && kind != "phi" { return empty; }
             let local_name: String = index.instruction_facts.arg0s[instruction];
@@ -143,8 +145,8 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(
         Die("direct MIR scalar CFG foreach LocalRef binding is invalid");
         return empty;
     }
-    if !DirectMirScalarCfgForEachLocalInventoryReady(
-        index, local_names, foreach_sources, indexed_string
+    if !DirectMirScalarCfgLocalInventoryReady(
+        index, local_names, foreach_sources, string_arrays
     ) {
         Die("direct MIR scalar CFG foreach local inventory is invalid");
         return empty;

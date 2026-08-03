@@ -1,0 +1,121 @@
+// Bind source String-array facts to scalar value/local and operation rows.
+
+import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_append_owner.pgy";
+
+func DirectMirScalarCfgStringArrayBoundIndex(
+    fact: DirectMirScalarCfgStringArrayIndexFact,
+    ref local_refs: DirectMirScalarCfgLocalRefPlan
+) -> DirectMirScalarCfgStringArrayIndexFact {
+    if fact.kind == DirectMirScalarCfgStringArrayIndexLiteral() {
+        return fact;
+    }
+    if fact.kind == DirectMirScalarCfgStringArrayIndexValue() {
+        let value_row: Int = DirectMirScalarCfgGraphValueRow(
+            local_refs.value_names, fact.value_id
+        );
+        if value_row < 0 || !MirSsaNameMatches(
+            fact.value_id, fact.source_name, true
+        ) { return DirectMirScalarCfgStringArrayIndexFactEmpty(); }
+        return DirectMirScalarCfgStringArrayIndexFact(
+            fact.kind, fact.value_id, fact.source_name,
+            fact.iteration_syntax_id, fact.literal, value_row, -1
+        );
+    }
+    if fact.kind == DirectMirScalarCfgStringArrayIndexIteration() {
+        let local_row: Int = -1; let row: Int = 0;
+        while row < ArrayLength(local_refs.local_names) {
+            if local_refs.local_ref_kinds[row] ==
+                    DirectMirScalarCfgLocalRefIteration() &&
+                local_refs.local_ref_syntax_ids[row] ==
+                    fact.iteration_syntax_id &&
+                local_refs.local_names[row] == fact.source_name {
+                if local_row >= 0 {
+                    return DirectMirScalarCfgStringArrayIndexFactEmpty();
+                }
+                local_row = row;
+            }
+            row = row + 1;
+        }
+        if local_row < 0 { return DirectMirScalarCfgStringArrayIndexFactEmpty(); }
+        return DirectMirScalarCfgStringArrayIndexFact(
+            fact.kind, fact.value_id, fact.source_name,
+            fact.iteration_syntax_id, fact.literal, -1, local_row
+        );
+    }
+    return DirectMirScalarCfgStringArrayIndexFactEmpty();
+}
+
+func DirectMirScalarCfgStringArrayPlanAtLocalRows(
+    ref source: DirectMirScalarCfgStringArrayPlan,
+    ref local_refs: DirectMirScalarCfgLocalRefPlan
+) -> DirectMirScalarCfgStringArrayPlan {
+    if DirectMirScalarCfgStringArrayPlanAbsent(source) { return source; }
+    let lengths: DirectMirScalarCfgStringArrayLengthSet =
+        DirectMirScalarCfgStringArrayLengthSetEmpty(true);
+    let row: Int = 0;
+    while row < DirectMirScalarCfgStringArrayLengthCount(source) {
+        let fact: DirectMirScalarCfgStringArrayLengthFact =
+            DirectMirScalarCfgStringArrayLengthAt(source, row);
+        DirectMirScalarCfgStringArrayAppendLength(lengths,
+            DirectMirScalarCfgStringArrayLengthFact(
+            fact.global_row, fact.block, fact.collection_row,
+            fact.control_loop_syntax_id,
+            DirectMirScalarCfgStringArrayBoundIndex(fact.index, local_refs)
+        ));
+        row = row + 1;
+    }
+    let accesses: DirectMirScalarCfgStringArrayAccessSet =
+        DirectMirScalarCfgStringArrayAccessSetEmpty(true);
+    row = 0;
+    while row < DirectMirScalarCfgStringArrayAccessCount(source) {
+        let fact: DirectMirScalarCfgStringArrayAccessFact =
+            DirectMirScalarCfgStringArrayAccessAt(source, row);
+        DirectMirScalarCfgStringArrayAppendAccess(accesses,
+            DirectMirScalarCfgStringArrayAccessFact(
+            fact.global_row, fact.kind, fact.collection_row,
+            fact.guard_length_row,
+            DirectMirScalarCfgStringArrayBoundIndex(fact.index, local_refs),
+            fact.value_present, fact.value_literal, fact.operation_row
+        ));
+        row = row + 1;
+    }
+    let plan: DirectMirScalarCfgStringArrayPlan =
+        DirectMirScalarCfgStringArrayPlan(
+            true, 0, source.collections, lengths, accesses
+        );
+    return DirectMirScalarCfgStringArrayPlanWithDigest(
+        plan, DirectMirScalarCfgStringArrayPlanDigest(plan)
+    );
+}
+
+func DirectMirScalarCfgStringArrayPlanAtOperation(
+    ref source: DirectMirScalarCfgStringArrayPlan,
+    global_row: Int, operation_row: Int
+) -> DirectMirScalarCfgStringArrayPlan {
+    let access_row: Int = DirectMirScalarCfgStringArrayAccessRowAtGlobal(
+        source, global_row
+    );
+    if access_row < 0 || source.accesses.operation_rows[access_row] >= 0 {
+        return source;
+    }
+    let operation_rows: Array<Int> = source.accesses.operation_rows;
+    ArraySet(operation_rows, access_row, operation_row);
+    let accesses: DirectMirScalarCfgStringArrayAccessSet =
+        DirectMirScalarCfgStringArrayAccessSet(
+            source.accesses.valid, source.accesses.global_rows,
+            source.accesses.kinds, source.accesses.collection_rows,
+            source.accesses.guard_length_rows, source.accesses.indices,
+            source.accesses.value_present, source.accesses.value_literals,
+            operation_rows
+        );
+    let plan: DirectMirScalarCfgStringArrayPlan =
+        DirectMirScalarCfgStringArrayPlan(
+            true, 0, source.collections, source.lengths, accesses
+        );
+    return DirectMirScalarCfgStringArrayPlanWithDigest(
+        plan, DirectMirScalarCfgStringArrayPlanDigest(plan)
+    );
+}
