@@ -1,0 +1,54 @@
+// Routine-local definition dominance and strict ordering facts.
+
+import "routine_result_definition_fact_owner.pgy";
+import "mir_cfg_graph_owner.pgy";
+
+func MirRoutineBlockDominates(
+    ref index: MirRoutineFactIndex,
+    dominator: Int,
+    block: Int
+) -> Bool {
+    let count: Int = ArrayLength(index.block_starts);
+    if !index.valid || dominator < 0 || block < 0 ||
+        dominator >= count || block >= count ||
+        !index.block_reachable[dominator] || !index.block_reachable[block] {
+        return false;
+    }
+    if dominator == block { return true; }
+    return !MirRoutineGraphCanReachAvoiding(
+        index.block_succ_true, index.block_succ_false,
+        0, block, dominator
+    );
+}
+
+func MirRoutineDefinitionStrictlyPrecedes(
+    ref index: MirRoutineFactIndex,
+    ref earlier: MirRoutineResultDefinitionFact,
+    ref later: MirRoutineResultDefinitionFact
+) -> Bool {
+    if !MirRoutineResultDefinitionFactReady(earlier) ||
+        !MirRoutineResultDefinitionFactReady(later) ||
+        earlier.global_row == later.global_row {
+        return false;
+    }
+    if earlier.block_id == later.block_id {
+        return earlier.block_instruction_row < later.block_instruction_row;
+    }
+    return MirRoutineBlockDominates(index, earlier.block_id, later.block_id);
+}
+
+func MirRoutineDefinitionDominatesInstruction(
+    ref index: MirRoutineFactIndex,
+    ref definition: MirRoutineResultDefinitionFact,
+    use_block: Int,
+    use_instruction_row: Int
+) -> Bool {
+    if !MirRoutineResultDefinitionFactReady(definition) ||
+        use_instruction_row < 0 {
+        return false;
+    }
+    if definition.block_id == use_block {
+        return definition.block_instruction_row < use_instruction_row;
+    }
+    return MirRoutineBlockDominates(index, definition.block_id, use_block);
+}

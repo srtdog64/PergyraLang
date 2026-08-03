@@ -116,4 +116,41 @@ for mutation in missing-exit-phi stale-exit-use unknown-exit-incoming \
     expect_rejected "$mutation"
 done
 
-echo "[$LABEL] producer exit phi and general C/LLVM CFG route ok"
+MULTI_SOURCE_REL="src/self_hosted/mir_lower/fixture/multiple_break_exit.pgy"
+MULTI_MIR_REL="$WORK_REL/multiple.json"
+MULTI_MIR="$ROOT_DIR/$MULTI_MIR_REL"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$MULTI_SOURCE_REL" -o "$MULTI_MIR_REL") ||
+    fail "installed producer rejected repeated break source"
+"$PYTHON_BIN" - "$MULTI_MIR" "$WORK_DIR" <<'PY'
+import copy, json, pathlib, sys
+path, target = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+doc = json.loads(path.read_text(encoding="utf-8"))
+rows = doc["routines"][0]["blocks"][7]["instructions"]
+assert rows[0]["kind"] == "phi" and rows[0]["result"] == "i.9"
+assert rows[0]["uses"] == ["i.2", "i.4", "i.4"]
+assert rows[1]["uses"] == ["i.9"]
+changed = copy.deepcopy(doc)
+changed["routines"][0]["blocks"][7]["instructions"][0]["uses"] = ["i.4", "i.2", "i.4"]
+(target / "multiple-permuted.json").write_text(
+    json.dumps(changed, separators=(",", ":")), encoding="utf-8"
+)
+PY
+MIR_REL="$MULTI_MIR_REL"; project c multiple.c; project llvm multiple.ll
+"$CC" -std=c11 -Wall -Wextra -Werror "$WORK_DIR/program.multiple.c" \
+    -o "$WORK_DIR/multiple-c.exe" || fail "multiple-break C did not compile"
+"$CLANG" -x ir "$WORK_DIR/program.multiple.ll" -o "$WORK_DIR/multiple-llvm.exe" \
+    >/dev/null 2>&1 || fail "multiple-break LLVM did not compile"
+"$WORK_DIR/multiple-c.exe" | tr -d '\r' >"$WORK_DIR/multiple-c.run"
+"$WORK_DIR/multiple-llvm.exe" | tr -d '\r' >"$WORK_DIR/multiple-llvm.run"
+printf '2\n' >"$WORK_DIR/multiple-expected.run"
+cmp -s "$WORK_DIR/multiple-expected.run" "$WORK_DIR/multiple-c.run" &&
+    cmp -s "$WORK_DIR/multiple-c.run" "$WORK_DIR/multiple-llvm.run" ||
+    fail "repeated break exit did not execute exact 2"
+MIR_REL="$WORK_REL/multiple-permuted.json"
+project c multiple-permuted.c; project llvm multiple-permuted.ll
+cmp -s "$WORK_DIR/program.multiple.c" "$WORK_DIR/program.multiple-permuted.c" &&
+    cmp -s "$WORK_DIR/program.multiple.ll" "$WORK_DIR/program.multiple-permuted.ll" ||
+    fail "equal incoming slot permutation changed target artifacts"
+
+echo "[$LABEL] producer exit phi and repeated-slot general C/LLVM CFG route ok"

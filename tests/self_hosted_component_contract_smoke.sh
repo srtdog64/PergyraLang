@@ -5739,7 +5739,7 @@ for driver_rung2_promoted_fixture in \
     multilet arith strlog funcparam multi_func_void random_inferred_let \
     class_decl nominal_subject nominal_object nominal_tobject nominal_vessel \
     ability_decl enum_simple role_operator_dispatch ifelse nestedif \
-    reassign_block whileloop break_after_stmt nested_if_in_loop \
+    reassign_block whileloop break_after_stmt multiple_break_exit nested_if_in_loop \
     array_destructure; do
     require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
         "\"src/self_hosted/mir_lower/fixture/${driver_rung2_promoted_fixture}.pgy\""
@@ -5984,9 +5984,9 @@ require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.p
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "if concrete_scalar_value_owned && !generic_value.applies"
-require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" "return 282;"
+require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" "return 283;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 282'
+    'mir_fixture_rows[@]}" -ne 283'
 require_text "tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh" \
     "printf -v \"\$output_var\" '%s' \"\$base\""
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -6677,11 +6677,11 @@ require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
-    "return 282;"
+    "return 283;"
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"src/self_hosted/codegen/fixture/else_if_chain.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 282'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 283'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/generic_multi_bound_defaults/main.pgy"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -6761,7 +6761,7 @@ require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/loop_collect_distinct_set/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
-    "return 282;"
+    "return 283;"
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" \
     "func SemanticAstLocalBindingOrdinalAt("
 require_text "src/self_hosted/semantic/array_type_shape_owner.pgy" \
@@ -15385,6 +15385,9 @@ require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 
 require_file "src/self_hosted/mir_lower/phi_predecessor_binding_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/mir_lower/phi_predecessor_binding_fact_owner.pgy" 180
+require_file "src/self_hosted/mir_lower/routine_definition_dominance_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/routine_definition_dominance_fact_owner.pgy" 70
 require_file "src/self_hosted/mir_lower/latest_local_value_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/mir_lower/latest_local_value_fact_owner.pgy" 60
@@ -15436,6 +15439,10 @@ require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_loop_flow_admission
     'LoopFlowSummaryProjectionReady(index, routines, routine_row)'
 require_text "src/self_hosted/mir_lower/phi_predecessor_binding_fact_owner.pgy" \
     'func MirPhiPredecessorBindingFactFromOwners('
+require_text "src/self_hosted/mir_lower/routine_definition_dominance_fact_owner.pgy" \
+    'func MirRoutineDefinitionStrictlyPrecedes('
+reject_text "src/self_hosted/mir_lower/phi_predecessor_binding_fact_owner.pgy" \
+    'func MirRoutineBlockDominates('
 require_text "src/self_hosted/mir_lower/latest_local_value_fact_owner.pgy" \
     'func MirRoutineLatestDominatingLocalValueMatches('
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \

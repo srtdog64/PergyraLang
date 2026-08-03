@@ -51,4 +51,5 @@ run_case() {
 
 run_case src/self_hosted/mir_lower/fixture/nested_if_in_loop.pgy nested $'1\n1\n'
 run_case src/self_hosted/mir_lower/fixture/break_after_stmt.pgy break-exit $'3\n3\n'
-echo "[$LABEL] public file/stdout use installed scalar CFG LLVM for nested and break exit"
+run_case src/self_hosted/mir_lower/fixture/multiple_break_exit.pgy multi-break $'2\n'
+echo "[$LABEL] public file/stdout use installed scalar CFG LLVM through multi-break exit"

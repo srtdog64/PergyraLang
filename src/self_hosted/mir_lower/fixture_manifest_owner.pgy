@@ -7,7 +7,7 @@
 import "../codegen/fixture_manifest_owner.pgy";
 
 func MirParityCoreFixtureCount() -> Int {
-    return 29;
+    return 30;
 }
 
 func MirParityExampleFixtureCount() -> Int {
@@ -54,6 +54,9 @@ func MirParityFixtureAt(index: Int) -> String {
     }
     if index == 28 {
         return "src/self_hosted/mir_lower/fixture/intent_nested_direct.pgy";
+    }
+    if index == 29 {
+        return "src/self_hosted/mir_lower/fixture/multiple_break_exit.pgy";
     }
 
     let codegen_start: Int = MirParityCoreFixtureCount();

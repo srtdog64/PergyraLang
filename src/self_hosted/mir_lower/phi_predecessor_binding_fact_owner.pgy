@@ -1,12 +1,13 @@
 // Exact predecessor -> incoming ValueId bindings for one MIR phi.
 //
 // The `uses` row order is not a predecessor order.  This owner selects the
-// latest incoming definition that dominates each predecessor and rejects
-// missing, ambiguous, or unused incoming values.
+// latest incoming definition that dominates each predecessor and consumes
+// each incoming slot once. Equal ValueIds may occupy distinct predecessor
+// slots; distinct non-shadowed values remain ambiguous.
 
 import "phi_fact_owner.pgy";
-import "mir_cfg_graph_owner.pgy";
 import "routine_result_definition_fact_owner.pgy";
+import "routine_definition_dominance_fact_owner.pgy";
 
 struct MirPhiPredecessorBindingFact {
     let valid: Bool;
@@ -17,56 +18,6 @@ struct MirPhiPredecessorBindingFact {
 func MirPhiPredecessorBindingFactEmpty() -> MirPhiPredecessorBindingFact {
     let empty: Array<Int> = [];
     return MirPhiPredecessorBindingFact(false, empty, empty);
-}
-
-func MirRoutineBlockDominates(
-    ref index: MirRoutineFactIndex,
-    dominator: Int,
-    block: Int
-) -> Bool {
-    let count: Int = ArrayLength(index.block_starts);
-    if !index.valid || dominator < 0 || block < 0 ||
-        dominator >= count || block >= count ||
-        !index.block_reachable[dominator] || !index.block_reachable[block] {
-        return false;
-    }
-    if dominator == block { return true; }
-    return !MirRoutineGraphCanReachAvoiding(
-        index.block_succ_true, index.block_succ_false,
-        0, block, dominator
-    );
-}
-
-func MirRoutineDefinitionStrictlyPrecedes(
-    ref index: MirRoutineFactIndex,
-    ref earlier: MirRoutineResultDefinitionFact,
-    ref later: MirRoutineResultDefinitionFact
-) -> Bool {
-    if !MirRoutineResultDefinitionFactReady(earlier) ||
-        !MirRoutineResultDefinitionFactReady(later) ||
-        earlier.global_row == later.global_row {
-        return false;
-    }
-    if earlier.block_id == later.block_id {
-        return earlier.block_instruction_row < later.block_instruction_row;
-    }
-    return MirRoutineBlockDominates(index, earlier.block_id, later.block_id);
-}
-
-func MirRoutineDefinitionDominatesInstruction(
-    ref index: MirRoutineFactIndex,
-    ref definition: MirRoutineResultDefinitionFact,
-    use_block: Int,
-    use_instruction_row: Int
-) -> Bool {
-    if !MirRoutineResultDefinitionFactReady(definition) ||
-        use_instruction_row < 0 {
-        return false;
-    }
-    if definition.block_id == use_block {
-        return definition.block_instruction_row < use_instruction_row;
-    }
-    return MirRoutineBlockDominates(index, definition.block_id, use_block);
 }
 
 func MirPhiPredecessorBindingFactFromOwners(
@@ -104,6 +55,10 @@ func MirPhiPredecessorBindingFactFromOwners(
         let selected: Int = 0 - 1;
         let candidate: Int = 0;
         while candidate < ArrayLength(phi.incoming_results) {
+            if selected_counts[candidate] != 0 {
+                candidate = candidate + 1;
+                continue;
+            }
             let definition: MirRoutineResultDefinitionFact =
                 MirRoutineFactIndexUniqueResultDefinition(
                     index, phi.incoming_results[candidate]
@@ -119,11 +74,13 @@ func MirPhiPredecessorBindingFactFromOwners(
             }
             let shadowed: Bool = false;
             let other: Int = 0;
-            while other < ArrayLength(phi.incoming_results) {
-                if other != candidate {
+            while other < ArrayLength(index.instruction_facts.results) {
+                let later_name: String = index.instruction_facts.results[other];
+                if later_name != phi.incoming_results[candidate] &&
+                    MirSsaNameMatches(later_name, phi.local_name, true) {
                     let later: MirRoutineResultDefinitionFact =
                         MirRoutineFactIndexUniqueResultDefinition(
-                            index, phi.incoming_results[other]
+                            index, later_name
                         );
                     if MirRoutineResultDefinitionFactReady(later) &&
                         MirRoutineBlockDominates(
@@ -137,10 +94,11 @@ func MirPhiPredecessorBindingFactFromOwners(
                 other = other + 1;
             }
             if !shadowed {
-                if selected >= 0 {
+                if selected >= 0 && phi.incoming_results[selected] !=
+                    phi.incoming_results[candidate] {
                     return MirPhiPredecessorBindingFactEmpty();
                 }
-                selected = candidate;
+                if selected < 0 { selected = candidate; }
             }
             candidate = candidate + 1;
         }

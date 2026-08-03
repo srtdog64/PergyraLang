@@ -887,7 +887,11 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/phi_predecessor_binding_fact_owner.pgy` -- exact
   predecessor-to-incoming ValueId binding from typed CFG, SSA definition, use,
   phi, and dominance owners. Incoming array position is never predecessor
-  identity, and any unbound or multiply reused incoming fails before planning.
+  identity; every slot is consumed once, while equal ValueIds may occupy
+  distinct predecessor slots only when they remain the latest local value.
+- `src/self_hosted/mir_lower/routine_definition_dominance_fact_owner.pgy` --
+  routine block dominance plus strict definition ordering shared by phi and
+  ordinary latest-local consumers.
 - `src/self_hosted/mir_lower/latest_local_value_fact_owner.pgy` -- canonical
   latest dominating ValueId at an ordinary instruction use point. A merely
   dominating but shadowed SSA version is rejected without relying on numeric

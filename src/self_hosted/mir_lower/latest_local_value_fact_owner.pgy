@@ -1,6 +1,6 @@
 // Canonical latest dominating ValueId for one source-local use point.
 
-import "phi_predecessor_binding_fact_owner.pgy";
+import "routine_definition_dominance_fact_owner.pgy";
 
 func MirRoutineLatestDominatingLocalValueMatches(
     ref index: MirRoutineFactIndex,
