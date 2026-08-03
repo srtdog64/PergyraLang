@@ -1,26 +1,29 @@
 # Self-Host Progress
 
-## Active self-host context — 2026-08-03 canonical MIR routine identity
+## Active self-host context — 2026-08-03 loop-exit ValueId ownership
 
-- Resume authority remains the top card in `docs/current_work_handoff.md`.
-  Executable commit `e7125ab3081a095866c240643a9dbb4f410f0978`
-  closes the duplicate semantic verification in canonical MIR execution.
-- One `DriverRung2VerifiedFacts` receipt now crosses the canonical projection
-  seam. The verified projection validates that receipt, consumes ready body
-  facts once, and cannot call the admitted-analysis verifier. The stale
-  call-return negative remains strict; `let_log` canonicalization and repeated
-  canonicalization are byte-identical.
-- Installed rebuild, focused fixpoint, hard contract, mutable-analysis negative,
-  semantic lifetime, and full component/removed-path gates are green. The live
-  replacement matrix advances from the former first row to 12/13 rows.
-- The sole next executable rung is the final `intent-typed-outcome` routine
-  identity drift. Canonical JSON differs only in swapped `Main` and `RunIntent`
-  `source_syntax_id` values. Close it through the existing routine/identity
-  epoch owners and exact native/self parity. Do not ignore identity fields,
-  rewrite JSON text, infer identity from row position, invent fixture-specific
-  IDs, rescan the AST root, or fall back to native semantics.
-- This rung was not pressure-measured. Full CI, bootstrap fixpoint, and
-  Coq/Rocq were not run.
+- Resume authority is the top card in `docs/current_work_handoff.md`.
+  Executable commit `9f20ab9aba94d2cd4b44798162519517c05c4ef8`
+  closes the eight-block `nested_if_in_loop` public LLVM frontier through one
+  general target-neutral scalar CFG plan.
+- Constant-true all-break loops no longer retain an infeasible condition exit.
+  Exact phi predecessor binding, latest dominating local values, assignment
+  targets, loop summaries, and break edges are validated before either emitter.
+  Installed and public C/LLVM execution is exact `1\n1\n`; fixture names,
+  block-count identity, raw `expr0`, and native retry are negative-gated.
+- Focused scalar-CFG, public LLVM file/stdout, prior CFG/range/break regression,
+  and the complete component hard-cap ratchet are green. The general plan's
+  registry row is `CLOSED`; the broader execution graph remains `BRIDGE`.
+- The sole next executable rung is producer-owned loop-exit phi carriage for
+  `break_after_stmt.pgy`. Its exit block has a header-false and a break
+  predecessor but uses the break-path `i.4` without a phi. Close that ValueId
+  seam, execute exact `3\n3` through the general C/LLVM plan, then remove
+  `DirectMirScalarCfgBreakExitMergeBridgeRequired` and the obsolete dedicated
+  break path when no consumer remains.
+- Do not infer exit values from uses order, let a backend invent a phi, keep a
+  bridge after closure, add fixture/block-count routing, or reopen source/native
+  semantics. This rung was not pressure-measured. Full CI, bootstrap fixpoint,
+  and current-source gen2==gen3 were not run; Coq/Rocq is unavailable.
 
 ## Historical self-host ledger — inactive navigation evidence
 

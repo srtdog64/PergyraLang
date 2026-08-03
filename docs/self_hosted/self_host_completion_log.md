@@ -6,6 +6,32 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-03 - General scalar CFG closes the eight-block public LLVM rung
+
+- Landed executable checkpoint `9f20ab9a`. The self producer emits a
+  9,454-byte `nested_if_in_loop.pgy` MIR and removes the infeasible false edge
+  from its constant-true all-break loop. The exit's `largest.8` use is now
+  dominated instead of being repaired in a backend.
+- One immutable `DirectMirScalarCfgGraphPlan` owns typed local/value/block,
+  condition, operation, loop-summary, assignment-target, phi-predecessor, and
+  latest-dominating-use facts. The route has no fixture or block-count identity;
+  C and LLVM emitters consume the same plan and execute exact `1\n1\n`.
+- The prior topology gate was corrected: a different valid successor or
+  supported comparison is a different valid program, not malformed MIR.
+  Missing/non-dominating/stale uses, missing phi coverage, target mismatch, and
+  break backedges remain fail-closed. Existing if/reassign/nested/while/range/
+  break regression is green.
+- Public LLVM file/stdout is byte-equal to the installed projection and clang
+  executes exact `1\n1\n` without native timing. The component gate enforced
+  fixed caps, including 449/450 for graph admission; no cap was raised.
+- The next executable seam is the 7,082-byte `break_after_stmt.pgy` MIR. Its
+  feasible header-false and break exits merge without a producer phi. A named
+  shrink-only bridge retains the verified break plan until the producer carries
+  exact exit predecessor values; then the bridge and obsolete dedicated break
+  path must be deleted.
+- No pressure run, full CI, current-source fixed point, or full bootstrap ran.
+  Coq/Rocq proof execution was unavailable because no prover is installed.
+
 ## 2026-08-02 - Vessel joins the common mutable identity path
 
 - Landed executable checkpoint `89951491`. The 2,791-byte subject MIR and

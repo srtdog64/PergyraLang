@@ -6,57 +6,62 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context — eight-block nested CFG LLVM admission
+## Active self-host context — producer-owned loop-exit phi
 
-- Executable checkpoint: `8bc7f525` on `main`. `bin/pgy.exe` is 4,626,988
-  bytes, SHA-256
+- Executable checkpoint: `9f20ab9a` on `main`, one commit ahead of
+  `origin/main` before this documentation update. `bin/pgy.exe` remains
+  4,626,988 bytes, SHA-256
   `39798EA50105C9B48F26AE2FCABDB400B54AC153D15DC440B089C4E5E6402F9E`.
-  The installed Pergyra-built sibling remains 4,252,131 bytes, SHA-256
-  `0116E8A20A5504E4BB2010B36DC071870155FD52A4E2F00EBB2E3E177D57DC95`.
-- Closed executable rung: both exact public LLVM IR forms now select the
-  installed source-MIR producer and `DirectMirLlvm` projector before the final
-  native pipeline. File publication uses a private same-directory workspace;
-  stdout uses binary mode and one fixed 16 KiB buffer. Neither path reads the
-  whole artifact, inspects LLVM text, or retries native libLLVM.
-- File and stdout are byte-equal on `option_struct_value_flow.pgy`; host clang
-  executes exact `7\n11\n5\n`. Counting observes one producer and one projector
-  per selector. Missing sibling, unsupported runtime, producer/projector
-  rejection, stale output, and source/output identity fail without LLVM payload
-  or native timing. File and stdout focused gates passed in 17.8 and 14.4
-  seconds. The latest public MIR/live/hard/component sequence passed in 351.7
-  seconds.
-- Caps remain fixed: LLVM selector 50/60, file publisher 64/90, stdout delivery
-  69/80, file gate 139/140, stdout gate 116/120, public MIR gate 139/140, and
-  `pgy_driver.c` 306/320. These exact public LLVM IR forms are bounded
-  `SUBSTITUTING`; `mir.execution_graph` remains `BRIDGE`.
-- The August 2 review's Pair/enum frontiers are stale and must not be revived.
-  Its durable constraints remain active: no topology-specific mini-compiler,
-  storage layout is distinct from target call ABI, and pressure/fixed-point
-  evidence belongs at an integration boundary. The next frontier is existing
-  CFG breadth, not another aggregate or selector wrapper.
-- Active objective card: admit the existing
-  `src/self_hosted/mir_lower/fixture/nested_if_in_loop.pgy` eight-block CFG into
-  the general direct-MIR LLVM plan. Priority is graph identity and AIR
-  certificate, one target-neutral plan, C/LLVM parity, fail-closed mutation,
-  then patch size. Fact owners are `MirProgramRoutineIndex`, the MIR expression
-  graph, nested/loop CFG certificate owners, and `DirectMirCfgPlan`; the last
-  legitimate consumer is `DirectMirBackendProjection` selected as LLVM.
-- Fresh falsifying observation at `8bc7f525`: public LLVM compile exits 1,
-  publishes no binary, and reports
-  `CODEGEN ERROR: direct MIR backend projection rejected unsupported CFG shape`
-  followed by `self-host LLVM projector failed with code 1`.
-- Forbidden fallback: fixture name, exact block count as semantic identity,
-  flattening the nested branch/loop, reconstructing from source text, adding a
-  topology-specific mini-compiler, retrying an older planner, or native
+  The rebuilt Pergyra sibling is 4,298,710 bytes, SHA-256
+  `0545DA4F770DCA023F5550FCD1FB1EB48C9B7710D710522520C3F1DFA8B815E7`.
+- Closed executable rung: `nested_if_in_loop.pgy` now produces a 9,454-byte
+  eight-block MIR (`E8181234...5A264`). The producer removes the infeasible
+  false edge from a constant-true loop whose paths all break, so the exit Log's
+  `largest.8` use is dominated. One topology-independent
+  `DirectMirScalarCfgGraphPlan` feeds C and LLVM and both execute exact
+  `1\n1\n`.
+- The plan reads typed expression graphs, ValueIds, loop summaries, exact
+  predecessor-to-phi bindings, latest dominating local values, assignment
+  targets, and break edges. It does not read fixture names, block-count
+  identities, display `expr0`, source AST, or a backend-specific MIR view.
+  Block row permutation is not claimed because the current MIR contract binds
+  block IDs to row order.
+- Public `pgy SOURCE --emit-llvm -o FILE` and stdout are byte-equal to the
+  installed projection for the active fixture; clang executes exact `1\n1\n`
+  and native pipeline timing is absent. Focused scalar-CFG/public gates passed
+  in 10.5/6.2 seconds, the prior 3–6 block CFG/range/break regression passed in
+  226.9 seconds, and the component ratchet passed in 289.2 seconds.
+- Hard caps are fixed at graph admission 449/450, graph fact 298/310,
+  expression 290/300, C emitter 172/180, LLVM emitter 251/260, phi binding
+  169/180, latest-value owner 47/60, and focused gate 149/160. The bounded
+  scalar plan row is `CLOSED`; the broader `mir.execution_graph` remains
+  `BRIDGE`.
+- Active objective card: make loop-exit value identity producer-owned when a
+  while loop has both a feasible condition exit and `break`. Priority is valid
+  SSA/ValueId identity, exact exit predecessor coverage, removal of the named
+  bridge, general-plan C/LLVM parity, then deletion of the obsolete
+  topology-specific break plan if no consumer remains. The fact owner is
+  `routine_while_owner.pgy`; the last legitimate consumers are
+  `MirPhiPredecessorBindingFactFromOwners` and the general scalar CFG plan.
+- Fresh falsifier: `break_after_stmt.pgy` is a 7,082-byte, six-block MIR
+  (`8C6B45FA...F6BF9`). Exit block 5 has predecessors from header block 1 and
+  break block 3 but uses `i.4` without an exit phi; `i.4` does not dominate the
+  header-false path. `DirectMirScalarCfgBreakExitMergeBridgeRequired` therefore
+  routes this admitted legacy slice to the existing break plan instead of
+  letting the general plan guess or repair SSA.
+- Forbidden fallback: fixture or block-count dispatch in the new plan,
+  backend-invented exit phi, uses-array order as predecessor identity,
+  treating a merely dominating stale ValueId as current, source/`expr0`
+  reconstruction, retaining the bridge after producer closure, or native
   semantic/AIR/libLLVM re-entry.
-- Next gate: self source-to-MIR once, one admitted eight-block plan feeding C
-  and LLVM, exact `1\n1\n`, block/routine permutation stability where the
-  existing identity contract permits it, and pre-artifact negatives for nested
-  branch roles, loop header/backedge/exit, break edge, and SSA uses. Public LLVM
-  compile/run must then pass without native fallback.
+- Next gate: producer source-to-MIR once; an exit phi covering header-false and
+  every break predecessor; general-plan C/LLVM exact `3\n3`; reversed phi
+  use order artifact stability; missing/duplicate/stale exit incoming and
+  repaired-edge negatives; bridge and topology-specific break-path removal;
+  public LLVM file/stdout compile/run without native timing.
 - No pressure probe, full CI, full bootstrap, current-source gen2==gen3, or
-  Coq/Rocq suite ran for this rung. Historical peaks are not attached to the
-  current driver. Memory remains final-integration-only: attention at 2.4 GiB,
+  Coq/Rocq suite ran. `proof_spine_smoke.sh` stopped because no prover is
+  installed. Memory remains final-integration-only: attention at 2.4 GiB and
   hard stop at 3 GiB.
 
 ## Historical checkpoint archive — inactive evidence

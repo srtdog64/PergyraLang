@@ -390,8 +390,13 @@ or native retry when either installed action fails. Public file/direct LLVM IR
 is byte-equal and host clang executes exact `7\n11\n5\n`. This file form is a
 bounded `SUBSTITUTING` slice. Checkpoint `8bc7f525` also closes stdout through
 the same installed actions and a fixed 16 KiB binary stream; file/stdout are
-byte-equal and failures emit no LLVM payload or native fallback. The existing
-eight-block `nested_if_in_loop.pgy` is now the active LLVM breadth falsifier.
+byte-equal and failures emit no LLVM payload or native fallback. Checkpoint
+`9f20ab9a` closes the former eight-block breadth falsifier: one general scalar
+CFG plan now emits C and LLVM for `nested_if_in_loop.pgy`, public file/stdout
+LLVM is byte-equal to the installed projection, and all paths execute exact
+`1\n1\n`. The next CFG falsifier is the producer-side exit-phi omission in
+`break_after_stmt.pgy`; the named break-exit bridge must shrink to zero after
+that ValueId seam is closed.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:

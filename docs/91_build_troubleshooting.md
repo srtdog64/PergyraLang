@@ -6,6 +6,49 @@
 
 ---
 
+## General scalar CFG rejects a Log or silently pressures a topology mini-compiler
+
+Symptom: source-to-MIR succeeds, but direct C/LLVM projection reports
+`direct MIR scalar CFG Log fact is invalid` or a new fixture appears to require
+another block-count-specific emitter.
+
+First check ValueId dominance rather than adding a fixture route. Two distinct
+producer/consumer cases were reached on 2026-08-03:
+
+1. `nested_if_in_loop.pgy` retained a false edge from a constant-true loop
+   header to the exit even though every body path breaks. The exit used the
+   inner merge value `largest.8`, which did not dominate that infeasible edge.
+   The producer repair uses the owned Bool expression graph plus loop
+   reachability fact to omit only that impossible edge.
+2. `break_after_stmt.pgy` has a genuinely feasible condition exit and a break
+   exit. Its exit uses break-path `i.4` without a phi covering the header-false
+   predecessor. A backend must not invent or guess that phi. Until the while
+   producer carries it, `DirectMirScalarCfgBreakExitMergeBridgeRequired` keeps
+   this exact capability with the already verified break plan.
+
+The general owner is selected by supported typed operations and source-local
+types, not fixture name or exact block count. It validates exact
+predecessor-to-incoming phi binding, latest dominating local ValueId,
+assignment-target graph, loop-flow receipt, and non-backedge break targets.
+Changing a valid edge or comparison into another valid CFG program is not a
+negative test. Missing edges, non-dominating/stale uses, unbound phi incoming,
+wrong assignment targets, and break backedges are negatives.
+
+Use these gates in order:
+
+```text
+tests/self_hosted/parity/one_mir_scalar_cfg_graph_projection.sh
+tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh
+tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh
+tests/self_hosted_component_contract_smoke.sh
+```
+
+Do not repair the symptom with `block_count == 8`, a nested-loop emitter,
+uses-array position as predecessor identity, source/`expr0` reconstruction, or
+fallback to the older planner after the general route has claimed a graph.
+When the producer exit phi lands, delete the named break-exit bridge and prove
+that the obsolete dedicated break path has no remaining consumer.
+
 ## Installed and standalone self-host drivers interpret the same argv differently
 
 Symptom: `--emit-mir-json-verified SOURCE THIRD` or `--mir-json INPUT THIRD`

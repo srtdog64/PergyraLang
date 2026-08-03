@@ -2,46 +2,38 @@
 
 마지막 업데이트: 2026-08-03
 
-## 활성 우선순위 — 8-block nested CFG LLVM admission
+## 활성 우선순위 — producer-owned loop-exit phi
 
-- 실행 체크포인트는 `8bc7f525`다. `bin/pgy.exe`는 4,626,988 bytes, SHA-256
-  `39798EA50105C9B48F26AE2FCABDB400B54AC153D15DC440B089C4E5E6402F9E`이고,
-  installed Pergyra driver는 4,252,131 bytes, SHA-256
-  `0116E8A20A5504E4BB2010B36DC071870155FD52A4E2F00EBB2E3E177D57DC95`다.
-- public `--emit-llvm` file/stdout 두 exact form은 모두 installed source-MIR와
-  `DirectMirLlvm` projector를 final native pipeline 전에 선택한다. File은 같은
-  directory의 private workspace 뒤 publish하고 stdout은 binary mode에서 16 KiB
-  fixed buffer로 전달한다. 전체 artifact string copy, LLVM text inspection, native
-  libLLVM retry는 없다.
-- 두 형태는 `option_struct_value_flow.pgy`에서 byte-equal이고 host clang exact
-  `7\n11\n5\n`이다. 각 selector는 producer/projector를 정확히 한 번 호출한다.
-  Missing/unsupported/rejected action, stale output, source/output identity도 LLVM payload와
-  native timing 없이 실패했다. Focused file/stdout은 17.8/14.4초, 최신 public
-  MIR/live/hard/component 묶음은 351.7초에 green이었다.
-- 하드캡은 LLVM selector 50/60, file publisher 64/90, stdout delivery 69/80,
-  file gate 139/140, stdout gate 116/120, public MIR gate 139/140,
-  `pgy_driver.c` 306/320이다. 두 LLVM IR selector는 bounded `SUBSTITUTING`이고
-  `mir.execution_graph`는 계속 `BRIDGE`다.
-- August 2 review의 Pair/enum frontier는 닫힌 과거 증거다. Topology별 mini-compiler
-  금지, storage layout과 call ABI 분리, integration boundary pressure/fixed-point
-  규칙은 유지한다. 이제 다음 frontier는 새 aggregate가 아니라 기존 CFG breadth다.
-- 다음 단일 rung은
-  `src/self_hosted/mir_lower/fixture/nested_if_in_loop.pgy`의 8-block CFG를 general
-  direct-MIR LLVM plan에 admit하는 것이다. Fact owner는
-  `MirProgramRoutineIndex`, expression graph, nested/loop CFG certificate,
-  `DirectMirCfgPlan`이고 마지막 consumer는 LLVM으로 선택된
-  `DirectMirBackendProjection`이다.
-- `8bc7f525` fresh public LLVM probe는 exit 1, no binary이며
-  `direct MIR backend projection rejected unsupported CFG shape` 뒤
-  `self-host LLVM projector failed with code 1`을 출력했다.
-- Fixture name, block count 자체를 semantic identity로 사용, nested branch/loop
-  flattening, source text reconstruction, topology-specific mini-compiler, older planner
-  retry, native semantic/AIR/libLLVM re-entry를 금지한다.
-- 다음 gate는 source-to-MIR once, 한 8-block plan의 C/LLVM projection, exact
-  `1\n1\n`, 허용되는 block/routine permutation, nested branch role·loop
-  header/backedge/exit·break edge·SSA use negative, public LLVM compile/run이다.
-  메모리는 최종 integration 최대값만 기록하며 2.4 GiB attention, 3 GiB hard stop을
-  유지한다. Full CI, Coq/Rocq, full bootstrap, current-source gen2==gen3는 실행하지 않았다.
+- 실행 체크포인트는 `9f20ab9a`다. `bin/pgy.exe`는 4,626,988 bytes,
+  SHA-256 `39798EA5...02F9E`이고, 재빌드된 installed Pergyra driver는
+  4,298,710 bytes, SHA-256 `0545DA4F...15E7`이다.
+- `nested_if_in_loop.pgy`는 이제 9,454-byte 8-block MIR
+  (`E8181234...5A264`)을 만든다. 모든 경로가 break인 constant-true loop의
+  불가능한 false edge를 producer가 제거해 exit Log의 `largest.8`이 지배된다.
+- 하나의 topology-independent `DirectMirScalarCfgGraphPlan`이 C와 LLVM을
+  투영하며 둘 다 exact `1\n1\n`을 실행한다. Typed expression graph, ValueId,
+  loop summary, predecessor-bound phi, latest dominating value, assignment target,
+  break edge만 읽고 fixture 이름·block-count identity·display `expr0`은 읽지 않는다.
+- public LLVM file/stdout은 installed projection과 byte-equal이고 clang exact
+  `1\n1\n`이다. Focused/public gate는 10.5/6.2초, 기존 CFG/range/break 회귀는
+  226.9초, component 하드캡은 289.2초에 green이었다.
+- admission은 449/450, graph fact 298/310, expression 290/300, C/LLVM emitter
+  172/180·251/260, phi binding 169/180, latest-value owner 47/60이다. Scalar CFG
+  plan row는 `CLOSED`, 전체 `mir.execution_graph`는 계속 `BRIDGE`다.
+- 다음 단일 rung은 조건 종료와 `break` 종료가 함께 있는 while의 exit ValueId를
+  producer-owned phi로 만드는 것이다. `break_after_stmt.pgy`의 7,082-byte MIR
+  (`8C6B45FA...F6BF9`)은 exit block 5가 header 1과 break 3에서 들어오지만
+  `i.4`만 사용해 header-false 경로를 지배하지 못한다.
+- 현재 `DirectMirScalarCfgBreakExitMergeBridgeRequired`가 이 결함을 명시적으로
+  기존 break plan에 남긴다. 다음 작업은 header/break predecessor를 정확히 덮는
+  exit phi를 생산하고, general C/LLVM exact `3\n3`, reversed-use 안정성 및
+  missing/duplicate/stale incoming negatives를 확인한 뒤 bridge와 남은 전용 break
+  경로를 삭제하는 것이다.
+- Fixture/block-count dispatch, backend가 발명한 phi, uses 순서를 predecessor로
+  해석, stale dominating ValueId 허용, source/`expr0` 재구성, native fallback을
+  금지한다. 메모리는 최종 integration 최대값만 기록하며 2.4 GiB attention,
+  3 GiB hard stop을 유지한다. Full CI, full bootstrap, current gen2==gen3는
+  실행하지 않았고 Coq/Rocq는 설치되어 있지 않았다.
 
 ## 비활성 진행 기록 archive
 
