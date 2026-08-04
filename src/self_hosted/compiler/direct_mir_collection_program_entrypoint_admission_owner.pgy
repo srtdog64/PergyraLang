@@ -1,0 +1,132 @@
+// Admission of the entrypoint call/result/observation edges.
+
+import "direct_mir_collection_program_graph_fact_owner.pgy";
+import "direct_mir_collection_program_instruction_abi_owner.pgy";
+import "direct_mir_collection_program_routine_fact_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+
+func DirectMirCollectionEntrypointRoutineFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref identity: DirectMirCollectionProgramIdentity
+) -> DirectMirCollectionEntrypointRoutineFact {
+    let row: Int = identity.entrypoint.row;
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, row
+    );
+    let uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, row);
+    let cfg_digest: Int = DirectMirCfgDigestFromIndex(index);
+    if !index.valid || cfg_digest == 0 ||
+        ArrayLength(index.block_instruction_counts) != 1 ||
+        index.block_instruction_counts[0] != 3 ||
+        !index.block_reachable[0] ||
+        !MirRoutineFactIndexBlockIsTerminal(index, 0) ||
+        index.block_has_conditional_branch[0] != 0 ||
+        !MirRoutineInstructionUseFactsReady(uses, 3) {
+        Die("direct MIR collection entrypoint CFG is invalid");
+    }
+    let definition_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, row, 0, 0
+    );
+    let consumer_call_global: Int =
+        MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, row, 0, 1
+        );
+    let length_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, row, 0, 2
+    );
+    if MirRoutineInstructionUseCountAtGlobal(
+            uses, definition_global
+        ) != 0 || MirRoutineInstructionUseCountAtGlobal(
+            uses, consumer_call_global
+        ) != 1 || MirRoutineInstructionUseCountAtGlobal(
+            uses, length_global
+        ) != 1 {
+        Die("direct MIR collection entrypoint use cardinality is invalid");
+    }
+    let definition: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, definition_global
+        );
+    let consumer_call: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, consumer_call_global
+        );
+    let length_call: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, length_global
+        );
+    if !definition.valid || !consumer_call.valid || !length_call.valid ||
+        admitted.routines.instruction_kinds[definition_global] != "def" ||
+        admitted.routines.instruction_source_types[definition_global] !=
+            "AST_LET_DECL" || definition.name != "ssa-def" ||
+        definition.arg0 == "" || definition.arg1 != "" ||
+        definition.expr1 != CompilerAbiLayoutArrayIntTypeName() ||
+        !MirSsaNameMatches(definition.result, definition.arg0, false) ||
+        admitted.routines.instruction_kinds[consumer_call_global] != "stmt" ||
+        admitted.routines.instruction_source_types[consumer_call_global] !=
+            "AST_CALL" || consumer_call.name != "stmt" ||
+        consumer_call.arg0 != "Log" || consumer_call.result != "" ||
+        admitted.routines.instruction_kinds[length_global] != "stmt" ||
+        admitted.routines.instruction_source_types[length_global] !=
+            "AST_CALL" || length_call.name != "stmt" ||
+        length_call.arg0 != "Log" || length_call.result != "" {
+        Die("direct MIR collection entrypoint instructions are invalid");
+    }
+    let producer_expression: MirExpressionGraphSequence =
+        DirectMirCollectionInstructionGraph(admitted, definition_global);
+    let consumer_expression: MirExpressionGraphSequence =
+        DirectMirCollectionInstructionGraph(admitted, consumer_call_global);
+    let length_expression: MirExpressionGraphSequence =
+        DirectMirCollectionInstructionGraph(admitted, length_global);
+    let producer_call: DirectMirCollectionCallGraphFact =
+        DirectMirCollectionDirectCallLiteralGraphFactFrom(producer_expression);
+    let consumer_graph: DirectMirCollectionCallGraphFact =
+        DirectMirCollectionLoggedCallGraphFactFrom(
+            consumer_expression
+        );
+    let length_graph: DirectMirScalarCfgArrayLengthLogGraphFact =
+        DirectMirScalarCfgArrayLengthLogGraphFactFrom(
+            length_expression
+        );
+    let consumer_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, consumer_call_global, 0
+    );
+    let length_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, length_global, 0
+    );
+    if !producer_call.valid || !consumer_graph.valid || !length_graph.valid ||
+        producer_call.target_name != identity.producer.name ||
+        consumer_graph.target_name != identity.consumer.name ||
+        consumer_graph.argument_name != definition.arg0 ||
+        length_graph.collection_name != definition.arg0 ||
+        !IsSome(consumer_use) || !IsSome(length_use) ||
+        UnwrapOption(consumer_use) != definition.result ||
+        UnwrapOption(length_use) != definition.result {
+        Die("direct MIR collection entrypoint call edges are invalid");
+    }
+    let abi: MirAbiLayoutRowCapture =
+        DirectMirCollectionProgramInstructionArrayAbi(
+            admitted.routines.source_json, definition
+        );
+    if !DirectMirArrayIntCapturedAbiReady(abi) ||
+        MirAbiLayoutIdFromCapture(abi) !=
+            identity.consumer.param.abi_layout_id {
+        Die("direct MIR collection entrypoint ABI is invalid");
+    }
+    let fact: DirectMirCollectionEntrypointRoutineFact =
+        DirectMirCollectionEntrypointRoutineFact(
+            true, 0, cfg_digest, definition_global, consumer_call_global,
+            length_global, definition.arg0, definition.result,
+            producer_call.argument_literal, producer_call.call_node,
+            consumer_graph.call_node, abi
+        );
+    let verified: DirectMirCollectionEntrypointRoutineFact =
+        DirectMirCollectionEntrypointRoutineFactWithDigest(
+            fact, DirectMirCollectionEntrypointRoutineFactDigest(fact)
+        );
+    if !DirectMirCollectionEntrypointRoutineFactReady(verified) {
+        Die("direct MIR collection entrypoint fact is invalid");
+    }
+    return verified;
+}

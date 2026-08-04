@@ -1,0 +1,96 @@
+// Routine-qualified collection origins and dynamic operation inputs.
+// These facts extend the shared CollectionPlan without making a backend own
+// parameter, call-result, or scalar-input identity.
+
+func DirectMirCollectionOriginLocalDefinition() -> Int { return 1; }
+func DirectMirCollectionOriginFormalParameter() -> Int { return 2; }
+func DirectMirCollectionOriginCallResult() -> Int { return 3; }
+
+struct DirectMirCollectionValueOriginSet {
+    let valid: Bool;
+    let routine_syntax_ids: Array<Int>;
+    let kinds: Array<Int>;
+    let parameter_ordinals: Array<Int>;
+}
+
+struct DirectMirCollectionDynamicInputSet {
+    let valid: Bool;
+    let index_value_ids: Array<String>;
+    let input_value_ids: Array<String>;
+}
+
+func DirectMirCollectionValueOriginSetEmpty(
+    valid: Bool
+) -> DirectMirCollectionValueOriginSet {
+    let ints: Array<Int> = [];
+    return DirectMirCollectionValueOriginSet(valid, ints, ints, ints);
+}
+
+func DirectMirCollectionDynamicInputSetEmpty(
+    valid: Bool
+) -> DirectMirCollectionDynamicInputSet {
+    let strings: Array<String> = [];
+    return DirectMirCollectionDynamicInputSet(valid, strings, strings);
+}
+
+func DirectMirCollectionLocalOrigins(
+    routine_syntax_id: Int, count: Int
+) -> DirectMirCollectionValueOriginSet {
+    let syntax_ids: Array<Int> = [];
+    let kinds: Array<Int> = [];
+    let ordinals: Array<Int> = [];
+    let row: Int = 0;
+    while row < count {
+        ArrayPush(syntax_ids, routine_syntax_id);
+        ArrayPush(kinds, DirectMirCollectionOriginLocalDefinition());
+        ArrayPush(ordinals, -1);
+        row = row + 1;
+    }
+    return DirectMirCollectionValueOriginSet(
+        true, syntax_ids, kinds, ordinals
+    );
+}
+
+func DirectMirCollectionNoDynamicInputs(
+    count: Int
+) -> DirectMirCollectionDynamicInputSet {
+    let indices: Array<String> = [];
+    let inputs: Array<String> = [];
+    let row: Int = 0;
+    while row < count {
+        ArrayPush(indices, "");
+        ArrayPush(inputs, "");
+        row = row + 1;
+    }
+    return DirectMirCollectionDynamicInputSet(true, indices, inputs);
+}
+
+func DirectMirCollectionValueOriginsReady(
+    ref origins: DirectMirCollectionValueOriginSet, expected: Int
+) -> Bool {
+    if !origins.valid || expected < 0 ||
+        ArrayLength(origins.routine_syntax_ids) != expected ||
+        ArrayLength(origins.kinds) != expected ||
+        ArrayLength(origins.parameter_ordinals) != expected { return false; }
+    let row: Int = 0;
+    while row < expected {
+        let kind: Int = origins.kinds[row];
+        if origins.routine_syntax_ids[row] <= 0 ||
+            kind < DirectMirCollectionOriginLocalDefinition() ||
+            kind > DirectMirCollectionOriginCallResult() ||
+            (kind == DirectMirCollectionOriginFormalParameter() &&
+             origins.parameter_ordinals[row] < 0) ||
+            (kind != DirectMirCollectionOriginFormalParameter() &&
+             origins.parameter_ordinals[row] != -1) { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirCollectionDynamicInputsReady(
+    ref inputs: DirectMirCollectionDynamicInputSet, expected: Int
+) -> Bool {
+    return inputs.valid && expected >= 0 &&
+        ArrayLength(inputs.index_value_ids) == expected &&
+        ArrayLength(inputs.input_value_ids) == expected;
+}

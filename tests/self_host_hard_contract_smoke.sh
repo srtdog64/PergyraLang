@@ -430,6 +430,20 @@ require_text "tests/self_hosted/parity/one_mir_array_argument_projection.sh" \
     'repaired-param-abi'
 require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE)'
 require_text "Makefile" \
+    "self-host-one-mir-array-param-projection-test-smoke: self-host-compiler"
+require_file "tests/self_hosted/parity/one_mir_array_param_projection.sh"
+require_file "tests/self_hosted/parity/one_mir_array_param_mutations.py"
+require_text "tests/self_hosted/parity/one_mir_array_param_projection.sh" \
+    "compile_run base '12\\n4\\n'"
+require_text "tests/self_hosted/parity/one_mir_array_param_projection.sh" \
+    'bad-repaired-param-abi'
+require_text "tests/self_hosted/parity/one_mir_array_param_projection.sh" \
+    'routine-order-cycle'
+require_text \
+    "src/self_hosted/compiler/direct_mir_collection_program_plan_owner.pgy" \
+    'DirectMirCollectionProgramPlanMutationRejected'
+require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_PARAM_GATE)'
+require_text "Makefile" \
     "self-host-one-mir-struct-argument-projection-test-smoke: self-host-compiler"
 require_file "tests/self_hosted/parity/one_mir_struct_argument_projection.sh"
 require_file "tests/self_hosted/parity/one_mir_struct_argument_mutations.py"
@@ -461,6 +475,8 @@ require_text ".github/workflows/ci.yml" \
     'self-host-one-mir-array-return-projection-test-smoke'
 require_text ".github/workflows/ci.yml" \
     'self-host-one-mir-array-argument-projection-test-smoke'
+require_text ".github/workflows/ci.yml" \
+    'self-host-one-mir-array-param-projection-test-smoke'
 require_text ".github/workflows/ci.yml" \
     'self-host-one-mir-struct-argument-projection-test-smoke'
 require_text "Makefile" \

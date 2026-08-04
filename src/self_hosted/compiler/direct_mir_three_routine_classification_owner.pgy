@@ -2,6 +2,7 @@
 import "direct_mir_scalar_graph_admission_owner.pgy";
 import "direct_mir_three_routine_shape_owner.pgy";
 import "direct_mir_three_routine_classification_fact_owner.pgy";
+import "direct_mir_array_argument_legacy_route_owner.pgy";
 
 func DirectMirThreeRoutineClassificationFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput
@@ -27,7 +28,8 @@ func DirectMirThreeRoutineClassificationFromAdmitted(
     let mixed_shape: DirectMirThreeRoutineMixedConstructedMemberShapeFact =
         InvalidDirectMirThreeRoutineMixedConstructedMemberShapeFact();
     let kind: String = "";
-    if declarations == 0 && specialization_count == 0 &&
+    if DirectMirArrayArgumentLegacyRouteClaimed(admitted) &&
+        declarations == 0 && specialization_count == 0 &&
         generic_routine_count == 0 {
         kind = DirectMirThreeRoutineArrayArgument();
     } else if declarations == 0 && specialization_count == 2 &&

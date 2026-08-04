@@ -1,0 +1,21 @@
+// Shrink-only route for the legacy one-block Array argument envelope.
+
+import "direct_mir_scalar_graph_admission_owner.pgy";
+
+func DirectMirArrayArgumentLegacyRouteClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    if MirProgramRoutineIndexCount(admitted.routines) != 3 ||
+        !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
+        JsonArrayObjectFactCount(admitted.document.declarations) != 0 {
+        return false;
+    }
+    let row: Int = 0;
+    while row < 3 {
+        if admitted.routines.routine_block_counts[row] != 1 {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}

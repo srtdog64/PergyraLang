@@ -1,0 +1,172 @@
+// Textual LLVM projection from the sealed collection-program plan only.
+
+import "direct_mir_collection_program_plan_owner.pgy";
+import "direct_mir_array_int_abi_projection_owner.pgy";
+import "direct_mir_llvm_text_format_owner.pgy";
+import "symbol_table_owner.pgy";
+
+func DirectMirCollectionProgramEmitLlvm(
+    ref plan: DirectMirCollectionProgramPlan,
+    ref abi: DirectMirArrayIntAbiProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirCollectionProgramPlanReady(plan) ||
+        !DirectMirArrayIntAbiProjectionReadyFor(
+            abi, CompilerTargetCpuLlvmProjection()
+        ) || !formatted_print.ok || formatted_print.symbol == "" ||
+        formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        line_format == "" {
+        Die("direct MIR collection program LLVM projection is invalid");
+    }
+    let producer_symbol: String = CompilerSymbolCIdentifier(
+        plan.identity.producer.name
+    );
+    let consumer_symbol: String = CompilerSymbolCIdentifier(
+        plan.identity.consumer.name
+    );
+    if producer_symbol == "" || consumer_symbol == "" ||
+        producer_symbol == consumer_symbol {
+        Die("direct MIR collection program LLVM symbols are invalid");
+    }
+    let format_payload: String = DirectMirScalarLlvmFormatPayload(line_format);
+    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
+    let output: String =
+        "@.pgy.collection.int.format = private unnamed_addr constant [";
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, format_payload);
+    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output,
+        "(ptr, ...)\ndeclare ptr @realloc(ptr, i64)\ndeclare void @free(ptr)\ndeclare void @abort() noreturn\n\n");
+    output = Concat(output, "define internal ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " @");
+    output = Concat(output, producer_symbol);
+    output = Concat(output, "(");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %bound) {\nentry:\n  br label %loop.header\n\nloop.header:\n  %index = phi ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " [ ");
+    output = Concat(output, ToString(plan.producer.initial_value));
+    output = Concat(output,
+        ", %entry ], [ %index.next, %capacity.ready ]\n  %data = phi ptr [ null, %entry ], [ %data.ready, %capacity.ready ]\n  %length = phi i64 [ 0, %entry ], [ %length.next, %capacity.ready ]\n  %capacity = phi i64 [ 0, %entry ], [ %capacity.ready.value, %capacity.ready ]\n  %loop.test = icmp slt ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output,
+        " %index, %bound\n  br i1 %loop.test, label %loop.body, label %exit\n\nloop.body:\n  %needs.grow = icmp eq i64 %length, %capacity\n  br i1 %needs.grow, label %grow, label %steady\n\ngrow:\n  %capacity.zero = icmp eq i64 %capacity, 0\n  %capacity.double = shl i64 %capacity, 1\n  %capacity.next = select i1 %capacity.zero, i64 4, i64 %capacity.double\n  %capacity.wrap = icmp ult i64 %capacity.next, %capacity\n  %capacity.bytes.overflow = icmp ugt i64 %capacity.next, 4611686018427387903\n  %capacity.invalid = or i1 %capacity.wrap, %capacity.bytes.overflow\n  br i1 %capacity.invalid, label %allocation.abort, label %allocation.try\n\nallocation.try:\n  %allocation.bytes = mul i64 %capacity.next, 4\n  %grown = call ptr @realloc(ptr %data, i64 %allocation.bytes)\n  %allocation.failed = icmp eq ptr %grown, null\n  br i1 %allocation.failed, label %allocation.abort, label %grown.ready\n\nallocation.abort:\n  call void @abort()\n  unreachable\n\ngrown.ready:\n  br label %capacity.ready\n\nsteady:\n  br label %capacity.ready\n\ncapacity.ready:\n  %data.ready = phi ptr [ %grown, %grown.ready ], [ %data, %steady ]\n  %capacity.ready.value = phi i64 [ %capacity.next, %grown.ready ], [ %capacity, %steady ]\n  %element = ");
+    if plan.producer.push_operation_kind ==
+            DirectMirScalarCfgArrayIntPushValueMultiply() {
+        output = Concat(output, "mul ");
+    } else { output = Concat(output, "add "); }
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %index, ");
+    output = Concat(output, ToString(plan.producer.push_operand));
+    output = Concat(output, "\n  %slot = getelementptr inbounds ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output,
+        ", ptr %data.ready, i64 %length\n  store ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %element, ptr %slot, align 4\n  %length.next = add i64 %length, 1\n  %index.next = add ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %index, ");
+    output = Concat(output, ToString(plan.producer.step));
+    output = Concat(output,
+        "\n  br label %loop.header\n\nexit:\n  %result.0 = insertvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " poison, ptr %data, ");
+    output = Concat(output, ToString(abi.data_index));
+    output = Concat(output, "\n  %result.1 = insertvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %result.0, i64 %length, ");
+    output = Concat(output, ToString(abi.length_index));
+    output = Concat(output, "\n  %result.2 = insertvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %result.1, i64 %capacity, ");
+    output = Concat(output, ToString(abi.capacity_index));
+    output = Concat(output, "\n  %result.3 = insertvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %result.2, ptr null, ");
+    output = Concat(output, ToString(abi.allocator_index));
+    output = Concat(output, "\n  ret ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %result.3\n}\n\ndefine internal ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " @");
+    output = Concat(output, consumer_symbol);
+    output = Concat(output, "(");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output,
+        " %value) {\nentry:\n  %data = extractvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %value, ");
+    output = Concat(output, ToString(abi.data_index));
+    output = Concat(output, "\n  %length = extractvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %value, ");
+    output = Concat(output, ToString(abi.length_index));
+    output = Concat(output, "\n  br label %loop.header\n\nloop.header:\n  %index = phi ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " [ ");
+    output = Concat(output, ToString(plan.consumer.initial_index));
+    output = Concat(output, ", %entry ], [ %index.next, %loop.body ]\n  %total = phi ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " [ ");
+    output = Concat(output, ToString(plan.consumer.initial_accumulator));
+    output = Concat(output,
+        ", %entry ], [ %total.next, %loop.body ]\n  %index.wide = sext ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output,
+        " %index to i64\n  %loop.test = icmp ult i64 %index.wide, %length\n  br i1 %loop.test, label %loop.body, label %exit\n\nloop.body:\n  %slot = getelementptr inbounds ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output,
+        ", ptr %data, i64 %index.wide\n  %element = load ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, ", ptr %slot, align 4\n  %total.next = add ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %total, %element\n  %index.next = add ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %index, ");
+    output = Concat(output, ToString(plan.consumer.index_step));
+    output = Concat(output, "\n  br label %loop.header\n\nexit:\n  ret ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %total\n}\n\ndefine i32 @main() {\nentry:\n  %value = call ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " @");
+    output = Concat(output, producer_symbol);
+    output = Concat(output, "(");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " ");
+    output = Concat(output, ToString(plan.entrypoint.producer_argument));
+    output = Concat(output, ")\n  %sum = call ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " @");
+    output = Concat(output, consumer_symbol);
+    output = Concat(output, "(");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %value)\n  %sum.print = ");
+    output = Concat(output, abi.llvm_print_extension);
+    output = Concat(output, " ");
+    output = Concat(output, abi.llvm_element_type);
+    output = Concat(output, " %sum to ");
+    output = Concat(output, abi.llvm_print_type);
+    output = Concat(output, "\n  %sum.logged = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.collection.int.format, ");
+    output = Concat(output, abi.llvm_print_type);
+    output = Concat(output, " %sum.print)\n  %length = extractvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %value, ");
+    output = Concat(output, ToString(abi.length_index));
+    output = Concat(output, "\n  %length.logged = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output,
+        "(ptr @.pgy.collection.int.format, i64 %length)\n  %data = extractvalue ");
+    output = Concat(output, abi.llvm_aggregate_type);
+    output = Concat(output, " %value, ");
+    output = Concat(output, ToString(abi.data_index));
+    output = Concat(output,
+        "\n  call void @free(ptr %data)\n  ret i32 0\n}\n");
+    return output;
+}

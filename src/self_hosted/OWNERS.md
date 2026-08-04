@@ -2031,6 +2031,55 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_array_argument_emission_owner.pgy` --
   final C/LLVM consumers of that plan; both preserve the two real calls and
   reopen neither MIR nor a Pergyra runtime path.
+- `src/self_hosted/compiler/direct_mir_array_argument_legacy_route_owner.pgy`
+  -- shrink-only one-block claim for the older Array-argument envelope; looped
+  collection programs cannot be classified through this route.
+- `src/self_hosted/compiler/direct_mir_collection_local_context_fact_owner.pgy`
+  -- routine-qualified local/formal/call-result collection origins plus
+  dynamic scalar input identities embedded in the shared `CollectionPlan`.
+- `src/self_hosted/compiler/direct_mir_collection_program_route_fact_owner.pgy`
+  -- coarse type-role claim for collection producer, consumer, and `Main`;
+  malformed ABI or call edges remain claimed for fail-closed admission.
+- `src/self_hosted/compiler/direct_mir_collection_program_identity_owner.pgy`
+  -- exact row-order-neutral function/signature identity for the three semantic
+  roles, including the formal Array ABI receipt.
+- `src/self_hosted/compiler/direct_mir_collection_program_graph_fact_owner.pgy`
+  -- persisted graph facts for empty collection, loop bounds, dynamic input,
+  direct call, reduction call, and length observation shapes.
+- `src/self_hosted/compiler/direct_mir_collection_program_routine_fact_owner.pgy`
+  -- target-neutral producer, entrypoint, and consumer scalar/collection
+  semantics and routine-qualified ValueId construction.
+- `src/self_hosted/compiler/direct_mir_collection_program_instruction_abi_owner.pgy`
+  -- exact Array instruction ABI admission shared by producer and entrypoint.
+- `src/self_hosted/compiler/direct_mir_collection_program_producer_admission_owner.pgy`
+  -- producer CFG, SSA, dynamic push, return edge, and reallocating Array ABI
+  admission.
+- `src/self_hosted/compiler/direct_mir_collection_program_consumer_admission_owner.pgy`
+  -- formal-parameter length/Get reduction CFG and SSA admission.
+- `src/self_hosted/compiler/direct_mir_collection_program_entrypoint_admission_owner.pgy`
+  -- producer call result, consumer argument, ordered logs, and caller ABI
+  admission.
+- `src/self_hosted/compiler/direct_mir_collection_program_local_plan_owner.pgy`
+  -- three routine-local projections of the shared `CollectionPlan`, with one
+  canonical storage root and no cross-routine raw ValueId lookup.
+- `src/self_hosted/compiler/direct_mir_collection_program_local_join_owner.pgy`
+  -- exact join from the three role facts to origin, qualified ValueId,
+  operation input, global-row, storage-root, and ABI rows in those local plans.
+- `src/self_hosted/compiler/direct_mir_collection_program_edge_fact_owner.pgy`
+  -- explicit return-to-call-result and argument-to-formal endpoint graph.
+- `src/self_hosted/compiler/direct_mir_collection_program_plan_owner.pgy` --
+  sealed program receipt joining the three local plans, edge graph, ABI,
+  reallocating carriage, target capability, and mutation falsifier.
+- `src/self_hosted/compiler/direct_mir_collection_program_c_emission_owner.pgy`
+  -- MIR-blind C consumer with checked dynamic growth and single-owner cleanup.
+- `src/self_hosted/compiler/direct_mir_collection_program_llvm_emission_owner.pgy`
+  -- MIR-blind LLVM consumer of the same growth, carriage, reduction, and
+  cleanup facts.
+- `src/self_hosted/compiler/direct_mir_collection_program_projection_owner.pgy`
+  -- selected-target composition boundary that issues one sealed plan.
+- `src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy`
+  -- late multi-routine decision that gives a claimed collection program one
+  fail-closed path before the legacy three-routine classifier.
 - `src/self_hosted/compiler/direct_mir_aggregate_value_flow_fact_owner.pgy` --
   target-neutral aggregate value-flow authority shared after family admission.
   It seals wrapper representation, element/Array identity, actual ABI evidence

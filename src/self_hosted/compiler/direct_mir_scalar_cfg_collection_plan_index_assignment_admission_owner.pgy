@@ -320,7 +320,9 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
     ];
     let values: DirectMirScalarCfgCollectionValueSet =
         DirectMirScalarCfgCollectionValueSet(
-            true, value_definition_globals, value_ids, value_names,
+            true, DirectMirCollectionLocalOrigins(
+                ToInt(index.source_syntax_id), 4
+            ), value_definition_globals, value_ids, value_names,
             element_types, storage_ids, predecessor_rows, abi_ids,
             abi_sizes, abi_aligns, data_offsets, length_offsets,
             capacity_offsets, allocator_offsets, initial_starts,
@@ -427,7 +429,9 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
     }
     let operations: DirectMirScalarCfgCollectionOperationSet =
         DirectMirScalarCfgCollectionOperationSet(
-            true, operation_globals, operation_ordinals, operation_kinds,
+            true, DirectMirCollectionNoDynamicInputs(
+                ArrayLength(operation_kinds)
+            ), operation_globals, operation_ordinals, operation_kinds,
             operation_receivers, operation_results, operation_indices,
             operation_input_types, operation_input_ints,
             operation_input_strings, operation_graph_rows

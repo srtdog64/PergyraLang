@@ -1,0 +1,29 @@
+// Terminal multi-routine dispatch after earlier nominal/role families decline.
+
+import "direct_mir_collection_program_route_fact_owner.pgy";
+import "direct_mir_collection_program_projection_owner.pgy";
+import "direct_mir_three_routine_projection_owner.pgy";
+
+func CompileAdmittedDirectMirTerminalMultiRoutine(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    target_projection: CompilerTargetProjectionFact,
+    is_llvm: Bool,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    let collection_route: DirectMirCollectionProgramRouteFact =
+        DirectMirCollectionProgramRouteFactFromAdmitted(admitted);
+    if collection_route.claimed {
+        return CompileAdmittedDirectMirCollectionProgramForTarget(
+            admitted, target_projection, formatted_print, line_format
+        );
+    }
+    if MirProgramRoutineIndexCount(admitted.routines) == 3 {
+        return CompileAdmittedDirectMirThreeRoutine(
+            admitted, target_projection, is_llvm, formatted_print,
+            line_format
+        );
+    }
+    Die("direct MIR terminal multi-routine graph is unsupported");
+    return "";
+}

@@ -1,0 +1,204 @@
+// Admission of one collection-producing routine from typed MIR/CFG facts.
+
+import "direct_mir_collection_program_graph_fact_owner.pgy";
+import "direct_mir_collection_program_instruction_abi_owner.pgy";
+import "direct_mir_collection_program_routine_fact_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+
+func DirectMirCollectionProducerRoutineFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref identity: DirectMirCollectionProgramIdentity
+) -> DirectMirCollectionProducerRoutineFact {
+    let row: Int = identity.producer.row;
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, row
+    );
+    let uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, row);
+    let cfg_digest: Int = DirectMirCfgDigestFromIndex(index);
+    if !index.valid || cfg_digest == 0 ||
+        ArrayLength(index.block_instruction_counts) != 4 ||
+        index.block_instruction_counts[0] != 2 ||
+        index.block_instruction_counts[1] != 2 ||
+        index.block_instruction_counts[2] != 2 ||
+        index.block_instruction_counts[3] != 1 ||
+        !index.block_reachable[0] || !index.block_reachable[1] ||
+        !index.block_reachable[2] || !index.block_reachable[3] ||
+        index.block_succ_true[0] != 1 || index.block_succ_false[0] >= 0 ||
+        index.block_succ_true[1] != 2 || index.block_succ_false[1] != 3 ||
+        index.block_succ_true[2] != 1 || index.block_succ_false[2] >= 0 ||
+        !MirRoutineFactIndexBlockIsTerminal(index, 3) ||
+        index.block_has_conditional_branch[1] != 1 ||
+        index.backedge_headers[1] != 1 ||
+        !MirRoutineInstructionUseFactsReady(uses, 7) {
+        Die("direct MIR collection producer CFG is invalid");
+    }
+    let definition_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, row, 0, 0
+    );
+    let initial_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, row, 0, 1
+    );
+    let phi_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, row, 1, 0
+    );
+    let branch_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, row, 1, 1
+    );
+    let push_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, row, 2, 0
+    );
+    let increment_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, row, 2, 1
+    );
+    let return_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, row, 3, 0
+    );
+    if MirRoutineInstructionUseCountAtGlobal(uses, definition_global) != 0 ||
+        MirRoutineInstructionUseCountAtGlobal(uses, initial_global) != 0 ||
+        MirRoutineInstructionUseCountAtGlobal(uses, phi_global) != 2 ||
+        MirRoutineInstructionUseCountAtGlobal(uses, branch_global) != 1 ||
+        MirRoutineInstructionUseCountAtGlobal(uses, push_global) != 2 ||
+        MirRoutineInstructionUseCountAtGlobal(uses, increment_global) != 1 ||
+        MirRoutineInstructionUseCountAtGlobal(uses, return_global) != 1 {
+        Die("direct MIR collection producer use cardinality is invalid");
+    }
+    let definition: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, definition_global
+        );
+    let initial: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, initial_global
+        );
+    let phi: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, phi_global
+        );
+    let push: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, push_global
+        );
+    let increment: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, increment_global
+        );
+    let returned: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, return_global
+        );
+    if !definition.valid || !initial.valid || !phi.valid || !push.valid ||
+        !increment.valid || !returned.valid ||
+        admitted.routines.instruction_kinds[definition_global] != "def" ||
+        admitted.routines.instruction_source_types[definition_global] !=
+            "AST_LET_DECL" || definition.name != "ssa-def" ||
+        definition.arg0 == "" || definition.arg1 != "" ||
+        definition.expr1 != CompilerAbiLayoutArrayIntTypeName() ||
+        !MirSsaNameMatches(definition.result, definition.arg0, false) ||
+        admitted.routines.instruction_kinds[initial_global] != "def" ||
+        initial.name != "ssa-def" || initial.arg0 == "" ||
+        !MirSsaNameMatches(initial.result, initial.arg0, false) ||
+        admitted.routines.instruction_kinds[phi_global] != "phi" ||
+        phi.name != initial.arg0 || phi.result == "" ||
+        admitted.routines.instruction_kinds[branch_global] != "branch" ||
+        admitted.routines.instruction_kinds[push_global] != "stmt" ||
+        push.arg0 != "ArrayPush" ||
+        admitted.routines.instruction_kinds[increment_global] != "def" ||
+        increment.arg0 != initial.arg0 || increment.arg1 != "local" ||
+        admitted.routines.instruction_kinds[return_global] != "return" ||
+        returned.name != "return" {
+        Die("direct MIR collection producer instructions are invalid");
+    }
+    let definition_graph: MirExpressionGraphSequence =
+        DirectMirCollectionInstructionGraph(admitted, definition_global);
+    let initial_graph: MirExpressionGraphSequence =
+        DirectMirCollectionInstructionGraph(admitted, initial_global);
+    let branch_graph: MirExpressionGraphSequence =
+        DirectMirCollectionInstructionGraph(admitted, branch_global);
+    let push_graph: MirExpressionGraphSequence =
+        DirectMirCollectionInstructionGraph(admitted, push_global);
+    let increment_graph: MirExpressionGraphSequence =
+        DirectMirCollectionInstructionGraph(admitted, increment_global);
+    let return_graph: MirExpressionGraphSequence =
+        DirectMirCollectionInstructionGraph(admitted, return_global);
+    let initial_value: Option<Int> =
+        DirectMirCollectionIntegerLiteralGraphValue(initial_graph);
+    let branch: DirectMirCollectionNamePairGraphFact =
+        DirectMirCollectionLessNamesGraphFactFrom(branch_graph);
+    let push_value: DirectMirCollectionNameLiteralGraphFact =
+        DirectMirCollectionNameLiteralGraphFactFrom(push_graph);
+    let step: DirectMirCollectionNameLiteralGraphFact =
+        DirectMirCollectionNameLiteralGraphFactFrom(increment_graph);
+    if !DirectMirCollectionEmptyArrayGraphReady(definition_graph) ||
+        !IsSome(initial_value) || !branch.valid || !push_value.valid ||
+        !step.valid || step.operation_kind !=
+            DirectMirScalarCfgArrayIntPushValueAdd() ||
+        branch.left_name != initial.arg0 ||
+        branch.right_name != identity.producer.param.name ||
+        push_value.name != initial.arg0 || step.name != initial.arg0 ||
+        DirectMirCollectionLeafGraphName(return_graph) != definition.arg0 {
+        Die("direct MIR collection producer expression graph is invalid");
+    }
+    let phi_left: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, phi_global, 0
+    );
+    let phi_right: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, phi_global, 1
+    );
+    let branch_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, branch_global, 0
+    );
+    let push_collection: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, push_global, 0
+    );
+    let push_input: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, push_global, 1
+    );
+    let increment_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, increment_global, 0
+    );
+    let return_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, return_global, 0
+    );
+    if !IsSome(phi_left) || !IsSome(phi_right) || !IsSome(branch_use) ||
+        !IsSome(push_collection) || !IsSome(push_input) ||
+        !IsSome(increment_use) || !IsSome(return_use) ||
+        UnwrapOption(phi_left) != initial.result ||
+        UnwrapOption(phi_right) != increment.result ||
+        UnwrapOption(branch_use) != phi.result ||
+        UnwrapOption(push_collection) != definition.result ||
+        UnwrapOption(push_input) != phi.result ||
+        UnwrapOption(increment_use) != phi.result ||
+        UnwrapOption(return_use) != definition.result {
+        Die("direct MIR collection producer SSA uses are invalid");
+    }
+    let definition_abi: MirAbiLayoutRowCapture =
+        DirectMirCollectionProgramInstructionArrayAbi(
+            admitted.routines.source_json, definition
+        );
+    let return_abi: MirAbiLayoutRowCapture =
+        DirectMirCollectionProgramInstructionArrayAbi(
+            admitted.routines.source_json, returned
+        );
+    if !DirectMirArrayIntCapturedAbiReady(definition_abi) ||
+        !DirectMirArrayIntCapturedAbiReady(return_abi) ||
+        MirAbiLayoutIdFromCapture(definition_abi) !=
+            MirAbiLayoutIdFromCapture(return_abi) {
+        Die("direct MIR collection producer ABI is invalid");
+    }
+    let fact: DirectMirCollectionProducerRoutineFact =
+        DirectMirCollectionProducerRoutineFact(
+            true, 0, cfg_digest, definition_global, push_global,
+            return_global, definition.arg0, definition.result, phi.result,
+            UnwrapOption(initial_value), step.literal,
+            push_value.operation_kind, push_value.literal, definition_abi
+        );
+    let verified: DirectMirCollectionProducerRoutineFact =
+        DirectMirCollectionProducerRoutineFactWithDigest(
+            fact, DirectMirCollectionProducerRoutineFactDigest(fact)
+        );
+    if !DirectMirCollectionProducerRoutineFactReady(verified) {
+        Die("direct MIR collection producer fact is invalid");
+    }
+    return verified;
+}

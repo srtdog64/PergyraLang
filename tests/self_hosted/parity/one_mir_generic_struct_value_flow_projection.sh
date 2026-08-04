@@ -51,7 +51,7 @@ EOF
     lines="$(wc -l <"$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy")"
     [[ "$lines" -le 80 ]] || fail "multi-routine root cap exceeded: $lines/80"
     grep -Fq 'CompileAdmittedDirectMirThreeRoutine(' \
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" ||
+        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy" ||
         fail "three-routine classifier is not routed"
     ! grep -Eq 'DirectMir(Array|Struct)ArgumentProgramCandidate' \
         "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" ||

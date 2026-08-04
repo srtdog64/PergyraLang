@@ -1,0 +1,79 @@
+// Exact join from routine facts to the three routine-local CollectionPlans.
+
+import "direct_mir_collection_program_local_plan_owner.pgy";
+
+func DirectMirCollectionProgramLocalPlansJoinReady(
+    ref identity: DirectMirCollectionProgramIdentity,
+    ref producer: DirectMirCollectionProducerRoutineFact,
+    ref entrypoint: DirectMirCollectionEntrypointRoutineFact,
+    ref consumer: DirectMirCollectionConsumerRoutineFact,
+    ref producer_plan: DirectMirScalarCfgCollectionPlan,
+    ref entrypoint_plan: DirectMirScalarCfgCollectionPlan,
+    ref consumer_plan: DirectMirScalarCfgCollectionPlan
+) -> Bool {
+    if !DirectMirCollectionProgramLocalPlanReady(producer_plan) ||
+        !DirectMirCollectionProgramLocalPlanReady(entrypoint_plan) ||
+        !DirectMirCollectionProgramLocalPlanReady(consumer_plan) ||
+        producer_plan.values.storage_identities[0] !=
+            entrypoint_plan.values.storage_identities[0] ||
+        producer_plan.values.storage_identities[0] !=
+            consumer_plan.values.storage_identities[0] ||
+        producer_plan.values.value_ids[0] == entrypoint_plan.values.value_ids[0] ||
+        producer_plan.values.value_ids[0] == consumer_plan.values.value_ids[0] ||
+        entrypoint_plan.values.value_ids[0] == consumer_plan.values.value_ids[0] {
+        return false;
+    }
+    let producer_id: String = DirectMirCollectionQualifiedValueId(
+        identity.producer.source_syntax_id, "result",
+        producer.collection_value_id
+    );
+    let entrypoint_id: String = DirectMirCollectionQualifiedValueId(
+        identity.entrypoint.source_syntax_id, "result",
+        entrypoint.collection_value_id
+    );
+    let consumer_id: String = DirectMirCollectionQualifiedValueId(
+        identity.consumer.source_syntax_id, "param",
+        identity.consumer.param.name
+    );
+    let producer_input: String = DirectMirCollectionQualifiedValueId(
+        identity.producer.source_syntax_id, "value",
+        producer.induction_value_id
+    );
+    let consumer_index: String = DirectMirCollectionQualifiedValueId(
+        identity.consumer.source_syntax_id, "value",
+        consumer.index_value_id
+    );
+    return producer_plan.values.value_ids[0] == producer_id &&
+        entrypoint_plan.values.value_ids[0] == entrypoint_id &&
+        consumer_plan.values.value_ids[0] == consumer_id &&
+        producer_plan.values.names[0] == producer.collection_name &&
+        entrypoint_plan.values.names[0] == entrypoint.collection_name &&
+        consumer_plan.values.names[0] == identity.consumer.param.name &&
+        producer_plan.values.definition_global_rows[0] ==
+            producer.collection_definition_global &&
+        entrypoint_plan.values.definition_global_rows[0] ==
+            entrypoint.definition_global &&
+        consumer_plan.values.definition_global_rows[0] == -1 &&
+        producer_plan.values.origins.kinds[0] ==
+            DirectMirCollectionOriginLocalDefinition() &&
+        entrypoint_plan.values.origins.kinds[0] ==
+            DirectMirCollectionOriginCallResult() &&
+        consumer_plan.values.origins.kinds[0] ==
+            DirectMirCollectionOriginFormalParameter() &&
+        consumer_plan.values.origins.parameter_ordinals[0] == 0 &&
+        producer_plan.operations.global_rows[0] ==
+            producer.collection_definition_global &&
+        producer_plan.operations.global_rows[1] == producer.push_global &&
+        producer_plan.operations.input_ints[1] == producer.push_operand &&
+        producer_plan.operations.dynamic_inputs.input_value_ids[1] ==
+            producer_input &&
+        entrypoint_plan.operations.global_rows[0] == entrypoint.length_global &&
+        consumer_plan.operations.global_rows[0] == consumer.length_global &&
+        consumer_plan.operations.global_rows[1] == consumer.get_global &&
+        consumer_plan.operations.dynamic_inputs.index_value_ids[1] ==
+            consumer_index &&
+        MirAbiLayoutIdFromCapture(producer.abi) ==
+            identity.consumer.param.abi_layout_id &&
+        MirAbiLayoutIdFromCapture(entrypoint.abi) ==
+            identity.consumer.param.abi_layout_id;
+}

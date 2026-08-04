@@ -14134,6 +14134,63 @@ require_text "Makefile" "SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE)'
 require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-array-argument-projection-test-smoke"
+for collection_program_owner_cap in \
+    direct_mir_collection_local_context_fact_owner.pgy:100 \
+    direct_mir_collection_program_route_fact_owner.pgy:100 \
+    direct_mir_collection_program_identity_owner.pgy:130 \
+    direct_mir_collection_program_graph_fact_owner.pgy:185 \
+    direct_mir_collection_program_routine_fact_owner.pgy:190 \
+    direct_mir_collection_program_producer_admission_owner.pgy:210 \
+    direct_mir_collection_program_consumer_admission_owner.pgy:230 \
+    direct_mir_collection_program_entrypoint_admission_owner.pgy:135 \
+    direct_mir_collection_program_local_plan_owner.pgy:250 \
+    direct_mir_collection_program_local_join_owner.pgy:90 \
+    direct_mir_collection_program_edge_fact_owner.pgy:135 \
+    direct_mir_collection_program_plan_owner.pgy:220 \
+    direct_mir_collection_program_c_emission_owner.pgy:140 \
+    direct_mir_collection_program_llvm_emission_owner.pgy:180 \
+    direct_mir_collection_program_projection_owner.pgy:45 \
+    direct_mir_multi_routine_terminal_projection_owner.pgy:35 \
+    direct_mir_array_argument_legacy_route_owner.pgy:25; do
+    collection_program_owner="${collection_program_owner_cap%%:*}"
+    collection_program_cap="${collection_program_owner_cap##*:}"
+    require_file "src/self_hosted/compiler/$collection_program_owner"
+    require_max_lines \
+        "src/self_hosted/compiler/$collection_program_owner" \
+        "$collection_program_cap"
+done
+require_file "tests/self_hosted/parity/one_mir_array_param_projection.sh"
+require_file "tests/self_hosted/parity/one_mir_array_param_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_array_param_projection.sh" 190
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_array_param_mutations.py" 150
+require_text \
+    "src/self_hosted/compiler/direct_mir_collection_program_plan_owner.pgy" \
+    "DirectMirScalarCfgCollectionPlan"
+require_text \
+    "src/self_hosted/compiler/direct_mir_collection_program_plan_owner.pgy" \
+    "DirectMirCollectionProgramPlanMutationRejected"
+require_text \
+    "src/self_hosted/compiler/direct_mir_collection_program_plan_owner.pgy" \
+    "producer_reallocating_array_value_main_single_cleanup"
+require_text \
+    "src/self_hosted/compiler/direct_mir_array_argument_program_identity_owner.pgy" \
+    "DirectMirArrayArgumentLegacyRouteClaimed(admitted)"
+require_text \
+    "src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy" \
+    "if collection_route.claimed {"
+require_text "Makefile" "SELFHOST_ONE_MIR_ARRAY_PARAM_GATE ?="
+require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_PARAM_GATE)'
+require_text ".github/workflows/ci.yml" \
+    "self-host-one-mir-array-param-projection-test-smoke"
+for collection_emitter in \
+    direct_mir_collection_program_c_emission_owner.pgy \
+    direct_mir_collection_program_llvm_emission_owner.pgy; do
+    reject_text "src/self_hosted/compiler/$collection_emitter" "source_json"
+    reject_text "src/self_hosted/compiler/$collection_emitter" \
+        "DirectMirArrayArgument"
+done
 require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
     "src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy"
 require_file "src/self_hosted/mir/nominal_abi_layout_fact_owner.pgy"
@@ -14347,7 +14404,7 @@ require_file \
 require_file \
     "src/self_hosted/compiler/direct_mir_generic_struct_value_flow_plan_owner.pgy"
 require_text \
-    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy" \
     "CompileAdmittedDirectMirThreeRoutine("
 require_text \
     "src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" \

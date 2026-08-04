@@ -1,0 +1,96 @@
+// Coarse semantic claim for a multi-routine collection carriage program.
+// Exact call, return, ABI, CFG, and storage edges belong to admission.
+
+import "../air/mir_cfg_identity_owner.pgy";
+import "../mir_lower/routine_inventory_owner.pgy";
+
+struct DirectMirCollectionProgramRouteFact {
+    let valid: Bool;
+    let digest: Int;
+    let claimed: Bool;
+    let routine_count: Int;
+    let entrypoint_count: Int;
+    let collection_producer_count: Int;
+    let collection_consumer_count: Int;
+}
+
+func DirectMirCollectionProgramRouteFactDigest(
+    ref fact: DirectMirCollectionProgramRouteFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(701L, fact.routine_count);
+    hash = DirectMirCfgHashInt(hash, fact.entrypoint_count);
+    hash = DirectMirCfgHashInt(hash, fact.collection_producer_count);
+    hash = DirectMirCfgHashInt(hash, fact.collection_consumer_count);
+    if fact.claimed { hash = DirectMirCfgHashInt(hash, 1); }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirCollectionProgramRouteFactReady(
+    ref fact: DirectMirCollectionProgramRouteFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirCollectionProgramRouteFactDigest(fact) ||
+        fact.routine_count < 2 || fact.entrypoint_count < 0 ||
+        fact.collection_producer_count < 0 ||
+        fact.collection_consumer_count < 0 ||
+        fact.entrypoint_count > fact.routine_count ||
+        fact.collection_producer_count > fact.routine_count ||
+        fact.collection_consumer_count > fact.routine_count {
+        return false;
+    }
+    let semantic_surface: Bool = fact.entrypoint_count > 0 &&
+        fact.collection_producer_count > 0 &&
+        fact.collection_consumer_count > 0;
+    return fact.claimed == semantic_surface;
+}
+
+func DirectMirCollectionProgramRouteFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirCollectionProgramRouteFact {
+    let routine_count: Int = MirProgramRoutineIndexCount(admitted.routines);
+    let entrypoints: Int = 0;
+    let producers: Int = 0;
+    let consumers: Int = 0;
+    let row: Int = 0;
+    while row < routine_count {
+        let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
+            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.ends[row]
+        );
+        let params: Int = ArrayLength(header.param_types);
+        let plain_function: Bool = admitted.routines.kinds[row] ==
+                "function" && admitted.routines.owners[row] == "" &&
+            ArrayLength(header.generic_names) == 0;
+        if plain_function && admitted.routines.names[row] == "Main" &&
+            header.return_type == "Void" && params == 0 {
+            entrypoints = entrypoints + 1;
+        }
+        if plain_function && header.return_type == "Array<Int>" &&
+            params == 1 && header.param_types[0] == "Int" {
+            producers = producers + 1;
+        }
+        if plain_function && header.return_type == "Int" && params == 1 &&
+            header.param_types[0] == "Array<Int>" {
+            consumers = consumers + 1;
+        }
+        row = row + 1;
+    }
+    let claimed: Bool = entrypoints > 0 && producers > 0 && consumers > 0;
+    let fact: DirectMirCollectionProgramRouteFact =
+        DirectMirCollectionProgramRouteFact(
+            true, 0, claimed, routine_count, entrypoints,
+            producers, consumers
+        );
+    let verified: DirectMirCollectionProgramRouteFact =
+        DirectMirCollectionProgramRouteFact(
+            fact.valid, DirectMirCollectionProgramRouteFactDigest(fact),
+            fact.claimed, fact.routine_count, fact.entrypoint_count,
+            fact.collection_producer_count,
+            fact.collection_consumer_count
+        );
+    if !DirectMirCollectionProgramRouteFactReady(verified) {
+        Die("direct MIR collection program route fact is invalid");
+    }
+    return verified;
+}

@@ -1,0 +1,131 @@
+// C projection from the sealed collection-program plan only.
+
+import "direct_mir_collection_program_plan_owner.pgy";
+import "direct_mir_array_int_abi_projection_owner.pgy";
+import "symbol_table_owner.pgy";
+
+func DirectMirCollectionProgramEmitC(
+    ref plan: DirectMirCollectionProgramPlan,
+    ref abi: DirectMirArrayIntAbiProjection,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    if !DirectMirCollectionProgramPlanReady(plan) ||
+        !DirectMirArrayIntAbiProjectionReadyFor(
+            abi, CompilerTargetCpuCProjection()
+        ) || !formatted_print.ok || formatted_print.symbol == "" ||
+        formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") ||
+        line_format == "" {
+        Die("direct MIR collection program C projection is invalid");
+    }
+    let producer_symbol: String = CompilerSymbolCIdentifier(
+        plan.identity.producer.name
+    );
+    let consumer_symbol: String = CompilerSymbolCIdentifier(
+        plan.identity.consumer.name
+    );
+    let producer_param: String = CompilerSymbolCIdentifier(
+        plan.identity.producer.param.name
+    );
+    let consumer_param: String = CompilerSymbolCIdentifier(
+        plan.identity.consumer.param.name
+    );
+    if producer_symbol == "" || consumer_symbol == "" ||
+        producer_param == "" || consumer_param == "" ||
+        producer_symbol == consumer_symbol {
+        Die("direct MIR collection program C symbols are invalid");
+    }
+    let output: String =
+        "#include <stdint.h>\n#include <stddef.h>\n#include <stdio.h>\n#include <stdlib.h>\n\n";
+    output = Concat(output, "typedef struct {\n    ");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " *data;\n    ");
+    output = Concat(output, abi.c_length_type);
+    output = Concat(output, " length;\n    ");
+    output = Concat(output, abi.c_length_type);
+    output = Concat(output, " capacity;\n    void *allocator;\n} ");
+    output = Concat(output, abi.c_array_type);
+    output = Concat(output, ";\n\nstatic ");
+    output = Concat(output, abi.c_array_type);
+    output = Concat(output, " ");
+    output = Concat(output, producer_symbol);
+    output = Concat(output, "(");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " ");
+    output = Concat(output, producer_param);
+    output = Concat(output, ") {\n    ");
+    output = Concat(output, abi.c_array_type);
+    output = Concat(output, " out = {NULL, 0, 0, NULL};\n    ");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " index = ");
+    output = Concat(output, ToString(plan.producer.initial_value));
+    output = Concat(output, ";\n    while (index < ");
+    output = Concat(output, producer_param);
+    output = Concat(output, ") {\n        if (out.length == out.capacity) {\n");
+    output = Concat(output,
+        "            size_t next = out.capacity == 0 ? 4 : out.capacity * 2;\n");
+    output = Concat(output,
+        "            if (next < out.capacity || next > SIZE_MAX / sizeof(*out.data)) abort();\n");
+    output = Concat(output, "            void *grown = realloc(out.data, next * sizeof(*out.data));\n");
+    output = Concat(output,
+        "            if (grown == NULL) abort();\n            out.data = (int32_t *)grown;\n            out.capacity = next;\n        }\n");
+    output = Concat(output,
+        "        out.data[out.length] = (int32_t)((uint32_t)index ");
+    if plan.producer.push_operation_kind ==
+            DirectMirScalarCfgArrayIntPushValueMultiply() {
+        output = Concat(output, "* ");
+    } else { output = Concat(output, "+ "); }
+    output = Concat(output, "(uint32_t)");
+    output = Concat(output, ToString(plan.producer.push_operand));
+    output = Concat(output,
+        ");\n        out.length = out.length + 1;\n        index = (int32_t)((uint32_t)index + (uint32_t)");
+    output = Concat(output, ToString(plan.producer.step));
+    output = Concat(output, ");\n    }\n    return out;\n}\n\nstatic ");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " ");
+    output = Concat(output, consumer_symbol);
+    output = Concat(output, "(");
+    output = Concat(output, abi.c_array_type);
+    output = Concat(output, " ");
+    output = Concat(output, consumer_param);
+    output = Concat(output, ") {\n    ");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " total = ");
+    output = Concat(output, ToString(plan.consumer.initial_accumulator));
+    output = Concat(output, ";\n    ");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " index = ");
+    output = Concat(output, ToString(plan.consumer.initial_index));
+    output = Concat(output, ";\n    while ((size_t)index < ");
+    output = Concat(output, consumer_param);
+    output = Concat(output, ".length) {\n        total = (int32_t)((uint32_t)total + (uint32_t)");
+    output = Concat(output, consumer_param);
+    output = Concat(output, ".data[index]);\n        index = (int32_t)((uint32_t)index + (uint32_t)");
+    output = Concat(output, ToString(plan.consumer.index_step));
+    output = Concat(output, ");\n    }\n    return total;\n}\n\nint main(void) {\n    ");
+    output = Concat(output, abi.c_array_type);
+    output = Concat(output, " value = ");
+    output = Concat(output, producer_symbol);
+    output = Concat(output, "(");
+    output = Concat(output, ToString(plan.entrypoint.producer_argument));
+    output = Concat(output, ");\n    ");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " result = ");
+    output = Concat(output, consumer_symbol);
+    output = Concat(output, "(value);\n    ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (");
+    output = Concat(output, abi.c_print_type);
+    output = Concat(output, ")result);\n    ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, line_format);
+    output = Concat(output, "\", (");
+    output = Concat(output, abi.c_print_type);
+    output = Concat(output,
+        ")value.length);\n    free(value.data);\n    return 0;\n}\n");
+    return output;
+}

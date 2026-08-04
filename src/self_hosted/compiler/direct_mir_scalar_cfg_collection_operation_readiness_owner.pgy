@@ -8,6 +8,7 @@ func DirectMirScalarCfgCollectionOperationsReady(
     let ops: DirectMirScalarCfgCollectionOperationSet = plan.operations;
     let count: Int = ArrayLength(ops.kinds);
     if !ops.valid || count < 1 || count != ArrayLength(ops.global_rows) ||
+        !DirectMirCollectionDynamicInputsReady(ops.dynamic_inputs, count) ||
         count != ArrayLength(ops.source_ordinals) ||
         count != ArrayLength(ops.receiver_value_rows) ||
         count != ArrayLength(ops.result_value_rows) ||
@@ -37,6 +38,8 @@ func DirectMirScalarCfgCollectionOperationsReady(
             result < -1 || receiver >= values || result >= values {
             return false;
         }
+        if ops.dynamic_inputs.index_value_ids[row] != "" ||
+            ops.dynamic_inputs.input_value_ids[row] != "" { return false; }
         if kind == DirectMirScalarCfgCollectionOpInitialize() {
             if receiver != -1 || result < 0 || index != -1 ||
                 plan.values.predecessor_value_rows[result] >= 0 ||

@@ -10,6 +10,13 @@ func DirectMirScalarCfgCollectionPlanDigest(
     let hash: Long = DirectMirScalarCfgHashInts(
         457L, plan.values.definition_global_rows
     );
+    hash = DirectMirScalarCfgHashInts(
+        hash, plan.values.origins.routine_syntax_ids
+    );
+    hash = DirectMirScalarCfgHashInts(hash, plan.values.origins.kinds);
+    hash = DirectMirScalarCfgHashInts(
+        hash, plan.values.origins.parameter_ordinals
+    );
     hash = DirectMirScalarCfgHashStrings(hash, plan.values.value_ids);
     hash = DirectMirScalarCfgHashStrings(hash, plan.values.names);
     hash = DirectMirScalarCfgHashStrings(hash, plan.values.element_types);
@@ -37,6 +44,12 @@ func DirectMirScalarCfgCollectionPlanDigest(
         hash, plan.values.initial_string_elements
     );
     hash = DirectMirScalarCfgHashInts(hash, plan.operations.global_rows);
+    hash = DirectMirScalarCfgHashStrings(
+        hash, plan.operations.dynamic_inputs.index_value_ids
+    );
+    hash = DirectMirScalarCfgHashStrings(
+        hash, plan.operations.dynamic_inputs.input_value_ids
+    );
     hash = DirectMirScalarCfgHashInts(hash, plan.operations.source_ordinals);
     hash = DirectMirScalarCfgHashInts(hash, plan.operations.kinds);
     hash = DirectMirScalarCfgHashInts(

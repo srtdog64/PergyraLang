@@ -22,6 +22,7 @@ func DirectMirScalarCfgCollectionValuesReady(
 ) -> Bool {
     let count: Int = ArrayLength(values.value_ids);
     if !values.valid || count < 1 ||
+        !DirectMirCollectionValueOriginsReady(values.origins, count) ||
         count != ArrayLength(values.definition_global_rows) ||
         count != ArrayLength(values.names) ||
         count != ArrayLength(values.element_types) ||

@@ -1,13 +1,18 @@
 // Target-neutral collection values, ordered operations, and observations.
 
+import "direct_mir_collection_local_context_fact_owner.pgy";
+
 func DirectMirScalarCfgCollectionOpInitialize() -> Int { return 1; }
 func DirectMirScalarCfgCollectionOpGet() -> Int { return 2; }
 func DirectMirScalarCfgCollectionOpSet() -> Int { return 3; }
+func DirectMirScalarCfgCollectionOpPush() -> Int { return 4; }
+func DirectMirScalarCfgCollectionOpLength() -> Int { return 5; }
 func DirectMirScalarCfgCollectionObservationSumInt() -> Int { return 1; }
 func DirectMirScalarCfgCollectionObservationConcatString() -> Int { return 2; }
 
 struct DirectMirScalarCfgCollectionValueSet {
     let valid: Bool;
+    let origins: DirectMirCollectionValueOriginSet;
     let definition_global_rows: Array<Int>;
     let value_ids: Array<String>;
     let names: Array<String>;
@@ -29,6 +34,7 @@ struct DirectMirScalarCfgCollectionValueSet {
 
 struct DirectMirScalarCfgCollectionOperationSet {
     let valid: Bool;
+    let dynamic_inputs: DirectMirCollectionDynamicInputSet;
     let global_rows: Array<Int>;
     let source_ordinals: Array<Int>;
     let kinds: Array<Int>;
@@ -65,8 +71,9 @@ func DirectMirScalarCfgCollectionValueSetEmpty(
     let ints: Array<Int> = [];
     let strings: Array<String> = [];
     return DirectMirScalarCfgCollectionValueSet(
-        valid, ints, strings, strings, strings, strings, ints, ints, ints,
-        ints, ints, ints, ints, ints, ints, ints, ints, strings
+        valid, DirectMirCollectionValueOriginSetEmpty(valid), ints, strings,
+        strings, strings, strings, ints, ints, ints, ints, ints, ints, ints,
+        ints, ints, ints, ints, strings
     );
 }
 
@@ -76,8 +83,8 @@ func DirectMirScalarCfgCollectionOperationSetEmpty(
     let ints: Array<Int> = [];
     let strings: Array<String> = [];
     return DirectMirScalarCfgCollectionOperationSet(
-        valid, ints, ints, ints, ints, ints, ints, strings, ints, strings,
-        ints
+        valid, DirectMirCollectionDynamicInputSetEmpty(valid), ints, ints,
+        ints, ints, ints, ints, strings, ints, strings, ints
     );
 }
 

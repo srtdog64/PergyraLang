@@ -33,7 +33,8 @@ func DirectMirScalarCfgCollectionPlanAtGraphOperation(
     if !matched { return DirectMirScalarCfgCollectionPlanEmpty(); }
     let operations: DirectMirScalarCfgCollectionOperationSet =
         DirectMirScalarCfgCollectionOperationSet(
-            source.operations.valid, source.operations.global_rows,
+            source.operations.valid, source.operations.dynamic_inputs,
+            source.operations.global_rows,
             source.operations.source_ordinals, source.operations.kinds,
             source.operations.receiver_value_rows,
             source.operations.result_value_rows, source.operations.indices,

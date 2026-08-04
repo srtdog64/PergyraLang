@@ -1,0 +1,42 @@
+// Selected-target composition for the sealed collection-program receipt.
+
+import "direct_mir_collection_program_c_emission_owner.pgy";
+import "direct_mir_collection_program_llvm_emission_owner.pgy";
+
+func CompileAdmittedDirectMirCollectionProgramForTarget(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    target_projection: CompilerTargetProjectionFact,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    line_format: String
+) -> String {
+    let plan: DirectMirCollectionProgramPlan =
+        DirectMirCollectionProgramPlanFromAdmitted(admitted);
+    let is_c: Bool = CompilerTargetProjectionFactReadyFor(
+        target_projection, CompilerTargetCpuCProjection()
+    );
+    let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
+        target_projection, CompilerTargetCpuLlvmProjection()
+    );
+    if !DirectMirCollectionProgramPlanReady(plan) || (!is_c && !is_llvm) {
+        Die("direct MIR collection program target is invalid");
+    }
+    let abi: DirectMirArrayIntAbiProjection =
+        DirectMirArrayIntAbiProjectionFromCanonicalLayout(
+            target_projection,
+            plan.identity.consumer.param.abi_layout_id,
+            ToInt(plan.identity.consumer.param.abi.size_text),
+            ToInt(plan.identity.consumer.param.abi.align_text),
+            ToInt(plan.identity.consumer.param.abi.field_offsets[0]),
+            ToInt(plan.identity.consumer.param.abi.field_offsets[1]),
+            ToInt(plan.identity.consumer.param.abi.field_offsets[2]),
+            ToInt(plan.identity.consumer.param.abi.field_offsets[3])
+        );
+    if is_llvm {
+        return DirectMirCollectionProgramEmitLlvm(
+            plan, abi, formatted_print, line_format
+        );
+    }
+    return DirectMirCollectionProgramEmitC(
+        plan, abi, formatted_print, line_format
+    );
+}

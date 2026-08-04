@@ -1,0 +1,187 @@
+// Target-neutral scalar/collection semantics for each collection-program role.
+
+import "direct_mir_collection_program_identity_owner.pgy";
+
+struct DirectMirCollectionProducerRoutineFact {
+    let valid: Bool;
+    let digest: Int;
+    let cfg_digest: Int;
+    let collection_definition_global: Int;
+    let push_global: Int;
+    let return_global: Int;
+    let collection_name: String;
+    let collection_value_id: String;
+    let induction_value_id: String;
+    let initial_value: Int;
+    let step: Int;
+    let push_operation_kind: Int;
+    let push_operand: Int;
+    let abi: MirAbiLayoutRowCapture;
+}
+
+struct DirectMirCollectionConsumerRoutineFact {
+    let valid: Bool;
+    let digest: Int;
+    let cfg_digest: Int;
+    let length_global: Int;
+    let get_global: Int;
+    let return_global: Int;
+    let parameter_name: String;
+    let index_value_id: String;
+    let accumulator_value_id: String;
+    let initial_accumulator: Int;
+    let initial_index: Int;
+    let index_step: Int;
+}
+
+struct DirectMirCollectionEntrypointRoutineFact {
+    let valid: Bool;
+    let digest: Int;
+    let cfg_digest: Int;
+    let definition_global: Int;
+    let consumer_call_global: Int;
+    let length_global: Int;
+    let collection_name: String;
+    let collection_value_id: String;
+    let producer_argument: Int;
+    let producer_call_node: Int;
+    let consumer_call_node: Int;
+    let abi: MirAbiLayoutRowCapture;
+}
+
+func DirectMirCollectionProducerRoutineFactDigest(
+    ref fact: DirectMirCollectionProducerRoutineFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(733L, fact.cfg_digest);
+    hash = DirectMirCfgHashInt(hash, fact.collection_definition_global);
+    hash = DirectMirCfgHashInt(hash, fact.push_global);
+    hash = DirectMirCfgHashInt(hash, fact.return_global);
+    hash = DirectMirCfgHashString(hash, fact.collection_name);
+    hash = DirectMirCfgHashString(hash, fact.collection_value_id);
+    hash = DirectMirCfgHashString(hash, fact.induction_value_id);
+    hash = DirectMirCfgHashInt(hash, fact.initial_value);
+    hash = DirectMirCfgHashInt(hash, fact.step);
+    hash = DirectMirCfgHashInt(hash, fact.push_operation_kind);
+    hash = DirectMirCfgHashInt(hash, fact.push_operand);
+    hash = DirectMirCfgHashInt(hash, MirAbiLayoutIdFromCapture(fact.abi));
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirCollectionConsumerRoutineFactDigest(
+    ref fact: DirectMirCollectionConsumerRoutineFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(739L, fact.cfg_digest);
+    hash = DirectMirCfgHashInt(hash, fact.length_global);
+    hash = DirectMirCfgHashInt(hash, fact.get_global);
+    hash = DirectMirCfgHashInt(hash, fact.return_global);
+    hash = DirectMirCfgHashString(hash, fact.parameter_name);
+    hash = DirectMirCfgHashString(hash, fact.index_value_id);
+    hash = DirectMirCfgHashString(hash, fact.accumulator_value_id);
+    hash = DirectMirCfgHashInt(hash, fact.initial_accumulator);
+    hash = DirectMirCfgHashInt(hash, fact.initial_index);
+    hash = DirectMirCfgHashInt(hash, fact.index_step);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirCollectionEntrypointRoutineFactDigest(
+    ref fact: DirectMirCollectionEntrypointRoutineFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(743L, fact.cfg_digest);
+    hash = DirectMirCfgHashInt(hash, fact.definition_global);
+    hash = DirectMirCfgHashInt(hash, fact.consumer_call_global);
+    hash = DirectMirCfgHashInt(hash, fact.length_global);
+    hash = DirectMirCfgHashString(hash, fact.collection_name);
+    hash = DirectMirCfgHashString(hash, fact.collection_value_id);
+    hash = DirectMirCfgHashInt(hash, fact.producer_argument);
+    hash = DirectMirCfgHashInt(hash, fact.producer_call_node);
+    hash = DirectMirCfgHashInt(hash, fact.consumer_call_node);
+    hash = DirectMirCfgHashInt(hash, MirAbiLayoutIdFromCapture(fact.abi));
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirCollectionProducerRoutineFactWithDigest(
+    fact: DirectMirCollectionProducerRoutineFact, digest: Int
+) -> DirectMirCollectionProducerRoutineFact {
+    return DirectMirCollectionProducerRoutineFact(
+        fact.valid, digest, fact.cfg_digest,
+        fact.collection_definition_global, fact.push_global,
+        fact.return_global, fact.collection_name, fact.collection_value_id,
+        fact.induction_value_id, fact.initial_value, fact.step,
+        fact.push_operation_kind, fact.push_operand, fact.abi
+    );
+}
+
+func DirectMirCollectionConsumerRoutineFactWithDigest(
+    fact: DirectMirCollectionConsumerRoutineFact, digest: Int
+) -> DirectMirCollectionConsumerRoutineFact {
+    return DirectMirCollectionConsumerRoutineFact(
+        fact.valid, digest, fact.cfg_digest, fact.length_global,
+        fact.get_global, fact.return_global, fact.parameter_name,
+        fact.index_value_id, fact.accumulator_value_id,
+        fact.initial_accumulator, fact.initial_index, fact.index_step
+    );
+}
+
+func DirectMirCollectionEntrypointRoutineFactWithDigest(
+    fact: DirectMirCollectionEntrypointRoutineFact, digest: Int
+) -> DirectMirCollectionEntrypointRoutineFact {
+    return DirectMirCollectionEntrypointRoutineFact(
+        fact.valid, digest, fact.cfg_digest, fact.definition_global,
+        fact.consumer_call_global, fact.length_global, fact.collection_name,
+        fact.collection_value_id, fact.producer_argument,
+        fact.producer_call_node, fact.consumer_call_node, fact.abi
+    );
+}
+
+func DirectMirCollectionProducerRoutineFactReady(
+    ref fact: DirectMirCollectionProducerRoutineFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirCollectionProducerRoutineFactDigest(fact) &&
+        fact.cfg_digest != 0 && fact.collection_definition_global >= 0 &&
+        fact.push_global > fact.collection_definition_global &&
+        fact.return_global > fact.push_global && fact.collection_name != "" &&
+        fact.collection_value_id != "" && fact.induction_value_id != "" &&
+        fact.step > 0 && fact.push_operand != 0 &&
+        DirectMirArrayIntCapturedAbiReady(fact.abi) &&
+        (fact.push_operation_kind == DirectMirScalarCfgArrayIntPushValueAdd() ||
+         fact.push_operation_kind ==
+            DirectMirScalarCfgArrayIntPushValueMultiply());
+}
+
+func DirectMirCollectionConsumerRoutineFactReady(
+    ref fact: DirectMirCollectionConsumerRoutineFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirCollectionConsumerRoutineFactDigest(fact) &&
+        fact.cfg_digest != 0 && fact.length_global >= 0 &&
+        fact.get_global > fact.length_global &&
+        fact.return_global > fact.get_global && fact.parameter_name != "" &&
+        fact.index_value_id != "" && fact.accumulator_value_id != "" &&
+        fact.index_step > 0;
+}
+
+func DirectMirCollectionEntrypointRoutineFactReady(
+    ref fact: DirectMirCollectionEntrypointRoutineFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirCollectionEntrypointRoutineFactDigest(fact) &&
+        fact.cfg_digest != 0 && fact.definition_global >= 0 &&
+        fact.consumer_call_global > fact.definition_global &&
+        fact.length_global > fact.consumer_call_global &&
+        fact.collection_name != "" && fact.collection_value_id != "" &&
+        fact.producer_call_node >= 0 && fact.consumer_call_node >= 0 &&
+        DirectMirArrayIntCapturedAbiReady(fact.abi);
+}
+
+func DirectMirCollectionQualifiedValueId(
+    routine_syntax_id: Int, endpoint: String, value_id: String
+) -> String {
+    return Concat(
+        ToString(routine_syntax_id),
+        Concat("::", Concat(endpoint, Concat(":", value_id)))
+    );
+}

@@ -42,6 +42,7 @@ assert_owner_ratchet() {
     local plan="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_argument_plan_owner.pgy"
     local emission="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_argument_emission_owner.pgy"
     local multi="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy"
+    local terminal="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy"
     local three="$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy"
     local owner cap lines term
     while IFS='|' read -r owner cap; do
@@ -57,12 +58,13 @@ $identity|245
 $plan|310
 $emission|265
 $multi|90
+$terminal|35
 EOF
     for term in BuildMirDocumentFactIndex CompileMirJsonToCVerified \
         GenerateCFromVerifiedSemanticArtifact llvm_codegen_ \
         driver_run_pipeline MirPhiParameterEntryExists; do
         ! grep -Fq -- "$term" "$param" "$signature" "$graph" \
-            "$identity" "$plan" "$emission" "$multi" ||
+            "$identity" "$plan" "$emission" "$multi" "$terminal" ||
             fail "Array argument owner reopened a forbidden path: $term"
     done
     grep -Fq 'MirCapturedRequiredAbiLayoutRowAdmission' "$param" ||
@@ -71,8 +73,8 @@ EOF
         fail "Array argument identity does not consume canonical ABI"
     grep -Fq 'DirectMirArrayArgumentPlanMutationRejected' "$plan" ||
         fail "Array argument plan lacks a repaired mutation falsifier"
-    grep -Fq 'CompileAdmittedDirectMirThreeRoutine(' "$multi" ||
-        fail "multi-routine owner does not route one three-routine decision"
+    grep -Fq 'CompileAdmittedDirectMirThreeRoutine(' "$terminal" ||
+        fail "terminal multi-routine owner does not route one three-routine decision"
     grep -Fq 'classification.kind == DirectMirThreeRoutineArrayArgument()' \
         "$three" || fail "three-routine owner does not classify Array argument MIR"
     ! grep -Fq '@pgy_' "$emission" ||

@@ -1,0 +1,130 @@
+// Program-level return/result and argument/parameter carriage edges.
+
+import "direct_mir_collection_program_routine_fact_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+
+func DirectMirCollectionProgramReturnEdge() -> Int { return 1; }
+func DirectMirCollectionProgramArgumentEdge() -> Int { return 2; }
+
+struct DirectMirCollectionProgramEdgeSet {
+    let valid: Bool;
+    let digest: Int;
+    let kinds: Array<Int>;
+    let caller_routine_syntax_ids: Array<Int>;
+    let callee_routine_syntax_ids: Array<Int>;
+    let call_global_rows: Array<Int>;
+    let call_node_rows: Array<Int>;
+    let source_plan_rows: Array<Int>;
+    let source_value_rows: Array<Int>;
+    let target_plan_rows: Array<Int>;
+    let target_value_rows: Array<Int>;
+    let argument_ordinals: Array<Int>;
+    let callee_return_global_rows: Array<Int>;
+}
+
+func DirectMirCollectionProgramEdgeSetDigest(
+    ref edges: DirectMirCollectionProgramEdgeSet
+) -> Int {
+    if !edges.valid { return 0; }
+    let hash: Long = DirectMirScalarCfgHashInts(751L, edges.kinds);
+    hash = DirectMirScalarCfgHashInts(
+        hash, edges.caller_routine_syntax_ids
+    );
+    hash = DirectMirScalarCfgHashInts(
+        hash, edges.callee_routine_syntax_ids
+    );
+    hash = DirectMirScalarCfgHashInts(hash, edges.call_global_rows);
+    hash = DirectMirScalarCfgHashInts(hash, edges.call_node_rows);
+    hash = DirectMirScalarCfgHashInts(hash, edges.source_plan_rows);
+    hash = DirectMirScalarCfgHashInts(hash, edges.source_value_rows);
+    hash = DirectMirScalarCfgHashInts(hash, edges.target_plan_rows);
+    hash = DirectMirScalarCfgHashInts(hash, edges.target_value_rows);
+    hash = DirectMirScalarCfgHashInts(hash, edges.argument_ordinals);
+    hash = DirectMirScalarCfgHashInts(
+        hash, edges.callee_return_global_rows
+    );
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirCollectionProgramEdgeSetWithDigest(
+    edges: DirectMirCollectionProgramEdgeSet, digest: Int
+) -> DirectMirCollectionProgramEdgeSet {
+    return DirectMirCollectionProgramEdgeSet(
+        edges.valid, digest, edges.kinds,
+        edges.caller_routine_syntax_ids, edges.callee_routine_syntax_ids,
+        edges.call_global_rows, edges.call_node_rows,
+        edges.source_plan_rows, edges.source_value_rows,
+        edges.target_plan_rows, edges.target_value_rows,
+        edges.argument_ordinals, edges.callee_return_global_rows
+    );
+}
+
+func DirectMirCollectionProgramEdgeSetReady(
+    ref edges: DirectMirCollectionProgramEdgeSet,
+    ref identity: DirectMirCollectionProgramIdentity,
+    ref producer: DirectMirCollectionProducerRoutineFact,
+    ref entrypoint: DirectMirCollectionEntrypointRoutineFact
+) -> Bool {
+    let count: Int = ArrayLength(edges.kinds);
+    if !edges.valid || edges.digest == 0 ||
+        edges.digest != DirectMirCollectionProgramEdgeSetDigest(edges) ||
+        count != 2 ||
+        ArrayLength(edges.caller_routine_syntax_ids) != count ||
+        ArrayLength(edges.callee_routine_syntax_ids) != count ||
+        ArrayLength(edges.call_global_rows) != count ||
+        ArrayLength(edges.call_node_rows) != count ||
+        ArrayLength(edges.source_plan_rows) != count ||
+        ArrayLength(edges.source_value_rows) != count ||
+        ArrayLength(edges.target_plan_rows) != count ||
+        ArrayLength(edges.target_value_rows) != count ||
+        ArrayLength(edges.argument_ordinals) != count ||
+        ArrayLength(edges.callee_return_global_rows) != count {
+        return false;
+    }
+    return edges.kinds[0] == DirectMirCollectionProgramReturnEdge() &&
+        edges.caller_routine_syntax_ids[0] ==
+            identity.entrypoint.source_syntax_id &&
+        edges.callee_routine_syntax_ids[0] ==
+            identity.producer.source_syntax_id &&
+        edges.call_global_rows[0] == entrypoint.definition_global &&
+        edges.call_node_rows[0] == entrypoint.producer_call_node &&
+        edges.source_plan_rows[0] == 0 && edges.source_value_rows[0] == 0 &&
+        edges.target_plan_rows[0] == 1 && edges.target_value_rows[0] == 0 &&
+        edges.argument_ordinals[0] == -1 &&
+        edges.callee_return_global_rows[0] == producer.return_global &&
+        edges.kinds[1] == DirectMirCollectionProgramArgumentEdge() &&
+        edges.caller_routine_syntax_ids[1] ==
+            identity.entrypoint.source_syntax_id &&
+        edges.callee_routine_syntax_ids[1] ==
+            identity.consumer.source_syntax_id &&
+        edges.call_global_rows[1] == entrypoint.consumer_call_global &&
+        edges.call_node_rows[1] == entrypoint.consumer_call_node &&
+        edges.source_plan_rows[1] == 1 && edges.source_value_rows[1] == 0 &&
+        edges.target_plan_rows[1] == 2 && edges.target_value_rows[1] == 0 &&
+        edges.argument_ordinals[1] == 0 &&
+        edges.callee_return_global_rows[1] == -1;
+}
+
+func DirectMirCollectionProgramEdgesFromFacts(
+    ref identity: DirectMirCollectionProgramIdentity,
+    ref producer: DirectMirCollectionProducerRoutineFact,
+    ref entrypoint: DirectMirCollectionEntrypointRoutineFact
+) -> DirectMirCollectionProgramEdgeSet {
+    let edges: DirectMirCollectionProgramEdgeSet =
+        DirectMirCollectionProgramEdgeSet(
+            true, 0,
+            [DirectMirCollectionProgramReturnEdge(),
+             DirectMirCollectionProgramArgumentEdge()],
+            [identity.entrypoint.source_syntax_id,
+             identity.entrypoint.source_syntax_id],
+            [identity.producer.source_syntax_id,
+             identity.consumer.source_syntax_id],
+            [entrypoint.definition_global, entrypoint.consumer_call_global],
+            [entrypoint.producer_call_node, entrypoint.consumer_call_node],
+            [0, 1], [0, 0], [1, 2], [0, 0], [-1, 0],
+            [producer.return_global, -1]
+        );
+    return DirectMirCollectionProgramEdgeSetWithDigest(
+        edges, DirectMirCollectionProgramEdgeSetDigest(edges)
+    );
+}

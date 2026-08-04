@@ -5,7 +5,7 @@ import "direct_mir_two_routine_nominal_projection_owner.pgy";
 import "direct_mir_two_routine_classification_owner.pgy";
 import "direct_mir_inferred_generic_nominal_projection_owner.pgy";
 import "direct_mir_inferred_generic_member_projection_owner.pgy";
-import "direct_mir_three_routine_projection_owner.pgy";
+import "direct_mir_multi_routine_terminal_projection_owner.pgy";
 import "direct_mir_role_operator_emission_owner.pgy";
 func CompileAdmittedDirectMirMultiRoutineForTarget(
     ref admitted: MirMachineLayerAdmittedJsonInput, target_projection: CompilerTargetProjectionFact) -> String {
@@ -68,12 +68,7 @@ func CompileAdmittedDirectMirMultiRoutineForTarget(
             admitted, is_llvm, formatted_print, line_format
         );
     }
-    if MirProgramRoutineIndexCount(admitted.routines) == 3 {
-        return CompileAdmittedDirectMirThreeRoutine(
-            admitted, target_projection, is_llvm, formatted_print,
-            line_format
-        );
-    }
-    Die("direct MIR multi-routine projection rejected the program graph");
-    return "";
+    return CompileAdmittedDirectMirTerminalMultiRoutine(
+        admitted, target_projection, is_llvm, formatted_print, line_format
+    );
 }

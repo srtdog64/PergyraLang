@@ -1,0 +1,226 @@
+// Admission of one collection-consuming reduction routine.
+
+import "direct_mir_collection_program_graph_fact_owner.pgy";
+import "direct_mir_collection_program_routine_fact_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+
+func DirectMirCollectionConsumerRoutineFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref identity: DirectMirCollectionProgramIdentity
+) -> DirectMirCollectionConsumerRoutineFact {
+    let row: Int = identity.consumer.row;
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, row
+    );
+    let uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, row);
+    let cfg_digest: Int = DirectMirCfgDigestFromIndex(index);
+    if !index.valid || cfg_digest == 0 ||
+        ArrayLength(index.block_instruction_counts) != 4 ||
+        index.block_instruction_counts[0] != 2 ||
+        index.block_instruction_counts[1] != 3 ||
+        index.block_instruction_counts[2] != 2 ||
+        index.block_instruction_counts[3] != 1 ||
+        !index.block_reachable[0] || !index.block_reachable[1] ||
+        !index.block_reachable[2] || !index.block_reachable[3] ||
+        index.block_succ_true[0] != 1 || index.block_succ_false[0] >= 0 ||
+        index.block_succ_true[1] != 2 || index.block_succ_false[1] != 3 ||
+        index.block_succ_true[2] != 1 || index.block_succ_false[2] >= 0 ||
+        !MirRoutineFactIndexBlockIsTerminal(index, 3) ||
+        index.block_has_conditional_branch[1] != 1 ||
+        index.backedge_headers[1] != 1 ||
+        !MirRoutineInstructionUseFactsReady(uses, 8) {
+        Die("direct MIR collection consumer CFG is invalid");
+    }
+    let total_initial_global: Int =
+        MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, row, 0, 0
+        );
+    let index_initial_global: Int =
+        MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, row, 0, 1
+        );
+    let total_phi_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, row, 1, 0
+    );
+    let index_phi_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, row, 1, 1
+    );
+    let length_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, row, 1, 2
+    );
+    let get_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, row, 2, 0
+    );
+    let increment_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, row, 2, 1
+    );
+    let return_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, row, 3, 0
+    );
+    if MirRoutineInstructionUseCountAtGlobal(
+            uses, total_initial_global
+        ) != 0 || MirRoutineInstructionUseCountAtGlobal(
+            uses, index_initial_global
+        ) != 0 || MirRoutineInstructionUseCountAtGlobal(
+            uses, total_phi_global
+        ) != 2 || MirRoutineInstructionUseCountAtGlobal(
+            uses, index_phi_global
+        ) != 2 || MirRoutineInstructionUseCountAtGlobal(
+            uses, length_global
+        ) != 1 || MirRoutineInstructionUseCountAtGlobal(
+            uses, get_global
+        ) != 2 || MirRoutineInstructionUseCountAtGlobal(
+            uses, increment_global
+        ) != 1 || MirRoutineInstructionUseCountAtGlobal(
+            uses, return_global
+        ) != 1 {
+        Die("direct MIR collection consumer use cardinality is invalid");
+    }
+    let total_initial: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, total_initial_global
+        );
+    let index_initial: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, index_initial_global
+        );
+    let total_phi: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, total_phi_global
+        );
+    let index_phi: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, index_phi_global
+        );
+    let read: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, get_global
+        );
+    let increment: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, increment_global
+        );
+    let returned: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, return_global
+        );
+    if !total_initial.valid || !index_initial.valid || !total_phi.valid ||
+        !index_phi.valid || !read.valid || !increment.valid ||
+        !returned.valid ||
+        admitted.routines.instruction_kinds[total_initial_global] != "def" ||
+        admitted.routines.instruction_kinds[index_initial_global] != "def" ||
+        total_initial.name != "ssa-def" || index_initial.name != "ssa-def" ||
+        total_initial.arg0 == "" || index_initial.arg0 == "" ||
+        admitted.routines.instruction_kinds[total_phi_global] != "phi" ||
+        admitted.routines.instruction_kinds[index_phi_global] != "phi" ||
+        total_phi.name != total_initial.arg0 ||
+        index_phi.name != index_initial.arg0 ||
+        admitted.routines.instruction_kinds[length_global] != "branch" ||
+        admitted.routines.instruction_kinds[get_global] != "def" ||
+        read.arg0 != total_initial.arg0 || read.arg1 != "local" ||
+        admitted.routines.instruction_kinds[increment_global] != "def" ||
+        increment.arg0 != index_initial.arg0 || increment.arg1 != "local" ||
+        admitted.routines.instruction_kinds[return_global] != "return" ||
+        returned.name != "return" {
+        Die("direct MIR collection consumer instructions are invalid");
+    }
+    let total_initial_graph: MirExpressionGraphSequence =
+        DirectMirCollectionInstructionGraph(admitted, total_initial_global);
+    let index_initial_graph: MirExpressionGraphSequence =
+        DirectMirCollectionInstructionGraph(admitted, index_initial_global);
+    let length_condition_graph: MirExpressionGraphSequence =
+        DirectMirCollectionInstructionGraph(admitted, length_global);
+    let get_expression_graph: MirExpressionGraphSequence =
+        DirectMirCollectionInstructionGraph(admitted, get_global);
+    let increment_expression_graph: MirExpressionGraphSequence =
+        DirectMirCollectionInstructionGraph(admitted, increment_global);
+    let return_expression_graph: MirExpressionGraphSequence =
+        DirectMirCollectionInstructionGraph(admitted, return_global);
+    let total_initial_value: Option<Int> =
+        DirectMirCollectionIntegerLiteralGraphValue(total_initial_graph);
+    let index_initial_value: Option<Int> =
+        DirectMirCollectionIntegerLiteralGraphValue(index_initial_graph);
+    let length: DirectMirScalarCfgArrayIntLengthConditionGraphFact =
+        DirectMirScalarCfgArrayIntLengthConditionGraphFactFrom(
+            length_condition_graph
+        );
+    let read_graph: DirectMirScalarCfgArrayIntReadGraphFact =
+        DirectMirScalarCfgArrayIntReadGraphFactFrom(
+            get_expression_graph
+        );
+    let step: DirectMirCollectionNameLiteralGraphFact =
+        DirectMirCollectionNameLiteralGraphFactFrom(
+            increment_expression_graph
+        );
+    if !IsSome(total_initial_value) || !IsSome(index_initial_value) ||
+        !length.valid || !read_graph.valid || !step.valid ||
+        step.operation_kind != DirectMirScalarCfgArrayIntPushValueAdd() ||
+        length.index_name != index_initial.arg0 ||
+        length.collection_name != identity.consumer.param.name ||
+        read_graph.sum_name != total_initial.arg0 ||
+        read_graph.collection_name != identity.consumer.param.name ||
+        read_graph.index_name != index_initial.arg0 ||
+        step.name != index_initial.arg0 ||
+        DirectMirCollectionLeafGraphName(
+            return_expression_graph
+        ) != total_initial.arg0 {
+        Die("direct MIR collection consumer expression graph is invalid");
+    }
+    let total_left: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, total_phi_global, 0
+    );
+    let total_right: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, total_phi_global, 1
+    );
+    let index_left: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, index_phi_global, 0
+    );
+    let index_right: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, index_phi_global, 1
+    );
+    let length_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, length_global, 0
+    );
+    let read_total: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, get_global, 0
+    );
+    let read_index: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, get_global, 1
+    );
+    let increment_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, increment_global, 0
+    );
+    let return_use: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, return_global, 0
+    );
+    if !IsSome(total_left) || !IsSome(total_right) || !IsSome(index_left) ||
+        !IsSome(index_right) || !IsSome(length_use) || !IsSome(read_total) ||
+        !IsSome(read_index) || !IsSome(increment_use) || !IsSome(return_use) ||
+        UnwrapOption(total_left) != total_initial.result ||
+        UnwrapOption(total_right) != read.result ||
+        UnwrapOption(index_left) != index_initial.result ||
+        UnwrapOption(index_right) != increment.result ||
+        UnwrapOption(length_use) != index_phi.result ||
+        UnwrapOption(read_total) != total_phi.result ||
+        UnwrapOption(read_index) != index_phi.result ||
+        UnwrapOption(increment_use) != index_phi.result ||
+        UnwrapOption(return_use) != total_phi.result {
+        Die("direct MIR collection consumer SSA uses are invalid");
+    }
+    let fact: DirectMirCollectionConsumerRoutineFact =
+        DirectMirCollectionConsumerRoutineFact(
+            true, 0, cfg_digest, length_global, get_global, return_global,
+            identity.consumer.param.name, index_phi.result,
+            total_phi.result, UnwrapOption(total_initial_value),
+            UnwrapOption(index_initial_value), step.literal
+        );
+    let verified: DirectMirCollectionConsumerRoutineFact =
+        DirectMirCollectionConsumerRoutineFactWithDigest(
+            fact, DirectMirCollectionConsumerRoutineFactDigest(fact)
+        );
+    if !DirectMirCollectionConsumerRoutineFactReady(verified) {
+        Die("direct MIR collection consumer fact is invalid");
+    }
+    return verified;
+}

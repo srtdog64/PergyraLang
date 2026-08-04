@@ -1,0 +1,246 @@
+// Routine-local CollectionPlan construction for cross-routine carriage.
+
+import "direct_mir_scalar_cfg_collection_plan_identity_owner.pgy";
+import "direct_mir_collection_program_routine_fact_owner.pgy";
+
+func DirectMirCollectionProgramStorageRoot(
+    ref identity: DirectMirCollectionProgramIdentity,
+    ref producer: DirectMirCollectionProducerRoutineFact
+) -> String {
+    return Concat(
+        "collection-root:",
+        Concat(
+            ToString(identity.producer.source_syntax_id),
+            Concat(":", producer.collection_value_id)
+        )
+    );
+}
+
+func DirectMirCollectionProgramSingleValuePlan(
+    routine_syntax_id: Int,
+    origin_kind: Int,
+    parameter_ordinal: Int,
+    definition_global: Int,
+    value_id: String,
+    name: String,
+    storage_identity: String,
+    ref abi: MirAbiLayoutRowCapture,
+    operations: DirectMirScalarCfgCollectionOperationSet
+) -> DirectMirScalarCfgCollectionPlan {
+    let initial_start: Int = -1;
+    if origin_kind == DirectMirCollectionOriginLocalDefinition() {
+        initial_start = 0;
+    }
+    let empty_ints: Array<Int> = [];
+    let empty_strings: Array<String> = [];
+    let values: DirectMirScalarCfgCollectionValueSet =
+        DirectMirScalarCfgCollectionValueSet(
+            true, DirectMirCollectionValueOriginSet(
+                true, [routine_syntax_id], [origin_kind], [parameter_ordinal]
+            ), [definition_global], [value_id], [name], ["Int"],
+            [storage_identity], [-1], [MirAbiLayoutIdFromCapture(abi)],
+            [ToInt(abi.size_text)], [ToInt(abi.align_text)],
+            [ToInt(abi.field_offsets[0])], [ToInt(abi.field_offsets[1])],
+            [ToInt(abi.field_offsets[2])], [ToInt(abi.field_offsets[3])],
+            [initial_start], [0], empty_ints, empty_strings
+        );
+    let plan: DirectMirScalarCfgCollectionPlan =
+        DirectMirScalarCfgCollectionPlan(
+            true, 0, values, operations,
+            DirectMirScalarCfgCollectionObservationSetEmpty(true)
+        );
+    return DirectMirScalarCfgCollectionPlanWithDigest(
+        plan, DirectMirScalarCfgCollectionPlanDigest(plan)
+    );
+}
+
+func DirectMirCollectionProgramProducerLocalPlan(
+    ref identity: DirectMirCollectionProgramIdentity,
+    ref producer: DirectMirCollectionProducerRoutineFact
+) -> DirectMirScalarCfgCollectionPlan {
+    let operations: DirectMirScalarCfgCollectionOperationSet =
+        DirectMirScalarCfgCollectionOperationSet(
+            true, DirectMirCollectionDynamicInputSet(
+                true, ["", ""], ["", DirectMirCollectionQualifiedValueId(
+                    identity.producer.source_syntax_id, "value",
+                    producer.induction_value_id
+                )]
+            ), [producer.collection_definition_global, producer.push_global],
+            [0, 0], [DirectMirScalarCfgCollectionOpInitialize(),
+                     DirectMirScalarCfgCollectionOpPush()],
+            [-1, 0], [0, -1], [-1, -1], ["", "Int"],
+            [0, producer.push_operand], ["", ""], [-1, -1]
+        );
+    return DirectMirCollectionProgramSingleValuePlan(
+        identity.producer.source_syntax_id,
+        DirectMirCollectionOriginLocalDefinition(), -1,
+        producer.collection_definition_global,
+        DirectMirCollectionQualifiedValueId(
+            identity.producer.source_syntax_id, "result",
+            producer.collection_value_id
+        ), producer.collection_name,
+        DirectMirCollectionProgramStorageRoot(identity, producer),
+        producer.abi, operations
+    );
+}
+
+func DirectMirCollectionProgramConsumerLocalPlan(
+    ref identity: DirectMirCollectionProgramIdentity,
+    ref producer: DirectMirCollectionProducerRoutineFact,
+    ref consumer: DirectMirCollectionConsumerRoutineFact
+) -> DirectMirScalarCfgCollectionPlan {
+    let qualified_index: String = DirectMirCollectionQualifiedValueId(
+        identity.consumer.source_syntax_id, "value", consumer.index_value_id
+    );
+    let operations: DirectMirScalarCfgCollectionOperationSet =
+        DirectMirScalarCfgCollectionOperationSet(
+            true, DirectMirCollectionDynamicInputSet(
+                true, ["", qualified_index], ["", ""]
+            ), [consumer.length_global, consumer.get_global], [0, 0],
+            [DirectMirScalarCfgCollectionOpLength(),
+             DirectMirScalarCfgCollectionOpGet()], [0, 0], [-1, -1],
+            [-1, -1], ["", ""], [0, 0], ["", ""], [-1, -1]
+        );
+    return DirectMirCollectionProgramSingleValuePlan(
+        identity.consumer.source_syntax_id,
+        DirectMirCollectionOriginFormalParameter(), 0, -1,
+        DirectMirCollectionQualifiedValueId(
+            identity.consumer.source_syntax_id, "param",
+            identity.consumer.param.name
+        ), identity.consumer.param.name,
+        DirectMirCollectionProgramStorageRoot(identity, producer),
+        identity.consumer.param.abi, operations
+    );
+}
+
+func DirectMirCollectionProgramEntrypointLocalPlan(
+    ref identity: DirectMirCollectionProgramIdentity,
+    ref producer: DirectMirCollectionProducerRoutineFact,
+    ref entrypoint: DirectMirCollectionEntrypointRoutineFact
+) -> DirectMirScalarCfgCollectionPlan {
+    let operations: DirectMirScalarCfgCollectionOperationSet =
+        DirectMirScalarCfgCollectionOperationSet(
+            true, DirectMirCollectionNoDynamicInputs(1),
+            [entrypoint.length_global], [0],
+            [DirectMirScalarCfgCollectionOpLength()], [0], [-1], [-1],
+            [""], [0], [""], [-1]
+        );
+    return DirectMirCollectionProgramSingleValuePlan(
+        identity.entrypoint.source_syntax_id,
+        DirectMirCollectionOriginCallResult(), -1,
+        entrypoint.definition_global,
+        DirectMirCollectionQualifiedValueId(
+            identity.entrypoint.source_syntax_id, "result",
+            entrypoint.collection_value_id
+        ), entrypoint.collection_name,
+        DirectMirCollectionProgramStorageRoot(identity, producer),
+        entrypoint.abi, operations
+    );
+}
+
+func DirectMirCollectionProgramLocalPlanReady(
+    ref plan: DirectMirScalarCfgCollectionPlan
+) -> Bool {
+    if !plan.valid || plan.digest == 0 ||
+        plan.digest != DirectMirScalarCfgCollectionPlanDigest(plan) ||
+        ArrayLength(plan.values.value_ids) != 1 ||
+        !DirectMirCollectionValueOriginsReady(plan.values.origins, 1) ||
+        !DirectMirCollectionDynamicInputsReady(
+            plan.operations.dynamic_inputs,
+            ArrayLength(plan.operations.kinds)
+        ) || !plan.operations.valid ||
+        ArrayLength(plan.values.definition_global_rows) != 1 ||
+        ArrayLength(plan.values.names) != 1 ||
+        ArrayLength(plan.values.element_types) != 1 ||
+        ArrayLength(plan.values.storage_identities) != 1 ||
+        ArrayLength(plan.values.predecessor_value_rows) != 1 ||
+        ArrayLength(plan.values.abi_layout_ids) != 1 ||
+        ArrayLength(plan.values.abi_sizes) != 1 ||
+        ArrayLength(plan.values.abi_aligns) != 1 ||
+        ArrayLength(plan.values.data_offsets) != 1 ||
+        ArrayLength(plan.values.length_offsets) != 1 ||
+        ArrayLength(plan.values.capacity_offsets) != 1 ||
+        ArrayLength(plan.values.allocator_offsets) != 1 ||
+        ArrayLength(plan.values.initial_element_starts) != 1 ||
+        ArrayLength(plan.values.initial_element_counts) != 1 ||
+        ArrayLength(plan.values.initial_int_elements) != 0 ||
+        ArrayLength(plan.values.initial_string_elements) != 0 ||
+        !plan.observations.valid ||
+        ArrayLength(plan.observations.kinds) != 0 ||
+        plan.values.value_ids[0] == "" || plan.values.names[0] == "" ||
+        plan.values.element_types[0] != "Int" ||
+        plan.values.storage_identities[0] == "" ||
+        plan.values.predecessor_value_rows[0] != -1 ||
+        plan.values.abi_layout_ids[0] <= 0 ||
+        plan.values.abi_sizes[0] != 32 || plan.values.abi_aligns[0] != 8 ||
+        plan.values.data_offsets[0] != 0 ||
+        plan.values.length_offsets[0] != 8 ||
+        plan.values.capacity_offsets[0] != 16 ||
+        plan.values.allocator_offsets[0] != 24 ||
+        plan.values.initial_element_counts[0] != 0 { return false; }
+    let operation_count: Int = ArrayLength(plan.operations.kinds);
+    if operation_count != ArrayLength(plan.operations.global_rows) ||
+        operation_count != ArrayLength(plan.operations.source_ordinals) ||
+        operation_count != ArrayLength(
+            plan.operations.receiver_value_rows
+        ) || operation_count != ArrayLength(
+            plan.operations.result_value_rows
+        ) || operation_count != ArrayLength(plan.operations.indices) ||
+        operation_count != ArrayLength(plan.operations.input_types) ||
+        operation_count != ArrayLength(plan.operations.input_ints) ||
+        operation_count != ArrayLength(plan.operations.input_strings) ||
+        operation_count != ArrayLength(plan.operations.graph_operation_rows) {
+        return false;
+    }
+    let origin: Int = plan.values.origins.kinds[0];
+    if (origin == DirectMirCollectionOriginFormalParameter() &&
+            (plan.values.definition_global_rows[0] != -1 ||
+             plan.values.initial_element_starts[0] != -1)) ||
+        (origin != DirectMirCollectionOriginFormalParameter() &&
+            plan.values.definition_global_rows[0] < 0) ||
+        (origin == DirectMirCollectionOriginLocalDefinition() &&
+            plan.values.initial_element_starts[0] != 0) ||
+        (origin == DirectMirCollectionOriginCallResult() &&
+            plan.values.initial_element_starts[0] != -1) { return false; }
+    let row: Int = 0;
+    let prior_global: Int = -1;
+    while row < ArrayLength(plan.operations.kinds) {
+        let kind: Int = plan.operations.kinds[row];
+        if plan.operations.global_rows[row] < 0 ||
+            plan.operations.global_rows[row] < prior_global ||
+            kind < DirectMirScalarCfgCollectionOpInitialize() ||
+            kind > DirectMirScalarCfgCollectionOpLength() ||
+            plan.operations.graph_operation_rows[row] != -1 {
+            return false;
+        }
+        if kind == DirectMirScalarCfgCollectionOpInitialize() {
+            if plan.operations.receiver_value_rows[row] != -1 ||
+                plan.operations.result_value_rows[row] != 0 ||
+                plan.operations.indices[row] != -1 { return false; }
+        } else if kind == DirectMirScalarCfgCollectionOpPush() {
+            if plan.operations.receiver_value_rows[row] != 0 ||
+                plan.operations.result_value_rows[row] != -1 ||
+                plan.operations.indices[row] != -1 ||
+                plan.operations.input_types[row] != "Int" ||
+                plan.operations.dynamic_inputs.input_value_ids[row] == "" {
+                return false;
+            }
+        } else if kind == DirectMirScalarCfgCollectionOpGet() {
+            if plan.operations.receiver_value_rows[row] != 0 ||
+                plan.operations.result_value_rows[row] != -1 ||
+                plan.operations.indices[row] != -1 ||
+                plan.operations.dynamic_inputs.index_value_ids[row] == "" {
+                return false;
+            }
+        } else if kind == DirectMirScalarCfgCollectionOpLength() &&
+            (plan.operations.receiver_value_rows[row] != 0 ||
+             plan.operations.result_value_rows[row] != -1 ||
+             plan.operations.indices[row] != -1 ||
+             plan.operations.dynamic_inputs.index_value_ids[row] != "" ||
+             plan.operations.dynamic_inputs.input_value_ids[row] != "") {
+            return false;
+        }
+        prior_global = plan.operations.global_rows[row]; row = row + 1;
+    }
+    return true;
+}

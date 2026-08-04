@@ -41,16 +41,17 @@ $ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_argument_plan_owner.pgy|215
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_argument_c_emission_owner.pgy|165
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_argument_llvm_emission_owner.pgy|110
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy|90
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy|35
 EOF
-    [[ "$total" -le 1385 ]] || fail "struct owner family cap exceeded: $total/1385"
+    [[ "$total" -le 1420 ]] || fail "struct owner family cap exceeded: $total/1420"
     grep -Fq 'CompileAdmittedDirectMirThreeRoutine(' \
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" ||
-        fail "multi-routine root does not route one three-routine decision"
+        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy" ||
+        fail "terminal multi-routine owner does not route one three-routine decision"
     grep -Fq 'classification.kind == DirectMirThreeRoutineStructArgument()' \
         "$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" ||
         fail "three-routine owner does not classify struct argument MIR"
-    grep -Fq 'JsonArrayObjectFactCount(admitted.document.declarations) == 0' \
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_argument_program_identity_owner.pgy" ||
+    grep -Fq 'routine_block_counts[row] != 1' \
+        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_argument_legacy_route_owner.pgy" ||
         fail "Array and struct candidates are not disjoint"
 }
 

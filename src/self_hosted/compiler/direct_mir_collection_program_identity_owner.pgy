@@ -1,0 +1,126 @@
+// Row-order-independent identity for collection return/call/parameter carriage.
+
+import "direct_mir_collection_program_route_fact_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+
+struct DirectMirCollectionProgramIdentity {
+    let valid: Bool;
+    let digest: Int;
+    let entrypoint: DirectMirRoutineSignatureFact;
+    let producer: DirectMirRoutineSignatureFact;
+    let consumer: DirectMirRoutineSignatureFact;
+}
+
+func DirectMirCollectionProgramIdentityDigest(
+    ref identity: DirectMirCollectionProgramIdentity
+) -> Int {
+    if !identity.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(719L, identity.entrypoint.digest);
+    hash = DirectMirCfgHashInt(hash, identity.producer.digest);
+    hash = DirectMirCfgHashInt(hash, identity.consumer.digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirCollectionProgramIdentityWithDigest(
+    identity: DirectMirCollectionProgramIdentity, digest: Int
+) -> DirectMirCollectionProgramIdentity {
+    return DirectMirCollectionProgramIdentity(
+        identity.valid, digest, identity.entrypoint, identity.producer,
+        identity.consumer
+    );
+}
+
+func DirectMirCollectionProgramIdentityReady(
+    ref identity: DirectMirCollectionProgramIdentity
+) -> Bool {
+    return identity.valid && identity.digest != 0 &&
+        identity.digest == DirectMirCollectionProgramIdentityDigest(identity) &&
+        DirectMirRoutineSignatureFactReady(identity.entrypoint) &&
+        DirectMirRoutineSignatureFactReady(identity.producer) &&
+        DirectMirRoutineSignatureFactReady(identity.consumer) &&
+        identity.entrypoint.name == "Main" &&
+        identity.entrypoint.return_type == "Void" &&
+        identity.entrypoint.param_count == 0 &&
+        identity.producer.return_type == CompilerAbiLayoutArrayIntTypeName() &&
+        identity.producer.param_count == 1 &&
+        identity.producer.param.type_name == CompilerAbiLayoutIntTypeName() &&
+        identity.producer.param.carriage == "value" &&
+        identity.producer.param.resource == "none" &&
+        identity.producer.param.pass_shape == "direct" &&
+        !identity.producer.param.abi_required &&
+        identity.consumer.return_type == CompilerAbiLayoutIntTypeName() &&
+        identity.consumer.param_count == 1 &&
+        identity.consumer.param.type_name == CompilerAbiLayoutArrayIntTypeName() &&
+        identity.consumer.param.carriage == "value" &&
+        identity.consumer.param.resource == "none" &&
+        identity.consumer.param.pass_shape == "direct" &&
+        identity.consumer.param.abi_required &&
+        DirectMirArrayIntCapturedAbiReady(identity.consumer.param.abi) &&
+        identity.entrypoint.row != identity.producer.row &&
+        identity.entrypoint.row != identity.consumer.row &&
+        identity.producer.row != identity.consumer.row &&
+        identity.entrypoint.source_syntax_id != identity.producer.source_syntax_id &&
+        identity.entrypoint.source_syntax_id != identity.consumer.source_syntax_id &&
+        identity.producer.source_syntax_id != identity.consumer.source_syntax_id;
+}
+
+func DirectMirCollectionProgramIdentityFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirCollectionProgramIdentity {
+    let route: DirectMirCollectionProgramRouteFact =
+        DirectMirCollectionProgramRouteFactFromAdmitted(admitted);
+    if !DirectMirCollectionProgramRouteFactReady(route) || !route.claimed ||
+        route.routine_count != 3 || route.entrypoint_count != 1 ||
+        route.collection_producer_count != 1 ||
+        route.collection_consumer_count != 1 ||
+        !MirProgramRoutineIndexStructureReady(admitted.routines) {
+        Die("direct MIR collection program identity route is invalid");
+    }
+    let entrypoint: DirectMirRoutineSignatureFact =
+        InvalidDirectMirRoutineSignatureFact();
+    let producer: DirectMirRoutineSignatureFact =
+        InvalidDirectMirRoutineSignatureFact();
+    let consumer: DirectMirRoutineSignatureFact =
+        InvalidDirectMirRoutineSignatureFact();
+    let row: Int = 0;
+    while row < route.routine_count {
+        let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
+            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.ends[row]
+        );
+        let count: Int = ArrayLength(header.param_types);
+        let first_block_count: Int =
+            MirProgramRoutineIndexBlockInstructionCountAt(
+                admitted.routines, row, 0
+            );
+        let signature: DirectMirRoutineSignatureFact =
+            DirectMirRoutineSignatureFactAt(
+                admitted.routines, row, first_block_count
+            );
+        if !DirectMirRoutineSignatureFactReady(signature) {
+            Die("direct MIR collection program signature is invalid");
+        }
+        if signature.name == "Main" && signature.return_type == "Void" &&
+            count == 0 { entrypoint = signature;
+        } else if signature.return_type == CompilerAbiLayoutArrayIntTypeName() &&
+            count == 1 && header.param_types[0] == CompilerAbiLayoutIntTypeName() {
+            producer = signature;
+        } else if signature.return_type == CompilerAbiLayoutIntTypeName() &&
+            count == 1 && header.param_types[0] ==
+                CompilerAbiLayoutArrayIntTypeName() { consumer = signature;
+        } else { Die("direct MIR collection program routine role is invalid"); }
+        row = row + 1;
+    }
+    let identity: DirectMirCollectionProgramIdentity =
+        DirectMirCollectionProgramIdentity(
+            true, 0, entrypoint, producer, consumer
+        );
+    let verified: DirectMirCollectionProgramIdentity =
+        DirectMirCollectionProgramIdentityWithDigest(
+            identity, DirectMirCollectionProgramIdentityDigest(identity)
+        );
+    if !DirectMirCollectionProgramIdentityReady(verified) {
+        Die("direct MIR collection program identity is invalid");
+    }
+    return verified;
+}

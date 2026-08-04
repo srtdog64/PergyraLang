@@ -5,6 +5,7 @@
 import "direct_mir_array_argument_graph_fact_owner.pgy";
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_scalar_graph_admission_owner.pgy";
+import "direct_mir_array_argument_legacy_route_owner.pgy";
 
 struct DirectMirArrayArgumentProgramIdentity {
     let valid: Bool;
@@ -83,9 +84,7 @@ func DirectMirArrayArgumentProgramIdentityReady(
 func DirectMirArrayArgumentProgramCandidate(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> Bool {
-    return MirProgramRoutineIndexCount(admitted.routines) == 3 &&
-        JsonArrayObjectFactTableReady(admitted.document.declarations) &&
-        JsonArrayObjectFactCount(admitted.document.declarations) == 0;
+    return DirectMirArrayArgumentLegacyRouteClaimed(admitted);
 }
 
 func DirectMirArrayArgumentRoutineEnvelopeReady(

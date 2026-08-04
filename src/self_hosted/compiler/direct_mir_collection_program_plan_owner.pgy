@@ -1,0 +1,193 @@
+// One sealed program receipt joining routine-local CollectionPlans and edges.
+
+import "artifact_zone_owner.pgy";
+import "target_capability_owner.pgy";
+import "direct_mir_collection_program_producer_admission_owner.pgy";
+import "direct_mir_collection_program_consumer_admission_owner.pgy";
+import "direct_mir_collection_program_entrypoint_admission_owner.pgy";
+import "direct_mir_collection_program_local_plan_owner.pgy";
+import "direct_mir_collection_program_local_join_owner.pgy";
+import "direct_mir_collection_program_edge_fact_owner.pgy";
+
+struct DirectMirCollectionProgramPlan {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let digest: Int;
+    let target_capability_schema: String;
+    let target_capability_fingerprint: Int;
+    let storage_carriage: String;
+    let identity: DirectMirCollectionProgramIdentity;
+    let producer: DirectMirCollectionProducerRoutineFact;
+    let entrypoint: DirectMirCollectionEntrypointRoutineFact;
+    let consumer: DirectMirCollectionConsumerRoutineFact;
+    let producer_collections: DirectMirScalarCfgCollectionPlan;
+    let entrypoint_collections: DirectMirScalarCfgCollectionPlan;
+    let consumer_collections: DirectMirScalarCfgCollectionPlan;
+    let edges: DirectMirCollectionProgramEdgeSet;
+}
+
+func DirectMirCollectionProgramPlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-collection-program-plan.v1";
+}
+
+func DirectMirCollectionProgramStorageCarriage() -> String {
+    return "producer_reallocating_array_value_main_single_cleanup";
+}
+
+func DirectMirCollectionProgramPlanDigest(
+    ref plan: DirectMirCollectionProgramPlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(761L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
+    hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
+    hash = DirectMirCfgHashString(hash, plan.storage_carriage);
+    hash = DirectMirCfgHashInt(hash, plan.identity.digest);
+    hash = DirectMirCfgHashInt(hash, plan.producer.digest);
+    hash = DirectMirCfgHashInt(hash, plan.entrypoint.digest);
+    hash = DirectMirCfgHashInt(hash, plan.consumer.digest);
+    hash = DirectMirCfgHashInt(hash, plan.producer_collections.digest);
+    hash = DirectMirCfgHashInt(hash, plan.entrypoint_collections.digest);
+    hash = DirectMirCfgHashInt(hash, plan.consumer_collections.digest);
+    hash = DirectMirCfgHashInt(hash, plan.edges.digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirCollectionProgramPlanWithDigest(
+    plan: DirectMirCollectionProgramPlan, digest: Int
+) -> DirectMirCollectionProgramPlan {
+    return DirectMirCollectionProgramPlan(
+        plan.valid, plan.schema, plan.revision, digest,
+        plan.target_capability_schema, plan.target_capability_fingerprint,
+        plan.storage_carriage, plan.identity, plan.producer, plan.entrypoint,
+        plan.consumer, plan.producer_collections,
+        plan.entrypoint_collections, plan.consumer_collections, plan.edges
+    );
+}
+
+func DirectMirCollectionProgramPlanReady(
+    ref plan: DirectMirCollectionProgramPlan
+) -> Bool {
+    if !plan.valid || plan.schema != DirectMirCollectionProgramPlanSchema() ||
+        plan.revision != CompilerArtifactPlanRevision() || plan.digest == 0 ||
+        plan.digest != DirectMirCollectionProgramPlanDigest(plan) ||
+        plan.target_capability_schema != CompilerTargetCapabilitySchema() ||
+        plan.target_capability_fingerprint !=
+            CompilerTargetCapabilityFingerprint() ||
+        plan.storage_carriage != DirectMirCollectionProgramStorageCarriage() ||
+        !DirectMirCollectionProgramIdentityReady(plan.identity) ||
+        !DirectMirCollectionProducerRoutineFactReady(plan.producer) ||
+        !DirectMirCollectionEntrypointRoutineFactReady(plan.entrypoint) ||
+        !DirectMirCollectionConsumerRoutineFactReady(plan.consumer) ||
+        !DirectMirCollectionProgramLocalPlansJoinReady(
+            plan.identity, plan.producer, plan.entrypoint, plan.consumer,
+            plan.producer_collections, plan.entrypoint_collections,
+            plan.consumer_collections
+        ) || !DirectMirCollectionProgramEdgeSetReady(
+            plan.edges, plan.identity, plan.producer, plan.entrypoint
+        ) { return false; }
+    return ArrayLength(plan.producer_collections.operations.kinds) == 2 &&
+        plan.producer_collections.operations.kinds[0] ==
+            DirectMirScalarCfgCollectionOpInitialize() &&
+        plan.producer_collections.operations.kinds[1] ==
+            DirectMirScalarCfgCollectionOpPush() &&
+        ArrayLength(plan.entrypoint_collections.operations.kinds) == 1 &&
+        plan.entrypoint_collections.operations.kinds[0] ==
+            DirectMirScalarCfgCollectionOpLength() &&
+        ArrayLength(plan.consumer_collections.operations.kinds) == 2 &&
+        plan.consumer_collections.operations.kinds[0] ==
+            DirectMirScalarCfgCollectionOpLength() &&
+        plan.consumer_collections.operations.kinds[1] ==
+            DirectMirScalarCfgCollectionOpGet() &&
+        MirAbiLayoutIdFromCapture(plan.producer.abi) ==
+            plan.identity.consumer.param.abi_layout_id &&
+        MirAbiLayoutIdFromCapture(plan.entrypoint.abi) ==
+            plan.identity.consumer.param.abi_layout_id;
+}
+
+func DirectMirCollectionProgramPlanMutationRejected(
+    ref plan: DirectMirCollectionProgramPlan
+) -> Bool {
+    if !DirectMirCollectionProgramPlanReady(plan) { return false; }
+    let bad_target: DirectMirCollectionProgramPlan =
+        DirectMirCollectionProgramPlan(
+            plan.valid, plan.schema, plan.revision, 0,
+            plan.target_capability_schema,
+            plan.target_capability_fingerprint + 1,
+            plan.storage_carriage, plan.identity, plan.producer,
+            plan.entrypoint, plan.consumer, plan.producer_collections,
+            plan.entrypoint_collections, plan.consumer_collections, plan.edges
+        );
+    bad_target = DirectMirCollectionProgramPlanWithDigest(
+        bad_target, DirectMirCollectionProgramPlanDigest(bad_target)
+    );
+    let bad_carriage: DirectMirCollectionProgramPlan =
+        DirectMirCollectionProgramPlan(
+            plan.valid, plan.schema, plan.revision, 0,
+            plan.target_capability_schema,
+            plan.target_capability_fingerprint, "fixed_no_reallocation",
+            plan.identity, plan.producer, plan.entrypoint, plan.consumer,
+            plan.producer_collections, plan.entrypoint_collections,
+            plan.consumer_collections, plan.edges
+        );
+    bad_carriage = DirectMirCollectionProgramPlanWithDigest(
+        bad_carriage, DirectMirCollectionProgramPlanDigest(bad_carriage)
+    );
+    return !DirectMirCollectionProgramPlanReady(bad_target) &&
+        !DirectMirCollectionProgramPlanReady(bad_carriage);
+}
+
+func DirectMirCollectionProgramPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirCollectionProgramPlan {
+    let identity: DirectMirCollectionProgramIdentity =
+        DirectMirCollectionProgramIdentityFromAdmitted(admitted);
+    let producer: DirectMirCollectionProducerRoutineFact =
+        DirectMirCollectionProducerRoutineFactFromAdmitted(
+            admitted, identity
+        );
+    let consumer: DirectMirCollectionConsumerRoutineFact =
+        DirectMirCollectionConsumerRoutineFactFromAdmitted(
+            admitted, identity
+        );
+    let entrypoint: DirectMirCollectionEntrypointRoutineFact =
+        DirectMirCollectionEntrypointRoutineFactFromAdmitted(
+            admitted, identity
+        );
+    let producer_collections: DirectMirScalarCfgCollectionPlan =
+        DirectMirCollectionProgramProducerLocalPlan(identity, producer);
+    let entrypoint_collections: DirectMirScalarCfgCollectionPlan =
+        DirectMirCollectionProgramEntrypointLocalPlan(
+            identity, producer, entrypoint
+        );
+    let consumer_collections: DirectMirScalarCfgCollectionPlan =
+        DirectMirCollectionProgramConsumerLocalPlan(
+            identity, producer, consumer
+        );
+    let edges: DirectMirCollectionProgramEdgeSet =
+        DirectMirCollectionProgramEdgesFromFacts(
+            identity, producer, entrypoint
+        );
+    let plan: DirectMirCollectionProgramPlan =
+        DirectMirCollectionProgramPlan(
+            true, DirectMirCollectionProgramPlanSchema(),
+            CompilerArtifactPlanRevision(), 0,
+            CompilerTargetCapabilitySchema(),
+            CompilerTargetCapabilityFingerprint(),
+            DirectMirCollectionProgramStorageCarriage(), identity, producer,
+            entrypoint, consumer, producer_collections,
+            entrypoint_collections, consumer_collections, edges
+        );
+    let verified: DirectMirCollectionProgramPlan =
+        DirectMirCollectionProgramPlanWithDigest(
+            plan, DirectMirCollectionProgramPlanDigest(plan)
+        );
+    let negative: DirectMirCollectionProgramPlan = verified;
+    if !DirectMirCollectionProgramPlanReady(verified) ||
+        !DirectMirCollectionProgramPlanMutationRejected(negative) {
+        Die("direct MIR collection program plan is invalid");
+    }
+    return verified;
+}

@@ -1,0 +1,25 @@
+// Exact Array<Int> instruction ABI capture shared by program-role admissions.
+
+import "direct_mir_instruction_abi_absence_owner.pgy";
+import "direct_mir_array_int_abi_fact_owner.pgy";
+
+func DirectMirCollectionProgramInstructionArrayAbi(
+    json: String,
+    ref capture: MirRoutineInstructionScalarCapture
+) -> MirAbiLayoutRowCapture {
+    let invalid: MirAbiLayoutRowCapture = InvalidMirAbiLayoutRowCapture();
+    if !capture.valid { return invalid; }
+    let admitted: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            json, capture.abi_type_name, capture.abi_type_value_ready,
+            capture.abi_type_start, capture.abi_type_end,
+            capture.abi_layout_id_start, capture.abi_layout_id_end,
+            capture.abi_layout_required_start,
+            capture.abi_layout_required_end,
+            capture.abi_layout_start, capture.abi_layout_end
+        );
+    if !IsSome(admitted) { return invalid; }
+    let abi: MirAbiLayoutRowCapture = UnwrapOption(admitted);
+    if !DirectMirArrayIntCapturedAbiReady(abi) { return invalid; }
+    return abi;
+}
