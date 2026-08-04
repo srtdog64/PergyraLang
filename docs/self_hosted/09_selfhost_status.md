@@ -16,6 +16,26 @@ For work after this snapshot, follow `docs/152_validation_isolation_policy.md`:
 rerun only the owner gate for the touched self-host rung unless a broader
 compiler-world owner changed or broad parity is explicitly requested.
 
+Focused evidence on 2026-08-04 closes `bool_logic.pgy` at checkpoint
+`0194446d`. One 17,188-byte self-produced MIR drives both installed direct
+targets through GraphPlan v14 and executes exact `flag-on, other-off, and,
+logic, grouped, 0, 2, 4`. The first green implementation was rejected because
+it duplicated the entrypoint plan, CFG/SSA/phi arrays, and target block loops.
+The landed optional extension carries only typed expression rows, one
+closed-module `(Int) -> Bool` callable, and ABI evidence inside the existing
+GraphPlan. Returned-Array routing no longer classifies by block count.
+Nontrapping eager logical RHS, typed call endpoints, checked modulo admission,
+dominating-bound add evidence, `add nsw`, transactional shared-phi validation,
+and inactive-payload rejection are pinned by focused and component gates. The
+final build took 170.616 seconds and peaked at 2.327 GiB working set / 2.536
+GiB private: below the 3 GiB stop line but above the 2.4 GiB attention line on
+private memory. This is bounded direct-C/LLVM `SUBSTITUTING`, not arbitrary
+program or released/default replacement. The next observed falsifier is the
+12,186-byte `string_equality.pgy` MIR
+(`1859C1E166B34072657A36F05EDDCBED41E5C0276DE38BB28A6B949EFB20F843`),
+rejected without artifact by both targets at `direct MIR terminal multi-routine
+graph is unsupported`.
+
 Focused evidence on 2026-07-27 advances the integrated driver beyond this
 dated full-suite snapshot. The Pergyra-built gen2 driver emitted verified MIR
 for the current complete driver source, byte-identical to separate C-oracle

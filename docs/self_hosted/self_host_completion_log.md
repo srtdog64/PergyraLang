@@ -6,6 +6,50 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-04 - Bool/logical program substitutes through the sole GraphPlan
+
+- Landed executable checkpoint `0194446d`. The installed Pergyra-built driver
+  is 4,864,189 bytes with SHA-256
+  `984840C0F99CDA6341815B75CEA0610A5A41E2E7CC32BA67801BC38CD02E223D`.
+  Its 17,188-byte `bool_logic.pgy` MIR
+  (`77A60A6644C7D4BFE4B805D40306CCC90BD6F1612E2988CF4E2051BB4C6C1612`)
+  emits 1,562-byte C
+  (`49768E89B4FB55643083427A6FC416C3558FCFAD0E1B05CA5444DC63ADCBF111`)
+  and 4,295-byte LLVM
+  (`DA61B501007835851A3FB56D5D38E276B4FBDC7B34AB5CD05B5D6CD9F15260B1`).
+  Both compile and execute exact `flag-on, other-off, and, logic, grouped,
+  0, 2, 4`.
+- Rejected the first green implementation before commit because it created a
+  sibling entrypoint plan, CFG/SSA/phi arrays, and complete C/LLVM block loops.
+  GraphPlan v14 now remains the only graph authority. The bounded program
+  extension owns only typed expression-row links, one closed-module
+  `(Int) -> Bool` callable, and ABI evidence; shared emitters call extension
+  hooks.
+- Removed block-count semantics from returned-Array routing and require actual
+  iteration evidence. Direct calls bind target identity and actual type.
+  Eager logical RHS is restricted to nontrapping Bool DAGs. Modulo rejects
+  literal `0` and `-1`; `local + 1` requires a dominating positive bound and
+  LLVM uses `add nsw`. Phi incoming rows are validated completely before any
+  shared array mutation.
+- The focused C/LLVM gate covers behavior variants, display/routine-order
+  equality, inactive extension payload, and no-artifact use/type/backedge/phi/
+  call/short-circuit/modulo/add negatives. Returned Array foreach, Array
+  parameter, general scalar CFG, break-exit, and continue-backedge regressions
+  passed with the hard and component contracts.
+- Final compiler build took 170.616 seconds and peaked at 2.327 GiB working
+  set / 2.536 GiB private. It stayed below the 3 GiB stop threshold but crossed
+  the 2.4 GiB attention threshold on private memory. Full CI, current fixed
+  point, proof suites, and public release promotion did not run.
+- Classification is bounded `SUBSTITUTING` for this exact Bool/logical/direct-
+  call program only. The next observed falsifier is `string_equality.pgy`:
+  its 12,186-byte MIR
+  (`1859C1E166B34072657A36F05EDDCBED41E5C0276DE38BB28A6B949EFB20F843`)
+  is produced, but both targets publish no artifact and report `direct MIR
+  terminal multi-routine graph is unsupported`. The next rung must add typed
+  String equality/inequality and String return carriage inside the same scalar
+  extension; fixture branches, expression text, second plans, terminal retry,
+  backend MIR reads, and native fallback are forbidden.
+
 ## 2026-08-04 - Reallocating Array return/parameter carriage substitutes
 
 - Landed executable checkpoint `9e33ec37`. The installed Pergyra-built

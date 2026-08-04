@@ -2,6 +2,26 @@
 
 Status: `BRIDGE`
 
+## 2026-08-04 bounded Bool-program evidence
+
+Checkpoint `0194446d` is bounded `SUBSTITUTING` evidence for an input-language
+program slice, not a promotion of the compiler composition root. The production
+installed self-host entrypoint consumes one self-produced `bool_logic.pgy` MIR
+through the sole scalar GraphPlan and emits compiling C and LLVM with exact
+equal behavior. Bool literals, nontrapping logical expressions, one direct
+`(Int) -> Bool` callable, phi-backed loop state, typed call endpoints, safe
+modulo, and dominating-bound `+1` are executable facts rather than parser-only
+surface.
+
+This evidence does not change the `world`/`zone`/`subject`/`action`/`intent`
+grades. The rung is organized by the responsibility of pure value computation:
+typed expression and GraphPlan owners remain `func`/`struct` code. It would be
+false dogfood to wrap those calculations in decorative `action` or `intent`.
+The production compiler-purpose action chain remains the authority for compiler
+organization; this row only proves that the installed compiler can substitute
+the bounded user-program semantics. Effectful short-circuiting, arbitrary
+callables, and whole-root replacement remain open.
+
 이 문서는 Pergyra 컴파일러가 Pergyra 소스로 작성되었다는 사실만으로
 개사료(dogfood)를 완료했다고 오판하지 않기 위한 실행 계약이다.
 

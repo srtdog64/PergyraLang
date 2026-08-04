@@ -1,6 +1,50 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-04 collection program carriage
+## Active self-host context - 2026-08-04 Bool program GraphPlan extension
+
+- Checkpoint `0194446df85ee2601e5f083fc12dd7b9e8af4f5b` closes
+  `src/self_hosted/codegen/fixture/bool_logic.pgy` through installed direct C
+  and LLVM. The Pergyra-built driver is 4,864,189 bytes with SHA-256
+  `984840C0F99CDA6341815B75CEA0610A5A41E2E7CC32BA67801BC38CD02E223D`.
+- The 17,188-byte self-produced MIR
+  (`77A60A6644C7D4BFE4B805D40306CCC90BD6F1612E2988CF4E2051BB4C6C1612`)
+  emits 1,562-byte C
+  (`49768E89B4FB55643083427A6FC416C3558FCFAD0E1B05CA5444DC63ADCBF111`)
+  and 4,295-byte LLVM
+  (`DA61B501007835851A3FB56D5D38E276B4FBDC7B34AB5CD05B5D6CD9F15260B1`).
+  Both execute exact `flag-on, other-off, and, logic, grouped, 0, 2, 4`.
+- GraphPlan v14 is the only CFG/SSA/phi/local/operation plan. One optional
+  program extension contributes typed expression rows, one `(Int) -> Bool`
+  callable, and closed-module ABI; shared target loops consume it. No sibling
+  microcompiler, block-count route, backend MIR read, or legacy retry remains.
+- Arithmetic and control are fail-closed: eager logical RHS must be nontrapping,
+  modulo divisors cannot be `0` or `-1`, `local + 1` requires a dominating
+  positive bound, LLVM uses `add nsw`, and phi rows append only after complete
+  validation. Focused variants and all corresponding no-artifact negatives are
+  green for C and LLVM.
+- Final build: 170.616 seconds, 2.327 GiB peak working set, 2.536 GiB peak
+  private. The 3 GiB stop line held; the 2.4 GiB attention line was crossed on
+  private memory. Five adjacent installed-driver regressions plus hard and
+  component contracts passed. Full CI, fixed point, proof suites, and released
+  promotion did not run.
+- This is bounded `SUBSTITUTING` for the exact Bool/logical/direct-call program,
+  not arbitrary call graphs, effectful short-circuiting, or whole compiler
+  replacement.
+- The sole next executable falsifier is `string_equality.pgy`. Its 12,186-byte
+  MIR has SHA-256
+  `1859C1E166B34072657A36F05EDDCBED41E5C0276DE38BB28A6B949EFB20F843`.
+  Both targets reject without artifact at `direct MIR terminal multi-routine
+  graph is unsupported`; required output is `I, S, S, ?, eq`.
+- Next objective card: add typed String equality/inequality and String return
+  carriage to the existing scalar-program extension. The existing execution
+  graph remains fact owner and the direct target compiler remains last
+  consumer. Fixture/name branching, text parsing, precomputed output, a second
+  plan/emitter loop, terminal retry, backend MIR reads, and native fallback are
+  forbidden.
+
+## Historical self-host ledger - inactive navigation evidence
+
+### Previous 2026-08-04 collection program carriage
 
 - Checkpoint `9e33ec3730fc276921adc1311b834dfc8502c7d1` closes
   `src/self_hosted/codegen/fixture/array_param.pgy` through installed direct C
@@ -44,8 +88,6 @@
   from claiming the non-Array input. Fixture/text routing, block-count
   classification, precomputed output, backend MIR reads, native fallback, and
   retry after a Bool/scalar claim are forbidden.
-
-## Historical self-host ledger - inactive navigation evidence
 
 ### Previous 2026-08-04 indexed collection operations
 
