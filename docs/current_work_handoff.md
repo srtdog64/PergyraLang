@@ -6,83 +6,77 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - joint `ArrayPop` effects closed
+## Active self-host context - bounded indexed collection operations closed
 
-- Executable checkpoint: `ff2b7fd840b81e94464766405ebda5860a5cb5bd` on
-  `main`, with this handoff as its intended docs-only descendant. The final
-  current-source Pergyra-built driver is 5,270,168 bytes with SHA-256
-  `69E7BE5DC1065569CA08B57D89054FABDC0C9B5FE6A75E71EA9080E74C999933`.
-- Closed executable rung: `src/self_hosted/codegen/fixture/array_pop.pgy`.
-  Its 14,007-byte self-produced MIR has SHA-256
-  `AB92771EA08C27C73EDAB26E06441BF88CC3843C64FEFD784156694D321F73D4`.
-  The same MIR emits a 1,778-byte C artifact
-  (`B855FB9E3D4F0B806C80E7886F1A9CE3AFFC3425A739E34ACC6E1BCBE315DEF9`)
-  and a 6,876-byte LLVM artifact
-  (`90E7DA1735A26E9F6242F5DD9B27A028783F61614D580170254F464CFD5EBB2F`).
-  Both host-compile and execute exact `30`, `2`, `2`, `a`.
-- One joint collection-pop receipt inside the existing target-neutral
-  `GraphPlan` joins the foreach-owned `Array<Int>` source, the String-plan-
-  owned source, and three globally ordered Void effects. Partial Int-only or
-  String-only success is invalid. The ArrayInt fifth mode owns effects only
-  and cannot materialize a second `xs` storage beside the foreach owner.
-- C and LLVM mutate only the live length fields of the same canonical four-
-  field objects consumed by the later foreach, length logs, and String index.
-  Capacity, allocator, data pointer, and popped tails remain unchanged. No
-  backend reopens MIR, pretrims storage, folds the effects into one final
-  literal store, or calls incompatible value-returning three-field
-  `pgy_ai_pop`/`pgy_as_pop` helpers.
-- Focused evidence: baseline, alternate, popped-tail-only, display-only and
-  coherent ValueId-renumber variants plus twelve C/LLVM no-artifact negatives
-  exited 0 in 25.2 seconds. Adjacent foreach, mixed collection, String
-  mutation/push, and ArrayInt push/sum/max/reverse regressions remained green;
-  the final five-gate bundle exited 0 in 181.7 seconds. The component/removed-
-  path ratchet exited 0 in 258.6 seconds.
-- The fail-fast cumulative scalar-CFG runner reached its final ArrayPop success
-  label in 546.5 seconds. Windows `Start-Process` did not expose the child exit
-  code, so this is final-marker evidence, not an observed exit-0 claim. Memory
-  was sampled only at this final integration boundary: 218 samples at 100 ms
-  observed 0.176 GiB maximum aggregate working set and 0.189 GiB maximum
-  aggregate private memory, below the 2.4 GiB attention and 3 GiB stop limits.
-- No existing line cap was raised. Saturated responsibilities were split into
-  named access-readiness, mutation-length, condition-emission, GraphPlan-
-  receipt-identity, and target mutation owners. Two stale structural test pins
-  were repointed only after their moved owner and executable parity were
-  verified; no compatibility alias was added.
-- Classification is bounded `SUBSTITUTING` only for the exact local four-
-  element Int source with two entry pops before foreach and the local three-
-  element String source with one straight-line pop before length/index. Empty
-  pop, aliases, parameters, returns, branch/loop mutation, mixed push/pop,
-  arbitrary element types, and ownership-sensitive String destruction remain
-  open. Full CI, public matrices, proof suites, released-driver promotion, and
-  current gen2==gen3 did not run.
-- Known independent red: `python scripts/sot_registry_gate.py` still exits 1 at
-  the pre-existing `registry contains duplicate Coq fact authorities`. The new
-  collection-pop registry row parsed before that existing conflict and did not
-  add or weaken it.
-- The independent Hacker News report that language consistency is easier to
-  steer than compiler architecture remains an anecdote, not benchmark or
-  authority. Local ArrayPop evidence supports the narrow distinction: surface
-  support already existed, while one owner graph, evidence lifetime, last-
-  consumer binding, and forbidden fallback had to be made explicit.
-- Next objective card: only
-  `src/self_hosted/codegen/fixture/array_index_assign.pgy` is active. The
-  current driver produces a 10,338-byte MIR with SHA-256
+- Executable checkpoint: `6bdc207d4d4c0b7c76809f847cf7acfbbc688619`
+  on `main`, with this handoff as its intended docs-only descendant. The final
+  current-source Pergyra-built driver is 4,740,820 bytes with SHA-256
+  `226E98CEC879BB10125F230EEDB3C8ADD619800020D3E372CB96E18E01F6257B`.
+- Closed executable rung:
+  `src/self_hosted/codegen/fixture/array_index_assign.pgy`. Its 10,338-byte
+  self-produced MIR has SHA-256
   `7043BFBA70252CC058D0E2B7B826796254D8F14B6D6C5358A09868DA554EABFA`.
-  Both direct targets reject before publication with
-  `direct MIR scalar local type inventory is missing or invalid`.
-- Objective: reuse the existing Int and String source/storage authorities and
-  bind their two indexed writes in one program graph, then execute exact `12`
-  and `zb`. Priority is distinct collection and index/value identity, owner-
-  directed mutation order and current bounds, fallback exclusion, then exact
-  C/LLVM parity. The existing typed collection/ABI, String mutation, ArrayInt
-  static mutation, and scalar-CFG GraphPlan owners supply facts;
-  `CompileAdmittedDirectMirForTarget` remains the last legitimate consumer.
-  The first falsifier must cross the two receivers or stale an index/value use
-  and observe no artifact from either target.
-- Forbidden fallback: fixture/text routing, a second collection planner,
-  partial one-type success, backend MIR reads, capacity as current length,
-  native/runtime mutation retry, precomputed final values, or trying an older
-  plan after the named owner rejects.
+  The same MIR emits a 1,168-byte C artifact
+  (`483FE6F969C76992FA229ADB3126CF2639CF78A42BA2D642A1026F890DD7DDD2`)
+  and a 5,855-byte LLVM artifact
+  (`8EBE410A5D690373C7E8F7ED7E6B9C99C2B1BA288D8E1B1F7A1F1FCB02E66D15`).
+  Both host-compile and execute exact `13`, then `zb`.
+- `GraphPlan` schema v13 now embeds one target-neutral `CollectionPlan` with
+  collection SSA versions, stable storage identity, predecessor rows,
+  canonical ABI fields, and ordered `Initialize`/`Get`/`Set` operations. An
+  exclusive selection owner prevents a claimed malformed indexed assignment
+  from retrying the older String or ArrayInt plans. C and LLVM consume only
+  the sealed plan; neither reads MIR JSON nor calls private set helpers.
+- This is not general collection closure. Storage identity, versioning, and Set
+  projection are reusable facts, but graph operations 23/24 still encode the
+  admitted integer-sum and two-value String-concat observations. The embedded
+  collection row is `BRIDGE/ACTIVE`; push, reserve, alias invalidation,
+  reallocation, cleanup, arbitrary observations, parameters, and returns have
+  not migrated. No topology-specific `IndexAssignmentProgramFact` landed.
+- Focused evidence: eight positive/semantic variants, including coherent
+  ValueId renumbering, reordered groups, overwritten source display, and
+  signed-i32 overflow, plus 21 no-artifact negatives per target exited 0 in
+  19.9 seconds. ArrayPop, ArrayMax, ArraySum, and String-mutation sibling gates
+  remained green in 59.7 seconds. The component/removed-path ratchet exited 0
+  in 95.4 seconds. The current-source driver build took 123.3 seconds; the
+  unchanged composed AST reused its fingerprinted driver in 6.5 seconds.
+- The real top-level scalar-CFG/AIR integration exited 0 in 275.534 seconds and
+  reached the final indexed-assignment success row. Memory was sampled only at
+  this integration boundary: the process tree peaked at 0.375 GiB working set
+  and 0.328 GiB private memory, below the 2.4 GiB attention and 3 GiB stop
+  limits. LLVM host compilation emitted only target-triple override warnings.
+- No line cap was raised. The 492-line admission responsibility was split into
+  a named 86/100 source owner and a 448/460 exact admission owner; the route is
+  30/30. Readiness now proves every observation Get is claimed exactly once
+  and every GraphPlan operation row has exactly one collection claimant. The C
+  preamble emits each admitted collection typedef once.
+- Classification is bounded `SUBSTITUTING` only for the exact nonescaping local
+  literal Int/String sources, two static literal indexed writes, and the
+  admitted sum/concat observations. Full CI, public matrices, proof suites,
+  released-driver promotion, and current gen2==gen3 did not run.
+- Known independent reds remain explicit. `python scripts/sot_registry_gate.py`
+  exits 1 at the pre-existing `registry contains duplicate Coq fact
+  authorities`. The old `one_mir_array_int_projection.sh` stops before
+  behavior because its local cap is 160 while the unchanged ABI owner is 173
+  lines; the central component owner cap is 180. Neither cap was changed in
+  this rung.
+- Next objective card: only `src/self_hosted/codegen/fixture/array_param.pgy`
+  is active. The current producer emits an 18,849-byte MIR with SHA-256
+  `54AA601DCD8031B7A2857F42A5FD3ABDAD2BBB02822BA3AF3537999210B88A9C`.
+  Both targets currently reject before publication with
+  `direct MIR Array argument program envelope is invalid`; expected execution
+  is exact `12`, then `4`.
+- Objective and owner boundary: reuse the routine-local `CollectionPlan` and
+  add only a generic program-level receipt for parameter, call, return, and
+  storage-carriage facts. Routine-qualified ValueIds must preserve the storage
+  trajectory `Build return -> Main xs -> SumAll xs`; the existing GraphPlan and
+  ABI owners remain fact suppliers, and `CompileAdmittedDirectMirForTarget`
+  remains the last legitimate consumer. The first falsifiers are a stale
+  parameter ABI, wrong call target, or broken return edge, each with no C or
+  LLVM artifact.
+- Forbidden fallback: an ArrayParam-specific planner or three-routine topology
+  classifier, constant-folded `12/4`, backend MIR reads, retry through the old
+  ArrayArgument envelope, or a fixed no-reallocation storage assumption.
 
 ## Historical checkpoint archive - inactive navigation evidence
 

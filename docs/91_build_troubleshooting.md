@@ -6,6 +6,62 @@
 
 ---
 
+## A new collection fixture starts growing another verified micro-compiler
+
+Do not answer a new Array topology by adding a fixture-shaped program fact,
+mode, planner, and target pair merely because each file remains below its line
+cap. That produces small files but increases the number of independent semantic
+classifiers and retry boundaries.
+
+The 2026-08-04 indexed-assignment rung initially headed toward an
+`IndexAssignmentProgramFact`. The external architecture review was stale about
+the active fixture, but correctly falsified that structure. The uncommitted
+program-specific fact was removed and the reached facts were expressed as one
+embedded `CollectionPlan`:
+
+```text
+collection SSA value versions
+-> ordered Initialize / Get / Set operations
+-> typed observations
+-> one GraphPlan seal
+-> selected C or LLVM projection
+```
+
+Keep the route claim coarse enough that malformed typed assignments cannot fall
+through to an older one-block path. Keep exact receiver, predecessor ValueId,
+index, input type/value, live length, ABI layout, operation order, and
+observation graph in admission/readiness. Backends consume only the sealed
+plan; they must not read MIR JSON, call private `pgy_ai_set`/`pgy_as_set`
+helpers, or replace stores and subsequent loads with a precomputed final value.
+
+Passing this bounded rung does not authorize relabeling old push/pop/range modes
+as general operations without migrating their storage, ownership, alias,
+reallocation, cleanup, and failure facts. Generalization is counted only when a
+real existing path is replaced and its old authority is negative-ratcheted.
+
+The admitted plan is still a bridge, not proof of general collection
+semantics. Its value/storage/Set rows are reusable, but the two observation
+GraphPlan operations still encode the bounded integer sum and two-value String
+concat. Document that debt instead of calling the whole collection SoT closed.
+
+The measured times must also stay separated. In the final current source the
+self-host compiler build was 123.3 seconds, focused indexed-assignment parity
+19.9 seconds, four adjacent collection regressions 59.7 seconds, and the
+structural/component gate 95.4 seconds. These test costs are not ordinary
+program compilation latency. The real top-level cumulative
+`one_mir_cfg_air_plan_projection.sh` took 275.534 seconds and was the only
+pressure-sampled boundary: 0.375 GiB peak working set and 0.328 GiB peak
+private memory, below the 2.4/3 GiB thresholds.
+
+Do not run `one_mir_cfg_break_case.sh` as a standalone gate. It is sourced by
+the cumulative graph and assumes the parent's `ROOT_DIR`, `DRIVER_BIN`,
+`require_file`, and `fail`. A standalone invocation can print empty-label rows
+and return zero even though every child command failed. Such output is invalid
+evidence; run the top-level gate and require both exit 0 and its final indexed-
+assignment success row.
+
+---
+
 ## `ArrayPop`을 기존 private helper로 내리거나 source를 미리 잘라 버리는 경우
 
 Self-host 내부의 `pgy_ai_pop`/`pgy_as_pop`은 private 세 필드 container에서 값을

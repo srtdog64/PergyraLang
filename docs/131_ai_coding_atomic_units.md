@@ -619,3 +619,30 @@ If a shorter public phrase is needed:
 
 This phrase is precise enough to guide engineering and modest enough to avoid
 overclaiming.
+
+## 8. Handling A Stale Architecture Review
+
+The August 4 external review observed `5c889253` and still described
+`array_max.pgy` as red. Current source had already closed maximum, reverse, and
+pop before the review was read, so its status table and P0 queue were not safe
+resume state. They remain dated evidence only.
+
+Its architectural falsifier was useful: another topology-specific Array mode
+or program receipt would preserve a collection of verified micro-compilers.
+During the next indexed-assignment rung an initial uncommitted
+`IndexAssignmentProgramFact` design was therefore discarded. The accepted
+shape embeds target-neutral collection value versions, ordered
+`Initialize`/`Get`/`Set` operations, and observations in the existing sealed
+`GraphPlan`; selected C and LLVM consumers see that plan, not a fixture or a
+topology name.
+
+This does not establish general collections. The admitted slice is still
+bounded to nonescaping local literal `Array<Int>` and `Array<String>` values,
+static indices, literal set inputs, integer-sum observation, and two-operand
+String concat. The value/storage/Set columns are reusable, but GraphPlan
+operations 23/24 still encode those two observation topologies, so the owner is
+`BRIDGE/ACTIVE`, not a closed general collection SoT. Push, reserve, move,
+alias invalidation, reallocation, cleanup, and failure policy have not migrated
+to the plan. A review can change the architecture objective when its falsifier
+survives current evidence, but its old HEAD, queue, and completion claims
+cannot replace the active handoff or executable gates.

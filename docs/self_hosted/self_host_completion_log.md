@@ -6,6 +6,56 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-04 - Indexed Int/String assignments substitute through CollectionPlan
+
+- Landed executable checkpoint `6bdc207d`. The installed Pergyra-built
+  driver's 10,338-byte `array_index_assign.pgy` MIR
+  (`7043BFBA70252CC058D0E2B7B826796254D8F14B6D6C5358A09868DA554EABFA`)
+  now emits 1,168-byte C
+  (`483FE6F969C76992FA229ADB3126CF2639CF78A42BA2D642A1026F890DD7DDD2`)
+  and 5,855-byte LLVM
+  (`8EBE410A5D690373C7E8F7ED7E6B9C99C2B1BA288D8E1B1F7A1F1FCB02E66D15`).
+  Both compile and execute exact `13` and `zb`.
+- Rejected the first uncommitted `IndexAssignmentProgramFact` design after the
+  dated architecture review supplied a valid falsifier: another topology
+  program fact would extend the verified-microcompiler inventory. `GraphPlan`
+  v13 instead embeds target-neutral collection SSA versions, stable storage
+  identity, predecessor rows, ABI facts, and ordered Initialize/Get/Set rows.
+- One exclusive selection owner prevents claimed malformed indexed assignment
+  from falling through to the older String or ArrayInt plans. C and LLVM read
+  only the sealed plan. Backend MIR reads, private set helpers, precomputed
+  final observations, capacity-as-length, and partial one-type publication are
+  negative-ratcheted.
+- A final semantic audit tightened dominance to the exact admitted one-block
+  slice, aligned LLVM integer observation with C/Pergyra signed-i32 addition
+  before extension, and added an overflow witness. A final architecture audit
+  added exact-one Get/GraphPlan row claims, one-time C typedef emission, and a
+  named source-discovery owner rather than another one-use shape shard.
+- The focused gate covers eight positive/semantic variants and 21 no-artifact
+  negatives per target in 19.9 seconds. ArrayPop, ArrayMax, ArraySum, and
+  String mutation remained green in 59.7 seconds; the component/removed-path
+  gate exited 0 in 95.4 seconds. No hard cap was raised.
+- The real top-level `one_mir_cfg_air_plan_projection.sh` integration exited 0
+  in 275.534 seconds and reached the indexed-assignment final marker. Its sole
+  pressure sample peaked at 0.375 GiB working set and 0.328 GiB private memory,
+  below the 2.4/3 GiB thresholds. An earlier 2-second standalone execution of
+  the sourced `one_mir_cfg_break_case.sh` hook was invalid and is not evidence.
+- Classification is bounded `SUBSTITUTING` for the exact nonescaping literal
+  Int/String indexed-write plus sum/concat observation slice. The collection
+  plan remains `BRIDGE/ACTIVE`: graph operations 23/24 are still observation-
+  topology-specific, and general parameters, returns, allocation growth,
+  aliases, cleanup, and failure policy remain open.
+- Existing independent reds were not concealed: the SoT registry gate still
+  reports duplicate Coq fact authorities, and the old ArrayInt parity script
+  retains a stale 160-line local cap against the unchanged 173-line ABI owner.
+  Full CI, proof suites, released promotion, and current gen2==gen3 did not run.
+- The next sole rung is `array_param.pgy`: 18,849-byte MIR
+  `54AA601DCD8031B7A2857F42A5FD3ABDAD2BBB02822BA3AF3537999210B88A9C`,
+  expected `12/4`, currently rejected by the legacy Array-argument envelope.
+  It must reuse routine-local CollectionPlan facts and add a generic parameter,
+  call, return, and storage-carriage receipt. An ArrayParam topology compiler
+  or old-envelope retry is forbidden.
+
 ## 2026-08-03 - `ArrayLength(parts)` and `parts[i]` substitute in C and LLVM
 
 - Landed executable checkpoint `593633b8`. The installed self producer's
@@ -10656,6 +10706,6 @@ Released/default replacement remains 0%.
   but both direct targets fail before publication with
   `direct MIR scalar local type inventory is missing or invalid`. The next
   rung must reuse the existing Int and String source/storage owners to execute
-  exact `12` and `zb`; fixture routing, a second collection planner, partial
+  exact `13` and `zb`; fixture routing, a second collection planner, partial
   one-type success, backend MIR reads, capacity-as-length, or native/runtime
   mutation fallback remain forbidden.

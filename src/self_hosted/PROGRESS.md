@@ -1,53 +1,55 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-04 joint `ArrayPop` effects
+## Active self-host context - 2026-08-04 indexed collection operations
 
-- Executable checkpoint `ff2b7fd840b81e94464766405ebda5860a5cb5bd`
-  closes `src/self_hosted/codegen/fixture/array_pop.pgy` through the installed
-  direct C and LLVM routes. The current-source Pergyra-built driver is
-  5,270,168 bytes with SHA-256
-  `69E7BE5DC1065569CA08B57D89054FABDC0C9B5FE6A75E71EA9080E74C999933`.
-- The 14,007-byte self-produced MIR
-  (`AB92771EA08C27C73EDAB26E06441BF88CC3843C64FEFD784156694D321F73D4`)
-  emits 1,778-byte C
-  (`B855FB9E3D4F0B806C80E7886F1A9CE3AFFC3425A739E34ACC6E1BCBE315DEF9`)
-  and 6,876-byte LLVM
-  (`90E7DA1735A26E9F6242F5DD9B27A028783F61614D580170254F464CFD5EBB2F`).
-  Both host-compile and execute exact `30`, `2`, `2`, then `a`.
-- One target-neutral GraphPlan receipt joins the foreach-owned Int source, the
-  String-plan-owned source, and three ordered Void pop effects. The ArrayInt
-  fifth mode references the foreach storage rather than duplicating it, and
-  partial Int-only or String-only admission fails closed.
-- Both backends mutate only live canonical length fields. The second Int pop,
-  foreach guard, Int length log, String length log, and String index all consume
-  the ordered current-length state. Capacity and popped source tails remain
-  intact; private three-field value-returning pop helpers are forbidden.
-- The focused gate exited 0 in 25.2 seconds with five positive variants and
-  twelve no-artifact negatives. Adjacent regressions and the component ratchet
-  exited 0. The cumulative runner reached its final marker in 546.5 seconds;
-  its PowerShell wrapper exposed no child exit code. Final-boundary sampling
-  observed 0.176 GiB maximum working set and 0.189 GiB maximum private memory,
-  below the 2.4/3 GiB thresholds.
-- No line cap was raised. Mixed responsibilities moved into named owners, and
-  two stale test pins were repointed only after executable parity confirmed
-  the new ownership. The Hacker News language-consistency/architecture comment
-  remains bounded external anecdote; the owner graph and negative gates are
-  local evidence.
-- Classification is bounded `SUBSTITUTING` for this exact local Int/String pop
-  shape only. Full CI, proof suites, public matrices, current gen2==gen3, and
-  released-driver promotion did not run. The independent SoT registry gate
-  still stops at the pre-existing duplicate Coq fact-authority conflict.
+- Executable checkpoint `6bdc207d4d4c0b7c76809f847cf7acfbbc688619`
+  closes `src/self_hosted/codegen/fixture/array_index_assign.pgy` through the
+  installed direct C and LLVM routes. The current-source Pergyra-built driver
+  is 4,740,820 bytes with SHA-256
+  `226E98CEC879BB10125F230EEDB3C8ADD619800020D3E372CB96E18E01F6257B`.
+- The 10,338-byte self-produced MIR
+  (`7043BFBA70252CC058D0E2B7B826796254D8F14B6D6C5358A09868DA554EABFA`)
+  emits 1,168-byte C
+  (`483FE6F969C76992FA229ADB3126CF2639CF78A42BA2D642A1026F890DD7DDD2`)
+  and 5,855-byte LLVM
+  (`8EBE410A5D690373C7E8F7ED7E6B9C99C2B1BA288D8E1B1F7A1F1FCB02E66D15`).
+  Both host-compile and execute exact `13`, then `zb`.
+- `GraphPlan` schema v13 embeds collection value versions, storage identity,
+  predecessor rows, ABI fields, and ordered `Initialize`/`Get`/`Set` facts.
+  One selection owner makes this mutually exclusive with older String and
+  ArrayInt plans. Backends consume the sealed plan and cannot read MIR or call
+  private set helpers.
+- This is a bounded `BRIDGE/ACTIVE` plan, not general collection closure.
+  Operation rows 23/24 still own the exact integer-sum and two-value String-
+  concat observations. Parameters, returns, push/reserve, alias invalidation,
+  reallocation, cleanup, and arbitrary observations remain open.
+- Current-source build took 123.3 seconds. Focused parity took 19.9 seconds;
+  four adjacent collection regressions took 59.7 seconds; the component gate
+  took 95.4 seconds. The top-level scalar-CFG/AIR integration exited 0 in
+  275.534 seconds and peaked at 0.375 GiB working set / 0.328 GiB private
+  memory, below the 2.4/3 GiB thresholds.
+- No line cap was raised. Source discovery was split into an 86/100 owner,
+  exact admission is 448/460, and the route remains 30/30. Exact-one Get and
+  GraphPlan-operation claims plus one-time C typedef emission close audit
+  holes without a fixture-specific program fact.
+- Classification is bounded `SUBSTITUTING` for the exact local Int/String
+  static indexed-assignment shape. Full CI, proof suites, public matrices,
+  current gen2==gen3, and released-driver promotion did not run. The independent
+  SoT registry gate still stops at duplicate Coq fact authority. The unchanged
+  old ArrayInt gate also retains a stale 160-line local pin for a 173-line ABI
+  owner; the central cap is 180 and neither was changed here.
 - The sole next executable falsifier is
-  `src/self_hosted/codegen/fixture/array_index_assign.pgy`. Its 10,338-byte MIR
-  has SHA-256
-  `7043BFBA70252CC058D0E2B7B826796254D8F14B6D6C5358A09868DA554EABFA`.
-  Both targets fail before publication with
-  `direct MIR scalar local type inventory is missing or invalid`.
-- Next objective card: reuse the existing Int/String collection and mutation
-  owners in one GraphPlan, seal distinct receiver/index/value identities, and
-  execute exact `12` and `zb`. Fixture routing, a second collection planner,
-  partial one-type success, backend MIR reads, capacity-as-length, native
-  fallback, or retry after claimed rejection remain forbidden.
+  `src/self_hosted/codegen/fixture/array_param.pgy`. Its 18,849-byte MIR has
+  SHA-256
+  `54AA601DCD8031B7A2857F42A5FD3ABDAD2BBB02822BA3AF3537999210B88A9C`.
+  Both targets fail closed at `direct MIR Array argument program envelope is
+  invalid`; expected output is exact `12`, then `4`.
+- Next objective card: reuse the routine-local `CollectionPlan` and add a
+  generic program receipt for parameter/call/return/storage carriage. Preserve
+  the `Build return -> Main xs -> SumAll xs` storage trajectory and reject
+  stale ABI/call/return edges. An ArrayParam-specific topology planner,
+  constant folding, backend MIR reads, old ArrayArgument retry, and fixed
+  no-reallocation storage assumptions are forbidden.
 
 ## Historical self-host ledger - inactive navigation evidence
 
