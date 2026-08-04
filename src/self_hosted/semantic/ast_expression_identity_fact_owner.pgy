@@ -1,0 +1,60 @@
+// Stable semantic identities carried beside expression-graph topology.
+
+struct SemanticExpressionIdentityRows {
+    call_target_syntax_ids: Array<Int>;
+    binding_kinds: Array<Int>;
+    binding_ordinals: Array<Int>;
+}
+
+func SemanticExpressionBindingNone() -> Int { return 0; }
+func SemanticExpressionBindingFormalParameter() -> Int { return 1; }
+
+func SemanticExpressionIdentityRowsUnknown(
+    count: Int
+) -> SemanticExpressionIdentityRows {
+    let targets: Array<Int> = [];
+    let kinds: Array<Int> = [];
+    let ordinals: Array<Int> = [];
+    let row: Int = 0;
+    while row < count {
+        ArrayPush(targets, 0);
+        ArrayPush(kinds, SemanticExpressionBindingNone());
+        ArrayPush(ordinals, -1);
+        row = row + 1;
+    }
+    return SemanticExpressionIdentityRows(targets, kinds, ordinals);
+}
+
+func SemanticExpressionIdentityRowsReady(
+    ref rows: SemanticExpressionIdentityRows, count: Int
+) -> Bool {
+    if count < 0 || ArrayLength(rows.call_target_syntax_ids) != count ||
+        ArrayLength(rows.binding_kinds) != count ||
+        ArrayLength(rows.binding_ordinals) != count {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if rows.call_target_syntax_ids[row] < 0 ||
+            (rows.binding_kinds[row] == SemanticExpressionBindingNone() &&
+             rows.binding_ordinals[row] != -1) ||
+            (rows.binding_kinds[row] ==
+                SemanticExpressionBindingFormalParameter() &&
+             rows.binding_ordinals[row] < 0) ||
+            (rows.binding_kinds[row] != SemanticExpressionBindingNone() &&
+             rows.binding_kinds[row] !=
+                SemanticExpressionBindingFormalParameter()) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticExpressionBindingKindName(kind: Int) -> String {
+    if kind == SemanticExpressionBindingNone() { return "none"; }
+    if kind == SemanticExpressionBindingFormalParameter() {
+        return "formal_parameter";
+    }
+    return "";
+}

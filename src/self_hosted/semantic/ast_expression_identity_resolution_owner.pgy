@@ -1,0 +1,179 @@
+// Final semantic binding/call identities for persisted expression graphs.
+
+import "ast_artifact_verdict_owner.pgy";
+import "ast_body_expression_environment_owner.pgy";
+import "ast_iteration_type_fact_owner.pgy";
+import "ast_expression_function_table_fact_owner.pgy";
+
+func SemanticExpressionDirectTargetSyntaxId(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    target_name: String
+) -> Int {
+    let found: Int = 0;
+    let matches: Int = 0;
+    let row: Int = 0;
+    while row < SemanticAstFunctionSignatureCount(signatures) {
+        let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
+            signatures, row
+        );
+        let name: Option<String> = SemanticAstFunctionNameAt(
+            signatures, row
+        );
+        let node: Option<Int> = SemanticAstFunctionNodeAt(signatures, row);
+        if !IsSome(owner) || !IsSome(name) || !IsSome(node) {
+            return 0 - 1;
+        }
+        if SemanticCallableCanonicalDeclaredName(
+            UnwrapOption(owner), UnwrapOption(name)
+        ) == target_name {
+            matches = matches + 1;
+            if matches > 1 { return 0 - 1; }
+            found = UnwrapOption(node);
+        }
+        row = row + 1;
+    }
+    if matches == 0 { return 0; }
+    if found <= 0 { return 0 - 1; }
+    return found;
+}
+
+func SemanticExpressionFormalParameterOrdinal(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    function_node_id: Int, binding_name: String
+) -> Int {
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+        signatures, function_node_id
+    );
+    if !IsSome(signature) { return 0 - 1; }
+    let count: Option<Int> = SemanticAstFunctionParamCountAt(
+        signatures, UnwrapOption(signature)
+    );
+    if !IsSome(count) { return 0 - 1; }
+    let found: Int = 0 - 1;
+    let ordinal: Int = 0;
+    while ordinal < UnwrapOption(count) {
+        let name: Option<String> = SemanticAstFunctionParamNameAt(
+            signatures, UnwrapOption(signature), ordinal
+        );
+        if !IsSome(name) { return 0 - 1; }
+        if UnwrapOption(name) == binding_name {
+            if found >= 0 { return 0 - 1; }
+            found = ordinal;
+        }
+        ordinal = ordinal + 1;
+    }
+    return found;
+}
+
+func SemanticAstAnalysisResolveExpressionIdentities(
+    artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis,
+    inferred_types: Array<String>,
+    iteration_types: SemanticAstIterationTypeFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> Bool {
+    let graph: SemanticExpressionGraphFacts =
+        analysis.expression_surfaces.expression_graph;
+    let count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    if !SemanticExpressionGraphFactsReady(graph, ArrayLength(graph.roots)) ||
+        !SemanticExpressionGraphPlaceKindsReady(graph) ||
+        !SemanticAstExpressionFunctionTableFactsReady(function_tables) ||
+        !SemanticExpressionIdentityRowsReady(graph.arena.identities, count) {
+        return false;
+    }
+    let last_root: Int = -1;
+    let root_slot: Int = 0;
+    let valid: Bool = true;
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    let modes: Array<String> = [];
+    let seeded_surface: Int = -1;
+    while root_slot < ArrayLength(graph.roots) && valid {
+        if graph.has_roots[root_slot] {
+            let root_id: Int = graph.roots[root_slot];
+            let surface_index: Int = root_slot / 3;
+            if surface_index < 0 || surface_index >= ArrayLength(
+                analysis.expression_surfaces.node_ids
+            ) || root_id <= last_root {
+                valid = false;
+            } else {
+                let use_node_id: Int =
+                    analysis.expression_surfaces.node_ids[surface_index];
+                let function_node: Option<Int> =
+                    SemanticAstExpressionFunctionNodeAt(
+                        analysis.expression_surfaces,
+                        analysis.signatures, surface_index
+                    );
+                let intent_node: Option<Int> =
+                    SemanticAstIntentExpressionOwnerNodeId(
+                        artifact, use_node_id
+                    );
+                if surface_index != seeded_surface {
+                    SemanticAstExpressionEnvironmentReset(names, types, modes);
+                    if !SemanticAstBodyExpressionEnvironmentSeed(
+                        artifact, analysis, inferred_types, iteration_types,
+                        function_tables, analysis.intent_signatures,
+                        function_node, intent_node, use_node_id,
+                        names, types, modes
+                    ) {
+                        valid = false;
+                    } else {
+                        seeded_surface = surface_index;
+                    }
+                }
+                let node: Int = last_root + 1;
+                while node <= root_id && valid {
+                    graph.arena.identities.call_target_syntax_ids[node] = 0;
+                    graph.arena.identities.binding_kinds[node] =
+                        SemanticExpressionBindingNone();
+                    graph.arena.identities.binding_ordinals[node] = -1;
+                    if graph.arena.call_target_kinds[node] ==
+                            SemanticCallTargetDirect() {
+                        let target_id: Int =
+                            SemanticExpressionDirectTargetSyntaxId(
+                                analysis.signatures,
+                                graph.arena.call_target_names[node]
+                            );
+                        if target_id < 0 { valid = false; }
+                        if target_id > 0 {
+                            graph.arena.identities
+                                .call_target_syntax_ids[node] = target_id;
+                        }
+                    }
+                    if valid && IsSome(function_node) &&
+                        graph.arena.topology.node_kinds[node] ==
+                            AstExpressionNodeLeaf() {
+                        let binding_name: String = graph.arena.node_texts[node];
+                        let mode: String = EnvMode(names, modes, binding_name);
+                        if mode == "default_param" ||
+                            mode == "inout_param" ||
+                            mode == "own_param" || mode == "ref_param" {
+                            let ordinal: Int =
+                                SemanticExpressionFormalParameterOrdinal(
+                                    analysis.signatures,
+                                    UnwrapOption(function_node), binding_name
+                                );
+                            if ordinal < 0 { valid = false; }
+                            if ordinal >= 0 {
+                                graph.arena.identities.binding_kinds[node] =
+                                    SemanticExpressionBindingFormalParameter();
+                                graph.arena.identities.binding_ordinals[node] =
+                                    ordinal;
+                            }
+                        }
+                    }
+                    node = node + 1;
+                }
+            }
+            last_root = root_id;
+        }
+        root_slot = root_slot + 1;
+    }
+    SemanticAstExpressionEnvironmentClear(names, types, modes);
+    if last_root + 1 != count ||
+        !SemanticExpressionIdentityRowsReady(graph.arena.identities, count) {
+        valid = false;
+    }
+    analysis.expression_surfaces.expression_graph = graph;
+    return valid;
+}

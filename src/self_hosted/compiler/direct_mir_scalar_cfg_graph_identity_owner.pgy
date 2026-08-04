@@ -14,6 +14,7 @@ func DirectMirScalarCfgGraphPlanDigest(
     hash = DirectMirCfgHashInt(hash, plan.cfg_digest);
     hash = DirectMirCfgHashString(hash, plan.target_schema);
     hash = DirectMirCfgHashInt(hash, plan.target_fingerprint);
+    hash = DirectMirCfgHashInt(hash, plan.routines.digest);
     hash = DirectMirScalarCfgHashStrings(hash, plan.local_names);
     hash = DirectMirScalarCfgHashStrings(hash, plan.local_types);
     hash = DirectMirScalarCfgHashInts(hash, plan.local_ref_kinds);
@@ -70,7 +71,8 @@ func DirectMirScalarCfgGraphPlanWithDigest(
     return DirectMirScalarCfgGraphPlan(
         plan.valid, plan.schema, plan.revision, digest,
         plan.mir_digest, plan.cfg_digest, plan.target_schema,
-        plan.target_fingerprint, plan.local_names, plan.local_types,
+        plan.target_fingerprint, plan.routines,
+        plan.local_names, plan.local_types,
         plan.local_ref_kinds, plan.local_ref_value_ids,
         plan.local_ref_syntax_ids, plan.value_names, plan.value_types,
         plan.value_local_rows, plan.value_definition_blocks,

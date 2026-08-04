@@ -116,7 +116,8 @@ func DirectMirScalarCfgProgramOperationFromOwners(
     let expressions: DirectMirScalarProgramExpressionSet =
         DirectMirScalarProgramAppendExpression(
             state.expressions, object, uses, global_row, local_instruction,
-            locals, types, wire, "", "", state.callable.signature.name,
+            locals, types, wire, "", state.callable.signature.name,
+            state.callable.signature.source_syntax_id,
             state.callable.signature.row
         );
     if !expressions.valid ||
@@ -198,7 +199,8 @@ func DirectMirScalarCfgProgramConditionFromOwners(
     let expressions: DirectMirScalarProgramExpressionSet =
         DirectMirScalarProgramAppendExpression(
             state.expressions, object, uses, global_row, local_instruction,
-            locals, types, wire, "", "", state.callable.signature.name,
+            locals, types, wire, "", state.callable.signature.name,
+            state.callable.signature.source_syntax_id,
             state.callable.signature.row
         );
     let ready: Bool = expressions.valid &&

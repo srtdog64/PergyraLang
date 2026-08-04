@@ -8,6 +8,7 @@ import "ast_generic_specialization_fact_owner.pgy";
 import "ast_generic_specialization_query_owner.pgy";
 import "ast_initializer_iteration_refinement_owner.pgy";
 import "ast_expression_place_fact_owner.pgy";
+import "ast_expression_identity_resolution_owner.pgy";
 import "ast_initializer_type_function_table_bridge_owner.pgy";
 import "ast_iteration_graph_root_owner.pgy";
 import "ast_body_role_operator_resolution_owner.pgy";
@@ -165,6 +166,15 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
         verdict = SemanticAstBodyVerdictError(
             "call_return_type_unresolved",
             "semantic call return type rows are incomplete", -1
+        );
+    }
+    if verdict.ok && !SemanticAstAnalysisResolveExpressionIdentities(
+        artifact, analysis, initializer_types.inferred_type_names,
+        iteration_types, function_tables
+    ) {
+        verdict = SemanticAstBodyVerdictError(
+            "expression_identity_unresolved",
+            "semantic expression identity rows are incomplete", -1
         );
     }
     SemanticAstBodyTypeStage(observe_pressure, "verdict:done");

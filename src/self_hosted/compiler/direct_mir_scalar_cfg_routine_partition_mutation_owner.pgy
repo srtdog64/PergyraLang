@@ -1,0 +1,47 @@
+// Executable falsifier for routine-range identity and canonical coverage.
+
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+
+func DirectMirScalarCfgRoutinePartitionMutationRejected(
+    ref fact: DirectMirScalarCfgRoutinePartitionFact
+) -> Bool {
+    if !fact.valid || ArrayLength(fact.block_starts) < 1 { return false; }
+    let bad_block_starts: Array<Int> = [];
+    let row: Int = 0;
+    while row < ArrayLength(fact.block_starts) {
+        ArrayPush(bad_block_starts, fact.block_starts[row]);
+        row = row + 1;
+    }
+    bad_block_starts[0] = bad_block_starts[0] + 1;
+    let changed: DirectMirScalarCfgRoutinePartitionFact =
+        DirectMirScalarCfgRoutinePartitionFact(
+            fact.valid, 0, fact.entrypoint_ordinal, fact.roles,
+            fact.source_rows, fact.source_syntax_ids, fact.names,
+            fact.return_types, fact.parameter_counts, fact.parameter_types,
+            fact.signature_digests, fact.cfg_digests, fact.local_starts,
+            fact.local_counts, fact.value_starts, fact.value_counts,
+            bad_block_starts, fact.block_counts, fact.operation_starts,
+            fact.operation_counts, fact.phi_starts, fact.phi_counts
+        );
+    let mutated: DirectMirScalarCfgRoutinePartitionFact =
+        DirectMirScalarCfgRoutinePartitionFact(
+            changed.valid, DirectMirScalarCfgRoutinePartitionDigest(changed),
+            changed.entrypoint_ordinal, changed.roles, changed.source_rows,
+            changed.source_syntax_ids, changed.names, changed.return_types,
+            changed.parameter_counts, changed.parameter_types,
+            changed.signature_digests, changed.cfg_digests,
+            changed.local_starts, changed.local_counts, changed.value_starts,
+            changed.value_counts, changed.block_starts, changed.block_counts,
+            changed.operation_starts, changed.operation_counts,
+            changed.phi_starts, changed.phi_counts
+        );
+    let last: Int = ArrayLength(fact.roles) - 1;
+    return !DirectMirScalarCfgRoutinePartitionReady(
+        mutated,
+        fact.local_starts[last] + fact.local_counts[last],
+        fact.value_starts[last] + fact.value_counts[last],
+        fact.block_starts[last] + fact.block_counts[last],
+        fact.operation_starts[last] + fact.operation_counts[last],
+        fact.phi_starts[last] + fact.phi_counts[last]
+    );
+}

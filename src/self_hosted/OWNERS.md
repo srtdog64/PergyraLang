@@ -414,6 +414,11 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_expression_place_fact_owner.pgy` --
   body-fixpoint value-category and place-kind rows for ref/inout argument
   lowering; codegen consumes the carried node fact without binding lookup.
+- `src/self_hosted/semantic/ast_expression_identity_fact_owner.pgy` and
+  `ast_expression_identity_resolution_owner.pgy` -- final source-syntax call
+  target IDs and formal-parameter ordinals over semantic graph handles. They
+  run after place/call-return closure; persisted MIR consumers may not recover
+  either identity from node display text.
 - `src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy` --
   semantic-owned direct generic call bindings keyed by expression call node;
   explicit calls and bounded inferred initializer calls share these rows.
@@ -664,6 +669,9 @@ inventory must not become a second fact-family owner registry.
   expression graph root/range handles over the program-owned semantic graph.
   The bridge reads structural and call-target facts only through semantic
   accessors and fails closed on missing or foreign graph handles.
+- `src/self_hosted/mir/expression_identity_json_projection_owner.pgy` -- the
+  shared streaming/String projection of semantic call-target SyntaxNodeId and
+  formal-parameter ordinal rows into each persisted expression node.
 - `src/self_hosted/mir/match_fact_owner.pgy` -- sparse instruction-keyed match
   pattern, variant, and binding facts; the scalar rung requires one pattern.
 - `src/self_hosted/mir/destructure_fact_owner.pgy` -- sparse instruction-keyed
@@ -2223,6 +2231,10 @@ inventory must not become a second fact-family owner registry.
   -- the single immutable GraphPlan construction, digest, readiness, and
   repaired-digest rejection boundary. Admission owners contribute facts; they
   do not issue parallel plans.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_routine_partition_fact_owner.pgy`
+  -- canonical routine identity and contiguous local/value/block/operation/phi
+  ranges inside that one flat GraphPlan. The paired mutation owner proves a
+  shifted range cannot survive plan readiness.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_expression_owner.pgy`
   -- type-directed String/Int collection expression routing inside that one
   GraphPlan. It selects an already admitted receipt and never reopens a graph.
@@ -2246,7 +2258,8 @@ inventory must not become a second fact-family owner registry.
   -- normalized typed expression-DAG arena shared by callable and entrypoint.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy`
   -- graph/use/LocalRef normalization for Bool literals, logical operators,
-  Int arithmetic, direct `Int -> Bool` calls, and `ToString(Int)`.
+  Int arithmetic, direct calls, and `ToString(Int)`; source routines and formal
+  parameters bind only through persisted syntax IDs/ordinals, never text.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_readiness_owner.pgy`
   -- exact node arity, type, endpoint, and literal invariants for that arena;
   raw modulo projection is admitted only for nonzero, non-minus-one literals.

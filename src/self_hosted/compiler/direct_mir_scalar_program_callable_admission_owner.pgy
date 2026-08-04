@@ -82,8 +82,8 @@ func DirectMirScalarProgramCallableFromAdmitted(
         DirectMirScalarProgramAppendExpression(
             expressions, object, uses, view.global_row, 0,
             empty_locals, empty_types, empty_wire,
-            signature.param.name, signature.param.type_name,
-            signature.name, 0
+            signature.param.type_name, signature.name,
+            signature.source_syntax_id, 0
         );
     if !appended.valid ||
         ArrayLength(appended.graph_starts) != expression_row + 1 ||

@@ -6,6 +6,7 @@ import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 func DirectMirScalarCfgSealGraphPlan(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref index: MirRoutineFactIndex,
+    routine_row: Int,
     ref locals: DirectMirScalarCfgLocalRefPlan,
     ref types: DirectMirScalarCfgValueTypePlan,
     block_succ_true: Array<Int>, block_succ_false: Array<Int>,
@@ -33,12 +34,20 @@ func DirectMirScalarCfgSealGraphPlan(
     program: DirectMirScalarCfgProgramExtensionFact
 ) -> DirectMirScalarCfgGraphPlan {
     let collection_pops: DirectMirScalarCfgCollectionPopProgramFact = DirectMirScalarCfgCollectionPopProgramFromOwners(foreaches, string_arrays, array_int);
+    let routine_partition: DirectMirScalarCfgRoutinePartitionFact =
+        DirectMirScalarCfgSingleRoutinePartitionFromOwners(
+            admitted.routines, index, routine_row,
+            ArrayLength(locals.local_names), ArrayLength(locals.value_names),
+            ArrayLength(block_succ_true), ArrayLength(operation_kinds),
+            ArrayLength(phi_predecessor_blocks)
+        );
     let plan: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgGraphPlan(
         true, DirectMirScalarCfgGraphPlanSchema(),
         CompilerArtifactPlanRevision(), 0,
         DirectMirCfgMirDigest(admitted.routines.source_json),
         DirectMirCfgDigestFromIndex(index), CompilerTargetCapabilitySchema(),
-        CompilerTargetCapabilityFingerprint(), locals.local_names,
+        CompilerTargetCapabilityFingerprint(), routine_partition,
+        locals.local_names,
         types.local_types, locals.local_ref_kinds,
         locals.local_ref_value_ids, locals.local_ref_syntax_ids,
         locals.value_names, types.value_types, locals.value_local_rows,

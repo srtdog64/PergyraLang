@@ -171,6 +171,10 @@ struct MirExpressionGraphNodeCapture {
     let text: String;
     let target_kind: String;
     let target_name: String;
+    let call_target_syntax_id: Int;
+    let binding_kind: String;
+    let has_binding_ordinal: Bool;
+    let binding_ordinal: Int;
     let has_left: Bool;
     let left: Int;
     let has_right: Bool;
@@ -180,7 +184,8 @@ struct MirExpressionGraphNodeCapture {
 func InvalidMirExpressionGraphNodeCapture(
 ) -> MirExpressionGraphNodeCapture {
     return MirExpressionGraphNodeCapture(
-        false, 0 - 1, "", "", "", "", false, 0, false, 0
+        false, 0 - 1, "", "", "", "", 0, "none", false, 0,
+        false, 0, false, 0
     );
 }
 
@@ -195,6 +200,10 @@ func MirExpressionGraphNodeCaptureWithin(
     let text: String = "";
     let target_kind: String = "";
     let target_name: String = "";
+    let call_target_syntax_id: Int = 0;
+    let binding_kind: String = "none";
+    let has_binding_ordinal: Bool = false;
+    let binding_ordinal: Int = 0;
     let has_left: Bool = false;
     let left: Int = 0;
     let has_right: Bool = false;
@@ -203,6 +212,9 @@ func MirExpressionGraphNodeCaptureWithin(
     let text_seen: Bool = false;
     let target_kind_seen: Bool = false;
     let target_name_seen: Bool = false;
+    let target_syntax_seen: Bool = false;
+    let binding_kind_seen: Bool = false;
+    let binding_ordinal_seen: Bool = false;
     let left_seen: Bool = false;
     let right_seen: Bool = false;
     let member_count: Int = 0;
@@ -216,13 +228,31 @@ func MirExpressionGraphNodeCaptureWithin(
         }
         let c: Int = JsonCharCodeAt(json, array_end, i);
         if c == JsonAsciiCode("}") {
-            if after_comma || member_count != 6 || !kind_seen ||
+            let legacy: Bool = member_count == 6 &&
+                !target_syntax_seen && !binding_kind_seen &&
+                !binding_ordinal_seen;
+            let extended: Bool = member_count == 9 &&
+                target_syntax_seen && binding_kind_seen &&
+                binding_ordinal_seen;
+            if after_comma || (!legacy && !extended) || !kind_seen ||
                 !text_seen || !target_kind_seen || !target_name_seen ||
                 !left_seen || !right_seen {
                 return InvalidMirExpressionGraphNodeCapture();
             }
+            if extended && ((call_target_syntax_id > 0 &&
+                    target_kind != "direct") ||
+                (target_kind == "none" && call_target_syntax_id != 0) ||
+                (binding_kind == "none" && has_binding_ordinal) ||
+                (binding_kind == "formal_parameter" &&
+                    !has_binding_ordinal) ||
+                (binding_kind != "none" &&
+                    binding_kind != "formal_parameter")) {
+                return InvalidMirExpressionGraphNodeCapture();
+            }
             return MirExpressionGraphNodeCapture(
                 true, i + 1, kind, text, target_kind, target_name,
+                call_target_syntax_id, binding_kind,
+                has_binding_ordinal, binding_ordinal,
                 has_left, left, has_right, right
             );
         }
@@ -261,6 +291,18 @@ func MirExpressionGraphNodeCaptureWithin(
         ) {
             field_kind = 4;
         } else if JsonObjectKeyEqualsWithin(
+            json, i, key_end, "call_target_syntax_id"
+        ) {
+            field_kind = 7;
+        } else if JsonObjectKeyEqualsWithin(
+            json, i, key_end, "binding_kind"
+        ) {
+            field_kind = 8;
+        } else if JsonObjectKeyEqualsWithin(
+            json, i, key_end, "binding_ordinal"
+        ) {
+            field_kind = 9;
+        } else if JsonObjectKeyEqualsWithin(
             json, i, key_end, "left"
         ) {
             field_kind = 5;
@@ -285,12 +327,13 @@ func MirExpressionGraphNodeCaptureWithin(
             return InvalidMirExpressionGraphNodeCapture();
         }
         let value_end: Int = UnwrapOption(value_end_opt);
-        if field_kind <= 4 {
+        if field_kind <= 4 || field_kind == 8 {
             if JsonValueKindAt(json, i, value_end) != "string" ||
                 (field_kind == 1 && kind_seen) ||
                 (field_kind == 2 && text_seen) ||
                 (field_kind == 3 && target_kind_seen) ||
-                (field_kind == 4 && target_name_seen) {
+                (field_kind == 4 && target_name_seen) ||
+                (field_kind == 8 && binding_kind_seen) {
                 return InvalidMirExpressionGraphNodeCapture();
             }
             let decoded_end: Array<Int> = [0];
@@ -310,6 +353,41 @@ func MirExpressionGraphNodeCaptureWithin(
                 target_name = value;
                 target_name_seen = true;
             }
+            if field_kind == 8 {
+                binding_kind = value;
+                binding_kind_seen = true;
+            }
+        } else if field_kind == 7 {
+            if target_syntax_seen ||
+                JsonValueKindAt(json, i, value_end) != "number" {
+                return InvalidMirExpressionGraphNodeCapture();
+            }
+            let value: Option<Int> = MirExpressionGraphIndexWithin(
+                json, i, value_end
+            );
+            if !IsSome(value) {
+                return InvalidMirExpressionGraphNodeCapture();
+            }
+            call_target_syntax_id = UnwrapOption(value);
+            target_syntax_seen = true;
+        } else if field_kind == 9 {
+            if binding_ordinal_seen {
+                return InvalidMirExpressionGraphNodeCapture();
+            }
+            let value_kind: String = JsonValueKindAt(json, i, value_end);
+            if value_kind == "number" {
+                let value: Option<Int> = MirExpressionGraphIndexWithin(
+                    json, i, value_end
+                );
+                if !IsSome(value) {
+                    return InvalidMirExpressionGraphNodeCapture();
+                }
+                has_binding_ordinal = true;
+                binding_ordinal = UnwrapOption(value);
+            } else if value_kind != "null" {
+                return InvalidMirExpressionGraphNodeCapture();
+            }
+            binding_ordinal_seen = true;
         } else {
             if (field_kind == 5 && left_seen) ||
                 (field_kind == 6 && right_seen) {

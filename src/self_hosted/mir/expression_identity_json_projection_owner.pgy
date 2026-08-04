@@ -1,0 +1,51 @@
+// Persisted expression identity fields shared by String and file writers.
+
+import "../semantic/ast_expression_graph_fact_owner.pgy";
+import "../compiler/artifact_zone_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func SelfMirJsonExpressionIdentityFields(
+    ref graph: SemanticExpressionGraphFacts, node: Int
+) -> Array<String> {
+    let target: Option<Int> =
+        SemanticExpressionGraphCallTargetSyntaxId(graph, node);
+    let kind: Option<Int> = SemanticExpressionGraphBindingKind(graph, node);
+    let ordinal: Option<Int> =
+        SemanticExpressionGraphBindingOrdinal(graph, node);
+    if !IsSome(target) || !IsSome(kind) || !IsSome(ordinal) ||
+        SemanticExpressionBindingKindName(UnwrapOption(kind)) == "" {
+        return [];
+    }
+    let fields: Array<String> = [
+        JsonEmitFieldNumber(
+            "call_target_syntax_id", ToString(UnwrapOption(target))
+        ),
+        JsonEmitFieldString(
+            "binding_kind",
+            SemanticExpressionBindingKindName(UnwrapOption(kind))
+        )
+    ];
+    if UnwrapOption(ordinal) < 0 {
+        ArrayPush(fields, JsonEmitFieldRaw("binding_ordinal", "null"));
+    } else {
+        ArrayPush(fields, JsonEmitFieldNumber(
+            "binding_ordinal", ToString(UnwrapOption(ordinal))
+        ));
+    }
+    return fields;
+}
+
+func SelfMirJsonExpressionIdentityWriteFile(
+    ref graph: SemanticExpressionGraphFacts, node: Int, output: Int
+) -> Bool {
+    let fields: Array<String> =
+        SelfMirJsonExpressionIdentityFields(graph, node);
+    if ArrayLength(fields) != 3 { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(fields) {
+        CompilerArtifactWrite(output, ",");
+        CompilerArtifactWrite(output, fields[row]);
+        row = row + 1;
+    }
+    return true;
+}

@@ -24,6 +24,10 @@ func DirectMirScalarCfgGraphPlanReady(
         plan.revision != CompilerArtifactPlanRevision() || plan.digest == 0 ||
         plan.digest != DirectMirScalarCfgGraphPlanDigest(plan) ||
         plan.mir_digest == 0 || plan.cfg_digest == 0 ||
+        !DirectMirScalarCfgRoutinePartitionReady(
+            plan.routines, local_count, value_count, block_count,
+            operation_count, ArrayLength(plan.phi_predecessor_blocks)
+        ) ||
         !DirectMirScalarCfgMinimumPlanShapeReady(
             plan, local_count, value_count, block_count
         ) ||

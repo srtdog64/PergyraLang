@@ -1,5 +1,4 @@
 // Typed normalization of persisted MIR expression graphs for scalar programs.
-
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
@@ -45,7 +44,7 @@ func DirectMirScalarProgramAppendCallExpression(
     ref locals: DirectMirScalarCfgLocalRefPlan,
     ref value_types: DirectMirScalarCfgValueTypePlan,
     ref wire: DirectMirScalarCfgWireLocalRefs,
-    callable_name: String, callable_row: Int
+    callable_name: String, callable_syntax_id: Int, callable_row: Int
 ) -> DirectMirScalarProgramExpressionSet {
     let invalid: DirectMirScalarProgramExpressionSet =
         DirectMirScalarProgramExpressionSetInvalid(facts);
@@ -64,8 +63,13 @@ func DirectMirScalarProgramAppendCallExpression(
         return invalid;
     }
     let callee: String = arena.call_target_names[1];
+    let target_syntax_id: Int =
+        arena.identities.call_target_syntax_ids[1];
+    let to_string: Bool = callee == "ToString";
     if arena.node_texts[0] != callee ||
-        (callee != callable_name && callee != "ToString") {
+        (to_string && target_syntax_id != 0) ||
+        (!to_string && (callee != callable_name ||
+            target_syntax_id != callable_syntax_id)) {
         return invalid;
     }
     let operand: DirectMirScalarCfgLeafOperand =
@@ -107,7 +111,7 @@ func DirectMirScalarProgramAppendCallExpression(
     let call_kind: Int = DirectMirScalarProgramExprDirectCall();
     let call_type: String = CompilerAbiLayoutBoolTypeName();
     let target_row: Int = callable_row;
-    if callee == "ToString" {
+    if to_string {
         call_kind = DirectMirScalarProgramExprToStringInt();
         call_type = CompilerAbiLayoutStringTypeName();
         target_row = -1;
@@ -135,8 +139,8 @@ func DirectMirScalarProgramAppendExpression(
     ref locals: DirectMirScalarCfgLocalRefPlan,
     ref value_types: DirectMirScalarCfgValueTypePlan,
     ref wire: DirectMirScalarCfgWireLocalRefs,
-    parameter_name: String, parameter_type: String,
-    callable_name: String, callable_row: Int
+    parameter_type: String, callable_name: String,
+    callable_syntax_id: Int, callable_row: Int
 ) -> DirectMirScalarProgramExpressionSet {
     let sequence: MirExpressionGraphSequence =
         DirectMirScalarCfgExpressionSequence(instruction);
@@ -150,7 +154,8 @@ func DirectMirScalarProgramAppendExpression(
             AstExpressionNodeCall() {
         return DirectMirScalarProgramAppendCallExpression(
             facts, sequence, uses, global_row, local_instruction,
-            locals, value_types, wire, callable_name, callable_row
+            locals, value_types, wire, callable_name,
+            callable_syntax_id, callable_row
         );
     }
     if count < 1 || sequence.roots[0] != count - 1 ||
@@ -187,12 +192,14 @@ func DirectMirScalarProgramAppendExpression(
         if arity >= 1 { left = start + sequence.arena.topology.left_children[node]; }
         if arity == 2 { right = start + sequence.arena.topology.right_children[node]; }
         if source_kind == AstExpressionNodeLeaf() {
-            if parameter_name != "" && sequence.arena.node_texts[node] ==
-                    parameter_name && expected_uses == 0 &&
+            if sequence.arena.identities.binding_kinds[node] ==
+                    SemanticExpressionBindingFormalParameter() &&
+                    sequence.arena.identities.binding_ordinals[node] == 0 &&
+                    parameter_type != "" && expected_uses == 0 &&
                     MirRoutineInstructionUseCountAtGlobal(uses, global_row) == 0 {
                 kind = DirectMirScalarProgramExprParameter();
                 type_name = parameter_type;
-                param = 0;
+                param = sequence.arena.identities.binding_ordinals[node];
             } else {
                 let operand: DirectMirScalarCfgLeafOperand =
                     DirectMirScalarCfgLeafOperandFromOwners(

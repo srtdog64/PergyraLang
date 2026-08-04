@@ -3201,6 +3201,12 @@ self-host-one-mir-array-param-projection-test-smoke: self-host-compiler
 self-host-one-mir-bool-logic-projection-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_bool_logic_projection.sh
 
+self-host-scalar-cfg-routine-partition-test-smoke:
+	"$(BASH)" tests/self_hosted/parity/scalar_cfg_routine_partition_owner.sh
+
+self-host-expression-graph-identity-carriage-test-smoke:
+	"$(BASH)" tests/self_hosted/parity/expression_graph_identity_carriage_owner.sh
+
 self-host-one-mir-struct-argument-projection-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_struct_argument_projection.sh
 
@@ -3249,7 +3255,7 @@ self-host-one-mir-constructed-record-array-member-projection-test-smoke: self-ho
 self-host-default-llvm-replacement-test-smoke: $(PGY) self-host-installed-driver-cli-mode-test-smoke
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh
 
-.PHONY: self-host-one-mir-dual-backend-projection-test-smoke self-host-one-mir-cfg-air-plan-projection-test-smoke self-host-one-mir-option-match-projection-test-smoke self-host-one-mir-array-int-projection-test-smoke self-host-one-mir-array-return-projection-test-smoke self-host-one-mir-array-argument-projection-test-smoke self-host-one-mir-array-param-projection-test-smoke self-host-one-mir-bool-logic-projection-test-smoke self-host-one-mir-struct-argument-projection-test-smoke self-host-one-mir-struct-value-flow-projection-test-smoke self-host-one-mir-option-struct-value-flow-projection-test-smoke self-host-one-mir-generic-struct-value-flow-projection-test-smoke self-host-one-mir-inferred-generic-nominal-projection-test-smoke self-host-one-mir-inferred-generic-scalar-projection-test-smoke self-host-one-mir-inferred-generic-member-projection-test-smoke self-host-one-mir-passive-nominal-literal-projection-test-smoke self-host-one-mir-mutable-nominal-identity-projection-test-smoke self-host-one-mir-compile-time-declaration-literal-projection-test-smoke self-host-one-mir-enum-value-match-projection-test-smoke self-host-one-mir-role-operator-projection-test-smoke self-host-one-mir-constructed-generic-member-projection-test-smoke self-host-one-mir-constructed-array-member-projection-test-smoke self-host-one-mir-constructed-record-array-member-projection-test-smoke self-host-default-llvm-replacement-test-smoke self-host-driver-source-mir-execution-action-test-smoke
+.PHONY: self-host-one-mir-dual-backend-projection-test-smoke self-host-one-mir-cfg-air-plan-projection-test-smoke self-host-one-mir-option-match-projection-test-smoke self-host-one-mir-array-int-projection-test-smoke self-host-one-mir-array-return-projection-test-smoke self-host-one-mir-array-argument-projection-test-smoke self-host-one-mir-array-param-projection-test-smoke self-host-one-mir-bool-logic-projection-test-smoke self-host-scalar-cfg-routine-partition-test-smoke self-host-expression-graph-identity-carriage-test-smoke self-host-one-mir-struct-argument-projection-test-smoke self-host-one-mir-struct-value-flow-projection-test-smoke self-host-one-mir-option-struct-value-flow-projection-test-smoke self-host-one-mir-generic-struct-value-flow-projection-test-smoke self-host-one-mir-inferred-generic-nominal-projection-test-smoke self-host-one-mir-inferred-generic-scalar-projection-test-smoke self-host-one-mir-inferred-generic-member-projection-test-smoke self-host-one-mir-passive-nominal-literal-projection-test-smoke self-host-one-mir-mutable-nominal-identity-projection-test-smoke self-host-one-mir-compile-time-declaration-literal-projection-test-smoke self-host-one-mir-enum-value-match-projection-test-smoke self-host-one-mir-role-operator-projection-test-smoke self-host-one-mir-constructed-generic-member-projection-test-smoke self-host-one-mir-constructed-array-member-projection-test-smoke self-host-one-mir-constructed-record-array-member-projection-test-smoke self-host-default-llvm-replacement-test-smoke self-host-driver-source-mir-execution-action-test-smoke
 
 self-host-driver-bootstrap-full-test-smoke: self-host-codegen-bootstrap-seed-test-smoke
 	@if command -v powershell >/dev/null 2>&1; then \

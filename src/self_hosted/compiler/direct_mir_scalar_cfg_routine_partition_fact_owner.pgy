@@ -1,0 +1,164 @@
+// Canonical ownership ranges for routines stored in one flat scalar GraphPlan.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+
+struct DirectMirScalarCfgRoutinePartitionFact {
+    let valid: Bool;
+    let digest: Int;
+    let entrypoint_ordinal: Int;
+    let roles: Array<Int>;
+    let source_rows: Array<Int>;
+    let source_syntax_ids: Array<Int>;
+    let names: Array<String>;
+    let return_types: Array<String>;
+    let parameter_counts: Array<Int>;
+    let parameter_types: Array<String>;
+    let signature_digests: Array<Int>;
+    let cfg_digests: Array<Int>;
+    let local_starts: Array<Int>;
+    let local_counts: Array<Int>;
+    let value_starts: Array<Int>;
+    let value_counts: Array<Int>;
+    let block_starts: Array<Int>;
+    let block_counts: Array<Int>;
+    let operation_starts: Array<Int>;
+    let operation_counts: Array<Int>;
+    let phi_starts: Array<Int>;
+    let phi_counts: Array<Int>;
+}
+
+func DirectMirScalarCfgRoutineRoleEntrypoint() -> Int { return 1; }
+func DirectMirScalarCfgRoutineRoleCallable() -> Int { return 2; }
+
+func DirectMirScalarCfgRoutinePartitionDigest(
+    ref fact: DirectMirScalarCfgRoutinePartitionFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(251L, fact.entrypoint_ordinal);
+    hash = DirectMirScalarCfgHashInts(hash, fact.roles);
+    hash = DirectMirScalarCfgHashInts(hash, fact.source_rows);
+    hash = DirectMirScalarCfgHashInts(hash, fact.source_syntax_ids);
+    hash = DirectMirScalarCfgHashStrings(hash, fact.names);
+    hash = DirectMirScalarCfgHashStrings(hash, fact.return_types);
+    hash = DirectMirScalarCfgHashInts(hash, fact.parameter_counts);
+    hash = DirectMirScalarCfgHashStrings(hash, fact.parameter_types);
+    hash = DirectMirScalarCfgHashInts(hash, fact.signature_digests);
+    hash = DirectMirScalarCfgHashInts(hash, fact.cfg_digests);
+    hash = DirectMirScalarCfgHashInts(hash, fact.local_starts);
+    hash = DirectMirScalarCfgHashInts(hash, fact.local_counts);
+    hash = DirectMirScalarCfgHashInts(hash, fact.value_starts);
+    hash = DirectMirScalarCfgHashInts(hash, fact.value_counts);
+    hash = DirectMirScalarCfgHashInts(hash, fact.block_starts);
+    hash = DirectMirScalarCfgHashInts(hash, fact.block_counts);
+    hash = DirectMirScalarCfgHashInts(hash, fact.operation_starts);
+    hash = DirectMirScalarCfgHashInts(hash, fact.operation_counts);
+    hash = DirectMirScalarCfgHashInts(hash, fact.phi_starts);
+    hash = DirectMirScalarCfgHashInts(hash, fact.phi_counts);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarCfgRoutinePartitionRangesReady(
+    starts: Array<Int>, counts: Array<Int>, total: Int
+) -> Bool {
+    if ArrayLength(starts) != ArrayLength(counts) || total < 0 { return false; }
+    let expected: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(starts) {
+        if starts[row] != expected || counts[row] < 0 { return false; }
+        expected = expected + counts[row];
+        row = row + 1;
+    }
+    return expected == total;
+}
+
+func DirectMirScalarCfgRoutinePartitionReady(
+    ref fact: DirectMirScalarCfgRoutinePartitionFact,
+    local_count: Int, value_count: Int, block_count: Int,
+    operation_count: Int, phi_count: Int
+) -> Bool {
+    let count: Int = ArrayLength(fact.roles);
+    if !fact.valid || fact.digest == 0 || count < 1 ||
+        fact.digest != DirectMirScalarCfgRoutinePartitionDigest(fact) ||
+        fact.entrypoint_ordinal != 0 || count != ArrayLength(fact.source_rows) ||
+        count != ArrayLength(fact.source_syntax_ids) ||
+        count != ArrayLength(fact.names) || count != ArrayLength(fact.return_types) ||
+        count != ArrayLength(fact.parameter_counts) ||
+        count != ArrayLength(fact.parameter_types) ||
+        count != ArrayLength(fact.signature_digests) ||
+        count != ArrayLength(fact.cfg_digests) ||
+        !DirectMirScalarCfgRoutinePartitionRangesReady(
+            fact.local_starts, fact.local_counts, local_count) ||
+        !DirectMirScalarCfgRoutinePartitionRangesReady(
+            fact.value_starts, fact.value_counts, value_count) ||
+        !DirectMirScalarCfgRoutinePartitionRangesReady(
+            fact.block_starts, fact.block_counts, block_count) ||
+        !DirectMirScalarCfgRoutinePartitionRangesReady(
+            fact.operation_starts, fact.operation_counts, operation_count) ||
+        !DirectMirScalarCfgRoutinePartitionRangesReady(
+            fact.phi_starts, fact.phi_counts, phi_count) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if fact.source_rows[row] < 0 || fact.source_syntax_ids[row] <= 0 ||
+            fact.names[row] == "" || fact.return_types[row] == "" ||
+            fact.parameter_counts[row] < 0 || fact.parameter_counts[row] > 1 ||
+            fact.signature_digests[row] == 0 || fact.cfg_digests[row] == 0 ||
+            (fact.parameter_counts[row] == 0 && fact.parameter_types[row] != "") ||
+            (fact.parameter_counts[row] == 1 && fact.parameter_types[row] == "") ||
+            (row == fact.entrypoint_ordinal &&
+             (fact.roles[row] != DirectMirScalarCfgRoutineRoleEntrypoint() ||
+              fact.names[row] != "Main" || fact.return_types[row] != "Void" ||
+              fact.parameter_counts[row] != 0)) ||
+            (row != fact.entrypoint_ordinal &&
+             fact.roles[row] != DirectMirScalarCfgRoutineRoleCallable()) {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if fact.source_rows[prior] == fact.source_rows[row] ||
+                fact.source_syntax_ids[prior] == fact.source_syntax_ids[row] ||
+                fact.names[prior] == fact.names[row] { return false; }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarCfgSingleRoutinePartitionFromOwners(
+    ref routines: MirProgramRoutineIndex, ref index: MirRoutineFactIndex,
+    routine_row: Int, local_count: Int, value_count: Int,
+    block_count: Int, operation_count: Int, phi_count: Int
+) -> DirectMirScalarCfgRoutinePartitionFact {
+    let signature: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(
+            routines, routine_row, index.block_instruction_counts[0]
+        );
+    if !DirectMirRoutineSignatureFactReady(signature) ||
+        signature.name != "Main" || signature.return_type != "Void" ||
+        signature.param_count != 0 {
+        Die("direct MIR scalar CFG entrypoint partition is invalid");
+    }
+    let fact: DirectMirScalarCfgRoutinePartitionFact =
+        DirectMirScalarCfgRoutinePartitionFact(
+            true, 0, 0, [DirectMirScalarCfgRoutineRoleEntrypoint()],
+            [routine_row], [signature.source_syntax_id], [signature.name],
+            [signature.return_type], [signature.param_count], [""],
+            [signature.digest], [DirectMirCfgDigestFromIndex(index)],
+            [0], [local_count], [0], [value_count], [0], [block_count],
+            [0], [operation_count], [0], [phi_count]
+        );
+    return DirectMirScalarCfgRoutinePartitionFact(
+        fact.valid, DirectMirScalarCfgRoutinePartitionDigest(fact),
+        fact.entrypoint_ordinal, fact.roles, fact.source_rows,
+        fact.source_syntax_ids, fact.names, fact.return_types,
+        fact.parameter_counts, fact.parameter_types, fact.signature_digests,
+        fact.cfg_digests, fact.local_starts, fact.local_counts,
+        fact.value_starts, fact.value_counts, fact.block_starts,
+        fact.block_counts, fact.operation_starts, fact.operation_counts,
+        fact.phi_starts, fact.phi_counts
+    );
+}

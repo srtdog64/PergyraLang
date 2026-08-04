@@ -62,7 +62,7 @@ mkdir -p "$WORK_DIR"
     -o "$WORK_REL/program.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/program.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "77A60A6644C7D4BFE4B805D40306CCC90BD6F1612E2988CF4E2051BB4C6C1612" ]] || \
+[[ "$mir_sha" == "35F8954AE3C72CD8BB74BABD947C7E298B3538CFD39A69199B705EE1A7E5C962" ]] || \
     fail "source MIR identity changed: $mir_sha"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_bool_logic_mutations.py" \
     "$WORK_DIR/program.json" "$WORK_DIR"

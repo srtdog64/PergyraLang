@@ -7,6 +7,7 @@
 // expression-graph String.
 
 import "json_projection_owner.pgy";
+import "expression_identity_json_projection_owner.pgy";
 
 func SelfMirJsonOptionalStringWriteFile(
     output: Int,
@@ -95,6 +96,9 @@ func SelfMirJsonExpressionGraphWriteFile(
         if !JsonStringLiteralWriteFile(output,
             UnwrapOption(call_target_name_opt)
         ) { return false; }
+        if !SelfMirJsonExpressionIdentityWriteFile(graph, node, output) {
+            return false;
+        }
         CompilerArtifactWrite(output, ",\"left\":");
         if arity == 0 {
             CompilerArtifactWrite(output, "null");

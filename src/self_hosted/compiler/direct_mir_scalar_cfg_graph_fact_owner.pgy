@@ -12,6 +12,7 @@ import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
 import "direct_mir_scalar_cfg_collection_pop_program_fact_owner.pgy";
 import "direct_mir_scalar_cfg_collection_plan_fact_owner.pgy";
 import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 
 struct DirectMirScalarCfgGraphPlan {
     let valid: Bool;
@@ -22,6 +23,7 @@ struct DirectMirScalarCfgGraphPlan {
     let cfg_digest: Int;
     let target_schema: String;
     let target_fingerprint: Int;
+    let routines: DirectMirScalarCfgRoutinePartitionFact;
     let local_names: Array<String>;
     let local_types: Array<String>;
     let local_ref_kinds: Array<Int>;
@@ -66,7 +68,7 @@ struct DirectMirScalarCfgGraphPlan {
 }
 
 func DirectMirScalarCfgGraphPlanSchema() -> String {
-    return "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v14";
+    return "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v15";
 }
 
 func DirectMirScalarCfgOpConstInt() -> Int { return 1; }

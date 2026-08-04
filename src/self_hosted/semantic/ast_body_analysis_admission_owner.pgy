@@ -109,5 +109,11 @@ func SemanticAstBodyAnalysisAdmissionReady(
         ArrayLength(analysis.expression_surfaces.expression_graph.arena
             .call_return_type_names) == graph_node_count &&
         ArrayLength(analysis.expression_surfaces.expression_graph.arena
+            .identities.call_target_syntax_ids) == graph_node_count &&
+        ArrayLength(analysis.expression_surfaces.expression_graph.arena
+            .identities.binding_kinds) == graph_node_count &&
+        ArrayLength(analysis.expression_surfaces.expression_graph.arena
+            .identities.binding_ordinals) == graph_node_count &&
+        ArrayLength(analysis.expression_surfaces.expression_graph.arena
             .place_kinds) == graph_node_count;
 }

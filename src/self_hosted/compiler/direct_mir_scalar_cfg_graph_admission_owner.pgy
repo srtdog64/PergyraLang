@@ -432,7 +432,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
     let program_extension: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFromAdmission(program);
     return DirectMirScalarCfgSealGraphPlan(
-        admitted, index, local_refs, type_plan,
+        admitted, index, routine_row, local_refs, type_plan,
         block_succ_true, block_succ_false,
         block_operation_starts, block_operation_counts,
         block_condition_kinds, block_condition_left_values,
