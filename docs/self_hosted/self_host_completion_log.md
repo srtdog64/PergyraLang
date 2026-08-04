@@ -6,6 +6,55 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-04 - Nested String builtins substitute through typed GraphPlan rows
+
+- Landed executable checkpoint `1b3792d4`. The 4,918,539-byte current-source
+  Pergyra-built driver
+  (`91D0C2BE4543495E43A0A328A5AE0083D17B5392AF863AEE16001B10EEBE65AC`)
+  consumes the 14,105-byte `string_concat_op.pgy` MIR
+  (`994A28363848AD3F60504BFA95B71C25D02842CACBC0C88CC89342AB9B3A1DF7`).
+  It emits 1,813-byte C
+  (`8D29335DA4FFD2B5C5349466D53C49D5E94DBBCE524CC031B93D15A14C335D2C`)
+  and 6,686-byte LLVM
+  (`89F643911A4FC54DB0BC5F1D710993DB3A94CBCB2C19C947D3E5D39EE76E028A`);
+  both compile and execute `foobar`, `xyz`, `Hello, Pergyra!`, `foo/bar/end`,
+  `n=7`, and `ABcd` exactly.
+- GraphPlan v18 remains the sole graph authority. Persisted call topology joins
+  the canonical semantic builtin signature registry, then normalizes ToString,
+  ToUpper, and ToLower to unary typed expression rows inside the existing DAG.
+  One sealed runtime-ABI subfact carries compare, concat, and builtin IDs to
+  both backends. No fixture route, expression-text parse, output constant, or
+  second graph/emitter was added.
+- Replaced the former ToString/Log integer-format fusion with real String
+  materialization shared by root and nested calls. C reuses the existing String
+  runtime block owner. LLVM owns equivalent bounded materialization. The old
+  exact-call ToString branch was removed; syntax-ID-bearing user calls remain
+  in that exact owner.
+- The focused gate proves display-only artifact equality, semantic String and
+  builtin changes with exact changed execution, and seven malformed syntax-ID,
+  call edge, argument edge/type, registry, and duplicate-consumption variants
+  per target. All fail without artifact or generic-CFG retry. Final builtin and
+  Bool/ToString-root regressions are green on the final driver; prior String,
+  Array-parameter, partition, and identity gates also stayed green.
+- The final current-source build took 130.3 seconds. No pressure result is
+  claimed. Full CI, fixed point, proof, sanitizer, and release promotion did
+  not run. The component contract retains the independent 616/600
+  `ast_expression_graph_fact_owner.pgy` red; the SoT registry retains duplicate
+  Coq fact authorities. The agent-boundary sentinel is green.
+- Layering audit moved loose runtime IDs into one subfact and split expression
+  classification, builtin registry join, target String expression syntax, and
+  target materialization into named owners. Central C/LLVM expression owners
+  and admission shrank to 90/135/178 lines. All previous hard caps stayed
+  fixed; new owners were added to the shared cap registry. No `helper` bucket
+  was introduced.
+- The next sole falsifier is `str_builtins.pgy`. Its 11,879-byte MIR
+  (`0378770C6AF86E963E8C73B700B4F043250DDA397AE5D3B7E9290220520220C4`)
+  is rejected by both targets without artifact at scalar local inventory.
+  The next delta must admit canonical builtin-produced definition results into
+  the existing local/value inventory. Fixture/name routes, source-local
+  spelling inference, expression reparsing, backend MIR reads, and native retry
+  remain forbidden.
+
 ## 2026-08-04 - Typed String concat substitutes through the shared GraphPlan
 
 - Landed executable checkpoint `094b6dad`. The 4,909,469-byte current-source

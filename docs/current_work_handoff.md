@@ -6,79 +6,85 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - typed String concat closed
+## Active self-host context - nested String builtins closed
 
-- Executable checkpoint: `094b6dad` on `main`, with this handoff as its
+- Executable checkpoint: `1b3792d4` on `main`, with this handoff as its
   intended docs-only descendant. The final current-source Pergyra-built driver
-  is 4,909,469 bytes with SHA-256
-  `D2C68BD67E4F844F8E12625FCEA7F250492E74ED718C4AB7C3B642BE19D8A9A8`.
+  is 4,918,539 bytes with SHA-256
+  `91D0C2BE4543495E43A0A328A5AE0083D17B5392AF863AEE16001B10EEBE65AC`.
 - Intended post-handoff dirty state contains only user-owned stdlib work:
   modified `docs/138_standard_library_scope.md` and
   `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
   `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`. No
   compiler-rung file remains dirty.
 - Closed executable rung:
-  `src/self_hosted/codegen/fixture/string_equality_concat.pgy`. Its 6,109-byte
+  `src/self_hosted/codegen/fixture/string_concat_op.pgy`. Its 14,105-byte
   self-produced MIR has SHA-256
-  `85E6A08A02F7C6DB568455793D7EF777847C17C9A56366782DFB38B6D8014538`.
-  It emits 886-byte C
-  (`D00807FE90B660B2EB5E35D73D3A79809002AB199E0B91E560D6CAD748195FA2`)
-  and 2,698-byte LLVM
-  (`5C4324F08A2368AADBE45DA3F415E3ADD605CA116D9BC70ECCFC25B55D2A7642`);
-  both host-compile and execute exact `concat_eq_ok`.
-- `DirectMirScalarCfgGraphPlan` v17 remains the sole CFG, SSA, phi, local,
-  operation, routine-range, expression-link, digest, and mutation authority.
-  One typed expression arena owns String concat/equality. One runtime-ABI
-  requirement owner maps normalized kinds to concat/compare IDs; the GraphPlan
-  seal joins them with operation-owned requirements before C or LLVM emission.
-- One program builder now admits one or two canonical routine rows with one
-  syntactic call to `DirectMirScalarCfgProgramAppendRoutine` inside a loop and
-  exactly one seal. A single-routine program carries canonical empty callable
-  and closed-call facts rather than a fake callable. Main-first identity and
-  ranges are separate bounded owners, not block/routine-count classifiers.
-- Focused evidence: display-only mutation is artifact-identical; changing
-  source `a` from `fo` to `xx` changes both artifacts and executes exact
-  `concat_eq_fail`. Bad first/second concat nodes, equality literal/root,
-  ValueId use, and leaf identity all fail without C/LLVM artifact. Each stays
-  inside the claimed scalar-program owner and cannot retry generic CFG.
-- Final current-source composition build took 124.5 seconds. Final focused
-  gates were green: concat 10.7 seconds, previous String equality 11.5, Bool
-  18.8, and reallocating Array parameter 8.6. Static routine partition and
-  expression-identity gates were also green. No memory pressure result is
-  claimed. Full CI, current gen2==gen3, proofs, sanitizers, and released/default
-  promotion did not run.
-- The active owner set contains no `helper` bucket. New responsibility owners
-  are capped at 75 lines or less; existing expression/emission owners remain
-  under their previous caps. Duplicated scalar-program cap tables were replaced
-  by `tests/self_hosted/parity/scalar_program_owner_caps.tsv`, consumed by the
-  focused gates and component contract. No cap was raised.
-- Independent red evidence remains explicit. The component contract stops
-  before this section at the pre-existing
-  `ast_expression_graph_fact_owner.pgy` 616/600 cap. The global likeness gate
-  remains red at sentinel `239 > 22` and zone-bound steps `26 < 29`; this rung
-  adds no sentinel match. `scripts/sot_registry_gate.py` also retains its
-  pre-existing duplicate Coq fact-authority failure. These are not misreported
-  as concat blockers.
-- Classification is bounded `SUBSTITUTING` only for the exact one-routine
-  String concat/equality program through installed direct C and LLVM. It does
-  not close arbitrary String expressions, builtin nesting, temporary String
-  ownership, multiple callables, or whole-compiler/default replacement.
-- Next observed executable falsifier: only
-  `src/self_hosted/codegen/fixture/string_concat_op.pgy` is active. Its current
-  producer emits a 14,105-byte MIR with SHA-256
   `994A28363848AD3F60504BFA95B71C25D02842CACBC0C88CC89342AB9B3A1DF7`.
-  Both targets publish no artifact and stop at `direct MIR scalar CFG program
-  routine admission is invalid`.
-- Next objective card: generalize the existing normalized expression arena so
-  a builtin call node such as `ToString(n)` can be typed inside a larger concat
-  DAG. Persisted expression graph/call-target identity remains the fact
-  supplier, the builtin registry owns builtin identity and signature, and
-  `CompileAdmittedDirectMirScalarProgramForTarget` remains the last legitimate
-  consumer. The first falsifier is a repaired/missing nested builtin target or
-  argument edge that must fail before either artifact.
-- Forbidden fallback: a `string_concat_op` fixture/name branch, expression-text
-  parsing, precomputed `foobar/xyz/Hello, Pergyra!/foo/bar/end/n=7/ABcd`, a
-  concat-op-specific plan/emitter, routine/block-count routing, backend MIR
+  It emits 1,813-byte C
+  (`8D29335DA4FFD2B5C5349466D53C49D5E94DBBCE524CC031B93D15A14C335D2C`)
+  and 6,686-byte LLVM
+  (`89F643911A4FC54DB0BC5F1D710993DB3A94CBCB2C19C947D3E5D39EE76E028A`).
+  Both host-compile and execute exact `foobar`, `xyz`, `Hello, Pergyra!`,
+  `foo/bar/end`, `n=7`, and `ABcd`.
+- `DirectMirScalarCfgGraphPlan` v18 remains the sole CFG, SSA, phi, local,
+  operation, routine-range, expression-link, digest, and mutation authority.
+  Persisted graph identity supplies call topology; the semantic builtin
+  signature registry owns builtin name/signature identity. Normalization
+  collapses `call` plus `call_argument` into typed unary `ToString`, `ToUpper`,
+  or `ToLower` expression rows while preserving the same concat/call DAG.
+- One sealed runtime-ABI subfact now owns compare, concat, ToString, ToUpper,
+  and ToLower requirements. C and LLVM project concrete symbols from that fact
+  and materialize the required runtime blocks. The former exact-call
+  `ToString`/Log fusion was deleted, so root and nested ToString share one real
+  String-producing path; direct user calls remain syntax-ID-owned.
+- Focused evidence: display-only graph and expression text are artifact-equal.
+  String and builtin input mutations change both artifacts and execute their
+  exact changed output. Seven malformed syntax-ID, call edge, argument edge,
+  argument type, registry name, and duplicate-consumption variants fail in
+  both targets without artifact or generic-CFG retry.
+- The final composition build took 130.3 seconds. The final builtin gate took
+  10.4 seconds and the final Bool/ToString-root regression took 16.8 seconds.
+  Earlier on the same owner set, String concat/equality, String equality,
+  Bool, and Array-parameter regressions all passed in 40.1 seconds; static
+  routine-partition and expression-identity gates also passed. No memory
+  pressure result is claimed. Full CI, current gen2==gen3, proofs, sanitizers,
+  and released/default promotion did not run.
+- Layering audit result: loose ABI integer fields became one sealed subfact;
+  expression classification, nested builtin joins, backend String expression
+  syntax, and backend builtin materialization have named owners. Repeated C
+  runtime bodies were factored behind their existing String runtime owner. The
+  dead exact-call ToString branch was removed. No `helper` bucket or new plan,
+  graph, backend MIR read, or output-specific path was added.
+- All old hard caps stayed fixed. New owners are registered in the shared
+  `scalar_program_owner_caps.tsv`; the central expression owners shrank to 90
+  C and 135 LLVM lines, and admission shrank from 224 to 178 lines despite the
+  new semantics. `agent_boundary_sentinel_smoke.sh` is green.
+- Independent red evidence remains explicit. The component contract still
+  stops at the pre-existing `ast_expression_graph_fact_owner.pgy` 616/600 cap.
+  `scripts/sot_registry_gate.py` still rejects duplicate Coq fact authorities.
+  These are not this executable rung's blockers.
+- Classification is bounded `SUBSTITUTING` only for this exact String builtin
+  program through installed direct C and LLVM. It does not close arbitrary
+  builtin arity, all String runtime operations, Float/Array locals, temporary
+  String lifetime, or whole-compiler/default replacement.
+- Next observed executable falsifier: only
+  `src/self_hosted/codegen/fixture/str_builtins.pgy` is active. Its current
+  producer emits an 11,879-byte MIR with SHA-256
+  `0378770C6AF86E963E8C73B700B4F043250DDA397AE5D3B7E9290220520220C4`.
+  Both targets publish no artifact and stop at `direct MIR scalar local type
+  inventory is missing or invalid`.
+- Next objective card: admit definition expressions whose result is produced
+  by canonical String builtins (`StringLength`, bounded substring operations,
+  and concat) so `n`, `sub`, and `tail` enter the existing typed local/value
+  inventory. The semantic builtin registry remains the identity/signature
+  owner, persisted expression graphs supply arguments, GraphPlan remains the
+  sole storage/ordering owner, and the direct target compiler remains the last
+  consumer. The first falsifier is a wrong result type or argument edge that
+  must fail before local inventory closure or artifact publication.
+- Forbidden fallback: a `str_builtins` fixture/name branch, expression-text
+  parsing, source-local spelling inference, precomputed output, a builtin-
+  specific graph/emitter, widening all builtin arities at once, backend MIR
   reads, claimant retry, or native C fallback.
 
 ## Historical checkpoint archive - inactive navigation evidence
