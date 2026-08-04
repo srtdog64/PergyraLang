@@ -1,5 +1,3 @@
-// Canonical typed classification for non-binding scalar expression nodes.
-
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 
@@ -92,6 +90,10 @@ func DirectMirScalarProgramExpressionKindFactFromSource(
         return DirectMirScalarProgramExpressionKindFact(
             true, DirectMirScalarProgramExprAddInt(),
             CompilerAbiLayoutIntTypeName(), "");
+    }
+    if source_kind == AstExpressionNodeSubtract() && ints {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprSubtractInt(), CompilerAbiLayoutIntTypeName(), "");
     }
     if source_kind == AstExpressionNodeLogicalAnd() && bools {
         return DirectMirScalarProgramExpressionKindFact(

@@ -10,7 +10,8 @@ func DirectMirScalarProgramExpressionSetInvalid(
         facts.graph_counts, facts.graph_roots, facts.node_kinds,
         facts.node_types, facts.node_lefts, facts.node_rights,
         facts.node_local_rows, facts.node_parameter_ordinals,
-        facts.node_literals, facts.node_callable_rows);
+        facts.node_literals, facts.node_callable_rows,
+        facts.nary_operands);
 }
 
 func DirectMirScalarProgramAppendExpressionNode(

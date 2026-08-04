@@ -1,0 +1,33 @@
+// Semantic readiness for normalized String expressions with more than two operands.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramNaryExpressionNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    let kind: Int = facts.node_kinds[node];
+    if kind != DirectMirScalarProgramExprSubstring() && kind !=
+            DirectMirScalarProgramExprSubstringWithLen() { return None; }
+    let operands: Array<Int> = DirectMirScalarProgramNaryOperandRows(
+        facts.nary_operands, node);
+    let expected: Int = 3;
+    if kind == DirectMirScalarProgramExprSubstringWithLen() { expected = 4; }
+    if ArrayLength(operands) != expected ||
+        facts.node_types[node] != CompilerAbiLayoutStringTypeName() ||
+        facts.node_lefts[node] != -1 || facts.node_rights[node] != -1 ||
+        facts.node_local_rows[node] != -1 ||
+        facts.node_parameter_ordinals[node] != -1 ||
+        facts.node_literals[node] != "" ||
+        facts.node_callable_rows[node] != -1 { return Some(false); }
+    let i: Int = 0;
+    while i < expected {
+        let expected_type: String = CompilerAbiLayoutIntTypeName();
+        if i == 0 { expected_type = CompilerAbiLayoutStringTypeName(); }
+        if operands[i] < 0 || operands[i] >= node ||
+            facts.node_types[operands[i]] != expected_type {
+            return Some(false);
+        }
+        i = i + 1;
+    }
+    return Some(true);
+}

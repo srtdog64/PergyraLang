@@ -1,0 +1,98 @@
+// Bounded scalar-program projection of canonical semantic builtin signatures.
+
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "../semantic/builtin_signature_owner.pgy";
+
+struct DirectMirScalarProgramBuiltinSignatureFact {
+    let valid: Bool;
+    let registry_row: Int;
+    let name: String;
+    let return_type: String;
+    let parameter_types: Array<String>;
+    let expression_kind: Int;
+}
+
+func DirectMirScalarProgramBuiltinSignatureFactInvalid(
+) -> DirectMirScalarProgramBuiltinSignatureFact {
+    let types: Array<String> = [];
+    return DirectMirScalarProgramBuiltinSignatureFact(
+        false, -1, "", "", types, 0);
+}
+
+func DirectMirScalarProgramBuiltinSignatureExpected(
+    name: String
+) -> Array<String> {
+    if name == "ToString" {
+        return ["String", "Unknown", ToString(
+            DirectMirScalarProgramExprToStringInt())];
+    }
+    if name == "ToUpper" {
+        return ["String", "Unknown", ToString(
+            DirectMirScalarProgramExprToUpperString())];
+    }
+    if name == "ToLower" {
+        return ["String", "Unknown", ToString(
+            DirectMirScalarProgramExprToLowerString())];
+    }
+    if name == "StringLength" {
+        return ["Int", "String", ToString(
+            DirectMirScalarProgramExprStringLength())];
+    }
+    if name == "Substring" {
+        return ["String", "String|Int|Int", ToString(
+            DirectMirScalarProgramExprSubstring())];
+    }
+    if name == "SubstringWithLen" {
+        return ["String", "String|Int|Int|Int", ToString(
+            DirectMirScalarProgramExprSubstringWithLen())];
+    }
+    if name == "Concat" {
+        return ["String", "String|String", ToString(
+            DirectMirScalarProgramExprConcatString())];
+    }
+    return [];
+}
+
+func DirectMirScalarProgramBuiltinSignatureFactFromName(
+    name: String
+) -> DirectMirScalarProgramBuiltinSignatureFact {
+    let invalid: DirectMirScalarProgramBuiltinSignatureFact =
+        DirectMirScalarProgramBuiltinSignatureFactInvalid();
+    let expected: Array<String> =
+        DirectMirScalarProgramBuiltinSignatureExpected(name);
+    if ArrayLength(expected) != 3 { return invalid; }
+    let names: Array<String> = []; let returns: Array<String> = [];
+    let params: Array<String> = [];
+    if !SeedSemanticBuiltinSignatures(names, returns, params) { return invalid; }
+    let registry_row: Int = -1; let row: Int = 0;
+    while row < ArrayLength(names) {
+        if names[row] == name {
+            if registry_row >= 0 { return invalid; }
+            registry_row = row;
+        }
+        row = row + 1;
+    }
+    if registry_row < 0 || returns[registry_row] != expected[0] ||
+        params[registry_row] != expected[1] { return invalid; }
+    return DirectMirScalarProgramBuiltinSignatureFact(
+        true, registry_row, name, returns[registry_row],
+        Split(params[registry_row], "|"), ToInt(expected[2]));
+}
+
+func DirectMirScalarProgramBuiltinArgumentPrefixReady(
+    ref signature: DirectMirScalarProgramBuiltinSignatureFact,
+    actual_types: Array<String>
+) -> Bool {
+    if !signature.valid || ArrayLength(actual_types) >
+            ArrayLength(signature.parameter_types) { return false; }
+    let i: Int = 0;
+    while i < ArrayLength(actual_types) {
+        let expected: String = signature.parameter_types[i];
+        if signature.name == "ToString" { expected = "Int"; }
+        else if signature.name == "ToUpper" ||
+                signature.name == "ToLower" { expected = "String"; }
+        if actual_types[i] != expected { return false; }
+        i = i + 1;
+    }
+    return true;
+}

@@ -1,4 +1,3 @@
-// Executable negative for hidden payload in an inactive program extension.
 import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
 func DirectMirScalarCfgProgramExtensionMutationRejected() -> Bool {
     let empty_ints: Array<Int> = [];
@@ -8,7 +7,8 @@ func DirectMirScalarCfgProgramExtensionMutationRejected() -> Bool {
         DirectMirScalarProgramExpressionSet(
             true, 0, one_int, empty_ints, empty_ints, empty_ints,
             empty_ints, strings, empty_ints, empty_ints, empty_ints,
-            empty_ints, strings, empty_ints
+            empty_ints, strings, empty_ints,
+            DirectMirScalarProgramNaryOperandsEmpty()
         );
     let empty: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFactEmpty();
@@ -28,7 +28,7 @@ func DirectMirScalarCfgProgramExtensionMutationRejected() -> Bool {
             false, 0, empty.callable, empty.expressions,
             empty_ints, empty_ints, empty_ints, empty.closed_call_abi,
             DirectMirScalarProgramRuntimeAbiFact(
-                false, 0, 0, 0, 0, 0, 1));
+                false, 0, 0, 0, 0, 0, 1, 0, 0, 0));
     return !DirectMirScalarCfgProgramExtensionFactReady(expression_mutation) &&
         !DirectMirScalarCfgProgramExtensionFactReady(abi_mutation) &&
         !DirectMirScalarCfgProgramExtensionFactReady(runtime_mutation);

@@ -1,98 +1,60 @@
-// Canonical builtin-signature join for call nodes nested in scalar DAGs.
+// Canonical builtin-signature join for calls nested in scalar expression DAGs.
 
-import "direct_mir_scalar_program_expression_fact_owner.pgy";
-import "../semantic/builtin_signature_owner.pgy";
+import "direct_mir_scalar_program_builtin_argument_chain_owner.pgy";
+import "direct_mir_scalar_program_builtin_signature_projection_owner.pgy";
 
 struct DirectMirScalarProgramBuiltinCallFact {
+    let recognized: Bool;
     let valid: Bool;
+    let complete: Bool;
     let expression_kind: Int;
-    let argument_row: Int;
+    let argument_rows: Array<Int>;
     let call_node: Int;
 }
 
 func DirectMirScalarProgramBuiltinCallFactInvalid(
+    recognized: Bool
 ) -> DirectMirScalarProgramBuiltinCallFact {
-    return DirectMirScalarProgramBuiltinCallFact(false, 0, -1, -1);
-}
-
-func DirectMirScalarProgramBuiltinCallMarkerReady(
-    ref sequence: MirExpressionGraphSequence, node: Int
-) -> Bool {
-    if node < 1 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
-        sequence.arena.topology.node_kinds[node] != AstExpressionNodeCall() ||
-        sequence.arena.call_target_kinds[node] != SemanticCallTargetDirect() ||
-        sequence.arena.identities.call_target_syntax_ids[node] != 0 {
-        return false;
-    }
-    let callee: Int = sequence.arena.topology.left_children[node];
-    return callee >= 0 && callee < node &&
-        sequence.arena.topology.node_kinds[callee] == AstExpressionNodeLeaf() &&
-        sequence.arena.call_target_names[node] ==
-            sequence.arena.node_texts[callee];
-}
-
-func DirectMirScalarProgramBuiltinCalleeLeafReady(
-    ref sequence: MirExpressionGraphSequence, node: Int
-) -> Bool {
-    return node + 1 < ArrayLength(sequence.arena.topology.node_kinds) &&
-        sequence.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() &&
-        sequence.arena.topology.node_kinds[node + 1] == AstExpressionNodeCall() &&
-        sequence.arena.topology.left_children[node + 1] == node &&
-        DirectMirScalarProgramBuiltinCallMarkerReady(sequence, node + 1);
+    let rows: Array<Int> = [];
+    return DirectMirScalarProgramBuiltinCallFact(
+        recognized, false, false, 0, rows, -1);
 }
 
 func DirectMirScalarProgramBuiltinCallFactFromGraph(
     ref sequence: MirExpressionGraphSequence, node: Int,
     source_rows: Array<Int>, normalized_types: Array<String>
 ) -> DirectMirScalarProgramBuiltinCallFact {
-    let invalid: DirectMirScalarProgramBuiltinCallFact =
-        DirectMirScalarProgramBuiltinCallFactInvalid();
+    let missing: DirectMirScalarProgramBuiltinCallFact =
+        DirectMirScalarProgramBuiltinCallFactInvalid(false);
     if node < 0 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
         sequence.arena.topology.node_kinds[node] !=
-            AstExpressionNodeCallArgument() {
-        return invalid;
+            AstExpressionNodeCallArgument() { return missing; }
+    let chain: DirectMirScalarProgramBuiltinArgumentChain =
+        DirectMirScalarProgramBuiltinArgumentChainFromGraph(
+            sequence, node, source_rows, normalized_types);
+    if !chain.valid {
+        return DirectMirScalarProgramBuiltinCallFactInvalid(true);
     }
-    let call_node: Int = sequence.arena.topology.left_children[node];
-    let argument_source: Int = sequence.arena.topology.right_children[node];
-    if !DirectMirScalarProgramBuiltinCallMarkerReady(sequence, call_node) ||
-        argument_source < 0 || argument_source >= node ||
-        argument_source >= ArrayLength(source_rows) ||
-        source_rows[argument_source] < 0 ||
-        source_rows[argument_source] >= ArrayLength(normalized_types) {
-        return invalid;
+    let signature: DirectMirScalarProgramBuiltinSignatureFact =
+        DirectMirScalarProgramBuiltinSignatureFactFromName(
+            sequence.arena.call_target_names[chain.call_node]);
+    if !signature.valid {
+        return DirectMirScalarProgramBuiltinCallFactInvalid(true);
     }
-    let names: Array<String> = []; let returns: Array<String> = [];
-    let params: Array<String> = [];
-    if !SeedSemanticBuiltinSignatures(names, returns, params) {
-        return invalid;
+    let actual_types: Array<String> = []; let i: Int = 0;
+    while i < ArrayLength(chain.argument_rows) {
+        ArrayPush(actual_types, normalized_types[chain.argument_rows[i]]);
+        i = i + 1;
     }
-    let name: String = sequence.arena.call_target_names[call_node];
-    let registry_row: Int = -1; let row: Int = 0;
-    while row < ArrayLength(names) {
-        if names[row] == name {
-            if registry_row >= 0 { return invalid; }
-            registry_row = row;
-        }
-        row = row + 1;
+    if !DirectMirScalarProgramBuiltinArgumentPrefixReady(
+            signature, actual_types) {
+        return DirectMirScalarProgramBuiltinCallFactInvalid(true);
     }
-    let argument_row: Int = source_rows[argument_source];
-    let actual_type: String = normalized_types[argument_row];
-    if registry_row < 0 || returns[registry_row] !=
-            CompilerAbiLayoutStringTypeName() ||
-        params[registry_row] != "Unknown" { return invalid; }
-    let kind: Int = 0;
-    if name == "ToString" && actual_type == CompilerAbiLayoutIntTypeName() {
-        kind = DirectMirScalarProgramExprToStringInt();
-    } else if name == "ToUpper" &&
-            actual_type == CompilerAbiLayoutStringTypeName() {
-        kind = DirectMirScalarProgramExprToUpperString();
-    } else if name == "ToLower" &&
-            actual_type == CompilerAbiLayoutStringTypeName() {
-        kind = DirectMirScalarProgramExprToLowerString();
-    } else { return invalid; }
+    let complete: Bool = ArrayLength(actual_types) ==
+        ArrayLength(signature.parameter_types);
     return DirectMirScalarProgramBuiltinCallFact(
-        true, kind, argument_row, call_node
-    );
+        true, true, complete, signature.expression_kind,
+        chain.argument_rows, chain.call_node);
 }
 
 func DirectMirScalarProgramBuiltinCallsComplete(

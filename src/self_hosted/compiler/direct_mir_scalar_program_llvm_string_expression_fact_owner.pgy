@@ -1,0 +1,13 @@
+// Result fact for one LLVM String expression projection.
+
+struct DirectMirScalarProgramLlvmStringExpression {
+    let matched: Bool;
+    let valid: Bool;
+    let instructions: String;
+    let value: String;
+}
+
+func DirectMirScalarProgramLlvmStringExpressionMissing(
+) -> DirectMirScalarProgramLlvmStringExpression {
+    return DirectMirScalarProgramLlvmStringExpression(false, false, "", "");
+}

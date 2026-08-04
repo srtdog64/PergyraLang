@@ -47,6 +47,20 @@ func DirectMirScalarProgramLlvmExpressionAt(
         if expressions.node_rights[node] >= start {
             right = values[expressions.node_rights[node] - start];
         }
+        let arguments: Array<String> = [];
+        let argument_rows: Array<Int> =
+            DirectMirScalarProgramNaryOperandRows(
+                expressions.nary_operands, node);
+        let argument: Int = 0;
+        while argument < ArrayLength(argument_rows) {
+            if argument_rows[argument] < start ||
+                argument_rows[argument] >= node {
+                return DirectMirScalarProgramLlvmExpression(
+                    false, "", "", "");
+            }
+            ArrayPush(arguments, values[argument_rows[argument] - start]);
+            argument = argument + 1;
+        }
         let value: String = "";
         let result: String = DirectMirScalarProgramLlvmNodeName(
             expression_row, node);
@@ -73,7 +87,7 @@ func DirectMirScalarProgramLlvmExpressionAt(
         } else {
             let string_expression: DirectMirScalarProgramLlvmStringExpression =
                 DirectMirScalarProgramLlvmStringExpressionAt(
-                    kind, result, left, right, runtime);
+                    kind, result, left, right, arguments, runtime);
             if string_expression.matched {
                 if !string_expression.valid {
                     return DirectMirScalarProgramLlvmExpression(
@@ -99,6 +113,8 @@ func DirectMirScalarProgramLlvmExpressionAt(
                     instructions = Concat(instructions, " = icmp slt i64 ");
                 } else if kind == DirectMirScalarProgramExprAddInt() {
                     instructions = Concat(instructions, " = add nsw i64 ");
+                } else if kind == DirectMirScalarProgramExprSubtractInt() {
+                    instructions = Concat(instructions, " = sub nsw i64 ");
                 } else if kind == DirectMirScalarProgramExprDirectCall() {
                     instructions = Concat(instructions, Concat(" = call ",
                         Concat(DirectMirScalarProgramLlvmType(

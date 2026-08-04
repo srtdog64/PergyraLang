@@ -1,0 +1,55 @@
+// LLVM projection of length and bounded String-window expressions.
+
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramLlvmStringWindowExpressionAt(
+    kind: Int, result: String, left: String, arguments: Array<String>,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind == DirectMirScalarProgramExprStringLength() {
+        if !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+                runtime.string_length, "length", StringRuntimeCStringLengthFn(),
+                "string_to_int") {
+            return DirectMirScalarProgramLlvmStringExpression(
+                true, false, "", "");
+        }
+        let length_output: String = Concat("  ", Concat(result,
+            Concat(" = call i64 @", Concat(runtime.string_length.symbol,
+            Concat("(ptr ", Concat(left, ")\n"))))));
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, length_output, result);
+    }
+    let fact: CompilerRuntimeCallAbiFact = runtime.string_substring;
+    let operation: String = "substring";
+    let symbol: String = StringRuntimeCSubstringFn();
+    let shape: String = "string_int_int_to_string";
+    let expected: Int = 3;
+    if kind == DirectMirScalarProgramExprSubstringWithLen() {
+        fact = runtime.string_substring_with_len;
+        operation = "substring-with-len";
+        symbol = StringRuntimeCSubstringWithLenFn();
+        shape = "string_int_int_int_to_string"; expected = 4;
+    } else if kind != DirectMirScalarProgramExprSubstring() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    if ArrayLength(arguments) != expected ||
+        !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+            fact, operation, symbol, shape) {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let output: String = Concat("  ", Concat(result,
+        Concat(" = call ptr @", Concat(fact.symbol, "("))));
+    let i: Int = 0;
+    while i < expected {
+        if i > 0 { output = Concat(output, ", "); }
+        let llvm_type: String = "i64"; if i == 0 { llvm_type = "ptr"; }
+        output = Concat(output, Concat(llvm_type,
+            Concat(" ", arguments[i]))); i = i + 1;
+    }
+    output = Concat(output, ")\n");
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}

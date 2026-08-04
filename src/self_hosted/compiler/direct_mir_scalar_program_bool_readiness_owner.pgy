@@ -1,0 +1,30 @@
+// Recursive non-trapping proof for normalized Bool expression nodes.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramNonTrappingBoolNode(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    if node < 0 || node >= ArrayLength(facts.node_kinds) ||
+        facts.node_types[node] != CompilerAbiLayoutBoolTypeName() {
+        return false;
+    }
+    let kind: Int = facts.node_kinds[node];
+    if kind == DirectMirScalarProgramExprLocal() ||
+        kind == DirectMirScalarProgramExprParameter() ||
+        kind == DirectMirScalarProgramExprBoolLiteral() ||
+        kind == DirectMirScalarProgramExprEqualString() ||
+        kind == DirectMirScalarProgramExprNotEqualString() { return true; }
+    if kind == DirectMirScalarProgramExprLogicalNot() {
+        return DirectMirScalarProgramNonTrappingBoolNode(
+            facts, facts.node_lefts[node]);
+    }
+    if kind == DirectMirScalarProgramExprLogicalAnd() ||
+        kind == DirectMirScalarProgramExprLogicalOr() {
+        return DirectMirScalarProgramNonTrappingBoolNode(
+            facts, facts.node_lefts[node]) &&
+            DirectMirScalarProgramNonTrappingBoolNode(
+                facts, facts.node_rights[node]);
+    }
+    return false;
+}

@@ -49,6 +49,8 @@ func DirectMirScalarProgramAppendExpression(
     let params: Array<Int> = facts.node_parameter_ordinals;
     let literals: Array<String> = facts.node_literals;
     let callable_rows: Array<Int> = facts.node_callable_rows;
+    let nary_operands: DirectMirScalarProgramNaryOperands =
+        facts.nary_operands;
     let source_rows: Array<Int> = [];
     let consumed_calls: Array<Bool> = [];
     let bound_leaf_texts: Array<String> = [];
@@ -70,17 +72,31 @@ func DirectMirScalarProgramAppendExpression(
         let left: Int = -1; let right: Int = -1;
         let local_row: Int = -1; let param: Int = -1;
         let literal: String = "";
+        let call_arguments: Array<Int> = [];
         if source_kind == AstExpressionNodeCallArgument() {
             let call: DirectMirScalarProgramBuiltinCallFact =
                 DirectMirScalarProgramBuiltinCallFactFromGraph(
                     sequence, node, source_rows, types);
-            if !call.valid || consumed_calls[call.call_node] {
+            if !call.recognized || !call.valid { return invalid; }
+            if !call.complete {
+                ArrayPush(source_rows, -1); node = node + 1; continue;
+            }
+            if consumed_calls[call.call_node] {
                 return invalid;
             }
             consumed_calls[call.call_node] = true;
             kind = call.expression_kind;
-            type_name = CompilerAbiLayoutStringTypeName();
-            left = call.argument_row;
+            call_arguments = call.argument_rows;
+            let signature: DirectMirScalarProgramBuiltinSignatureFact =
+                DirectMirScalarProgramBuiltinSignatureFactFromName(
+                    sequence.arena.call_target_names[call.call_node]);
+            if !signature.valid { return invalid; }
+            type_name = signature.return_type;
+            if ArrayLength(call_arguments) == 1 {
+                left = call_arguments[0];
+            } else if ArrayLength(call_arguments) == 2 {
+                left = call_arguments[0]; right = call_arguments[1];
+            }
         } else if source_kind == AstExpressionNodeLeaf() {
             if sequence.arena.identities.binding_kinds[node] ==
                     SemanticExpressionBindingFormalParameter() &&
@@ -161,6 +177,12 @@ func DirectMirScalarProgramAppendExpression(
             kinds, types, lefts, rights, local_rows, params, literals,
             callable_rows, kind, type_name, left, right, local_row,
             param, literal, -1);
+        if source_kind == AstExpressionNodeCallArgument() &&
+                ArrayLength(call_arguments) > 2 {
+            nary_operands = DirectMirScalarProgramNaryOperandsAppend(
+                nary_operands, ArrayLength(kinds) - 1,
+                call_arguments);
+        }
         ArrayPush(source_rows, ArrayLength(kinds) - 1);
         node = node + 1;
     }
@@ -174,5 +196,6 @@ func DirectMirScalarProgramAppendExpression(
     ArrayPush(counts, ArrayLength(kinds) - start); ArrayPush(roots, root);
     return DirectMirScalarProgramExpressionSet(
         true, 0, graph_rows, starts, counts, roots, kinds, types,
-        lefts, rights, local_rows, params, literals, callable_rows);
+        lefts, rights, local_rows, params, literals, callable_rows,
+        nary_operands);
 }

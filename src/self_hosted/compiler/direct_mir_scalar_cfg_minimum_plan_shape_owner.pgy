@@ -1,4 +1,4 @@
-// Structural exception owned only by an exact fresh ArrayReverse receipt.
+// Minimum GraphPlan cardinality by the sealed owner family that admits it.
 
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 
@@ -10,6 +10,9 @@ func DirectMirScalarCfgMinimumPlanShapeReady(
             DirectMirScalarCfgArrayIntFreshReverseMode() &&
         plan.array_int_program.reverse.valid) || plan.collections.valid {
         return local_count == 0 && value_count == 0 && block_count == 1;
+    }
+    if plan.program.valid {
+        return local_count >= 1 && value_count >= 1 && block_count >= 1;
     }
     return local_count >= 1 && block_count >= 2;
 }

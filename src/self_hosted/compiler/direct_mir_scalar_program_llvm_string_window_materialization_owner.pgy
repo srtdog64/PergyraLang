@@ -1,0 +1,72 @@
+// LLVM definitions required by scalar-program String length/window ABI facts.
+
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramLlvmSubstringMaterialization(
+    fact: CompilerRuntimeCallAbiFact
+) -> String {
+    let out: String = Concat("define internal ptr @", fact.symbol);
+    out = Concat(out, "(ptr %source, i64 %start, i64 %length) {\nentry:\n");
+    out = Concat(out, "  %size = add i64 %length, 1\n");
+    out = Concat(out, "  %result = call ptr @malloc(i64 %size)\n");
+    out = Concat(out, "  %source.at = getelementptr inbounds i8, ptr %source, i64 %start\n");
+    out = Concat(out, "  %copied = call ptr @memcpy(ptr %result, ptr %source.at, i64 %length)\n");
+    out = Concat(out, "  %nul = getelementptr inbounds i8, ptr %result, i64 %length\n");
+    return Concat(out, "  store i8 0, ptr %nul, align 1\n  ret ptr %result\n}\n\n");
+}
+
+func DirectMirScalarProgramLlvmBoundedSubstringMaterialization(
+    fact: CompilerRuntimeCallAbiFact
+) -> String {
+    let out: String = Concat("define internal ptr @", fact.symbol);
+    out = Concat(out, "(ptr %source, i64 %source.length, i64 %start, i64 %length) {\nentry:\n");
+    out = Concat(out, "  %source.null = icmp eq ptr %source, null\n");
+    out = Concat(out, "  %source.negative = icmp slt i64 %source.length, 0\n");
+    out = Concat(out, "  %start.negative = icmp slt i64 %start, 0\n");
+    out = Concat(out, "  %start.past = icmp sge i64 %start, %source.length\n");
+    out = Concat(out, "  %length.empty = icmp sle i64 %length, 0\n");
+    out = Concat(out, "  %invalid.0 = or i1 %source.null, %source.negative\n");
+    out = Concat(out, "  %invalid.1 = or i1 %start.negative, %start.past\n");
+    out = Concat(out, "  %invalid.2 = or i1 %invalid.0, %invalid.1\n");
+    out = Concat(out, "  %invalid = or i1 %invalid.2, %length.empty\n");
+    out = Concat(out, "  br i1 %invalid, label %empty, label %copy\n\nempty:\n");
+    out = Concat(out, "  %empty.result = call ptr @malloc(i64 1)\n");
+    out = Concat(out, "  store i8 0, ptr %empty.result, align 1\n  ret ptr %empty.result\n\ncopy:\n");
+    out = Concat(out, "  %remaining = sub i64 %source.length, %start\n");
+    out = Concat(out, "  %too.long = icmp sgt i64 %length, %remaining\n");
+    out = Concat(out, "  %bounded = select i1 %too.long, i64 %remaining, i64 %length\n");
+    out = Concat(out, "  %size = add i64 %bounded, 1\n");
+    out = Concat(out, "  %result = call ptr @malloc(i64 %size)\n");
+    out = Concat(out, "  %source.at = getelementptr inbounds i8, ptr %source, i64 %start\n");
+    out = Concat(out, "  %copied = call ptr @memcpy(ptr %result, ptr %source.at, i64 %bounded)\n");
+    out = Concat(out, "  %nul = getelementptr inbounds i8, ptr %result, i64 %bounded\n");
+    return Concat(out, "  store i8 0, ptr %nul, align 1\n  ret ptr %result\n}\n\n");
+}
+
+func DirectMirScalarProgramLlvmStringWindowMaterialization(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> String {
+    let abi: DirectMirScalarProgramRuntimeAbiFact = plan.program.runtime_abi;
+    let out: String = "";
+    if (abi.string_substring_id != 0 ||
+            abi.string_substring_with_len_id != 0) &&
+            plan.string_concat_runtime_call_abi_id == 0 {
+        out = "declare ptr @memcpy(ptr, ptr, i64)\n";
+    }
+    if abi.string_length_id != 0 {
+        out = Concat(out, Concat("define internal i64 @",
+            Concat(runtime.string_length.symbol,
+            "(ptr %source) {\nentry:\n  %value = call i64 @strlen(ptr %source)\n  ret i64 %value\n}\n\n")));
+    }
+    if abi.string_substring_id != 0 {
+        out = Concat(out, DirectMirScalarProgramLlvmSubstringMaterialization(
+            runtime.string_substring));
+    }
+    if abi.string_substring_with_len_id != 0 {
+        out = Concat(out,
+            DirectMirScalarProgramLlvmBoundedSubstringMaterialization(
+                runtime.string_substring_with_len));
+    }
+    return out;
+}

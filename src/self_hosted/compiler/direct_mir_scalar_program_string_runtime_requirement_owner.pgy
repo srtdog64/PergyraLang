@@ -1,0 +1,107 @@
+// String runtime ABI requirements projected from the normalized expression arena.
+
+import "direct_mir_scalar_program_runtime_abi_identity_owner.pgy";
+import "direct_mir_scalar_program_expression_readiness_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirScalarProgramExpressionKindPresent(
+    ref expressions: DirectMirScalarProgramExpressionSet, kind: Int
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(expressions.node_kinds) {
+        if expressions.node_kinds[row] == kind { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramStringGeneratedAbiFact(
+    operation: String, symbol: String
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+        operation, symbol);
+}
+
+func DirectMirScalarProgramStringGeneratedAbiReady(
+    fact: CompilerRuntimeCallAbiFact,
+    operation: String, symbol: String, call_shape: String
+) -> Bool {
+    return CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+        fact, operation, symbol, call_shape);
+}
+
+func DirectMirScalarProgramStringRuntimeRequirement(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> DirectMirScalarProgramRuntimeAbiFact {
+    let compare: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringCompareFact();
+    let concat: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringConcatFact();
+    let to_string: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringToStringFact();
+    let to_upper: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringToUpperFact();
+    let to_lower: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringToLowerFact();
+    let length: CompilerRuntimeCallAbiFact =
+        DirectMirScalarProgramStringGeneratedAbiFact(
+            "length", StringRuntimeCStringLengthFn());
+    let substring: CompilerRuntimeCallAbiFact =
+        DirectMirScalarProgramStringGeneratedAbiFact(
+            "substring", StringRuntimeCSubstringFn());
+    let bounded: CompilerRuntimeCallAbiFact =
+        DirectMirScalarProgramStringGeneratedAbiFact(
+            "substring-with-len", StringRuntimeCSubstringWithLenFn());
+    let compare_required: Bool =
+        DirectMirScalarProgramExpressionKindPresent(
+            expressions, DirectMirScalarProgramExprEqualString()) ||
+        DirectMirScalarProgramExpressionKindPresent(
+            expressions, DirectMirScalarProgramExprNotEqualString());
+    let concat_required: Bool = DirectMirScalarProgramExpressionKindPresent(
+        expressions, DirectMirScalarProgramExprConcatString());
+    let to_string_required: Bool = DirectMirScalarProgramExpressionKindPresent(
+        expressions, DirectMirScalarProgramExprToStringInt());
+    let to_upper_required: Bool = DirectMirScalarProgramExpressionKindPresent(
+        expressions, DirectMirScalarProgramExprToUpperString());
+    let to_lower_required: Bool = DirectMirScalarProgramExpressionKindPresent(
+        expressions, DirectMirScalarProgramExprToLowerString());
+    let length_required: Bool = DirectMirScalarProgramExpressionKindPresent(
+        expressions, DirectMirScalarProgramExprStringLength());
+    let substring_required: Bool = DirectMirScalarProgramExpressionKindPresent(
+        expressions, DirectMirScalarProgramExprSubstring());
+    let bounded_required: Bool = DirectMirScalarProgramExpressionKindPresent(
+        expressions, DirectMirScalarProgramExprSubstringWithLen());
+    if (compare_required && !CompilerRuntimeCallAbiStringCompareFactReady(compare)) ||
+        (concat_required && !CompilerRuntimeCallAbiStringConcatFactReady(concat)) ||
+        (to_string_required && !CompilerRuntimeCallAbiStringToStringFactReady(to_string)) ||
+        (to_upper_required && !CompilerRuntimeCallAbiStringToUpperFactReady(to_upper)) ||
+        (to_lower_required && !CompilerRuntimeCallAbiStringToLowerFactReady(to_lower)) ||
+        (length_required && !DirectMirScalarProgramStringGeneratedAbiReady(
+            length, "length", StringRuntimeCStringLengthFn(), "string_to_int")) ||
+        (substring_required && !DirectMirScalarProgramStringGeneratedAbiReady(
+            substring, "substring", StringRuntimeCSubstringFn(),
+            "string_int_int_to_string")) ||
+        (bounded_required && !DirectMirScalarProgramStringGeneratedAbiReady(
+            bounded, "substring-with-len", StringRuntimeCSubstringWithLenFn(),
+            "string_int_int_int_to_string")) {
+        return DirectMirScalarProgramRuntimeAbiFactEmpty();
+    }
+    let compare_id: Int = 0; let concat_id: Int = 0;
+    let to_string_id: Int = 0; let to_upper_id: Int = 0;
+    let to_lower_id: Int = 0; let length_id: Int = 0;
+    let substring_id: Int = 0; let bounded_id: Int = 0;
+    if compare_required { compare_id = compare.runtime_call_abi_id; }
+    if concat_required { concat_id = concat.runtime_call_abi_id; }
+    if to_string_required { to_string_id = to_string.runtime_call_abi_id; }
+    if to_upper_required { to_upper_id = to_upper.runtime_call_abi_id; }
+    if to_lower_required { to_lower_id = to_lower.runtime_call_abi_id; }
+    if length_required { length_id = length.runtime_call_abi_id; }
+    if substring_required { substring_id = substring.runtime_call_abi_id; }
+    if bounded_required { bounded_id = bounded.runtime_call_abi_id; }
+    let source: DirectMirScalarProgramRuntimeAbiFact =
+        DirectMirScalarProgramRuntimeAbiFact(
+            true, 0, compare_id, concat_id, to_string_id, to_upper_id,
+            to_lower_id, length_id, substring_id, bounded_id);
+    return DirectMirScalarProgramRuntimeAbiFactWithDigest(
+        source, DirectMirScalarProgramRuntimeAbiFactDigest(source));
+}

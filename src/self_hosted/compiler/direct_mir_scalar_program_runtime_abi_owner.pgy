@@ -17,5 +17,9 @@ func DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
         expected.string_concat_id == fact.string_concat_id &&
         expected.string_to_string_id == fact.string_to_string_id &&
         expected.string_to_upper_id == fact.string_to_upper_id &&
-        expected.string_to_lower_id == fact.string_to_lower_id;
+        expected.string_to_lower_id == fact.string_to_lower_id &&
+        expected.string_length_id == fact.string_length_id &&
+        expected.string_substring_id == fact.string_substring_id &&
+        expected.string_substring_with_len_id ==
+            fact.string_substring_with_len_id;
 }

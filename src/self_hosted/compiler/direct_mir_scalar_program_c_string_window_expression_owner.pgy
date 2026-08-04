@@ -1,0 +1,39 @@
+// C projection of length and bounded String-window expressions.
+
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+
+func DirectMirScalarProgramCStringWindowExpression(
+    kind: Int, left: String, arguments: Array<String>,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> Option<String> {
+    if kind == DirectMirScalarProgramExprStringLength() {
+        if !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+                runtime.string_length, "length", StringRuntimeCStringLengthFn(),
+                "string_to_int") { Die("direct MIR scalar StringLength ABI is invalid"); }
+        return Some(Concat(runtime.string_length.symbol,
+            Concat("(", Concat(left, ")"))));
+    }
+    let fact: CompilerRuntimeCallAbiFact = runtime.string_substring;
+    let operation: String = "substring";
+    let symbol: String = StringRuntimeCSubstringFn();
+    let shape: String = "string_int_int_to_string";
+    let expected: Int = 3;
+    if kind == DirectMirScalarProgramExprSubstringWithLen() {
+        fact = runtime.string_substring_with_len;
+        operation = "substring-with-len";
+        symbol = StringRuntimeCSubstringWithLenFn();
+        shape = "string_int_int_int_to_string"; expected = 4;
+    } else if kind != DirectMirScalarProgramExprSubstring() { return None; }
+    if ArrayLength(arguments) != expected ||
+        !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+            fact, operation, symbol, shape) {
+        Die("direct MIR scalar substring ABI is invalid");
+    }
+    let out: String = Concat(fact.symbol, "("); let i: Int = 0;
+    while i < expected {
+        if i > 0 { out = Concat(out, ", "); }
+        out = Concat(out, arguments[i]); i = i + 1;
+    }
+    return Some(Concat(out, ")"));
+}

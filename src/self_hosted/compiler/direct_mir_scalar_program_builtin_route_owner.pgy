@@ -1,0 +1,62 @@
+// Straight-line scalar Main claim for syntax-id-free direct builtin calls.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+
+func DirectMirScalarBuiltinProgramRouteClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    if MirProgramRoutineIndexCount(admitted.routines) != 1 ||
+        !MirProgramRoutineIndexRowReady(admitted.routines, 0) ||
+        !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
+        JsonArrayObjectFactCount(admitted.document.declarations) != 0 {
+        return false;
+    }
+    let first_count: Int = MirProgramRoutineIndexBlockInstructionCountAt(
+        admitted.routines, 0, 0);
+    let signature: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(admitted.routines, 0, first_count);
+    if !DirectMirRoutineSignatureFactReady(signature) ||
+        signature.name != "Main" || signature.return_type != "Void" ||
+        signature.param_count != 0 { return false; }
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, 0);
+    if !index.valid || ArrayLength(index.source_local_types) < 1 {
+        return false;
+    }
+    let local: Int = 0;
+    while local < ArrayLength(index.source_local_types) {
+        if !DirectMirScalarCfgScalarTypeSupported(
+                index.source_local_types[local]) { return false; }
+        local = local + 1;
+    }
+    let builtin_seen: Bool = false; let row: Int = 0;
+    while row < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + row;
+        let kind: String = admitted.routines.instruction_kinds[global];
+        if kind != "def" && kind != "stmt" { return false; }
+        let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            admitted.routines.source_json,
+            admitted.routines.instruction_starts[global],
+            admitted.routines.instruction_ends[global]);
+        let sequence: MirExpressionGraphSequence =
+            DirectMirScalarCfgExpressionSequence(instruction);
+        if sequence.ok {
+            let node: Int = 0;
+            while node < ArrayLength(sequence.arena.topology.node_kinds) {
+                if sequence.arena.topology.node_kinds[node] ==
+                        AstExpressionNodeCall() &&
+                    sequence.arena.call_target_kinds[node] ==
+                        SemanticCallTargetDirect() &&
+                    sequence.arena.identities.call_target_syntax_ids[node] == 0 {
+                    builtin_seen = true;
+                }
+                node = node + 1;
+            }
+        }
+        row = row + 1;
+    }
+    return builtin_seen;
+}

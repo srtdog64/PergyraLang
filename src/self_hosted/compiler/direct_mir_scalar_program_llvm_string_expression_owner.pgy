@@ -2,23 +2,18 @@
 
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
-
-struct DirectMirScalarProgramLlvmStringExpression {
-    let matched: Bool;
-    let valid: Bool;
-    let instructions: String;
-    let value: String;
-}
-
-func DirectMirScalarProgramLlvmStringExpressionMissing(
-) -> DirectMirScalarProgramLlvmStringExpression {
-    return DirectMirScalarProgramLlvmStringExpression(false, false, "", "");
-}
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_window_expression_owner.pgy";
 
 func DirectMirScalarProgramLlvmStringExpressionAt(
     kind: Int, result: String, left: String, right: String,
+    arguments: Array<String>,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> DirectMirScalarProgramLlvmStringExpression {
+    let window: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmStringWindowExpressionAt(
+            kind, result, left, arguments, runtime);
+    if window.matched { return window; }
     if kind == DirectMirScalarProgramExprEqualString() ||
             kind == DirectMirScalarProgramExprNotEqualString() {
         if !CompilerRuntimeCallAbiStringCompareFactReady(

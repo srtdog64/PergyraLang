@@ -1,12 +1,15 @@
-// C projection of String runtime expressions from one ABI projection.
-
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_c_string_window_expression_owner.pgy";
 
 func DirectMirScalarProgramCStringExpression(
-    kind: Int, left: String, right: String,
+    kind: Int, left: String, right: String, arguments: Array<String>,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> Option<String> {
+    let window: Option<String> =
+        DirectMirScalarProgramCStringWindowExpression(
+            kind, left, arguments, runtime);
+    if IsSome(window) { return window; }
     if kind == DirectMirScalarProgramExprEqualString() ||
             kind == DirectMirScalarProgramExprNotEqualString() {
         if !CompilerRuntimeCallAbiStringCompareFactReady(

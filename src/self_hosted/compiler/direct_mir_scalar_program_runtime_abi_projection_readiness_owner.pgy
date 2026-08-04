@@ -1,0 +1,51 @@
+// Exact identity checks for projected scalar-program runtime symbols.
+
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramRuntimeGeneratedAbiProjectionReady(
+    id: Int, fact: CompilerRuntimeCallAbiFact,
+    operation: String, symbol: String, call_shape: String
+) -> Bool {
+    return id == 0 ||
+        (CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+            fact, operation, symbol, call_shape) &&
+         id == fact.runtime_call_abi_id);
+}
+
+func DirectMirScalarProgramRuntimeAbiProjectionReady(
+    ref projection: DirectMirScalarProgramRuntimeAbiProjection,
+    ref fact: DirectMirScalarProgramRuntimeAbiFact
+) -> Bool {
+    if !projection.valid || !fact.valid { return false; }
+    return (fact.string_compare_id == 0 ||
+            (CompilerRuntimeCallAbiStringCompareFactReady(
+                projection.string_compare) && fact.string_compare_id ==
+                projection.string_compare.runtime_call_abi_id)) &&
+        (fact.string_concat_id == 0 ||
+            (CompilerRuntimeCallAbiStringConcatFactReady(
+                projection.string_concat) && fact.string_concat_id ==
+                projection.string_concat.runtime_call_abi_id)) &&
+        (fact.string_to_string_id == 0 ||
+            (CompilerRuntimeCallAbiStringToStringFactReady(
+                projection.string_to_string) && fact.string_to_string_id ==
+                projection.string_to_string.runtime_call_abi_id)) &&
+        (fact.string_to_upper_id == 0 ||
+            (CompilerRuntimeCallAbiStringToUpperFactReady(
+                projection.string_to_upper) && fact.string_to_upper_id ==
+                projection.string_to_upper.runtime_call_abi_id)) &&
+        (fact.string_to_lower_id == 0 ||
+            (CompilerRuntimeCallAbiStringToLowerFactReady(
+                projection.string_to_lower) && fact.string_to_lower_id ==
+                projection.string_to_lower.runtime_call_abi_id)) &&
+        DirectMirScalarProgramRuntimeGeneratedAbiProjectionReady(
+            fact.string_length_id, projection.string_length, "length",
+            StringRuntimeCStringLengthFn(), "string_to_int") &&
+        DirectMirScalarProgramRuntimeGeneratedAbiProjectionReady(
+            fact.string_substring_id, projection.string_substring, "substring",
+            StringRuntimeCSubstringFn(), "string_int_int_to_string") &&
+        DirectMirScalarProgramRuntimeGeneratedAbiProjectionReady(
+            fact.string_substring_with_len_id,
+            projection.string_substring_with_len, "substring-with-len",
+            StringRuntimeCSubstringWithLenFn(),
+            "string_int_int_int_to_string");
+}

@@ -1,28 +1,10 @@
 // Normalized typed scalar-expression DAGs carried by one program plan.
 
 import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "direct_mir_scalar_program_nary_operand_owner.pgy";
 import "abi_layout_row_owner.pgy";
 import "../lib/json_scan.pgy";
-
-func DirectMirScalarProgramExprLocal() -> Int { return 1; }
-func DirectMirScalarProgramExprParameter() -> Int { return 2; }
-func DirectMirScalarProgramExprIntLiteral() -> Int { return 3; }
-func DirectMirScalarProgramExprBoolLiteral() -> Int { return 4; }
-func DirectMirScalarProgramExprStringLiteral() -> Int { return 5; }
-func DirectMirScalarProgramExprModuloInt() -> Int { return 6; }
-func DirectMirScalarProgramExprEqualInt() -> Int { return 7; }
-func DirectMirScalarProgramExprLogicalNot() -> Int { return 8; }
-func DirectMirScalarProgramExprLogicalAnd() -> Int { return 9; }
-func DirectMirScalarProgramExprLogicalOr() -> Int { return 10; }
-func DirectMirScalarProgramExprLessInt() -> Int { return 11; }
-func DirectMirScalarProgramExprAddInt() -> Int { return 12; }
-func DirectMirScalarProgramExprDirectCall() -> Int { return 13; }
-func DirectMirScalarProgramExprToStringInt() -> Int { return 14; }
-func DirectMirScalarProgramExprEqualString() -> Int { return 15; }
-func DirectMirScalarProgramExprNotEqualString() -> Int { return 16; }
-func DirectMirScalarProgramExprConcatString() -> Int { return 17; }
-func DirectMirScalarProgramExprToUpperString() -> Int { return 18; }
-func DirectMirScalarProgramExprToLowerString() -> Int { return 19; }
 
 struct DirectMirScalarProgramExpressionSet {
     let valid: Bool;
@@ -39,6 +21,7 @@ struct DirectMirScalarProgramExpressionSet {
     let node_parameter_ordinals: Array<Int>;
     let node_literals: Array<String>;
     let node_callable_rows: Array<Int>;
+    let nary_operands: DirectMirScalarProgramNaryOperands;
 }
 
 func DirectMirScalarProgramExpressionSetEmpty(
@@ -47,7 +30,8 @@ func DirectMirScalarProgramExpressionSetEmpty(
     let strings: Array<String> = [];
     return DirectMirScalarProgramExpressionSet(
         true, 0, ints, ints, ints, ints, ints, strings,
-        ints, ints, ints, ints, strings, ints
+        ints, ints, ints, ints, strings, ints,
+        DirectMirScalarProgramNaryOperandsEmpty()
     );
 }
 
@@ -66,7 +50,9 @@ func DirectMirScalarProgramExpressionSetCanonicalEmpty(
         ArrayLength(facts.node_local_rows) == 0 &&
         ArrayLength(facts.node_parameter_ordinals) == 0 &&
         ArrayLength(facts.node_literals) == 0 &&
-        ArrayLength(facts.node_callable_rows) == 0;
+        ArrayLength(facts.node_callable_rows) == 0 &&
+        DirectMirScalarProgramNaryOperandsCanonicalEmpty(
+            facts.nary_operands);
 }
 
 func DirectMirScalarProgramExpressionSetDigest(
@@ -89,6 +75,10 @@ func DirectMirScalarProgramExpressionSetDigest(
     );
     hash = DirectMirScalarCfgHashStrings(hash, facts.node_literals);
     hash = DirectMirScalarCfgHashInts(hash, facts.node_callable_rows);
+    hash = DirectMirScalarCfgHashInts(hash, facts.nary_operands.node_rows);
+    hash = DirectMirScalarCfgHashInts(hash, facts.nary_operands.starts);
+    hash = DirectMirScalarCfgHashInts(hash, facts.nary_operands.counts);
+    hash = DirectMirScalarCfgHashInts(hash, facts.nary_operands.operand_rows);
     return DirectMirCfgBoundedDigest(hash);
 }
 
@@ -101,7 +91,7 @@ func DirectMirScalarProgramExpressionSetWithDigest(
         facts.graph_counts, facts.graph_roots, facts.node_kinds,
         facts.node_types, facts.node_lefts, facts.node_rights,
         facts.node_local_rows, facts.node_parameter_ordinals,
-        facts.node_literals, facts.node_callable_rows
+        facts.node_literals, facts.node_callable_rows, facts.nary_operands
     );
 }
 
@@ -132,7 +122,9 @@ func DirectMirScalarProgramExpressionSetShapeReady(
         node_count != ArrayLength(facts.node_local_rows) ||
         node_count != ArrayLength(facts.node_parameter_ordinals) ||
         node_count != ArrayLength(facts.node_literals) ||
-        node_count != ArrayLength(facts.node_callable_rows) {
+        node_count != ArrayLength(facts.node_callable_rows) ||
+        !DirectMirScalarProgramNaryOperandsShapeReady(
+            facts.nary_operands, node_count) {
         return false;
     }
     let expected_start: Int = 0;
@@ -159,7 +151,7 @@ func DirectMirScalarProgramExpressionSetShapeReady(
         let literal: String = facts.node_literals[node];
         let callable: Int = facts.node_callable_rows[node];
         if kind < DirectMirScalarProgramExprLocal() ||
-            kind > DirectMirScalarProgramExprToLowerString() ||
+            kind > DirectMirScalarProgramExprSubtractInt() ||
             facts.node_types[node] == "" || left >= node || right >= node ||
             left < -1 || right < -1 || local < -1 || param < -1 ||
             callable < -1 || !DirectMirScalarProgramLiteralEmbeddable(literal) {

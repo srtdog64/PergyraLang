@@ -1,0 +1,72 @@
+// Structural recovery of one canonical call-argument chain from persisted DAG facts.
+
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+
+struct DirectMirScalarProgramBuiltinArgumentChain {
+    let valid: Bool;
+    let call_node: Int;
+    let argument_rows: Array<Int>;
+}
+
+func DirectMirScalarProgramBuiltinArgumentChainInvalid(
+) -> DirectMirScalarProgramBuiltinArgumentChain {
+    let rows: Array<Int> = [];
+    return DirectMirScalarProgramBuiltinArgumentChain(false, -1, rows);
+}
+
+func DirectMirScalarProgramBuiltinCallMarkerReady(
+    ref sequence: MirExpressionGraphSequence, node: Int
+) -> Bool {
+    if node < 1 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[node] != AstExpressionNodeCall() ||
+        sequence.arena.call_target_kinds[node] != SemanticCallTargetDirect() ||
+        sequence.arena.identities.call_target_syntax_ids[node] != 0 {
+        return false;
+    }
+    let callee: Int = sequence.arena.topology.left_children[node];
+    return callee >= 0 && callee < node &&
+        sequence.arena.topology.node_kinds[callee] == AstExpressionNodeLeaf() &&
+        sequence.arena.call_target_names[node] == sequence.arena.node_texts[callee];
+}
+
+func DirectMirScalarProgramBuiltinCalleeLeafReady(
+    ref sequence: MirExpressionGraphSequence, node: Int
+) -> Bool {
+    return node + 1 < ArrayLength(sequence.arena.topology.node_kinds) &&
+        sequence.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() &&
+        sequence.arena.topology.node_kinds[node + 1] == AstExpressionNodeCall() &&
+        sequence.arena.topology.left_children[node + 1] == node &&
+        DirectMirScalarProgramBuiltinCallMarkerReady(sequence, node + 1);
+}
+
+func DirectMirScalarProgramBuiltinArgumentChainFromGraph(
+    ref sequence: MirExpressionGraphSequence, node: Int,
+    source_rows: Array<Int>, normalized_types: Array<String>
+) -> DirectMirScalarProgramBuiltinArgumentChain {
+    let invalid: DirectMirScalarProgramBuiltinArgumentChain =
+        DirectMirScalarProgramBuiltinArgumentChainInvalid();
+    let reversed: Array<Int> = [];
+    let cursor: Int = node; let call_node: Int = -1;
+    while cursor >= 0 && cursor < ArrayLength(
+            sequence.arena.topology.node_kinds) &&
+            sequence.arena.topology.node_kinds[cursor] ==
+                AstExpressionNodeCallArgument() {
+        let argument_source: Int =
+            sequence.arena.topology.right_children[cursor];
+        if argument_source < 0 || argument_source >= cursor ||
+            argument_source >= ArrayLength(source_rows) ||
+            source_rows[argument_source] < 0 ||
+            source_rows[argument_source] >= ArrayLength(normalized_types) {
+            return invalid;
+        }
+        ArrayPush(reversed, source_rows[argument_source]);
+        let left: Int = sequence.arena.topology.left_children[cursor];
+        if DirectMirScalarProgramBuiltinCallMarkerReady(sequence, left) {
+            call_node = left; cursor = -1;
+        } else { cursor = left; }
+    }
+    if call_node < 0 { return invalid; }
+    let rows: Array<Int> = []; let i: Int = ArrayLength(reversed);
+    while i > 0 { ArrayPush(rows, reversed[i - 1]); i = i - 1; }
+    return DirectMirScalarProgramBuiltinArgumentChain(true, call_node, rows);
+}

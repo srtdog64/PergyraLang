@@ -15962,9 +15962,9 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_absence_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_absence_owner.pgy" 30
-require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_plan_shape_owner.pgy"
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_minimum_plan_shape_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_plan_shape_owner.pgy" 15
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_minimum_plan_shape_owner.pgy" 20
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_readiness_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_readiness_owner.pgy" 65

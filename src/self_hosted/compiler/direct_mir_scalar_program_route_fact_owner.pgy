@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_cfg_hash_owner.pgy";
 import "direct_mir_scalar_program_single_string_route_owner.pgy";
+import "direct_mir_scalar_program_builtin_route_owner.pgy";
 import "direct_mir_scalar_program_two_routine_route_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir_lower/routine_inventory_owner.pgy";
@@ -50,7 +51,8 @@ func DirectMirScalarProgramRouteFactFromAdmitted(
         return invalid;
     }
     if routine_count == 1 {
-        if !DirectMirScalarSingleStringProgramRouteClaimed(admitted) {
+        if !DirectMirScalarSingleStringProgramRouteClaimed(admitted) &&
+            !DirectMirScalarBuiltinProgramRouteClaimed(admitted) {
             return invalid;
         }
         let single: DirectMirScalarProgramRouteFact =

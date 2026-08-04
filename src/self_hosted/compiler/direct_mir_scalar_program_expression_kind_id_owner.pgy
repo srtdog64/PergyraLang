@@ -1,0 +1,25 @@
+// Stable normalized scalar-program expression identities.
+
+func DirectMirScalarProgramExprLocal() -> Int { return 1; }
+func DirectMirScalarProgramExprParameter() -> Int { return 2; }
+func DirectMirScalarProgramExprIntLiteral() -> Int { return 3; }
+func DirectMirScalarProgramExprBoolLiteral() -> Int { return 4; }
+func DirectMirScalarProgramExprStringLiteral() -> Int { return 5; }
+func DirectMirScalarProgramExprModuloInt() -> Int { return 6; }
+func DirectMirScalarProgramExprEqualInt() -> Int { return 7; }
+func DirectMirScalarProgramExprLogicalNot() -> Int { return 8; }
+func DirectMirScalarProgramExprLogicalAnd() -> Int { return 9; }
+func DirectMirScalarProgramExprLogicalOr() -> Int { return 10; }
+func DirectMirScalarProgramExprLessInt() -> Int { return 11; }
+func DirectMirScalarProgramExprAddInt() -> Int { return 12; }
+func DirectMirScalarProgramExprDirectCall() -> Int { return 13; }
+func DirectMirScalarProgramExprToStringInt() -> Int { return 14; }
+func DirectMirScalarProgramExprEqualString() -> Int { return 15; }
+func DirectMirScalarProgramExprNotEqualString() -> Int { return 16; }
+func DirectMirScalarProgramExprConcatString() -> Int { return 17; }
+func DirectMirScalarProgramExprToUpperString() -> Int { return 18; }
+func DirectMirScalarProgramExprToLowerString() -> Int { return 19; }
+func DirectMirScalarProgramExprStringLength() -> Int { return 20; }
+func DirectMirScalarProgramExprSubstring() -> Int { return 21; }
+func DirectMirScalarProgramExprSubstringWithLen() -> Int { return 22; }
+func DirectMirScalarProgramExprSubtractInt() -> Int { return 23; }

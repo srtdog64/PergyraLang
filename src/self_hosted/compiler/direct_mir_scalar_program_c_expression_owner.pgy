@@ -1,5 +1,3 @@
-// C expression projection from the sealed scalar-program expression arena.
-
 import "direct_mir_scalar_program_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_c_string_expression_owner.pgy";
@@ -27,6 +25,20 @@ func DirectMirScalarProgramCExpressionValues(
         if expressions.node_rights[node] >= start {
             right = values[expressions.node_rights[node] - start];
         }
+        let arguments: Array<String> = [];
+        let argument_rows: Array<Int> =
+            DirectMirScalarProgramNaryOperandRows(
+                expressions.nary_operands, node);
+        let argument: Int = 0;
+        while argument < ArrayLength(argument_rows) {
+            if argument_rows[argument] < start ||
+                argument_rows[argument] >= node {
+                Die("direct MIR scalar C n-ary operand is invalid");
+            }
+            ArrayPush(arguments,
+                values[argument_rows[argument] - start]);
+            argument = argument + 1;
+        }
         let value: String = "";
         if kind == DirectMirScalarProgramExprLocal() {
             value = DirectMirScalarProgramCLocalName(
@@ -49,7 +61,7 @@ func DirectMirScalarProgramCExpressionValues(
         } else {
             let string_value: Option<String> =
                 DirectMirScalarProgramCStringExpression(
-                    kind, left, right, runtime);
+                    kind, left, right, arguments, runtime);
             if IsSome(string_value) { value = UnwrapOption(string_value); }
             else if kind == DirectMirScalarProgramExprLogicalNot() {
             value = Concat("(!", Concat(left, ")"));
@@ -61,6 +73,8 @@ func DirectMirScalarProgramCExpressionValues(
             value = Concat("(", Concat(left, Concat(" < ", Concat(right, ")"))));
             } else if kind == DirectMirScalarProgramExprAddInt() {
             value = Concat("(", Concat(left, Concat(" + ", Concat(right, ")"))));
+            } else if kind == DirectMirScalarProgramExprSubtractInt() {
+            value = Concat("(", Concat(left, Concat(" - ", Concat(right, ")"))));
             } else if kind == DirectMirScalarProgramExprDirectCall() {
             value = Concat("pgy_scalar_routine_", Concat(
                 ToString(expressions.node_callable_rows[node]),

@@ -10,7 +10,7 @@ import "direct_mir_scalar_cfg_string_array_graph_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_program_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_condition_role_owner.pgy";
 import "direct_mir_scalar_cfg_collection_operation_shape_owner.pgy";
-import "direct_mir_scalar_cfg_array_int_reverse_plan_shape_owner.pgy";
+import "direct_mir_scalar_cfg_minimum_plan_shape_owner.pgy";
 import "direct_mir_scalar_cfg_operand_shape_owner.pgy";
 import "direct_mir_scalar_cfg_program_extension_readiness_owner.pgy";
 func DirectMirScalarCfgGraphPlanReady(

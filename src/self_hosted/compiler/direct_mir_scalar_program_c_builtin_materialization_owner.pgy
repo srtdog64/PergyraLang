@@ -1,7 +1,6 @@
-// C definitions for String builtins required by one sealed program ABI fact.
-
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
-import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_readiness_owner.pgy";
+import "direct_mir_scalar_program_c_string_window_materialization_owner.pgy";
 import "../codegen/runtime_abi/string_runtime_owner.pgy";
 
 func DirectMirScalarProgramCBuiltinMaterialization(
@@ -10,7 +9,9 @@ func DirectMirScalarProgramCBuiltinMaterialization(
 ) -> String {
     let abi: DirectMirScalarProgramRuntimeAbiFact = plan.program.runtime_abi;
     let any_builtin: Bool = abi.string_to_string_id != 0 ||
-        abi.string_to_upper_id != 0 || abi.string_to_lower_id != 0;
+        abi.string_to_upper_id != 0 || abi.string_to_lower_id != 0 ||
+        abi.string_length_id != 0 || abi.string_substring_id != 0 ||
+        abi.string_substring_with_len_id != 0;
     if !any_builtin { return ""; }
     if !DirectMirScalarProgramRuntimeAbiProjectionReady(runtime, abi) {
         Die("direct MIR scalar program C builtin ABI is invalid");
@@ -28,5 +29,7 @@ func DirectMirScalarProgramCBuiltinMaterialization(
     if abi.string_to_lower_id != 0 {
         output = Concat(output, StringRuntimeCToLowerBlock());
     }
+    output = Concat(output, DirectMirScalarProgramCStringWindowMaterialization(
+        abi));
     return output;
 }

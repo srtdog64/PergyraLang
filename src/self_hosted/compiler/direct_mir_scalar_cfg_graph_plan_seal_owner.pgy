@@ -75,9 +75,13 @@ func DirectMirScalarCfgSealGraphPlan(
         DirectMirScalarCfgGraphPlanWithDigest(
             plan, DirectMirScalarCfgGraphPlanDigest(plan)
         );
-    if !DirectMirScalarCfgGraphPlanReady(verified) ||
-        !DirectMirScalarCfgGraphPlanMutationRejected(verified) {
-        Die("direct MIR scalar CFG verified plan identity is invalid");
+    if !DirectMirScalarCfgGraphPlanReady(verified) {
+        Die(Concat(
+            "direct MIR scalar CFG verified plan identity is invalid: program_readiness=",
+            ToString(DirectMirScalarCfgProgramExtensionReadinessCode(verified))));
+    }
+    if !DirectMirScalarCfgGraphPlanMutationRejected(verified) {
+        Die("direct MIR scalar CFG verified plan mutation rejection is invalid");
     }
     return verified;
 }

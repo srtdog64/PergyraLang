@@ -1,0 +1,20 @@
+// C definitions required by scalar-program String length/window ABI facts.
+
+import "direct_mir_scalar_program_runtime_abi_fact_owner.pgy";
+import "../codegen/runtime_abi/string_runtime_owner.pgy";
+
+func DirectMirScalarProgramCStringWindowMaterialization(
+    ref abi: DirectMirScalarProgramRuntimeAbiFact
+) -> String {
+    let output: String = "";
+    if abi.string_length_id != 0 {
+        output = Concat(output, StringRuntimeCStringLengthBlock());
+    }
+    if abi.string_substring_id != 0 {
+        output = Concat(output, StringRuntimeCSubstringBlock());
+    }
+    if abi.string_substring_with_len_id != 0 {
+        output = Concat(output, StringRuntimeCSubstringWithLenBlock());
+    }
+    return output;
+}

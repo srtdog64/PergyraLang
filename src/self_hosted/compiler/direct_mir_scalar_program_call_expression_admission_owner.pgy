@@ -106,5 +106,6 @@ func DirectMirScalarProgramAppendCallExpression(
     ArrayPush(counts, 2); ArrayPush(roots, start + 1);
     return DirectMirScalarProgramExpressionSet(
         true, 0, graph_rows, starts, counts, roots, kinds, types,
-        lefts, rights, local_rows, params, literals, callable_rows);
+        lefts, rights, local_rows, params, literals, callable_rows,
+        facts.nary_operands);
 }

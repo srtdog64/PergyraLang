@@ -199,30 +199,45 @@ func StringRuntimeCToLowerBlock() -> String {
     return block;
 }
 
-func StringRuntimeCStringCoreBlock(
-    runtime_header_owns_bool_to_string: Bool
-) -> String {
+func StringRuntimeCStringLengthBlock() -> String {
     let block: String = "";
-    block = Concat(block, StringRuntimeCConcatBlock());
     block = Concat(block, Concat("static long long ", Concat(StringRuntimeCStringLengthFn(), "(const char *s)\n{\n")));
-    block = Concat(block, "    return (long long)strlen(s);\n}\n\n");
-    block = Concat(block, Concat("static char *", Concat(StringRuntimeCCharAtNFn(), "(const char *s, long long len, long long i)\n{\n")));
-    block = Concat(block, "    if (s == NULL || i < 0 || i >= len) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
-    block = Concat(block, "    char *r = (char *)malloc(2);\n    r[0] = s[i];\n    r[1] = '\\0';\n    return r;\n}\n\n");
-    block = Concat(block, Concat("static long long ", Concat(StringRuntimeCCharCodeFn(), "(const char *s, long long len, long long i)\n{\n")));
-    block = Concat(block, "    if (s == NULL || i < 0 || i >= len) return -1;\n");
-    block = Concat(block, "    return (long long)(unsigned char)s[i];\n}\n\n");
+    return Concat(block, "    return (long long)strlen(s);\n}\n\n");
+}
+
+func StringRuntimeCSubstringBlock() -> String {
+    let block: String = "";
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCSubstringFn(), "(const char *s, long long start, long long len)\n{\n")));
     block = Concat(block, "    char *r = (char *)malloc((size_t)len + 1);\n");
     block = Concat(block, "    memcpy(r, s + start, (size_t)len);\n    r[len] = '\\0';\n");
-    block = Concat(block, "    return r;\n}\n\n");
+    return Concat(block, "    return r;\n}\n\n");
+}
+
+func StringRuntimeCSubstringWithLenBlock() -> String {
+    let block: String = "";
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCSubstringWithLenFn(), "(const char *s, long long source_len, long long start, long long len)\n{\n")));
     block = Concat(block, "    if (s == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) { char *e = (char *)malloc(1); if (e != NULL) e[0] = '\\0'; return e; }\n");
     block = Concat(block, "    if (len > source_len - start) len = source_len - start;\n");
     block = Concat(block, "    char *bounded = (char *)malloc((size_t)len + 1);\n");
     block = Concat(block, "    if (bounded == NULL) return bounded;\n");
     block = Concat(block, "    memcpy(bounded, s + start, (size_t)len);\n    bounded[len] = '\\0';\n");
-    block = Concat(block, "    return bounded;\n}\n\n");
+    return Concat(block, "    return bounded;\n}\n\n");
+}
+
+func StringRuntimeCStringCoreBlock(
+    runtime_header_owns_bool_to_string: Bool
+) -> String {
+    let block: String = "";
+    block = Concat(block, StringRuntimeCConcatBlock());
+    block = Concat(block, StringRuntimeCStringLengthBlock());
+    block = Concat(block, Concat("static char *", Concat(StringRuntimeCCharAtNFn(), "(const char *s, long long len, long long i)\n{\n")));
+    block = Concat(block, "    if (s == NULL || i < 0 || i >= len) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
+    block = Concat(block, "    char *r = (char *)malloc(2);\n    r[0] = s[i];\n    r[1] = '\\0';\n    return r;\n}\n\n");
+    block = Concat(block, Concat("static long long ", Concat(StringRuntimeCCharCodeFn(), "(const char *s, long long len, long long i)\n{\n")));
+    block = Concat(block, "    if (s == NULL || i < 0 || i >= len) return -1;\n");
+    block = Concat(block, "    return (long long)(unsigned char)s[i];\n}\n\n");
+    block = Concat(block, StringRuntimeCSubstringBlock());
+    block = Concat(block, StringRuntimeCSubstringWithLenBlock());
     block = Concat(block, Concat("static long long ", Concat(StringRuntimeCStringIndexOfFn(), "(const char *hay, const char *needle)\n{\n")));
     block = Concat(block, "    const char *p = strstr(hay, needle);\n");
     block = Concat(block, "    if (p == NULL) { return -1; }\n");
