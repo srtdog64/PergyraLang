@@ -6,7 +6,87 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - fresh bounded `ArrayReverse` closed
+## Active self-host context - joint `ArrayPop` effects closed
+
+- Executable checkpoint: `ff2b7fd840b81e94464766405ebda5860a5cb5bd` on
+  `main`, with this handoff as its intended docs-only descendant. The final
+  current-source Pergyra-built driver is 5,270,168 bytes with SHA-256
+  `69E7BE5DC1065569CA08B57D89054FABDC0C9B5FE6A75E71EA9080E74C999933`.
+- Closed executable rung: `src/self_hosted/codegen/fixture/array_pop.pgy`.
+  Its 14,007-byte self-produced MIR has SHA-256
+  `AB92771EA08C27C73EDAB26E06441BF88CC3843C64FEFD784156694D321F73D4`.
+  The same MIR emits a 1,778-byte C artifact
+  (`B855FB9E3D4F0B806C80E7886F1A9CE3AFFC3425A739E34ACC6E1BCBE315DEF9`)
+  and a 6,876-byte LLVM artifact
+  (`90E7DA1735A26E9F6242F5DD9B27A028783F61614D580170254F464CFD5EBB2F`).
+  Both host-compile and execute exact `30`, `2`, `2`, `a`.
+- One joint collection-pop receipt inside the existing target-neutral
+  `GraphPlan` joins the foreach-owned `Array<Int>` source, the String-plan-
+  owned source, and three globally ordered Void effects. Partial Int-only or
+  String-only success is invalid. The ArrayInt fifth mode owns effects only
+  and cannot materialize a second `xs` storage beside the foreach owner.
+- C and LLVM mutate only the live length fields of the same canonical four-
+  field objects consumed by the later foreach, length logs, and String index.
+  Capacity, allocator, data pointer, and popped tails remain unchanged. No
+  backend reopens MIR, pretrims storage, folds the effects into one final
+  literal store, or calls incompatible value-returning three-field
+  `pgy_ai_pop`/`pgy_as_pop` helpers.
+- Focused evidence: baseline, alternate, popped-tail-only, display-only and
+  coherent ValueId-renumber variants plus twelve C/LLVM no-artifact negatives
+  exited 0 in 25.2 seconds. Adjacent foreach, mixed collection, String
+  mutation/push, and ArrayInt push/sum/max/reverse regressions remained green;
+  the final five-gate bundle exited 0 in 181.7 seconds. The component/removed-
+  path ratchet exited 0 in 258.6 seconds.
+- The fail-fast cumulative scalar-CFG runner reached its final ArrayPop success
+  label in 546.5 seconds. Windows `Start-Process` did not expose the child exit
+  code, so this is final-marker evidence, not an observed exit-0 claim. Memory
+  was sampled only at this final integration boundary: 218 samples at 100 ms
+  observed 0.176 GiB maximum aggregate working set and 0.189 GiB maximum
+  aggregate private memory, below the 2.4 GiB attention and 3 GiB stop limits.
+- No existing line cap was raised. Saturated responsibilities were split into
+  named access-readiness, mutation-length, condition-emission, GraphPlan-
+  receipt-identity, and target mutation owners. Two stale structural test pins
+  were repointed only after their moved owner and executable parity were
+  verified; no compatibility alias was added.
+- Classification is bounded `SUBSTITUTING` only for the exact local four-
+  element Int source with two entry pops before foreach and the local three-
+  element String source with one straight-line pop before length/index. Empty
+  pop, aliases, parameters, returns, branch/loop mutation, mixed push/pop,
+  arbitrary element types, and ownership-sensitive String destruction remain
+  open. Full CI, public matrices, proof suites, released-driver promotion, and
+  current gen2==gen3 did not run.
+- Known independent red: `python scripts/sot_registry_gate.py` still exits 1 at
+  the pre-existing `registry contains duplicate Coq fact authorities`. The new
+  collection-pop registry row parsed before that existing conflict and did not
+  add or weaken it.
+- The independent Hacker News report that language consistency is easier to
+  steer than compiler architecture remains an anecdote, not benchmark or
+  authority. Local ArrayPop evidence supports the narrow distinction: surface
+  support already existed, while one owner graph, evidence lifetime, last-
+  consumer binding, and forbidden fallback had to be made explicit.
+- Next objective card: only
+  `src/self_hosted/codegen/fixture/array_index_assign.pgy` is active. The
+  current driver produces a 10,338-byte MIR with SHA-256
+  `7043BFBA70252CC058D0E2B7B826796254D8F14B6D6C5358A09868DA554EABFA`.
+  Both direct targets reject before publication with
+  `direct MIR scalar local type inventory is missing or invalid`.
+- Objective: reuse the existing Int and String source/storage authorities and
+  bind their two indexed writes in one program graph, then execute exact `12`
+  and `zb`. Priority is distinct collection and index/value identity, owner-
+  directed mutation order and current bounds, fallback exclusion, then exact
+  C/LLVM parity. The existing typed collection/ABI, String mutation, ArrayInt
+  static mutation, and scalar-CFG GraphPlan owners supply facts;
+  `CompileAdmittedDirectMirForTarget` remains the last legitimate consumer.
+  The first falsifier must cross the two receivers or stale an index/value use
+  and observe no artifact from either target.
+- Forbidden fallback: fixture/text routing, a second collection planner,
+  partial one-type success, backend MIR reads, capacity as current length,
+  native/runtime mutation retry, precomputed final values, or trying an older
+  plan after the named owner rejects.
+
+## Historical checkpoint archive - inactive navigation evidence
+
+### Previous fresh bounded `ArrayReverse` closure
 
 - Executable checkpoint: `5877398b60f2d725f296407c910b4c50fd16b5ec` on
   `main`, with this handoff as its intended docs-only descendant. The final
@@ -71,7 +151,7 @@ owner, and the named executable gate.
   collection planner, backend MIR reads, native helper retry, capacity as
   current length, or trying an older plan after the named owner rejects.
 
-## Historical checkpoint archive - inactive navigation evidence
+### Older checkpoint archive
 
 ### Previous read-only `Array<Int>` maximum closure
 

@@ -1,6 +1,57 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-04 read-only `Array<Int>` maximum
+## Active self-host context - 2026-08-04 joint `ArrayPop` effects
+
+- Executable checkpoint `ff2b7fd840b81e94464766405ebda5860a5cb5bd`
+  closes `src/self_hosted/codegen/fixture/array_pop.pgy` through the installed
+  direct C and LLVM routes. The current-source Pergyra-built driver is
+  5,270,168 bytes with SHA-256
+  `69E7BE5DC1065569CA08B57D89054FABDC0C9B5FE6A75E71EA9080E74C999933`.
+- The 14,007-byte self-produced MIR
+  (`AB92771EA08C27C73EDAB26E06441BF88CC3843C64FEFD784156694D321F73D4`)
+  emits 1,778-byte C
+  (`B855FB9E3D4F0B806C80E7886F1A9CE3AFFC3425A739E34ACC6E1BCBE315DEF9`)
+  and 6,876-byte LLVM
+  (`90E7DA1735A26E9F6242F5DD9B27A028783F61614D580170254F464CFD5EBB2F`).
+  Both host-compile and execute exact `30`, `2`, `2`, then `a`.
+- One target-neutral GraphPlan receipt joins the foreach-owned Int source, the
+  String-plan-owned source, and three ordered Void pop effects. The ArrayInt
+  fifth mode references the foreach storage rather than duplicating it, and
+  partial Int-only or String-only admission fails closed.
+- Both backends mutate only live canonical length fields. The second Int pop,
+  foreach guard, Int length log, String length log, and String index all consume
+  the ordered current-length state. Capacity and popped source tails remain
+  intact; private three-field value-returning pop helpers are forbidden.
+- The focused gate exited 0 in 25.2 seconds with five positive variants and
+  twelve no-artifact negatives. Adjacent regressions and the component ratchet
+  exited 0. The cumulative runner reached its final marker in 546.5 seconds;
+  its PowerShell wrapper exposed no child exit code. Final-boundary sampling
+  observed 0.176 GiB maximum working set and 0.189 GiB maximum private memory,
+  below the 2.4/3 GiB thresholds.
+- No line cap was raised. Mixed responsibilities moved into named owners, and
+  two stale test pins were repointed only after executable parity confirmed
+  the new ownership. The Hacker News language-consistency/architecture comment
+  remains bounded external anecdote; the owner graph and negative gates are
+  local evidence.
+- Classification is bounded `SUBSTITUTING` for this exact local Int/String pop
+  shape only. Full CI, proof suites, public matrices, current gen2==gen3, and
+  released-driver promotion did not run. The independent SoT registry gate
+  still stops at the pre-existing duplicate Coq fact-authority conflict.
+- The sole next executable falsifier is
+  `src/self_hosted/codegen/fixture/array_index_assign.pgy`. Its 10,338-byte MIR
+  has SHA-256
+  `7043BFBA70252CC058D0E2B7B826796254D8F14B6D6C5358A09868DA554EABFA`.
+  Both targets fail before publication with
+  `direct MIR scalar local type inventory is missing or invalid`.
+- Next objective card: reuse the existing Int/String collection and mutation
+  owners in one GraphPlan, seal distinct receiver/index/value identities, and
+  execute exact `12` and `zb`. Fixture routing, a second collection planner,
+  partial one-type success, backend MIR reads, capacity-as-length, native
+  fallback, or retry after claimed rejection remain forbidden.
+
+## Historical self-host ledger - inactive navigation evidence
+
+### Previous 2026-08-04 read-only `Array<Int>` maximum
 
 - The current-source Pergyra-built driver is 4,613,637 bytes with SHA-256
   `CF1178FAB3E78BA717676E91F88537384661973ABEEFEFCC2C5D5E193F4A7443`.
@@ -72,7 +123,7 @@
   source and result, a second Array planner, or trying another plan after the
   named owner rejects the program.
 
-## Historical self-host ledger - inactive navigation evidence
+### Older historical self-host ledger
 
 ### Previous 2026-08-04 initialized `Array<Int>` sum and set
 
