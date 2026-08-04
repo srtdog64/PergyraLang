@@ -426,6 +426,26 @@ named owner for every `Array<Int>` operation kind, so a future mode cannot
 exist without its program receipt. This is repository-local evidence for the
 external author's architecture warning, not merely agreement with it.
 
+The later `array_param` rung made the cross-routine boundary explicit. A local
+collection value cannot be identified by raw `xs.1` or `r.1` once different
+routines may reuse those strings. The admitted program therefore keeps three
+routine-qualified views -- producer local, caller result, and formal parameter
+-- and joins them only through checked return and call-argument edges. The ABI
+is referenced from its existing owner rather than copied into a second program
+schema, and reallocating storage remains one logical identity until the
+entrypoint performs the single cleanup. A deliberate raw-ValueId collision is
+a positive case; stale return use, wrong callee, repaired-but-wrong parameter
+ABI, and a cross-routine endpoint substitution are negative cases.
+
+This rung also separates a **route claim** from **strict admission**. A route
+must claim enough malformed members of its semantic family that corruption
+cannot escape into an older classifier. It must not use the exact-validity
+predicate as the claim, because invalid input would then look unrelated and be
+retried elsewhere. Conversely, routine count and empty declaration count are
+not semantic claims. The old `three routines + zero declarations` rule had to
+be narrowed to the exact legacy one-block/no-loop shape, while the new coarse
+collection route runs before it and owns every failure after claim.
+
 The lesson is that consistency tests constrain language surface;
 owner/consumer/fallback gates constrain compiler architecture. The external
 comment is therefore a warning signal, while these executable rungs are

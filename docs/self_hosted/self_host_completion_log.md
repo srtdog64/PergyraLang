@@ -6,6 +6,52 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-04 - Reallocating Array return/parameter carriage substitutes
+
+- Landed executable checkpoint `9e33ec37`. The installed Pergyra-built
+  driver's 18,849-byte `array_param.pgy` MIR
+  (`54AA601DCD8031B7A2857F42A5FD3ABDAD2BBB02822BA3AF3537999210B88A9C`)
+  emits 1,373-byte C
+  (`DD6B9C1EEE8BC717E85DF68CBCE6C148F242D106B7CD88B0A48DB72897D9DA2C`)
+  and 3,621-byte LLVM
+  (`DE6DA8F6C23A6A85716111AE4736E0DDABD0207AC7E4FFABD2465C4BEAB304E8`).
+  Both compile and execute exact `12` and `4`; a graph-owned `Build(5)`
+  mutation executes exact `20` and `5`.
+- Reused the target-neutral routine-local `CollectionPlan` instead of adding
+  an ArrayParam compiler. Explicit value origins, dynamic operation inputs,
+  routine-qualified ValueIds, producer/caller/callee edges, canonical ABI
+  binding and one storage identity now seal `Build return -> Main call result
+  -> SumAll parameter`. Storage is allowed to reallocate and one entrypoint
+  cleanup owns the final buffer.
+- Replaced the accidental `three routines + zero declarations` ArrayArgument
+  classification with an exact legacy one-block/no-loop route. The generic
+  collection-program route claims first; invalid claimed inputs fail in its
+  strict admission and never retry ArrayArgument. Both emitters are MIR-blind
+  and consume only the issued program plan.
+- Focused positives cover baseline, `Build(5)`, display-only mutation, cyclic
+  routine order and cross-routine raw-ValueId collision. Repaired formal ABI,
+  wrong call target, stale return use and cross-routine endpoint mutations fail
+  before C or LLVM publication and never emit the legacy diagnostic.
+- Final current-source build took 158.5 seconds. Focused parity took 7.7
+  seconds; legacy ArrayArgument and indexed-assignment regressions took 8.2
+  and 17.7 seconds; component/removed-path and hard contracts took 104.5 and
+  17.4 seconds. No routine gate was pressure-sampled. Full integration, full
+  CI, current gen2==gen3 and proof suites did not run. This host lacks the
+  sanitizer runtime libraries, so the attempted ASan/UBSan leg is an explicit
+  environment skip rather than a pass.
+- Classification is bounded `SUBSTITUTING` for this exact one-producer,
+  one-entrypoint, one-reducer `Array<Int>` program. Aliases, multiple
+  collections, escaping ownership, ownership-sensitive elements, arbitrary
+  reducers/effects and general call graphs remain open. The independent SoT
+  registry gate still reports the pre-existing duplicate Coq authorities.
+- The next sole rung is `bool_logic.pgy`: its 17,188-byte MIR
+  (`77A60A6644C7D4BFE4B805D40306CCC90BD6F1612E2988CF4E2051BB4C6C1612`)
+  is produced, but both targets publish no artifact and incorrectly report
+  `direct MIR returned Array<Int> foreach program is invalid`. The next change
+  must reuse typed Bool/CFG facts and first remove that unrelated claimant;
+  fixture/text branches, block-count classification, precomputed output,
+  backend MIR reads, native fallback and claimant retry are forbidden.
+
 ## 2026-08-04 - Indexed Int/String assignments substitute through CollectionPlan
 
 - Landed executable checkpoint `6bdc207d`. The installed Pergyra-built

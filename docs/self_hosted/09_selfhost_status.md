@@ -181,6 +181,22 @@ compiler. The next falsifier is the 14,425-byte `for_each.pgy` mixed
 `Array<Int>`/`Array<String>` graph, currently rejected by both targets at the
 legacy Option-match claimant before artifact creation.
 
+Focused evidence at checkpoint `9e33ec37` closes reallocating `Array<Int>`
+return/parameter carriage. One 18,849-byte `array_param.pgy` MIR binds
+`Build:r.1 -> Main:xs.1 -> SumAll:param0` through routine-qualified return and
+argument edges, one canonical ABI, and one storage identity that may reallocate
+before a single Main cleanup. The same sealed `CollectionProgramPlan` drives C
+and LLVM to exact `12,4`; `Build(5)` drives exact `20,5`. Routine permutation,
+display-only changes and a cross-routine raw-ValueId collision remain valid,
+while repaired parameter ABI, wrong target, stale return use and cross-routine
+endpoint mutations publish no artifact. The old three-routine topology rule is
+now limited to its exact one-block/no-loop ArrayArgument slice, and claimed
+collection-program failures cannot retry it. This is bounded target-specific
+`SUBSTITUTING`, not general alias, ownership, arbitrary call-graph or whole-
+compiler replacement. The next observed falsifier is the 17,188-byte
+`bool_logic.pgy` MIR, incorrectly claimed by the returned-Array foreach route
+and rejected before both target artifacts.
+
 ## Verified
 
 Front-end self-hosts on both backends in LLVM-enabled builds.

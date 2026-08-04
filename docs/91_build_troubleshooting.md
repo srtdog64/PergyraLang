@@ -5459,3 +5459,66 @@ green이다. 전체 likeness gate는 sentinel `49 -> 44`로 줄었지만 과거 
 `22`를 아직 넘고 zone-bound step도 `26/29`라 red다. 이 경우 기준을 현재값으로
 올리지 말고, 활성 실행 rung과 분리된 기존 owner별 typed Option/Result 치환
 부채로 기록한다.
+
+## `array_param`이 legacy ArrayArgument 진단으로 거부되는 경우
+
+2026-08-04 `array_param.pgy`는 source-to-MIR을 정상 완료했지만 C와 LLVM 모두
+다음 진단에서 중단했다.
+
+```text
+CODEGEN ERROR: direct MIR Array argument program envelope is invalid
+```
+
+원인은 parameter ABI나 backend가 아니라 route classification이었다. 기존
+three-routine classifier는 선언·specialization·generic 수가 모두 0이면 의미와
+무관하게 ArrayArgument로 분류했다. 그 legacy owner는 세 routine 모두 one-block,
+loop 없음만 허용하므로 producer와 reducer가 while CFG인 `array_param`을 거부했다.
+
+수정 원칙은 legacy envelope를 느슨하게 만드는 것이 아니다.
+
+```text
+coarse CollectionProgram claim
+-> strict routine/graph/ABI/edge admission
+-> sealed target-neutral plan
+-> C or LLVM emission
+
+legacy ArrayArgument claim
+-> exact one-block/no-loop legacy shape only
+```
+
+새 collection route가 한 번 claim한 입력은 strict admission 실패 후 legacy
+ArrayArgument로 재시도하지 않는다. `Build:r.1`, `Main:xs.1`, `SumAll:param0`은 raw
+문자열이 아니라 routine-qualified identity와 명시적 return/argument edge로 잇는다.
+Producer의 `ArrayPush`는 재할당할 수 있으므로 고정 backing pointer를 전달하지 않고
+하나의 `{data,length,capacity}` value/storage identity를 전달하며 Main이 한 번
+cleanup한다. C/LLVM emitter는 admitted MIR을 받지 않고 sealed plan만 소비한다.
+
+Pergyra-built driver 재빌드 중 다음 진단이 보이면 메모리나 parser 문제로 보지 않는다.
+
+```text
+ref argument must be addressable: SomeFactAt(...)
+```
+
+`ref` 인자에 owner lookup의 임시 반환값을 직접 넘긴 경우다. 반환 fact를 지역 값에
+먼저 바인딩한 뒤 그 지역을 전달한다. Member array를 수정할 때도 struct field를 직접
+push하지 않고 지역 배열 owner를 갱신한 후 immutable fact를 재구성한다.
+
+Focused 재현은 다음 gate가 소유한다.
+
+```powershell
+& 'C:\Program Files\Git\bin\bash.exe' `
+  tests/self_hosted/parity/one_mir_array_param_projection.sh
+```
+
+Baseline `12/4`, `Build(5)`의 `20/5`, routine order와 raw-ValueId collision을
+검증하고 repaired parameter ABI, wrong call target, stale return use와 cross-routine
+endpoint가 두 target 모두 artifact 없이 실패하는지 확인한다. 이 host에서는 clang과
+gcc sanitizer runtime library가 없어 ASan/UBSan link가 불가능했다. 이는 gate 성공이
+아니라 명시적 environment skip이다. 일상 focused gate마다 memory sampler를 붙이지
+않고 final integration 경계에서만 peak를 기록한다.
+
+이 closure 직후의 실제 다음 falsifier는 `bool_logic.pgy`다. 17,188-byte MIR까지는
+생성되지만, 비-Array 프로그램이 `direct MIR returned Array<Int> foreach program is
+invalid`로 오분류된다. 이를 Bool expression-text 예외나 block-count branch로 우회하지
+말고, 먼저 returned-collection claimant가 왜 non-Array program을 claim했는지 닫은 뒤
+기존 typed Bool/CFG facts를 한 scalar plan으로 소비한다.

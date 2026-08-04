@@ -6,7 +6,73 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - bounded indexed collection operations closed
+## Active self-host context - collection return/parameter carriage closed
+
+- Executable checkpoint: `9e33ec3730fc276921adc1311b834dfc8502c7d1`
+  on `main`, with this handoff as its intended docs-only descendant. The final
+  current-source Pergyra-built driver is 4,808,442 bytes with SHA-256
+  `F33FE0C478519AA24F7277EA42B8E6C396246FCC507FF6389D9E3BA26A6E2ADD`.
+- Closed executable rung: `src/self_hosted/codegen/fixture/array_param.pgy`.
+  Its 18,849-byte self-produced MIR has SHA-256
+  `54AA601DCD8031B7A2857F42A5FD3ABDAD2BBB02822BA3AF3537999210B88A9C`.
+  The same MIR emits a 1,373-byte C artifact
+  (`DD6B9C1EEE8BC717E85DF68CBCE6C148F242D106B7CD88B0A48DB72897D9DA2C`)
+  and a 3,621-byte LLVM artifact
+  (`DE6DA8F6C23A6A85716111AE4736E0DDABD0207AC7E4FFABD2465C4BEAB304E8`).
+  Both host-compile and execute exact `12`, then `4`; a graph-owned `Build(5)`
+  variant executes exact `20`, then `5`.
+- One target-neutral `CollectionProgramPlan` now carries the routine-local
+  `CollectionPlan` across `Build` return, `Main` call result, and `SumAll`
+  formal parameter. Value origins and dynamic inputs are explicit, ValueIds
+  are routine-qualified, all three views bind one canonical `Array<Int>` ABI,
+  and one storage trajectory permits producer reallocation with exactly one
+  entrypoint cleanup.
+- Routing no longer treats `three routines + zero declarations` as an Array
+  argument identity. The old ArrayArgument route is explicitly limited to its
+  one-block/no-loop legacy shape. A coarse collection-program claim runs before
+  that classifier; once claimed, malformed input fails in the new owner and
+  cannot retry ArrayArgument. C and LLVM emitters consume only the sealed plan
+  and cannot reopen admitted MIR.
+- Focused evidence covers baseline, `Build(5)`, display-only mutation, cyclic
+  routine order, and a deliberate cross-routine raw-ValueId collision, plus
+  repaired parameter ABI, call-target, return-use, and cross-routine endpoint
+  negatives for both targets. Every negative publishes no artifact and does
+  not report the legacy ArrayArgument diagnostic.
+- Observed timings after the final source split: current-source driver build
+  158.5 seconds; focused gate 7.7 seconds; old ArrayArgument regression 8.2
+  seconds; indexed-assignment regression 17.7 seconds; component/removed-path
+  contract 104.5 seconds; hard contract 17.4 seconds. Routine gates were not
+  memory-sampled. Full integration, current gen2==gen3, proof suites, and full
+  CI did not run. ASan/UBSan execution was unavailable because this Windows
+  toolchain lacks the required sanitizer runtime libraries; it is not recorded
+  as a pass.
+- Classification is bounded `SUBSTITUTING` only for one reallocating
+  `Array<Int>` producer, one entrypoint receipt, and one reducer parameter.
+  Multiple collections, aliasing, escaping ownership, arbitrary reducers,
+  ownership-sensitive elements, reserve policy, and general call graphs remain
+  open. The independent SoT registry gate remains red only at its pre-existing
+  duplicate Coq fact-authority conflict.
+- Next observed executable falsifier: only
+  `src/self_hosted/codegen/fixture/bool_logic.pgy` is active. The current
+  producer emits a 17,188-byte MIR with SHA-256
+  `77A60A6644C7D4BFE4B805D40306CCC90BD6F1612E2988CF4E2051BB4C6C1612`.
+  C and LLVM both publish no artifact and incorrectly stop at
+  `direct MIR returned Array<Int> foreach program is invalid`.
+- Next objective card: admit the existing typed Bool literal, logical-not,
+  short-circuit and direct `Int -> Bool` call/CFG facts through one scalar
+  program plan. `mir.execution_graph` remains the semantic fact supplier and
+  `CompileAdmittedDirectMirForTarget` the last legitimate consumer. The first
+  falsifier is that this non-Array program must not be claimed by any returned-
+  collection route; a malformed Bool/CFG fact must fail with the Bool/scalar
+  owner diagnostic before either artifact.
+- Forbidden fallback: a `bool_logic` fixture branch, expression-text parsing,
+  precomputed `flag-on/other-off/and/logic/grouped/0/2/4`, block-count routing,
+  retry through returned-Array or Option claimants, backend MIR reads, or the
+  native C compiler path.
+
+## Historical checkpoint archive - inactive navigation evidence
+
+### Previous bounded indexed collection operations closure
 
 - Executable checkpoint: `6bdc207d4d4c0b7c76809f847cf7acfbbc688619`
   on `main`, with this handoff as its intended docs-only descendant. The final
@@ -77,8 +143,6 @@ owner, and the named executable gate.
 - Forbidden fallback: an ArrayParam-specific planner or three-routine topology
   classifier, constant-folded `12/4`, backend MIR reads, retry through the old
   ArrayArgument envelope, or a fixed no-reallocation storage assumption.
-
-## Historical checkpoint archive - inactive navigation evidence
 
 ### Previous fresh bounded `ArrayReverse` closure
 

@@ -1,6 +1,53 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-04 indexed collection operations
+## Active self-host context - 2026-08-04 collection program carriage
+
+- Checkpoint `9e33ec3730fc276921adc1311b834dfc8502c7d1` closes
+  `src/self_hosted/codegen/fixture/array_param.pgy` through installed direct C
+  and LLVM. The current-source Pergyra-built driver is 4,808,442 bytes with
+  SHA-256
+  `F33FE0C478519AA24F7277EA42B8E6C396246FCC507FF6389D9E3BA26A6E2ADD`.
+- The 18,849-byte self-produced MIR
+  (`54AA601DCD8031B7A2857F42A5FD3ABDAD2BBB02822BA3AF3537999210B88A9C`)
+  emits 1,373-byte C
+  (`DD6B9C1EEE8BC717E85DF68CBCE6C148F242D106B7CD88B0A48DB72897D9DA2C`)
+  and 3,621-byte LLVM
+  (`DE6DA8F6C23A6A85716111AE4736E0DDABD0207AC7E4FFABD2465C4BEAB304E8`).
+  Both execute exact `12`, then `4`; `Build(5)` executes exact `20`, then `5`.
+- One `CollectionProgramPlan` joins routine-qualified producer-local, caller-
+  result, and reducer-parameter `CollectionPlan` values. The plan carries
+  dynamic Push/Length/Get inputs, one canonical ABI, direct call/return edges,
+  reallocating storage identity, and single-owner cleanup. Backends consume
+  only this sealed plan.
+- The new coarse route precedes legacy three-routine classification and fails
+  closed after claim. The legacy ArrayArgument owner now claims only its exact
+  one-block/no-loop shape; `0/0/0` topology and malformed-input retry are gone.
+- Current-source build took 158.5 seconds. Focused C/LLVM parity took 7.7
+  seconds, the old ArrayArgument and indexed-assignment regressions took 8.2
+  and 17.7 seconds, and component/hard contracts took 104.5/17.4 seconds. No
+  routine gate was memory-sampled. Full integration, current fixed point,
+  proof suites, and full CI did not run. Sanitizer runtimes were unavailable,
+  so no sanitizer pass is claimed.
+- Classification is bounded `SUBSTITUTING` only for this exact one-producer,
+  one-entrypoint, one-reducer `Array<Int>` carriage. General aliases, escaping
+  ownership, arbitrary call graphs/reducers, multiple collections, and element
+  ownership remain open. The independent registry gate retains only its
+  pre-existing duplicate Coq authority failure.
+- The sole next executable falsifier is
+  `src/self_hosted/codegen/fixture/bool_logic.pgy`. Its 17,188-byte MIR has
+  SHA-256
+  `77A60A6644C7D4BFE4B805D40306CCC90BD6F1612E2988CF4E2051BB4C6C1612`.
+  Both targets fail before artifact publication with the unrelated
+  `direct MIR returned Array<Int> foreach program is invalid` diagnostic.
+- Next objective card: reuse producer-owned Bool expression and CFG facts in
+  one scalar program plan and prevent every returned-collection/Option claimant
+  from claiming the non-Array input. Fixture/text routing, block-count
+  classification, precomputed output, backend MIR reads, native fallback, and
+  retry after a Bool/scalar claim are forbidden.
+
+## Historical self-host ledger - inactive navigation evidence
+
+### Previous 2026-08-04 indexed collection operations
 
 - Executable checkpoint `6bdc207d4d4c0b7c76809f847cf7acfbbc688619`
   closes `src/self_hosted/codegen/fixture/array_index_assign.pgy` through the
@@ -50,8 +97,6 @@
   stale ABI/call/return edges. An ArrayParam-specific topology planner,
   constant folding, backend MIR reads, old ArrayArgument retry, and fixed
   no-reallocation storage assumptions are forbidden.
-
-## Historical self-host ledger - inactive navigation evidence
 
 ### Previous 2026-08-04 read-only `Array<Int>` maximum
 
