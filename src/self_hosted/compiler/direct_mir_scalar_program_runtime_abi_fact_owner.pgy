@@ -1,0 +1,50 @@
+// Sealed runtime ABI IDs required by one normalized scalar-program arena.
+
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+
+struct DirectMirScalarProgramRuntimeAbiFact {
+    let valid: Bool;
+    let digest: Int;
+    let string_compare_id: Int;
+    let string_concat_id: Int;
+    let string_to_string_id: Int;
+    let string_to_upper_id: Int;
+    let string_to_lower_id: Int;
+}
+
+func DirectMirScalarProgramRuntimeAbiFactEmpty(
+) -> DirectMirScalarProgramRuntimeAbiFact {
+    return DirectMirScalarProgramRuntimeAbiFact(
+        false, 0, 0, 0, 0, 0, 0
+    );
+}
+
+func DirectMirScalarProgramRuntimeAbiFactDigest(
+    ref fact: DirectMirScalarProgramRuntimeAbiFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(251L, fact.string_compare_id);
+    hash = DirectMirCfgHashInt(hash, fact.string_concat_id);
+    hash = DirectMirCfgHashInt(hash, fact.string_to_string_id);
+    hash = DirectMirCfgHashInt(hash, fact.string_to_upper_id);
+    hash = DirectMirCfgHashInt(hash, fact.string_to_lower_id);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarProgramRuntimeAbiFactWithDigest(
+    fact: DirectMirScalarProgramRuntimeAbiFact, digest: Int
+) -> DirectMirScalarProgramRuntimeAbiFact {
+    return DirectMirScalarProgramRuntimeAbiFact(
+        fact.valid, digest, fact.string_compare_id, fact.string_concat_id,
+        fact.string_to_string_id, fact.string_to_upper_id,
+        fact.string_to_lower_id
+    );
+}
+
+func DirectMirScalarProgramRuntimeAbiFactCanonicalEmpty(
+    ref fact: DirectMirScalarProgramRuntimeAbiFact
+) -> Bool {
+    return !fact.valid && fact.digest == 0 && fact.string_compare_id == 0 &&
+        fact.string_concat_id == 0 && fact.string_to_string_id == 0 &&
+        fact.string_to_upper_id == 0 && fact.string_to_lower_id == 0;
+}

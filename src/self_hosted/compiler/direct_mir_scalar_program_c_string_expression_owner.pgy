@@ -1,0 +1,46 @@
+// C projection of String runtime expressions from one ABI projection.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramCStringExpression(
+    kind: Int, left: String, right: String,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> Option<String> {
+    if kind == DirectMirScalarProgramExprEqualString() ||
+            kind == DirectMirScalarProgramExprNotEqualString() {
+        if !CompilerRuntimeCallAbiStringCompareFactReady(
+                runtime.string_compare) {
+            Die("direct MIR scalar program string compare ABI is invalid");
+        }
+        let value: String = Concat("(", Concat(
+            runtime.string_compare.symbol, Concat("(", Concat(
+                left, Concat(", ", Concat(right, ")"))))));
+        if kind == DirectMirScalarProgramExprEqualString() {
+            return Some(Concat(value, " == 0)"));
+        }
+        return Some(Concat(value, " != 0)"));
+    }
+    if kind == DirectMirScalarProgramExprConcatString() {
+        if !CompilerRuntimeCallAbiStringConcatFactReady(
+                runtime.string_concat) {
+            Die("direct MIR scalar program string concat ABI is invalid");
+        }
+        return Some(Concat(runtime.string_concat.symbol, Concat("(",
+            Concat(left, Concat(", ", Concat(right, ")"))))));
+    }
+    let builtin: CompilerRuntimeCallAbiFact = runtime.string_to_string;
+    if kind == DirectMirScalarProgramExprToUpperString() {
+        builtin = runtime.string_to_upper;
+    } else if kind == DirectMirScalarProgramExprToLowerString() {
+        builtin = runtime.string_to_lower;
+    } else if kind != DirectMirScalarProgramExprToStringInt() { return None; }
+    let ready: Bool = CompilerRuntimeCallAbiStringToStringFactReady(builtin);
+    if kind == DirectMirScalarProgramExprToUpperString() {
+        ready = CompilerRuntimeCallAbiStringToUpperFactReady(builtin);
+    } else if kind == DirectMirScalarProgramExprToLowerString() {
+        ready = CompilerRuntimeCallAbiStringToLowerFactReady(builtin);
+    }
+    if !ready { Die("direct MIR scalar program String builtin ABI is invalid"); }
+    return Some(Concat(builtin.symbol, Concat("(", Concat(left, ")"))));
+}

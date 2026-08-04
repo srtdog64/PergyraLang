@@ -1,7 +1,5 @@
 // Executable negative for hidden payload in an inactive program extension.
-
 import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
-
 func DirectMirScalarCfgProgramExtensionMutationRejected() -> Bool {
     let empty_ints: Array<Int> = [];
     let one_int: Array<Int> = [0];
@@ -17,19 +15,21 @@ func DirectMirScalarCfgProgramExtensionMutationRejected() -> Bool {
     let expression_mutation: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(
             false, 0, empty.callable, expression_payload,
-            empty_ints, empty_ints, empty_ints, empty.closed_call_abi, 0, 0);
+            empty_ints, empty_ints, empty_ints, empty.closed_call_abi,
+            empty.runtime_abi);
     let abi_mutation: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(
             false, 0, empty.callable, empty.expressions,
             empty_ints, empty_ints, empty_ints,
-            DirectMirClosedModuleCallAbiFact(false, 1, "", "", "", true),
-            0, 0
+            DirectMirClosedModuleCallAbiFact(false, 1, "", "", "", true), empty.runtime_abi
         );
-    let concat_mutation: DirectMirScalarCfgProgramExtensionFact =
+    let runtime_mutation: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(
             false, 0, empty.callable, empty.expressions,
-            empty_ints, empty_ints, empty_ints, empty.closed_call_abi, 0, 1);
+            empty_ints, empty_ints, empty_ints, empty.closed_call_abi,
+            DirectMirScalarProgramRuntimeAbiFact(
+                false, 0, 0, 0, 0, 0, 1));
     return !DirectMirScalarCfgProgramExtensionFactReady(expression_mutation) &&
         !DirectMirScalarCfgProgramExtensionFactReady(abi_mutation) &&
-        !DirectMirScalarCfgProgramExtensionFactReady(concat_mutation);
+        !DirectMirScalarCfgProgramExtensionFactReady(runtime_mutation);
 }

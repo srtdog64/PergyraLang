@@ -173,6 +173,32 @@ func StringRuntimeCConcatBlock() -> String {
     return block;
 }
 
+func StringRuntimeCToStringBlock() -> String {
+    let block: String = "";
+    block = Concat(block, Concat("static char *", Concat(StringRuntimeCToStringFn(), "(long long v)\n{\n")));
+    block = Concat(block, "    char *r = (char *)malloc(24);\n");
+    block = Concat(block, "    sprintf(r, \"%lld\", v);\n    return r;\n}\n\n");
+    return block;
+}
+
+func StringRuntimeCToUpperBlock() -> String {
+    let block: String = "";
+    block = Concat(block, Concat("static char *", Concat(StringRuntimeCToUpperFn(), "(const char *s)\n{\n")));
+    block = Concat(block, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");
+    block = Concat(block, "    for (size_t i = 0; i < n; i++) { char c = s[i]; r[i] = (c >= 'a' && c <= 'z') ? (char)(c - 32) : c; }\n");
+    block = Concat(block, "    r[n] = '\\0';\n    return r;\n}\n\n");
+    return block;
+}
+
+func StringRuntimeCToLowerBlock() -> String {
+    let block: String = "";
+    block = Concat(block, Concat("static char *", Concat(StringRuntimeCToLowerFn(), "(const char *s)\n{\n")));
+    block = Concat(block, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");
+    block = Concat(block, "    for (size_t i = 0; i < n; i++) { char c = s[i]; r[i] = (c >= 'A' && c <= 'Z') ? (char)(c + 32) : c; }\n");
+    block = Concat(block, "    r[n] = '\\0';\n    return r;\n}\n\n");
+    return block;
+}
+
 func StringRuntimeCStringCoreBlock(
     runtime_header_owns_bool_to_string: Bool
 ) -> String {
@@ -208,9 +234,7 @@ func StringRuntimeCStringCoreBlock(
     block = Concat(block, "    char *r = (char *)malloc(len + 1);\n");
     block = Concat(block, "    memcpy(r, s, len);\n    r[len] = '\\0';\n");
     block = Concat(block, "    return r;\n}\n\n");
-    block = Concat(block, Concat("static char *", Concat(StringRuntimeCToStringFn(), "(long long v)\n{\n")));
-    block = Concat(block, "    char *r = (char *)malloc(24);\n");
-    block = Concat(block, "    sprintf(r, \"%lld\", v);\n    return r;\n}\n\n");
+    block = Concat(block, StringRuntimeCToStringBlock());
     if !runtime_header_owns_bool_to_string {
         block = Concat(block, Concat("static char *", Concat(StringRuntimeCBoolToStringFn(), "(_Bool v)\n{\n")));
         block = Concat(block, "    const char *s = v ? \"true\" : \"false\";\n");
@@ -238,14 +262,8 @@ func StringRuntimeCStringCoreBlock(
     block = Concat(block, "    size_t n = strlen(prefix);\n    if (n == 0) return 1;\n    if ((size_t)(source_len - start) < n) return 0;\n");
     block = Concat(block, Concat("    return ", Concat(StringRuntimeCSubEqualsWithLenFn(), "(s, source_len, start, (long long)n, prefix);\n}\n\n")));
     block = Concat(block, Concat("static long long ", Concat(StringRuntimeCToIntFn(), "(const char *s)\n{\n    return atoll(s);\n}\n\n")));
-    block = Concat(block, Concat("static char *", Concat(StringRuntimeCToUpperFn(), "(const char *s)\n{\n")));
-    block = Concat(block, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");
-    block = Concat(block, "    for (size_t i = 0; i < n; i++) { char c = s[i]; r[i] = (c >= 'a' && c <= 'z') ? (char)(c - 32) : c; }\n");
-    block = Concat(block, "    r[n] = '\\0';\n    return r;\n}\n\n");
-    block = Concat(block, Concat("static char *", Concat(StringRuntimeCToLowerFn(), "(const char *s)\n{\n")));
-    block = Concat(block, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");
-    block = Concat(block, "    for (size_t i = 0; i < n; i++) { char c = s[i]; r[i] = (c >= 'A' && c <= 'Z') ? (char)(c + 32) : c; }\n");
-    block = Concat(block, "    r[n] = '\\0';\n    return r;\n}\n\n");
+    block = Concat(block, StringRuntimeCToUpperBlock());
+    block = Concat(block, StringRuntimeCToLowerBlock());
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCStringReplaceFn(), "(const char *s, const char *from, const char *to)\n{\n")));
     block = Concat(block, "    size_t fl = strlen(from);\n");
     block = Concat(block, Concat("    if (fl == 0) { return ", Concat(StringRuntimeCConcatFn(), "(s, \"\"); }\n")));

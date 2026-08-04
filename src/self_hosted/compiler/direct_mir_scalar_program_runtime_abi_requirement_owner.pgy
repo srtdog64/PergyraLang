@@ -1,0 +1,75 @@
+// Derives runtime ABI IDs only from normalized expression kinds.
+
+import "direct_mir_scalar_program_runtime_abi_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_readiness_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirScalarProgramExpressionKindPresent(
+    ref expressions: DirectMirScalarProgramExpressionSet, kind: Int
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(expressions.node_kinds) {
+        if expressions.node_kinds[row] == kind { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramRuntimeAbiFactFromExpressionKinds(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> DirectMirScalarProgramRuntimeAbiFact {
+    let compare: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringCompareFact();
+    let concat: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringConcatFact();
+    let to_string: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringToStringFact();
+    let to_upper: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringToUpperFact();
+    let to_lower: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringToLowerFact();
+    let compare_required: Bool =
+        DirectMirScalarProgramExpressionKindPresent(
+            expressions, DirectMirScalarProgramExprEqualString()) ||
+        DirectMirScalarProgramExpressionKindPresent(
+            expressions, DirectMirScalarProgramExprNotEqualString());
+    let concat_required: Bool = DirectMirScalarProgramExpressionKindPresent(
+        expressions, DirectMirScalarProgramExprConcatString());
+    let to_string_required: Bool =
+        DirectMirScalarProgramExpressionKindPresent(
+            expressions, DirectMirScalarProgramExprToStringInt());
+    let to_upper_required: Bool =
+        DirectMirScalarProgramExpressionKindPresent(
+            expressions, DirectMirScalarProgramExprToUpperString());
+    let to_lower_required: Bool =
+        DirectMirScalarProgramExpressionKindPresent(
+            expressions, DirectMirScalarProgramExprToLowerString());
+    if (compare_required &&
+            !CompilerRuntimeCallAbiStringCompareFactReady(compare)) ||
+        (concat_required &&
+            !CompilerRuntimeCallAbiStringConcatFactReady(concat)) ||
+        (to_string_required &&
+            !CompilerRuntimeCallAbiStringToStringFactReady(to_string)) ||
+        (to_upper_required &&
+            !CompilerRuntimeCallAbiStringToUpperFactReady(to_upper)) ||
+        (to_lower_required &&
+            !CompilerRuntimeCallAbiStringToLowerFactReady(to_lower)) {
+        return DirectMirScalarProgramRuntimeAbiFactEmpty();
+    }
+    let compare_id: Int = 0; let concat_id: Int = 0;
+    let to_string_id: Int = 0; let to_upper_id: Int = 0;
+    let to_lower_id: Int = 0;
+    if compare_required { compare_id = compare.runtime_call_abi_id; }
+    if concat_required { concat_id = concat.runtime_call_abi_id; }
+    if to_string_required { to_string_id = to_string.runtime_call_abi_id; }
+    if to_upper_required { to_upper_id = to_upper.runtime_call_abi_id; }
+    if to_lower_required { to_lower_id = to_lower.runtime_call_abi_id; }
+    let source: DirectMirScalarProgramRuntimeAbiFact =
+        DirectMirScalarProgramRuntimeAbiFact(
+            true, 0, compare_id, concat_id, to_string_id,
+            to_upper_id, to_lower_id
+        );
+    return DirectMirScalarProgramRuntimeAbiFactWithDigest(
+        source, DirectMirScalarProgramRuntimeAbiFactDigest(source)
+    );
+}

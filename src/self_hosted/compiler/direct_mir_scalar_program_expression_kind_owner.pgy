@@ -1,0 +1,107 @@
+// Canonical typed classification for non-binding scalar expression nodes.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+
+struct DirectMirScalarProgramExpressionKindFact {
+    let valid: Bool;
+    let kind: Int;
+    let type_name: String;
+    let literal: String;
+}
+
+func DirectMirScalarProgramExpressionKindFactInvalid(
+) -> DirectMirScalarProgramExpressionKindFact {
+    return DirectMirScalarProgramExpressionKindFact(false, 0, "", "");
+}
+
+func DirectMirScalarProgramExpressionKindFactFromSource(
+    source_kind: Int, text: String,
+    left_type: String, right_type: String, arity: Int
+) -> DirectMirScalarProgramExpressionKindFact {
+    let invalid: DirectMirScalarProgramExpressionKindFact =
+        DirectMirScalarProgramExpressionKindFactInvalid();
+    if source_kind == AstExpressionNodeIntegerLiteral() && arity == 0 &&
+            DirectMirScalarCfgCanonicalInt(text) {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprIntLiteral(),
+            CompilerAbiLayoutIntTypeName(), text);
+    }
+    if source_kind == AstExpressionNodeBoolLiteral() && arity == 0 &&
+            (text == "true" || text == "false") {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprBoolLiteral(),
+            CompilerAbiLayoutBoolTypeName(), text);
+    }
+    if source_kind == AstExpressionNodeStringLiteral() && arity == 0 {
+        let content: Option<String> = DirectMirAsciiLiteralContent(text);
+        if !IsSome(content) || !DirectMirScalarProgramLiteralEmbeddable(
+                UnwrapOption(content)) { return invalid; }
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprStringLiteral(),
+            CompilerAbiLayoutStringTypeName(), UnwrapOption(content));
+    }
+    if source_kind == AstExpressionNodeLogicalNot() && arity == 1 &&
+            left_type == CompilerAbiLayoutBoolTypeName() {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprLogicalNot(),
+            CompilerAbiLayoutBoolTypeName(), "");
+    }
+    if arity != 2 { return invalid; }
+    if source_kind == AstExpressionNodeAdd() &&
+            left_type == CompilerAbiLayoutStringTypeName() &&
+            right_type == CompilerAbiLayoutStringTypeName() {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprConcatString(),
+            CompilerAbiLayoutStringTypeName(), "");
+    }
+    if source_kind == AstExpressionNodeEquality() &&
+            left_type == CompilerAbiLayoutStringTypeName() &&
+            right_type == CompilerAbiLayoutStringTypeName() {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprEqualString(),
+            CompilerAbiLayoutBoolTypeName(), "");
+    }
+    if source_kind == AstExpressionNodeInequality() &&
+            left_type == CompilerAbiLayoutStringTypeName() &&
+            right_type == CompilerAbiLayoutStringTypeName() {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprNotEqualString(),
+            CompilerAbiLayoutBoolTypeName(), "");
+    }
+    let ints: Bool = left_type == CompilerAbiLayoutIntTypeName() &&
+        right_type == CompilerAbiLayoutIntTypeName();
+    let bools: Bool = left_type == CompilerAbiLayoutBoolTypeName() &&
+        right_type == CompilerAbiLayoutBoolTypeName();
+    if source_kind == AstExpressionNodeModulo() && ints {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprModuloInt(),
+            CompilerAbiLayoutIntTypeName(), "");
+    }
+    if source_kind == AstExpressionNodeEquality() && ints {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprEqualInt(),
+            CompilerAbiLayoutBoolTypeName(), "");
+    }
+    if source_kind == AstExpressionNodeLess() && ints {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprLessInt(),
+            CompilerAbiLayoutBoolTypeName(), "");
+    }
+    if source_kind == AstExpressionNodeAdd() && ints {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprAddInt(),
+            CompilerAbiLayoutIntTypeName(), "");
+    }
+    if source_kind == AstExpressionNodeLogicalAnd() && bools {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprLogicalAnd(),
+            CompilerAbiLayoutBoolTypeName(), "");
+    }
+    if source_kind == AstExpressionNodeLogicalOr() && bools {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprLogicalOr(),
+            CompilerAbiLayoutBoolTypeName(), "");
+    }
+    return invalid;
+}

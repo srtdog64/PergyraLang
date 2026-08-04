@@ -1,0 +1,79 @@
+// LLVM projection of String runtime expressions from one ABI projection.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+
+struct DirectMirScalarProgramLlvmStringExpression {
+    let matched: Bool;
+    let valid: Bool;
+    let instructions: String;
+    let value: String;
+}
+
+func DirectMirScalarProgramLlvmStringExpressionMissing(
+) -> DirectMirScalarProgramLlvmStringExpression {
+    return DirectMirScalarProgramLlvmStringExpression(false, false, "", "");
+}
+
+func DirectMirScalarProgramLlvmStringExpressionAt(
+    kind: Int, result: String, left: String, right: String,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind == DirectMirScalarProgramExprEqualString() ||
+            kind == DirectMirScalarProgramExprNotEqualString() {
+        if !CompilerRuntimeCallAbiStringCompareFactReady(
+                runtime.string_compare) {
+            return DirectMirScalarProgramLlvmStringExpression(
+                true, false, "", "");
+        }
+        let output: String = Concat("  ", Concat(result,
+            Concat(" = call i32 @", Concat(
+                runtime.string_compare.symbol, Concat("(ptr ", Concat(
+                    left, Concat(", ptr ", Concat(right, ")\n"))))))));
+        let compared: String = Concat(result, ".bool");
+        let predicate: String = "ne";
+        if kind == DirectMirScalarProgramExprEqualString() {
+            predicate = "eq";
+        }
+        output = Concat(output, Concat("  ", Concat(compared,
+            Concat(" = icmp ", Concat(
+                predicate,
+                Concat(" i32 ", Concat(result, ", 0\n")))))));
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, output, compared);
+    }
+    if kind == DirectMirScalarProgramExprConcatString() {
+        if !CompilerRuntimeCallAbiStringConcatFactReady(
+                runtime.string_concat) {
+            return DirectMirScalarProgramLlvmStringExpression(
+                true, false, "", "");
+        }
+        let output: String = Concat("  ", Concat(result,
+            Concat(" = call ptr @", Concat(
+                runtime.string_concat.symbol, Concat("(ptr ", Concat(
+                    left, Concat(", ptr ", Concat(right, ")\n"))))))));
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, output, result);
+    }
+    let builtin: CompilerRuntimeCallAbiFact = runtime.string_to_string;
+    let argument_type: String = "i64";
+    let ready: Bool = false;
+    if kind == DirectMirScalarProgramExprToStringInt() {
+        ready = CompilerRuntimeCallAbiStringToStringFactReady(builtin);
+    } else if kind == DirectMirScalarProgramExprToUpperString() {
+        builtin = runtime.string_to_upper; argument_type = "ptr";
+        ready = CompilerRuntimeCallAbiStringToUpperFactReady(builtin);
+    } else if kind == DirectMirScalarProgramExprToLowerString() {
+        builtin = runtime.string_to_lower; argument_type = "ptr";
+        ready = CompilerRuntimeCallAbiStringToLowerFactReady(builtin);
+    } else { return DirectMirScalarProgramLlvmStringExpressionMissing(); }
+    if !ready {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let output: String = Concat("  ", Concat(result,
+        Concat(" = call ptr @", Concat(builtin.symbol, Concat("(", Concat(
+            argument_type, Concat(" ", Concat(left, ")\n"))))))));
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}

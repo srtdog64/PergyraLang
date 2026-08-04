@@ -5,15 +5,15 @@ import "direct_mir_scalar_program_llvm_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_global_owner.pgy";
 import "direct_mir_scalar_cfg_local_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
+import "direct_mir_scalar_program_llvm_builtin_materialization_owner.pgy";
 import "direct_mir_llvm_text_format_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
 func DirectMirScalarCfgProgramLlvmOperation(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
     formatted_print: CompilerRuntimeCallAbiFact,
-    concat: CompilerRuntimeCallAbiFact,
-    compare: CompilerRuntimeCallAbiFact,
-    int_line_format: String, string_line_format: String
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    string_line_format: String
 ) -> String {
     let kind: Int = plan.operation_kinds[operation];
     if kind != DirectMirScalarCfgOpExpressionDefinition() &&
@@ -22,7 +22,7 @@ func DirectMirScalarCfgProgramLlvmOperation(
         plan.program.operation_expression_rows[operation];
     let expression: DirectMirScalarProgramLlvmExpression =
         DirectMirScalarProgramLlvmExpressionAt(
-            plan.program.expressions, expression_row, concat, compare);
+            plan.program.expressions, expression_row, runtime);
     if !expression.valid {
         Die("direct MIR scalar CFG LLVM expression is invalid");
     }
@@ -41,18 +41,10 @@ func DirectMirScalarCfgProgramLlvmOperation(
         if llvm_type == "i1" { return Concat(output, ", align 1\n"); }
         return Concat(output, ", align 8\n");
     }
-    let root: Int = plan.program.expressions.graph_roots[expression_row];
-    let to_string: Bool = plan.program.expressions.node_kinds[root] ==
-        DirectMirScalarProgramExprToStringInt();
     let format_name: String = "@.pgy.scalar.cfg.string.format";
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(
         string_line_format);
     let value_type: String = "ptr";
-    if to_string {
-        format_name = "@.pgy.scalar.cfg.int.format";
-        format_size = DirectMirScalarLlvmFormatByteCount(int_line_format);
-        value_type = "i64";
-    }
     output = Concat(output, "  call i32 (ptr, ...) @");
     output = Concat(output, formatted_print.symbol);
     output = Concat(output, "(ptr getelementptr inbounds ([");
@@ -86,10 +78,8 @@ func DirectMirScalarCfgProgramLlvmRoutineSignature(
 func DirectMirScalarCfgProgramLlvmRoutine(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
     formatted_print: CompilerRuntimeCallAbiFact,
-    concat: CompilerRuntimeCallAbiFact,
-    compare: CompilerRuntimeCallAbiFact,
-    int_line_format: String, string_line_format: String,
-    target: CompilerTargetProjectionFact
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    string_line_format: String
 ) -> String {
     let output: String = DirectMirScalarCfgProgramLlvmRoutineSignature(
         plan, routine);
@@ -116,8 +106,8 @@ func DirectMirScalarCfgProgramLlvmRoutine(
             plan.block_operation_counts[block];
         while operation < operation_end {
             let emitted: String = DirectMirScalarCfgProgramLlvmOperation(
-                plan, operation, formatted_print, concat, compare,
-                int_line_format, string_line_format);
+                plan, operation, formatted_print, runtime,
+                string_line_format);
             if emitted == "" &&
                 (plan.operation_kinds[operation] ==
                     DirectMirScalarCfgOpPhiInt() ||
@@ -139,7 +129,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(
         if return_row >= 0 {
             let expression: DirectMirScalarProgramLlvmExpression =
                 DirectMirScalarProgramLlvmExpressionAt(
-                    plan.program.expressions, return_row, concat, compare);
+                    plan.program.expressions, return_row, runtime);
             if !expression.valid { Die(
                 "direct MIR scalar CFG LLVM return expression is invalid"); }
             output = Concat(output, expression.instructions);
@@ -155,7 +145,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(
                 DirectMirScalarProgramLlvmExpressionAt(
                     plan.program.expressions,
                     plan.program.block_condition_expression_rows[block],
-                    concat, compare);
+                    runtime);
             if !condition.valid || condition.type_name !=
                     CompilerAbiLayoutBoolTypeName() {
                 Die("direct MIR scalar CFG LLVM condition is invalid");
@@ -191,24 +181,16 @@ func DirectMirScalarCfgProgramLlvmRoutine(
 func DirectMirScalarCfgEmitProgramLlvm(
     ref plan: DirectMirScalarCfgGraphPlan,
     formatted_print: CompilerRuntimeCallAbiFact,
-    concat: CompilerRuntimeCallAbiFact,
-    compare: CompilerRuntimeCallAbiFact,
-    int_line_format: String, string_line_format: String,
-    target: CompilerTargetProjectionFact
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    string_line_format: String
 ) -> String {
     if !DirectMirScalarCfgProgramExtensionReadyForPlan(plan) {
         Die("direct MIR scalar CFG program LLVM projection is invalid");
     }
-    let int_size: Int = DirectMirScalarLlvmFormatByteCount(int_line_format);
     let string_size: Int =
         DirectMirScalarLlvmFormatByteCount(string_line_format);
-    let output: String = "@.pgy.scalar.cfg.int.format = private unnamed_addr constant [";
-    output = Concat(output, ToString(int_size));
-    output = Concat(output, " x i8] c\"");
-    output = Concat(output, DirectMirScalarLlvmFormatPayload(int_line_format));
-    output = Concat(output, "\\00\", align 1\n");
-    output = Concat(output,
-        "@.pgy.scalar.cfg.string.format = private unnamed_addr constant [");
+    let output: String =
+        "@.pgy.scalar.cfg.string.format = private unnamed_addr constant [";
     output = Concat(output, ToString(string_size));
     output = Concat(output, " x i8] c\"");
     output = Concat(output,
@@ -217,24 +199,27 @@ func DirectMirScalarCfgEmitProgramLlvm(
     output = Concat(output, DirectMirScalarProgramLlvmStringGlobals(
         plan.program.expressions));
     output = Concat(output,
-        DirectMirScalarCfgStringLlvmConcatBlock(plan, concat));
+        DirectMirScalarCfgStringLlvmConcatBlock(
+            plan, runtime.string_concat));
+    output = Concat(output,
+        DirectMirScalarProgramLlvmBuiltinMaterialization(plan, runtime));
     output = Concat(output, "\ndeclare i32 @");
     output = Concat(output, formatted_print.symbol);
     output = Concat(output, "(ptr, ...)\n");
-    if plan.program.string_compare_runtime_call_abi_id != 0 {
-        if !CompilerRuntimeCallAbiStringCompareFactReady(compare) {
+    if plan.program.runtime_abi.string_compare_id != 0 {
+        if !CompilerRuntimeCallAbiStringCompareFactReady(
+                runtime.string_compare) {
             Die("direct MIR scalar CFG program LLVM compare ABI is invalid");
         }
         output = Concat(output, "declare i32 @");
-        output = Concat(output, compare.symbol);
+        output = Concat(output, runtime.string_compare.symbol);
         output = Concat(output, "(ptr, ptr)\n");
     }
     output = Concat(output, "\n");
     let routine: Int = 0;
     while routine < ArrayLength(plan.routines.roles) {
         output = Concat(output, DirectMirScalarCfgProgramLlvmRoutine(
-            plan, routine, formatted_print, concat, compare,
-            int_line_format, string_line_format, target));
+            plan, routine, formatted_print, runtime, string_line_format));
         routine = routine + 1;
     }
     return output;

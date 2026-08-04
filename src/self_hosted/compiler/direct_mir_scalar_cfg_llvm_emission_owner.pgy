@@ -31,9 +31,15 @@ func DirectMirScalarCfgEmitLlvm(
         Die("direct MIR scalar CFG LLVM plan or runtime ABI is invalid");
     }
     if plan.program.valid {
+        let runtime: DirectMirScalarProgramRuntimeAbiProjection =
+            DirectMirScalarProgramRuntimeAbiProjectionFromFact(
+                plan.program.runtime_abi);
+        if !DirectMirScalarProgramRuntimeAbiProjectionReady(
+                runtime, plan.program.runtime_abi) {
+            Die("direct MIR scalar CFG program LLVM runtime ABI is invalid");
+        }
         return DirectMirScalarCfgEmitProgramLlvm(
-            plan, formatted_print, concat, compare,
-            int_line_format, string_line_format, target
+            plan, formatted_print, runtime, string_line_format
         );
     }
     let int_size: Int =

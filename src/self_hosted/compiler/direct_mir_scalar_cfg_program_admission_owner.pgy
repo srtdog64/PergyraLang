@@ -26,11 +26,11 @@ func DirectMirScalarCfgProgramExtensionFromOwners(
             expressions,
             DirectMirScalarProgramExpressionSetDigest(expressions)
         );
-    let compare_id_opt: Option<Int> =
-        DirectMirScalarProgramStringCompareRuntimeCallAbiId(sealed_expressions);
-    let concat_id_opt: Option<Int> =
-        DirectMirScalarProgramStringConcatRuntimeCallAbiId(sealed_expressions);
-    if !IsSome(compare_id_opt) || !IsSome(concat_id_opt) {
+    let runtime_abi: DirectMirScalarProgramRuntimeAbiFact =
+        DirectMirScalarProgramRuntimeAbiFactFromExpressionKinds(
+            sealed_expressions);
+    if !DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
+            runtime_abi, sealed_expressions) {
         Die("direct MIR scalar program runtime ABI is invalid");
     }
     let source: DirectMirScalarCfgProgramExtensionFact =
@@ -38,8 +38,7 @@ func DirectMirScalarCfgProgramExtensionFromOwners(
             true, 0, callable, sealed_expressions,
             block_condition_expression_rows, operation_expression_rows,
             block_return_expression_rows,
-            closed_call_abi, UnwrapOption(compare_id_opt),
-            UnwrapOption(concat_id_opt)
+            closed_call_abi, runtime_abi
         );
     let fact: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFactWithDigest(

@@ -31,13 +31,11 @@ func DirectMirScalarProgramAppendCallExpression(
         arena.call_target_kinds[1] != SemanticCallTargetDirect() {
         return invalid;
     }
-    let callee: String = arena.call_target_names[1];
     let target_syntax_id: Int =
         arena.identities.call_target_syntax_ids[1];
-    let to_string: Bool = callee == "ToString";
-    if (to_string && target_syntax_id != 0) ||
-        (!to_string && (target_syntax_id != callable_syntax_id ||
-         callable_ordinal < 0)) { return invalid; }
+    if target_syntax_id != callable_syntax_id || callable_ordinal < 0 {
+        return invalid;
+    }
     let graph_rows: Array<Int> = facts.graph_global_rows;
     let starts: Array<Int> = facts.graph_starts;
     let counts: Array<Int> = facts.graph_counts;
@@ -57,7 +55,6 @@ func DirectMirScalarProgramAppendCallExpression(
     let argument_literal: String = "";
     let normalized_argument_kind: Int = 0;
     let expected_uses: Int = 0;
-    if to_string { argument_type = CompilerAbiLayoutIntTypeName(); }
     if argument_kind == AstExpressionNodeLeaf() {
         let operand: DirectMirScalarCfgLeafOperand =
             DirectMirScalarCfgLeafOperandFromOwners(
@@ -101,17 +98,10 @@ func DirectMirScalarProgramAppendCallExpression(
         kinds, types, lefts, rights, local_rows, params, literals,
         callable_rows, normalized_argument_kind, argument_type, -1, -1,
         argument_local, -1, argument_literal, -1);
-    let call_kind: Int = DirectMirScalarProgramExprDirectCall();
-    let call_type: String = callable_return_type;
-    let target_row: Int = callable_ordinal;
-    if to_string {
-        call_kind = DirectMirScalarProgramExprToStringInt();
-        call_type = CompilerAbiLayoutStringTypeName(); target_row = -1;
-    }
     DirectMirScalarProgramAppendExpressionNode(
         kinds, types, lefts, rights, local_rows, params, literals,
-        callable_rows, call_kind, call_type, start, -1,
-        -1, -1, "", target_row);
+        callable_rows, DirectMirScalarProgramExprDirectCall(),
+        callable_return_type, start, -1, -1, -1, "", callable_ordinal);
     ArrayPush(graph_rows, global_row); ArrayPush(starts, start);
     ArrayPush(counts, 2); ArrayPush(roots, start + 1);
     return DirectMirScalarProgramExpressionSet(

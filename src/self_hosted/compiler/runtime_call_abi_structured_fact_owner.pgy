@@ -141,6 +141,76 @@ func CompilerRuntimeCallAbiStringCompareFactReady(
         );
 }
 
+func CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+    operation: String, symbol: String
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiFactFromRowInput(
+        CompilerRuntimeCallAbiRowInput(
+            "string", operation, symbol,
+            CompilerRuntimeCallAbiMaterialGeneratedHelper()
+        )
+    );
+}
+
+func CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+    fact: CompilerRuntimeCallAbiFact,
+    operation: String, symbol: String, call_shape: String
+) -> Bool {
+    return fact.ok && fact.domain == "string" &&
+        fact.operation == operation && fact.symbol == symbol &&
+        fact.symbol_kind == "function" && fact.materialization ==
+            CompilerRuntimeCallAbiMaterialGeneratedHelper() &&
+        fact.call_shape == call_shape &&
+        fact.runtime_call_abi_id == CompilerRuntimeCallAbiRowId(
+            "string", "", operation
+        );
+}
+
+func CompilerRuntimeCallAbiStringToStringFact(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+        "to-string", StringRuntimeCToStringFn()
+    );
+}
+
+func CompilerRuntimeCallAbiStringToStringFactReady(
+    fact: CompilerRuntimeCallAbiFact
+) -> Bool {
+    return CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+        fact, "to-string", StringRuntimeCToStringFn(), "value_to_string"
+    );
+}
+
+func CompilerRuntimeCallAbiStringToUpperFact(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+        "to-upper", StringRuntimeCToUpperFn()
+    );
+}
+
+func CompilerRuntimeCallAbiStringToUpperFactReady(
+    fact: CompilerRuntimeCallAbiFact
+) -> Bool {
+    return CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+        fact, "to-upper", StringRuntimeCToUpperFn(), "string_to_string"
+    );
+}
+
+func CompilerRuntimeCallAbiStringToLowerFact(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+        "to-lower", StringRuntimeCToLowerFn()
+    );
+}
+
+func CompilerRuntimeCallAbiStringToLowerFactReady(
+    fact: CompilerRuntimeCallAbiFact
+) -> Bool {
+    return CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+        fact, "to-lower", StringRuntimeCToLowerFn(), "string_to_string"
+    );
+}
+
 func CompilerRuntimeCallAbiFlatFactOwnerReady(
     formatted: CompilerRuntimeCallAbiFact
 ) -> Bool {

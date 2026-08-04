@@ -31,9 +31,15 @@ func DirectMirScalarCfgEmitC(
         Die("direct MIR scalar CFG C plan or runtime ABI is invalid");
     }
     if plan.program.valid {
+        let runtime: DirectMirScalarProgramRuntimeAbiProjection =
+            DirectMirScalarProgramRuntimeAbiProjectionFromFact(
+                plan.program.runtime_abi);
+        if !DirectMirScalarProgramRuntimeAbiProjectionReady(
+                runtime, plan.program.runtime_abi) {
+            Die("direct MIR scalar CFG program C runtime ABI is invalid");
+        }
         return DirectMirScalarCfgEmitProgramC(
-            plan, formatted_print, concat, compare, int_line_format,
-            string_line_format, int_c_type
+            plan, formatted_print, runtime, string_line_format, int_c_type
         );
     }
     let output: String = DirectMirScalarCfgForEachCPreamble(plan, target);

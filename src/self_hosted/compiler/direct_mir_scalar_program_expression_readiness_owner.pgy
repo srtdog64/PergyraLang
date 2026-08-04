@@ -2,7 +2,6 @@
 
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
-
 func DirectMirScalarProgramNonTrappingBoolNode(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int
 ) -> Bool {
@@ -88,6 +87,12 @@ func DirectMirScalarProgramExpressionNodeReady(
             facts.node_types[left] == CompilerAbiLayoutIntTypeName() &&
             right == -1 && local == -1 && param == -1 && literal == "" &&
             callable == -1;
+    }
+    if kind == DirectMirScalarProgramExprToUpperString() || kind ==
+            DirectMirScalarProgramExprToLowerString() {
+        return type_name == CompilerAbiLayoutStringTypeName() && left >= 0 &&
+            facts.node_types[left] == CompilerAbiLayoutStringTypeName() &&
+            right == -1 && local == -1 && param == -1 && literal == "" && callable == -1;
     }
     let int_binary: Bool = kind == DirectMirScalarProgramExprModuloInt() ||
         kind == DirectMirScalarProgramExprEqualInt() ||
