@@ -1,0 +1,37 @@
+// LLVM routing for mutation operations owned by typed collection receipts.
+
+import "direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_llvm_mutation_emission_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_pop_llvm_operation_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_llvm_emission_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pop_llvm_operation_owner.pgy";
+import "direct_mir_scalar_cfg_llvm_collection_operation_fact_owner.pgy";
+
+func DirectMirScalarCfgEmitLlvmCollectionMutation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    target: CompilerTargetProjectionFact
+) -> DirectMirScalarCfgLlvmCollectionOperationEmission {
+    let kind: Int = plan.operation_kinds[operation];
+    if kind == DirectMirScalarCfgOpArraySetString() {
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(
+            true, DirectMirScalarCfgStringArrayLlvmSet(plan, target, operation));
+    }
+    if kind == DirectMirScalarCfgOpArrayPushString() {
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(
+            true, DirectMirScalarCfgStringArrayLlvmPush(plan, operation));
+    }
+    if kind == DirectMirScalarCfgOpArrayPopString() {
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(
+            true, DirectMirScalarCfgStringArrayLlvmPop(plan, operation));
+    }
+    if kind == DirectMirScalarCfgOpArrayPushInt() {
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(
+            true, DirectMirScalarCfgArrayIntLlvmPush(plan, operation));
+    }
+    if kind == DirectMirScalarCfgOpArrayPopInt() {
+        return DirectMirScalarCfgArrayIntPopLlvmOperation(
+            plan, operation, formatted_print);
+    }
+    return DirectMirScalarCfgLlvmCollectionOperationEmission(false, "");
+}

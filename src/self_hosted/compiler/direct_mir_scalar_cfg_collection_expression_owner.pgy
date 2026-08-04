@@ -1,6 +1,7 @@
 // Typed collection-expression routing behind the scalar-CFG owner boundary.
 
 import "direct_mir_scalar_cfg_string_array_expression_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_condition_expression_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_expression_owner.pgy";
 
 func DirectMirScalarCfgCollectionDefinitionExpressionFact(

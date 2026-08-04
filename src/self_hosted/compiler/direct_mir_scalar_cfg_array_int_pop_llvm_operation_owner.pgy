@@ -1,0 +1,65 @@
+// LLVM effects over the foreach-owned Array<Int> mutable length field.
+
+import "direct_mir_scalar_cfg_array_int_pop_foreach_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pop_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_llvm_collection_operation_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntPopLlvmLengthField(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> String {
+    let foreach_row: Int = DirectMirScalarCfgArrayIntPopForEachRowAtLoop(
+        plan.foreach_iterations,
+        plan.array_int_program.pop.foreach_loop_syntax_id
+    );
+    let storage_row: Int = DirectMirScalarCfgForEachStorageRow(
+        plan.foreach_iterations, foreach_row
+    );
+    if storage_row < 0 {
+        Die("direct MIR Array<Int> pop LLVM storage is missing");
+    }
+    return Concat("%pgy.foreach.collection.", Concat(
+        ToString(storage_row), ".length.field"
+    ));
+}
+
+func DirectMirScalarCfgArrayIntPopLlvmOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact
+) -> DirectMirScalarCfgLlvmCollectionOperationEmission {
+    let fact: DirectMirScalarCfgArrayIntProgramFact = plan.array_int_program;
+    if fact.mode != DirectMirScalarCfgArrayIntForEachPrefixPopMode() {
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(false, "");
+    }
+    let field: String = DirectMirScalarCfgArrayIntPopLlvmLengthField(plan);
+    let stem: String = Concat("%pgy.op.", ToString(operation));
+    if DirectMirScalarCfgArrayIntPopOperationRow(fact.pop, operation) >= 0 {
+        let output: String = Concat("  ", Concat(
+            stem, Concat(".pop.length = load i64, ptr ", field)
+        ));
+        output = Concat(output, Concat(", align 8\n  ", stem));
+        output = Concat(output, Concat(
+            ".pop.next = sub i64 ", Concat(
+                stem, ".pop.length, 1\n  store i64 "
+            )
+        ));
+        output = Concat(output, Concat(stem, ".pop.next, ptr "));
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(
+            true, Concat(output, Concat(field, ", align 8\n"))
+        );
+    }
+    if operation == fact.pop.length_log_operation_row {
+        let output: String = Concat("  ", Concat(
+            stem, Concat(".length = load i64, ptr ", field)
+        ));
+        output = Concat(output, Concat(", align 8\n  ", stem));
+        output = Concat(output, Concat(
+            ".printed = call i32 (ptr, ...) @", formatted_print.symbol
+        ));
+        output = Concat(output,
+            "(ptr @.pgy.scalar.cfg.int.format, i64 ");
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(
+            true, Concat(output, Concat(stem, ".length)\n"))
+        );
+    }
+    return DirectMirScalarCfgLlvmCollectionOperationEmission(false, "");
+}

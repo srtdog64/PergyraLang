@@ -1,0 +1,27 @@
+// Current String-array length immediately before the next mutation.
+
+import "direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy";
+
+func DirectMirScalarCfgStringArrayExpectedLengthBeforeNextMutation(
+    ref collections: DirectMirScalarCfgStringArrayCollectionSet,
+    ref accesses: DirectMirScalarCfgStringArrayAccessSet,
+    collection_row: Int
+) -> Int {
+    if collection_row < 0 || collection_row >=
+            ArrayLength(collections.element_counts) { return -1; }
+    let length: Int = collections.element_counts[collection_row];
+    let row: Int = 0;
+    while row < ArrayLength(accesses.global_rows) {
+        if accesses.collection_rows[row] == collection_row {
+            if accesses.kinds[row] ==
+                    DirectMirScalarCfgStringArrayAccessPushKind() {
+                length = length + 1;
+            } else if accesses.kinds[row] ==
+                    DirectMirScalarCfgStringArrayAccessPopKind() {
+                length = length - 1;
+            }
+        }
+        row = row + 1;
+    }
+    return length;
+}

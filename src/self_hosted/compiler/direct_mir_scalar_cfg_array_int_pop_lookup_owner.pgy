@@ -1,0 +1,31 @@
+// Effect lookup for the foreach-prefix-pop Array<Int> mode.
+
+import "direct_mir_scalar_cfg_array_int_pop_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntPopOperationGlobal(
+    ref fact: DirectMirScalarCfgArrayIntPopFact, global_row: Int
+) -> Bool {
+    let matches: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(fact.global_rows) {
+        if fact.global_rows[row] == global_row { matches = matches + 1; }
+        row = row + 1;
+    }
+    if fact.length_log_global_row == global_row { matches = matches + 1; }
+    return matches == 1;
+}
+
+func DirectMirScalarCfgArrayIntPopOperationRow(
+    ref fact: DirectMirScalarCfgArrayIntPopFact, operation: Int
+) -> Int {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(fact.operation_rows) {
+        if fact.operation_rows[row] == operation {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}

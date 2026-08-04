@@ -6,6 +6,7 @@ import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_append_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_dominance_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_capacity_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_mutation_length_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_source_fact_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_statement_source_owner.pgy";
 import "direct_mir_scalar_cfg_foreach_set_owner.pgy";
@@ -308,6 +309,30 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
                             claimed_collection_use_count + 1;
                     }
                 }
+            } else if kind == "stmt" && capture.arg0 == "ArrayPop" &&
+                    DirectMirScalarCfgStringArrayCollectionUse(
+                        use_facts, source, global, 0
+                    ) >= 0 {
+                let collection_row: Int =
+                    DirectMirScalarCfgStringArrayCollectionUse(
+                        use_facts, source, global, 0
+                    );
+                let expected_length: Int =
+                    DirectMirScalarCfgStringArrayExpectedLengthBeforeNextMutation(
+                        collections, accesses, collection_row
+                    );
+                if use_count != 1 || expected_length < 1 {
+                    Die("direct MIR String array pop is invalid");
+                }
+                DirectMirScalarCfgStringArrayAppendAccess(accesses,
+                    DirectMirScalarCfgStringArrayAccessFact(
+                        global, DirectMirScalarCfgStringArrayAccessPopKind(),
+                        collection_row, -1,
+                        DirectMirScalarCfgStringArrayIndexFactEmpty(),
+                        false, "", expected_length, -1
+                    ));
+                claimed_collection_use_count =
+                    claimed_collection_use_count + 1;
             } else if kind == "stmt" && capture.arg0 == "ArrayPush" &&
                     DirectMirScalarCfgStringArrayCollectionUse(
                         use_facts, source, global, 0
@@ -318,7 +343,7 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
                     );
                 if !push.valid { Die("direct MIR String array push is invalid"); }
                 let expected_length: Int =
-                    DirectMirScalarCfgStringArrayExpectedLengthBeforeNextPush(
+                    DirectMirScalarCfgStringArrayExpectedLengthBeforeNextMutation(
                         collections, accesses, push.collection_row
                     );
                 if expected_length < 0 {

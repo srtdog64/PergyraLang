@@ -81,30 +81,19 @@ func DirectMirScalarCfgStringArrayStatementExpressionFact(
             -1, -1, -1, -1, "", ""
         );
     }
+    if kind == DirectMirScalarCfgStringArrayAccessPopKind() &&
+        scalar.arg0 == "ArrayPop" {
+        return DirectMirScalarCfgExpressionFact(
+            true, DirectMirScalarCfgOpArrayPopString(),
+            -1, -1, -1, -1, "", ""
+        );
+    }
     if kind == DirectMirScalarCfgStringArrayAccessLengthLog() &&
         scalar.arg0 == "Log" {
         return DirectMirScalarCfgExpressionFact(
             true, DirectMirScalarCfgOpLogArrayLength(),
             -1, -1, -1, -1, "", ""
         );
-    }
-    return DirectMirScalarCfgExpressionFactEmpty();
-}
-func DirectMirScalarCfgStringArrayLengthConditionFact(
-    ref plan: DirectMirScalarCfgStringArrayPlan, global_row: Int
-) -> DirectMirScalarCfgExpressionFact {
-    let row: Int = 0;
-    while row < DirectMirScalarCfgStringArrayLengthCount(plan) {
-        let fact: DirectMirScalarCfgStringArrayLengthFact =
-            DirectMirScalarCfgStringArrayLengthAt(plan, row);
-        if fact.global_row == global_row {
-            return DirectMirScalarCfgExpressionFact(
-                true, DirectMirScalarCfgConditionLess(),
-                fact.index.value_row, -1, fact.index.local_row,
-                -1, "", ""
-            );
-        }
-        row = row + 1;
     }
     return DirectMirScalarCfgExpressionFactEmpty();
 }

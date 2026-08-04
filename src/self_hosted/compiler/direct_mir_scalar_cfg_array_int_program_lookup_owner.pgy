@@ -3,22 +3,8 @@
 import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_mutating_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_reverse_lookup_owner.pgy";
-
-func DirectMirScalarCfgArrayIntOwnsDefinition(
-    ref fact: DirectMirScalarCfgArrayIntProgramFact, global_row: Int
-) -> Bool {
-    return DirectMirScalarCfgArrayIntMutatingOwnsDefinition(fact, global_row) ||
-        DirectMirScalarCfgArrayIntReverseOwnsDefinition(fact.reverse, global_row);
-}
-
-func DirectMirScalarCfgArrayIntOwnsSourceLocal(
-    ref fact: DirectMirScalarCfgArrayIntProgramFact,
-    name: String, type_name: String
-) -> Bool {
-    return DirectMirScalarCfgArrayIntMutatingOwnsSourceLocal(
-            fact, name, type_name) ||
-        DirectMirScalarCfgArrayIntReverseOwnsSourceLocal(fact.reverse, name, type_name);
-}
+import "direct_mir_scalar_cfg_array_int_pop_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_source_lookup_owner.pgy";
 
 func DirectMirScalarCfgArrayIntOperationGlobal(
     ref fact: DirectMirScalarCfgArrayIntProgramFact, global_row: Int
@@ -26,5 +12,6 @@ func DirectMirScalarCfgArrayIntOperationGlobal(
     return DirectMirScalarCfgArrayIntMutatingOperationGlobal(
             fact, global_row) ||
         DirectMirScalarCfgArrayIntReverseOperationGlobal(
-            fact.reverse, global_row);
+            fact.reverse, global_row) ||
+        DirectMirScalarCfgArrayIntPopOperationGlobal(fact.pop, global_row);
 }

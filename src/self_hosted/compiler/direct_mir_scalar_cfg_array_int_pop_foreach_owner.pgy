@@ -1,0 +1,33 @@
+// Exact lookup of the foreach receipt that owns one Array<Int> ValueId.
+
+import "direct_mir_scalar_cfg_foreach_set_owner.pgy";
+
+func DirectMirScalarCfgArrayIntPopForEachAtValue(
+    ref facts: DirectMirScalarCfgForEachFactSet, wanted: String
+) -> DirectMirScalarCfgForEachFact {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < DirectMirScalarCfgForEachFactCount(facts) {
+        if facts.collection_value_ids[row] == wanted {
+            if found >= 0 { return DirectMirScalarCfgForEachFactEmpty(); }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return DirectMirScalarCfgForEachFactAt(facts, found);
+}
+
+func DirectMirScalarCfgArrayIntPopForEachRowAtLoop(
+    ref facts: DirectMirScalarCfgForEachFactSet, wanted: Int
+) -> Int {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < DirectMirScalarCfgForEachFactCount(facts) {
+        if facts.loop_syntax_ids[row] == wanted {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}

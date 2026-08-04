@@ -14,5 +14,5 @@ func DirectMirScalarCfgArrayIntOwnsLengthLogOperation(
                 DirectMirScalarCfgArrayIntReverseLengthLog() { return true; }
         row = row + 1;
     }
-    return false;
+    return fact.pop.length_log_operation_row == operation;
 }

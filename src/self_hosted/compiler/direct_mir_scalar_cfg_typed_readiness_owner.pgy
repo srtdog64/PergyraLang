@@ -5,6 +5,8 @@ import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_log_operation_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pop_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_collection_pop_typed_readiness_owner.pgy";
 
 func DirectMirScalarCfgPlanOperandType(
     ref plan: DirectMirScalarCfgGraphPlan, value: Int, local: Int
@@ -128,11 +130,9 @@ func DirectMirScalarCfgTypedOperationsReady(
                 indexed_kind != DirectMirScalarCfgStringArrayAccessSetKind()) ||
             (kind == DirectMirScalarCfgOpArrayPushString() &&
                 indexed_kind != DirectMirScalarCfgStringArrayAccessPushKind()) ||
-            (kind == DirectMirScalarCfgOpLogArrayLength() &&
-                indexed_kind != DirectMirScalarCfgStringArrayAccessLengthLog() &&
-                !DirectMirScalarCfgArrayIntOwnsLengthLogOperation(
-                    plan.array_int_program, row
-                )) ||
+            !DirectMirScalarCfgCollectionPopTypedOperationReady(
+                plan, row, kind, indexed_kind
+            ) ||
             (kind == DirectMirScalarCfgOpArrayPushInt() &&
                 (result >= 0 || !left_is_int || !right_is_int)) ||
             (kind == DirectMirScalarCfgOpAddArrayReadInt() &&

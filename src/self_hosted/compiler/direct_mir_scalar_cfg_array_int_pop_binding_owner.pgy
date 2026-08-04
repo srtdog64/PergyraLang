@@ -1,0 +1,36 @@
+// Bind prefix-pop effects and final length observation to GraphPlan rows.
+
+import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntPopAtOperation(
+    fact: DirectMirScalarCfgArrayIntProgramFact,
+    global_row: Int, operation_row: Int
+) -> DirectMirScalarCfgArrayIntProgramFact {
+    let operations: Array<Int> = fact.pop.operation_rows;
+    let matched: Bool = false;
+    let row: Int = 0;
+    while row < ArrayLength(fact.pop.global_rows) {
+        if fact.pop.global_rows[row] == global_row {
+            if matched || operations[row] >= 0 { return fact; }
+            operations[row] = operation_row;
+            matched = true;
+        }
+        row = row + 1;
+    }
+    let length_log: Int = fact.pop.length_log_operation_row;
+    if fact.pop.length_log_global_row == global_row {
+        if matched || length_log >= 0 { return fact; }
+        length_log = operation_row;
+        matched = true;
+    }
+    if !matched { return fact; }
+    return DirectMirScalarCfgArrayIntProgramFact(
+        true, fact.mode, fact.collection, fact.producer, fact.consumer,
+        fact.static_mutation, fact.read_only, fact.reverse,
+        DirectMirScalarCfgArrayIntPopFact(
+            true, fact.pop.foreach_loop_syntax_id, fact.pop.global_rows,
+            operations, fact.pop.expected_lengths_before,
+            fact.pop.length_log_global_row, length_log
+        )
+    );
+}

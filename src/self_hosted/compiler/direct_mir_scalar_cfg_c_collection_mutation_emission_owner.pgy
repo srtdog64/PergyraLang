@@ -1,0 +1,37 @@
+// C routing for mutation operations owned by typed collection receipts.
+
+import "direct_mir_scalar_cfg_string_array_c_emission_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_c_mutation_emission_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_pop_c_operation_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_c_emission_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pop_c_operation_owner.pgy";
+import "direct_mir_scalar_cfg_c_collection_operation_fact_owner.pgy";
+
+func DirectMirScalarCfgEmitCCollectionMutation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    int_line_format: String, int_c_type: String
+) -> DirectMirScalarCfgCCollectionOperationEmission {
+    let kind: Int = plan.operation_kinds[operation];
+    if kind == DirectMirScalarCfgOpArraySetString() {
+        return DirectMirScalarCfgCCollectionOperationEmission(
+            true, DirectMirScalarCfgStringArrayCSet(plan, operation));
+    }
+    if kind == DirectMirScalarCfgOpArrayPushString() {
+        return DirectMirScalarCfgCCollectionOperationEmission(
+            true, DirectMirScalarCfgStringArrayCPush(plan, operation));
+    }
+    if kind == DirectMirScalarCfgOpArrayPopString() {
+        return DirectMirScalarCfgCCollectionOperationEmission(
+            true, DirectMirScalarCfgStringArrayCPop(plan, operation));
+    }
+    if kind == DirectMirScalarCfgOpArrayPushInt() {
+        return DirectMirScalarCfgCCollectionOperationEmission(
+            true, DirectMirScalarCfgArrayIntCPush(plan, operation));
+    }
+    if kind == DirectMirScalarCfgOpArrayPopInt() {
+        return DirectMirScalarCfgArrayIntPopCOperation(
+            plan, operation, formatted_print, int_line_format, int_c_type);
+    }
+    return DirectMirScalarCfgCCollectionOperationEmission(false, "");
+}

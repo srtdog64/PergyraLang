@@ -1,0 +1,32 @@
+// Live-length LLVM effect for the String-array pop access receipt.
+
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+
+func DirectMirScalarCfgStringArrayLlvmPop(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> String {
+    let row: Int = DirectMirScalarCfgStringArrayAccessRowAtOperation(
+        plan.string_arrays, operation
+    );
+    if row < 0 || plan.string_arrays.accesses.kinds[row] !=
+            DirectMirScalarCfgStringArrayAccessPopKind() {
+        Die("direct MIR String array LLVM pop is missing");
+    }
+    let fact: DirectMirScalarCfgStringArrayAccessFact =
+        DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, row);
+    let stem: String = Concat("%pgy.op.", ToString(operation));
+    let field: String = Concat(
+        "%pgy.array.indexed.", Concat(
+            ToString(fact.collection_row), ".length.field"
+        )
+    );
+    let output: String = Concat("  ", Concat(
+        stem, Concat(".pop.length = load i64, ptr ", field)
+    ));
+    output = Concat(output, Concat(", align 8\n  ", stem));
+    output = Concat(output, Concat(
+        ".pop.next = sub i64 ", Concat(stem, ".pop.length, 1\n  store i64 ")
+    ));
+    output = Concat(output, Concat(stem, ".pop.next, ptr "));
+    return Concat(output, Concat(field, ", align 8\n"));
+}

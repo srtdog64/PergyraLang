@@ -1,0 +1,28 @@
+// Definition and source-local lookup over one Array<Int> receipt.
+
+import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_mutating_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_reverse_lookup_owner.pgy";
+
+func DirectMirScalarCfgArrayIntOwnsDefinition(
+    ref fact: DirectMirScalarCfgArrayIntProgramFact, global_row: Int
+) -> Bool {
+    if fact.mode == DirectMirScalarCfgArrayIntForEachPrefixPopMode() {
+        return false;
+    }
+    return DirectMirScalarCfgArrayIntMutatingOwnsDefinition(fact, global_row) ||
+        DirectMirScalarCfgArrayIntReverseOwnsDefinition(fact.reverse, global_row);
+}
+
+func DirectMirScalarCfgArrayIntOwnsSourceLocal(
+    ref fact: DirectMirScalarCfgArrayIntProgramFact,
+    name: String, type_name: String
+) -> Bool {
+    if fact.mode == DirectMirScalarCfgArrayIntForEachPrefixPopMode() {
+        return false;
+    }
+    return DirectMirScalarCfgArrayIntMutatingOwnsSourceLocal(
+            fact, name, type_name) ||
+        DirectMirScalarCfgArrayIntReverseOwnsSourceLocal(
+            fact.reverse, name, type_name);
+}

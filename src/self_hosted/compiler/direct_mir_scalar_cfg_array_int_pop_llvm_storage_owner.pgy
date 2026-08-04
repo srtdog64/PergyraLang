@@ -1,0 +1,47 @@
+// Canonical mutable foreach object for the Array<Int> prefix-pop mode.
+
+import "direct_mir_array_int_abi_projection_owner.pgy";
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pop_foreach_owner.pgy";
+import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
+
+func DirectMirScalarCfgArrayIntPopLlvmObjectDeclaration(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact, foreach_row: Int
+) -> String {
+    if plan.array_int_program.mode !=
+            DirectMirScalarCfgArrayIntForEachPrefixPopMode() ||
+        foreach_row != DirectMirScalarCfgArrayIntPopForEachRowAtLoop(
+            plan.foreach_iterations,
+            plan.array_int_program.pop.foreach_loop_syntax_id
+        ) || DirectMirScalarCfgForEachStorageRow(
+            plan.foreach_iterations, foreach_row
+        ) != foreach_row { return ""; }
+    let fact: DirectMirScalarCfgForEachFact =
+        DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, foreach_row);
+    let abi: DirectMirArrayIntAbiProjection =
+        DirectMirArrayIntAbiProjectionFromCanonicalLayout(
+            target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
+            fact.data_offset, fact.length_offset, fact.capacity_offset,
+            fact.allocator_offset
+        );
+    let prefix: String = Concat(
+        "%pgy.foreach.collection.", ToString(foreach_row)
+    );
+    let output: String = Concat("  ", Concat(
+        prefix, Concat(".object = alloca ", abi.llvm_aggregate_type)
+    ));
+    output = Concat(output, ", align 8\n  store ");
+    output = Concat(output, Concat(abi.llvm_aggregate_type, " %pgy.array."));
+    output = Concat(output, DirectMirScalarCfgForEachLlvmPrefix(foreach_row));
+    output = Concat(output, Concat(
+        ".3, ptr ", Concat(prefix, ".object, align 8\n  ")
+    ));
+    output = Concat(output, Concat(
+        prefix, Concat(".length.field = getelementptr inbounds ",
+            abi.llvm_aggregate_type)
+    ));
+    output = Concat(output, Concat(", ptr ", Concat(prefix, ".object")));
+    return Concat(output, Concat(", i32 0, i32 ",
+        Concat(ToString(abi.length_index), "\n")));
+}

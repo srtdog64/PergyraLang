@@ -10590,3 +10590,72 @@ Released/default replacement remains 0%.
   close the one-program multi-collection source identity reached by the two
   `ArrayPop` effects; fixture routing, partial Int-only success, native helper
   retry, and treating capacity as current length remain forbidden.
+
+## 2026-08-04 - joint `Array<Int>`/`Array<String>` pop effects substitute
+
+- Closed `src/self_hosted/codegen/fixture/array_pop.pgy` through the
+  current-source Pergyra-built direct C and LLVM routes. Its 14,007-byte MIR
+  (`AB92771EA08C27C73EDAB26E06441BF88CC3843C64FEFD784156694D321F73D4`)
+  emits 1,778-byte C
+  (`B855FB9E3D4F0B806C80E7886F1A9CE3AFFC3425A739E34ACC6E1BCBE315DEF9`)
+  and 6,876-byte LLVM
+  (`90E7DA1735A26E9F6242F5DD9B27A028783F61614D580170254F464CFD5EBB2F`).
+  Both host-compile and execute exact `30`, `2`, `2`, then `a`.
+- One new joint receipt inside the existing target-neutral `GraphPlan` joins
+  exactly two source identities and three globally ordered Void effects. The
+  Int source/storage remains owned by the foreach receipt and the String
+  source/storage remains owned by the String plan; the pop receipt references
+  them and cannot admit an Int-only or String-only partial program.
+- The ArrayInt program's fifth mutually exclusive mode owns only two pop
+  effects and the final current-length observation. It does not materialize a
+  second `xs` object beside the foreach owner. The String mutation timeline
+  admits one pop before length/index observation, decrements final length, and
+  leaves capacity and the popped source tail intact.
+- C and LLVM both mutate the canonical four-field object's live length. The
+  second Int pop reads the result of the first, the foreach guard and Int log
+  read the final field, and the String length/index consumers read the String
+  field after its pop. No backend reopens MIR, pretrims source storage,
+  collapses the three effects into one literal store, or calls private
+  `pgy_ai_pop`/`pgy_as_pop` helpers whose three-field value-returning contract
+  conflicts with the public Void operation.
+- The focused gate passed baseline, alternate, popped-tail-only, display-only,
+  coherent ValueId-renumber variants, and twelve no-artifact negatives for
+  receiver, result, missing/extra effect, order, current-length target, String
+  bounds, layout, and CFG successor. It exited 0 in 25.2 seconds. Adjacent
+  foreach, mixed collection, String mutation/push, and ArrayInt push/sum/max/
+  reverse regressions exited 0; the final five-gate bundle took 181.7 seconds.
+  The component/removed-path ratchet exited 0 in 258.6 seconds.
+- The fail-fast cumulative scalar-CFG runner reached its final ArrayPop success
+  label in 546.5 seconds. The PowerShell `Start-Process` wrapper did not expose
+  the child exit code, so this is recorded as final-marker evidence rather than
+  an observed exit-0 claim. Memory was sampled only at that integration
+  boundary: 218 samples at 100 ms observed 0.176 GiB maximum aggregate working
+  set and 0.189 GiB maximum aggregate private memory, below the 2.4 GiB
+  attention and 3 GiB stop thresholds.
+- Responsibility splits kept every fixed Pergyra line cap. Two focused gates
+  initially failed because their structural pins still named owners whose
+  responsibilities had moved: foreach LLVM current-length projection moved to
+  the typed condition owner, and String final mutation length moved out of the
+  capacity owner. The pins were repointed only after the execution gates
+  proved the new owner graph; no cap or compatibility alias was added.
+- The independent Hacker News comment remains an anecdote, not authority. Its
+  asymmetry is visible locally: `ArrayPop` surface syntax and type behavior
+  already existed, while correct architecture required a joint source/effect
+  receipt, last-consumer binding, and no-retry negatives that output-only tests
+  would not have supplied.
+- Classification is bounded `SUBSTITUTING` only for the exact nonescaping
+  local four-element Int source with two entry pops before foreach and the
+  three-element String source with one straight-line pop before length/index
+  observations. Empty pop, aliases, parameters, returns, branch/loop mutation,
+  mixed push/pop, arbitrary element types, and ownership-sensitive String
+  destruction remain open. Full CI, proof suites, public matrices, released-
+  driver promotion, and current gen2==gen3 were not run.
+- The next sole falsifier is `array_index_assign.pgy`. The current driver
+  produces its 10,338-byte MIR
+  (`7043BFBA70252CC058D0E2B7B826796254D8F14B6D6C5358A09868DA554EABFA`),
+  but both direct targets fail before publication with
+  `direct MIR scalar local type inventory is missing or invalid`. The next
+  rung must reuse the existing Int and String source/storage owners to execute
+  exact `12` and `zb`; fixture routing, a second collection planner, partial
+  one-type success, backend MIR reads, capacity-as-length, or native/runtime
+  mutation fallback remain forbidden.

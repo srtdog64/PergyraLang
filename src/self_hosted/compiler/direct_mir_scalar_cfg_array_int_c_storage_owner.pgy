@@ -8,9 +8,9 @@ func DirectMirScalarCfgArrayIntCDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan,
     target: CompilerTargetProjectionFact
 ) -> String {
-    if DirectMirScalarCfgArrayIntProgramAbsent(
-        plan.array_int_program
-    ) { return ""; }
+    if DirectMirScalarCfgArrayIntProgramAbsent(plan.array_int_program) ||
+        plan.array_int_program.mode ==
+            DirectMirScalarCfgArrayIntForEachPrefixPopMode() { return ""; }
     let fact: DirectMirScalarCfgArrayIntCollectionFact =
         plan.array_int_program.collection;
     let abi: DirectMirArrayIntAbiProjection =

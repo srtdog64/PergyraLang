@@ -1,6 +1,6 @@
 // C routing for operations owned by typed collection receipts.
 
-import "direct_mir_scalar_cfg_string_array_c_mutation_emission_owner.pgy";
+import "direct_mir_scalar_cfg_c_collection_mutation_emission_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_c_emission_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_c_program_operation_owner.pgy";
 import "direct_mir_scalar_cfg_c_collection_operation_fact_owner.pgy";
@@ -11,21 +11,10 @@ func DirectMirScalarCfgEmitCCollectionOperation(
     int_line_format: String, int_c_type: String
 ) -> DirectMirScalarCfgCCollectionOperationEmission {
     let kind: Int = plan.operation_kinds[operation];
-    if kind == DirectMirScalarCfgOpArraySetString() {
-        return DirectMirScalarCfgCCollectionOperationEmission(
-            true, DirectMirScalarCfgStringArrayCSet(plan, operation)
-        );
-    }
-    if kind == DirectMirScalarCfgOpArrayPushString() {
-        return DirectMirScalarCfgCCollectionOperationEmission(
-            true, DirectMirScalarCfgStringArrayCPush(plan, operation)
-        );
-    }
-    if kind == DirectMirScalarCfgOpArrayPushInt() {
-        return DirectMirScalarCfgCCollectionOperationEmission(
-            true, DirectMirScalarCfgArrayIntCPush(plan, operation)
-        );
-    }
+    let mutation: DirectMirScalarCfgCCollectionOperationEmission =
+        DirectMirScalarCfgEmitCCollectionMutation(
+            plan, operation, formatted_print, int_line_format, int_c_type);
+    if mutation.valid { return mutation; }
     if kind == DirectMirScalarCfgOpAddArrayReadInt() {
         return DirectMirScalarCfgCCollectionOperationEmission(
             true, DirectMirScalarCfgArrayIntCRead(plan, operation)
@@ -37,6 +26,10 @@ func DirectMirScalarCfgEmitCCollectionOperation(
         );
     if array_int.valid { return array_int; }
     if kind == DirectMirScalarCfgOpLogArrayLength() {
+        if operation == plan.array_int_program.pop.length_log_operation_row {
+            return DirectMirScalarCfgArrayIntPopCOperation(
+                plan, operation, formatted_print, int_line_format, int_c_type);
+        }
         if operation == plan.array_int_program.consumer.
                 length_log_operation_row {
             return DirectMirScalarCfgCCollectionOperationEmission(

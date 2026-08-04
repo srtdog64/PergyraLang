@@ -8,6 +8,7 @@ func DirectMirScalarCfgStringArrayAccessLogRead() -> Int { return 2; }
 func DirectMirScalarCfgStringArrayAccessSetKind() -> Int { return 3; }
 func DirectMirScalarCfgStringArrayAccessPushKind() -> Int { return 4; }
 func DirectMirScalarCfgStringArrayAccessLengthLog() -> Int { return 5; }
+func DirectMirScalarCfgStringArrayAccessPopKind() -> Int { return 6; }
 
 struct DirectMirScalarCfgStringArrayIndexFact {
     let kind: Int;

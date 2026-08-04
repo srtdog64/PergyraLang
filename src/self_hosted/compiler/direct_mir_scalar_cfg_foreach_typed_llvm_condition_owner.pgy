@@ -1,0 +1,83 @@
+// LLVM loop condition over the current typed foreach collection length.
+
+import "direct_mir_array_int_abi_projection_owner.pgy";
+import "direct_mir_array_string_abi_projection_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_graph_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
+
+func DirectMirScalarCfgForEachTypedLlvmCondition(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact, block: Int
+) -> String {
+    let found: Int = -1; let row: Int = 0;
+    while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
+        let fact: DirectMirScalarCfgForEachFact =
+            DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
+        if fact.header_block == block {
+            if found >= 0 {
+                Die("direct MIR scalar CFG foreach LLVM header is ambiguous");
+            }
+            found = row;
+        }
+        row = row + 1;
+    }
+    if found < 0 {
+        Die("direct MIR scalar CFG foreach LLVM header is missing");
+    }
+    let fact: DirectMirScalarCfgForEachFact =
+        DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, found);
+    let type_name: String =
+        DirectMirScalarCfgForEachElementTypeAtLoopSyntaxId(
+            plan.foreach_elements, fact.loop_syntax_id
+        );
+    let aggregate_type: String = ""; let length_index: Int = -1;
+    if type_name == CompilerAbiLayoutIntTypeName() {
+        let abi: DirectMirArrayIntAbiProjection =
+            DirectMirArrayIntAbiProjectionFromCanonicalLayout(
+                target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
+                fact.data_offset, fact.length_offset, fact.capacity_offset,
+                fact.allocator_offset
+            );
+        aggregate_type = abi.llvm_aggregate_type;
+        length_index = abi.length_index;
+    } else if type_name == CompilerAbiLayoutStringTypeName() {
+        let abi: DirectMirArrayStringAbiProjection =
+            DirectMirArrayStringAbiProjectionFromCanonicalLayout(
+                target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
+                fact.data_offset, fact.length_offset, fact.capacity_offset,
+                fact.allocator_offset
+            );
+        aggregate_type = abi.llvm_aggregate_type;
+        length_index = abi.length_index;
+    } else {
+        Die("direct MIR scalar CFG foreach LLVM condition type is invalid");
+    }
+    let stem: String = Concat("%pgy.cond.", ToString(block));
+    let storage_row: Int = DirectMirScalarCfgForEachStorageRow(
+        plan.foreach_iterations, found
+    );
+    let output: String = Concat("  ", Concat(stem,
+        Concat(".cursor = load i64, ptr %pgy.foreach.", Concat(
+            ToString(found), ".cursor, align 8\n  "
+        ))));
+    if plan.array_int_program.mode ==
+            DirectMirScalarCfgArrayIntForEachPrefixPopMode() &&
+        fact.loop_syntax_id ==
+            plan.array_int_program.pop.foreach_loop_syntax_id {
+        output = Concat(output, Concat(stem,
+            ".length = load i64, ptr %pgy.foreach.collection."));
+        output = Concat(output, Concat(ToString(storage_row),
+            ".length.field, align 8"));
+    } else {
+        output = Concat(output, Concat(stem, ".length = extractvalue "));
+        output = Concat(output, aggregate_type);
+        output = Concat(output, " %pgy.array.");
+        output = Concat(output,
+            DirectMirScalarCfgForEachLlvmPrefix(storage_row));
+        output = Concat(output, Concat(".3, ", ToString(length_index)));
+    }
+    output = Concat(output, Concat("\n  ", stem));
+    output = Concat(output, Concat(" = icmp ult i64 ", stem));
+    output = Concat(output, Concat(".cursor, ", stem));
+    return Concat(output, ".length");
+}

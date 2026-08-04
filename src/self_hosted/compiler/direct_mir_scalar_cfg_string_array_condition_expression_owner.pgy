@@ -1,0 +1,23 @@
+// GraphPlan condition identity for dynamic String-array guards.
+
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_expression_owner.pgy";
+
+func DirectMirScalarCfgStringArrayLengthConditionFact(
+    ref plan: DirectMirScalarCfgStringArrayPlan, global_row: Int
+) -> DirectMirScalarCfgExpressionFact {
+    let row: Int = 0;
+    while row < DirectMirScalarCfgStringArrayLengthCount(plan) {
+        let fact: DirectMirScalarCfgStringArrayLengthFact =
+            DirectMirScalarCfgStringArrayLengthAt(plan, row);
+        if fact.global_row == global_row {
+            return DirectMirScalarCfgExpressionFact(
+                true, DirectMirScalarCfgConditionLess(),
+                fact.index.value_row, -1, fact.index.local_row,
+                -1, "", ""
+            );
+        }
+        row = row + 1;
+    }
+    return DirectMirScalarCfgExpressionFactEmpty();
+}

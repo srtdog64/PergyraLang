@@ -1,0 +1,115 @@
+// Cross-owner closure for foreach storage and Array<Int> prefix-pop effects.
+
+import "direct_mir_scalar_cfg_array_int_foreach_view_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pop_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_operation_absence_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_set_owner.pgy";
+import "direct_mir_scalar_cfg_operation_position_owner.pgy";
+
+func DirectMirScalarCfgArrayIntPopCollectionMatchesForEach(
+    ref collection: DirectMirScalarCfgArrayIntCollectionFact,
+    ref foreach: DirectMirScalarCfgForEachFact
+) -> Bool {
+    if !collection.valid || !foreach.valid ||
+        collection.definition_global_row != foreach.definition_global_row ||
+        collection.collection_value_id != foreach.collection_value_id ||
+        collection.collection_name != foreach.collection_name ||
+        collection.storage_identity != foreach.storage_identity ||
+        collection.abi_layout_id != foreach.abi_layout_id ||
+        collection.abi_size != foreach.abi_size ||
+        collection.abi_align != foreach.abi_align ||
+        collection.data_offset != foreach.data_offset ||
+        collection.length_offset != foreach.length_offset ||
+        collection.capacity_offset != foreach.capacity_offset ||
+        collection.allocator_offset != foreach.allocator_offset ||
+        ArrayLength(collection.elements) != ArrayLength(foreach.elements) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(collection.elements) {
+        if collection.elements[row] != foreach.elements[row] { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarCfgArrayIntPopReady(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let fact: DirectMirScalarCfgArrayIntProgramFact = plan.array_int_program;
+    let pop: DirectMirScalarCfgArrayIntPopFact = fact.pop;
+    let foreach: DirectMirScalarCfgForEachFact =
+        DirectMirScalarCfgForEachFactAtLoopSyntaxId(
+            plan.foreach_iterations, pop.foreach_loop_syntax_id
+        );
+    let count: Int = ArrayLength(pop.global_rows);
+    if !fact.valid || fact.mode !=
+            DirectMirScalarCfgArrayIntForEachPrefixPopMode() ||
+        !DirectMirScalarCfgArrayIntCollectionFactReady(fact.collection) ||
+        fact.producer.valid || fact.consumer.valid || fact.static_mutation.valid ||
+        !DirectMirScalarCfgArrayIntReadOnlyAbsent(fact.read_only) ||
+        !DirectMirScalarCfgArrayIntReverseAbsent(fact.reverse) ||
+        !pop.valid || count < 1 ||
+        count != ArrayLength(pop.operation_rows) ||
+        count != ArrayLength(pop.expected_lengths_before) ||
+        count > ArrayLength(fact.collection.elements) ||
+        pop.length_log_global_row < 0 ||
+        pop.length_log_operation_row < 0 ||
+        !DirectMirScalarCfgArrayIntPopCollectionMatchesForEach(
+            fact.collection, foreach
+        ) || foreach.loop_syntax_id != pop.foreach_loop_syntax_id {
+        return false;
+    }
+    let prior_operation: Int = -1;
+    let row: Int = 0;
+    while row < count {
+        let operation: Int = pop.operation_rows[row];
+        if pop.global_rows[row] < 0 ||
+            pop.global_rows[row] >= foreach.init_global_row ||
+            pop.expected_lengths_before[row] !=
+                ArrayLength(fact.collection.elements) - row ||
+            operation <= prior_operation || operation < 0 ||
+            operation >= ArrayLength(plan.operation_kinds) ||
+            plan.operation_kinds[operation] !=
+                DirectMirScalarCfgOpArrayPopInt() ||
+            plan.operation_result_values[operation] != -1 ||
+            plan.operation_left_values[operation] != -1 ||
+            plan.operation_right_values[operation] != -1 ||
+            plan.operation_left_locals[operation] != -1 ||
+            plan.operation_right_locals[operation] != -1 ||
+            plan.operation_left_literals[operation] != "" ||
+            plan.operation_right_literals[operation] != "" ||
+            DirectMirScalarCfgOperationBlock(plan, operation) !=
+                foreach.init_block {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if pop.global_rows[prior] == pop.global_rows[row] { return false; }
+            prior = prior + 1;
+        }
+        prior_operation = operation;
+        row = row + 1;
+    }
+    if pop.length_log_global_row <= foreach.branch_global_row ||
+        pop.length_log_operation_row <= prior_operation ||
+        pop.length_log_operation_row >= ArrayLength(plan.operation_kinds) ||
+        plan.operation_kinds[pop.length_log_operation_row] !=
+            DirectMirScalarCfgOpLogArrayLength() ||
+        plan.operation_result_values[pop.length_log_operation_row] != -1 ||
+        DirectMirScalarCfgOperationBlock(
+            plan, pop.length_log_operation_row
+        ) != foreach.exit_block { return false; }
+    let owned_pop_count: Int = 0;
+    row = 0;
+    while row < ArrayLength(plan.operation_kinds) {
+        if plan.operation_kinds[row] == DirectMirScalarCfgOpArrayPopInt() {
+            if DirectMirScalarCfgArrayIntPopOperationRow(pop, row) < 0 {
+                return false;
+            }
+            owned_pop_count = owned_pop_count + 1;
+        }
+        row = row + 1;
+    }
+    return owned_pop_count == count;
+}

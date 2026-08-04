@@ -1,0 +1,59 @@
+// Program-level prefix-pop effects over one foreach-owned Array<Int>.
+
+struct DirectMirScalarCfgArrayIntPopFact {
+    let valid: Bool;
+    let foreach_loop_syntax_id: Int;
+    let global_rows: Array<Int>;
+    let operation_rows: Array<Int>;
+    let expected_lengths_before: Array<Int>;
+    let length_log_global_row: Int;
+    let length_log_operation_row: Int;
+}
+
+func DirectMirScalarCfgArrayIntPopFactEmpty(
+) -> DirectMirScalarCfgArrayIntPopFact {
+    let rows: Array<Int> = [];
+    return DirectMirScalarCfgArrayIntPopFact(
+        false, -1, rows, rows, rows, -1, -1
+    );
+}
+
+func DirectMirScalarCfgArrayIntPopFactSourceReady(
+    ref fact: DirectMirScalarCfgArrayIntPopFact, initial_length: Int
+) -> Bool {
+    let count: Int = ArrayLength(fact.global_rows);
+    if !fact.valid || fact.foreach_loop_syntax_id < 0 || count < 1 ||
+        count != ArrayLength(fact.operation_rows) ||
+        count != ArrayLength(fact.expected_lengths_before) ||
+        fact.length_log_global_row < 0 ||
+        fact.length_log_operation_row != -1 || count > initial_length {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if fact.global_rows[row] < 0 || fact.operation_rows[row] != -1 ||
+            fact.expected_lengths_before[row] != initial_length - row {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if fact.global_rows[prior] == fact.global_rows[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarCfgArrayIntPopFactAbsent(
+    ref fact: DirectMirScalarCfgArrayIntPopFact
+) -> Bool {
+    return !fact.valid && fact.foreach_loop_syntax_id == -1 &&
+        ArrayLength(fact.global_rows) == 0 &&
+        ArrayLength(fact.operation_rows) == 0 &&
+        ArrayLength(fact.expected_lengths_before) == 0 &&
+        fact.length_log_global_row == -1 &&
+        fact.length_log_operation_row == -1;
+}

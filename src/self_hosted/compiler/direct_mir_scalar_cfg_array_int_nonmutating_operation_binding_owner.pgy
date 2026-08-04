@@ -13,7 +13,7 @@ func DirectMirScalarCfgArrayIntNonmutatingAtOperation(
             fact.static_mutation,
             DirectMirScalarCfgArrayIntReadOnlyAtOperation(
                 fact.read_only, global_row, operation_row
-            ), fact.reverse
+            ), fact.reverse, fact.pop
         );
     }
     if fact.mode != DirectMirScalarCfgArrayIntFreshReverseMode() { return fact; }
@@ -22,6 +22,6 @@ func DirectMirScalarCfgArrayIntNonmutatingAtOperation(
         fact.static_mutation, fact.read_only,
         DirectMirScalarCfgArrayIntReverseAtOperation(
             fact.reverse, global_row, operation_row
-        )
+        ), fact.pop
     );
 }

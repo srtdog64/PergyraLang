@@ -4,6 +4,7 @@ import "direct_mir_scalar_cfg_string_array_plan_identity_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_index_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_capacity_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_access_readiness_owner.pgy";
 
 func DirectMirScalarCfgStringArrayCollectionsReady(
     ref plan: DirectMirScalarCfgStringArrayPlan
@@ -61,8 +62,8 @@ func DirectMirScalarCfgStringArrayPlanShapeReady(
     }
     let length_count: Int = DirectMirScalarCfgStringArrayLengthCount(plan);
     let access_count: Int = DirectMirScalarCfgStringArrayAccessCount(plan);
-    if !plan.lengths.valid || !plan.accesses.valid || length_count < 1 ||
-        access_count < 1 || length_count != ArrayLength(plan.lengths.blocks) ||
+    if !plan.lengths.valid || !plan.accesses.valid || access_count < 1 ||
+        length_count != ArrayLength(plan.lengths.blocks) ||
         length_count != ArrayLength(plan.lengths.collection_rows) ||
         length_count != ArrayLength(plan.lengths.control_loop_syntax_ids) ||
         !DirectMirScalarCfgStringArrayIndexSetReady(
@@ -112,78 +113,7 @@ func DirectMirScalarCfgStringArrayPlanShapeReady(
         }
         row = row + 1;
     }
-    row = 0;
-    while row < access_count {
-        let fact: DirectMirScalarCfgStringArrayAccessFact =
-            DirectMirScalarCfgStringArrayAccessAt(plan, row);
-        let no_index: Bool = fact.kind ==
-                DirectMirScalarCfgStringArrayAccessPushKind() ||
-            fact.kind == DirectMirScalarCfgStringArrayAccessLengthLog();
-        let owns_value: Bool = fact.kind ==
-                DirectMirScalarCfgStringArrayAccessSetKind() ||
-            fact.kind == DirectMirScalarCfgStringArrayAccessPushKind();
-        let is_push: Bool = fact.kind ==
-            DirectMirScalarCfgStringArrayAccessPushKind();
-        if fact.global_row < 0 || fact.collection_row < 0 ||
-            fact.collection_row >=
-                DirectMirScalarCfgStringArrayCollectionCount(plan) ||
-            fact.kind < DirectMirScalarCfgStringArrayAccessConcatRead() ||
-            fact.kind > DirectMirScalarCfgStringArrayAccessLengthLog() ||
-            (no_index && !DirectMirScalarCfgStringArrayIndexAbsentReady(
-                fact.index
-            )) || (!no_index && !DirectMirScalarCfgStringArrayIndexReady(
-                fact.index, require_bound_rows,
-                DirectMirScalarCfgStringArrayFinalLength(
-                    plan, fact.collection_row
-                )
-            )) || owns_value != fact.value_present || (!fact.value_present &&
-                fact.value_literal != "") ||
-            (!no_index &&
-             (fact.index.kind == DirectMirScalarCfgStringArrayIndexLiteral()) !=
-                (fact.guard_length_row == -1)) ||
-            (no_index && fact.guard_length_row != -1) ||
-            (!is_push && fact.expected_length_before != -1) ||
-            (fact.guard_length_row >= 0 &&
-                (fact.guard_length_row >= length_count ||
-                 plan.lengths.collection_rows[fact.guard_length_row] !=
-                    fact.collection_row ||
-                 plan.lengths.indices.kinds[fact.guard_length_row] !=
-                    fact.index.kind ||
-                 plan.lengths.indices.value_ids[fact.guard_length_row] !=
-                    fact.index.value_id ||
-                 plan.lengths.indices.iteration_syntax_ids[fact.guard_length_row] !=
-                    fact.index.iteration_syntax_id)) ||
-            ((require_bound_rows && fact.operation_row < 0) ||
-             (!require_bound_rows && fact.operation_row != -1)) {
-            return false;
-        }
-        if is_push {
-            let expected: Int = plan.collections.element_counts[
-                fact.collection_row
-            ];
-            let push_prior: Int = 0;
-            while push_prior < row {
-                if plan.accesses.collection_rows[push_prior] ==
-                        fact.collection_row &&
-                    plan.accesses.kinds[push_prior] ==
-                        DirectMirScalarCfgStringArrayAccessPushKind() {
-                    expected = expected + 1;
-                }
-                push_prior = push_prior + 1;
-            }
-            if fact.expected_length_before != expected || expected >=
-                    DirectMirScalarCfgStringArrayStaticCapacity(
-                        plan, fact.collection_row
-                    ) { return false; }
-        }
-        let prior: Int = 0;
-        while prior < row {
-            if plan.accesses.global_rows[prior] == fact.global_row ||
-                (require_bound_rows && plan.accesses.operation_rows[prior] ==
-                    fact.operation_row) { return false; }
-            prior = prior + 1;
-        }
-        row = row + 1;
-    }
-    return true;
+    return DirectMirScalarCfgStringArrayAccessesReady(
+        plan, require_bound_rows, length_count
+    );
 }

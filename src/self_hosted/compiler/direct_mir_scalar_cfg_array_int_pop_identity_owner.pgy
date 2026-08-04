@@ -1,0 +1,18 @@
+// Stable identity tail for prefix-pop effects.
+
+import "direct_mir_scalar_cfg_array_int_pop_fact_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+
+func DirectMirScalarCfgArrayIntPopDigestComponent(
+    hash: Long, ref fact: DirectMirScalarCfgArrayIntPopFact
+) -> Long {
+    let validity: Int = 0;
+    if fact.valid { validity = 1; }
+    hash = DirectMirCfgHashInt(hash, validity);
+    hash = DirectMirCfgHashInt(hash, fact.foreach_loop_syntax_id);
+    hash = DirectMirScalarCfgHashInts(hash, fact.global_rows);
+    hash = DirectMirScalarCfgHashInts(hash, fact.operation_rows);
+    hash = DirectMirScalarCfgHashInts(hash, fact.expected_lengths_before);
+    hash = DirectMirCfgHashInt(hash, fact.length_log_global_row);
+    return DirectMirCfgHashInt(hash, fact.length_log_operation_row);
+}

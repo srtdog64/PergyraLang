@@ -1,0 +1,28 @@
+// Typed operation closure for collection pop effects and length observation.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_log_operation_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pop_lookup_owner.pgy";
+
+func DirectMirScalarCfgCollectionPopTypedOperationReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    operation: Int, kind: Int, string_access_kind: Int
+) -> Bool {
+    if kind == DirectMirScalarCfgOpArrayPopString() {
+        return string_access_kind ==
+            DirectMirScalarCfgStringArrayAccessPopKind();
+    }
+    if kind == DirectMirScalarCfgOpArrayPopInt() {
+        return DirectMirScalarCfgArrayIntPopOperationRow(
+            plan.array_int_program.pop, operation
+        ) >= 0;
+    }
+    if kind == DirectMirScalarCfgOpLogArrayLength() {
+        return string_access_kind ==
+                DirectMirScalarCfgStringArrayAccessLengthLog() ||
+            DirectMirScalarCfgArrayIntOwnsLengthLogOperation(
+                plan.array_int_program, operation
+            );
+    }
+    return true;
+}

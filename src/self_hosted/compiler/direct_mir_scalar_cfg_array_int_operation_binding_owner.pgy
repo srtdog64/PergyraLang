@@ -2,12 +2,17 @@
 
 import "direct_mir_scalar_cfg_array_int_nonmutating_operation_binding_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_mutating_operation_binding_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pop_binding_owner.pgy";
 
 func DirectMirScalarCfgArrayIntProgramAtOperation(
     fact: DirectMirScalarCfgArrayIntProgramFact,
     global_row: Int, operation_row: Int
 ) -> DirectMirScalarCfgArrayIntProgramFact {
     if !fact.valid || operation_row < 0 { return fact; }
+    if fact.mode == DirectMirScalarCfgArrayIntForEachPrefixPopMode() {
+        return DirectMirScalarCfgArrayIntPopAtOperation(
+            fact, global_row, operation_row);
+    }
     if fact.mode == DirectMirScalarCfgArrayIntReadOnlyInitializedMode() ||
         fact.mode == DirectMirScalarCfgArrayIntFreshReverseMode() {
         return DirectMirScalarCfgArrayIntNonmutatingAtOperation(

@@ -32,6 +32,7 @@ func DirectMirScalarCfgSealGraphPlan(
     string_arrays: DirectMirScalarCfgStringArrayPlan,
     array_int: DirectMirScalarCfgArrayIntProgramFact
 ) -> DirectMirScalarCfgGraphPlan {
+    let collection_pops: DirectMirScalarCfgCollectionPopProgramFact = DirectMirScalarCfgCollectionPopProgramFromOwners(foreaches, string_arrays, array_int);
     let plan: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgGraphPlan(
         true, DirectMirScalarCfgGraphPlanSchema(),
         CompilerArtifactPlanRevision(), 0,
@@ -53,6 +54,7 @@ func DirectMirScalarCfgSealGraphPlan(
         operation_right_literals, operation_phi_starts,
         operation_phi_counts, phi_predecessor_blocks, phi_incoming_values,
         ranges, foreaches, foreach_elements, string_arrays, array_int,
+        collection_pops,
         DirectMirScalarCfgStringConcatRuntimeCallAbiId(operation_kinds)
     );
     let verified: DirectMirScalarCfgGraphPlan =

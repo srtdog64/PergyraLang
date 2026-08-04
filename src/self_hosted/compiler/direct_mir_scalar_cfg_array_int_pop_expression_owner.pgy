@@ -1,0 +1,26 @@
+// GraphPlan operation identity for foreach-owned Array<Int> prefix pops.
+
+import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
+import "direct_mir_scalar_cfg_expression_owner.pgy";
+
+func DirectMirScalarCfgArrayIntPopExpressionFact(
+    ref fact: DirectMirScalarCfgArrayIntPopFact, global_row: Int
+) -> DirectMirScalarCfgExpressionFact {
+    let row: Int = 0;
+    while row < ArrayLength(fact.global_rows) {
+        if fact.global_rows[row] == global_row {
+            return DirectMirScalarCfgExpressionFact(
+                true, DirectMirScalarCfgOpArrayPopInt(),
+                -1, -1, -1, -1, "", ""
+            );
+        }
+        row = row + 1;
+    }
+    if fact.length_log_global_row == global_row {
+        return DirectMirScalarCfgExpressionFact(
+            true, DirectMirScalarCfgOpLogArrayLength(),
+            -1, -1, -1, -1, "", ""
+        );
+    }
+    return DirectMirScalarCfgExpressionFactEmpty();
+}

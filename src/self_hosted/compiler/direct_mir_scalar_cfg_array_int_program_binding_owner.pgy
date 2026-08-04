@@ -10,8 +10,7 @@ func DirectMirScalarCfgArrayIntProgramAtValueRows(
     value_names: Array<String>,
     ref ranges: DirectMirScalarCfgRangeFactSet
 ) -> DirectMirScalarCfgArrayIntProgramFact {
-    if !fact.valid { return fact; }
-    if fact.mode == DirectMirScalarCfgArrayIntFreshReverseMode() { return fact; }
+    if !fact.valid || fact.mode == DirectMirScalarCfgArrayIntForEachPrefixPopMode() || fact.mode == DirectMirScalarCfgArrayIntFreshReverseMode() { return fact; }
     if fact.mode == DirectMirScalarCfgArrayIntReadOnlyInitializedMode() {
         let read_only: DirectMirScalarCfgArrayIntReadOnlyRangeFact =
             DirectMirScalarCfgArrayIntReadOnlyAtValueRows(
@@ -23,7 +22,8 @@ func DirectMirScalarCfgArrayIntProgramAtValueRows(
         return DirectMirScalarCfgArrayIntProgramFact(
             true, fact.mode, fact.collection,
             DirectMirScalarCfgArrayIntProducerFactEmpty(),
-            fact.consumer, fact.static_mutation, read_only, fact.reverse
+            fact.consumer, fact.static_mutation, read_only, fact.reverse,
+            fact.pop
         );
     }
     let induction: Int = -1;
@@ -65,6 +65,6 @@ func DirectMirScalarCfgArrayIntProgramAtValueRows(
             fact.consumer.index_value_id, index,
             fact.consumer.sum_left_value_id, sum,
             fact.consumer.read_result_value_id, result, -1, -1
-        ), fact.static_mutation, fact.read_only, fact.reverse
+        ), fact.static_mutation, fact.read_only, fact.reverse, fact.pop
     );
 }

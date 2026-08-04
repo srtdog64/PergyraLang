@@ -2098,8 +2098,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy` --
   immutable target-neutral scalar CFG graph facts carrying local storage,
   ValueIds/LocalRefs, blocks, conditions, operations, predecessor-bound phi
-  rows, typed local/value receipts, optional range/foreach receipts, and the
-  selected String-concat runtime ABI identity.
+  rows, typed local/value receipts, optional range/foreach receipts, one joint
+  collection-pop receipt, and the selected String-concat runtime ABI identity.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_type_family_owner.pgy` --
   the bounded scalar-CFG type-family policy for `Int`, `Bool`, `String`, and
   their currently admitted iteration pairs. Route classification consumes this
@@ -2220,11 +2220,14 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_collection_owner.pgy`,
   `direct_mir_scalar_cfg_array_int_collection_admission_owner.pgy`,
   `direct_mir_scalar_cfg_array_int_program_fact_owner.pgy`, and
-  the static/read-only fact owners -- one
+  the static/read-only/reverse/pop fact owners -- one
   public-ABI `Array<Int>` identity and one program receipt with mutually
-  exclusive dynamic-push, initialized-static-set, and initialized-read-only
-  modes. Initial elements, current length, capacity, and selected child receipt
-  are facts; a backend cannot reinterpret one mode as another.
+  exclusive dynamic-push, initialized-static-set, initialized-read-only,
+  fresh-reverse, and foreach-backed-pop modes. Initial elements, current
+  length, capacity, and selected child receipt are facts; a backend cannot
+  reinterpret one mode as another. The pop mode references the existing
+  foreach storage identity and owns effects only, so no second `xs` storage is
+  materialized.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_graph_shape_owner.pgy`,
   `direct_mir_scalar_cfg_array_int_program_admission_owner.pgy`,
   `direct_mir_scalar_cfg_array_int_static_graph_owner.pgy`, and
@@ -2253,9 +2256,27 @@ inventory must not become a second fact-family owner registry.
   `direct_mir_scalar_cfg_string_array_plan_append_owner.pgy`, and
   `direct_mir_scalar_cfg_string_array_plan_identity_owner.pgy` -- immutable
   primitive column sets for local `Array<String>` collections, length guards,
-  and indexed concat/Log/static-set accesses. Row views preserve one collection
-  storage identity and one global-instruction-to-operation mapping without a
-  custom-struct array ABI.
+  and indexed concat/Log/static-set/push/pop accesses. Row views preserve one
+  collection storage identity, an operation-ordered current-length timeline,
+  and one global-instruction-to-operation mapping without a custom-struct
+  array ABI. Capacity remains the initial-plus-push bound and is never reduced
+  by pop.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_pop_program_fact_owner.pgy`,
+  `direct_mir_scalar_cfg_collection_pop_program_readiness_owner.pgy`, and
+  `direct_mir_scalar_cfg_collection_pop_typed_readiness_owner.pgy` -- one joint
+  program receipt joining the foreach-owned `Array<Int>` source, the
+  String-plan-owned source, and the globally ordered `4->3`, `3->2`, `3->2`
+  pop effects. Partial Int-only or String-only admission is invalid.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_pop_foreach_owner.pgy`
+  and the ArrayInt pop admission/binding/identity/lookup/readiness owners --
+  bind the two Int effects to the pre-existing foreach collection identity.
+  C and LLVM mutate the same live length field later consumed by the loop and
+  final length observation; the private value-returning three-field helper is
+  not a legal projection.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_pop_c_operation_owner.pgy`
+  and `direct_mir_scalar_cfg_string_array_pop_llvm_operation_owner.pgy` --
+  decrement only the live String-array length in the canonical four-field
+  object. Data, capacity, allocator, and the popped source tail remain intact.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_readiness_owner.pgy`
   -- source and bound-row shape, static literal bounds, duplicate collection /
   global / operation claim rejection, and explicit empty-String value presence.

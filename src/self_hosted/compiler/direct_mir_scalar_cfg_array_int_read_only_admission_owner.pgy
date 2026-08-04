@@ -52,6 +52,7 @@ func DirectMirScalarCfgArrayIntReadOnlyRangeFromOwners(
                 source.update_result_value_id, -1, -1
             ), topology.joined_value_id, -1, source.log_global_row,
             -1, -1
-        ), DirectMirScalarCfgArrayIntReverseFactEmpty()
+        ), DirectMirScalarCfgArrayIntReverseFactEmpty(),
+        DirectMirScalarCfgArrayIntPopFactEmpty()
     );
 }

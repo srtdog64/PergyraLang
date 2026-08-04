@@ -6,11 +6,15 @@ import "direct_mir_scalar_cfg_array_int_condition_expression_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_read_only_expression_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_reverse_expression_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_mutating_expression_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pop_expression_owner.pgy";
 
 func DirectMirScalarCfgArrayIntExpressionFact(
     ref fact: DirectMirScalarCfgArrayIntProgramFact, global_row: Int
 ) -> DirectMirScalarCfgExpressionFact {
     if !fact.valid { return DirectMirScalarCfgExpressionFactEmpty(); }
+    let pop: DirectMirScalarCfgExpressionFact =
+        DirectMirScalarCfgArrayIntPopExpressionFact(fact.pop, global_row);
+    if pop.valid { return pop; }
     let read_only: DirectMirScalarCfgExpressionFact =
         DirectMirScalarCfgArrayIntReadOnlyExpressionFact(
             fact.read_only, global_row

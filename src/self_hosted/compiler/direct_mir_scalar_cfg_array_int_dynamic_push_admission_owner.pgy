@@ -210,6 +210,7 @@ func DirectMirScalarCfgArrayIntDynamicPushFromOwners(
             sum_id, -1, read_result, -1, -1, -1
         ), DirectMirScalarCfgArrayIntStaticMutationFactEmpty(),
         DirectMirScalarCfgArrayIntReadOnlyRangeFactEmpty(),
-        DirectMirScalarCfgArrayIntReverseFactEmpty()
+        DirectMirScalarCfgArrayIntReverseFactEmpty(),
+        DirectMirScalarCfgArrayIntPopFactEmpty()
     );
 }

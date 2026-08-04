@@ -4,6 +4,7 @@ import "direct_mir_scalar_cfg_array_int_consumer_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_static_mutation_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_read_only_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_reverse_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pop_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_operation_absence_owner.pgy";
 import "direct_mir_scalar_cfg_while_induction_owner.pgy";
 import "direct_mir_scalar_cfg_operation_position_owner.pgy";
@@ -56,6 +57,9 @@ func DirectMirScalarCfgArrayIntProgramReady(
     }
     if fact.mode == DirectMirScalarCfgArrayIntFreshReverseMode() {
         return DirectMirScalarCfgArrayIntReverseReady(plan);
+    }
+    if fact.mode == DirectMirScalarCfgArrayIntForEachPrefixPopMode() {
+        return DirectMirScalarCfgArrayIntPopReady(plan);
     }
     let p: DirectMirScalarCfgArrayIntProducerFact = fact.producer;
     let c: DirectMirScalarCfgArrayIntConsumerFact = fact.consumer;

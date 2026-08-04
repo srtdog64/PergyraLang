@@ -1,0 +1,25 @@
+// Live-length C effect for the String-array pop access receipt.
+
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+
+func DirectMirScalarCfgStringArrayCPop(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> String {
+    let row: Int = DirectMirScalarCfgStringArrayAccessRowAtOperation(
+        plan.string_arrays, operation
+    );
+    if row < 0 || plan.string_arrays.accesses.kinds[row] !=
+            DirectMirScalarCfgStringArrayAccessPopKind() {
+        Die("direct MIR String array C pop is missing");
+    }
+    let fact: DirectMirScalarCfgStringArrayAccessFact =
+        DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, row);
+    let prefix: String = Concat(
+        "    pgy_indexed_collection_", ToString(fact.collection_row)
+    );
+    let output: String = Concat(prefix, ".length = ");
+    output = Concat(output, Concat(
+        "pgy_indexed_collection_", ToString(fact.collection_row)
+    ));
+    return Concat(output, ".length - 1;\n");
+}

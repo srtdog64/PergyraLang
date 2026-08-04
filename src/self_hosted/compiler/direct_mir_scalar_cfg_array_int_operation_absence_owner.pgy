@@ -8,7 +8,8 @@ func DirectMirScalarCfgArrayIntOwnedOperationKind(kind: Int) -> Bool {
         kind == DirectMirScalarCfgOpArraySetInt() ||
         kind == DirectMirScalarCfgOpLogArrayIndexInt() ||
         kind == DirectMirScalarCfgOpArrayReadInt() ||
-        kind == DirectMirScalarCfgOpArrayReverseInt();
+        kind == DirectMirScalarCfgOpArrayReverseInt() ||
+        kind == DirectMirScalarCfgOpArrayPopInt();
 }
 
 func DirectMirScalarCfgArrayIntOwnedOperationsAbsent(

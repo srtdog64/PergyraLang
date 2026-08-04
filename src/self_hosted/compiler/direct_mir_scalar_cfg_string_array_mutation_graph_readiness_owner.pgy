@@ -1,0 +1,89 @@
+// Bound operation and live-length timeline for String-array mutations.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_capacity_owner.pgy";
+
+func DirectMirScalarCfgStringArrayVoidOperationReady(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> Bool {
+    return operation >= 0 && operation < ArrayLength(plan.operation_kinds) &&
+        plan.operation_result_values[operation] == -1 &&
+        plan.operation_left_values[operation] == -1 &&
+        plan.operation_right_values[operation] == -1 &&
+        plan.operation_left_locals[operation] == -1 &&
+        plan.operation_right_locals[operation] == -1 &&
+        plan.operation_left_literals[operation] == "" &&
+        plan.operation_right_literals[operation] == "";
+}
+
+func DirectMirScalarCfgStringArrayMutationGraphReady(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let arrays: DirectMirScalarCfgStringArrayPlan = plan.string_arrays;
+    let collection: Int = 0;
+    while collection < DirectMirScalarCfgStringArrayCollectionCount(arrays) {
+        let fact: DirectMirScalarCfgArrayStringCollectionFact =
+            DirectMirScalarCfgStringArrayCollectionAt(arrays, collection);
+        let expected: Int = ArrayLength(fact.elements);
+        let prior_operation: Int = -1;
+        let observation_seen: Bool = false;
+        let row: Int = 0;
+        while row < DirectMirScalarCfgStringArrayAccessCount(arrays) {
+            let access: DirectMirScalarCfgStringArrayAccessFact =
+                DirectMirScalarCfgStringArrayAccessAt(arrays, row);
+            if access.collection_row == collection && access.kind ==
+                    DirectMirScalarCfgStringArrayAccessPushKind() {
+                if !DirectMirScalarCfgStringArrayVoidOperationReady(
+                        plan, access.operation_row
+                    ) || plan.operation_kinds[access.operation_row] !=
+                        DirectMirScalarCfgOpArrayPushString() ||
+                    access.expected_length_before != expected ||
+                    expected >= DirectMirScalarCfgStringArrayStaticCapacity(
+                        arrays, collection
+                    ) || access.operation_row <= prior_operation ||
+                    observation_seen {
+                    return false;
+                }
+                expected = expected + 1;
+                prior_operation = access.operation_row;
+            } else if access.collection_row == collection && access.kind ==
+                    DirectMirScalarCfgStringArrayAccessPopKind() {
+                if !DirectMirScalarCfgStringArrayVoidOperationReady(
+                        plan, access.operation_row
+                    ) || plan.operation_kinds[access.operation_row] !=
+                        DirectMirScalarCfgOpArrayPopString() ||
+                    access.expected_length_before != expected || expected < 1 ||
+                    access.operation_row <= prior_operation ||
+                    observation_seen {
+                    return false;
+                }
+                expected = expected - 1;
+                prior_operation = access.operation_row;
+            } else if access.collection_row == collection &&
+                    access.kind == DirectMirScalarCfgStringArrayAccessLengthLog() {
+                if !DirectMirScalarCfgStringArrayVoidOperationReady(
+                        plan, access.operation_row
+                    ) || plan.operation_kinds[access.operation_row] !=
+                        DirectMirScalarCfgOpLogArrayLength() ||
+                    access.operation_row <= prior_operation {
+                    return false;
+                }
+                observation_seen = true;
+            } else if access.collection_row == collection &&
+                    prior_operation >= 0 &&
+                    access.operation_row <= prior_operation {
+                return false;
+            } else if access.collection_row == collection {
+                observation_seen = true;
+            }
+            row = row + 1;
+        }
+        if expected != DirectMirScalarCfgStringArrayFinalLength(
+                arrays, collection
+            ) || DirectMirScalarCfgStringArrayStaticCapacity(
+                arrays, collection
+            ) < expected { return false; }
+        collection = collection + 1;
+    }
+    return true;
+}

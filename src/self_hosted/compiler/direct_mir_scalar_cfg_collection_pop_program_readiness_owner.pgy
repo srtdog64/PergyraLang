@@ -1,0 +1,122 @@
+// Final cross-receipt closure for all pop sources and effects in one GraphPlan.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pop_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pop_foreach_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_capacity_owner.pgy";
+
+func DirectMirScalarCfgCollectionPopProgramReady(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let fact: DirectMirScalarCfgCollectionPopProgramFact =
+        plan.collection_pops;
+    let actual_pop_count: Int = 0; let operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        if plan.operation_kinds[operation] ==
+                DirectMirScalarCfgOpArrayPopInt() ||
+            plan.operation_kinds[operation] ==
+                DirectMirScalarCfgOpArrayPopString() {
+            actual_pop_count = actual_pop_count + 1;
+        }
+        operation = operation + 1;
+    }
+    if actual_pop_count == 0 {
+        return DirectMirScalarCfgCollectionPopProgramAbsent(fact);
+    }
+    let sources: Int = ArrayLength(fact.source_owner_kinds);
+    let effects: Int = ArrayLength(fact.effect_operation_rows);
+    if !fact.valid || sources != 2 || effects != 3 ||
+        effects != actual_pop_count ||
+        sources != ArrayLength(fact.source_owner_rows) ||
+        sources != ArrayLength(fact.source_element_types) ||
+        sources != ArrayLength(fact.source_value_ids) ||
+        sources != ArrayLength(fact.source_storage_identities) ||
+        sources != ArrayLength(fact.source_initial_lengths) ||
+        sources != ArrayLength(fact.source_capacities) ||
+        effects != ArrayLength(fact.effect_source_rows) ||
+        effects != ArrayLength(fact.effect_global_rows) ||
+        effects != ArrayLength(fact.effect_lengths_before) ||
+        effects != ArrayLength(fact.effect_lengths_after) ||
+        fact.source_owner_kinds[0] !=
+            DirectMirScalarCfgCollectionPopForEachOwner() ||
+        fact.source_owner_kinds[1] !=
+            DirectMirScalarCfgCollectionPopStringPlanOwner() ||
+        fact.source_element_types[0] != "Int" ||
+        fact.source_element_types[1] != "String" ||
+        fact.source_value_ids[0] == fact.source_value_ids[1] ||
+        fact.source_storage_identities[0] ==
+            fact.source_storage_identities[1] {
+        return false;
+    }
+    if ArrayLength(plan.array_int_program.pop.operation_rows) != 2 {
+        return false;
+    }
+    let foreach_row: Int = DirectMirScalarCfgArrayIntPopForEachRowAtLoop(
+        plan.foreach_iterations,
+        plan.array_int_program.pop.foreach_loop_syntax_id
+    );
+    let foreach: DirectMirScalarCfgForEachFact =
+        DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, foreach_row);
+    let string_row: Int = fact.source_owner_rows[1];
+    let string: DirectMirScalarCfgArrayStringCollectionFact =
+        DirectMirScalarCfgStringArrayCollectionAt(
+            plan.string_arrays, string_row
+        );
+    if foreach_row != fact.source_owner_rows[0] || !foreach.valid ||
+        !string.valid || fact.source_value_ids[0] !=
+            foreach.collection_value_id || fact.source_storage_identities[0] !=
+            foreach.storage_identity || fact.source_initial_lengths[0] !=
+            ArrayLength(foreach.elements) || fact.source_capacities[0] !=
+            ArrayLength(foreach.elements) || fact.source_value_ids[1] !=
+            string.collection_value_id || fact.source_storage_identities[1] !=
+            string.storage_identity || fact.source_initial_lengths[1] !=
+            ArrayLength(string.elements) || fact.source_capacities[1] !=
+            DirectMirScalarCfgStringArrayStaticCapacity(
+                plan.string_arrays, string_row
+            ) { return false; }
+    let row: Int = 0; let prior_operation: Int = -1;
+    while row < effects {
+        operation = fact.effect_operation_rows[row];
+        let source: Int = fact.effect_source_rows[row];
+        if source < 0 || source >= sources || operation <= prior_operation ||
+            operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
+            fact.effect_lengths_before[row] < 1 ||
+            fact.effect_lengths_after[row] !=
+                fact.effect_lengths_before[row] - 1 {
+            return false;
+        }
+        if source == 0 {
+            let pop_row: Int = DirectMirScalarCfgArrayIntPopOperationRow(
+                plan.array_int_program.pop, operation
+            );
+            if pop_row < 0 || plan.operation_kinds[operation] !=
+                    DirectMirScalarCfgOpArrayPopInt() ||
+                fact.effect_global_rows[row] !=
+                    plan.array_int_program.pop.global_rows[pop_row] ||
+                fact.effect_lengths_before[row] !=
+                    plan.array_int_program.pop.expected_lengths_before[pop_row] {
+                return false;
+            }
+        } else {
+            let access_row: Int =
+                DirectMirScalarCfgStringArrayAccessRowAtOperation(
+                    plan.string_arrays, operation
+                );
+            if access_row < 0 || plan.operation_kinds[operation] !=
+                    DirectMirScalarCfgOpArrayPopString() ||
+                plan.string_arrays.accesses.kinds[access_row] !=
+                    DirectMirScalarCfgStringArrayAccessPopKind() ||
+                plan.string_arrays.accesses.collection_rows[access_row] !=
+                    string_row || fact.effect_global_rows[row] !=
+                    plan.string_arrays.accesses.global_rows[access_row] ||
+                fact.effect_lengths_before[row] !=
+                    plan.string_arrays.accesses.expected_lengths_before[
+                        access_row
+                    ] { return false; }
+        }
+        prior_operation = operation;
+        row = row + 1;
+    }
+    return true;
+}

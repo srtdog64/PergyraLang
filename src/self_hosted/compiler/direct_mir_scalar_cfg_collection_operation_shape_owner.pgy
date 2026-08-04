@@ -8,5 +8,7 @@ func DirectMirScalarCfgCollectionOperationHasNoOperands(kind: Int) -> Bool {
         kind == DirectMirScalarCfgOpLogArrayLength() ||
         kind == DirectMirScalarCfgOpArraySetInt() ||
         kind == DirectMirScalarCfgOpLogArrayIndexInt() ||
-        kind == DirectMirScalarCfgOpArrayReverseInt();
+        kind == DirectMirScalarCfgOpArrayReverseInt() ||
+        kind == DirectMirScalarCfgOpArrayPopString() ||
+        kind == DirectMirScalarCfgOpArrayPopInt();
 }

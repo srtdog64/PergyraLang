@@ -25,6 +25,21 @@ func DirectMirScalarCfgStringArrayCollectionPushCount(
     );
 }
 
+func DirectMirScalarCfgStringArrayCollectionPopCount(
+    ref plan: DirectMirScalarCfgStringArrayPlan, collection_row: Int
+) -> Int {
+    let count: Int = 0; let row: Int = 0;
+    while row < ArrayLength(plan.accesses.global_rows) {
+        if plan.accesses.collection_rows[row] == collection_row &&
+            plan.accesses.kinds[row] ==
+                DirectMirScalarCfgStringArrayAccessPopKind() {
+            count = count + 1;
+        }
+        row = row + 1;
+    }
+    return count;
+}
+
 func DirectMirScalarCfgStringArrayCollectionHasPush(
     ref plan: DirectMirScalarCfgStringArrayPlan, collection_row: Int
 ) -> Bool {
@@ -39,26 +54,15 @@ func DirectMirScalarCfgStringArrayFinalLength(
     let fact: DirectMirScalarCfgArrayStringCollectionFact =
         DirectMirScalarCfgStringArrayCollectionAt(plan, collection_row);
     return ArrayLength(fact.elements) +
-        DirectMirScalarCfgStringArrayCollectionPushCount(plan, collection_row);
+        DirectMirScalarCfgStringArrayCollectionPushCount(plan, collection_row) -
+        DirectMirScalarCfgStringArrayCollectionPopCount(plan, collection_row);
 }
 
 func DirectMirScalarCfgStringArrayStaticCapacity(
     ref plan: DirectMirScalarCfgStringArrayPlan, collection_row: Int
 ) -> Int {
-    return DirectMirScalarCfgStringArrayFinalLength(
-        plan, collection_row
-    );
-}
-
-func DirectMirScalarCfgStringArrayExpectedLengthBeforeNextPush(
-    ref collections: DirectMirScalarCfgStringArrayCollectionSet,
-    ref accesses: DirectMirScalarCfgStringArrayAccessSet,
-    collection_row: Int
-) -> Int {
-    if collection_row < 0 || collection_row >=
-            ArrayLength(collections.element_counts) { return -1; }
-    return collections.element_counts[collection_row] +
-        DirectMirScalarCfgStringArrayPushCountInAccesses(
-            accesses, collection_row
-        );
+    let fact: DirectMirScalarCfgArrayStringCollectionFact =
+        DirectMirScalarCfgStringArrayCollectionAt(plan, collection_row);
+    return ArrayLength(fact.elements) +
+        DirectMirScalarCfgStringArrayCollectionPushCount(plan, collection_row);
 }

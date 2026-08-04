@@ -115,3 +115,10 @@ PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
     bash "$ARRAY_INT_REVERSE_GATE" || fail "fresh ArrayReverse receipt gate failed"
 
 echo "[$LABEL] fresh ArrayReverse result shares one sealed Array<Int> receipt"
+
+ARRAY_POP_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir_array_pop_projection.sh"
+require_file "$ARRAY_POP_GATE"
+PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
+    bash "$ARRAY_POP_GATE" || fail "bounded ArrayPop GraphPlan gate failed"
+
+echo "[$LABEL] Int/String ArrayPop effects share one sealed GraphPlan receipt"

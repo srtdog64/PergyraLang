@@ -8,6 +8,7 @@ import "direct_mir_scalar_cfg_array_int_read_only_admission_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_reverse_admission_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_reverse_graph_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_mode_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pop_admission_owner.pgy";
 import "direct_mir_scalar_cfg_instruction_graph_owner.pgy";
 import "direct_mir_scalar_cfg_foreach_set_owner.pgy";
 
@@ -21,6 +22,11 @@ func DirectMirScalarCfgArrayIntProgramFromOwners(
 ) -> DirectMirScalarCfgArrayIntProgramFact {
     let empty: DirectMirScalarCfgArrayIntProgramFact =
         DirectMirScalarCfgArrayIntProgramFactEmpty();
+    let foreach_pop: DirectMirScalarCfgArrayIntProgramFact =
+        DirectMirScalarCfgArrayIntForEachPopFromOwners(
+            admitted, index, uses, foreaches
+        );
+    if foreach_pop.valid { return foreach_pop; }
     let collection: DirectMirScalarCfgArrayIntCollectionFact =
         DirectMirScalarCfgArrayIntCollectionFactEmpty();
     let reverse_count: Int = 0;

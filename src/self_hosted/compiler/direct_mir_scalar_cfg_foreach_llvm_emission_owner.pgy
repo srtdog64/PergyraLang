@@ -1,6 +1,7 @@
 // Stable LLVM consumer names delegated to the element-typed projection owner.
 
 import "direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_typed_llvm_condition_owner.pgy";
 
 func DirectMirScalarCfgForEachLlvmDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan, target: CompilerTargetProjectionFact

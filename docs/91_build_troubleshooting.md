@@ -6,6 +6,47 @@
 
 ---
 
+## `ArrayPop`을 기존 private helper로 내리거나 source를 미리 잘라 버리는 경우
+
+Self-host 내부의 `pgy_ai_pop`/`pgy_as_pop`은 private 세 필드 container에서 값을
+반환하는 계약이다. 언어 builtin과 public Array ABI의 `ArrayPop`은 네 필드
+`{data,length,capacity,allocator}` 값의 length만 줄이는 Void operation이다. 이름이
+비슷하다는 이유로 helper를 호출하면 결과형, layout, empty-pop 의미가 동시에
+달라진다.
+
+`array_pop.pgy`에서는 Int source를 foreach receipt가, String source를 String plan이
+이미 소유한다. Pop owner는 새 storage를 만들거나 source literal을 pop 이후 길이로
+미리 잘라서는 안 된다. 하나의 joint receipt가 두 source identity와 세 ordered
+effect를 봉인하고, backend는 각 canonical object의 live length만 갱신한다. Capacity,
+allocator, data pointer, popped tail은 유지한다. 다음을 focused artifact contract로
+확인한다.
+
+- Int decrement 두 번과 String decrement 한 번이 각각 존재한다;
+- 두 번째 Int read는 첫 store 뒤이고 foreach guard는 최종 live length를 읽는다;
+- String length/index는 pop 이후 length를 읽되 capacity는 초기 3을 유지한다;
+- popped-only tail mutation은 stdout이 같아도 artifact를 바꾼다;
+- `pgy_ai_pop`, `pgy_as_pop`, pretrimmed storage, final literal-length collapse는 없다.
+
+## 책임 분리 뒤 focused gate가 옛 owner 문자열에서 멈추는 경우
+
+Line hard cap을 지키기 위해 책임을 named owner로 옮긴 뒤 실행 의미는 맞는데
+focused gate의 `require_text`가 옛 파일을 가리켜 실패할 수 있다. 이때 gate를
+약화하거나 compatibility alias를 원래 owner에 남기지 않는다. 먼저 새 owner가
+유일한 의미 소유자이고 옛 owner가 그 사실을 재소유하지 않는지 확인한 다음,
+구조 pin을 새 owner로 이동하고 focused execution과 component ratchet을 다시
+실행한다.
+
+2026-08-04 ArrayPop rung에서는 두 사례가 있었다.
+
+- foreach LLVM의 current-length field index는 general emission owner에서
+  `direct_mir_scalar_cfg_foreach_typed_llvm_condition_owner.pgy`로 이동했다;
+- String mutation의 final length는 capacity owner에서
+  `direct_mir_scalar_cfg_string_array_mutation_length_owner.pgy`로 이동했다.
+
+둘 다 stale pin이지 semantic 회귀가 아니었지만, 이 판단은 실행 parity와 새 owner
+negative ratchet이 green인 뒤에만 내렸다. 줄바꿈이나 문자열 위치만 맞추려고 옛
+owner에 중복 상수를 되살리면 dual authority가 된다.
+
 ## A malformed typed transform retries through an older one-block route
 
 Do not use the exact valid-transform admission predicate as the route claimant.

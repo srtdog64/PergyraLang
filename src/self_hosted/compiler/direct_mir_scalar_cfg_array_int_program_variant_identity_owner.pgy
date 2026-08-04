@@ -2,12 +2,14 @@
 
 import "direct_mir_scalar_cfg_array_int_pre_reverse_identity_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_reverse_identity_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pop_identity_owner.pgy";
 
 func DirectMirScalarCfgArrayIntProgramVariantDigestComponent(
     hash: Long, ref fact: DirectMirScalarCfgArrayIntProgramFact
 ) -> Long {
     hash = DirectMirScalarCfgArrayIntPreReverseDigestComponent(hash, fact);
-    return DirectMirScalarCfgArrayIntReverseDigestComponent(
+    hash = DirectMirScalarCfgArrayIntReverseDigestComponent(
         hash, fact.reverse
     );
+    return DirectMirScalarCfgArrayIntPopDigestComponent(hash, fact.pop);
 }

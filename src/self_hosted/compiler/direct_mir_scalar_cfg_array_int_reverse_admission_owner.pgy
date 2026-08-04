@@ -161,6 +161,7 @@ func DirectMirScalarCfgArrayIntReverseFromOwners(
         DirectMirScalarCfgArrayIntProducerFactEmpty(),
         DirectMirScalarCfgArrayIntConsumerFactEmpty(),
         DirectMirScalarCfgArrayIntStaticMutationFactEmpty(),
-        DirectMirScalarCfgArrayIntReadOnlyRangeFactEmpty(), reverse
+        DirectMirScalarCfgArrayIntReadOnlyRangeFactEmpty(), reverse,
+        DirectMirScalarCfgArrayIntPopFactEmpty()
     );
 }

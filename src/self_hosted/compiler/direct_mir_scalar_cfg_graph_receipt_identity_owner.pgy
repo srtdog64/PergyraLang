@@ -1,0 +1,22 @@
+// Stable identity tail for the typed receipt families sealed by GraphPlan.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_identity_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_identity_owner.pgy";
+
+func DirectMirScalarCfgGraphReceiptDigestTail(
+    hash: Long, ref plan: DirectMirScalarCfgGraphPlan
+) -> Long {
+    hash = DirectMirCfgHashInt(hash,
+        DirectMirScalarCfgRangeFactSetDigest(plan.range_iterations));
+    hash = DirectMirCfgHashInt(hash,
+        DirectMirScalarCfgForEachFactSetDigest(plan.foreach_iterations));
+    hash = DirectMirCfgHashInt(hash,
+        DirectMirScalarCfgForEachElementFactsDigest(plan.foreach_elements));
+    hash = DirectMirCfgHashInt(hash,
+        DirectMirScalarCfgStringArrayPlanDigest(plan.string_arrays));
+    hash = DirectMirCfgHashInt(hash,
+        DirectMirScalarCfgArrayIntProgramDigest(plan.array_int_program));
+    return DirectMirCfgHashInt(hash,
+        DirectMirScalarCfgCollectionPopProgramDigest(plan.collection_pops));
+}

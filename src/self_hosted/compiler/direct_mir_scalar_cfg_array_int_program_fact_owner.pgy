@@ -6,11 +6,13 @@ import "direct_mir_scalar_cfg_array_int_static_mutation_fact_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_read_only_fact_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_reverse_fact_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_reverse_absence_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pop_fact_owner.pgy";
 
 func DirectMirScalarCfgArrayIntDynamicPushMode() -> Int { return 1; }
 func DirectMirScalarCfgArrayIntStaticSetMode() -> Int { return 2; }
 func DirectMirScalarCfgArrayIntReadOnlyInitializedMode() -> Int { return 3; }
 func DirectMirScalarCfgArrayIntFreshReverseMode() -> Int { return 4; }
+func DirectMirScalarCfgArrayIntForEachPrefixPopMode() -> Int { return 5; }
 
 struct DirectMirScalarCfgArrayIntProgramFact {
     let valid: Bool;
@@ -21,6 +23,7 @@ struct DirectMirScalarCfgArrayIntProgramFact {
     let static_mutation: DirectMirScalarCfgArrayIntStaticMutationFact;
     let read_only: DirectMirScalarCfgArrayIntReadOnlyRangeFact;
     let reverse: DirectMirScalarCfgArrayIntReverseFact;
+    let pop: DirectMirScalarCfgArrayIntPopFact;
 }
 
 func DirectMirScalarCfgArrayIntProgramFactEmpty(
@@ -31,7 +34,8 @@ func DirectMirScalarCfgArrayIntProgramFactEmpty(
         DirectMirScalarCfgArrayIntConsumerFactEmpty(),
         DirectMirScalarCfgArrayIntStaticMutationFactEmpty(),
         DirectMirScalarCfgArrayIntReadOnlyRangeFactEmpty(),
-        DirectMirScalarCfgArrayIntReverseFactEmpty()
+        DirectMirScalarCfgArrayIntReverseFactEmpty(),
+        DirectMirScalarCfgArrayIntPopFactEmpty()
     );
 }
 
@@ -41,5 +45,6 @@ func DirectMirScalarCfgArrayIntProgramAbsent(
     return !fact.valid && fact.mode == 0 && !fact.collection.valid &&
         !fact.producer.valid && !fact.consumer.valid &&
         !fact.static_mutation.valid && !fact.read_only.valid &&
-        DirectMirScalarCfgArrayIntReverseAbsent(fact.reverse);
+        DirectMirScalarCfgArrayIntReverseAbsent(fact.reverse) &&
+        DirectMirScalarCfgArrayIntPopFactAbsent(fact.pop);
 }

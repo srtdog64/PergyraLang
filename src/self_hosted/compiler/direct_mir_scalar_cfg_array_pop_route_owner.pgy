@@ -1,0 +1,24 @@
+// Coarse semantic claimant preventing ArrayPop from falling to legacy CFG.
+
+import "../mir_lower/routine_fact_index_owner.pgy";
+
+func DirectMirScalarCfgArrayPopRouteClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex
+) -> Bool {
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        let capture: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, global
+            );
+        if admitted.routines.instruction_kinds[global] == "stmt" &&
+            admitted.routines.instruction_source_types[global] == "AST_CALL" &&
+            capture.valid && capture.arg0 == "ArrayPop" {
+            return true;
+        }
+        instruction = instruction + 1;
+    }
+    return false;
+}

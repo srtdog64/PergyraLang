@@ -1,0 +1,22 @@
+// Array program view over the canonical foreach-owned collection identity.
+
+import "direct_mir_scalar_cfg_array_int_collection_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntCollectionFromForEach(
+    ref fact: DirectMirScalarCfgForEachFact
+) -> DirectMirScalarCfgArrayIntCollectionFact {
+    if !fact.valid { return DirectMirScalarCfgArrayIntCollectionFactEmpty(); }
+    let view: DirectMirScalarCfgArrayIntCollectionFact =
+        DirectMirScalarCfgArrayIntCollectionFact(
+            true, fact.definition_global_row, fact.collection_value_id,
+            fact.collection_name, fact.storage_identity, fact.elements,
+            fact.abi_layout_id, fact.abi_size, fact.abi_align,
+            fact.data_offset, fact.length_offset, fact.capacity_offset,
+            fact.allocator_offset
+        );
+    if !DirectMirScalarCfgArrayIntCollectionFactReady(view) {
+        return DirectMirScalarCfgArrayIntCollectionFactEmpty();
+    }
+    return view;
+}

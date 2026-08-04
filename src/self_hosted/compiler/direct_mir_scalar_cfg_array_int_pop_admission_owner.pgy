@@ -1,0 +1,158 @@
+// Prefix ArrayPop admission over one foreach-owned Array<Int> identity.
+
+import "direct_mir_scalar_cfg_array_int_foreach_view_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pop_foreach_owner.pgy";
+import "direct_mir_scalar_cfg_array_length_log_graph_owner.pgy";
+import "direct_mir_scalar_cfg_instruction_graph_owner.pgy";
+import "direct_mir_scalar_cfg_instruction_position_owner.pgy";
+
+func DirectMirScalarCfgArrayIntForEachPopFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref uses: MirRoutineInstructionUseFacts,
+    ref foreaches: DirectMirScalarCfgForEachFactSet
+) -> DirectMirScalarCfgArrayIntProgramFact {
+    let empty: DirectMirScalarCfgArrayIntProgramFact =
+        DirectMirScalarCfgArrayIntProgramFactEmpty();
+    let selected: DirectMirScalarCfgForEachFact =
+        DirectMirScalarCfgForEachFactEmpty();
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        let capture: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, global
+            );
+        if admitted.routines.instruction_kinds[global] == "stmt" &&
+            capture.valid && capture.arg0 == "ArrayPop" &&
+            MirRoutineInstructionUseCountAtGlobal(uses, global) == 1 {
+            let receiver: Option<String> =
+                MirRoutineInstructionUseAtGlobal(uses, global, 0);
+            if IsSome(receiver) {
+                let owner: DirectMirScalarCfgForEachFact =
+                    DirectMirScalarCfgArrayIntPopForEachAtValue(
+                        foreaches, UnwrapOption(receiver)
+                    );
+                if owner.valid {
+                    if selected.valid && selected.loop_syntax_id !=
+                            owner.loop_syntax_id {
+                        Die("direct MIR Array<Int> pop owner is ambiguous");
+                    }
+                    selected = owner;
+                }
+            }
+        }
+        instruction = instruction + 1;
+    }
+    if !selected.valid { return empty; }
+    let collection: DirectMirScalarCfgArrayIntCollectionFact =
+        DirectMirScalarCfgArrayIntCollectionFromForEach(selected);
+    let init_position: DirectMirScalarCfgInstructionPositionFact =
+        DirectMirScalarCfgInstructionPositionAt(
+            index, selected.init_global_row
+        );
+    if !DirectMirScalarCfgArrayIntCollectionFactReady(collection) ||
+        !init_position.valid || init_position.block != selected.init_block {
+        Die("direct MIR Array<Int> pop collection owner is invalid");
+    }
+    let pop_globals: Array<Int> = [];
+    let pop_operations: Array<Int> = [];
+    let expected_lengths: Array<Int> = [];
+    let length_log_global: Int = -1;
+    let collection_uses: Int = 0;
+    let claimed_uses: Int = 0;
+    let block: Int = 0;
+    while block < ArrayLength(index.block_starts) {
+        let local: Int = 0;
+        while local < index.block_instruction_counts[block] {
+            let local_instruction: Int =
+                index.block_instruction_starts[block] + local;
+            let global: Int = index.instruction_facts.global_start +
+                local_instruction;
+            let use_count: Int = MirRoutineInstructionUseCountAtGlobal(
+                uses, global
+            );
+            let use_row: Int = 0;
+            while use_row < use_count {
+                let use: Option<String> = MirRoutineInstructionUseAtGlobal(
+                    uses, global, use_row
+                );
+                if IsSome(use) && UnwrapOption(use) ==
+                        selected.collection_value_id {
+                    collection_uses = collection_uses + 1;
+                }
+                use_row = use_row + 1;
+            }
+            let capture: MirRoutineInstructionScalarCapture =
+                MirRoutineInstructionFactBundleAtGlobal(
+                    index.instruction_facts, global
+                );
+            if admitted.routines.instruction_kinds[global] == "stmt" &&
+                capture.valid && capture.arg0 == "ArrayPop" {
+                let receiver: Option<String> =
+                    MirRoutineInstructionUseAtGlobal(uses, global, 0);
+                if use_count == 1 && IsSome(receiver) &&
+                    UnwrapOption(receiver) == selected.collection_value_id {
+                    let expected: Int = ArrayLength(selected.elements) -
+                        ArrayLength(pop_globals);
+                    if block != selected.init_block ||
+                        local >= init_position.local || expected < 1 {
+                        Die("direct MIR Array<Int> pop order is invalid");
+                    }
+                    ArrayPush(pop_globals, global);
+                    ArrayPush(pop_operations, -1);
+                    ArrayPush(expected_lengths, expected);
+                    claimed_uses = claimed_uses + 1;
+                }
+            } else if global == selected.branch_global_row {
+                if use_count != 1 { Die("direct MIR Array<Int> foreach use is invalid"); }
+                claimed_uses = claimed_uses + 1;
+            } else if admitted.routines.instruction_kinds[global] == "stmt" &&
+                    capture.valid && capture.arg0 == "Log" {
+                let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+                    admitted.routines.source_json,
+                    admitted.routines.instruction_starts[global],
+                    admitted.routines.instruction_ends[global]
+                );
+                let graph: MirExpressionGraphSequence =
+                    DirectMirScalarCfgInstructionGraphAt(object, "expr0_graph");
+                let length: DirectMirScalarCfgArrayLengthLogGraphFact =
+                    DirectMirScalarCfgArrayLengthLogGraphFactFrom(graph);
+                if length.valid && length.collection_name ==
+                        selected.collection_name {
+                    let receiver: Option<String> =
+                        MirRoutineInstructionUseAtGlobal(uses, global, 0);
+                    if length_log_global >= 0 || use_count != 1 ||
+                        !IsSome(receiver) || UnwrapOption(receiver) !=
+                            selected.collection_value_id ||
+                        block != selected.exit_block {
+                        Die("direct MIR Array<Int> pop length Log is invalid");
+                    }
+                    length_log_global = global;
+                    claimed_uses = claimed_uses + 1;
+                }
+            }
+            local = local + 1;
+        }
+        block = block + 1;
+    }
+    let pop: DirectMirScalarCfgArrayIntPopFact =
+        DirectMirScalarCfgArrayIntPopFact(
+            true, selected.loop_syntax_id, pop_globals, pop_operations,
+            expected_lengths, length_log_global, -1
+        );
+    if collection_uses != claimed_uses ||
+        !DirectMirScalarCfgArrayIntPopFactSourceReady(
+            pop, ArrayLength(collection.elements)
+        ) {
+        Die("direct MIR Array<Int> pop source receipt is invalid");
+    }
+    return DirectMirScalarCfgArrayIntProgramFact(
+        true, DirectMirScalarCfgArrayIntForEachPrefixPopMode(), collection,
+        DirectMirScalarCfgArrayIntProducerFactEmpty(),
+        DirectMirScalarCfgArrayIntConsumerFactEmpty(),
+        DirectMirScalarCfgArrayIntStaticMutationFactEmpty(),
+        DirectMirScalarCfgArrayIntReadOnlyRangeFactEmpty(),
+        DirectMirScalarCfgArrayIntReverseFactEmpty(), pop
+    );
+}

@@ -1,6 +1,6 @@
 // LLVM routing for operations owned by typed collection receipts.
 
-import "direct_mir_scalar_cfg_string_array_llvm_mutation_emission_owner.pgy";
+import "direct_mir_scalar_cfg_llvm_collection_mutation_emission_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_llvm_emission_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_llvm_program_operation_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_collection_operation_fact_owner.pgy";
@@ -11,23 +11,10 @@ func DirectMirScalarCfgEmitLlvmCollectionOperation(
     target: CompilerTargetProjectionFact
 ) -> DirectMirScalarCfgLlvmCollectionOperationEmission {
     let kind: Int = plan.operation_kinds[operation];
-    if kind == DirectMirScalarCfgOpArraySetString() {
-        return DirectMirScalarCfgLlvmCollectionOperationEmission(
-            true, DirectMirScalarCfgStringArrayLlvmSet(
-                plan, target, operation
-            )
-        );
-    }
-    if kind == DirectMirScalarCfgOpArrayPushString() {
-        return DirectMirScalarCfgLlvmCollectionOperationEmission(
-            true, DirectMirScalarCfgStringArrayLlvmPush(plan, operation)
-        );
-    }
-    if kind == DirectMirScalarCfgOpArrayPushInt() {
-        return DirectMirScalarCfgLlvmCollectionOperationEmission(
-            true, DirectMirScalarCfgArrayIntLlvmPush(plan, operation)
-        );
-    }
+    let mutation: DirectMirScalarCfgLlvmCollectionOperationEmission =
+        DirectMirScalarCfgEmitLlvmCollectionMutation(
+            plan, operation, formatted_print, target);
+    if mutation.valid { return mutation; }
     if kind == DirectMirScalarCfgOpAddArrayReadInt() {
         return DirectMirScalarCfgLlvmCollectionOperationEmission(
             true, DirectMirScalarCfgArrayIntLlvmRead(plan, operation)
@@ -39,6 +26,10 @@ func DirectMirScalarCfgEmitLlvmCollectionOperation(
         );
     if array_int.valid { return array_int; }
     if kind == DirectMirScalarCfgOpLogArrayLength() {
+        if operation == plan.array_int_program.pop.length_log_operation_row {
+            return DirectMirScalarCfgArrayIntPopLlvmOperation(
+                plan, operation, formatted_print);
+        }
         if operation == plan.array_int_program.consumer.
                 length_log_operation_row {
             return DirectMirScalarCfgLlvmCollectionOperationEmission(

@@ -4,7 +4,7 @@ import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_index_safety_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
-import "direct_mir_scalar_cfg_string_array_push_graph_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_mutation_graph_readiness_owner.pgy";
 
 func DirectMirScalarCfgStringArrayOperandCount(
     value: Int, local: Int, literal: String
@@ -124,5 +124,5 @@ func DirectMirScalarCfgStringArrayGraphReady(
         }
         row = row + 1;
     }
-    return DirectMirScalarCfgStringArrayPushGraphReady(plan);
+    return DirectMirScalarCfgStringArrayMutationGraphReady(plan);
 }

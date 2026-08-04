@@ -28,13 +28,15 @@ INPUT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_inpu
 FACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_fact_owner.pgy"
 C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_c_emission_owner.pgy"
 LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy"
+LLVM_CONDITION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_llvm_condition_owner.pgy"
 require_text "$INPUT_OWNER" 'DirectMirScalarCfgForEachFactsFromOwners('
 require_text "$ADMISSION" 'DirectMirScalarCfgConditionForEach()'
 require_text "$FACT" 'collection_value_id'
 require_text "$FACT" 'length_offset'
 require_text "$C_OWNER" 'abi.c_length_type'
-require_text "$LLVM_OWNER" 'abi.length_index'
-for owner in "$ADMISSION" "$INPUT_OWNER" "$C_OWNER" "$LLVM_OWNER"; do
+require_text "$LLVM_CONDITION_OWNER" 'abi.length_index'
+for owner in "$ADMISSION" "$INPUT_OWNER" "$C_OWNER" "$LLVM_OWNER" \
+    "$LLVM_CONDITION_OWNER"; do
     reject_text "$owner" 'foreach_array_int_sum.pgy'
     reject_text "$owner" 'block_count == 4'
     reject_text "$owner" '"expr0"'

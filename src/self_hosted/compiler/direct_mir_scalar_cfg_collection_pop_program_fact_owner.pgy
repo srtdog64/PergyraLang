@@ -1,0 +1,174 @@
+// One GraphPlan receipt joining collection identities to ordered pop effects.
+
+import "direct_mir_scalar_cfg_array_int_pop_foreach_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pop_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_capacity_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+
+func DirectMirScalarCfgCollectionPopForEachOwner() -> Int { return 1; }
+func DirectMirScalarCfgCollectionPopStringPlanOwner() -> Int { return 2; }
+
+struct DirectMirScalarCfgCollectionPopProgramFact {
+    let valid: Bool;
+    let source_owner_kinds: Array<Int>;
+    let source_owner_rows: Array<Int>;
+    let source_element_types: Array<String>;
+    let source_value_ids: Array<String>;
+    let source_storage_identities: Array<String>;
+    let source_initial_lengths: Array<Int>;
+    let source_capacities: Array<Int>;
+    let effect_source_rows: Array<Int>;
+    let effect_global_rows: Array<Int>;
+    let effect_operation_rows: Array<Int>;
+    let effect_lengths_before: Array<Int>;
+    let effect_lengths_after: Array<Int>;
+}
+
+func DirectMirScalarCfgCollectionPopProgramFactEmpty(
+) -> DirectMirScalarCfgCollectionPopProgramFact {
+    let ints: Array<Int> = []; let strings: Array<String> = [];
+    return DirectMirScalarCfgCollectionPopProgramFact(
+        false, ints, ints, strings, strings, strings, ints, ints,
+        ints, ints, ints, ints, ints
+    );
+}
+
+func DirectMirScalarCfgCollectionPopStringCollectionRow(
+    ref arrays: DirectMirScalarCfgStringArrayPlan
+) -> Int {
+    let found: Int = -1; let row: Int = 0;
+    while row < DirectMirScalarCfgStringArrayAccessCount(arrays) {
+        let access: DirectMirScalarCfgStringArrayAccessFact =
+            DirectMirScalarCfgStringArrayAccessAt(arrays, row);
+        if access.kind == DirectMirScalarCfgStringArrayAccessPopKind() {
+            if found >= 0 && found != access.collection_row { return -1; }
+            found = access.collection_row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarCfgCollectionPopProgramFromOwners(
+    ref foreaches: DirectMirScalarCfgForEachFactSet,
+    ref arrays: DirectMirScalarCfgStringArrayPlan,
+    ref array_int: DirectMirScalarCfgArrayIntProgramFact
+) -> DirectMirScalarCfgCollectionPopProgramFact {
+    let empty: DirectMirScalarCfgCollectionPopProgramFact =
+        DirectMirScalarCfgCollectionPopProgramFactEmpty();
+    let int_count: Int = ArrayLength(array_int.pop.operation_rows);
+    let string_collection: Int =
+        DirectMirScalarCfgCollectionPopStringCollectionRow(arrays);
+    if int_count == 0 && string_collection < 0 { return empty; }
+    if array_int.mode != DirectMirScalarCfgArrayIntForEachPrefixPopMode() ||
+        int_count < 1 || string_collection < 0 { return empty; }
+    let foreach_row: Int = DirectMirScalarCfgArrayIntPopForEachRowAtLoop(
+        foreaches, array_int.pop.foreach_loop_syntax_id
+    );
+    if foreach_row < 0 ||
+        string_collection >= DirectMirScalarCfgStringArrayCollectionCount(
+            arrays
+        ) { return empty; }
+    let foreach: DirectMirScalarCfgForEachFact =
+        DirectMirScalarCfgForEachFactAt(foreaches, foreach_row);
+    let string: DirectMirScalarCfgArrayStringCollectionFact =
+        DirectMirScalarCfgStringArrayCollectionAt(arrays, string_collection);
+    let owner_kinds: Array<Int> = [
+        DirectMirScalarCfgCollectionPopForEachOwner(),
+        DirectMirScalarCfgCollectionPopStringPlanOwner()
+    ];
+    let owner_rows: Array<Int> = [foreach_row, string_collection];
+    let element_types: Array<String> = ["Int", "String"];
+    let value_ids: Array<String> = [
+        foreach.collection_value_id, string.collection_value_id
+    ];
+    let storage_ids: Array<String> = [
+        foreach.storage_identity, string.storage_identity
+    ];
+    let initial_lengths: Array<Int> = [
+        ArrayLength(foreach.elements), ArrayLength(string.elements)
+    ];
+    let capacities: Array<Int> = [
+        ArrayLength(foreach.elements),
+        DirectMirScalarCfgStringArrayStaticCapacity(
+            arrays, string_collection
+        )
+    ];
+    let effect_sources: Array<Int> = []; let effect_globals: Array<Int> = [];
+    let effect_operations: Array<Int> = []; let effect_before: Array<Int> = [];
+    let effect_after: Array<Int> = [];
+    let int_row: Int = 0; let string_row: Int = 0;
+    while int_row < int_count ||
+            string_row < DirectMirScalarCfgStringArrayAccessCount(arrays) {
+        while string_row < DirectMirScalarCfgStringArrayAccessCount(arrays) &&
+                arrays.accesses.kinds[string_row] !=
+                    DirectMirScalarCfgStringArrayAccessPopKind() {
+            string_row = string_row + 1;
+        }
+        let int_operation: Int = 2147483647;
+        let string_operation: Int = 2147483647;
+        if int_row < int_count {
+            int_operation = array_int.pop.operation_rows[int_row];
+        }
+        if string_row < DirectMirScalarCfgStringArrayAccessCount(arrays) {
+            string_operation = arrays.accesses.operation_rows[string_row];
+        }
+        if int_operation == 2147483647 && string_operation == 2147483647 {
+            break;
+        }
+        if int_operation < string_operation {
+            ArrayPush(effect_sources, 0);
+            ArrayPush(effect_globals, array_int.pop.global_rows[int_row]);
+            ArrayPush(effect_operations, int_operation);
+            ArrayPush(effect_before,
+                array_int.pop.expected_lengths_before[int_row]);
+            ArrayPush(effect_after,
+                array_int.pop.expected_lengths_before[int_row] - 1);
+            int_row = int_row + 1;
+        } else {
+            ArrayPush(effect_sources, 1);
+            ArrayPush(effect_globals, arrays.accesses.global_rows[string_row]);
+            ArrayPush(effect_operations, string_operation);
+            ArrayPush(effect_before,
+                arrays.accesses.expected_lengths_before[string_row]);
+            ArrayPush(effect_after,
+                arrays.accesses.expected_lengths_before[string_row] - 1);
+            string_row = string_row + 1;
+        }
+    }
+    return DirectMirScalarCfgCollectionPopProgramFact(
+        true, owner_kinds, owner_rows, element_types, value_ids, storage_ids,
+        initial_lengths, capacities, effect_sources, effect_globals,
+        effect_operations, effect_before, effect_after
+    );
+}
+
+func DirectMirScalarCfgCollectionPopProgramAbsent(
+    ref fact: DirectMirScalarCfgCollectionPopProgramFact
+) -> Bool {
+    return !fact.valid && ArrayLength(fact.source_owner_kinds) == 0 &&
+        ArrayLength(fact.effect_operation_rows) == 0;
+}
+
+func DirectMirScalarCfgCollectionPopProgramDigest(
+    ref fact: DirectMirScalarCfgCollectionPopProgramFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirScalarCfgHashInts(
+        421L, fact.source_owner_kinds
+    );
+    hash = DirectMirScalarCfgHashInts(hash, fact.source_owner_rows);
+    hash = DirectMirScalarCfgHashStrings(hash, fact.source_element_types);
+    hash = DirectMirScalarCfgHashStrings(hash, fact.source_value_ids);
+    hash = DirectMirScalarCfgHashStrings(
+        hash, fact.source_storage_identities
+    );
+    hash = DirectMirScalarCfgHashInts(hash, fact.source_initial_lengths);
+    hash = DirectMirScalarCfgHashInts(hash, fact.source_capacities);
+    hash = DirectMirScalarCfgHashInts(hash, fact.effect_source_rows);
+    hash = DirectMirScalarCfgHashInts(hash, fact.effect_global_rows);
+    hash = DirectMirScalarCfgHashInts(hash, fact.effect_operation_rows);
+    hash = DirectMirScalarCfgHashInts(hash, fact.effect_lengths_before);
+    hash = DirectMirScalarCfgHashInts(hash, fact.effect_lengths_after);
+    return DirectMirCfgBoundedDigest(hash);
+}
