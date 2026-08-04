@@ -6,6 +6,53 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-05 - Ordered call and String case/math substitute through GraphPlan v21
+
+- Landed executable checkpoint `1b620f9b`. The 5,006,609-byte current-source
+  Pergyra-built driver
+  (`FD3C0343318992F13A60FCBE8B4C7628AC3486466A236F317E4F2AFBC2B1FB42`)
+  consumes the 24,283-byte `str_case_math.pgy` MIR
+  (`D0E8EDFAF1B91AED04D5ED99BBDDCD3BB7B250DB673810DD5CCB224E29CDA7AF`).
+  It emits 2,944-byte C
+  (`09EE9010DC668710BE8F6615BBF7418715269B0CF1A27577B26327B77C94DDB7`)
+  and 10,087-byte LLVM
+  (`723A4AE4154280513F4779771E01B2276D71779250251FE0D714308341A3BD9C`);
+  both execute `HELLO, WORLD!`, `hello, world!`, `Hello, Pergyra!`,
+  `a+b+a+b`, `42`, `3`, `7`, `50`, and `7` exactly.
+- GraphPlan v21 is still the only program graph. Ordered parameter identity is
+  stored as typed parallel arrays because the self-host ABI does not admit a
+  growable array of parameter structs. The first full parameter is a bounded
+  compatibility projection; C and LLVM signatures consume the same flattened
+  ordered range.
+- Persisted SyntaxNodeId and argument-chain edges drive the real three-argument
+  `ClampVal` call. The canonical builtin registry and one sealed runtime
+  subfact own StringReplace/Abs/Min/Max identities; both targets materialize
+  runtime bodies. The reached addition uses depth-bounded constant magnitude
+  evidence and does not reopen unbounded signed addition.
+- The focused gate makes display spelling and routine order artifact-neutral,
+  changes exact output on a semantic literal mutation, and rejects eight
+  malformed parameter, call, type, registry, and magnitude families in both
+  targets without artifact or fallback. Collection, window, nested-builtin,
+  routine-partitioned String, and Bool regressions remain green.
+- Layering audit: parameter parsing/identity, expression failure diagnostics,
+  ordered direct calls, case/math runtime projection/materialization, target
+  signatures, and final plan verification have named owners and hard caps.
+  The pre-existing GraphPlan seal 87/85 failure was split to 73 lines rather
+  than raising its cap. Production byte-identical duplicates and generic helper
+  paths remain zero. Four production owners above 600 lines, the count-based
+  backend dispatcher, and duplicate `CheckFunction` responsibilities remain
+  recorded debt, not parallel cleanup tracks.
+- The final composition build took 171.9 seconds; the final focused and
+  partition gates took 17.9 seconds. Full CI, current fixed point, proofs,
+  sanitizers, and pressure sampling did not run. The independent 616/600
+  semantic owner and duplicate-Coq-authority reds were not reclassified.
+- The next observed falsifier is `str_indexof.pgy`: 14,215-byte MIR
+  (`28F0C0C026E62F749AEF2150B5100444962B6260D242F4560E9A2262954F1C75`)
+  fails both targets at expression row 1 for `StringIndexOf`. The native oracle
+  executes `5`, `-1`, `hello`, `world`. Continue through the canonical runtime
+  fact plus explicit result-range/arithmetic evidence; do not add a fixture
+  route, evaluator, second graph/emitter, or native retry.
+
 ## 2026-08-05 - Runtime String collection builtins substitute through GraphPlan v20
 
 - Landed executable checkpoint `97db96d1`. The 4,972,723-byte current-source

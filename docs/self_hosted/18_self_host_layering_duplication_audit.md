@@ -23,6 +23,37 @@ rung, the SoT registry, or executable gates.
 
 ## What was closed in the current rung
 
+The `str_case_math.pgy` rung displaced the reached terminal multi-routine
+rejection through GraphPlan v21. It exposed five layering faults that a
+fixture route would have hidden:
+
+1. ordered formal parameters were first represented as
+   `Array<DirectMirRoutineParamFact>`, which is outside the current self-host
+   aggregate ABI and also couples signature identity to storage representation;
+2. the parameter JSON cursor did not advance after each admitted object, so a
+   three-row signature re-read row zero and silently lost the route;
+3. direct-call admission assumed exactly one argument instead of consuming the
+   already persisted argument chain;
+4. StringReplace/Abs/Min/Max semantics and materialization had no sealed runtime
+   subfact shared by both targets;
+5. plan construction still owned final digest/readiness/mutation verification
+   and had drifted to 87 lines against its 85-line gate.
+
+Ordered parameter identity is now a one-pass admission plus typed parallel
+fact arrays; the first complete parameter survives only as the old bounded
+projection. Direct calls use SyntaxNodeId and ordered n-ary rows. One runtime
+subfact and target projections drive actual C/LLVM StringReplace and integer
+math bodies. A depth-bounded constant-DAG magnitude owner proves the reached
+addition without relaxing unbounded signed add. Plan construction delegates
+one final verification owner and is 73 lines. Expression rejection also has a
+shared row/source diagnostic instead of an opaque outer failure.
+
+Every new owner is in `scalar_program_owner_caps.tsv`; no existing cap was
+raised. The executable evidence is
+`tests/self_hosted/parity/one_mir_string_case_math_projection.sh`, including
+display and routine-order equality, semantic mutation, eight negative families,
+and exact C/LLVM execution.
+
 The `str_builtins2.pgy` rung displaced one exact four-block dispatch family
 without opening a second graph. It also exposed and closed four responsibility
 seams:
@@ -73,7 +104,9 @@ inventory path.
   policy-free naming inside other files; the rule remains shrink-only.
 - Production files above 600 lines: four. One tool is also above 600 lines.
 - Duplicate production function spelling other than entrypoint `Main`:
-  `CheckFunction` appears twice with different signatures and responsibilities.
+  `CheckFunction` and `CharAt` each appear in two owners with different
+  signatures or responsibilities. This is not byte duplication, but it is a
+  composition and naming seam when those graphs meet.
 
 Exact file duplication is therefore not the main problem. The remaining debt
 is responsibility density and coarse dispatch.
@@ -87,6 +120,7 @@ is responsibility density and coarse dispatch.
 | P1 | `mir/json_projection_owner.pgy` | 605 lines; the default stage ceiling is 600 | Move one complete JSON section to a named projection owner while keeping MIR facts authoritative and byte/parity gates intact. |
 | P2 | `codegen/emission/stmt_emit.pgy` | 621 lines under a file-specific 640 exception and 33 imports | Split complete statement families behind existing semantic statement facts, then remove the exception and restore the default ceiling. |
 | P2 | `semantic/body_check_owner.pgy` and `codegen/emission/program_emit.pgy` | both declare generic `CheckFunction`; the semantic form is a legacy source-text scanner while the codegen form consumes AST/semantic state | Rename by responsibility immediately when either owner is touched. Delete the text-scanning semantic path only when typed facts reach its last consumer; no compatibility dual read. |
+| P2 | `semantic/text_scan_owner.pgy` and `lexer/char_owner.pgy` | both declare generic `CharAt` for different text boundaries | Rename by responsibility when either owner is reached; do not create a shared helper unless one policy-free byte/character contract is actually identical and imported by both. |
 | P2 | `air/mir_break_cfg_certificate_fact_owner.pgy` | 627 lines under an explicit 650 ceiling | Split certificate construction from readiness/projection when the break-CFG executable rung is next active; then lower the exception. |
 | P3 | `tools/initializer_projection_probe/main.pgy` | 876 lines, but it is a test/probe tool rather than the production compiler path | Split scenario construction from reporting only when this probe is changed. It does not block self-host substitution. |
 

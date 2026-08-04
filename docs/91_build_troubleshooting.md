@@ -38,6 +38,47 @@ captured Array<String> ABI layout, and no artifact for malformed facts.
 
 ---
 
+## An ordered multi-parameter route still reports terminal multi-routine unsupported
+
+Check the canonical parameter admission before adding another route. Two
+failures produced the same outer symptom while closing `str_case_math.pgy`:
+
+- `Array<DirectMirRoutineParamFact>` passed semantic typing but is not a
+  supported self-host aggregate C ABI;
+- `JsonArrayNextObjectBounds` returned each parameter bound correctly, but the
+  caller did not assign `cursor = bounds[1]`, so every iteration re-read the
+  first parameter and the typed route never claimed the program.
+
+The correction is a one-pass parameter admission owner plus typed parallel
+identity arrays for names, types, carriage, pass shape, ABI IDs, and row
+digests. Preserve the first complete parameter only as the bounded legacy
+projection. Do not add an `Array<struct>` ABI exception, a fixture route, or a
+backend signature reader. A multi-row JSON admission loop must advance the
+cursor explicitly and a negative gate must mutate ordinal, type, and routine
+row order.
+
+The focused evidence is
+`tests/self_hosted/parity/one_mir_string_case_math_projection.sh`.
+
+---
+
+## A pure builtin expression is rejected as unbounded signed addition
+
+Do not remove the arithmetic guard or replace LLVM `add nsw` with an unchecked
+operation merely because the fixture uses small literals. In
+`Abs(-5) + Max(1, 2)`, builtin admission was correct; the existing arithmetic
+owner only knew how to prove `local + 1` under a dominating positive loop
+bound.
+
+The correction is conservative evidence, not evaluation. The bounded
+constant-DAG magnitude owner accepts only canonical literals of at most 15
+digits and a maximum depth of seven through negate, abs, min, max, and
+subtract. Locals, parameters, direct calls, and arbitrary runtime results do
+not enter this proof. A mutation above the magnitude bound must fail before C
+or LLVM artifact publication.
+
+---
+
 ## A focused gate and the component contract disagree on the same LoC cap
 
 Do not “fix” this by choosing the larger number in every copy. Multiple cap
@@ -58,6 +99,13 @@ still stopped earlier at `ast_expression_graph_fact_owner.pgy` 616/600. That
 pre-existing hierarchy debt is not evidence that the scalar-program cap
 registry failed, and it must not be hidden by raising 600 during an unrelated
 String rung.
+
+On 2026-08-05 the routine-partition gate also exposed the GraphPlan seal owner
+at 87/85. The cap was not stale: construction had accumulated final digest,
+readiness, and mutation rejection. Moving that complete verification
+responsibility to `direct_mir_scalar_cfg_graph_plan_verification_owner.pgy`
+reduced the seal to 73 lines and kept one verification call. Do not compress
+the file or raise 85 when a complete downstream responsibility can be named.
 
 ---
 

@@ -16,6 +16,44 @@ For work after this snapshot, follow `docs/152_validation_isolation_policy.md`:
 rerun only the owner gate for the touched self-host rung unless a broader
 compiler-world owner changed or broad parity is explicitly requested.
 
+Focused evidence on 2026-08-05 closes `str_case_math.pgy` at checkpoint
+`1b620f9b`. The 5,006,609-byte current-source Pergyra-built driver
+(`FD3C0343318992F13A60FCBE8B4C7628AC3486466A236F317E4F2AFBC2B1FB42`)
+consumes one 24,283-byte self-produced MIR
+(`D0E8EDFAF1B91AED04D5ED99BBDDCD3BB7B250DB673810DD5CCB224E29CDA7AF`)
+through GraphPlan v21. It emits 2,944-byte C
+(`09EE9010DC668710BE8F6615BBF7418715269B0CF1A27577B26327B77C94DDB7`)
+and 10,087-byte LLVM
+(`723A4AE4154280513F4779771E01B2276D71779250251FE0D714308341A3BD9C`).
+Both compile and execute exact `HELLO, WORLD!`, `hello, world!`,
+`Hello, Pergyra!`, `a+b+a+b`, `42`, `3`, `7`, `50`, and `7`.
+
+The same typed GraphPlan now owns ordered scalar parameter arrays, persisted
+direct-call argument order, and registry-derived StringReplace/Abs/Min/Max
+runtime identities. C and LLVM render different target syntax from one sealed
+fact and materialize actual runtime bodies; no compile-time result evaluator or
+backend MIR reader exists. Bounded constant-DAG magnitude evidence admits the
+one reached addition without weakening the unbounded signed-add rejection.
+
+The focused gate proves display-only and routine-order artifact equality, an
+exact semantic-output mutation, and eight no-artifact parameter/call/type/
+registry/magnitude negatives per target. The final composition build took
+171.9 seconds and the final focused plus partition gates took 17.9 seconds.
+Five adjacent scalar-program regressions also passed. No existing LoC cap was
+raised; plan verification was split from the 87/85 seal owner, which is now 73
+lines. Full CI, fixed point, proofs, sanitizers, pressure sampling, and release
+promotion did not run. This is bounded direct-C/LLVM `SUBSTITUTING`, not
+arbitrary call graphs or whole-compiler replacement.
+
+The next observed falsifier is `str_indexof.pgy`: its 14,215-byte MIR
+(`28F0C0C026E62F749AEF2150B5100444962B6260D242F4560E9A2262954F1C75`)
+fails both targets without artifact at typed expression row 1 for
+`StringIndexOf(s, ",")`. The native oracle executes `5`, `-1`, `hello`, and
+`world`. The next rung must join the canonical StringIndexOf runtime fact and
+its `-1`-or-byte-index contract to the same GraphPlan and reached arithmetic;
+fixture routing, expression-text evaluation, unproved signed arithmetic, a
+second emitter, or native retry remain forbidden.
+
 Focused evidence on 2026-08-05 closes `str_builtins2.pgy` at checkpoint
 `97db96d1`. The 4,972,723-byte current-source Pergyra-built driver
 (`9A48625E5694780CC70E79B6CA35E70A9A58B4DC759CB59FE96DD427674D91EF`)

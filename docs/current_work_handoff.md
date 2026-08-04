@@ -6,92 +6,87 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - String collection builtins closed
+## Active self-host context - ordered call and String case/math closed
 
-- Executable checkpoint: `97db96d1` on `main`, with this handoff as its
+- Executable checkpoint: `1b620f9b` on `main`, with this handoff as its
   intended docs-only descendant. The final current-source Pergyra-built driver
-  is 4,972,723 bytes with SHA-256
-  `9A48625E5694780CC70E79B6CA35E70A9A58B4DC759CB59FE96DD427674D91EF`.
+  is 5,006,609 bytes with SHA-256
+  `FD3C0343318992F13A60FCBE8B4C7628AC3486466A236F317E4F2AFBC2B1FB42`.
 - Intended post-handoff dirty state contains only user-owned stdlib work:
   modified `docs/138_standard_library_scope.md` and
   `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
   `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`. No
   compiler-rung file remains dirty.
-- Closed executable rung: `src/self_hosted/codegen/fixture/str_builtins2.pgy`.
-  Its 20,672-byte self-produced MIR has SHA-256
-  `CFE3D90203905D4F98BD5F3D72338DA95324388DB2F6B7CAAA88302E00B079D3`.
-  The same MIR emits 3,322-byte C
-  (`2B75104A03F8BA746C6FE129C3AC06E40EE0ABDF3DDA12EA23878530ED18D1C1`)
-  and 9,823-byte LLVM
-  (`C62334A0403D78EBE05E35B378B9DBCFEF19F53586205853795B666548B4D9EC`).
-  Both host-compile and execute exact `yes`, `3`, `bb`, `43`, `1`, `2`, and
-  `left`.
-- `DirectMirScalarCfgGraphPlan` v20 is the sole CFG, SSA, phi, local,
-  operation, routine-range, expression-link, digest, and mutation authority.
-  Typed expression rows now cover StringContains, Split/StringSplit,
-  Array<String> length/index, and String-to-Int in addition to the earlier
-  String DAG. The expression-kind owner, not a consumer-local last-ID literal,
-  owns the admitted kind range.
-- One sealed runtime-ABI subfact owns contains/split/to-int/Array<String>
-  length/get identities. A second sealed fact captures the producer's required
-  four-field Array<String> layout, including every offset. C and LLVM consume
-  these receipts; the C static assertions are generated from the captured fact
-  rather than copied offsets. Both targets materialize runtime Split and clean
-  up every Array<String> local.
-- The original failure was not a missing phi. Exact `block_count == 4` routing
-  sent a phi-free builtin program into the legacy scalar-CFG claimant, whose
-  String-array plan then tried to own Split results as literal/mutation
-  collections. The scalar-program route now claims first, and its named
-  GraphInput entry keeps those collection definitions with the typed
-  expression arena. General CFG collection plans retain their old owner.
-- Focused evidence: display-only facts are artifact-equal. Mutating `wor` to
-  `zzz`, `a,bb,c` to `a,bbbb,c`, and `42` to `7` changes both artifacts and
-  executes exact `no`, `3`, `bbbb`, `8`, `1`, `2`, and `left`. Wrong result
-  type, argument chain/type, array index type, target identity, syntax identity,
-  and Array<String> layout all fail in both targets without artifact, count
-  retry, legacy String-array claim, or phi diagnostic.
-- Final current-source composition build took 144.0 seconds. The final
-  collection-builtin, window-builtin, nested-builtin, and legacy String-array
-  gates passed in 13.5, 11.9, 13.9, and 14.2 seconds. No memory-pressure result
-  is claimed. Full CI, current gen2==gen3, proofs, sanitizers, and
-  released/default promotion did not run.
-- Layering closure: runtime kind-presence scanning is owned once; generated
-  runtime projection readiness no longer depends on a function defined by its
-  importer; C/LLVM materialization selection is one shared fact; and all new
-  responsibility owners have hard caps in `scalar_program_owner_caps.tsv`.
-  No existing cap was raised and no helper bucket, second graph/emitter,
-  backend MIR read, fixture route, precomputed Split result, or native fallback
-  was added.
-- Independent red evidence remains explicit. The component contract still
-  stops at the pre-existing `ast_expression_graph_fact_owner.pgy` 616/600 cap.
-  `scripts/sot_registry_gate.py` still rejects duplicate Coq fact authorities.
-  These are not this executable rung's blockers. The documentation-quality
-  smoke passed after the GraphPlan v20 registry update; the authority-edge
-  wrapper reaches the same independent duplicate-Coq red.
-- Classification is bounded `SUBSTITUTING` only for this exact runtime
-  String/Array<String> program through installed direct C and LLVM. Arbitrary
-  collection element types, escaped/aliased Array ownership, bounds-error
-  policy, multiple callable parameters, StringReplace/math call graphs, and
-  whole-compiler/default replacement remain open.
-- Next observed executable falsifier:
-  `src/self_hosted/codegen/fixture/str_case_math.pgy`. The current producer
-  emits 24,283-byte MIR with SHA-256
+- Closed executable rung: `src/self_hosted/codegen/fixture/str_case_math.pgy`.
+  Its 24,283-byte self-produced MIR has SHA-256
   `D0E8EDFAF1B91AED04D5ED99BBDDCD3BB7B250DB673810DD5CCB224E29CDA7AF`.
-  C and LLVM both publish no artifact and stop at
-  `direct MIR terminal multi-routine graph is unsupported`. The program has
-  `ClampVal(v, lo, hi) -> Int` plus Main and requires exact
-  `HELLO, WORLD!`, `hello, world!`, `Hello, Pergyra!`, `a+b+a+b`, `42`, `3`,
-  `7`, `50`, and `7`.
+  The same MIR emits 2,944-byte C
+  (`09EE9010DC668710BE8F6615BBF7418715269B0CF1A27577B26327B77C94DDB7`)
+  and 10,087-byte LLVM
+  (`723A4AE4154280513F4779771E01B2276D71779250251FE0D714308341A3BD9C`).
+  Both host-compile and execute exact `HELLO, WORLD!`, `hello, world!`,
+  `Hello, Pergyra!`, `a+b+a+b`, `42`, `3`, `7`, `50`, and `7`.
+- `DirectMirScalarCfgGraphPlan` v21 remains the sole CFG, SSA, phi, local,
+  operation, routine-range, expression-link, digest, and mutation authority.
+  The canonical signature now seals ordered parameter identity as typed
+  parallel arrays and retains the first complete parameter only as the legacy
+  compatibility projection. No unsupported `Array<struct>` ABI or backend
+  parameter reconstruction was introduced.
+- Persisted call-target SyntaxNodeId and argument-chain edges produce ordered
+  direct-call operands. A sealed runtime subfact owns StringReplace/Abs/Min/Max
+  identities; C and LLVM materialize real runtime bodies from that same fact.
+  The addition in `Abs(-5) + Max(1, 2)` is admitted only through bounded
+  constant-DAG magnitude evidence, not a general signed-overflow relaxation.
+- Focused evidence: display-only and routine-order mutations are artifact
+  equal; changing `Hello, World!` to `Hello, Codex!` changes both artifacts and
+  exact output. Bad parameter ordinal/type, call chain/target syntax, return
+  type, builtin argument/target, and unsafe magnitude all fail in both targets
+  without artifact, terminal-graph retry, or generic-CFG diagnostic.
+- Final composition build took 171.9 seconds. The final focused and partition
+  gates passed in 17.9 seconds. Collection, window, nested-builtin,
+  routine-partitioned String, and Bool regressions also passed on the preceding
+  current-source driver. No memory-pressure result is claimed. Full CI,
+  current gen2==gen3, proofs, sanitizers, and released/default promotion did
+  not run.
+- Layering closure: ordered parameter JSON admission and identity are separate;
+  direct-call, signature, builtin expression, runtime requirement/projection,
+  and C/LLVM materialization have responsibility owners; expression rejection
+  reports routine/row context; plan construction delegates final verification.
+  The pre-existing 87/85 seal-owner failure was closed at 73 lines without
+  raising a cap. Every new owner is capped. No helper bucket, duplicate
+  production file, second graph/emitter, backend MIR read, fixture route,
+  compile-time evaluator, or native fallback was added.
+- The bounded audit still finds no byte-identical production `.pgy` files and
+  no generic helper path. Open debt remains the count-based backend dispatcher,
+  four production owners above 600 lines, and the two production
+  `CheckFunction` responsibilities. They stay inactive until reached by an
+  executable rung or focused gate.
+- Independent red evidence remains explicit. The component contract still
+  stops at the pre-existing `ast_expression_graph_fact_owner.pgy` 616/600 cap,
+  and the SoT registry still has the previously recorded duplicate Coq fact
+  authorities. These are not this rung's blockers.
+- Classification is bounded `SUBSTITUTING` only for this ordered-call and
+  String case/math program through installed direct C and LLVM. It does not
+  promote arbitrary callable counts, recursive calls, temporary String
+  ownership, all numeric operations, or whole-compiler/default replacement.
+- Next observed executable falsifier:
+  `src/self_hosted/codegen/fixture/str_indexof.pgy`. The current producer emits
+  14,215-byte MIR with SHA-256
+  `28F0C0C026E62F749AEF2150B5100444962B6260D242F4560E9A2262954F1C75`.
+  C and LLVM publish no artifact and fail closed at expression row 1
+  (`AST_LET_DECL`) for `StringIndexOf(s, ",")`. The native oracle executes
+  exact `5`, `-1`, `hello`, and `world`. The preceding `str_greet.pgy` probe is
+  already green in both direct targets and is not the next gap.
 - Next objective card: keep `CompileAdmittedDirectMirForTarget` as production
-  entry and last consumer; extend the same GraphPlan callable/signature arena
-  with ordered multi-parameter facts and registry-owned StringReplace/Abs/Min/
-  Max calls; delete the reached terminal multi-routine bypass for this semantic
-  family; falsify malformed parameter ordinal, argument chain, result type,
-  runtime ABI, and routine-order facts before either artifact.
+  entry and the same GraphPlan as fact owner; join registry-owned
+  StringIndexOf signature/runtime identity to typed expression admission, then
+  carry its `-1`-or-byte-index result contract into the reached `p + 1` and
+  length subtraction consumers. Falsify argument type/chain, absent search,
+  invalid result-range evidence, and unsafe index arithmetic before artifact.
 - Forbidden fallback remains a fixture/name/output branch, expression-text
-  parsing, compile-time StringReplace or math evaluation, a second graph or
-  emitter, routine/block-count routing, backend MIR reads, claimant retry, or
-  native C fallback.
+  parsing, compile-time StringIndexOf evaluation, unproved signed arithmetic,
+  a second graph/emitter, routine/block-count routing, backend MIR reads,
+  claimant retry, or native C fallback.
 
 ## Historical checkpoint archive - inactive navigation evidence
 

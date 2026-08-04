@@ -2,6 +2,26 @@
 
 Status: `BRIDGE`
 
+## 2026-08-05 bounded ordered-call and String case/math evidence
+
+Checkpoint `1b620f9b` is bounded `SUBSTITUTING` evidence for the exact
+`str_case_math.pgy` slice. The installed Pergyra-built entrypoint consumes its
+self-produced MIR through GraphPlan v21. Ordered signature facts drive the real
+three-argument `ClampVal` call, and registry-owned StringReplace/Abs/Min/Max
+runtime facts drive both direct C and LLVM. Both artifacts compile and execute
+the same nine output lines; semantic mutation changes the output, while eight
+malformed parameter/call/type/registry/magnitude families publish no artifact.
+
+This rung is still pure value computation. `func`/`struct` are therefore the
+Pergyra-native form; adding decorative `action`, `zone`, or `intent` would
+invent authority, resource, or real-world-purpose obligations. The production
+entrypoint is real and replaces the prior C-owned direct-backend rejection for
+this semantic program, so the grade is `SUBSTITUTING`, not keyword `SURFACE`.
+
+The evidence does not promote arbitrary call graphs, recursion, temporary
+String ownership, all arithmetic, compiler-purpose intent, or the whole
+self-host root. Those remain separate executable rungs.
+
 ## 2026-08-05 bounded runtime String collection evidence
 
 Checkpoint `97db96d1` is bounded `SUBSTITUTING` evidence for the exact
