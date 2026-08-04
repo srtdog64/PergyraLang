@@ -13,12 +13,17 @@ struct DirectMirScalarProgramRuntimeAbiFact {
     let string_length_id: Int;
     let string_substring_id: Int;
     let string_substring_with_len_id: Int;
+    let string_contains_id: Int;
+    let string_split_id: Int;
+    let string_to_int_id: Int;
+    let array_string_length_id: Int;
+    let array_string_get_id: Int;
 }
 
 func DirectMirScalarProgramRuntimeAbiFactEmpty(
 ) -> DirectMirScalarProgramRuntimeAbiFact {
     return DirectMirScalarProgramRuntimeAbiFact(
-        false, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
     );
 }
 
@@ -29,5 +34,8 @@ func DirectMirScalarProgramRuntimeAbiFactCanonicalEmpty(
         fact.string_concat_id == 0 && fact.string_to_string_id == 0 &&
         fact.string_to_upper_id == 0 && fact.string_to_lower_id == 0 &&
         fact.string_length_id == 0 && fact.string_substring_id == 0 &&
-        fact.string_substring_with_len_id == 0;
+        fact.string_substring_with_len_id == 0 &&
+        fact.string_contains_id == 0 && fact.string_split_id == 0 &&
+        fact.string_to_int_id == 0 && fact.array_string_length_id == 0 &&
+        fact.array_string_get_id == 0;
 }

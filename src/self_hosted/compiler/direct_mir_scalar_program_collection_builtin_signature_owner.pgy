@@ -1,0 +1,33 @@
+// Exact semantic-registry projection for the bounded collection builtin set.
+
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+
+func DirectMirScalarProgramCollectionBuiltinSignatureExpected(
+    name: String
+) -> Array<String> {
+    if name == "StringContains" {
+        return ["Bool", "String|String", ToString(
+            DirectMirScalarProgramExprStringContains())];
+    }
+    if name == "Split" || name == "StringSplit" {
+        return ["Array<String>", "String|String", ToString(
+            DirectMirScalarProgramExprStringSplit())];
+    }
+    if name == "ArrayLength" {
+        return ["Int", "Unknown", ToString(
+            DirectMirScalarProgramExprArrayStringLength())];
+    }
+    if name == "ToInt" {
+        return ["Int", "Unknown", ToString(
+            DirectMirScalarProgramExprToIntString())];
+    }
+    return [];
+}
+
+func DirectMirScalarProgramCollectionBuiltinArgumentType(
+    name: String, expected: String
+) -> String {
+    if name == "ArrayLength" { return "Array<String>"; }
+    if name == "ToInt" { return "String"; }
+    return expected;
+}

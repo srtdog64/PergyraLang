@@ -1,16 +1,8 @@
 // Exact identity checks for projected scalar-program runtime symbols.
 
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
-
-func DirectMirScalarProgramRuntimeGeneratedAbiProjectionReady(
-    id: Int, fact: CompilerRuntimeCallAbiFact,
-    operation: String, symbol: String, call_shape: String
-) -> Bool {
-    return id == 0 ||
-        (CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
-            fact, operation, symbol, call_shape) &&
-         id == fact.runtime_call_abi_id);
-}
+import "direct_mir_scalar_program_generated_runtime_projection_readiness_owner.pgy";
+import "direct_mir_scalar_program_string_collection_runtime_projection_readiness_owner.pgy";
 
 func DirectMirScalarProgramRuntimeAbiProjectionReady(
     ref projection: DirectMirScalarProgramRuntimeAbiProjection,
@@ -47,5 +39,7 @@ func DirectMirScalarProgramRuntimeAbiProjectionReady(
             fact.string_substring_with_len_id,
             projection.string_substring_with_len, "substring-with-len",
             StringRuntimeCSubstringWithLenFn(),
-            "string_int_int_int_to_string");
+            "string_int_int_int_to_string") &&
+        DirectMirScalarProgramStringCollectionRuntimeProjectionReady(
+            projection, fact);
 }

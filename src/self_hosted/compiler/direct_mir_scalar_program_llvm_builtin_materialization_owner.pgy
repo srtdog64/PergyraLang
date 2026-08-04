@@ -1,7 +1,8 @@
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_readiness_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_window_materialization_owner.pgy";
-
+import "direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy";
+import "direct_mir_scalar_program_runtime_materialization_requirement_owner.pgy";
 func DirectMirScalarProgramLlvmAsciiCaseMaterialization(
     fact: CompilerRuntimeCallAbiFact,
     range_low: Int, range_high: Int, delta: Int
@@ -38,11 +39,7 @@ func DirectMirScalarProgramLlvmBuiltinMaterialization(
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> String {
     let abi: DirectMirScalarProgramRuntimeAbiFact = plan.program.runtime_abi;
-    let any_builtin: Bool = abi.string_to_string_id != 0 ||
-        abi.string_to_upper_id != 0 || abi.string_to_lower_id != 0 ||
-        abi.string_length_id != 0 || abi.string_substring_id != 0 ||
-        abi.string_substring_with_len_id != 0;
-    if !any_builtin { return ""; }
+    if !DirectMirScalarProgramRuntimeRequiresMaterialization(abi) { return ""; }
     if !DirectMirScalarProgramRuntimeAbiProjectionReady(runtime, abi) {
         Die("direct MIR scalar program LLVM builtin ABI is invalid");
     }
@@ -76,5 +73,8 @@ func DirectMirScalarProgramLlvmBuiltinMaterialization(
     }
     output = Concat(output, DirectMirScalarProgramLlvmStringWindowMaterialization(
         plan, runtime));
+    output = Concat(output,
+        DirectMirScalarProgramLlvmStringCollectionMaterialization(
+            plan, runtime));
     return output;
 }

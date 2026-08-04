@@ -68,7 +68,7 @@ func DirectMirScalarCfgValueTypePlanFromOwners(
                 foreach_elements, locals.local_ref_syntax_ids[local]
             );
         }
-        if !DirectMirScalarCfgScalarTypeSupported(type_name) {
+        if !DirectMirScalarCfgSourceLocalTypeSupported(type_name) {
             return invalid;
         }
         ArrayPush(local_types, type_name);

@@ -4,6 +4,7 @@ import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 import "direct_mir_scalar_program_bool_readiness_owner.pgy";
 import "direct_mir_scalar_program_nary_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_collection_expression_readiness_owner.pgy";
 
 func DirectMirScalarProgramExpressionNodeReady(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int
@@ -22,6 +23,9 @@ func DirectMirScalarProgramExpressionNodeReady(
     let nary_ready: Option<Bool> =
         DirectMirScalarProgramNaryExpressionNodeReady(facts, node);
     if IsSome(nary_ready) { return UnwrapOption(nary_ready); }
+    let collection_ready: Option<Bool> =
+        DirectMirScalarProgramCollectionExpressionNodeReady(facts, node);
+    if IsSome(collection_ready) { return UnwrapOption(collection_ready); }
     if kind == DirectMirScalarProgramExprLocal() {
         return local >= 0 && left == -1 && right == -1 && param == -1 &&
             literal == "" && callable == -1;

@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# Registry-owned String length/window calls through one scalar GraphPlan.
+# Runtime String/Array<String> expressions through one typed scalar GraphPlan.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
-LABEL="self-host-one-mir-string-window-builtin"
+LABEL="self-host-one-mir-string-collection-builtin"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
 CC="${CC:-gcc}"
 CLANG="${PGY_SELFHOST_CLANG:-clang}"
 PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python || true)}"
-WORK_REL=".tmp/self_hosted/one_mir_string_window_builtin"
+WORK_REL=".tmp/self_hosted/one_mir_string_collection_builtin"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
-SOURCE_REL="src/self_hosted/codegen/fixture/str_builtins.pgy"
+SOURCE_REL="src/self_hosted/codegen/fixture/str_builtins2.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
@@ -30,23 +30,20 @@ while IFS='|' read -r owner cap; do
 done <"$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv"
 
 GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
-ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_route_owner.pgy"
-SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy"
-NARY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_nary_operand_owner.pgy"
-ABI="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_fact_owner.pgy"
+INPUT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy"
+KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy"
+ABI="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_owner.pgy"
 require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v20'
-require_text "$ROUTE" 'SemanticCallTargetDirect()'
-require_text "$SIGNATURE" '../semantic/builtin_signature_owner.pgy'
-require_text "$NARY" 'operand_rows'
-for field in string_length_id string_substring_id string_substring_with_len_id; do
-    require_text "$ABI" "$field"
-done
-for owner in "$ROUTE" "$SIGNATURE" "$NARY" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_string_window_expression_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_window_expression_owner.pgy"; do
-    reject_text "$owner" 'str_builtins.pgy'
-    reject_text "$owner" 'perg-yra'
+require_text "$INPUT" 'DirectMirScalarCfgProgramGraphInputFromAdmitted'
+require_text "$KIND" 'DirectMirScalarProgramExpressionKindLast'
+require_text "$ABI" 'DirectMirScalarProgramArrayStringAbiFactFromAdmitted'
+for owner in "$INPUT" "$KIND" "$ABI" \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_collection_expression_kind_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_string_collection_expression_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_expression_owner.pgy"; do
+    reject_text "$owner" 'str_builtins2.pgy'
+    reject_text "$owner" 'a,bb,c'
+    reject_text "$owner" 'hello world'
 done
 
 mkdir -p "$WORK_DIR"
@@ -54,9 +51,9 @@ mkdir -p "$WORK_DIR"
     -o "$WORK_REL/producer.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/producer.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "0378770C6AF86E963E8C73B700B4F043250DDA397AE5D3B7E9290220520220C4" ]] ||
+[[ "$mir_sha" == "CFE3D90203905D4F98BD5F3D72338DA95324388DB2F6B7CAAA88302E00B079D3" ]] ||
     fail "source MIR identity changed: $mir_sha"
-"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_string_window_builtin_mutations.py" \
+"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_string_collection_builtin_mutations.py" \
     "$WORK_DIR/producer.json" "$WORK_DIR"
 
 project() {
@@ -71,8 +68,9 @@ project() {
 }
 
 goods=(program display-only semantic-change)
-bads=(bad-result-type bad-final-argument-edge bad-argument-chain-edge \
-    bad-argument-type bad-unregistered-target)
+bads=(bad-split-result-type bad-split-argument-chain \
+    bad-contains-argument-type bad-array-index-type bad-unregistered-target \
+    bad-split-syntax-identity bad-array-layout)
 for target in c llvm; do
     suffix=c; [[ "$target" == llvm ]] && suffix=ll
     for good in "${goods[@]}"; do
@@ -88,20 +86,23 @@ for target in c llvm; do
             fail "$target accepted $bad"
         fi
         [[ ! -e "$WORK_DIR/$bad.$suffix" ]] || fail "$target published $bad"
-        grep -Fq -- 'direct MIR scalar CFG program' "$WORK_DIR/$bad.$target.out" \
-            "$WORK_DIR/$bad.$target.err" || fail "$target $bad escaped scalar owner"
-        ! grep -Fq -- 'local type inventory is missing' \
-            "$WORK_DIR/$bad.$target.out" "$WORK_DIR/$bad.$target.err" ||
-            fail "$target $bad retried the legacy scalar block"
+        reject_text "$WORK_DIR/$bad.$target.out" 'direct MIR String array collection is invalid'
+        reject_text "$WORK_DIR/$bad.$target.err" 'direct MIR String array collection is invalid'
+        reject_text "$WORK_DIR/$bad.$target.out" 'direct MIR CFG merge phi'
+        reject_text "$WORK_DIR/$bad.$target.err" 'direct MIR CFG merge phi'
+        reject_text "$WORK_DIR/$bad.$target.out" 'local type inventory is missing'
+        reject_text "$WORK_DIR/$bad.$target.err" 'local type inventory is missing'
     done
 done
 
-for symbol in pgy_strlen pgy_substr pgy_substr_with_len pgy_concat; do
+for symbol in pgy_strcontains pgy_split pgy_toint pgy_as_len pgy_as_get pgy_as_drop; do
     require_text "$WORK_DIR/base.c" "$symbol"
     require_text "$WORK_DIR/base.ll" "$symbol"
 done
-expected_base=$'7\nperg\nperg-yra'
-expected_semantic=$'11\nperg\nperg-yralang'
+require_text "$WORK_DIR/base.c" 'offsetof(pgy_as, allocator)'
+require_text "$WORK_DIR/base.ll" '%pgy.array.string = type { ptr, i64, i64, ptr }'
+expected_base=$'yes\n3\nbb\n43\n1\n2\nleft'
+expected_semantic=$'no\n3\nbbbb\n8\n1\n2\nleft'
 for stem in base display-only semantic-change; do
     "$CC" -std=c11 "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem.c.exe" ||
         fail "C compile failed: $stem"
@@ -115,4 +116,4 @@ for stem in base display-only semantic-change; do
 done
 final_sha="$(sha256sum "$WORK_DIR/producer.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
 [[ "$final_sha" == "$mir_sha" ]] || fail "projection mutated admitted MIR"
-echo "[$LABEL] ok: String length/window builtins execute from one typed GraphPlan in C and LLVM"
+echo "[$LABEL] ok: runtime String/Array<String> expressions execute from one typed GraphPlan in C and LLVM"

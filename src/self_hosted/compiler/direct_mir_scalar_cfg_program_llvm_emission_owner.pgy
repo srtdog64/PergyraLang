@@ -6,6 +6,7 @@ import "direct_mir_scalar_program_llvm_string_global_owner.pgy";
 import "direct_mir_scalar_cfg_local_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_builtin_materialization_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy";
 import "direct_mir_llvm_text_format_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
@@ -169,6 +170,8 @@ func DirectMirScalarCfgProgramLlvmRoutine(
             output = Concat(output, ToString(plan.block_succ_true[block]));
             output = Concat(output, "\n");
         } else if routine == plan.routines.entrypoint_ordinal {
+            output = Concat(output,
+                DirectMirScalarProgramLlvmStringArrayCleanup(plan, routine));
             output = Concat(output, "  ret i32 0\n");
         } else {
             Die("direct MIR scalar program callable return is missing");

@@ -28,7 +28,7 @@ func DirectMirScalarCfgLocalInventoryReady(
         while source < ArrayLength(index.source_local_names) {
             if !consumed[source] && index.source_local_names[source] ==
                     local_names[row] &&
-                DirectMirScalarCfgScalarTypeSupported(
+                DirectMirScalarCfgSourceLocalTypeSupported(
                     index.source_local_types[source]
                 ) { found = source; break; }
             source = source + 1;

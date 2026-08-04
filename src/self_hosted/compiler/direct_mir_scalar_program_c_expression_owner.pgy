@@ -1,7 +1,6 @@
 import "direct_mir_scalar_program_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
-import "direct_mir_scalar_program_c_string_expression_owner.pgy";
-
+import "direct_mir_scalar_program_c_builtin_expression_owner.pgy";
 func DirectMirScalarProgramCLocalName(row: Int) -> String {
     return Concat("pgy_local_", ToString(row));
 }
@@ -59,11 +58,12 @@ func DirectMirScalarProgramCExpressionValues(
         } else if kind == DirectMirScalarProgramExprEqualInt() {
             value = Concat("(", Concat(left, Concat(" == ", Concat(right, ")"))));
         } else {
-            let string_value: Option<String> =
-                DirectMirScalarProgramCStringExpression(
+            let builtin_value: Option<String> =
+                DirectMirScalarProgramCBuiltinExpression(
                     kind, left, right, arguments, runtime);
-            if IsSome(string_value) { value = UnwrapOption(string_value); }
-            else if kind == DirectMirScalarProgramExprLogicalNot() {
+            if IsSome(builtin_value) { value = UnwrapOption(builtin_value); }
+            if value == "" {
+            if kind == DirectMirScalarProgramExprLogicalNot() {
             value = Concat("(!", Concat(left, ")"));
             } else if kind == DirectMirScalarProgramExprLogicalAnd() {
             value = Concat("(", Concat(left, Concat(" && ", Concat(right, ")"))));
@@ -82,6 +82,7 @@ func DirectMirScalarProgramCExpressionValues(
             ));
             } else {
                 Die("direct MIR scalar program C expression kind is unsupported");
+            }
             }
         }
         ArrayPush(values, value);

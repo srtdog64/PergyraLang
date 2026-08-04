@@ -13,7 +13,7 @@ struct DirectMirScalarCfgProgramRoutineAdmission {
     let expressions: DirectMirScalarProgramExpressionSet;
 }
 
-func DirectMirScalarCfgProgramInputIsScalar(
+func DirectMirScalarCfgProgramInputReady(
     ref input: DirectMirScalarCfgGraphInput
 ) -> Bool {
     return DirectMirScalarCfgRangeFactCount(input.ranges) == 0 &&
@@ -88,8 +88,8 @@ func DirectMirScalarCfgProgramAppendRoutine(
 ) -> DirectMirScalarCfgProgramRoutineAdmission {
     let invalid: DirectMirScalarCfgProgramRoutineAdmission =
         DirectMirScalarCfgProgramRoutineAdmission(false, storage, expressions);
-    if !input.index.valid || !DirectMirScalarCfgProgramInputIsScalar(input) {
-        Die("direct MIR scalar program routine input is not scalar");
+    if !input.index.valid || !DirectMirScalarCfgProgramInputReady(input) {
+        Die("direct MIR scalar program routine input has an external collection plan");
         return invalid;
     }
     let index: MirRoutineFactIndex = input.index;

@@ -1,0 +1,30 @@
+// C syntax for registry-owned String/Array<String> builtin expressions.
+
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramCStringCollectionExpression(
+    kind: Int, left: String, right: String,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> Option<String> {
+    if kind == DirectMirScalarProgramExprStringContains() {
+        return Some(Concat(runtime.string_contains.symbol,
+            Concat("(", Concat(left, Concat(", ", Concat(right, ")"))))));
+    }
+    if kind == DirectMirScalarProgramExprStringSplit() {
+        return Some(Concat(runtime.string_split.symbol,
+            Concat("(", Concat(left, Concat(", ", Concat(right, ")"))))));
+    }
+    if kind == DirectMirScalarProgramExprArrayStringLength() {
+        return Some(Concat(runtime.array_string_length.symbol,
+            Concat("(", Concat(left, ")"))));
+    }
+    if kind == DirectMirScalarProgramExprToIntString() {
+        return Some(Concat(runtime.string_to_int.symbol,
+            Concat("(", Concat(left, ")"))));
+    }
+    if kind == DirectMirScalarProgramExprArrayStringIndex() {
+        return Some(Concat(runtime.array_string_get.symbol,
+            Concat("(", Concat(left, Concat(", ", Concat(right, ")"))))));
+    }
+    return None;
+}

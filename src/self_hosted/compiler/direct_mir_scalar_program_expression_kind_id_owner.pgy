@@ -23,3 +23,12 @@ func DirectMirScalarProgramExprStringLength() -> Int { return 20; }
 func DirectMirScalarProgramExprSubstring() -> Int { return 21; }
 func DirectMirScalarProgramExprSubstringWithLen() -> Int { return 22; }
 func DirectMirScalarProgramExprSubtractInt() -> Int { return 23; }
+func DirectMirScalarProgramExprStringContains() -> Int { return 24; }
+func DirectMirScalarProgramExprStringSplit() -> Int { return 25; }
+func DirectMirScalarProgramExprArrayStringLength() -> Int { return 26; }
+func DirectMirScalarProgramExprToIntString() -> Int { return 27; }
+func DirectMirScalarProgramExprArrayStringIndex() -> Int { return 28; }
+
+func DirectMirScalarProgramExpressionKindLast() -> Int {
+    return DirectMirScalarProgramExprArrayStringIndex();
+}

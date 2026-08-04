@@ -1,0 +1,39 @@
+// Exact projected ABI identity for String/Array<String> runtime operations.
+
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_generated_runtime_projection_readiness_owner.pgy";
+
+func DirectMirScalarProgramCollectionAbiProjectionReady(
+    id: Int, fact: CompilerRuntimeCallAbiFact,
+    operation: String, symbol: String, call_shape: String
+) -> Bool {
+    return id == 0 ||
+        (fact.ok && fact.domain == "collection" &&
+         fact.operation == operation && fact.symbol == symbol &&
+         fact.symbol_kind == "function" && fact.materialization ==
+            CompilerRuntimeCallAbiMaterialGeneratedHelper() &&
+         fact.call_shape == call_shape && id == fact.runtime_call_abi_id);
+}
+
+func DirectMirScalarProgramStringCollectionRuntimeProjectionReady(
+    ref projection: DirectMirScalarProgramRuntimeAbiProjection,
+    ref fact: DirectMirScalarProgramRuntimeAbiFact
+) -> Bool {
+    return DirectMirScalarProgramRuntimeGeneratedAbiProjectionReady(
+            fact.string_contains_id, projection.string_contains, "contains",
+            StringRuntimeCStringContainsFn(), "string_string_to_bool") &&
+        DirectMirScalarProgramRuntimeGeneratedAbiProjectionReady(
+            fact.string_split_id, projection.string_split, "split",
+            StringRuntimeCSplitFn(), "string_string_to_array_string") &&
+        DirectMirScalarProgramRuntimeGeneratedAbiProjectionReady(
+            fact.string_to_int_id, projection.string_to_int, "to-int",
+            StringRuntimeCToIntFn(), "string_to_int") &&
+        DirectMirScalarProgramCollectionAbiProjectionReady(
+            fact.array_string_length_id, projection.array_string_length,
+            "array-string.len", CollectionRuntimeCLenFn(2),
+            "collection_to_int") &&
+        DirectMirScalarProgramCollectionAbiProjectionReady(
+            fact.array_string_get_id, projection.array_string_get,
+            "array-string.get", CollectionRuntimeCGetFn(2),
+            "collection_index_to_value");
+}

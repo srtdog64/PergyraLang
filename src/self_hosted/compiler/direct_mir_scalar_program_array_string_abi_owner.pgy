@@ -1,0 +1,145 @@
+// Captured four-field Array<String> ABI sealed for scalar-program expressions.
+import "direct_mir_array_string_abi_fact_owner.pgy";
+import "direct_mir_array_storage_layout_contract_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_route_fact_owner.pgy";
+import "../mir_lower/abi_layout_admission_fact_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+struct DirectMirScalarProgramArrayStringAbiFact {
+    let valid: Bool;
+    let digest: Int;
+    let layout_id: Int;
+    let size: Int;
+    let align: Int;
+    let data_offset: Int;
+    let length_offset: Int;
+    let capacity_offset: Int;
+    let allocator_offset: Int;
+}
+func DirectMirScalarProgramArrayStringAbiFactEmpty(
+) -> DirectMirScalarProgramArrayStringAbiFact {
+    return DirectMirScalarProgramArrayStringAbiFact(
+        false, 0, 0, 0, 0, 0, 0, 0, 0);
+}
+func DirectMirScalarProgramArrayStringAbiFactDigest(
+    ref fact: DirectMirScalarProgramArrayStringAbiFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(263L, fact.layout_id);
+    hash = DirectMirCfgHashInt(hash, fact.size);
+    hash = DirectMirCfgHashInt(hash, fact.align);
+    hash = DirectMirCfgHashInt(hash, fact.data_offset);
+    hash = DirectMirCfgHashInt(hash, fact.length_offset);
+    hash = DirectMirCfgHashInt(hash, fact.capacity_offset);
+    hash = DirectMirCfgHashInt(hash, fact.allocator_offset);
+    return DirectMirCfgBoundedDigest(hash);
+}
+func DirectMirScalarProgramArrayStringAbiFactReady(
+    ref fact: DirectMirScalarProgramArrayStringAbiFact
+) -> Bool {
+    let layout: DirectMirArrayStorageLayoutContract =
+        DirectMirArrayStorageLayoutContractFact();
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirScalarProgramArrayStringAbiFactDigest(fact) &&
+        fact.layout_id > 0 && DirectMirArrayStorageLayoutContractReady(layout) &&
+        fact.size == layout.size && fact.align == layout.align &&
+        fact.data_offset == layout.data_offset &&
+        fact.length_offset == layout.length_offset &&
+        fact.capacity_offset == layout.capacity_offset &&
+        fact.allocator_offset == layout.allocator_offset;
+}
+func DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref route: DirectMirScalarProgramRouteFact
+) -> DirectMirScalarProgramArrayStringAbiFact {
+    let empty: DirectMirScalarProgramArrayStringAbiFact =
+        DirectMirScalarProgramArrayStringAbiFactEmpty();
+    if !DirectMirScalarProgramRouteFactReady(route) { return empty; }
+    let rows: Array<Int> = [route.entrypoint_row];
+    if route.callable_row >= 0 { ArrayPush(rows, route.callable_row); }
+    let source: DirectMirScalarProgramArrayStringAbiFact = empty;
+    let found: Int = 0;
+    let routine: Int = 0;
+    while routine < ArrayLength(rows) {
+        let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+            admitted.routines, rows[routine]);
+        if !index.valid { return empty; }
+        let instruction: Int = 0;
+        while instruction < ArrayLength(index.instruction_facts.starts) {
+            let global: Int = index.instruction_facts.global_start + instruction;
+            let capture: MirRoutineInstructionScalarCapture =
+                MirRoutineInstructionFactBundleAtGlobal(
+                    index.instruction_facts, global);
+            if !capture.valid { return empty; }
+            if capture.abi_type_name == CompilerAbiLayoutArrayStringTypeName() {
+                if admitted.routines.instruction_kinds[global] != "def" {
+                    return empty;
+                }
+                let abi_opt: Option<MirAbiLayoutRowCapture> =
+                    MirCapturedRequiredAbiLayoutRowAdmission(
+                        admitted.routines.source_json, capture.abi_type_name,
+                        capture.abi_type_value_ready, capture.abi_type_start,
+                        capture.abi_type_end, capture.abi_layout_id_start,
+                        capture.abi_layout_id_end,
+                        capture.abi_layout_required_start,
+                        capture.abi_layout_required_end,
+                        capture.abi_layout_start, capture.abi_layout_end);
+                if !IsSome(abi_opt) { return empty; }
+                let abi: MirAbiLayoutRowCapture = UnwrapOption(abi_opt);
+                if !DirectMirArrayStringCapturedAbiReady(abi) { return empty; }
+                let candidate: DirectMirScalarProgramArrayStringAbiFact =
+                    DirectMirScalarProgramArrayStringAbiFact(
+                        true, 0, MirAbiLayoutIdFromCapture(abi),
+                        ToInt(abi.size_text), ToInt(abi.align_text),
+                        ToInt(abi.field_offsets[0]), ToInt(abi.field_offsets[1]),
+                        ToInt(abi.field_offsets[2]), ToInt(abi.field_offsets[3]));
+                if found > 0 && (candidate.layout_id != source.layout_id ||
+                    candidate.size != source.size || candidate.align != source.align ||
+                    candidate.data_offset != source.data_offset || candidate.length_offset != source.length_offset ||
+                    candidate.capacity_offset != source.capacity_offset || candidate.allocator_offset != source.allocator_offset) {
+                    return empty;
+                }
+                source = candidate; found = found + 1;
+            }
+            instruction = instruction + 1;
+        }
+        routine = routine + 1;
+    }
+    if found == 0 { return empty; }
+    let fact: DirectMirScalarProgramArrayStringAbiFact =
+        DirectMirScalarProgramArrayStringAbiFact(
+            true, DirectMirScalarProgramArrayStringAbiFactDigest(source),
+            source.layout_id, source.size, source.align, source.data_offset,
+            source.length_offset, source.capacity_offset,
+            source.allocator_offset);
+    if !DirectMirScalarProgramArrayStringAbiFactReady(fact) { return empty; }
+    return fact;
+}
+
+func DirectMirScalarProgramArrayStringAbiRequired(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(expressions.node_kinds) {
+        let kind: Int = expressions.node_kinds[row];
+        if kind == DirectMirScalarProgramExprStringSplit() || kind ==
+                DirectMirScalarProgramExprArrayStringLength() || kind ==
+                DirectMirScalarProgramExprArrayStringIndex() { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramArrayStringAbiReadyForExpressions(
+    ref fact: DirectMirScalarProgramArrayStringAbiFact,
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    if DirectMirScalarProgramArrayStringAbiRequired(expressions) {
+        return DirectMirScalarProgramArrayStringAbiFactReady(fact);
+    }
+    return !fact.valid && fact.digest == 0 && fact.layout_id == 0 &&
+        fact.size == 0 && fact.align == 0 && fact.data_offset == 0 &&
+        fact.length_offset == 0 && fact.capacity_offset == 0 &&
+        fact.allocator_offset == 0;
+}

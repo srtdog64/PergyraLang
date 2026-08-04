@@ -3,17 +3,8 @@
 import "direct_mir_scalar_program_runtime_abi_identity_owner.pgy";
 import "direct_mir_scalar_program_expression_readiness_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
-
-func DirectMirScalarProgramExpressionKindPresent(
-    ref expressions: DirectMirScalarProgramExpressionSet, kind: Int
-) -> Bool {
-    let row: Int = 0;
-    while row < ArrayLength(expressions.node_kinds) {
-        if expressions.node_kinds[row] == kind { return true; }
-        row = row + 1;
-    }
-    return false;
-}
+import "direct_mir_scalar_program_string_collection_runtime_requirement_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
 
 func DirectMirScalarProgramStringGeneratedAbiFact(
     operation: String, symbol: String
@@ -53,24 +44,26 @@ func DirectMirScalarProgramStringRuntimeRequirement(
         DirectMirScalarProgramStringGeneratedAbiFact(
             "substring-with-len", StringRuntimeCSubstringWithLenFn());
     let compare_required: Bool =
-        DirectMirScalarProgramExpressionKindPresent(
+        DirectMirScalarProgramExpressionContainsKind(
             expressions, DirectMirScalarProgramExprEqualString()) ||
-        DirectMirScalarProgramExpressionKindPresent(
+        DirectMirScalarProgramExpressionContainsKind(
             expressions, DirectMirScalarProgramExprNotEqualString());
-    let concat_required: Bool = DirectMirScalarProgramExpressionKindPresent(
+    let concat_required: Bool = DirectMirScalarProgramExpressionContainsKind(
         expressions, DirectMirScalarProgramExprConcatString());
-    let to_string_required: Bool = DirectMirScalarProgramExpressionKindPresent(
+    let to_string_required: Bool = DirectMirScalarProgramExpressionContainsKind(
         expressions, DirectMirScalarProgramExprToStringInt());
-    let to_upper_required: Bool = DirectMirScalarProgramExpressionKindPresent(
+    let to_upper_required: Bool = DirectMirScalarProgramExpressionContainsKind(
         expressions, DirectMirScalarProgramExprToUpperString());
-    let to_lower_required: Bool = DirectMirScalarProgramExpressionKindPresent(
+    let to_lower_required: Bool = DirectMirScalarProgramExpressionContainsKind(
         expressions, DirectMirScalarProgramExprToLowerString());
-    let length_required: Bool = DirectMirScalarProgramExpressionKindPresent(
+    let length_required: Bool = DirectMirScalarProgramExpressionContainsKind(
         expressions, DirectMirScalarProgramExprStringLength());
-    let substring_required: Bool = DirectMirScalarProgramExpressionKindPresent(
+    let substring_required: Bool = DirectMirScalarProgramExpressionContainsKind(
         expressions, DirectMirScalarProgramExprSubstring());
-    let bounded_required: Bool = DirectMirScalarProgramExpressionKindPresent(
+    let bounded_required: Bool = DirectMirScalarProgramExpressionContainsKind(
         expressions, DirectMirScalarProgramExprSubstringWithLen());
+    let collection: DirectMirScalarProgramStringCollectionRuntimeIds =
+        DirectMirScalarProgramStringCollectionRuntimeRequirement(expressions);
     if (compare_required && !CompilerRuntimeCallAbiStringCompareFactReady(compare)) ||
         (concat_required && !CompilerRuntimeCallAbiStringConcatFactReady(concat)) ||
         (to_string_required && !CompilerRuntimeCallAbiStringToStringFactReady(to_string)) ||
@@ -83,7 +76,7 @@ func DirectMirScalarProgramStringRuntimeRequirement(
             "string_int_int_to_string")) ||
         (bounded_required && !DirectMirScalarProgramStringGeneratedAbiReady(
             bounded, "substring-with-len", StringRuntimeCSubstringWithLenFn(),
-            "string_int_int_int_to_string")) {
+            "string_int_int_int_to_string")) || !collection.valid {
         return DirectMirScalarProgramRuntimeAbiFactEmpty();
     }
     let compare_id: Int = 0; let concat_id: Int = 0;
@@ -101,7 +94,10 @@ func DirectMirScalarProgramStringRuntimeRequirement(
     let source: DirectMirScalarProgramRuntimeAbiFact =
         DirectMirScalarProgramRuntimeAbiFact(
             true, 0, compare_id, concat_id, to_string_id, to_upper_id,
-            to_lower_id, length_id, substring_id, bounded_id);
+            to_lower_id, length_id, substring_id, bounded_id,
+            collection.contains_id, collection.split_id,
+            collection.to_int_id, collection.array_length_id,
+            collection.array_get_id);
     return DirectMirScalarProgramRuntimeAbiFactWithDigest(
         source, DirectMirScalarProgramRuntimeAbiFactDigest(source));
 }

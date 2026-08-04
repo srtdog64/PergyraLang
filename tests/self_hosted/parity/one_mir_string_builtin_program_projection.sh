@@ -40,7 +40,7 @@ GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner
     fail "one loop must own every scalar-program routine admission"
 [[ "$(grep -Fc 'DirectMirScalarCfgSealGraphPlan(' "$PROGRAM")" -eq 1 ]] ||
     fail "program graph must seal exactly once"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v19'
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v20'
 reject_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v18'
 require_text "$BUILTIN" 'direct_mir_scalar_program_builtin_signature_projection_owner.pgy'
 require_text "$BUILTIN_SIGNATURE" '../semantic/builtin_signature_owner.pgy'

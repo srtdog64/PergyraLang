@@ -1,0 +1,25 @@
+// Negative evidence for runtime and Array<String> ABI extension mutations.
+
+import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
+
+func DirectMirScalarCfgProgramExtensionAbiMutationRejected(
+    ref empty: DirectMirScalarCfgProgramExtensionFact,
+    empty_ints: Array<Int>
+) -> Bool {
+    let runtime_mutation: DirectMirScalarCfgProgramExtensionFact =
+        DirectMirScalarCfgProgramExtensionFact(
+            false, 0, empty.callable, empty.expressions,
+            empty_ints, empty_ints, empty_ints, empty.closed_call_abi,
+            DirectMirScalarProgramRuntimeAbiFact(
+                false, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+                0, 0, 0, 0, 0),
+            empty.array_string_abi);
+    let array_mutation: DirectMirScalarCfgProgramExtensionFact =
+        DirectMirScalarCfgProgramExtensionFact(
+            false, 0, empty.callable, empty.expressions,
+            empty_ints, empty_ints, empty_ints, empty.closed_call_abi,
+            empty.runtime_abi, DirectMirScalarProgramArrayStringAbiFact(
+                false, 0, 1, 0, 0, 0, 0, 0, 0));
+    return !DirectMirScalarCfgProgramExtensionFactReady(runtime_mutation) &&
+        !DirectMirScalarCfgProgramExtensionFactReady(array_mutation);
+}

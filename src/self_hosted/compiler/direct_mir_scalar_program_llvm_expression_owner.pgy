@@ -25,6 +25,9 @@ func DirectMirScalarProgramLlvmType(type_name: String) -> String {
     if type_name == CompilerAbiLayoutIntTypeName() { return "i64"; }
     if type_name == CompilerAbiLayoutBoolTypeName() { return "i1"; }
     if type_name == CompilerAbiLayoutStringTypeName() { return "ptr"; }
+    if type_name == CompilerAbiLayoutArrayStringTypeName() {
+        return "%pgy.array.string";
+    }
     return "";
 }
 

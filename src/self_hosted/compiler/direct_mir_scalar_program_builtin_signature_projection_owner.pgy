@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 import "../semantic/builtin_signature_owner.pgy";
+import "direct_mir_scalar_program_collection_builtin_signature_owner.pgy";
 
 struct DirectMirScalarProgramBuiltinSignatureFact {
     let valid: Bool;
@@ -50,7 +51,7 @@ func DirectMirScalarProgramBuiltinSignatureExpected(
         return ["String", "String|String", ToString(
             DirectMirScalarProgramExprConcatString())];
     }
-    return [];
+    return DirectMirScalarProgramCollectionBuiltinSignatureExpected(name);
 }
 
 func DirectMirScalarProgramBuiltinSignatureFactFromName(
@@ -91,6 +92,8 @@ func DirectMirScalarProgramBuiltinArgumentPrefixReady(
         if signature.name == "ToString" { expected = "Int"; }
         else if signature.name == "ToUpper" ||
                 signature.name == "ToLower" { expected = "String"; }
+        expected = DirectMirScalarProgramCollectionBuiltinArgumentType(
+            signature.name, expected);
         if actual_types[i] != expected { return false; }
         i = i + 1;
     }

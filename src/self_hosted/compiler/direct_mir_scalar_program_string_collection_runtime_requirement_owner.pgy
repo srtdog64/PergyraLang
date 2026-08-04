@@ -1,0 +1,95 @@
+// Runtime-call IDs for String/Array<String> builtin expression kinds.
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
+import "../codegen/runtime_abi/collection_runtime_owner.pgy";
+
+struct DirectMirScalarProgramStringCollectionRuntimeIds {
+    let valid: Bool;
+    let contains_id: Int;
+    let split_id: Int;
+    let to_int_id: Int;
+    let array_length_id: Int;
+    let array_get_id: Int;
+}
+func DirectMirScalarProgramCollectionGeneratedAbiFact(
+    operation: String, symbol: String
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiFactFromRowInput(
+        CompilerRuntimeCallAbiRowInput(
+            "collection", operation, symbol,
+            CompilerRuntimeCallAbiMaterialGeneratedHelper()));
+}
+
+func DirectMirScalarProgramCollectionGeneratedAbiReady(
+    fact: CompilerRuntimeCallAbiFact,
+    operation: String, symbol: String, call_shape: String
+) -> Bool {
+    return fact.ok && fact.domain == "collection" &&
+        fact.operation == operation && fact.symbol == symbol &&
+        fact.symbol_kind == "function" && fact.materialization ==
+            CompilerRuntimeCallAbiMaterialGeneratedHelper() &&
+        fact.call_shape == call_shape &&
+        fact.runtime_call_abi_id == CompilerRuntimeCallAbiRowId(
+            "collection", "", operation);
+}
+
+func DirectMirScalarProgramStringCollectionRuntimeRequirement(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> DirectMirScalarProgramStringCollectionRuntimeIds {
+    let contains_required: Bool = DirectMirScalarProgramExpressionContainsKind(
+        expressions, DirectMirScalarProgramExprStringContains());
+    let split_required: Bool = DirectMirScalarProgramExpressionContainsKind(
+        expressions, DirectMirScalarProgramExprStringSplit());
+    let to_int_required: Bool = DirectMirScalarProgramExpressionContainsKind(
+        expressions, DirectMirScalarProgramExprToIntString());
+    let length_required: Bool = DirectMirScalarProgramExpressionContainsKind(
+        expressions, DirectMirScalarProgramExprArrayStringLength());
+    let get_required: Bool = DirectMirScalarProgramExpressionContainsKind(
+        expressions, DirectMirScalarProgramExprArrayStringIndex());
+    let contains: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+            "contains", StringRuntimeCStringContainsFn());
+    let split: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+            "split", StringRuntimeCSplitFn());
+    let to_int: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+            "to-int", StringRuntimeCToIntFn());
+    let length: CompilerRuntimeCallAbiFact =
+        DirectMirScalarProgramCollectionGeneratedAbiFact(
+            "array-string.len", CollectionRuntimeCLenFn(2));
+    let get: CompilerRuntimeCallAbiFact =
+        DirectMirScalarProgramCollectionGeneratedAbiFact(
+            "array-string.get", CollectionRuntimeCGetFn(2));
+    if (contains_required &&
+        !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+            contains, "contains", StringRuntimeCStringContainsFn(),
+            "string_string_to_bool")) ||
+        (split_required &&
+         !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+            split, "split", StringRuntimeCSplitFn(),
+            "string_string_to_array_string")) ||
+        (to_int_required &&
+         !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+            to_int, "to-int", StringRuntimeCToIntFn(), "string_to_int")) ||
+        (length_required && !DirectMirScalarProgramCollectionGeneratedAbiReady(
+            length, "array-string.len", CollectionRuntimeCLenFn(2),
+            "collection_to_int")) ||
+        (get_required && !DirectMirScalarProgramCollectionGeneratedAbiReady(
+            get, "array-string.get", CollectionRuntimeCGetFn(2),
+            "collection_index_to_value")) {
+        return DirectMirScalarProgramStringCollectionRuntimeIds(
+            false, 0, 0, 0, 0, 0);
+    }
+    let contains_id: Int = 0; let split_id: Int = 0;
+    let to_int_id: Int = 0; let length_id: Int = 0;
+    let get_id: Int = 0;
+    if contains_required { contains_id = contains.runtime_call_abi_id; }
+    if split_required { split_id = split.runtime_call_abi_id; }
+    if to_int_required { to_int_id = to_int.runtime_call_abi_id; }
+    if length_required { length_id = length.runtime_call_abi_id; }
+    if get_required { get_id = get.runtime_call_abi_id; }
+    return DirectMirScalarProgramStringCollectionRuntimeIds(
+        true, contains_id, split_id, to_int_id, length_id, get_id);
+}

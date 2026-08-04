@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_program_runtime_abi_fact_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
+import "../codegen/runtime_abi/collection_runtime_owner.pgy";
 
 struct DirectMirScalarProgramRuntimeAbiProjection {
     let valid: Bool;
@@ -13,6 +14,11 @@ struct DirectMirScalarProgramRuntimeAbiProjection {
     let string_length: CompilerRuntimeCallAbiFact;
     let string_substring: CompilerRuntimeCallAbiFact;
     let string_substring_with_len: CompilerRuntimeCallAbiFact;
+    let string_contains: CompilerRuntimeCallAbiFact;
+    let string_split: CompilerRuntimeCallAbiFact;
+    let string_to_int: CompilerRuntimeCallAbiFact;
+    let array_string_length: CompilerRuntimeCallAbiFact;
+    let array_string_get: CompilerRuntimeCallAbiFact;
 }
 
 func DirectMirScalarProgramRuntimeAbiProjectionFromFact(
@@ -29,5 +35,19 @@ func DirectMirScalarProgramRuntimeAbiProjectionFromFact(
         CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
             "substring", StringRuntimeCSubstringFn()),
         CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
-            "substring-with-len", StringRuntimeCSubstringWithLenFn()));
+            "substring-with-len", StringRuntimeCSubstringWithLenFn()),
+        CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+            "contains", StringRuntimeCStringContainsFn()),
+        CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+            "split", StringRuntimeCSplitFn()),
+        CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+            "to-int", StringRuntimeCToIntFn()),
+        CompilerRuntimeCallAbiFactFromRowInput(
+            CompilerRuntimeCallAbiRowInput(
+                "collection", "array-string.len", CollectionRuntimeCLenFn(2),
+                CompilerRuntimeCallAbiMaterialGeneratedHelper())),
+        CompilerRuntimeCallAbiFactFromRowInput(
+            CompilerRuntimeCallAbiRowInput(
+                "collection", "array-string.get", CollectionRuntimeCGetFn(2),
+                CompilerRuntimeCallAbiMaterialGeneratedHelper())));
 }

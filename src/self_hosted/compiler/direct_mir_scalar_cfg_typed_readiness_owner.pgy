@@ -7,6 +7,7 @@ import "direct_mir_scalar_cfg_array_int_log_operation_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_pop_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_collection_pop_typed_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_collection_plan_typed_readiness_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_owner.pgy";
 func DirectMirScalarCfgPlanOperandType(
     ref plan: DirectMirScalarCfgGraphPlan, value: Int, local: Int
 ) -> String {
@@ -162,7 +163,18 @@ func DirectMirScalarCfgTypedPlanReady(
     }
     let row: Int = 0;
     while row < ArrayLength(plan.local_types) {
-        if !DirectMirScalarCfgScalarTypeSupported(plan.local_types[row]) {
+        let type_name: String = plan.local_types[row];
+        let program_collection_ready: Bool =
+            type_name == CompilerAbiLayoutArrayStringTypeName() &&
+            DirectMirScalarProgramArrayStringAbiFactReady(
+                plan.program.array_string_abi);
+        let type_ready: Bool = DirectMirScalarCfgSourceLocalTypeSupported(
+            type_name);
+        if plan.program.valid {
+            type_ready = DirectMirScalarCfgScalarTypeSupported(type_name) ||
+                program_collection_ready;
+        }
+        if !type_ready {
             return false;
         }
         row = row + 1;

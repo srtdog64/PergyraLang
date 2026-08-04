@@ -1,0 +1,16 @@
+// C projection dispatcher for expression kinds backed by runtime ABI facts.
+
+import "direct_mir_scalar_program_c_string_expression_owner.pgy";
+import "direct_mir_scalar_program_c_string_collection_expression_owner.pgy";
+
+func DirectMirScalarProgramCBuiltinExpression(
+    kind: Int, left: String, right: String, arguments: Array<String>,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> Option<String> {
+    let collection: Option<String> =
+        DirectMirScalarProgramCStringCollectionExpression(
+            kind, left, right, runtime);
+    if IsSome(collection) { return collection; }
+    return DirectMirScalarProgramCStringExpression(
+        kind, left, right, arguments, runtime);
+}

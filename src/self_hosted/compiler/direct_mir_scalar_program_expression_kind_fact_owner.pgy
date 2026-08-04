@@ -1,0 +1,13 @@
+// Value carrier for one normalized scalar-program expression classification.
+
+struct DirectMirScalarProgramExpressionKindFact {
+    let valid: Bool;
+    let kind: Int;
+    let type_name: String;
+    let literal: String;
+}
+
+func DirectMirScalarProgramExpressionKindFactInvalid(
+) -> DirectMirScalarProgramExpressionKindFact {
+    return DirectMirScalarProgramExpressionKindFact(false, 0, "", "");
+}

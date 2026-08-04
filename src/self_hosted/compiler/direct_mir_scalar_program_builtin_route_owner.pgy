@@ -1,4 +1,4 @@
-// Straight-line scalar Main claim for syntax-id-free direct builtin calls.
+// One-routine typed Main claim for syntax-id-free direct builtin calls.
 
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
@@ -28,7 +28,7 @@ func DirectMirScalarBuiltinProgramRouteClaimed(
     }
     let local: Int = 0;
     while local < ArrayLength(index.source_local_types) {
-        if !DirectMirScalarCfgScalarTypeSupported(
+        if !DirectMirScalarCfgSourceLocalTypeSupported(
                 index.source_local_types[local]) { return false; }
         local = local + 1;
     }
@@ -36,7 +36,12 @@ func DirectMirScalarBuiltinProgramRouteClaimed(
     while row < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + row;
         let kind: String = admitted.routines.instruction_kinds[global];
-        if kind != "def" && kind != "stmt" { return false; }
+        if kind != "def" && kind != "stmt" && kind != "branch" {
+            return false;
+        }
+        if kind == "branch" &&
+            admitted.routines.instruction_source_types[global] !=
+                "AST_CALL" { return false; }
         let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
             admitted.routines.source_json,
             admitted.routines.instruction_starts[global],

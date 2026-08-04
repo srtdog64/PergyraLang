@@ -1,0 +1,13 @@
+// Shared identity check for an optional generated String runtime projection.
+
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirScalarProgramRuntimeGeneratedAbiProjectionReady(
+    id: Int, fact: CompilerRuntimeCallAbiFact,
+    operation: String, symbol: String, call_shape: String
+) -> Bool {
+    return id == 0 ||
+        (CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+            fact, operation, symbol, call_shape) &&
+         id == fact.runtime_call_abi_id);
+}

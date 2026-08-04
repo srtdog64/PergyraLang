@@ -151,7 +151,7 @@ func DirectMirScalarProgramExpressionSetShapeReady(
         let literal: String = facts.node_literals[node];
         let callable: Int = facts.node_callable_rows[node];
         if kind < DirectMirScalarProgramExprLocal() ||
-            kind > DirectMirScalarProgramExprSubtractInt() ||
+            kind > DirectMirScalarProgramExpressionKindLast() ||
             facts.node_types[node] == "" || left >= node || right >= node ||
             left < -1 || right < -1 || local < -1 || param < -1 ||
             callable < -1 || !DirectMirScalarProgramLiteralEmbeddable(literal) {

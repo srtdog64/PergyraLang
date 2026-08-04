@@ -1,8 +1,6 @@
 // Seals typed program cross-links after the sole flat GraphPlan loop closes.
-
 import "direct_mir_scalar_program_callable_admission_owner.pgy";
 import "direct_mir_scalar_program_route_fact_owner.pgy";
-
 func DirectMirScalarCfgProgramExtensionFromOwners(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref route: DirectMirScalarProgramRouteFact,
@@ -29,16 +27,22 @@ func DirectMirScalarCfgProgramExtensionFromOwners(
     let runtime_abi: DirectMirScalarProgramRuntimeAbiFact =
         DirectMirScalarProgramRuntimeAbiFactFromExpressionKinds(
             sealed_expressions);
+    let array_string_abi: DirectMirScalarProgramArrayStringAbiFact =
+        DirectMirScalarProgramArrayStringAbiFactFromAdmitted(admitted, route);
     if !DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
             runtime_abi, sealed_expressions) {
         Die("direct MIR scalar program runtime ABI is invalid");
+    }
+    if !DirectMirScalarProgramArrayStringAbiReadyForExpressions(
+            array_string_abi, sealed_expressions) {
+        Die("direct MIR scalar program Array<String> ABI is invalid");
     }
     let source: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(
             true, 0, callable, sealed_expressions,
             block_condition_expression_rows, operation_expression_rows,
             block_return_expression_rows,
-            closed_call_abi, runtime_abi
+            closed_call_abi, runtime_abi, array_string_abi
         );
     let fact: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFactWithDigest(

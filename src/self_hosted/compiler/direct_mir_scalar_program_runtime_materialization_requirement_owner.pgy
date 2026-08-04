@@ -1,0 +1,15 @@
+// Sole decision for whether a scalar program needs generated runtime bodies.
+
+import "direct_mir_scalar_program_runtime_abi_fact_owner.pgy";
+
+func DirectMirScalarProgramRuntimeRequiresMaterialization(
+    ref abi: DirectMirScalarProgramRuntimeAbiFact
+) -> Bool {
+    return abi.string_to_string_id != 0 || abi.string_to_upper_id != 0 ||
+        abi.string_to_lower_id != 0 || abi.string_length_id != 0 ||
+        abi.string_substring_id != 0 ||
+        abi.string_substring_with_len_id != 0 ||
+        abi.string_contains_id != 0 || abi.string_split_id != 0 ||
+        abi.string_to_int_id != 0 || abi.array_string_length_id != 0 ||
+        abi.array_string_get_id != 0;
+}

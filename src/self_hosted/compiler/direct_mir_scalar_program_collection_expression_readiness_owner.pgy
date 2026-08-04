@@ -1,0 +1,45 @@
+// Exact type/shape readiness for normalized String collection expressions.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramCollectionExpressionNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    let kind: Int = facts.node_kinds[node];
+    if kind != DirectMirScalarProgramExprStringContains() && kind !=
+            DirectMirScalarProgramExprStringSplit() && kind !=
+            DirectMirScalarProgramExprArrayStringLength() && kind !=
+            DirectMirScalarProgramExprToIntString() && kind !=
+            DirectMirScalarProgramExprArrayStringIndex() { return None; }
+    let type_name: String = facts.node_types[node];
+    let left: Int = facts.node_lefts[node];
+    let right: Int = facts.node_rights[node];
+    if left < 0 || facts.node_local_rows[node] != -1 ||
+        facts.node_parameter_ordinals[node] != -1 ||
+        facts.node_literals[node] != "" ||
+        facts.node_callable_rows[node] != -1 { return Some(false); }
+    if kind == DirectMirScalarProgramExprStringContains() ||
+            kind == DirectMirScalarProgramExprStringSplit() {
+        let expected: String = CompilerAbiLayoutBoolTypeName();
+        if kind == DirectMirScalarProgramExprStringSplit() {
+            expected = CompilerAbiLayoutArrayStringTypeName();
+        }
+        return Some(right >= 0 && type_name == expected &&
+            facts.node_types[left] == CompilerAbiLayoutStringTypeName() &&
+            facts.node_types[right] == CompilerAbiLayoutStringTypeName());
+    }
+    if kind == DirectMirScalarProgramExprArrayStringLength() {
+        return Some(type_name == CompilerAbiLayoutIntTypeName() &&
+            facts.node_types[left] == CompilerAbiLayoutArrayStringTypeName() &&
+            right == -1);
+    }
+    if kind == DirectMirScalarProgramExprToIntString() {
+        return Some(type_name == CompilerAbiLayoutIntTypeName() &&
+            facts.node_types[left] == CompilerAbiLayoutStringTypeName() &&
+            right == -1);
+    }
+    return Some(right >= 0 &&
+        type_name == CompilerAbiLayoutStringTypeName() &&
+        facts.node_types[left] == CompilerAbiLayoutArrayStringTypeName() &&
+        facts.node_types[right] == CompilerAbiLayoutIntTypeName());
+}

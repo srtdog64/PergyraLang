@@ -19,10 +19,11 @@ struct DirectMirScalarCfgGraphInput {
     let collections: DirectMirScalarCfgCollectionPlan;
 }
 
-func DirectMirScalarCfgGraphInputFromAdmitted(
+func DirectMirScalarCfgGraphInputFromAdmittedForOwner(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     routine_row: Int,
-    ref producer: DirectMirArrayIntProducerFact
+    ref producer: DirectMirArrayIntProducerFact,
+    program_expression_owner: Bool
 ) -> DirectMirScalarCfgGraphInput {
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
         admitted.routines, routine_row
@@ -69,9 +70,14 @@ func DirectMirScalarCfgGraphInputFromAdmitted(
         Die("direct MIR scalar CFG range transfer is invalid");
     }
     let selection: DirectMirScalarCfgCollectionPlanSelection =
-        DirectMirScalarCfgCollectionPlansFromOwners(
-            admitted, index, use_facts, wire, ranges, foreach_facts
-        );
+        DirectMirScalarCfgCollectionPlanSelection(
+            DirectMirScalarCfgCollectionPlanEmpty(),
+            DirectMirScalarCfgStringArrayPlanEmpty(),
+            DirectMirScalarCfgArrayIntProgramFactEmpty());
+    if !program_expression_owner {
+        selection = DirectMirScalarCfgCollectionPlansFromOwners(
+            admitted, index, use_facts, wire, ranges, foreach_facts);
+    }
     if !MirRoutineInstructionFactBundleReady(
             index.instruction_facts, ArrayLength(index.block_starts)
         ) || !MirRoutineInstructionUseFactsReady(
@@ -86,4 +92,22 @@ func DirectMirScalarCfgGraphInputFromAdmitted(
         foreach_admission.elements, selection.string_arrays,
         selection.array_int_program, selection.collections
     );
+}
+
+func DirectMirScalarCfgGraphInputFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    routine_row: Int,
+    ref producer: DirectMirArrayIntProducerFact
+) -> DirectMirScalarCfgGraphInput {
+    return DirectMirScalarCfgGraphInputFromAdmittedForOwner(
+        admitted, routine_row, producer, false);
+}
+
+func DirectMirScalarCfgProgramGraphInputFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    routine_row: Int,
+    ref producer: DirectMirArrayIntProducerFact
+) -> DirectMirScalarCfgGraphInput {
+    return DirectMirScalarCfgGraphInputFromAdmittedForOwner(
+        admitted, routine_row, producer, true);
 }

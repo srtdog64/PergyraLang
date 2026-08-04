@@ -15,7 +15,7 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
     let producer: DirectMirArrayIntProducerFact =
         DirectMirArrayIntProducerFactEmpty();
     let entry: DirectMirScalarCfgGraphInput =
-        DirectMirScalarCfgGraphInputFromAdmitted(
+        DirectMirScalarCfgProgramGraphInputFromAdmitted(
             admitted, route.entrypoint_row, producer
         );
     let callable: DirectMirScalarCfgProgramCallableFact =
@@ -39,7 +39,7 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
     while ordinal < ArrayLength(routine_rows) {
         let input: DirectMirScalarCfgGraphInput = entry;
         if ordinal > 0 {
-            input = DirectMirScalarCfgGraphInputFromAdmitted(
+            input = DirectMirScalarCfgProgramGraphInputFromAdmitted(
                 admitted, routine_rows[ordinal], producer
             );
             callable_input = input;
