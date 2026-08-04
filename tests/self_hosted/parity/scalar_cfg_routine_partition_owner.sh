@@ -31,7 +31,7 @@ READY="src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy"
 MUTATION="src/self_hosted/compiler/direct_mir_scalar_cfg_graph_mutation_owner.pgy"
 
 require_text "$GRAPH" 'let routines: DirectMirScalarCfgRoutinePartitionFact;'
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v21'
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v22'
 reject_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v16'
 require_text "$ADMISSION" 'DirectMirScalarCfgSingleRoutinePartitionFromOwners('
 require_text "$SEAL" 'ref routine_partition: DirectMirScalarCfgRoutinePartitionFact'

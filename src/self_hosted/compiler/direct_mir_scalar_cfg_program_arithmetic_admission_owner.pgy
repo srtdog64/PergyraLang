@@ -1,61 +1,16 @@
 // Overflow-safe arithmetic evidence for the scalar-program GraphPlan dialect.
 
-import "direct_mir_scalar_program_expression_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_program_arithmetic_magnitude_owner.pgy";
-import "../mir_lower/routine_definition_dominance_fact_owner.pgy";
-
-func DirectMirScalarCfgProgramPositiveBound(value: String) -> Bool {
-    return DirectMirScalarCfgCanonicalInt(value) &&
-        StringLength(value) > 0 && StringLength(value) <= 18 &&
-        Substring(value, 0, 1) != "0" && Substring(value, 0, 1) != "-";
-}
-
-func DirectMirScalarCfgProgramAddBoundedByCondition(
-    ref expressions: DirectMirScalarProgramExpressionSet,
-    ref condition_rows: Array<Int>, ref index: MirRoutineFactIndex,
-    block: Int, node: Int
-) -> Bool {
-    let left: Int = expressions.node_lefts[node];
-    let right: Int = expressions.node_rights[node];
-    if expressions.node_kinds[left] != DirectMirScalarProgramExprLocal() ||
-        expressions.node_kinds[right] !=
-            DirectMirScalarProgramExprIntLiteral() ||
-        expressions.node_literals[right] != "1" {
-        return false;
-    }
-    let condition_block: Int = 0;
-    while condition_block < ArrayLength(condition_rows) {
-        let row: Int = condition_rows[condition_block];
-        if row >= 0 && row < ArrayLength(expressions.graph_roots) {
-            let root: Int = expressions.graph_roots[row];
-            let bound_left: Int = expressions.node_lefts[root];
-            let bound_right: Int = expressions.node_rights[root];
-            if expressions.node_kinds[root] ==
-                    DirectMirScalarProgramExprLessInt() &&
-                expressions.node_kinds[bound_left] ==
-                    DirectMirScalarProgramExprLocal() &&
-                expressions.node_local_rows[bound_left] ==
-                    expressions.node_local_rows[left] &&
-                expressions.node_kinds[bound_right] ==
-                    DirectMirScalarProgramExprIntLiteral() &&
-                DirectMirScalarCfgProgramPositiveBound(
-                    expressions.node_literals[bound_right]) &&
-                index.block_succ_true[condition_block] >= 0 &&
-                MirRoutineBlockDominates(
-                    index, index.block_succ_true[condition_block], block
-                ) {
-                return true;
-            }
-        }
-        condition_block = condition_block + 1;
-    }
-    return false;
-}
+import "direct_mir_scalar_cfg_program_condition_bound_owner.pgy";
+import "direct_mir_scalar_cfg_program_string_index_range_owner.pgy";
 
 func DirectMirScalarCfgProgramArithmeticReady(
     ref expressions: DirectMirScalarProgramExpressionSet,
-    ref condition_rows: Array<Int>, ref index: MirRoutineFactIndex,
-    block: Int, expression_row: Int
+    ref condition_rows: Array<Int>,
+    ref operations: DirectMirScalarCfgProgramOperationStorage,
+    ref values: DirectMirScalarCfgProgramValueStorage,
+    ref index: MirRoutineFactIndex,
+    block: Int, operation_start: Int, expression_row: Int
 ) -> Bool {
     let start: Int = expressions.graph_starts[expression_row];
     let node: Int = start;
@@ -65,7 +20,10 @@ func DirectMirScalarCfgProgramArithmeticReady(
                 expressions, condition_rows, index, block,
                 node) &&
             !DirectMirScalarCfgProgramAddBoundedByMagnitude(
-                expressions, node) {
+                expressions, node) &&
+            !DirectMirScalarCfgProgramStringIndexWindowReady(
+                expressions, operations, values, operation_start,
+                expression_row, node) {
             return false;
         }
         node = node + 1;

@@ -1,0 +1,25 @@
+// Bounded projection of canonical String length/window/search signatures.
+
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+
+func DirectMirScalarProgramStringWindowBuiltinSignatureExpected(
+    name: String
+) -> Array<String> {
+    if name == "StringLength" {
+        return ["Int", "String", ToString(
+            DirectMirScalarProgramExprStringLength())];
+    }
+    if name == "StringIndexOf" {
+        return ["Int", "String|String", ToString(
+            DirectMirScalarProgramExprStringIndexOf())];
+    }
+    if name == "Substring" {
+        return ["String", "String|Int|Int", ToString(
+            DirectMirScalarProgramExprSubstring())];
+    }
+    if name == "SubstringWithLen" {
+        return ["String", "String|Int|Int|Int", ToString(
+            DirectMirScalarProgramExprSubstringWithLen())];
+    }
+    return [];
+}

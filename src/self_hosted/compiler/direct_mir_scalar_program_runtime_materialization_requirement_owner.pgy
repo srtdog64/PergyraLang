@@ -10,6 +10,7 @@ func DirectMirScalarProgramRuntimeRequiresMaterialization(
         abi.string_to_lower_id != 0 || abi.string_length_id != 0 ||
         abi.string_substring_id != 0 ||
         abi.string_substring_with_len_id != 0 ||
+        abi.string_index.runtime_call_abi_id != 0 ||
         abi.string_contains_id != 0 || abi.string_split_id != 0 ||
         abi.string_to_int_id != 0 || abi.array_string_length_id != 0 ||
         abi.array_string_get_id != 0 ||

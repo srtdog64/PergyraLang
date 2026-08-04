@@ -1,0 +1,138 @@
+// Owner-directed proof for the reached StringIndexOf window arithmetic.
+
+import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+import "direct_mir_scalar_program_string_index_runtime_owner.pgy";
+
+func DirectMirScalarCfgProgramLocalDefinitionExpressionRow(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref operations: DirectMirScalarCfgProgramOperationStorage,
+    ref values: DirectMirScalarCfgProgramValueStorage,
+    operation_start: Int, local_row: Int
+) -> Int {
+    let found: Int = -1;
+    let operation: Int = operation_start;
+    while operation < ArrayLength(operations.kinds) {
+        if operations.kinds[operation] ==
+                DirectMirScalarCfgOpExpressionDefinition() {
+            let value: Int = operations.result_values[operation];
+            if value < 0 || value >= ArrayLength(values.value_local_rows) {
+                return -1;
+            }
+            if values.value_local_rows[value] == local_row {
+                if found >= 0 { return -1; }
+                found = operations.expression_rows[operation];
+            }
+        }
+        operation = operation + 1;
+    }
+    if found < 0 || found >= ArrayLength(expressions.graph_roots) { return -1; }
+    return found;
+}
+
+func DirectMirScalarCfgProgramStringIndexSourceLocal(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref operations: DirectMirScalarCfgProgramOperationStorage,
+    ref values: DirectMirScalarCfgProgramValueStorage,
+    operation_start: Int, local_row: Int
+) -> Int {
+    let expression_row: Int =
+        DirectMirScalarCfgProgramLocalDefinitionExpressionRow(
+            expressions, operations, values, operation_start, local_row);
+    if expression_row < 0 { return -1; }
+    let root: Int = expressions.graph_roots[expression_row];
+    let source: Int = expressions.node_lefts[root];
+    let needle: Int = expressions.node_rights[root];
+    if expressions.node_kinds[root] !=
+            DirectMirScalarProgramExprStringIndexOf() ||
+        source < 0 || needle < 0 ||
+        expressions.node_kinds[source] != DirectMirScalarProgramExprLocal() ||
+        expressions.node_types[source] != CompilerAbiLayoutStringTypeName() ||
+        expressions.node_types[needle] != CompilerAbiLayoutStringTypeName() {
+        return -1;
+    }
+    return expressions.node_local_rows[source];
+}
+
+func DirectMirScalarCfgProgramSameLocal(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    node: Int, local_row: Int
+) -> Bool {
+    return node >= 0 && node < ArrayLength(expressions.node_kinds) &&
+        expressions.node_kinds[node] == DirectMirScalarProgramExprLocal() &&
+        expressions.node_local_rows[node] == local_row;
+}
+
+func DirectMirScalarCfgProgramLiteralOne(
+    ref expressions: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    return node >= 0 && node < ArrayLength(expressions.node_kinds) &&
+        expressions.node_kinds[node] ==
+            DirectMirScalarProgramExprIntLiteral() &&
+        expressions.node_literals[node] == "1";
+}
+
+func DirectMirScalarCfgProgramStringIndexLengthReady(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    top: Int, index_local: Int, source_local: Int
+) -> Bool {
+    if top < 0 || expressions.node_kinds[top] !=
+            DirectMirScalarProgramExprSubtractInt() ||
+        !DirectMirScalarCfgProgramLiteralOne(
+            expressions, expressions.node_rights[top]) {
+        return false;
+    }
+    let difference: Int = expressions.node_lefts[top];
+    if difference < 0 || expressions.node_kinds[difference] !=
+            DirectMirScalarProgramExprSubtractInt() ||
+        !DirectMirScalarCfgProgramSameLocal(
+            expressions, expressions.node_rights[difference], index_local) {
+        return false;
+    }
+    let length: Int = expressions.node_lefts[difference];
+    return length >= 0 && expressions.node_kinds[length] ==
+            DirectMirScalarProgramExprStringLength() &&
+        DirectMirScalarCfgProgramSameLocal(
+            expressions, expressions.node_lefts[length], source_local);
+}
+
+func DirectMirScalarCfgProgramStringIndexWindowReady(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref operations: DirectMirScalarCfgProgramOperationStorage,
+    ref values: DirectMirScalarCfgProgramValueStorage,
+    operation_start: Int, expression_row: Int, add_node: Int
+) -> Bool {
+    let contract: DirectMirScalarProgramStringIndexRangeContract =
+        DirectMirScalarProgramStringIndexRangeContractFact();
+    if !DirectMirScalarProgramStringIndexRangeContractReady(contract) {
+        return false;
+    }
+    let index_node: Int = expressions.node_lefts[add_node];
+    if !DirectMirScalarCfgProgramLiteralOne(
+            expressions, expressions.node_rights[add_node]) ||
+        index_node < 0 || expressions.node_kinds[index_node] !=
+            DirectMirScalarProgramExprLocal() {
+        return false;
+    }
+    let index_local: Int = expressions.node_local_rows[index_node];
+    let source_local: Int = DirectMirScalarCfgProgramStringIndexSourceLocal(
+        expressions, operations, values, operation_start, index_local);
+    if source_local < 0 { return false; }
+    let start: Int = expressions.graph_starts[expression_row];
+    let node: Int = start;
+    while node < start + expressions.graph_counts[expression_row] {
+        if expressions.node_kinds[node] ==
+                DirectMirScalarProgramExprSubstring() {
+            let args: Array<Int> = DirectMirScalarProgramNaryOperandRows(
+                expressions.nary_operands, node);
+            if ArrayLength(args) == 3 && args[1] == add_node &&
+                DirectMirScalarCfgProgramSameLocal(
+                    expressions, args[0], source_local) &&
+                DirectMirScalarCfgProgramStringIndexLengthReady(
+                    expressions, args[2], index_local, source_local) {
+                return true;
+            }
+        }
+        node = node + 1;
+    }
+    return false;
+}

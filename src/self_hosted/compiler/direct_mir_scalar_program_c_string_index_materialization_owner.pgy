@@ -1,0 +1,10 @@
+// C runtime body required by the sealed StringIndexOf ABI fact.
+
+import "direct_mir_scalar_program_runtime_abi_fact_owner.pgy";
+
+func DirectMirScalarProgramCStringIndexMaterialization(
+    ref abi: DirectMirScalarProgramRuntimeAbiFact
+) -> String {
+    if abi.string_index.runtime_call_abi_id == 0 { return ""; }
+    return StringRuntimeCStringIndexOfBlock();
+}

@@ -1,0 +1,17 @@
+// C projection of registry-owned StringIndexOf calls.
+
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramCStringSearchExpression(
+    kind: Int, left: String, right: String,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> Option<String> {
+    if kind != DirectMirScalarProgramExprStringIndexOf() { return None; }
+    if !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+            runtime.string_index, "index-of", StringRuntimeCStringIndexOfFn(),
+            "string_string_to_int") {
+        Die("direct MIR scalar StringIndexOf ABI is invalid");
+    }
+    return Some(Concat(runtime.string_index.symbol, Concat("(", Concat(
+        left, Concat(", ", Concat(right, ")"))))));
+}

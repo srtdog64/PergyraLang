@@ -1,0 +1,129 @@
+// Sealed runtime identity and result-range contract for StringIndexOf.
+
+import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+struct DirectMirScalarProgramStringIndexRangeContract {
+    let valid: Bool;
+    let missing_value: Int;
+    let found_minimum: Int;
+    let upper_bound_relation: Int;
+    let index_unit: Int;
+    let length_headroom: Int;
+}
+
+struct DirectMirScalarProgramStringIndexRuntimeFact {
+    let valid: Bool;
+    let digest: Int;
+    let runtime_call_abi_id: Int;
+    let range: DirectMirScalarProgramStringIndexRangeContract;
+}
+
+func DirectMirScalarProgramStringIndexRangeContractEmpty(
+) -> DirectMirScalarProgramStringIndexRangeContract {
+    return DirectMirScalarProgramStringIndexRangeContract(
+        false, 0, 0, 0, 0, 0);
+}
+
+func DirectMirScalarProgramStringIndexRangeContractFact(
+) -> DirectMirScalarProgramStringIndexRangeContract {
+    // Relation 2 means <= haystack byte length; equality is the empty needle.
+    // The final 1 reserves Int headroom for length - (-1) - 1.
+    return DirectMirScalarProgramStringIndexRangeContract(
+        true, -1, 0, 2, 1, 1);
+}
+
+func DirectMirScalarProgramStringIndexRangeContractReady(
+    ref fact: DirectMirScalarProgramStringIndexRangeContract
+) -> Bool {
+    return fact.valid && fact.missing_value == -1 &&
+        fact.found_minimum == 0 && fact.upper_bound_relation == 2 &&
+        fact.index_unit == 1 && fact.length_headroom == 1;
+}
+
+func DirectMirScalarProgramStringIndexRangeContractCanonicalEmpty(
+    ref fact: DirectMirScalarProgramStringIndexRangeContract
+) -> Bool {
+    return !fact.valid && fact.missing_value == 0 &&
+        fact.found_minimum == 0 && fact.upper_bound_relation == 0 &&
+        fact.index_unit == 0 && fact.length_headroom == 0;
+}
+
+func DirectMirScalarProgramStringIndexRuntimeFactEmpty(
+) -> DirectMirScalarProgramStringIndexRuntimeFact {
+    return DirectMirScalarProgramStringIndexRuntimeFact(
+        false, 0, 0, DirectMirScalarProgramStringIndexRangeContractEmpty());
+}
+
+func DirectMirScalarProgramStringIndexRuntimeDigest(
+    ref fact: DirectMirScalarProgramStringIndexRuntimeFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(269L, fact.runtime_call_abi_id);
+    hash = DirectMirCfgHashInt(hash, fact.range.missing_value);
+    hash = DirectMirCfgHashInt(hash, fact.range.found_minimum);
+    hash = DirectMirCfgHashInt(hash, fact.range.upper_bound_relation);
+    hash = DirectMirCfgHashInt(hash, fact.range.index_unit);
+    hash = DirectMirCfgHashInt(hash, fact.range.length_headroom);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarProgramStringIndexRuntimeFactReady(
+    ref fact: DirectMirScalarProgramStringIndexRuntimeFact
+) -> Bool {
+    if (!fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirScalarProgramStringIndexRuntimeDigest(fact)) {
+        return false;
+    }
+    return (fact.runtime_call_abi_id == 0 &&
+            DirectMirScalarProgramStringIndexRangeContractCanonicalEmpty(
+                fact.range)) ||
+        (fact.runtime_call_abi_id != 0 &&
+            DirectMirScalarProgramStringIndexRangeContractReady(fact.range));
+}
+
+func DirectMirScalarProgramStringIndexRuntimeFactCanonicalEmpty(
+    ref fact: DirectMirScalarProgramStringIndexRuntimeFact
+) -> Bool {
+    return !fact.valid && fact.digest == 0 && fact.runtime_call_abi_id == 0 &&
+        DirectMirScalarProgramStringIndexRangeContractCanonicalEmpty(fact.range);
+}
+
+func DirectMirScalarProgramStringIndexRuntimeRequirement(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> DirectMirScalarProgramStringIndexRuntimeFact {
+    let required: Bool = DirectMirScalarProgramExpressionContainsKind(
+        expressions, DirectMirScalarProgramExprStringIndexOf());
+    let abi: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+            "index-of", StringRuntimeCStringIndexOfFn());
+    if required && !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+            abi, "index-of", StringRuntimeCStringIndexOfFn(),
+            "string_string_to_int") {
+        return DirectMirScalarProgramStringIndexRuntimeFactEmpty();
+    }
+    let abi_id: Int = 0;
+    let range: DirectMirScalarProgramStringIndexRangeContract =
+        DirectMirScalarProgramStringIndexRangeContractEmpty();
+    if required {
+        abi_id = abi.runtime_call_abi_id;
+        range = DirectMirScalarProgramStringIndexRangeContractFact();
+    }
+    let source: DirectMirScalarProgramStringIndexRuntimeFact =
+        DirectMirScalarProgramStringIndexRuntimeFact(true, 0, abi_id, range);
+    return DirectMirScalarProgramStringIndexRuntimeFact(
+        true, DirectMirScalarProgramStringIndexRuntimeDigest(source),
+        abi_id, range);
+}
+
+func DirectMirScalarProgramStringIndexRuntimeProjectionReady(
+    projected: CompilerRuntimeCallAbiFact,
+    ref fact: DirectMirScalarProgramStringIndexRuntimeFact
+) -> Bool {
+    return DirectMirScalarProgramStringIndexRuntimeFactReady(fact) &&
+        (fact.runtime_call_abi_id == 0 ||
+         (CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+            projected, "index-of", StringRuntimeCStringIndexOfFn(),
+            "string_string_to_int") && projected.runtime_call_abi_id ==
+                fact.runtime_call_abi_id));
+}

@@ -1,0 +1,20 @@
+// Exact typed shape for byte-index String search expressions.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramStringSearchExpressionNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    let kind: Int = facts.node_kinds[node];
+    if kind != DirectMirScalarProgramExprStringIndexOf() { return None; }
+    let left: Int = facts.node_lefts[node];
+    let right: Int = facts.node_rights[node];
+    return Some(facts.node_types[node] == CompilerAbiLayoutIntTypeName() &&
+        left >= 0 && right >= 0 &&
+        facts.node_types[left] == CompilerAbiLayoutStringTypeName() &&
+        facts.node_types[right] == CompilerAbiLayoutStringTypeName() &&
+        facts.node_local_rows[node] == -1 &&
+        facts.node_parameter_ordinals[node] == -1 &&
+        facts.node_literals[node] == "" &&
+        facts.node_callable_rows[node] == -1);
+}

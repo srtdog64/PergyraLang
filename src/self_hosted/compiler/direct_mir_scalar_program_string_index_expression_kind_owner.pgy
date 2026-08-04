@@ -1,0 +1,3 @@
+// Stable normalized identity for byte-index String search.
+
+func DirectMirScalarProgramExprStringIndexOf() -> Int { return 34; }

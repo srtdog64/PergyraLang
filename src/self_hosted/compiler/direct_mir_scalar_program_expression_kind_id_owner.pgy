@@ -1,6 +1,6 @@
 // Stable normalized scalar-program expression identities.
 import "direct_mir_scalar_program_case_math_expression_kind_owner.pgy";
-
+import "direct_mir_scalar_program_string_index_expression_kind_owner.pgy";
 func DirectMirScalarProgramExprLocal() -> Int { return 1; }
 func DirectMirScalarProgramExprParameter() -> Int { return 2; }
 func DirectMirScalarProgramExprIntLiteral() -> Int { return 3; }
@@ -31,5 +31,5 @@ func DirectMirScalarProgramExprToIntString() -> Int { return 27; }
 func DirectMirScalarProgramExprArrayStringIndex() -> Int { return 28; }
 
 func DirectMirScalarProgramExpressionKindLast() -> Int {
-    return DirectMirScalarProgramExprStringReplace();
+    return DirectMirScalarProgramExprStringIndexOf();
 }

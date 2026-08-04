@@ -4,6 +4,7 @@ import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 import "../semantic/builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_collection_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_case_math_builtin_signature_owner.pgy";
+import "direct_mir_scalar_program_string_window_builtin_signature_owner.pgy";
 
 struct DirectMirScalarProgramBuiltinSignatureFact {
     let valid: Bool;
@@ -36,18 +37,9 @@ func DirectMirScalarProgramBuiltinSignatureExpected(
         return ["String", "Unknown", ToString(
             DirectMirScalarProgramExprToLowerString())];
     }
-    if name == "StringLength" {
-        return ["Int", "String", ToString(
-            DirectMirScalarProgramExprStringLength())];
-    }
-    if name == "Substring" {
-        return ["String", "String|Int|Int", ToString(
-            DirectMirScalarProgramExprSubstring())];
-    }
-    if name == "SubstringWithLen" {
-        return ["String", "String|Int|Int|Int", ToString(
-            DirectMirScalarProgramExprSubstringWithLen())];
-    }
+    let window: Array<String> =
+        DirectMirScalarProgramStringWindowBuiltinSignatureExpected(name);
+    if ArrayLength(window) != 0 { return window; }
     if name == "Concat" {
         return ["String", "String|String", ToString(
             DirectMirScalarProgramExprConcatString())];

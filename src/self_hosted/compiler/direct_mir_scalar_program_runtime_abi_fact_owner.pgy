@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_cfg_hash_owner.pgy";
 import "direct_mir_scalar_program_case_math_runtime_requirement_owner.pgy";
+import "direct_mir_scalar_program_string_index_runtime_owner.pgy";
 
 struct DirectMirScalarProgramRuntimeAbiFact {
     let valid: Bool;
@@ -14,6 +15,7 @@ struct DirectMirScalarProgramRuntimeAbiFact {
     let string_length_id: Int;
     let string_substring_id: Int;
     let string_substring_with_len_id: Int;
+    let string_index: DirectMirScalarProgramStringIndexRuntimeFact;
     let string_contains_id: Int;
     let string_split_id: Int;
     let string_to_int_id: Int;
@@ -25,7 +27,8 @@ struct DirectMirScalarProgramRuntimeAbiFact {
 func DirectMirScalarProgramRuntimeAbiFactEmpty(
 ) -> DirectMirScalarProgramRuntimeAbiFact {
     return DirectMirScalarProgramRuntimeAbiFact(
-        false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        false, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        DirectMirScalarProgramStringIndexRuntimeFactEmpty(), 0, 0, 0, 0, 0,
         DirectMirScalarProgramCaseMathRuntimeIdsEmpty()
     );
 }
@@ -38,6 +41,8 @@ func DirectMirScalarProgramRuntimeAbiFactCanonicalEmpty(
         fact.string_to_upper_id == 0 && fact.string_to_lower_id == 0 &&
         fact.string_length_id == 0 && fact.string_substring_id == 0 &&
         fact.string_substring_with_len_id == 0 &&
+        DirectMirScalarProgramStringIndexRuntimeFactCanonicalEmpty(
+            fact.string_index) &&
         fact.string_contains_id == 0 && fact.string_split_id == 0 &&
         fact.string_to_int_id == 0 && fact.array_string_length_id == 0 &&
         fact.array_string_get_id == 0 &&

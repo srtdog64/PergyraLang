@@ -1,0 +1,33 @@
+// LLVM runtime body required by the sealed StringIndexOf ABI fact.
+
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramLlvmStringIndexMaterialization(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> String {
+    if plan.program.runtime_abi.string_index.runtime_call_abi_id == 0 {
+        return "";
+    }
+    let symbol: String = runtime.string_index.symbol;
+    let out: String = "declare ptr @strstr(ptr, ptr)\n\n";
+    out = Concat(out, Concat("define internal i64 @", Concat(symbol,
+        "(ptr %haystack, ptr %needle) {\nentry:\n")));
+    out = Concat(out, "  %haystack.null = icmp eq ptr %haystack, null\n");
+    out = Concat(out, "  %needle.null = icmp eq ptr %needle, null\n");
+    out = Concat(out, "  %input.null = or i1 %haystack.null, %needle.null\n");
+    out = Concat(out,
+        "  br i1 %input.null, label %absent, label %search\n\nsearch:\n");
+    out = Concat(out,
+        "  %match = call ptr @strstr(ptr %haystack, ptr %needle)\n");
+    out = Concat(out, "  %missing = icmp eq ptr %match, null\n");
+    out = Concat(out,
+        "  br i1 %missing, label %absent, label %found\n\nfound:\n");
+    out = Concat(out, "  %match.int = ptrtoint ptr %match to i64\n");
+    out = Concat(out, "  %haystack.int = ptrtoint ptr %haystack to i64\n");
+    out = Concat(out, "  %index = sub i64 %match.int, %haystack.int\n");
+    out = Concat(out, "  br label %done\n\nabsent:\n  br label %done\n\ndone:\n");
+    out = Concat(out,
+        "  %result = phi i64 [ %index, %found ], [ -1, %absent ]\n");
+    return Concat(out, "  ret i64 %result\n}\n\n");
+}

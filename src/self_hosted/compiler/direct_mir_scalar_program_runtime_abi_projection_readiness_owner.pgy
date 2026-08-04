@@ -41,6 +41,8 @@ func DirectMirScalarProgramRuntimeAbiProjectionReady(
             projection.string_substring_with_len, "substring-with-len",
             StringRuntimeCSubstringWithLenFn(),
             "string_int_int_int_to_string") &&
+        DirectMirScalarProgramStringIndexRuntimeProjectionReady(
+            projection.string_index, fact.string_index) &&
         DirectMirScalarProgramStringCollectionRuntimeProjectionReady(
             projection, fact) &&
         DirectMirScalarProgramCaseMathRuntimeProjectionReady(

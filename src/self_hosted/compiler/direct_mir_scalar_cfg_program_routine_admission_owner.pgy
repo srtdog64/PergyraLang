@@ -171,8 +171,8 @@ func DirectMirScalarCfgProgramAppendRoutine(
                 if !IsSome(expression_row_opt) { DirectMirScalarCfgProgramExpressionAdmissionFailed(global_row, source); return invalid; }
                 let expression_row: Int = UnwrapOption(expression_row_opt);
                 if !DirectMirScalarCfgProgramArithmeticReady(
-                        expressions, blocks.condition_expression_rows,
-                        index, block, expression_row) { return invalid; }
+                        expressions, blocks.condition_expression_rows, operations,
+                        values, index, block, operation_start, expression_row) { return invalid; }
                 operations =
                     DirectMirScalarCfgProgramOperationsAppendExpression(
                         operations,
@@ -213,8 +213,8 @@ func DirectMirScalarCfgProgramAppendRoutine(
                 if !IsSome(condition_row_opt) { DirectMirScalarCfgProgramExpressionAdmissionFailed(global_row, source); return invalid; }
                 condition_row = UnwrapOption(condition_row_opt);
                 if !DirectMirScalarCfgProgramArithmeticReady(
-                        expressions, blocks.condition_expression_rows,
-                        index, block, condition_row) { return invalid; }
+                        expressions, blocks.condition_expression_rows, operations,
+                        values, index, block, operation_start, condition_row) { return invalid; }
             } else if kind == "return" {
                 if routine_ordinal == 0 || instruction_row + 1 !=
                         index.block_instruction_counts[block] ||

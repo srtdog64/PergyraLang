@@ -1,0 +1,24 @@
+// LLVM projection of registry-owned StringIndexOf calls.
+
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramLlvmStringSearchExpressionAt(
+    kind: Int, result: String, left: String, right: String,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind != DirectMirScalarProgramExprStringIndexOf() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    if !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+            runtime.string_index, "index-of", StringRuntimeCStringIndexOfFn(),
+            "string_string_to_int") {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let output: String = Concat("  ", Concat(result, Concat(
+        " = call i64 @", Concat(runtime.string_index.symbol, Concat(
+        "(ptr ", Concat(left, Concat(", ptr ", Concat(right, ")\n"))))))));
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}
