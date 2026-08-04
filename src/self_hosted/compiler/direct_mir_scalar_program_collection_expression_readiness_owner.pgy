@@ -1,11 +1,16 @@
 // Exact type/shape readiness for normalized String collection expressions.
 
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_array_string_literal_readiness_owner.pgy";
 
 func DirectMirScalarProgramCollectionExpressionNodeReady(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int
 ) -> Option<Bool> {
     let kind: Int = facts.node_kinds[node];
+    if kind == DirectMirScalarProgramExprArrayStringLiteral() {
+        return Some(DirectMirScalarProgramArrayStringLiteralNodeReady(
+            facts, node));
+    }
     if kind != DirectMirScalarProgramExprStringContains() && kind !=
             DirectMirScalarProgramExprStringSplit() && kind !=
             DirectMirScalarProgramExprArrayStringLength() && kind !=

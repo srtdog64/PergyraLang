@@ -7,6 +7,7 @@ import "direct_mir_scalar_cfg_local_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_c_materialization_owner.pgy";
 import "direct_mir_scalar_program_c_builtin_materialization_owner.pgy";
 import "direct_mir_scalar_program_c_string_collection_materialization_owner.pgy";
+import "direct_mir_scalar_program_c_array_string_cleanup_owner.pgy";
 import "direct_mir_scalar_cfg_program_c_signature_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 

@@ -1,6 +1,7 @@
 // Local semantic shape for ordered direct-call arguments.
 
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
 
 func DirectMirScalarProgramDirectCallArgumentRows(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int
@@ -32,7 +33,7 @@ func DirectMirScalarProgramDirectCallNodeReady(
     let ordinal: Int = 0;
     while ordinal < ArrayLength(arguments) {
         if arguments[ordinal] < 0 || arguments[ordinal] >= node ||
-            !DirectMirScalarCfgScalarTypeSupported(
+            !DirectMirScalarProgramCallableValueTypeSupported(
                 facts.node_types[arguments[ordinal]]) { return false; }
         ordinal = ordinal + 1;
     }

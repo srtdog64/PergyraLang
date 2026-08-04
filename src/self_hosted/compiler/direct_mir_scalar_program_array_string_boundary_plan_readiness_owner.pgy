@@ -1,0 +1,26 @@
+// Replays the boundary join against the sealed GraphPlan columns.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_array_string_boundary_admission_owner.pgy";
+
+func DirectMirScalarProgramArrayStringBoundaryReadyForPlan(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    if !plan.program.array_string_boundary.valid {
+        return DirectMirScalarProgramArrayStringBoundaryFactCanonicalEmpty(
+            plan.program.array_string_boundary);
+    }
+    let rebuilt: DirectMirScalarProgramArrayStringBoundaryFact =
+        DirectMirScalarProgramArrayStringBoundaryFactFromOwners(
+            plan.program.expressions, plan.operation_kinds,
+            plan.operation_result_values,
+            plan.program.operation_expression_rows,
+            plan.value_local_rows,
+            plan.program.block_return_expression_rows,
+            plan.program.callable, plan.program.array_string_abi,
+            DirectMirScalarCfgOpExpressionDefinition(),
+            DirectMirScalarCfgOpExpressionLog());
+    return DirectMirScalarProgramArrayStringBoundaryFactReady(rebuilt) &&
+        DirectMirScalarProgramArrayStringBoundaryFactEqual(
+            rebuilt, plan.program.array_string_boundary);
+}

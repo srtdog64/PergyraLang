@@ -20,7 +20,8 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
             output = Concat(output, "bool");
         } else if plan.local_types[row] ==
                 CompilerAbiLayoutArrayStringTypeName() {
-            output = Concat(output, "pgy_as");
+            output = Concat(output,
+                CompilerAbiLayoutArrayStringCValueType());
         } else { output = Concat(output, int_c_type); }
         output = Concat(output, " pgy_local_");
         output = Concat(output, ToString(row));

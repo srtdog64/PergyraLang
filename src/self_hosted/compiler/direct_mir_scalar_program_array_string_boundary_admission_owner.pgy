@@ -1,0 +1,135 @@
+// Joins one literal owner, call ABI, bounded callee index, and last consumer.
+
+import "direct_mir_scalar_program_array_string_boundary_fact_owner.pgy";
+import "direct_mir_scalar_program_array_string_literal_readiness_owner.pgy";
+import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+import "direct_mir_scalar_program_callable_fact_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_owner.pgy";
+import "direct_mir_scalar_program_array_string_callable_abi_owner.pgy";
+import "direct_mir_scalar_program_expression_readiness_owner.pgy";
+
+func DirectMirScalarProgramArrayStringBoundaryFactFromOwners(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    operation_kinds: Array<Int>, operation_results: Array<Int>,
+    operation_expression_rows: Array<Int>, value_local_rows: Array<Int>,
+    block_return_expression_rows: Array<Int>,
+    ref callable: DirectMirScalarCfgProgramCallableFact,
+    ref abi: DirectMirScalarProgramArrayStringAbiFact,
+    definition_kind: Int, log_kind: Int
+) -> DirectMirScalarProgramArrayStringBoundaryFact {
+    let empty: DirectMirScalarProgramArrayStringBoundaryFact =
+        DirectMirScalarProgramArrayStringBoundaryFactEmpty();
+    if !DirectMirScalarProgramExpressionSetSemanticallyReady(expressions) ||
+        !DirectMirScalarCfgProgramCallableFactReady(callable) ||
+        callable.signature.param_count != 1 ||
+        callable.signature.param.type_name !=
+            CompilerAbiLayoutArrayStringTypeName() ||
+        !DirectMirScalarProgramArrayStringAbiMatchesCallable(
+            abi, callable.signature) ||
+        ArrayLength(operation_kinds) != ArrayLength(operation_results) ||
+        ArrayLength(operation_kinds) !=
+            ArrayLength(operation_expression_rows) { return empty; }
+    let literal_expression: Int = -1; let literal_operation: Int = -1;
+    let literal_local: Int = -1; let element_count: Int = -1;
+    let call_expression: Int = -1; let call_operation: Int = -1;
+    let operation: Int = 0;
+    while operation < ArrayLength(operation_kinds) {
+        let expression_row: Int = operation_expression_rows[operation];
+        if expression_row >= 0 && expression_row <
+                ArrayLength(expressions.graph_roots) {
+            let root: Int = expressions.graph_roots[expression_row];
+            if operation_kinds[operation] == definition_kind &&
+                    expressions.node_kinds[root] ==
+                        DirectMirScalarProgramExprArrayStringLiteral() {
+                let result: Int = operation_results[operation];
+                if literal_expression >= 0 || result < 0 || result >=
+                        ArrayLength(value_local_rows) { return empty; }
+                literal_expression = expression_row;
+                literal_operation = operation;
+                literal_local = value_local_rows[result];
+                element_count = ArrayLength(
+                    DirectMirScalarProgramArrayStringLiteralOperandRows(
+                        expressions, root));
+            }
+            if operation_kinds[operation] == log_kind &&
+                    expressions.node_kinds[root] ==
+                        DirectMirScalarProgramExprDirectCall() {
+                if call_expression >= 0 { return empty; }
+                call_expression = expression_row; call_operation = operation;
+            }
+        }
+        operation = operation + 1;
+    }
+    if literal_local < 0 || call_expression < 0 ||
+        call_operation <= literal_operation { return empty; }
+    let call_root: Int = expressions.graph_roots[call_expression];
+    let arguments: Array<Int> = DirectMirScalarProgramDirectCallArgumentRows(
+        expressions, call_root);
+    if ArrayLength(arguments) != 1 ||
+        expressions.node_callable_rows[call_root] != callable.routine_ordinal ||
+        expressions.node_kinds[arguments[0]] !=
+            DirectMirScalarProgramExprLocal() ||
+        expressions.node_local_rows[arguments[0]] != literal_local {
+        return empty;
+    }
+    let local_uses: Int = 0; let node: Int = 0;
+    while node < ArrayLength(expressions.node_kinds) {
+        if expressions.node_kinds[node] == DirectMirScalarProgramExprLocal() &&
+            expressions.node_local_rows[node] == literal_local {
+            local_uses = local_uses + 1;
+        }
+        node = node + 1;
+    }
+    if local_uses != 1 { return empty; }
+    let return_expression: Int = -1; let index_literal: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(block_return_expression_rows) {
+        let candidate: Int = block_return_expression_rows[row];
+        if candidate >= 0 && candidate < ArrayLength(expressions.graph_roots) {
+            let root: Int = expressions.graph_roots[candidate];
+            if expressions.node_kinds[root] ==
+                    DirectMirScalarProgramExprArrayStringIndex() {
+                if return_expression >= 0 { return empty; }
+                let left: Int = expressions.node_lefts[root];
+                let right: Int = expressions.node_rights[root];
+                if left < 0 || right < 0 ||
+                    expressions.node_kinds[left] !=
+                        DirectMirScalarProgramExprParameter() ||
+                    expressions.node_parameter_ordinals[left] != 0 ||
+                    expressions.node_kinds[right] !=
+                        DirectMirScalarProgramExprIntLiteral() {
+                    return empty;
+                }
+                return_expression = candidate;
+                index_literal = expressions.node_literals[right];
+            }
+        }
+        row = row + 1;
+    }
+    if return_expression < 0 || !DirectMirBoundedLiteralIndexReady(
+            index_literal, element_count) { return empty; }
+    let source: DirectMirScalarProgramArrayStringBoundaryFact =
+        DirectMirScalarProgramArrayStringBoundaryFact(
+            true, 0, literal_expression, literal_operation, literal_local,
+            element_count, call_expression, call_operation,
+            return_expression, index_literal, callable.routine_ordinal, 0,
+            abi.layout_id,
+            DirectMirScalarProgramArrayStringCallerFrameStorage(),
+            DirectMirScalarProgramArrayStringBorrowedStaticElements(),
+            DirectMirScalarProgramArrayStringBorrowedResult());
+    let fact: DirectMirScalarProgramArrayStringBoundaryFact =
+        DirectMirScalarProgramArrayStringBoundaryFact(
+            source.valid,
+            DirectMirScalarProgramArrayStringBoundaryFactDigest(source),
+            source.literal_expression_row, source.literal_operation_row,
+            source.literal_local_row, source.element_count,
+            source.call_expression_row, source.call_operation_row,
+            source.return_expression_row, source.index_literal,
+            source.callable_ordinal, source.parameter_ordinal,
+            source.abi_layout_id, source.storage_kind,
+            source.element_ownership, source.result_ownership);
+    if !DirectMirScalarProgramArrayStringBoundaryFactReady(fact) {
+        return empty;
+    }
+    return fact;
+}

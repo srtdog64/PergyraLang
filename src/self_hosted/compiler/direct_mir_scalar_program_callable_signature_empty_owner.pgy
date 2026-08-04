@@ -1,0 +1,29 @@
+// Canonical empty callable signature state for absent program callables.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+
+func DirectMirScalarProgramCallableSignatureCanonicalEmpty(
+    ref signature: DirectMirRoutineSignatureFact
+) -> Bool {
+    let param: DirectMirRoutineParamFact = signature.param;
+    return !signature.valid && signature.digest == 0 && signature.row < 0 &&
+        signature.name == "" && signature.kind == "" &&
+        signature.source_syntax_id == 0 && signature.receiver_carriage == "" &&
+        signature.return_type == "" && signature.param_count == 0 &&
+        !signature.parameters.valid && signature.parameters.digest == 0 &&
+        ArrayLength(signature.parameters.names) == 0 &&
+        !param.valid && param.digest == 0 && param.name == "" &&
+        param.type_name == "" && param.carriage == "" &&
+        param.resource == "" && param.pass_shape == "" &&
+        param.abi_type_name == "" && param.abi_layout_id == 0 &&
+        !param.abi_required && !param.abi.valid && param.abi.type_name == "" &&
+        param.abi.size_text == "" && param.abi.align_text == "" &&
+        param.abi.runtime_fn == "" && param.abi.inner_c_type == "" &&
+        param.abi.representation_text == "" && param.abi.discriminant == "" &&
+        param.abi.primary_tag_text == "" && param.abi.secondary_tag_text == "" &&
+        param.abi.niche_none_pattern == "" &&
+        ArrayLength(param.abi.field_names) == 0 &&
+        ArrayLength(param.abi.field_offsets) == 0 &&
+        ArrayLength(param.abi.field_sizes) == 0 &&
+        ArrayLength(param.abi.field_aligns) == 0;
+}

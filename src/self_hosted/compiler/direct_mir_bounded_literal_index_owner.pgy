@@ -1,0 +1,10 @@
+// Shared non-negative literal-index proof for fixed-cardinality collections.
+
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+
+func DirectMirBoundedLiteralIndexReady(
+    literal: String, element_count: Int
+) -> Bool {
+    return element_count >= 0 && DirectMirScalarCfgCanonicalInt(literal) &&
+        ToInt(literal) >= 0 && ToInt(literal) < element_count;
+}

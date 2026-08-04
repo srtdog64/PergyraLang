@@ -1,0 +1,24 @@
+// C cleanup selected by sealed Array<String> element ownership.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarProgramCStringArrayCleanup(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let start: Int = plan.routines.local_starts[routine];
+    let end: Int = start + plan.routines.local_counts[routine];
+    let row: Int = start;
+    while row < end {
+        if plan.local_types[row] == CompilerAbiLayoutArrayStringTypeName() {
+            let borrowed: Bool = plan.program.array_string_boundary.valid &&
+                plan.program.array_string_boundary.literal_local_row == row;
+            if !borrowed {
+                output = Concat(output, Concat("    pgy_as_drop(&pgy_local_",
+                    Concat(ToString(row), ");\n")));
+            }
+        }
+        row = row + 1;
+    }
+    return output;
+}

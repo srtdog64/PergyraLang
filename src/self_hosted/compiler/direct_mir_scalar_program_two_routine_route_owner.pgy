@@ -3,6 +3,8 @@
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "abi_layout_row_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_program_callable_signature_owner.pgy";
+import "direct_mir_scalar_program_callable_route_envelope_owner.pgy";
 
 struct DirectMirScalarProgramTwoRoutineRows {
     let valid: Bool;
@@ -36,22 +38,9 @@ func DirectMirScalarProgramTwoRoutineRowsFromAdmitted(
             entrypoint_row = row;
         } else {
             if callable_row >= 0 || signature.param_count < 1 ||
-                !DirectMirScalarCfgScalarTypeSupported(
-                    signature.return_type) {
+                !DirectMirScalarProgramCallableRouteEnvelopeSupported(
+                    signature) {
                 return DirectMirScalarProgramTwoRoutineRows(false, -1, -1);
-            }
-            let ordinal: Int = 0;
-            while ordinal < signature.param_count {
-                if !DirectMirScalarCfgScalarTypeSupported(
-                        signature.parameters.type_names[ordinal]) ||
-                    signature.parameters.carriages[ordinal] != "value" ||
-                    signature.parameters.resources[ordinal] != "none" ||
-                    signature.parameters.pass_shapes[ordinal] != "direct" ||
-                    signature.parameters.abi_required[ordinal] {
-                    return DirectMirScalarProgramTwoRoutineRows(
-                        false, -1, -1);
-                }
-                ordinal = ordinal + 1;
             }
             callable_row = row;
         }

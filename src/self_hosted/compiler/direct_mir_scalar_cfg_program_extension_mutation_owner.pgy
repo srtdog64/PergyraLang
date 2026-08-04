@@ -1,5 +1,6 @@
 import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
 import "direct_mir_scalar_cfg_program_extension_abi_mutation_owner.pgy";
+import "direct_mir_scalar_cfg_program_extension_fact_readiness_owner.pgy";
 func DirectMirScalarCfgProgramExtensionMutationRejected() -> Bool {
     let empty_ints: Array<Int> = [];
     let one_int: Array<Int> = [0];
@@ -17,13 +18,15 @@ func DirectMirScalarCfgProgramExtensionMutationRejected() -> Bool {
         DirectMirScalarCfgProgramExtensionFact(
             false, 0, empty.callable, expression_payload,
             empty_ints, empty_ints, empty_ints, empty.closed_call_abi,
-            empty.runtime_abi, empty.array_string_abi);
+            empty.runtime_abi, empty.array_string_abi,
+            empty.array_string_boundary);
     let abi_mutation: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(
             false, 0, empty.callable, empty.expressions,
             empty_ints, empty_ints, empty_ints,
             DirectMirClosedModuleCallAbiFact(false, 1, "", "", "", true),
-            empty.runtime_abi, empty.array_string_abi
+            empty.runtime_abi, empty.array_string_abi,
+            empty.array_string_boundary
         );
     return !DirectMirScalarCfgProgramExtensionFactReady(expression_mutation) &&
         !DirectMirScalarCfgProgramExtensionFactReady(abi_mutation) &&

@@ -1,0 +1,4 @@
+// Stable normalized identities for Array<String> value expressions.
+
+func DirectMirScalarProgramExprArrayStringIndex() -> Int { return 28; }
+func DirectMirScalarProgramExprArrayStringLiteral() -> Int { return 36; }

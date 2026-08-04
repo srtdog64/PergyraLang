@@ -1,9 +1,13 @@
 // Seals typed program cross-links after the sole flat GraphPlan loop closes.
 import "direct_mir_scalar_program_callable_admission_owner.pgy";
 import "direct_mir_scalar_program_route_fact_owner.pgy";
+import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+import "direct_mir_scalar_program_extension_abi_seal_owner.pgy";
+import "direct_mir_scalar_cfg_program_extension_fact_readiness_owner.pgy";
 func DirectMirScalarCfgProgramExtensionFromOwners(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref route: DirectMirScalarProgramRouteFact,
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
     expressions: DirectMirScalarProgramExpressionSet,
     block_condition_expression_rows: Array<Int>,
     operation_expression_rows: Array<Int>,
@@ -24,25 +28,18 @@ func DirectMirScalarCfgProgramExtensionFromOwners(
             expressions,
             DirectMirScalarProgramExpressionSetDigest(expressions)
         );
-    let runtime_abi: DirectMirScalarProgramRuntimeAbiFact =
-        DirectMirScalarProgramRuntimeAbiFactFromExpressionKinds(
-            sealed_expressions);
-    let array_string_abi: DirectMirScalarProgramArrayStringAbiFact =
-        DirectMirScalarProgramArrayStringAbiFactFromAdmitted(admitted, route);
-    if !DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
-            runtime_abi, sealed_expressions) {
-        Die("direct MIR scalar program runtime ABI is invalid");
-    }
-    if !DirectMirScalarProgramArrayStringAbiReadyForExpressions(
-            array_string_abi, sealed_expressions) {
-        Die("direct MIR scalar program Array<String> ABI is invalid");
+    let abi: DirectMirScalarProgramExtensionAbiSeal =
+        DirectMirScalarProgramExtensionAbiSealFromOwners(
+            admitted, route, storage, sealed_expressions, callable);
+    if !abi.valid {
+        Die("direct MIR scalar program extension ABI is invalid");
     }
     let source: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(
             true, 0, callable, sealed_expressions,
             block_condition_expression_rows, operation_expression_rows,
             block_return_expression_rows,
-            closed_call_abi, runtime_abi, array_string_abi
+            closed_call_abi, abi.runtime, abi.array_string, abi.boundary
         );
     let fact: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFactWithDigest(

@@ -6,6 +6,8 @@ import "direct_mir_scalar_program_callable_fact_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_owner.pgy";
 import "direct_mir_closed_module_call_abi_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_owner.pgy";
+import "direct_mir_scalar_program_array_string_callable_abi_owner.pgy";
+import "direct_mir_scalar_program_array_string_boundary_fact_owner.pgy";
 
 struct DirectMirScalarCfgProgramExtensionFact {
     let valid: Bool;
@@ -18,6 +20,7 @@ struct DirectMirScalarCfgProgramExtensionFact {
     let closed_call_abi: DirectMirClosedModuleCallAbiFact;
     let runtime_abi: DirectMirScalarProgramRuntimeAbiFact;
     let array_string_abi: DirectMirScalarProgramArrayStringAbiFact;
+    let array_string_boundary: DirectMirScalarProgramArrayStringBoundaryFact;
 }
 
 func DirectMirScalarCfgProgramExtensionFactEmpty(
@@ -28,7 +31,8 @@ func DirectMirScalarCfgProgramExtensionFactEmpty(
         DirectMirScalarProgramExpressionSetEmpty(), rows, rows, rows,
         DirectMirClosedModuleCallAbiFactEmpty(),
         DirectMirScalarProgramRuntimeAbiFactEmpty(),
-        DirectMirScalarProgramArrayStringAbiFactEmpty()
+        DirectMirScalarProgramArrayStringAbiFactEmpty(),
+        DirectMirScalarProgramArrayStringBoundaryFactEmpty()
     );
 }
 
@@ -48,6 +52,7 @@ func DirectMirScalarCfgProgramExtensionFactDigest(
     );
     hash = DirectMirCfgHashInt(hash, fact.runtime_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.array_string_abi.digest);
+    hash = DirectMirCfgHashInt(hash, fact.array_string_boundary.digest);
     return DirectMirCfgBoundedDigest(hash);
 }
 
@@ -58,39 +63,7 @@ func DirectMirScalarCfgProgramExtensionFactWithDigest(
         fact.valid, digest, fact.callable, fact.expressions,
         fact.block_condition_expression_rows,
         fact.operation_expression_rows, fact.block_return_expression_rows,
-        fact.closed_call_abi, fact.runtime_abi, fact.array_string_abi
+        fact.closed_call_abi, fact.runtime_abi, fact.array_string_abi,
+        fact.array_string_boundary
     );
-}
-
-func DirectMirScalarCfgProgramExtensionFactReady(
-    ref fact: DirectMirScalarCfgProgramExtensionFact
-) -> Bool {
-    if !fact.valid {
-        return fact.digest == 0 && !fact.callable.valid &&
-            DirectMirScalarProgramExpressionSetCanonicalEmpty(
-                fact.expressions) &&
-            ArrayLength(fact.block_condition_expression_rows) == 0 &&
-            ArrayLength(fact.operation_expression_rows) == 0 &&
-            ArrayLength(fact.block_return_expression_rows) == 0 &&
-            DirectMirClosedModuleCallAbiFactCanonicalEmpty(
-                fact.closed_call_abi) &&
-            DirectMirScalarProgramRuntimeAbiFactCanonicalEmpty(
-                fact.runtime_abi) &&
-            DirectMirScalarProgramArrayStringAbiReadyForExpressions(
-                fact.array_string_abi, fact.expressions);
-    }
-    let callable_ready: Bool =
-        (DirectMirScalarCfgProgramCallableFactReady(fact.callable) &&
-         DirectMirClosedModuleCallAbiFactReady(fact.closed_call_abi)) ||
-        (DirectMirScalarCfgProgramCallableFactCanonicalEmpty(fact.callable) &&
-         DirectMirClosedModuleCallAbiFactCanonicalEmpty(fact.closed_call_abi));
-    return fact.digest != 0 &&
-        fact.digest == DirectMirScalarCfgProgramExtensionFactDigest(fact) &&
-        callable_ready &&
-        DirectMirScalarProgramExpressionSetSemanticallyReady(
-            fact.expressions) &&
-        DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
-            fact.runtime_abi, fact.expressions) &&
-        DirectMirScalarProgramArrayStringAbiReadyForExpressions(
-            fact.array_string_abi, fact.expressions);
 }

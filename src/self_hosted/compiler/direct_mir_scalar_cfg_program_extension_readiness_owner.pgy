@@ -2,6 +2,8 @@
 
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy";
+import "direct_mir_scalar_program_array_string_boundary_plan_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_program_extension_fact_readiness_owner.pgy";
 
 func DirectMirScalarCfgProgramRoutineForBlock(
     ref plan: DirectMirScalarCfgGraphPlan, block: Int
@@ -169,6 +171,9 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
         if DirectMirScalarCfgProgramExpressionUseCount(
                 plan, expression_row) != 1 { return 11; }
         expression_row = expression_row + 1;
+    }
+    if !DirectMirScalarProgramArrayStringBoundaryReadyForPlan(plan) {
+        return 14;
     }
     return 0;
 }

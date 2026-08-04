@@ -3,6 +3,7 @@
 import "direct_mir_scalar_program_llvm_string_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_case_math_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_string_literal_expression_owner.pgy";
 
 func DirectMirScalarProgramLlvmBuiltinExpressionAt(
     kind: Int, result: String, result_type: String,
@@ -11,6 +12,10 @@ func DirectMirScalarProgramLlvmBuiltinExpressionAt(
     callable_ordinal: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> DirectMirScalarProgramLlvmStringExpression {
+    let literal: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmArrayStringLiteralExpressionAt(
+            kind, result, left, right, arguments);
+    if literal.matched { return literal; }
     let direct: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmDirectCallExpressionAt(
             kind, result, result_type, left, left_type, right, right_type,

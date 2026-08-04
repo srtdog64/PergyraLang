@@ -7,7 +7,8 @@ import "direct_mir_scalar_cfg_local_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_builtin_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy";
-import "direct_mir_scalar_program_llvm_foreign_declaration_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_string_cleanup_owner.pgy";
+import "direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy";
 import "direct_mir_scalar_cfg_program_llvm_signature_owner.pgy";
 import "direct_mir_llvm_text_format_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
@@ -187,7 +188,7 @@ func DirectMirScalarCfgEmitProgramLlvm(
     output = Concat(output, DirectMirScalarProgramLlvmStringGlobals(
         plan.program.expressions));
     output = Concat(output,
-        DirectMirScalarProgramLlvmForeignDeclarations(plan));
+        DirectMirScalarCfgLlvmForeignDeclarations(plan));
     output = Concat(output,
         DirectMirScalarCfgStringLlvmConcatBlock(
             plan, runtime.string_concat));

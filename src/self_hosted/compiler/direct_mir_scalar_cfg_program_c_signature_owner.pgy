@@ -10,7 +10,9 @@ func DirectMirScalarCfgProgramCType(
     if type_name == CompilerAbiLayoutStringTypeName() {
         return CompilerAbiLayoutStringCValueType();
     }
-    if type_name == CompilerAbiLayoutArrayStringTypeName() { return "pgy_as"; }
+    if type_name == CompilerAbiLayoutArrayStringTypeName() {
+        return CompilerAbiLayoutArrayStringCValueType();
+    }
     return "";
 }
 

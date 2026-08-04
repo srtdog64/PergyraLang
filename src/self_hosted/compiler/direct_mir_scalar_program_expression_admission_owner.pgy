@@ -7,6 +7,7 @@ import "direct_mir_scalar_program_expression_kind_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_value_type_owner.pgy";
 import "direct_mir_scalar_cfg_leaf_operand_owner.pgy";
+import "direct_mir_scalar_program_array_string_literal_admission_owner.pgy";
 
 func DirectMirScalarProgramAppendExpression(
     facts: DirectMirScalarProgramExpressionSet,
@@ -17,7 +18,8 @@ func DirectMirScalarProgramAppendExpression(
     ref value_types: DirectMirScalarCfgValueTypePlan,
     ref wire: DirectMirScalarCfgWireLocalRefs,
     local_offset: Int, parameter_types: Array<String>,
-    ref callable: DirectMirScalarCfgProgramCallableFact
+    ref callable: DirectMirScalarCfgProgramCallableFact,
+    expected_type: String
 ) -> DirectMirScalarProgramExpressionSet {
     let sequence: MirExpressionGraphSequence =
         DirectMirScalarCfgExpressionSequence(instruction);
@@ -29,6 +31,10 @@ func DirectMirScalarProgramAppendExpression(
     let count: Int = ArrayLength(sequence.arena.topology.node_kinds);
     if count < 1 || sequence.roots[0] < 0 ||
         sequence.roots[0] >= count { return invalid; }
+    let array_literal: DirectMirScalarProgramArrayStringLiteralAdmission =
+        DirectMirScalarProgramAppendArrayStringLiteral(
+            facts, sequence, uses, global_row, expected_type);
+    if array_literal.recognized { return array_literal.facts; }
     let graph_rows: Array<Int> = facts.graph_global_rows;
     let starts: Array<Int> = facts.graph_starts;
     let counts: Array<Int> = facts.graph_counts;

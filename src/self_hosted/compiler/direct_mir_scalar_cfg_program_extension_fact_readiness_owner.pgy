@@ -1,0 +1,50 @@
+// Canonical empty and sealed readiness for the optional program extension.
+
+import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
+
+func DirectMirScalarCfgProgramExtensionFactReady(
+    ref fact: DirectMirScalarCfgProgramExtensionFact
+) -> Bool {
+    if !fact.valid {
+        return fact.digest == 0 && !fact.callable.valid &&
+            DirectMirScalarProgramExpressionSetCanonicalEmpty(
+                fact.expressions) &&
+            ArrayLength(fact.block_condition_expression_rows) == 0 &&
+            ArrayLength(fact.operation_expression_rows) == 0 &&
+            ArrayLength(fact.block_return_expression_rows) == 0 &&
+            DirectMirClosedModuleCallAbiFactCanonicalEmpty(
+                fact.closed_call_abi) &&
+            DirectMirScalarProgramRuntimeAbiFactCanonicalEmpty(
+                fact.runtime_abi) &&
+            DirectMirScalarProgramArrayStringAbiReadyForExpressions(
+                fact.array_string_abi, fact.expressions) &&
+            DirectMirScalarProgramArrayStringBoundaryFactCanonicalEmpty(
+                fact.array_string_boundary);
+    }
+    let callable_ready: Bool =
+        (DirectMirScalarCfgProgramCallableFactReady(fact.callable) &&
+         DirectMirClosedModuleCallAbiFactReady(fact.closed_call_abi)) ||
+        (DirectMirScalarCfgProgramCallableFactCanonicalEmpty(fact.callable) &&
+         DirectMirClosedModuleCallAbiFactCanonicalEmpty(fact.closed_call_abi));
+    let array_boundary_ready: Bool =
+        DirectMirScalarProgramArrayStringBoundaryFactCanonicalEmpty(
+            fact.array_string_boundary);
+    if fact.callable.valid && fact.callable.signature.param.type_name ==
+            CompilerAbiLayoutArrayStringTypeName() {
+        array_boundary_ready =
+            DirectMirScalarProgramArrayStringBoundaryFactReady(
+                fact.array_string_boundary);
+    }
+    return fact.digest != 0 &&
+        fact.digest == DirectMirScalarCfgProgramExtensionFactDigest(fact) &&
+        callable_ready &&
+        (!fact.callable.valid ||
+         DirectMirScalarProgramArrayStringAbiMatchesCallable(
+            fact.array_string_abi, fact.callable.signature)) &&
+        DirectMirScalarProgramExpressionSetSemanticallyReady(
+            fact.expressions) &&
+        DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
+            fact.runtime_abi, fact.expressions) &&
+        DirectMirScalarProgramArrayStringAbiReadyForExpressions(
+            fact.array_string_abi, fact.expressions) && array_boundary_ready;
+}

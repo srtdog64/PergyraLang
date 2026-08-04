@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy";
+import "direct_mir_bounded_literal_index_owner.pgy";
 
 func DirectMirScalarCfgStringArrayIndexAbsentReady(
     fact: DirectMirScalarCfgStringArrayIndexFact
@@ -27,8 +28,7 @@ func DirectMirScalarCfgStringArrayIndexReady(
         fact.iteration_syntax_id < 0 || fact.literal != "") { return false; }
     if by_literal && (fact.value_id != "" || fact.source_name != "" ||
         fact.iteration_syntax_id >= 0 ||
-        !DirectMirScalarCfgCanonicalInt(fact.literal) ||
-        ToInt(fact.literal) < 0 || ToInt(fact.literal) >= element_count) {
+        !DirectMirBoundedLiteralIndexReady(fact.literal, element_count)) {
         return false;
     }
     if !require_bound_rows {

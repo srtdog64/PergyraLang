@@ -1,0 +1,32 @@
+// Value-carriage and ABI policy for scalar-program callable parameters.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_array_string_abi_fact_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+
+func DirectMirScalarProgramCallableValueTypeSupported(
+    type_name: String
+) -> Bool {
+    return DirectMirScalarCfgScalarTypeSupported(type_name) ||
+        type_name == CompilerAbiLayoutArrayStringTypeName();
+}
+
+func DirectMirScalarProgramCallableParameterSupported(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int
+) -> Bool {
+    if ordinal < 0 || ordinal >= signature.param_count { return false; }
+    let type_name: String = signature.parameters.type_names[ordinal];
+    if !DirectMirScalarProgramCallableValueTypeSupported(type_name) ||
+        signature.parameters.carriages[ordinal] != "value" ||
+        signature.parameters.resources[ordinal] != "none" ||
+        signature.parameters.pass_shapes[ordinal] != "direct" {
+        return false;
+    }
+    if type_name != CompilerAbiLayoutArrayStringTypeName() {
+        return !signature.parameters.abi_required[ordinal];
+    }
+    return signature.param_count == 1 && ordinal == 0 &&
+        signature.return_type == CompilerAbiLayoutStringTypeName() &&
+        signature.param.abi_required &&
+        DirectMirArrayStringCapturedAbiReady(signature.param.abi);
+}

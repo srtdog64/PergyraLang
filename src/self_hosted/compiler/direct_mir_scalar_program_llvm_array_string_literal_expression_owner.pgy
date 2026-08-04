@@ -1,0 +1,76 @@
+// LLVM caller-frame materialization for borrowed-static Array<String> literals.
+
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+
+func DirectMirScalarProgramLlvmArrayStringLiteralExpressionAt(
+    kind: Int, result: String, left: String, right: String,
+    arguments: Array<String>
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind != DirectMirScalarProgramExprArrayStringLiteral() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    let values: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(arguments) {
+        ArrayPush(values, arguments[row]); row = row + 1;
+    }
+    if ArrayLength(values) == 0 {
+        if left != "" { ArrayPush(values, left); }
+        if right != "" { ArrayPush(values, right); }
+    }
+    if ArrayLength(values) == 0 {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, "", "zeroinitializer");
+    }
+    let count: Int = ArrayLength(values);
+    let output: String = Concat("  ", result);
+    output = Concat(output, ".storage = alloca [");
+    output = Concat(output, ToString(count));
+    output = Concat(output, " x ptr], align 8\n");
+    let item: Int = 0;
+    while item < count {
+        output = Concat(output, "  "); output = Concat(output, result);
+        output = Concat(output, ".slot.");
+        output = Concat(output, ToString(item));
+        output = Concat(output, " = getelementptr inbounds [");
+        output = Concat(output, ToString(count));
+        output = Concat(output, " x ptr], ptr ");
+        output = Concat(output, result);
+        output = Concat(output, ".storage, i64 0, i64 ");
+        output = Concat(output, ToString(item)); output = Concat(output, "\n");
+        output = Concat(output, "  store ptr ");
+        output = Concat(output, values[item]); output = Concat(output, ", ptr ");
+        output = Concat(output, result); output = Concat(output, ".slot.");
+        output = Concat(output, ToString(item));
+        output = Concat(output, ", align 8\n");
+        item = item + 1;
+    }
+    output = Concat(output, "  "); output = Concat(output, result);
+    output = Concat(output, ".data = getelementptr inbounds [");
+    output = Concat(output, ToString(count));
+    output = Concat(output, " x ptr], ptr "); output = Concat(output, result);
+    output = Concat(output, ".storage, i64 0, i64 0\n  ");
+    output = Concat(output, result);
+    output = Concat(output,
+        ".data.value = insertvalue %pgy.array.string zeroinitializer, ptr ");
+    output = Concat(output, result); output = Concat(output, ".data, 0\n  ");
+    output = Concat(output, result);
+    output = Concat(output,
+        ".length.value = insertvalue %pgy.array.string ");
+    output = Concat(output, result);
+    output = Concat(output, ".data.value, i64 ");
+    output = Concat(output, ToString(count)); output = Concat(output, ", 1\n  ");
+    output = Concat(output, result);
+    output = Concat(output,
+        ".capacity.value = insertvalue %pgy.array.string ");
+    output = Concat(output, result);
+    output = Concat(output, ".length.value, i64 ");
+    output = Concat(output, ToString(count)); output = Concat(output, ", 2\n  ");
+    output = Concat(output, result);
+    output = Concat(output, " = insertvalue %pgy.array.string ");
+    output = Concat(output, result);
+    output = Concat(output, ".capacity.value, ptr null, 3\n");
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}

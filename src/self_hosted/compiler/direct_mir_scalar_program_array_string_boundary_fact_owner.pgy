@@ -1,0 +1,109 @@
+// One target-neutral Array<String> call/lifetime boundary in the program plan.
+
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "direct_mir_bounded_literal_index_owner.pgy";
+
+func DirectMirScalarProgramArrayStringCallerFrameStorage() -> Int { return 1; }
+func DirectMirScalarProgramArrayStringBorrowedStaticElements() -> Int { return 1; }
+func DirectMirScalarProgramArrayStringBorrowedResult() -> Int { return 1; }
+
+struct DirectMirScalarProgramArrayStringBoundaryFact {
+    let valid: Bool;
+    let digest: Int;
+    let literal_expression_row: Int;
+    let literal_operation_row: Int;
+    let literal_local_row: Int;
+    let element_count: Int;
+    let call_expression_row: Int;
+    let call_operation_row: Int;
+    let return_expression_row: Int;
+    let index_literal: String;
+    let callable_ordinal: Int;
+    let parameter_ordinal: Int;
+    let abi_layout_id: Int;
+    let storage_kind: Int;
+    let element_ownership: Int;
+    let result_ownership: Int;
+}
+
+func DirectMirScalarProgramArrayStringBoundaryFactEmpty(
+) -> DirectMirScalarProgramArrayStringBoundaryFact {
+    return DirectMirScalarProgramArrayStringBoundaryFact(
+        false, 0, -1, -1, -1, 0, -1, -1, -1, "", -1, -1, 0, 0, 0, 0);
+}
+
+func DirectMirScalarProgramArrayStringBoundaryFactDigest(
+    ref fact: DirectMirScalarProgramArrayStringBoundaryFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(269L, fact.literal_expression_row);
+    hash = DirectMirCfgHashInt(hash, fact.literal_operation_row);
+    hash = DirectMirCfgHashInt(hash, fact.literal_local_row);
+    hash = DirectMirCfgHashInt(hash, fact.element_count);
+    hash = DirectMirCfgHashInt(hash, fact.call_expression_row);
+    hash = DirectMirCfgHashInt(hash, fact.call_operation_row);
+    hash = DirectMirCfgHashInt(hash, fact.return_expression_row);
+    hash = DirectMirCfgHashString(hash, fact.index_literal);
+    hash = DirectMirCfgHashInt(hash, fact.callable_ordinal);
+    hash = DirectMirCfgHashInt(hash, fact.parameter_ordinal);
+    hash = DirectMirCfgHashInt(hash, fact.abi_layout_id);
+    hash = DirectMirCfgHashInt(hash, fact.storage_kind);
+    hash = DirectMirCfgHashInt(hash, fact.element_ownership);
+    hash = DirectMirCfgHashInt(hash, fact.result_ownership);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarProgramArrayStringBoundaryFactReady(
+    ref fact: DirectMirScalarProgramArrayStringBoundaryFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirScalarProgramArrayStringBoundaryFactDigest(fact) &&
+        fact.literal_expression_row >= 0 && fact.literal_operation_row >= 0 &&
+        fact.literal_local_row >= 0 && fact.element_count >= 0 &&
+        fact.call_expression_row >= 0 &&
+        fact.call_operation_row > fact.literal_operation_row &&
+        fact.return_expression_row >= 0 &&
+        DirectMirBoundedLiteralIndexReady(
+            fact.index_literal, fact.element_count) &&
+        fact.callable_ordinal == 1 && fact.parameter_ordinal == 0 &&
+        fact.abi_layout_id > 0 && fact.storage_kind ==
+            DirectMirScalarProgramArrayStringCallerFrameStorage() &&
+        fact.element_ownership ==
+            DirectMirScalarProgramArrayStringBorrowedStaticElements() &&
+        fact.result_ownership ==
+            DirectMirScalarProgramArrayStringBorrowedResult();
+}
+
+func DirectMirScalarProgramArrayStringBoundaryFactCanonicalEmpty(
+    ref fact: DirectMirScalarProgramArrayStringBoundaryFact
+) -> Bool {
+    return !fact.valid && fact.digest == 0 &&
+        fact.literal_expression_row == -1 && fact.literal_operation_row == -1 &&
+        fact.literal_local_row == -1 && fact.element_count == 0 &&
+        fact.call_expression_row == -1 && fact.call_operation_row == -1 &&
+        fact.return_expression_row == -1 && fact.index_literal == "" &&
+        fact.callable_ordinal == -1 && fact.parameter_ordinal == -1 &&
+        fact.abi_layout_id == 0 && fact.storage_kind == 0 &&
+        fact.element_ownership == 0 && fact.result_ownership == 0;
+}
+
+func DirectMirScalarProgramArrayStringBoundaryFactEqual(
+    ref left: DirectMirScalarProgramArrayStringBoundaryFact,
+    ref right: DirectMirScalarProgramArrayStringBoundaryFact
+) -> Bool {
+    return left.valid == right.valid && left.digest == right.digest &&
+        left.literal_expression_row == right.literal_expression_row &&
+        left.literal_operation_row == right.literal_operation_row &&
+        left.literal_local_row == right.literal_local_row &&
+        left.element_count == right.element_count &&
+        left.call_expression_row == right.call_expression_row &&
+        left.call_operation_row == right.call_operation_row &&
+        left.return_expression_row == right.return_expression_row &&
+        left.index_literal == right.index_literal &&
+        left.callable_ordinal == right.callable_ordinal &&
+        left.parameter_ordinal == right.parameter_ordinal &&
+        left.abi_layout_id == right.abi_layout_id &&
+        left.storage_kind == right.storage_kind &&
+        left.element_ownership == right.element_ownership &&
+        left.result_ownership == right.result_ownership;
+}

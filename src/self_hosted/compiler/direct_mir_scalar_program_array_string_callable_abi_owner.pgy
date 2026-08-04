@@ -1,0 +1,18 @@
+// Exact join between the program Array<String> ABI and one formal parameter.
+
+import "direct_mir_scalar_program_array_string_abi_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+
+func DirectMirScalarProgramArrayStringAbiMatchesCallable(
+    ref fact: DirectMirScalarProgramArrayStringAbiFact,
+    ref signature: DirectMirRoutineSignatureFact
+) -> Bool {
+    if signature.param_count != 1 || signature.param.type_name !=
+            CompilerAbiLayoutArrayStringTypeName() {
+        return true;
+    }
+    return DirectMirScalarProgramArrayStringAbiFactReady(fact) &&
+        signature.param.abi_required &&
+        DirectMirArrayStringCapturedAbiReady(signature.param.abi) &&
+        signature.param.abi_layout_id == fact.layout_id;
+}

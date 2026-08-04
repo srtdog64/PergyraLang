@@ -73,7 +73,7 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
         DirectMirScalarCfgProgramValueTypePlan(storage);
     let program: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFromOwners(
-            admitted, route, expressions,
+            admitted, route, storage, expressions,
             storage.blocks.condition_expression_rows,
             storage.operations.expression_rows,
             storage.blocks.return_expression_rows

@@ -1,0 +1,20 @@
+// Broad typed claimant envelope; final callable support remains a later gate.
+
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
+
+func DirectMirScalarProgramCallableRouteEnvelopeSupported(
+    ref signature: DirectMirRoutineSignatureFact
+) -> Bool {
+    if !DirectMirRoutineSignatureFactReady(signature) ||
+        signature.param_count < 1 ||
+        !DirectMirScalarCfgScalarTypeSupported(signature.return_type) {
+        return false;
+    }
+    let ordinal: Int = 0;
+    while ordinal < signature.param_count {
+        if !DirectMirScalarProgramCallableParameterSupported(
+                signature, ordinal) { return false; }
+        ordinal = ordinal + 1;
+    }
+    return true;
+}

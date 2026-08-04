@@ -1,0 +1,36 @@
+// C caller-frame materialization for borrowed-static Array<String> literals.
+
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "abi_layout_row_owner.pgy";
+
+func DirectMirScalarProgramCArrayStringLiteralExpression(
+    kind: Int, left: String, right: String, arguments: Array<String>
+) -> Option<String> {
+    if kind != DirectMirScalarProgramExprArrayStringLiteral() { return None; }
+    let values: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(arguments) {
+        ArrayPush(values, arguments[row]); row = row + 1;
+    }
+    if ArrayLength(values) == 0 {
+        if left != "" { ArrayPush(values, left); }
+        if right != "" { ArrayPush(values, right); }
+    }
+    let type_name: String = CompilerAbiLayoutArrayStringCValueType();
+    if ArrayLength(values) == 0 {
+        return Some(Concat("((", Concat(type_name,
+            "){NULL, 0, 0, NULL})")));
+    }
+    let output: String = Concat("((", Concat(type_name,
+        "){(const char *[]){"));
+    let item: Int = 0;
+    while item < ArrayLength(values) {
+        if item > 0 { output = Concat(output, ", "); }
+        output = Concat(output, values[item]); item = item + 1;
+    }
+    output = Concat(output, "}, ");
+    output = Concat(output, ToString(ArrayLength(values)));
+    output = Concat(output, ", ");
+    output = Concat(output, ToString(ArrayLength(values)));
+    return Some(Concat(output, ", NULL})"));
+}

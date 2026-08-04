@@ -1,0 +1,44 @@
+// Exact normalized shape of caller-frame Array<String> literal values.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramArrayStringLiteralOperandRows(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Array<Int> {
+    let rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(
+        facts.nary_operands, node);
+    if ArrayLength(rows) != 0 { return rows; }
+    if facts.node_lefts[node] >= 0 { ArrayPush(rows, facts.node_lefts[node]); }
+    if facts.node_rights[node] >= 0 { ArrayPush(rows, facts.node_rights[node]); }
+    return rows;
+}
+
+func DirectMirScalarProgramArrayStringLiteralNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    if facts.node_kinds[node] !=
+            DirectMirScalarProgramExprArrayStringLiteral() ||
+        facts.node_types[node] != CompilerAbiLayoutArrayStringTypeName() ||
+        facts.node_local_rows[node] != -1 ||
+        facts.node_parameter_ordinals[node] != -1 ||
+        facts.node_literals[node] != "" ||
+        facts.node_callable_rows[node] != -1 { return false; }
+    let operands: Array<Int> =
+        DirectMirScalarProgramArrayStringLiteralOperandRows(facts, node);
+    let nary: Bool = DirectMirScalarProgramNaryOperandEntry(
+        facts.nary_operands, node) >= 0;
+    if nary && (facts.node_lefts[node] != -1 ||
+            facts.node_rights[node] != -1) { return false; }
+    if !nary && ArrayLength(operands) > 2 { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(operands) {
+        let operand: Int = operands[row];
+        if operand < 0 || operand >= node || facts.node_kinds[operand] !=
+                DirectMirScalarProgramExprStringLiteral() ||
+            facts.node_types[operand] != CompilerAbiLayoutStringTypeName() {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}

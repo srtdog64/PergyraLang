@@ -9,8 +9,10 @@ func DirectMirScalarProgramCStringArrayStorageBlock(
     ref abi: DirectMirScalarProgramArrayStringAbiFact
 ) -> String {
     if !DirectMirScalarProgramArrayStringAbiFactReady(abi) { return ""; }
-    let output: String =
-        "typedef struct { const char **data; size_t length; size_t capacity; void *allocator; } pgy_as;\n";
+    let type_name: String = CompilerAbiLayoutArrayStringCValueType();
+    let output: String = Concat(
+        "typedef struct { const char **data; size_t length; size_t capacity; void *allocator; } ",
+        Concat(type_name, ";\n"));
     output = Concat(output, Concat("_Static_assert(sizeof(pgy_as) == ",
         Concat(ToString(abi.size), ", \"Array<String> size\");\n")));
     output = Concat(output, Concat("_Static_assert(_Alignof(pgy_as) == ",
@@ -66,23 +68,6 @@ func DirectMirScalarProgramCStringCollectionMaterialization(
     }
     if abi.string_split_id != 0 {
         output = Concat(output, StringRuntimeCSplitBlock());
-    }
-    return output;
-}
-
-func DirectMirScalarProgramCStringArrayCleanup(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
-) -> String {
-    let output: String = "";
-    let start: Int = plan.routines.local_starts[routine];
-    let end: Int = start + plan.routines.local_counts[routine];
-    let row: Int = start;
-    while row < end {
-        if plan.local_types[row] == CompilerAbiLayoutArrayStringTypeName() {
-            output = Concat(output, Concat("    pgy_as_drop(&pgy_local_",
-                Concat(ToString(row), ");\n")));
-        }
-        row = row + 1;
     }
     return output;
 }

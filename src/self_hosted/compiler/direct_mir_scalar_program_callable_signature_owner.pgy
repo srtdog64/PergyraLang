@@ -2,55 +2,35 @@
 
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "abi_layout_row_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
 
 func DirectMirScalarProgramCallableSignatureSupported(
     ref signature: DirectMirRoutineSignatureFact
 ) -> Bool {
     if !DirectMirRoutineSignatureFactReady(signature) ||
         signature.param_count <= 0 { return false; }
-    if signature.param_count == 1 &&
-        ((signature.return_type == CompilerAbiLayoutBoolTypeName() &&
-          signature.param.type_name == CompilerAbiLayoutIntTypeName()) ||
-         (signature.return_type == CompilerAbiLayoutStringTypeName() &&
-          signature.param.type_name == CompilerAbiLayoutStringTypeName())) {
-        return true;
+    let shape_ready: Bool = signature.return_type ==
+        CompilerAbiLayoutIntTypeName();
+    if signature.param_count == 1 {
+        shape_ready = shape_ready ||
+            (signature.return_type == CompilerAbiLayoutBoolTypeName() &&
+             signature.param.type_name == CompilerAbiLayoutIntTypeName()) ||
+            (signature.return_type == CompilerAbiLayoutStringTypeName() &&
+             (signature.param.type_name == CompilerAbiLayoutStringTypeName() ||
+              signature.param.type_name ==
+                CompilerAbiLayoutArrayStringTypeName()));
     }
-    if signature.return_type != CompilerAbiLayoutIntTypeName() {
-        return false;
-    }
+    if !shape_ready { return false; }
     let ordinal: Int = 0;
     while ordinal < signature.param_count {
-        if signature.parameters.type_names[ordinal] !=
-                CompilerAbiLayoutIntTypeName() {
+        if !DirectMirScalarProgramCallableParameterSupported(
+                signature, ordinal) ||
+            (signature.return_type == CompilerAbiLayoutIntTypeName() &&
+             signature.parameters.type_names[ordinal] !=
+                CompilerAbiLayoutIntTypeName()) {
             return false;
         }
         ordinal = ordinal + 1;
     }
     return true;
-}
-
-func DirectMirScalarProgramCallableSignatureCanonicalEmpty(
-    ref signature: DirectMirRoutineSignatureFact
-) -> Bool {
-    let param: DirectMirRoutineParamFact = signature.param;
-    return !signature.valid && signature.digest == 0 && signature.row < 0 &&
-        signature.name == "" && signature.kind == "" &&
-        signature.source_syntax_id == 0 && signature.receiver_carriage == "" &&
-        signature.return_type == "" && signature.param_count == 0 &&
-        !signature.parameters.valid && signature.parameters.digest == 0 &&
-        ArrayLength(signature.parameters.names) == 0 &&
-        !param.valid && param.digest == 0 && param.name == "" &&
-        param.type_name == "" && param.carriage == "" &&
-        param.resource == "" && param.pass_shape == "" &&
-        param.abi_type_name == "" && param.abi_layout_id == 0 &&
-        !param.abi_required && !param.abi.valid && param.abi.type_name == "" &&
-        param.abi.size_text == "" && param.abi.align_text == "" &&
-        param.abi.runtime_fn == "" && param.abi.inner_c_type == "" &&
-        param.abi.representation_text == "" && param.abi.discriminant == "" &&
-        param.abi.primary_tag_text == "" && param.abi.secondary_tag_text == "" &&
-        param.abi.niche_none_pattern == "" &&
-        ArrayLength(param.abi.field_names) == 0 &&
-        ArrayLength(param.abi.field_offsets) == 0 &&
-        ArrayLength(param.abi.field_sizes) == 0 &&
-        ArrayLength(param.abi.field_aligns) == 0;
 }
