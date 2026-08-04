@@ -50,7 +50,9 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
                 storage, expressions
             );
         if !admission.valid {
-            Die("direct MIR scalar CFG program routine admission is invalid");
+            Die(Concat(
+                "direct MIR scalar CFG program routine admission is invalid: ordinal=",
+                ToString(ordinal)));
         }
         storage = admission.storage;
         expressions = admission.expressions;

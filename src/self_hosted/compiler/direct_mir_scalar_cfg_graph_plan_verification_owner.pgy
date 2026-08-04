@@ -1,0 +1,22 @@
+// Final readiness and repaired-digest mutation boundary for a constructed plan.
+
+import "direct_mir_scalar_cfg_graph_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_graph_mutation_owner.pgy";
+import "direct_mir_scalar_cfg_graph_identity_owner.pgy";
+
+func DirectMirScalarCfgGraphPlanVerified(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> DirectMirScalarCfgGraphPlan {
+    let verified: DirectMirScalarCfgGraphPlan =
+        DirectMirScalarCfgGraphPlanWithDigest(
+            plan, DirectMirScalarCfgGraphPlanDigest(plan));
+    if !DirectMirScalarCfgGraphPlanReady(verified) {
+        Die(Concat(
+            "direct MIR scalar CFG verified plan identity is invalid: program_readiness=",
+            ToString(DirectMirScalarCfgProgramExtensionReadinessCode(verified))));
+    }
+    if !DirectMirScalarCfgGraphPlanMutationRejected(verified) {
+        Die("direct MIR scalar CFG verified plan mutation rejection is invalid");
+    }
+    return verified;
+}

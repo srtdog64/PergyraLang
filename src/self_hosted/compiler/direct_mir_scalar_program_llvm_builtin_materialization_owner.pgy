@@ -1,7 +1,6 @@
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_readiness_owner.pgy";
-import "direct_mir_scalar_program_llvm_string_window_materialization_owner.pgy";
-import "direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy";
+import "direct_mir_scalar_program_llvm_additional_materialization_owner.pgy";
 import "direct_mir_scalar_program_runtime_materialization_requirement_owner.pgy";
 func DirectMirScalarProgramLlvmAsciiCaseMaterialization(
     fact: CompilerRuntimeCallAbiFact,
@@ -71,10 +70,7 @@ func DirectMirScalarProgramLlvmBuiltinMaterialization(
             DirectMirScalarProgramLlvmAsciiCaseMaterialization(
                 runtime.string_to_lower, 65, 90, 32));
     }
-    output = Concat(output, DirectMirScalarProgramLlvmStringWindowMaterialization(
-        plan, runtime));
     output = Concat(output,
-        DirectMirScalarProgramLlvmStringCollectionMaterialization(
-            plan, runtime));
+        DirectMirScalarProgramLlvmAdditionalMaterialization(plan, runtime));
     return output;
 }

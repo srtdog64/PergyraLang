@@ -1,0 +1,17 @@
+// C dispatch for direct-call and StringReplace/math expression families.
+
+import "direct_mir_scalar_program_c_direct_call_expression_owner.pgy";
+import "direct_mir_scalar_program_c_case_math_expression_owner.pgy";
+
+func DirectMirScalarProgramCExtendedExpression(
+    kind: Int, left: String, right: String, arguments: Array<String>,
+    callable_ordinal: Int,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> Option<String> {
+    let direct: Option<String> =
+        DirectMirScalarProgramCDirectCallExpression(
+            kind, left, right, arguments, callable_ordinal);
+    if IsSome(direct) { return direct; }
+    return DirectMirScalarProgramCCaseMathExpression(
+        kind, left, right, arguments, runtime);
+}

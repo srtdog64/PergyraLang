@@ -1,0 +1,49 @@
+// LLVM StringReplace/math calls from one sealed runtime projection.
+
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_case_math_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramLlvmCaseMathExpressionAt(
+    kind: Int, result: String, left: String, right: String,
+    arguments: Array<String>,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> DirectMirScalarProgramLlvmStringExpression {
+    let fact: CompilerRuntimeCallAbiFact = runtime.case_math.abs;
+    let return_type: String = "i64";
+    let argument_type: String = "i64";
+    let values: Array<String> = [];
+    if kind == DirectMirScalarProgramExprStringReplace() {
+        fact = runtime.case_math.replace; return_type = "ptr";
+        argument_type = "ptr";
+        let ordinal: Int = 0;
+        while ordinal < ArrayLength(arguments) {
+            ArrayPush(values, arguments[ordinal]); ordinal = ordinal + 1;
+        }
+    } else if kind == DirectMirScalarProgramExprAbsInt() {
+        ArrayPush(values, left);
+    } else if kind == DirectMirScalarProgramExprMinInt() {
+        fact = runtime.case_math.min;
+        ArrayPush(values, left); ArrayPush(values, right);
+    } else if kind == DirectMirScalarProgramExprMaxInt() {
+        fact = runtime.case_math.max;
+        ArrayPush(values, left); ArrayPush(values, right);
+    } else { return DirectMirScalarProgramLlvmStringExpressionMissing(); }
+    if !fact.ok || ArrayLength(values) < 1 {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let output: String = Concat("  ", Concat(result, Concat(
+        " = call ", Concat(return_type, Concat(" @", Concat(
+        fact.symbol, "("))))));
+    let ordinal: Int = 0;
+    while ordinal < ArrayLength(values) {
+        if ordinal > 0 { output = Concat(output, ", "); }
+        output = Concat(output, Concat(
+            argument_type, Concat(" ", values[ordinal])));
+        ordinal = ordinal + 1;
+    }
+    output = Concat(output, ")\n");
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}

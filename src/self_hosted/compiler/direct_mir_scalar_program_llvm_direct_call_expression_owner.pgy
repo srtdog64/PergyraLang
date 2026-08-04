@@ -1,0 +1,41 @@
+// LLVM direct-call instruction from ordered GraphPlan arguments.
+
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "direct_mir_scalar_program_llvm_type_owner.pgy";
+
+func DirectMirScalarProgramLlvmDirectCallExpressionAt(
+    kind: Int, result: String, result_type: String,
+    left: String, left_type: String, right: String, right_type: String,
+    arguments: Array<String>, argument_types: Array<String>,
+    callable_ordinal: Int
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind != DirectMirScalarProgramExprDirectCall() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    let values: Array<String> = arguments;
+    let types: Array<String> = argument_types;
+    if ArrayLength(values) == 0 {
+        if left != "" { ArrayPush(values, left); ArrayPush(types, left_type); }
+        if right != "" { ArrayPush(values, right); ArrayPush(types, right_type); }
+    }
+    if callable_ordinal < 0 || ArrayLength(values) < 1 ||
+        ArrayLength(values) != ArrayLength(types) {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let output: String = Concat("  ", Concat(result, Concat(
+        " = call ", Concat(DirectMirScalarProgramLlvmType(result_type),
+        Concat(" @pgy.scalar.routine.", Concat(
+        ToString(callable_ordinal), "("))))));
+    let ordinal: Int = 0;
+    while ordinal < ArrayLength(values) {
+        if ordinal > 0 { output = Concat(output, ", "); }
+        output = Concat(output, DirectMirScalarProgramLlvmType(types[ordinal]));
+        output = Concat(output, Concat(" ", values[ordinal]));
+        ordinal = ordinal + 1;
+    }
+    output = Concat(output, ")\n");
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}

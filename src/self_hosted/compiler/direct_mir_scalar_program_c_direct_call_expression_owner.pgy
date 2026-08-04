@@ -1,0 +1,25 @@
+// C direct-call syntax from ordered GraphPlan argument values.
+
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+
+func DirectMirScalarProgramCDirectCallExpression(
+    kind: Int, left: String, right: String,
+    arguments: Array<String>, callable_ordinal: Int
+) -> Option<String> {
+    if kind != DirectMirScalarProgramExprDirectCall() { return None; }
+    let values: Array<String> = arguments;
+    if ArrayLength(values) == 0 {
+        if left != "" { ArrayPush(values, left); }
+        if right != "" { ArrayPush(values, right); }
+    }
+    if callable_ordinal < 0 || ArrayLength(values) < 1 { return None; }
+    let output: String = Concat("pgy_scalar_routine_",
+        Concat(ToString(callable_ordinal), "("));
+    let ordinal: Int = 0;
+    while ordinal < ArrayLength(values) {
+        if ordinal > 0 { output = Concat(output, ", "); }
+        output = Concat(output, values[ordinal]);
+        ordinal = ordinal + 1;
+    }
+    return Some(Concat(output, ")"));
+}

@@ -1,6 +1,7 @@
 // Canonical routine identities consumed by the scalar-program partition.
-
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+import "direct_mir_scalar_program_callable_signature_owner.pgy";
+import "direct_mir_scalar_cfg_program_parameter_identity_owner.pgy";
 
 struct DirectMirScalarCfgProgramRoutineIdentity {
     let valid: Bool;
@@ -10,6 +11,7 @@ struct DirectMirScalarCfgProgramRoutineIdentity {
     let names: Array<String>;
     let return_types: Array<String>;
     let parameter_counts: Array<Int>;
+    let parameter_starts: Array<Int>;
     let parameter_types: Array<String>;
     let signature_digests: Array<Int>;
     let cfg_digests: Array<Int>;
@@ -31,14 +33,16 @@ func DirectMirScalarCfgProgramRoutineIdentityFromOwners(
     let names: Array<String> = [entry.name];
     let return_types: Array<String> = [entry.return_type];
     let parameter_counts: Array<Int> = [entry.param_count];
-    let parameter_types: Array<String> = [""];
+    let parameter_starts: Array<Int> = [0];
+    let parameter_types: Array<String> = [];
     let signature_digests: Array<Int> = [entry.digest];
     let cfg_digests: Array<Int> = [DirectMirCfgDigestFromIndex(entry_index)];
     if !DirectMirRoutineSignatureFactReady(entry) || entry.name != "Main" ||
         entry.return_type != "Void" || entry.param_count != 0 {
         return DirectMirScalarCfgProgramRoutineIdentity(
             false, roles, source_rows, source_syntax_ids, names, return_types,
-            parameter_counts, parameter_types, signature_digests, cfg_digests
+            parameter_counts, parameter_starts, parameter_types,
+            signature_digests, cfg_digests
         );
     }
     if routine_count == 2 {
@@ -47,8 +51,8 @@ func DirectMirScalarCfgProgramRoutineIdentityFromOwners(
                 routines, callable_row,
                 callable_index.block_instruction_counts[0]
             );
-        if !DirectMirRoutineSignatureFactReady(callable) ||
-            callable.param_count != 1 || callable_row < 0 { roles = []; }
+        if !DirectMirScalarProgramCallableSignatureSupported(callable) ||
+            callable_row < 0 { roles = []; }
         if ArrayLength(roles) == 1 {
             ArrayPush(roles, DirectMirScalarCfgRoutineRoleCallable());
             ArrayPush(source_rows, callable_row);
@@ -56,7 +60,9 @@ func DirectMirScalarCfgProgramRoutineIdentityFromOwners(
             ArrayPush(names, callable.name);
             ArrayPush(return_types, callable.return_type);
             ArrayPush(parameter_counts, callable.param_count);
-            ArrayPush(parameter_types, callable.param.type_name);
+            ArrayPush(parameter_starts, ArrayLength(parameter_types));
+            if !DirectMirScalarCfgProgramAppendParameterTypes(
+                    parameter_types, callable) { roles = []; }
             ArrayPush(signature_digests, callable.digest);
             ArrayPush(cfg_digests, DirectMirCfgDigestFromIndex(callable_index));
         }
@@ -64,6 +70,6 @@ func DirectMirScalarCfgProgramRoutineIdentityFromOwners(
     return DirectMirScalarCfgProgramRoutineIdentity(
         ArrayLength(roles) == routine_count, roles, source_rows,
         source_syntax_ids, names, return_types, parameter_counts,
-        parameter_types, signature_digests, cfg_digests
+        parameter_starts, parameter_types, signature_digests, cfg_digests
     );
 }

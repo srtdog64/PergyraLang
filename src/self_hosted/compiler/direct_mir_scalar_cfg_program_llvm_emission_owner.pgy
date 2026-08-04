@@ -7,6 +7,7 @@ import "direct_mir_scalar_cfg_local_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_builtin_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy";
+import "direct_mir_scalar_cfg_program_llvm_signature_owner.pgy";
 import "direct_mir_llvm_text_format_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
@@ -57,23 +58,6 @@ func DirectMirScalarCfgProgramLlvmOperation(
     output = Concat(output, " ");
     output = Concat(output, expression.value);
     return Concat(output, ")\n");
-}
-
-func DirectMirScalarCfgProgramLlvmRoutineSignature(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
-) -> String {
-    if routine == plan.routines.entrypoint_ordinal {
-        return "define i32 @main()";
-    }
-    let output: String = "define internal ";
-    output = Concat(output, DirectMirScalarProgramLlvmType(
-        plan.routines.return_types[routine]));
-    output = Concat(output, " @pgy.scalar.routine.");
-    output = Concat(output, ToString(routine));
-    output = Concat(output, "(");
-    output = Concat(output, DirectMirScalarProgramLlvmType(
-        plan.routines.parameter_types[routine]));
-    return Concat(output, " %pgy.param.0)");
 }
 
 func DirectMirScalarCfgProgramLlvmRoutine(

@@ -26,23 +26,34 @@ func InvalidDirectMirRoutineParamFact() -> DirectMirRoutineParamFact {
     );
 }
 
-func DirectMirRoutineParamFactDigest(
-    ref fact: DirectMirRoutineParamFact
+func DirectMirRoutineParamFactDigestFromFields(
+    name: String, type_name: String, carriage: String, resource: String,
+    pass_shape: String, abi_type_name: String, abi_layout_id: Int,
+    abi_required: Bool
 ) -> Int {
-    if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashString(103L, fact.name);
-    hash = DirectMirCfgHashString(hash, fact.type_name);
-    hash = DirectMirCfgHashString(hash, fact.carriage);
-    hash = DirectMirCfgHashString(hash, fact.resource);
-    hash = DirectMirCfgHashString(hash, fact.pass_shape);
-    hash = DirectMirCfgHashString(hash, fact.abi_type_name);
-    hash = DirectMirCfgHashInt(hash, fact.abi_layout_id);
-    if fact.abi_required {
+    let hash: Long = DirectMirCfgHashString(103L, name);
+    hash = DirectMirCfgHashString(hash, type_name);
+    hash = DirectMirCfgHashString(hash, carriage);
+    hash = DirectMirCfgHashString(hash, resource);
+    hash = DirectMirCfgHashString(hash, pass_shape);
+    hash = DirectMirCfgHashString(hash, abi_type_name);
+    hash = DirectMirCfgHashInt(hash, abi_layout_id);
+    if abi_required {
         hash = DirectMirCfgHashInt(hash, 1);
     } else {
         hash = DirectMirCfgHashInt(hash, 0);
     }
     return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirRoutineParamFactDigest(
+    ref fact: DirectMirRoutineParamFact
+) -> Int {
+    if !fact.valid { return 0; }
+    return DirectMirRoutineParamFactDigestFromFields(
+        fact.name, fact.type_name, fact.carriage, fact.resource,
+        fact.pass_shape, fact.abi_type_name, fact.abi_layout_id,
+        fact.abi_required);
 }
 
 func DirectMirRoutineParamFactWithDigest(

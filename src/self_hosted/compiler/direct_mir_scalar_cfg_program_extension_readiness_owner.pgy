@@ -1,6 +1,7 @@
 // Cross-links between typed program expressions and routine-owned GraphPlan ranges.
 
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy";
 
 func DirectMirScalarCfgProgramRoutineForBlock(
     ref plan: DirectMirScalarCfgGraphPlan, block: Int
@@ -42,39 +43,10 @@ func DirectMirScalarCfgProgramExpressionRowReady(
     let count: Int = facts.graph_counts[expression_row];
     let root: Int = facts.graph_roots[expression_row];
     if facts.node_types[root] != expected_type { return false; }
-    let local_start: Int = plan.routines.local_starts[routine];
-    let local_end: Int = local_start + plan.routines.local_counts[routine];
     let node: Int = start;
     while node < start + count {
-        let kind: Int = facts.node_kinds[node];
-        if kind == DirectMirScalarProgramExprLocal() &&
-            (facts.node_local_rows[node] < local_start ||
-             facts.node_local_rows[node] >= local_end ||
-             facts.node_types[node] !=
-                plan.local_types[facts.node_local_rows[node]]) {
-            return false;
-        }
-        if kind == DirectMirScalarProgramExprParameter() &&
-            (plan.routines.parameter_counts[routine] != 1 ||
-             facts.node_parameter_ordinals[node] != 0 ||
-             facts.node_types[node] !=
-                plan.routines.parameter_types[routine]) {
-            return false;
-        }
-        if kind == DirectMirScalarProgramExprDirectCall() {
-            let target: Int = facts.node_callable_rows[node];
-            let argument: Int = facts.node_lefts[node];
-            if routine != plan.routines.entrypoint_ordinal ||
-                target != plan.program.callable.routine_ordinal ||
-                target < 0 || target >= ArrayLength(plan.routines.roles) ||
-                argument < start ||
-                plan.routines.parameter_counts[target] != 1 ||
-                facts.node_types[argument] !=
-                    plan.routines.parameter_types[target] ||
-                facts.node_types[node] != plan.routines.return_types[target] {
-                return false;
-            }
-        }
+        if !DirectMirScalarCfgProgramExpressionIdentityReady(
+                plan, facts, node, routine, start) { return false; }
         node = node + 1;
     }
     return true;

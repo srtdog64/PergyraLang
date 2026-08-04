@@ -3,6 +3,7 @@
 import "direct_mir_scalar_program_runtime_abi_fact_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "../codegen/runtime_abi/collection_runtime_owner.pgy";
+import "direct_mir_scalar_program_case_math_runtime_projection_owner.pgy";
 
 struct DirectMirScalarProgramRuntimeAbiProjection {
     let valid: Bool;
@@ -19,6 +20,7 @@ struct DirectMirScalarProgramRuntimeAbiProjection {
     let string_to_int: CompilerRuntimeCallAbiFact;
     let array_string_length: CompilerRuntimeCallAbiFact;
     let array_string_get: CompilerRuntimeCallAbiFact;
+    let case_math: DirectMirScalarProgramCaseMathRuntimeProjection;
 }
 
 func DirectMirScalarProgramRuntimeAbiProjectionFromFact(
@@ -49,5 +51,7 @@ func DirectMirScalarProgramRuntimeAbiProjectionFromFact(
         CompilerRuntimeCallAbiFactFromRowInput(
             CompilerRuntimeCallAbiRowInput(
                 "collection", "array-string.get", CollectionRuntimeCGetFn(2),
-                CompilerRuntimeCallAbiMaterialGeneratedHelper())));
+                CompilerRuntimeCallAbiMaterialGeneratedHelper())),
+        DirectMirScalarProgramCaseMathRuntimeProjectionFromIds(
+            fact.case_math));
 }

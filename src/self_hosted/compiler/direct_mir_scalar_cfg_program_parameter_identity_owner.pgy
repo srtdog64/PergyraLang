@@ -1,0 +1,18 @@
+// Ordered callable parameter-type projection into the routine partition.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+
+func DirectMirScalarCfgProgramAppendParameterTypes(
+    inout types: Array<String>,
+    ref signature: DirectMirRoutineSignatureFact
+) -> Bool {
+    if !DirectMirRoutineSignatureFactReady(signature) { return false; }
+    let ordinal: Int = 0;
+    while ordinal < signature.param_count {
+        let type_name: String = signature.parameters.type_names[ordinal];
+        if type_name == "" { return false; }
+        ArrayPush(types, type_name);
+        ordinal = ordinal + 1;
+    }
+    return true;
+}

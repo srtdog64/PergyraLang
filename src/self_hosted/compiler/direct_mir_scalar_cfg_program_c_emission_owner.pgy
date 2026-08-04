@@ -7,46 +7,8 @@ import "direct_mir_scalar_cfg_local_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_c_materialization_owner.pgy";
 import "direct_mir_scalar_program_c_builtin_materialization_owner.pgy";
 import "direct_mir_scalar_program_c_string_collection_materialization_owner.pgy";
+import "direct_mir_scalar_cfg_program_c_signature_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
-
-func DirectMirScalarCfgProgramCType(
-    type_name: String, int_c_type: String
-) -> String {
-    if type_name == CompilerAbiLayoutIntTypeName() { return int_c_type; }
-    if type_name == CompilerAbiLayoutBoolTypeName() { return "bool"; }
-    if type_name == CompilerAbiLayoutStringTypeName() {
-        return CompilerAbiLayoutStringCValueType();
-    }
-    if type_name == CompilerAbiLayoutArrayStringTypeName() {
-        return "pgy_as";
-    }
-    return "";
-}
-
-func DirectMirScalarCfgProgramCRoutineName(routine: Int) -> String {
-    return Concat("pgy_scalar_routine_", ToString(routine));
-}
-
-func DirectMirScalarCfgProgramCSignature(
-    ref plan: DirectMirScalarCfgGraphPlan,
-    routine: Int, int_c_type: String, prototype: Bool
-) -> String {
-    if routine == plan.routines.entrypoint_ordinal {
-        if prototype { return ""; }
-        return "int main(void)";
-    }
-    let output: String = "static ";
-    output = Concat(output, DirectMirScalarCfgProgramCType(
-        plan.routines.return_types[routine], int_c_type));
-    output = Concat(output, " ");
-    output = Concat(output, DirectMirScalarCfgProgramCRoutineName(routine));
-    output = Concat(output, "(");
-    output = Concat(output, DirectMirScalarCfgProgramCType(
-        plan.routines.parameter_types[routine], int_c_type));
-    output = Concat(output, " pgy_param_0)");
-    if prototype { return Concat(output, ";\n"); }
-    return output;
-}
 
 func DirectMirScalarCfgProgramCOperation(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,

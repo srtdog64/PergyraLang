@@ -1,111 +1,61 @@
-// Typed one-argument direct-call admission keyed by carried SyntaxNodeId.
+// Typed n-argument direct-call admission keyed only by carried SyntaxNodeId.
 
-import "direct_mir_scalar_program_expression_mutation_owner.pgy";
-import "direct_mir_scalar_cfg_expression_base_owner.pgy";
-import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
-import "direct_mir_scalar_cfg_value_type_owner.pgy";
-import "direct_mir_scalar_cfg_leaf_operand_owner.pgy";
+import "direct_mir_scalar_program_builtin_argument_chain_owner.pgy";
+import "direct_mir_scalar_program_callable_fact_owner.pgy";
 
-func DirectMirScalarProgramAppendCallExpression(
-    facts: DirectMirScalarProgramExpressionSet,
-    ref sequence: MirExpressionGraphSequence,
-    ref uses: MirRoutineInstructionUseFacts,
-    global_row: Int, local_instruction: Int,
-    ref locals: DirectMirScalarCfgLocalRefPlan,
-    ref value_types: DirectMirScalarCfgValueTypePlan,
-    ref wire: DirectMirScalarCfgWireLocalRefs,
-    local_offset: Int, callable_syntax_id: Int, callable_ordinal: Int,
-    callable_parameter_type: String, callable_return_type: String
-) -> DirectMirScalarProgramExpressionSet {
-    let invalid: DirectMirScalarProgramExpressionSet =
-        DirectMirScalarProgramExpressionSetInvalid(facts);
-    let arena: SemanticExpressionGraphArena = sequence.arena;
-    if ArrayLength(arena.topology.node_kinds) != 4 ||
-        sequence.roots[0] != 3 ||
-        arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
-        arena.topology.node_kinds[1] != AstExpressionNodeCall() ||
-        arena.topology.left_children[1] != 0 ||
-        arena.topology.node_kinds[3] != AstExpressionNodeCallArgument() ||
-        arena.topology.left_children[3] != 1 ||
-        arena.topology.right_children[3] != 2 ||
-        arena.call_target_kinds[1] != SemanticCallTargetDirect() {
-        return invalid;
+struct DirectMirScalarProgramDirectCallFact {
+    let recognized: Bool;
+    let valid: Bool;
+    let complete: Bool;
+    let argument_rows: Array<Int>;
+    let call_node: Int;
+    let callable_ordinal: Int;
+}
+
+func DirectMirScalarProgramDirectCallFactInvalid(
+    recognized: Bool
+) -> DirectMirScalarProgramDirectCallFact {
+    let rows: Array<Int> = [];
+    return DirectMirScalarProgramDirectCallFact(
+        recognized, false, false, rows, -1, -1);
+}
+
+func DirectMirScalarProgramDirectCallFactFromGraph(
+    ref sequence: MirExpressionGraphSequence, node: Int,
+    source_rows: Array<Int>, normalized_types: Array<String>,
+    ref callable: DirectMirScalarCfgProgramCallableFact
+) -> DirectMirScalarProgramDirectCallFact {
+    let missing: DirectMirScalarProgramDirectCallFact =
+        DirectMirScalarProgramDirectCallFactInvalid(false);
+    if node < 0 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[node] !=
+            AstExpressionNodeCallArgument() {
+        return missing;
     }
+    let chain: DirectMirScalarProgramBuiltinArgumentChain =
+        DirectMirScalarProgramBuiltinArgumentChainFromGraph(
+            sequence, node, source_rows, normalized_types);
+    if !chain.valid { return missing; }
     let target_syntax_id: Int =
-        arena.identities.call_target_syntax_ids[1];
-    if target_syntax_id != callable_syntax_id || callable_ordinal < 0 {
-        return invalid;
+        sequence.arena.identities.call_target_syntax_ids[chain.call_node];
+    if target_syntax_id == 0 { return missing; }
+    if !DirectMirScalarCfgProgramCallableFactReady(callable) ||
+        target_syntax_id != callable.signature.source_syntax_id {
+        return DirectMirScalarProgramDirectCallFactInvalid(true);
     }
-    let graph_rows: Array<Int> = facts.graph_global_rows;
-    let starts: Array<Int> = facts.graph_starts;
-    let counts: Array<Int> = facts.graph_counts;
-    let roots: Array<Int> = facts.graph_roots;
-    let kinds: Array<Int> = facts.node_kinds;
-    let types: Array<String> = facts.node_types;
-    let lefts: Array<Int> = facts.node_lefts;
-    let rights: Array<Int> = facts.node_rights;
-    let local_rows: Array<Int> = facts.node_local_rows;
-    let params: Array<Int> = facts.node_parameter_ordinals;
-    let literals: Array<String> = facts.node_literals;
-    let callable_rows: Array<Int> = facts.node_callable_rows;
-    let start: Int = ArrayLength(kinds);
-    let argument_kind: Int = arena.topology.node_kinds[2];
-    let argument_type: String = callable_parameter_type;
-    let argument_local: Int = -1;
-    let argument_literal: String = "";
-    let normalized_argument_kind: Int = 0;
-    let expected_uses: Int = 0;
-    if argument_kind == AstExpressionNodeLeaf() {
-        let operand: DirectMirScalarCfgLeafOperand =
-            DirectMirScalarCfgLeafOperandFromOwners(
-                uses, global_row, 0, local_instruction, 2,
-                arena.node_texts[2], locals.value_names, locals, wire);
-        argument_local = operand.local_row;
-        if operand.value_row >= 0 &&
-            operand.value_row < ArrayLength(locals.value_local_rows) {
-            argument_local = locals.value_local_rows[operand.value_row];
+    let count: Int = ArrayLength(chain.argument_rows);
+    if count > callable.signature.param_count {
+        return DirectMirScalarProgramDirectCallFactInvalid(true);
+    }
+    let ordinal: Int = 0;
+    while ordinal < count {
+        if normalized_types[chain.argument_rows[ordinal]] !=
+                callable.signature.parameters.type_names[ordinal] {
+            return DirectMirScalarProgramDirectCallFactInvalid(true);
         }
-        if !operand.valid || operand.use_count != 1 || argument_local < 0 ||
-            argument_local >= ArrayLength(value_types.local_types) ||
-            value_types.local_types[argument_local] != argument_type {
-            return invalid;
-        }
-        argument_local = argument_local + local_offset;
-        normalized_argument_kind = DirectMirScalarProgramExprLocal();
-        expected_uses = 1;
-    } else if argument_kind == AstExpressionNodeIntegerLiteral() &&
-            argument_type == CompilerAbiLayoutIntTypeName() &&
-            DirectMirScalarCfgCanonicalInt(arena.node_texts[2]) {
-        normalized_argument_kind = DirectMirScalarProgramExprIntLiteral();
-        argument_literal = arena.node_texts[2];
-    } else if argument_kind == AstExpressionNodeBoolLiteral() &&
-            argument_type == CompilerAbiLayoutBoolTypeName() &&
-            (arena.node_texts[2] == "true" || arena.node_texts[2] == "false") {
-        normalized_argument_kind = DirectMirScalarProgramExprBoolLiteral();
-        argument_literal = arena.node_texts[2];
-    } else if argument_kind == AstExpressionNodeStringLiteral() &&
-            argument_type == CompilerAbiLayoutStringTypeName() {
-        let content: Option<String> =
-            DirectMirAsciiLiteralContent(arena.node_texts[2]);
-        if !IsSome(content) || !DirectMirScalarProgramLiteralEmbeddable(
-                UnwrapOption(content)) { return invalid; }
-        normalized_argument_kind = DirectMirScalarProgramExprStringLiteral();
-        argument_literal = UnwrapOption(content);
-    } else { return invalid; }
-    if MirRoutineInstructionUseCountAtGlobal(uses, global_row) !=
-            expected_uses { return invalid; }
-    DirectMirScalarProgramAppendExpressionNode(
-        kinds, types, lefts, rights, local_rows, params, literals,
-        callable_rows, normalized_argument_kind, argument_type, -1, -1,
-        argument_local, -1, argument_literal, -1);
-    DirectMirScalarProgramAppendExpressionNode(
-        kinds, types, lefts, rights, local_rows, params, literals,
-        callable_rows, DirectMirScalarProgramExprDirectCall(),
-        callable_return_type, start, -1, -1, -1, "", callable_ordinal);
-    ArrayPush(graph_rows, global_row); ArrayPush(starts, start);
-    ArrayPush(counts, 2); ArrayPush(roots, start + 1);
-    return DirectMirScalarProgramExpressionSet(
-        true, 0, graph_rows, starts, counts, roots, kinds, types,
-        lefts, rights, local_rows, params, literals, callable_rows,
-        facts.nary_operands);
+        ordinal = ordinal + 1;
+    }
+    return DirectMirScalarProgramDirectCallFact(
+        true, true, count == callable.signature.param_count,
+        chain.argument_rows, chain.call_node, callable.routine_ordinal);
 }

@@ -1,0 +1,21 @@
+// LLVM materialization composition for the sealed StringReplace/math subfact.
+
+import "direct_mir_scalar_program_llvm_string_replace_materialization_owner.pgy";
+import "direct_mir_scalar_program_llvm_int_math_materialization_owner.pgy";
+
+func DirectMirScalarProgramLlvmCaseMathMaterialization(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> String {
+    let ids: DirectMirScalarProgramCaseMathRuntimeIds =
+        plan.program.runtime_abi.case_math;
+    if !DirectMirScalarProgramCaseMathRuntimeRequired(ids) { return ""; }
+    if !DirectMirScalarProgramCaseMathRuntimeProjectionReady(
+            runtime.case_math, ids) { return ""; }
+    let output: String =
+        DirectMirScalarProgramLlvmStringReplaceMaterialization(
+            runtime.case_math, ids);
+    return Concat(output,
+        DirectMirScalarProgramLlvmIntMathMaterialization(
+            runtime.case_math, ids));
+}

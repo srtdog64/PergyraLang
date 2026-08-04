@@ -1,0 +1,49 @@
+// Cross-link local, formal-parameter, and direct-call identities to partitions.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+
+func DirectMirScalarCfgProgramExpressionIdentityReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref facts: DirectMirScalarProgramExpressionSet,
+    node: Int, routine: Int, graph_start: Int
+) -> Bool {
+    let kind: Int = facts.node_kinds[node];
+    if kind == DirectMirScalarProgramExprLocal() {
+        let local_start: Int = plan.routines.local_starts[routine];
+        let local_end: Int = local_start + plan.routines.local_counts[routine];
+        return facts.node_local_rows[node] >= local_start &&
+            facts.node_local_rows[node] < local_end &&
+            facts.node_types[node] ==
+                plan.local_types[facts.node_local_rows[node]];
+    }
+    if kind == DirectMirScalarProgramExprParameter() {
+        let ordinal: Int = facts.node_parameter_ordinals[node];
+        return ordinal >= 0 &&
+            ordinal < plan.routines.parameter_counts[routine] &&
+            facts.node_types[node] == plan.routines.parameter_types[
+                plan.routines.parameter_starts[routine] + ordinal];
+    }
+    if kind != DirectMirScalarProgramExprDirectCall() { return true; }
+    let target: Int = facts.node_callable_rows[node];
+    let arguments: Array<Int> =
+        DirectMirScalarProgramDirectCallArgumentRows(facts, node);
+    if routine != plan.routines.entrypoint_ordinal ||
+        target != plan.program.callable.routine_ordinal ||
+        target < 0 || target >= ArrayLength(plan.routines.roles) ||
+        ArrayLength(arguments) != plan.routines.parameter_counts[target] ||
+        facts.node_types[node] != plan.routines.return_types[target] {
+        return false;
+    }
+    let ordinal: Int = 0;
+    while ordinal < ArrayLength(arguments) {
+        if arguments[ordinal] < graph_start || arguments[ordinal] >= node ||
+            facts.node_types[arguments[ordinal]] !=
+                plan.routines.parameter_types[
+                    plan.routines.parameter_starts[target] + ordinal] {
+            return false;
+        }
+        ordinal = ordinal + 1;
+    }
+    return true;
+}

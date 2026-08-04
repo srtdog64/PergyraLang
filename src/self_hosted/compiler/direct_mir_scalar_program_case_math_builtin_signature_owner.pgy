@@ -1,0 +1,40 @@
+// Canonical semantic-registry projection for bounded String/math builtins.
+
+import "direct_mir_scalar_program_case_math_expression_kind_owner.pgy";
+
+func DirectMirScalarProgramCaseMathBuiltinSignatureExpected(
+    name: String
+) -> Array<String> {
+    if name == "StringReplace" {
+        return ["String", "Unknown|Unknown|Unknown", ToString(
+            DirectMirScalarProgramExprStringReplace())];
+    }
+    if name == "Abs" {
+        return ["Unknown", "Unknown", ToString(
+            DirectMirScalarProgramExprAbsInt())];
+    }
+    if name == "Min" {
+        return ["Unknown", "Unknown|Unknown", ToString(
+            DirectMirScalarProgramExprMinInt())];
+    }
+    if name == "Max" {
+        return ["Unknown", "Unknown|Unknown", ToString(
+            DirectMirScalarProgramExprMaxInt())];
+    }
+    return [];
+}
+
+func DirectMirScalarProgramCaseMathBuiltinResultType(
+    name: String, registry_type: String
+) -> String {
+    if name == "Abs" || name == "Min" || name == "Max" { return "Int"; }
+    return registry_type;
+}
+
+func DirectMirScalarProgramCaseMathBuiltinArgumentType(
+    name: String, registry_type: String
+) -> String {
+    if name == "StringReplace" { return "String"; }
+    if name == "Abs" || name == "Min" || name == "Max" { return "Int"; }
+    return registry_type;
+}

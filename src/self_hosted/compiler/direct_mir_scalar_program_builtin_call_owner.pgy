@@ -35,6 +35,9 @@ func DirectMirScalarProgramBuiltinCallFactFromGraph(
     if !chain.valid {
         return DirectMirScalarProgramBuiltinCallFactInvalid(true);
     }
+    if sequence.arena.identities.call_target_syntax_ids[chain.call_node] != 0 {
+        return missing;
+    }
     let signature: DirectMirScalarProgramBuiltinSignatureFact =
         DirectMirScalarProgramBuiltinSignatureFactFromName(
             sequence.arena.call_target_names[chain.call_node]);
@@ -55,19 +58,4 @@ func DirectMirScalarProgramBuiltinCallFactFromGraph(
     return DirectMirScalarProgramBuiltinCallFact(
         true, true, complete, signature.expression_kind,
         chain.argument_rows, chain.call_node);
-}
-
-func DirectMirScalarProgramBuiltinCallsComplete(
-    ref sequence: MirExpressionGraphSequence, consumed: Array<Bool>
-) -> Bool {
-    if ArrayLength(consumed) != ArrayLength(
-            sequence.arena.topology.node_kinds) { return false; }
-    let node: Int = 0;
-    while node < ArrayLength(consumed) {
-        let is_call: Bool = sequence.arena.topology.node_kinds[node] ==
-            AstExpressionNodeCall();
-        if is_call != consumed[node] { return false; }
-        node = node + 1;
-    }
-    return true;
 }

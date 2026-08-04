@@ -6,6 +6,8 @@ import "direct_mir_scalar_cfg_program_instruction_expression_owner.pgy";
 import "direct_mir_scalar_cfg_graph_input_owner.pgy";
 import "direct_mir_scalar_cfg_phi_operation_admission_owner.pgy";
 import "direct_mir_scalar_cfg_program_arithmetic_admission_owner.pgy";
+import "direct_mir_scalar_cfg_program_parameter_identity_owner.pgy";
+import "direct_mir_scalar_cfg_program_expression_diagnostic_owner.pgy";
 
 struct DirectMirScalarCfgProgramRoutineAdmission {
     let valid: Bool;
@@ -129,8 +131,9 @@ func DirectMirScalarCfgProgramAppendRoutine(
     let blocks: DirectMirScalarCfgProgramBlockStorage = storage.blocks;
     let operations: DirectMirScalarCfgProgramOperationStorage =
         storage.operations;
-    let parameter_type: String = "";
-    if signature.param_count == 1 { parameter_type = signature.param.type_name; }
+    let parameter_types: Array<String> = [];
+    if !DirectMirScalarCfgProgramAppendParameterTypes(
+            parameter_types, signature) { return invalid; }
     let block: Int = 0;
     while block < ArrayLength(index.block_starts) {
         if !index.block_reachable[block] { return invalid; }
@@ -163,9 +166,9 @@ func DirectMirScalarCfgProgramAppendRoutine(
                     DirectMirScalarCfgProgramAppendTypedExpression(
                         expressions, instruction, input.use_facts, global_row,
                         local_instruction, locals, types, input.wire,
-                        local_offset, parameter_type, callable,
+                        local_offset, parameter_types, callable,
                         types.value_types[result]);
-                if !IsSome(expression_row_opt) { return invalid; }
+                if !IsSome(expression_row_opt) { DirectMirScalarCfgProgramExpressionAdmissionFailed(global_row, source); return invalid; }
                 let expression_row: Int = UnwrapOption(expression_row_opt);
                 if !DirectMirScalarCfgProgramArithmeticReady(
                         expressions, blocks.condition_expression_rows,
@@ -182,9 +185,9 @@ func DirectMirScalarCfgProgramAppendRoutine(
                     DirectMirScalarCfgProgramAppendTypedExpression(
                         expressions, instruction, input.use_facts, global_row,
                         local_instruction, locals, types, input.wire,
-                        local_offset, parameter_type, callable,
+                        local_offset, parameter_types, callable,
                         CompilerAbiLayoutStringTypeName());
-                if !IsSome(expression_row_opt) { return invalid; }
+                if !IsSome(expression_row_opt) { DirectMirScalarCfgProgramExpressionAdmissionFailed(global_row, source); return invalid; }
                 let expression_row: Int = UnwrapOption(expression_row_opt);
                 operations =
                     DirectMirScalarCfgProgramOperationsAppendExpression(
@@ -205,9 +208,9 @@ func DirectMirScalarCfgProgramAppendRoutine(
                     DirectMirScalarCfgProgramAppendTypedExpression(
                     expressions, instruction, input.use_facts, global_row,
                     local_instruction, locals, types, input.wire,
-                    local_offset, parameter_type, callable,
+                    local_offset, parameter_types, callable,
                     CompilerAbiLayoutBoolTypeName());
-                if !IsSome(condition_row_opt) { return invalid; }
+                if !IsSome(condition_row_opt) { DirectMirScalarCfgProgramExpressionAdmissionFailed(global_row, source); return invalid; }
                 condition_row = UnwrapOption(condition_row_opt);
                 if !DirectMirScalarCfgProgramArithmeticReady(
                         expressions, blocks.condition_expression_rows,
@@ -226,9 +229,9 @@ func DirectMirScalarCfgProgramAppendRoutine(
                     DirectMirScalarCfgProgramAppendTypedExpression(
                     expressions, instruction, input.use_facts, global_row,
                     local_instruction, locals, types, input.wire,
-                    local_offset, parameter_type, callable,
+                    local_offset, parameter_types, callable,
                     signature.return_type);
-                if !IsSome(return_row_opt) { return invalid; }
+                if !IsSome(return_row_opt) { DirectMirScalarCfgProgramExpressionAdmissionFailed(global_row, source); return invalid; }
                 return_row = UnwrapOption(return_row_opt);
             } else { return invalid; }
             instruction_row = instruction_row + 1;

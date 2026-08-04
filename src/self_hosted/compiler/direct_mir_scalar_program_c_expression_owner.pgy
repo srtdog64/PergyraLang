@@ -44,7 +44,8 @@ func DirectMirScalarProgramCExpressionValues(
                 expressions.node_local_rows[node]
             );
         } else if kind == DirectMirScalarProgramExprParameter() {
-            value = "pgy_param_0";
+            value = Concat("pgy_param_", ToString(
+                expressions.node_parameter_ordinals[node]));
         } else if kind == DirectMirScalarProgramExprIntLiteral() {
             value = Concat(expressions.node_literals[node], "LL");
         } else if kind == DirectMirScalarProgramExprBoolLiteral() {
@@ -60,7 +61,8 @@ func DirectMirScalarProgramCExpressionValues(
         } else {
             let builtin_value: Option<String> =
                 DirectMirScalarProgramCBuiltinExpression(
-                    kind, left, right, arguments, runtime);
+                    kind, left, right, arguments,
+                    expressions.node_callable_rows[node], runtime);
             if IsSome(builtin_value) { value = UnwrapOption(builtin_value); }
             if value == "" {
             if kind == DirectMirScalarProgramExprLogicalNot() {
@@ -75,11 +77,8 @@ func DirectMirScalarProgramCExpressionValues(
             value = Concat("(", Concat(left, Concat(" + ", Concat(right, ")"))));
             } else if kind == DirectMirScalarProgramExprSubtractInt() {
             value = Concat("(", Concat(left, Concat(" - ", Concat(right, ")"))));
-            } else if kind == DirectMirScalarProgramExprDirectCall() {
-            value = Concat("pgy_scalar_routine_", Concat(
-                ToString(expressions.node_callable_rows[node]),
-                Concat("(", Concat(left, ")"))
-            ));
+            } else if kind == DirectMirScalarProgramExprNegateInt() {
+            value = Concat("(-", Concat(left, ")"));
             } else {
                 Die("direct MIR scalar program C expression kind is unsupported");
             }

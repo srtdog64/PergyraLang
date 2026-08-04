@@ -1,6 +1,7 @@
 // Sole decision for whether a scalar program needs generated runtime bodies.
 
 import "direct_mir_scalar_program_runtime_abi_fact_owner.pgy";
+import "direct_mir_scalar_program_case_math_runtime_projection_owner.pgy";
 
 func DirectMirScalarProgramRuntimeRequiresMaterialization(
     ref abi: DirectMirScalarProgramRuntimeAbiFact
@@ -11,5 +12,6 @@ func DirectMirScalarProgramRuntimeRequiresMaterialization(
         abi.string_substring_with_len_id != 0 ||
         abi.string_contains_id != 0 || abi.string_split_id != 0 ||
         abi.string_to_int_id != 0 || abi.array_string_length_id != 0 ||
-        abi.array_string_get_id != 0;
+        abi.array_string_get_id != 0 ||
+        DirectMirScalarProgramCaseMathRuntimeRequired(abi.case_math);
 }

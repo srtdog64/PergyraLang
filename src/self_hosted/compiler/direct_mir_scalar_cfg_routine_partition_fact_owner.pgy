@@ -14,6 +14,7 @@ struct DirectMirScalarCfgRoutinePartitionFact {
     let names: Array<String>;
     let return_types: Array<String>;
     let parameter_counts: Array<Int>;
+    let parameter_starts: Array<Int>;
     let parameter_types: Array<String>;
     let signature_digests: Array<Int>;
     let cfg_digests: Array<Int>;
@@ -43,6 +44,7 @@ func DirectMirScalarCfgRoutinePartitionDigest(
     hash = DirectMirScalarCfgHashStrings(hash, fact.names);
     hash = DirectMirScalarCfgHashStrings(hash, fact.return_types);
     hash = DirectMirScalarCfgHashInts(hash, fact.parameter_counts);
+    hash = DirectMirScalarCfgHashInts(hash, fact.parameter_starts);
     hash = DirectMirScalarCfgHashStrings(hash, fact.parameter_types);
     hash = DirectMirScalarCfgHashInts(hash, fact.signature_digests);
     hash = DirectMirScalarCfgHashInts(hash, fact.cfg_digests);
@@ -85,9 +87,12 @@ func DirectMirScalarCfgRoutinePartitionReady(
         count != ArrayLength(fact.source_syntax_ids) ||
         count != ArrayLength(fact.names) || count != ArrayLength(fact.return_types) ||
         count != ArrayLength(fact.parameter_counts) ||
-        count != ArrayLength(fact.parameter_types) ||
+        count != ArrayLength(fact.parameter_starts) ||
         count != ArrayLength(fact.signature_digests) ||
         count != ArrayLength(fact.cfg_digests) ||
+        !DirectMirScalarCfgRoutinePartitionRangesReady(
+            fact.parameter_starts, fact.parameter_counts,
+            ArrayLength(fact.parameter_types)) ||
         !DirectMirScalarCfgRoutinePartitionRangesReady(
             fact.local_starts, fact.local_counts, local_count) ||
         !DirectMirScalarCfgRoutinePartitionRangesReady(
@@ -104,10 +109,8 @@ func DirectMirScalarCfgRoutinePartitionReady(
     while row < count {
         if fact.source_rows[row] < 0 || fact.source_syntax_ids[row] <= 0 ||
             fact.names[row] == "" || fact.return_types[row] == "" ||
-            fact.parameter_counts[row] < 0 || fact.parameter_counts[row] > 1 ||
+            fact.parameter_counts[row] < 0 ||
             fact.signature_digests[row] == 0 || fact.cfg_digests[row] == 0 ||
-            (fact.parameter_counts[row] == 0 && fact.parameter_types[row] != "") ||
-            (fact.parameter_counts[row] == 1 && fact.parameter_types[row] == "") ||
             (row == fact.entrypoint_ordinal &&
              (fact.roles[row] != DirectMirScalarCfgRoutineRoleEntrypoint() ||
               fact.names[row] != "Main" || fact.return_types[row] != "Void" ||
@@ -115,6 +118,12 @@ func DirectMirScalarCfgRoutinePartitionReady(
             (row != fact.entrypoint_ordinal &&
              fact.roles[row] != DirectMirScalarCfgRoutineRoleCallable()) {
             return false;
+        }
+        let parameter: Int = fact.parameter_starts[row];
+        while parameter < fact.parameter_starts[row] +
+                fact.parameter_counts[row] {
+            if fact.parameter_types[parameter] == "" { return false; }
+            parameter = parameter + 1;
         }
         let prior: Int = 0;
         while prior < row {
@@ -142,11 +151,13 @@ func DirectMirScalarCfgSingleRoutinePartitionFromOwners(
         signature.param_count != 0 {
         Die("direct MIR scalar CFG entrypoint partition is invalid");
     }
+    let parameter_types: Array<String> = [];
     let fact: DirectMirScalarCfgRoutinePartitionFact =
         DirectMirScalarCfgRoutinePartitionFact(
             true, 0, 0, [DirectMirScalarCfgRoutineRoleEntrypoint()],
             [routine_row], [signature.source_syntax_id], [signature.name],
-            [signature.return_type], [signature.param_count], [""],
+            [signature.return_type], [signature.param_count], [0],
+            parameter_types,
             [signature.digest], [DirectMirCfgDigestFromIndex(index)],
             [0], [local_count], [0], [value_count], [0], [block_count],
             [0], [operation_count], [0], [phi_count]
@@ -155,8 +166,9 @@ func DirectMirScalarCfgSingleRoutinePartitionFromOwners(
         fact.valid, DirectMirScalarCfgRoutinePartitionDigest(fact),
         fact.entrypoint_ordinal, fact.roles, fact.source_rows,
         fact.source_syntax_ids, fact.names, fact.return_types,
-        fact.parameter_counts, fact.parameter_types, fact.signature_digests,
-        fact.cfg_digests, fact.local_starts, fact.local_counts,
+        fact.parameter_counts, fact.parameter_starts, fact.parameter_types,
+        fact.signature_digests, fact.cfg_digests,
+        fact.local_starts, fact.local_counts,
         fact.value_starts, fact.value_counts, fact.block_starts,
         fact.block_counts, fact.operation_starts, fact.operation_counts,
         fact.phi_starts, fact.phi_counts

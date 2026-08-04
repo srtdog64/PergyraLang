@@ -1,0 +1,84 @@
+// Ordered formal-parameter identity without an unsupported struct array ABI.
+
+import "direct_mir_routine_param_fact_owner.pgy";
+
+struct DirectMirRoutineParameterSetFact {
+    let valid: Bool;
+    let digest: Int;
+    let names: Array<String>;
+    let type_names: Array<String>;
+    let carriages: Array<String>;
+    let resources: Array<String>;
+    let pass_shapes: Array<String>;
+    let abi_type_names: Array<String>;
+    let abi_layout_ids: Array<Int>;
+    let abi_required: Array<Bool>;
+    let param_digests: Array<Int>;
+    let first: DirectMirRoutineParamFact;
+}
+
+func DirectMirRoutineParameterSetFactInvalid(
+) -> DirectMirRoutineParameterSetFact {
+    let strings: Array<String> = [];
+    let ints: Array<Int> = []; let bools: Array<Bool> = [];
+    return DirectMirRoutineParameterSetFact(
+        false, 0, strings, strings, strings, strings, strings, strings,
+        ints, bools, ints, InvalidDirectMirRoutineParamFact());
+}
+
+func DirectMirRoutineParameterSetFactDigest(
+    ref fact: DirectMirRoutineParameterSetFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(107L, ArrayLength(fact.names));
+    let row: Int = 0;
+    while row < ArrayLength(fact.names) {
+        hash = DirectMirCfgHashInt(hash, row);
+        hash = DirectMirCfgHashInt(hash, fact.param_digests[row]);
+        row = row + 1;
+    }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirRoutineParameterSetFactReady(
+    ref fact: DirectMirRoutineParameterSetFact
+) -> Bool {
+    let count: Int = ArrayLength(fact.names);
+    if !fact.valid || fact.digest == 0 ||
+        fact.digest != DirectMirRoutineParameterSetFactDigest(fact) ||
+        count != ArrayLength(fact.type_names) ||
+        count != ArrayLength(fact.carriages) ||
+        count != ArrayLength(fact.resources) ||
+        count != ArrayLength(fact.pass_shapes) ||
+        count != ArrayLength(fact.abi_type_names) ||
+        count != ArrayLength(fact.abi_layout_ids) ||
+        count != ArrayLength(fact.abi_required) ||
+        count != ArrayLength(fact.param_digests) ||
+        (count == 0 && fact.first.valid) ||
+        (count > 0 && (!DirectMirRoutineParamFactReady(fact.first) ||
+         fact.first.digest != fact.param_digests[0])) { return false; }
+    let row: Int = 0;
+    while row < count {
+        if fact.names[row] == "" || fact.type_names[row] == "" ||
+            fact.carriages[row] == "" || fact.resources[row] == "" ||
+            fact.pass_shapes[row] == "" ||
+            fact.abi_type_names[row] != fact.type_names[row] ||
+            (fact.abi_required[row] && fact.abi_layout_ids[row] <= 0) ||
+            (!fact.abi_required[row] && fact.abi_layout_ids[row] != 0) ||
+            fact.param_digests[row] !=
+                DirectMirRoutineParamFactDigestFromFields(
+                    fact.names[row], fact.type_names[row],
+                    fact.carriages[row], fact.resources[row],
+                    fact.pass_shapes[row], fact.abi_type_names[row],
+                    fact.abi_layout_ids[row], fact.abi_required[row]) {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if fact.names[prior] == fact.names[row] { return false; }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}

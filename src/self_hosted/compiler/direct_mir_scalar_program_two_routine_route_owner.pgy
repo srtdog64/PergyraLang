@@ -2,6 +2,7 @@
 
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "abi_layout_row_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
 
 struct DirectMirScalarProgramTwoRoutineRows {
     let valid: Bool;
@@ -34,19 +35,23 @@ func DirectMirScalarProgramTwoRoutineRowsFromAdmitted(
             }
             entrypoint_row = row;
         } else {
-            let bool_callable: Bool = signature.return_type ==
-                    CompilerAbiLayoutBoolTypeName() &&
-                signature.param.type_name == CompilerAbiLayoutIntTypeName();
-            let string_callable: Bool = signature.return_type ==
-                    CompilerAbiLayoutStringTypeName() &&
-                signature.param.type_name == CompilerAbiLayoutStringTypeName();
-            if callable_row >= 0 || signature.param_count != 1 ||
-                (!bool_callable && !string_callable) ||
-                signature.param.carriage != "value" ||
-                signature.param.resource != "none" ||
-                signature.param.pass_shape != "direct" ||
-                signature.param.abi_required {
+            if callable_row >= 0 || signature.param_count < 1 ||
+                !DirectMirScalarCfgScalarTypeSupported(
+                    signature.return_type) {
                 return DirectMirScalarProgramTwoRoutineRows(false, -1, -1);
+            }
+            let ordinal: Int = 0;
+            while ordinal < signature.param_count {
+                if !DirectMirScalarCfgScalarTypeSupported(
+                        signature.parameters.type_names[ordinal]) ||
+                    signature.parameters.carriages[ordinal] != "value" ||
+                    signature.parameters.resources[ordinal] != "none" ||
+                    signature.parameters.pass_shapes[ordinal] != "direct" ||
+                    signature.parameters.abi_required[ordinal] {
+                    return DirectMirScalarProgramTwoRoutineRows(
+                        false, -1, -1);
+                }
+                ordinal = ordinal + 1;
             }
             callable_row = row;
         }

@@ -1,0 +1,28 @@
+// Standalone C StringReplace helper selected by its sealed runtime fact.
+
+import "direct_mir_scalar_program_case_math_runtime_projection_owner.pgy";
+
+func DirectMirScalarProgramCStringReplaceMaterialization(
+    ref projection: DirectMirScalarProgramCaseMathRuntimeProjection,
+    ref ids: DirectMirScalarProgramCaseMathRuntimeIds
+) -> String {
+    if ids.replace_id == 0 { return ""; }
+    if !projection.replace.ok || projection.replace.runtime_call_abi_id !=
+            ids.replace_id { return ""; }
+    let output: String = Concat("static char *", projection.replace.symbol);
+    output = Concat(output,
+        "(const char *source, const char *old_value, const char *new_value)\n{\n");
+    output = Concat(output,
+        "    size_t old_len = strlen(old_value);\n    size_t new_len = strlen(new_value);\n    size_t source_len = strlen(source);\n");
+    output = Concat(output,
+        "    if (old_len == 0) { char *copy = (char *)malloc(source_len + 1); memcpy(copy, source, source_len + 1); return copy; }\n");
+    output = Concat(output,
+        "    size_t count = 0; const char *scan = source;\n    while ((scan = strstr(scan, old_value)) != NULL) { count++; scan += old_len; }\n");
+    output = Concat(output,
+        "    size_t result_len = source_len;\n    if (new_len >= old_len) result_len += count * (new_len - old_len);\n    else result_len -= count * (old_len - new_len);\n");
+    output = Concat(output,
+        "    char *result = (char *)malloc(result_len + 1); char *dst = result; scan = source;\n    while (*scan) {\n");
+    output = Concat(output,
+        "        if (strncmp(scan, old_value, old_len) == 0) { memcpy(dst, new_value, new_len); dst += new_len; scan += old_len; }\n        else { *dst++ = *scan++; }\n    }\n");
+    return Concat(output, "    *dst = '\\0'; return result;\n}\n\n");
+}

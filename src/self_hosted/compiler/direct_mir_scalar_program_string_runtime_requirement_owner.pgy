@@ -64,6 +64,8 @@ func DirectMirScalarProgramStringRuntimeRequirement(
         expressions, DirectMirScalarProgramExprSubstringWithLen());
     let collection: DirectMirScalarProgramStringCollectionRuntimeIds =
         DirectMirScalarProgramStringCollectionRuntimeRequirement(expressions);
+    let case_math: DirectMirScalarProgramCaseMathRuntimeIds =
+        DirectMirScalarProgramCaseMathRuntimeRequirement(expressions);
     if (compare_required && !CompilerRuntimeCallAbiStringCompareFactReady(compare)) ||
         (concat_required && !CompilerRuntimeCallAbiStringConcatFactReady(concat)) ||
         (to_string_required && !CompilerRuntimeCallAbiStringToStringFactReady(to_string)) ||
@@ -76,7 +78,8 @@ func DirectMirScalarProgramStringRuntimeRequirement(
             "string_int_int_to_string")) ||
         (bounded_required && !DirectMirScalarProgramStringGeneratedAbiReady(
             bounded, "substring-with-len", StringRuntimeCSubstringWithLenFn(),
-            "string_int_int_int_to_string")) || !collection.valid {
+            "string_int_int_int_to_string")) || !collection.valid ||
+        !DirectMirScalarProgramCaseMathRuntimeIdsReady(case_math) {
         return DirectMirScalarProgramRuntimeAbiFactEmpty();
     }
     let compare_id: Int = 0; let concat_id: Int = 0;
@@ -97,7 +100,7 @@ func DirectMirScalarProgramStringRuntimeRequirement(
             to_lower_id, length_id, substring_id, bounded_id,
             collection.contains_id, collection.split_id,
             collection.to_int_id, collection.array_length_id,
-            collection.array_get_id);
+            collection.array_get_id, case_math);
     return DirectMirScalarProgramRuntimeAbiFactWithDigest(
         source, DirectMirScalarProgramRuntimeAbiFactDigest(source));
 }

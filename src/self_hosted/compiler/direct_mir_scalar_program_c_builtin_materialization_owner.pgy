@@ -1,7 +1,6 @@
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_readiness_owner.pgy";
-import "direct_mir_scalar_program_c_string_window_materialization_owner.pgy";
-import "direct_mir_scalar_program_c_string_collection_materialization_owner.pgy";
+import "direct_mir_scalar_program_c_additional_materialization_owner.pgy";
 import "direct_mir_scalar_program_runtime_materialization_requirement_owner.pgy";
 import "../codegen/runtime_abi/string_runtime_owner.pgy";
 
@@ -27,9 +26,7 @@ func DirectMirScalarProgramCBuiltinMaterialization(
     if abi.string_to_lower_id != 0 {
         output = Concat(output, StringRuntimeCToLowerBlock());
     }
-    output = Concat(output, DirectMirScalarProgramCStringWindowMaterialization(
-        abi));
     output = Concat(output,
-        DirectMirScalarProgramCStringCollectionMaterialization(plan, runtime));
+        DirectMirScalarProgramCAdditionalMaterialization(plan, runtime));
     return output;
 }

@@ -40,12 +40,12 @@ GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner
     fail "one loop must own every scalar-program routine admission"
 [[ "$(grep -Fc 'DirectMirScalarCfgSealGraphPlan(' "$PROGRAM")" -eq 1 ]] ||
     fail "program graph must seal exactly once"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v20'
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v21'
 reject_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v18'
 require_text "$BUILTIN" 'direct_mir_scalar_program_builtin_signature_projection_owner.pgy'
 require_text "$BUILTIN_SIGNATURE" '../semantic/builtin_signature_owner.pgy'
 reject_text "$BUILTIN" '../semantic/builtin_signature_owner.pgy'
-require_text "$ADMISSION" 'DirectMirScalarProgramBuiltinCallsComplete('
+require_text "$ADMISSION" 'DirectMirScalarProgramCallsComplete('
 reject_text "$DIRECT_CALL" 'ToString'
 for field in string_compare_id string_concat_id string_to_string_id \
     string_to_upper_id string_to_lower_id; do require_text "$ABI" "$field"; done

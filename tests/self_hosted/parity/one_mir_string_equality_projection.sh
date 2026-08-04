@@ -52,7 +52,7 @@ for owner in "$C_EMIT" "$LLVM_EMIT"; do
         string_equality.pgy; do reject_text "$owner" "$term"; done
 done
 require_text "$ABI" 'CompilerRuntimeCallAbiStringCompareFact('
-require_text "$CALL" 'arena.identities.call_target_syntax_ids[1]'
+require_text "$CALL" 'call_target_syntax_ids[chain.call_node]'
 if grep -RFq -- 'pgy_scalar_callable_0' "$ROOT_DIR/src/self_hosted/compiler" ||
    grep -RFq -- 'pgy.scalar.callable.0' "$ROOT_DIR/src/self_hosted/compiler"; then
     fail "retired callable-specific backend symbol returned"

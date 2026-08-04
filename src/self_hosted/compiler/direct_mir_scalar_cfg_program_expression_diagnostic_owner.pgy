@@ -1,0 +1,9 @@
+// Stable failure context for typed routine-expression admission.
+
+func DirectMirScalarCfgProgramExpressionAdmissionFailed(
+    global_row: Int, source: String
+) -> Void {
+    Die(Concat(
+        "direct MIR scalar CFG program expression admission is invalid: row=",
+        Concat(ToString(global_row), Concat(" source=", source))));
+}

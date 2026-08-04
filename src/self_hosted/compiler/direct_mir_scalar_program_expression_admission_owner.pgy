@@ -1,6 +1,8 @@
 // Typed normalization of persisted MIR expression graphs for scalar programs.
 import "direct_mir_scalar_program_call_expression_admission_owner.pgy";
 import "direct_mir_scalar_program_builtin_call_owner.pgy";
+import "direct_mir_scalar_program_call_consumption_owner.pgy";
+import "direct_mir_scalar_program_expression_mutation_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_value_type_owner.pgy";
@@ -14,9 +16,8 @@ func DirectMirScalarProgramAppendExpression(
     ref locals: DirectMirScalarCfgLocalRefPlan,
     ref value_types: DirectMirScalarCfgValueTypePlan,
     ref wire: DirectMirScalarCfgWireLocalRefs,
-    local_offset: Int, parameter_type: String,
-    callable_syntax_id: Int, callable_ordinal: Int,
-    callable_parameter_type: String, callable_return_type: String
+    local_offset: Int, parameter_types: Array<String>,
+    ref callable: DirectMirScalarCfgProgramCallableFact
 ) -> DirectMirScalarProgramExpressionSet {
     let sequence: MirExpressionGraphSequence =
         DirectMirScalarCfgExpressionSequence(instruction);
@@ -26,15 +27,6 @@ func DirectMirScalarProgramAppendExpression(
         return invalid;
     }
     let count: Int = ArrayLength(sequence.arena.topology.node_kinds);
-    if count == 4 && sequence.arena.topology.node_kinds[1] ==
-            AstExpressionNodeCall() &&
-            sequence.arena.identities.call_target_syntax_ids[1] != 0 {
-        return DirectMirScalarProgramAppendCallExpression(
-            facts, sequence, uses, global_row, local_instruction,
-            locals, value_types, wire, local_offset, callable_syntax_id,
-            callable_ordinal, callable_parameter_type, callable_return_type
-        );
-    }
     if count < 1 || sequence.roots[0] < 0 ||
         sequence.roots[0] >= count { return invalid; }
     let graph_rows: Array<Int> = facts.graph_global_rows;
@@ -64,8 +56,8 @@ func DirectMirScalarProgramAppendExpression(
     let node: Int = 0;
     while node < count {
         let source_kind: Int = sequence.arena.topology.node_kinds[node];
-        if DirectMirScalarProgramBuiltinCalleeLeafReady(sequence, node) ||
-            DirectMirScalarProgramBuiltinCallMarkerReady(sequence, node) {
+        if DirectMirScalarProgramCallCalleeLeafReady(sequence, node) ||
+            DirectMirScalarProgramCallMarkerReady(sequence, node) {
             ArrayPush(source_rows, -1); node = node + 1; continue;
         }
         let kind: Int = 0; let type_name: String = "";
@@ -73,25 +65,40 @@ func DirectMirScalarProgramAppendExpression(
         let local_row: Int = -1; let param: Int = -1;
         let literal: String = "";
         let call_arguments: Array<Int> = [];
+        let call_callable: Int = -1;
         if source_kind == AstExpressionNodeCallArgument() {
             let call: DirectMirScalarProgramBuiltinCallFact =
                 DirectMirScalarProgramBuiltinCallFactFromGraph(
                     sequence, node, source_rows, types);
-            if !call.recognized || !call.valid { return invalid; }
-            if !call.complete {
-                ArrayPush(source_rows, -1); node = node + 1; continue;
+            if call.recognized {
+                if !call.valid { return invalid; }
+                if !call.complete {
+                    ArrayPush(source_rows, -1); node = node + 1; continue;
+                }
+                if consumed_calls[call.call_node] { return invalid; }
+                consumed_calls[call.call_node] = true;
+                kind = call.expression_kind;
+                call_arguments = call.argument_rows;
+                let signature: DirectMirScalarProgramBuiltinSignatureFact =
+                    DirectMirScalarProgramBuiltinSignatureFactFromName(
+                        sequence.arena.call_target_names[call.call_node]);
+                if !signature.valid { return invalid; }
+                type_name = signature.return_type;
+            } else {
+                let direct: DirectMirScalarProgramDirectCallFact =
+                    DirectMirScalarProgramDirectCallFactFromGraph(
+                        sequence, node, source_rows, types, callable);
+                if !direct.recognized || !direct.valid { return invalid; }
+                if !direct.complete {
+                    ArrayPush(source_rows, -1); node = node + 1; continue;
+                }
+                if consumed_calls[direct.call_node] { return invalid; }
+                consumed_calls[direct.call_node] = true;
+                kind = DirectMirScalarProgramExprDirectCall();
+                call_arguments = direct.argument_rows;
+                call_callable = direct.callable_ordinal;
+                type_name = callable.signature.return_type;
             }
-            if consumed_calls[call.call_node] {
-                return invalid;
-            }
-            consumed_calls[call.call_node] = true;
-            kind = call.expression_kind;
-            call_arguments = call.argument_rows;
-            let signature: DirectMirScalarProgramBuiltinSignatureFact =
-                DirectMirScalarProgramBuiltinSignatureFactFromName(
-                    sequence.arena.call_target_names[call.call_node]);
-            if !signature.valid { return invalid; }
-            type_name = signature.return_type;
             if ArrayLength(call_arguments) == 1 {
                 left = call_arguments[0];
             } else if ArrayLength(call_arguments) == 2 {
@@ -100,13 +107,12 @@ func DirectMirScalarProgramAppendExpression(
         } else if source_kind == AstExpressionNodeLeaf() {
             if sequence.arena.identities.binding_kinds[node] ==
                     SemanticExpressionBindingFormalParameter() &&
-                    sequence.arena.identities.binding_ordinals[node] == 0 &&
-                    parameter_type != "" && expected_uses == 0 &&
-                    MirRoutineInstructionUseCountAtGlobal(
-                        uses, global_row) == 0 {
+                    sequence.arena.identities.binding_ordinals[node] >= 0 &&
+                    sequence.arena.identities.binding_ordinals[node] <
+                        ArrayLength(parameter_types) {
                 kind = DirectMirScalarProgramExprParameter();
-                type_name = parameter_type;
-                param = 0;
+                param = sequence.arena.identities.binding_ordinals[node];
+                type_name = parameter_types[param];
             } else {
                 let operand: DirectMirScalarCfgLeafOperand =
                     DirectMirScalarCfgLeafOperandFromOwners(
@@ -176,7 +182,7 @@ func DirectMirScalarProgramAppendExpression(
         DirectMirScalarProgramAppendExpressionNode(
             kinds, types, lefts, rights, local_rows, params, literals,
             callable_rows, kind, type_name, left, right, local_row,
-            param, literal, -1);
+            param, literal, call_callable);
         if source_kind == AstExpressionNodeCallArgument() &&
                 ArrayLength(call_arguments) > 2 {
             nary_operands = DirectMirScalarProgramNaryOperandsAppend(
@@ -190,7 +196,7 @@ func DirectMirScalarProgramAppendExpression(
     if root < start ||
         expected_uses != MirRoutineInstructionUseCountAtGlobal(
             uses, global_row) ||
-        !DirectMirScalarProgramBuiltinCallsComplete(
+        !DirectMirScalarProgramCallsComplete(
             sequence, consumed_calls) { return invalid; }
     ArrayPush(graph_rows, global_row); ArrayPush(starts, start);
     ArrayPush(counts, ArrayLength(kinds) - start); ArrayPush(roots, root);

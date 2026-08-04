@@ -1,0 +1,7 @@
+// Stable normalized identities for StringReplace and integer math expressions.
+
+func DirectMirScalarProgramExprNegateInt() -> Int { return 29; }
+func DirectMirScalarProgramExprAbsInt() -> Int { return 30; }
+func DirectMirScalarProgramExprMinInt() -> Int { return 31; }
+func DirectMirScalarProgramExprMaxInt() -> Int { return 32; }
+func DirectMirScalarProgramExprStringReplace() -> Int { return 33; }

@@ -1,6 +1,7 @@
 // Overflow-safe arithmetic evidence for the scalar-program GraphPlan dialect.
 
 import "direct_mir_scalar_program_expression_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_program_arithmetic_magnitude_owner.pgy";
 import "../mir_lower/routine_definition_dominance_fact_owner.pgy";
 
 func DirectMirScalarCfgProgramPositiveBound(value: String) -> Bool {
@@ -62,8 +63,9 @@ func DirectMirScalarCfgProgramArithmeticReady(
         if expressions.node_kinds[node] == DirectMirScalarProgramExprAddInt() &&
             !DirectMirScalarCfgProgramAddBoundedByCondition(
                 expressions, condition_rows, index, block,
-                node
-            ) {
+                node) &&
+            !DirectMirScalarCfgProgramAddBoundedByMagnitude(
+                expressions, node) {
             return false;
         }
         node = node + 1;

@@ -1,7 +1,8 @@
 // LLVM expression projection from the sealed scalar-program expression arena.
 
 import "direct_mir_scalar_program_expression_readiness_owner.pgy";
-import "direct_mir_scalar_program_llvm_string_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_builtin_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_type_owner.pgy";
 
 struct DirectMirScalarProgramLlvmExpression {
     let valid: Bool;
@@ -19,16 +20,6 @@ func DirectMirScalarProgramLlvmNodeName(
 
 func DirectMirScalarProgramLlvmLocalName(row: Int) -> String {
     return Concat("%pgy.local.", ToString(row));
-}
-
-func DirectMirScalarProgramLlvmType(type_name: String) -> String {
-    if type_name == CompilerAbiLayoutIntTypeName() { return "i64"; }
-    if type_name == CompilerAbiLayoutBoolTypeName() { return "i1"; }
-    if type_name == CompilerAbiLayoutStringTypeName() { return "ptr"; }
-    if type_name == CompilerAbiLayoutArrayStringTypeName() {
-        return "%pgy.array.string";
-    }
-    return "";
 }
 
 func DirectMirScalarProgramLlvmExpressionAt(
@@ -51,6 +42,7 @@ func DirectMirScalarProgramLlvmExpressionAt(
             right = values[expressions.node_rights[node] - start];
         }
         let arguments: Array<String> = [];
+        let argument_types: Array<String> = [];
         let argument_rows: Array<Int> =
             DirectMirScalarProgramNaryOperandRows(
                 expressions.nary_operands, node);
@@ -62,6 +54,8 @@ func DirectMirScalarProgramLlvmExpressionAt(
                     false, "", "", "");
             }
             ArrayPush(arguments, values[argument_rows[argument] - start]);
+            ArrayPush(argument_types,
+                expressions.node_types[argument_rows[argument]]);
             argument = argument + 1;
         }
         let value: String = "";
@@ -81,16 +75,29 @@ func DirectMirScalarProgramLlvmExpressionAt(
                     expressions.node_local_rows[node]));
             instructions = Concat(instructions, "\n");
         } else if kind == DirectMirScalarProgramExprParameter() {
-            value = "%pgy.param.0";
+            value = Concat("%pgy.param.", ToString(
+                expressions.node_parameter_ordinals[node]));
         } else if kind == DirectMirScalarProgramExprIntLiteral() ||
                 kind == DirectMirScalarProgramExprBoolLiteral() {
             value = expressions.node_literals[node];
         } else if kind == DirectMirScalarProgramExprStringLiteral() {
             value = Concat("@pgy.scalar.string.", ToString(node));
         } else {
+            let left_type: String = ""; let right_type: String = "";
+            if expressions.node_lefts[node] >= start {
+                left_type = expressions.node_types[
+                    expressions.node_lefts[node]];
+            }
+            if expressions.node_rights[node] >= start {
+                right_type = expressions.node_types[
+                    expressions.node_rights[node]];
+            }
             let string_expression: DirectMirScalarProgramLlvmStringExpression =
-                DirectMirScalarProgramLlvmStringExpressionAt(
-                    kind, result, left, right, arguments, runtime);
+                DirectMirScalarProgramLlvmBuiltinExpressionAt(
+                    kind, result, expressions.node_types[node],
+                    left, left_type, right, right_type,
+                    arguments, argument_types,
+                    expressions.node_callable_rows[node], runtime);
             if string_expression.matched {
                 if !string_expression.valid {
                     return DirectMirScalarProgramLlvmExpression(
@@ -118,17 +125,8 @@ func DirectMirScalarProgramLlvmExpressionAt(
                     instructions = Concat(instructions, " = add nsw i64 ");
                 } else if kind == DirectMirScalarProgramExprSubtractInt() {
                     instructions = Concat(instructions, " = sub nsw i64 ");
-                } else if kind == DirectMirScalarProgramExprDirectCall() {
-                    instructions = Concat(instructions, Concat(" = call ",
-                        Concat(DirectMirScalarProgramLlvmType(
-                            expressions.node_types[node]),
-                        Concat(" @pgy.scalar.routine.", Concat(
-                            ToString(expressions.node_callable_rows[node]),
-                            Concat("(", Concat(
-                                DirectMirScalarProgramLlvmType(
-                                    expressions.node_types[
-                                        expressions.node_lefts[node]]),
-                                " ")))))));
+                } else if kind == DirectMirScalarProgramExprNegateInt() {
+                    instructions = Concat(instructions, " = sub nsw i64 0, ");
                 } else {
                     return DirectMirScalarProgramLlvmExpression(
                         false, "", "", "");
@@ -136,8 +134,8 @@ func DirectMirScalarProgramLlvmExpressionAt(
                 instructions = Concat(instructions, left);
                 if kind == DirectMirScalarProgramExprLogicalNot() {
                     instructions = Concat(instructions, ", true");
-                } else if kind == DirectMirScalarProgramExprDirectCall() {
-                    instructions = Concat(instructions, ")");
+                } else if kind == DirectMirScalarProgramExprNegateInt() {
+                    // The leading zero and comma are already part of the opcode.
                 } else {
                     instructions = Concat(
                         instructions, Concat(", ", right));

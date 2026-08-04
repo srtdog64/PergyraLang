@@ -34,7 +34,7 @@ ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_rout
 SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy"
 NARY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_nary_operand_owner.pgy"
 ABI="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_fact_owner.pgy"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v20'
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v21'
 require_text "$ROUTE" 'SemanticCallTargetDirect()'
 require_text "$SIGNATURE" '../semantic/builtin_signature_owner.pgy'
 require_text "$NARY" 'operand_rows'

@@ -17,10 +17,16 @@ func DirectMirScalarProgramBuiltinArgumentChainInvalid(
 func DirectMirScalarProgramBuiltinCallMarkerReady(
     ref sequence: MirExpressionGraphSequence, node: Int
 ) -> Bool {
+    return DirectMirScalarProgramCallMarkerReady(sequence, node) &&
+        sequence.arena.identities.call_target_syntax_ids[node] == 0;
+}
+
+func DirectMirScalarProgramCallMarkerReady(
+    ref sequence: MirExpressionGraphSequence, node: Int
+) -> Bool {
     if node < 1 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
         sequence.arena.topology.node_kinds[node] != AstExpressionNodeCall() ||
-        sequence.arena.call_target_kinds[node] != SemanticCallTargetDirect() ||
-        sequence.arena.identities.call_target_syntax_ids[node] != 0 {
+        sequence.arena.call_target_kinds[node] != SemanticCallTargetDirect() {
         return false;
     }
     let callee: Int = sequence.arena.topology.left_children[node];
@@ -29,13 +35,20 @@ func DirectMirScalarProgramBuiltinCallMarkerReady(
         sequence.arena.call_target_names[node] == sequence.arena.node_texts[callee];
 }
 
-func DirectMirScalarProgramBuiltinCalleeLeafReady(
+func DirectMirScalarProgramCallCalleeLeafReady(
     ref sequence: MirExpressionGraphSequence, node: Int
 ) -> Bool {
     return node + 1 < ArrayLength(sequence.arena.topology.node_kinds) &&
         sequence.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() &&
         sequence.arena.topology.node_kinds[node + 1] == AstExpressionNodeCall() &&
         sequence.arena.topology.left_children[node + 1] == node &&
+        DirectMirScalarProgramCallMarkerReady(sequence, node + 1);
+}
+
+func DirectMirScalarProgramBuiltinCalleeLeafReady(
+    ref sequence: MirExpressionGraphSequence, node: Int
+) -> Bool {
+    return DirectMirScalarProgramCallCalleeLeafReady(sequence, node) &&
         DirectMirScalarProgramBuiltinCallMarkerReady(sequence, node + 1);
 }
 
@@ -61,7 +74,7 @@ func DirectMirScalarProgramBuiltinArgumentChainFromGraph(
         }
         ArrayPush(reversed, source_rows[argument_source]);
         let left: Int = sequence.arena.topology.left_children[cursor];
-        if DirectMirScalarProgramBuiltinCallMarkerReady(sequence, left) {
+        if DirectMirScalarProgramCallMarkerReady(sequence, left) {
             call_node = left; cursor = -1;
         } else { cursor = left; }
     }

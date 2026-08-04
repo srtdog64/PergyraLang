@@ -3,6 +3,7 @@
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 import "../semantic/builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_collection_builtin_signature_owner.pgy";
+import "direct_mir_scalar_program_case_math_builtin_signature_owner.pgy";
 
 struct DirectMirScalarProgramBuiltinSignatureFact {
     let valid: Bool;
@@ -51,6 +52,9 @@ func DirectMirScalarProgramBuiltinSignatureExpected(
         return ["String", "String|String", ToString(
             DirectMirScalarProgramExprConcatString())];
     }
+    let case_math: Array<String> =
+        DirectMirScalarProgramCaseMathBuiltinSignatureExpected(name);
+    if ArrayLength(case_math) != 0 { return case_math; }
     return DirectMirScalarProgramCollectionBuiltinSignatureExpected(name);
 }
 
@@ -76,7 +80,9 @@ func DirectMirScalarProgramBuiltinSignatureFactFromName(
     if registry_row < 0 || returns[registry_row] != expected[0] ||
         params[registry_row] != expected[1] { return invalid; }
     return DirectMirScalarProgramBuiltinSignatureFact(
-        true, registry_row, name, returns[registry_row],
+        true, registry_row, name,
+        DirectMirScalarProgramCaseMathBuiltinResultType(
+            name, returns[registry_row]),
         Split(params[registry_row], "|"), ToInt(expected[2]));
 }
 
@@ -93,6 +99,8 @@ func DirectMirScalarProgramBuiltinArgumentPrefixReady(
         else if signature.name == "ToUpper" ||
                 signature.name == "ToLower" { expected = "String"; }
         expected = DirectMirScalarProgramCollectionBuiltinArgumentType(
+            signature.name, expected);
+        expected = DirectMirScalarProgramCaseMathBuiltinArgumentType(
             signature.name, expected);
         if actual_types[i] != expected { return false; }
         i = i + 1;

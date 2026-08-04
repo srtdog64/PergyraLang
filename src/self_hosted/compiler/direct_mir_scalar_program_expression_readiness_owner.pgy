@@ -5,6 +5,8 @@ import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 import "direct_mir_scalar_program_bool_readiness_owner.pgy";
 import "direct_mir_scalar_program_nary_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_collection_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_case_math_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
 
 func DirectMirScalarProgramExpressionNodeReady(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int
@@ -26,12 +28,15 @@ func DirectMirScalarProgramExpressionNodeReady(
     let collection_ready: Option<Bool> =
         DirectMirScalarProgramCollectionExpressionNodeReady(facts, node);
     if IsSome(collection_ready) { return UnwrapOption(collection_ready); }
+    let case_math_ready: Option<Bool> =
+        DirectMirScalarProgramCaseMathExpressionNodeReady(facts, node);
+    if IsSome(case_math_ready) { return UnwrapOption(case_math_ready); }
     if kind == DirectMirScalarProgramExprLocal() {
         return local >= 0 && left == -1 && right == -1 && param == -1 &&
             literal == "" && callable == -1;
     }
     if kind == DirectMirScalarProgramExprParameter() {
-        return param == 0 && left == -1 && right == -1 && local == -1 &&
+        return param >= 0 && left == -1 && right == -1 && local == -1 &&
             literal == "" && callable == -1;
     }
     if kind == DirectMirScalarProgramExprIntLiteral() {
@@ -56,10 +61,7 @@ func DirectMirScalarProgramExpressionNodeReady(
             callable == -1;
     }
     if kind == DirectMirScalarProgramExprDirectCall() {
-        return DirectMirScalarCfgScalarTypeSupported(type_name) && left >= 0 &&
-            DirectMirScalarCfgScalarTypeSupported(facts.node_types[left]) &&
-            right == -1 && local == -1 && param == -1 && literal == "" &&
-            callable >= 0;
+        return DirectMirScalarProgramDirectCallNodeReady(facts, node);
     }
     if kind == DirectMirScalarProgramExprToStringInt() {
         return type_name == CompilerAbiLayoutStringTypeName() && left >= 0 &&

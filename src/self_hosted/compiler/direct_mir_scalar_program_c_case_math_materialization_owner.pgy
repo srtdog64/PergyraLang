@@ -1,0 +1,19 @@
+// C materialization composition for the sealed StringReplace/math subfact.
+
+import "direct_mir_scalar_program_c_string_replace_materialization_owner.pgy";
+import "direct_mir_scalar_program_c_int_math_materialization_owner.pgy";
+
+func DirectMirScalarProgramCCaseMathMaterialization(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> String {
+    let ids: DirectMirScalarProgramCaseMathRuntimeIds =
+        plan.program.runtime_abi.case_math;
+    if !DirectMirScalarProgramCaseMathRuntimeRequired(ids) { return ""; }
+    if !DirectMirScalarProgramCaseMathRuntimeProjectionReady(
+            runtime.case_math, ids) { return ""; }
+    let output: String = DirectMirScalarProgramCStringReplaceMaterialization(
+        runtime.case_math, ids);
+    return Concat(output, DirectMirScalarProgramCIntMathMaterialization(
+        runtime.case_math, ids));
+}

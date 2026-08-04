@@ -3,6 +3,7 @@
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_generated_runtime_projection_readiness_owner.pgy";
 import "direct_mir_scalar_program_string_collection_runtime_projection_readiness_owner.pgy";
+import "direct_mir_scalar_program_case_math_runtime_projection_owner.pgy";
 
 func DirectMirScalarProgramRuntimeAbiProjectionReady(
     ref projection: DirectMirScalarProgramRuntimeAbiProjection,
@@ -41,5 +42,7 @@ func DirectMirScalarProgramRuntimeAbiProjectionReady(
             StringRuntimeCSubstringWithLenFn(),
             "string_int_int_int_to_string") &&
         DirectMirScalarProgramStringCollectionRuntimeProjectionReady(
-            projection, fact);
+            projection, fact) &&
+        DirectMirScalarProgramCaseMathRuntimeProjectionReady(
+            projection.case_math, fact.case_math);
 }

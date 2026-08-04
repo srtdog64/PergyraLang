@@ -1,0 +1,22 @@
+// Standalone LLVM StringReplace helper selected by its sealed runtime fact.
+
+import "direct_mir_scalar_program_case_math_runtime_projection_owner.pgy";
+
+func DirectMirScalarProgramLlvmStringReplaceMaterialization(
+    ref projection: DirectMirScalarProgramCaseMathRuntimeProjection,
+    ref ids: DirectMirScalarProgramCaseMathRuntimeIds
+) -> String {
+    if ids.replace_id == 0 { return ""; }
+    if !projection.replace.ok || projection.replace.runtime_call_abi_id !=
+            ids.replace_id { return ""; }
+    let output: String =
+        "declare ptr @strstr(ptr, ptr)\ndeclare i32 @strncmp(ptr, ptr, i64)\ndeclare ptr @memcpy(ptr, ptr, i64)\n\n";
+    output = Concat(output, Concat("define internal ptr @",
+        Concat(projection.replace.symbol,
+        "(ptr %source, ptr %old, ptr %replacement) {\nentry:\n")));
+    output = Concat(output,
+        "  %old.len = call i64 @strlen(ptr %old)\n  %old.empty = icmp eq i64 %old.len, 0\n  br i1 %old.empty, label %duplicate, label %count\n\nduplicate:\n  %duplicate.len = call i64 @strlen(ptr %source)\n  %duplicate.size = add i64 %duplicate.len, 1\n  %duplicate.result = call ptr @malloc(i64 %duplicate.size)\n  call ptr @memcpy(ptr %duplicate.result, ptr %source, i64 %duplicate.size)\n  ret ptr %duplicate.result\n\ncount:\n  br label %count.loop\n\ncount.loop:\n  %scan = phi ptr [ %source, %count ], [ %scan.next, %count.found ]\n  %matches = phi i64 [ 0, %count ], [ %matches.next, %count.found ]\n  %found = call ptr @strstr(ptr %scan, ptr %old)\n  %none = icmp eq ptr %found, null\n  br i1 %none, label %count.done, label %count.found\n\ncount.found:\n  %matches.next = add i64 %matches, 1\n  %scan.next = getelementptr inbounds i8, ptr %found, i64 %old.len\n  br label %count.loop\n\ncount.done:\n");
+    output = Concat(output,
+        "  %source.len = call i64 @strlen(ptr %source)\n  %replacement.len = call i64 @strlen(ptr %replacement)\n  %grows = icmp uge i64 %replacement.len, %old.len\n  %grow.delta = sub i64 %replacement.len, %old.len\n  %grow.extra = mul i64 %matches, %grow.delta\n  %grow.len = add i64 %source.len, %grow.extra\n  %shrink.delta = sub i64 %old.len, %replacement.len\n  %shrink.extra = mul i64 %matches, %shrink.delta\n  %shrink.len = sub i64 %source.len, %shrink.extra\n  %result.len = select i1 %grows, i64 %grow.len, i64 %shrink.len\n  %result.size = add i64 %result.len, 1\n  %result = call ptr @malloc(i64 %result.size)\n  br label %copy.loop\n\ncopy.loop:\n  %source.offset = phi i64 [ 0, %count.done ], [ %source.next, %copy.next ]\n  %result.offset = phi i64 [ 0, %count.done ], [ %result.next, %copy.next ]\n  %copy.done = icmp uge i64 %source.offset, %source.len\n  br i1 %copy.done, label %done, label %copy.check\n\ncopy.check:\n  %remaining = sub i64 %source.len, %source.offset\n  %enough = icmp uge i64 %remaining, %old.len\n  br i1 %enough, label %copy.compare, label %copy.char\n\ncopy.compare:\n  %source.at = getelementptr inbounds i8, ptr %source, i64 %source.offset\n  %compared = call i32 @strncmp(ptr %source.at, ptr %old, i64 %old.len)\n  %matched = icmp eq i32 %compared, 0\n  br i1 %matched, label %copy.replace, label %copy.char\n\ncopy.replace:\n  %replace.at = getelementptr inbounds i8, ptr %result, i64 %result.offset\n  call ptr @memcpy(ptr %replace.at, ptr %replacement, i64 %replacement.len)\n  %replace.source.next = add i64 %source.offset, %old.len\n  %replace.result.next = add i64 %result.offset, %replacement.len\n  br label %copy.next\n\ncopy.char:\n  %char.source.at = getelementptr inbounds i8, ptr %source, i64 %source.offset\n  %char.value = load i8, ptr %char.source.at, align 1\n  %char.result.at = getelementptr inbounds i8, ptr %result, i64 %result.offset\n  store i8 %char.value, ptr %char.result.at, align 1\n  %char.source.next = add i64 %source.offset, 1\n  %char.result.next = add i64 %result.offset, 1\n  br label %copy.next\n\ncopy.next:\n  %source.next = phi i64 [ %replace.source.next, %copy.replace ], [ %char.source.next, %copy.char ]\n  %result.next = phi i64 [ %replace.result.next, %copy.replace ], [ %char.result.next, %copy.char ]\n  br label %copy.loop\n\ndone:\n  %nul = getelementptr inbounds i8, ptr %result, i64 %result.offset\n  store i8 0, ptr %nul, align 1\n  ret ptr %result\n}\n\n");
+    return output;
+}

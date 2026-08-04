@@ -1,0 +1,55 @@
+// One-pass JSON admission into the ordered formal-parameter identity.
+
+import "direct_mir_routine_parameter_set_fact_owner.pgy";
+import "direct_mir_exact_json_array_cardinality_owner.pgy";
+
+func DirectMirRoutineParameterSetFactFromBounds(
+    json: String, start: Int, end: Int,
+    names: Array<String>, types: Array<String>,
+    carriages: Array<String>, resources: Array<String>,
+    pass_shapes: Array<String>
+) -> DirectMirRoutineParameterSetFact {
+    let invalid: DirectMirRoutineParameterSetFact =
+        DirectMirRoutineParameterSetFactInvalid();
+    let count: Int = ArrayLength(names);
+    if count != ArrayLength(types) || count != ArrayLength(carriages) ||
+        count != ArrayLength(resources) || count != ArrayLength(pass_shapes) {
+        return invalid;
+    }
+    let abi_types: Array<String> = []; let abi_ids: Array<Int> = [];
+    let abi_required: Array<Bool> = []; let digests: Array<Int> = [];
+    let first: DirectMirRoutineParamFact = InvalidDirectMirRoutineParamFact();
+    let cursor: Int = start + 1; let bounds: Array<Int> = [0, 0];
+    let row: Int = 0;
+    while row < count {
+        if !JsonArrayNextObjectBounds(json, cursor, end, bounds) {
+            return invalid;
+        }
+        let param: DirectMirRoutineParamFact =
+            DirectMirRoutineParamFactFromBounds(json, bounds[0], bounds[1]);
+        if !DirectMirRoutineParamFactReady(param) ||
+            param.name != names[row] || param.type_name != types[row] ||
+            param.carriage != carriages[row] ||
+            param.resource != resources[row] ||
+            param.pass_shape != pass_shapes[row] { return invalid; }
+        ArrayPush(abi_types, param.abi_type_name);
+        ArrayPush(abi_ids, param.abi_layout_id);
+        ArrayPush(abi_required, param.abi_required);
+        ArrayPush(digests, param.digest);
+        if row == 0 { first = param; }
+        cursor = bounds[1];
+        row = row + 1;
+    }
+    if !DirectMirExactJsonArrayCursorAtEnd(json, cursor, end) { return invalid; }
+    let source: DirectMirRoutineParameterSetFact =
+        DirectMirRoutineParameterSetFact(
+            true, 0, names, types, carriages, resources, pass_shapes,
+            abi_types, abi_ids, abi_required, digests, first);
+    let fact: DirectMirRoutineParameterSetFact =
+        DirectMirRoutineParameterSetFact(
+            true, DirectMirRoutineParameterSetFactDigest(source),
+            names, types, carriages, resources, pass_shapes, abi_types,
+            abi_ids, abi_required, digests, first);
+    if !DirectMirRoutineParameterSetFactReady(fact) { return invalid; }
+    return fact;
+}

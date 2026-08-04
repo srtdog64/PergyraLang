@@ -7,7 +7,8 @@ func DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> Bool {
     if !fact.valid || fact.digest == 0 ||
-        fact.digest != DirectMirScalarProgramRuntimeAbiFactDigest(fact) {
+        fact.digest != DirectMirScalarProgramRuntimeAbiFactDigest(fact) ||
+        !DirectMirScalarProgramCaseMathRuntimeIdsReady(fact.case_math) {
         return false;
     }
     let expected: DirectMirScalarProgramRuntimeAbiFact =
@@ -26,5 +27,6 @@ func DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
         expected.string_split_id == fact.string_split_id &&
         expected.string_to_int_id == fact.string_to_int_id &&
         expected.array_string_length_id == fact.array_string_length_id &&
-        expected.array_string_get_id == fact.array_string_get_id;
+        expected.array_string_get_id == fact.array_string_get_id &&
+        expected.case_math.digest == fact.case_math.digest;
 }

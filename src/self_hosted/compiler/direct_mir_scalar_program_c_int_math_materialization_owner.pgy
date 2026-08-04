@@ -1,0 +1,35 @@
+// Standalone C integer math helpers selected by sealed runtime IDs.
+
+import "direct_mir_scalar_program_case_math_runtime_projection_owner.pgy";
+import "abi_layout_row_owner.pgy";
+
+func DirectMirScalarProgramCIntMathMaterialization(
+    ref projection: DirectMirScalarProgramCaseMathRuntimeProjection,
+    ref ids: DirectMirScalarProgramCaseMathRuntimeIds
+) -> String {
+    let type_name: String = CompilerAbiLayoutIntCValueType();
+    let prefix: String = Concat("static ", Concat(type_name, " "));
+    let output: String = "";
+    if ids.abs_id != 0 {
+        output = Concat(output, Concat(prefix, projection.abs.symbol));
+        output = Concat(output, Concat("(", type_name));
+        output = Concat(output,
+            " value) { return value < 0 ? -value : value; }\n");
+    }
+    if ids.min_id != 0 {
+        output = Concat(output, Concat(prefix, projection.min.symbol));
+        output = Concat(output, Concat("(", type_name));
+        output = Concat(output, Concat(" left, ", type_name));
+        output = Concat(output,
+            " right) { return left < right ? left : right; }\n");
+    }
+    if ids.max_id != 0 {
+        output = Concat(output, Concat(prefix, projection.max.symbol));
+        output = Concat(output, Concat("(", type_name));
+        output = Concat(output, Concat(" left, ", type_name));
+        output = Concat(output,
+            " right) { return left > right ? left : right; }\n");
+    }
+    if output != "" { return Concat(output, "\n"); }
+    return output;
+}

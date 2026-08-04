@@ -1,0 +1,42 @@
+// Conservative constant-DAG magnitude evidence for overflow-safe Int addition.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_owner.pgy";
+
+func DirectMirScalarCfgProgramSafeMagnitudeAt(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    node: Int, budget: Int
+) -> Bool {
+    if node < 0 || node >= ArrayLength(expressions.node_kinds) || budget < 0 {
+        return false;
+    }
+    let kind: Int = expressions.node_kinds[node];
+    if kind == DirectMirScalarProgramExprIntLiteral() {
+        return DirectMirScalarCfgCanonicalInt(expressions.node_literals[node]) &&
+            StringLength(expressions.node_literals[node]) <= 15;
+    }
+    if budget == 0 { return false; }
+    if kind == DirectMirScalarProgramExprNegateInt() ||
+        kind == DirectMirScalarProgramExprAbsInt() {
+        return DirectMirScalarCfgProgramSafeMagnitudeAt(
+            expressions, expressions.node_lefts[node], budget - 1);
+    }
+    if kind == DirectMirScalarProgramExprSubtractInt() ||
+        kind == DirectMirScalarProgramExprMinInt() ||
+        kind == DirectMirScalarProgramExprMaxInt() {
+        return DirectMirScalarCfgProgramSafeMagnitudeAt(
+                expressions, expressions.node_lefts[node], budget - 1) &&
+            DirectMirScalarCfgProgramSafeMagnitudeAt(
+                expressions, expressions.node_rights[node], budget - 1);
+    }
+    return false;
+}
+
+func DirectMirScalarCfgProgramAddBoundedByMagnitude(
+    ref expressions: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    return DirectMirScalarCfgProgramSafeMagnitudeAt(
+            expressions, expressions.node_lefts[node], 7) &&
+        DirectMirScalarCfgProgramSafeMagnitudeAt(
+            expressions, expressions.node_rights[node], 7);
+}

@@ -18,21 +18,25 @@ src/self_hosted/compiler/direct_mir_scalar_cfg_routine_partition_mutation_owner.
 src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy|125
 src/self_hosted/compiler/direct_mir_scalar_cfg_graph_identity_owner.pgy|100
 src/self_hosted/compiler/direct_mir_scalar_cfg_graph_plan_seal_owner.pgy|85
+src/self_hosted/compiler/direct_mir_scalar_cfg_graph_plan_verification_owner.pgy|25
 src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy|250
 EOF
 
 FACT="src/self_hosted/compiler/direct_mir_scalar_cfg_routine_partition_fact_owner.pgy"
 GRAPH="src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
 SEAL="src/self_hosted/compiler/direct_mir_scalar_cfg_graph_plan_seal_owner.pgy"
+VERIFY="src/self_hosted/compiler/direct_mir_scalar_cfg_graph_plan_verification_owner.pgy"
 ADMISSION="src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
 READY="src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy"
 MUTATION="src/self_hosted/compiler/direct_mir_scalar_cfg_graph_mutation_owner.pgy"
 
 require_text "$GRAPH" 'let routines: DirectMirScalarCfgRoutinePartitionFact;'
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v20'
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v21'
 reject_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v16'
 require_text "$ADMISSION" 'DirectMirScalarCfgSingleRoutinePartitionFromOwners('
 require_text "$SEAL" 'ref routine_partition: DirectMirScalarCfgRoutinePartitionFact'
+require_text "$SEAL" 'DirectMirScalarCfgGraphPlanVerified(plan)'
+require_text "$VERIFY" 'DirectMirScalarCfgGraphPlanMutationRejected(verified)'
 require_text "$READY" 'DirectMirScalarCfgRoutinePartitionReady('
 require_text "$MUTATION" 'DirectMirScalarCfgRoutinePartitionMutationRejected(plan.routines)'
 for column in source_syntax_ids signature_digests cfg_digests \

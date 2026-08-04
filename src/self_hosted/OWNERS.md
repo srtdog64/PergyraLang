@@ -2023,7 +2023,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_routine_signature_fact_owner.pgy` --
   strict unique routine identity/signature facts shared by bounded
   multi-routine projections. Missing return facts and duplicate fields fail
-  instead of defaulting.
+  instead of defaulting. Ordered parameter rows are admitted once by
+  `direct_mir_routine_parameter_set_admission_owner.pgy` and sealed as typed
+  parallel identity arrays by `direct_mir_routine_parameter_set_fact_owner.pgy`;
+  the latter deliberately owns no unsupported growable struct-array ABI.
 - `src/self_hosted/compiler/direct_mir_inferred_generic_member_host_kind_fact_owner.pgy`
   -- passive generic-member host identity and the exact class/value or
   vessel/mutable-identity receiver-carriage join.
@@ -2228,9 +2231,10 @@ inventory must not become a second fact-family owner registry.
   one decoded scalar-CFG input bundle shared by graph admission. It owns the
   admitted document/index/use/wire setup, not a second plan or route.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_plan_seal_owner.pgy`
-  -- the single immutable GraphPlan construction, digest, readiness, and
-  repaired-digest rejection boundary. Admission owners contribute facts; they
-  do not issue parallel plans.
+  -- the single immutable GraphPlan construction boundary. Final digest,
+  readiness, and repaired-digest rejection are delegated once to
+  `direct_mir_scalar_cfg_graph_plan_verification_owner.pgy`; admission owners
+  contribute facts and do not issue parallel plans.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_routine_partition_fact_owner.pgy`
   -- canonical routine identity and contiguous local/value/block/operation/phi
   ranges inside that one flat GraphPlan. The paired mutation owner proves a
@@ -2260,12 +2264,14 @@ inventory must not become a second fact-family owner registry.
   including String concat/equality/inequality and routine-qualified calls.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy`
   -- graph/use/LocalRef normalization for literals, logical operators, Int
-  arithmetic, String comparison, and `ToString(Int)`; formal parameters bind
-  only through persisted syntax IDs/ordinals, never display text.
+  arithmetic, String comparison, registry builtins, and direct calls; formal
+  parameters bind only through persisted syntax IDs/ordinals, never display
+  text. Rejected def/Log/branch/return rows use the shared expression
+  diagnostic owner rather than a silent `None` at the routine boundary.
 - `src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy`
-  -- typed one-argument direct-call admission. User routines join the canonical
-  routine partition by persisted call-target syntax ID, while builtin identity
-  remains owned by the builtin registry.
+  -- typed ordered-argument direct-call admission. User routines join the
+  canonical routine partition by persisted call-target syntax ID and ordered
+  signature types, while builtin identity remains owned by the builtin registry.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_mutation_owner.pgy`
   -- small persistent append primitives for expression rows. It owns no
   semantic selection policy and prevents callers from aliasing growable arena
@@ -2276,11 +2282,14 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_program_callable_admission_owner.pgy`
   -- admission of the strict supported callable signature. The optional
   callable receipt and canonical-empty invariant live in
-  `direct_mir_scalar_program_callable_fact_owner.pgy`; block and return
-  admission remain owned by the shared per-routine GraphPlan builder.
+  `direct_mir_scalar_program_callable_fact_owner.pgy`, while ordered scalar
+  signature support lives in `direct_mir_scalar_program_callable_signature_owner.pgy`;
+  block and return admission remain owned by the shared per-routine GraphPlan
+  builder.
 - `src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_owner.pgy`
-  -- the sole expression-kind-to-String-runtime-ABI requirement mapper for
-  concat and compare. Backends consume the sealed IDs and do not infer calls.
+  -- the sole expression-kind-to-runtime-ABI requirement mapper. Its sealed
+  case/math subfact owns StringReplace/Abs/Min/Max call identities in addition
+  to String operations; backends consume projections and do not infer calls.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_owner.pgy`
   -- optional callable identity, typed expression-row links, per-block return
   rows, and String/closed-module ABI IDs carried by the existing scalar CFG
@@ -2294,8 +2303,9 @@ inventory must not become a second fact-family owner registry.
   or closed-module ABI payload outside its zero digest.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_arithmetic_admission_owner.pgy`
   -- bounded-add evidence from an already admitted `local < positive bound`
-  condition whose true edge dominates the addition block. It owns neither a
-  loop topology nor a second expression graph.
+  condition whose true edge dominates the addition block, or from the bounded
+  constant-DAG magnitude owner for literals and negate/abs/min/max/subtract.
+  It owns neither a loop topology nor a second expression graph.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_admission_owner.pgy`
   -- the small admitted-program composition boundary. It seals the optional
   callable and expression-derived runtime ABI IDs; it owns no storage loop,
@@ -2322,13 +2332,15 @@ inventory must not become a second fact-family owner registry.
   constructs one partition/extension, and calls the sole GraphPlan seal once.
 - `src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy`
   -- MIR-blind C expression rendering from the sealed typed arena and String
-  runtime ABI receipts.
+  runtime ABI receipts. Responsibility-specific direct-call, case/math, and
+  generated-runtime owners render ordered calls and standalone runtime bodies.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy`
   -- MIR-blind range-driven C program rendering. One routine renderer serves
   entrypoint and callable; it never reopens admitted MIR.
 - `src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy`
   -- MIR-blind LLVM SSA expression rendering from the same typed arena and ABI
-  receipts.
+  receipts. Ordered signatures/direct calls and case/math runtime bodies live
+  in target-specific owners rather than a second semantic dispatcher.
 - `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_global_owner.pgy`
   -- literal String global materialization, separated from expression policy.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy`

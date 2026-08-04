@@ -1,0 +1,25 @@
+// LLVM builtin/direct-call expression dispatch behind typed GraphPlan facts.
+
+import "direct_mir_scalar_program_llvm_string_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_case_math_expression_owner.pgy";
+
+func DirectMirScalarProgramLlvmBuiltinExpressionAt(
+    kind: Int, result: String, result_type: String,
+    left: String, left_type: String, right: String, right_type: String,
+    arguments: Array<String>, argument_types: Array<String>,
+    callable_ordinal: Int,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> DirectMirScalarProgramLlvmStringExpression {
+    let direct: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmDirectCallExpressionAt(
+            kind, result, result_type, left, left_type, right, right_type,
+            arguments, argument_types, callable_ordinal);
+    if direct.matched { return direct; }
+    let case_math: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmCaseMathExpressionAt(
+            kind, result, left, right, arguments, runtime);
+    if case_math.matched { return case_math; }
+    return DirectMirScalarProgramLlvmStringExpressionAt(
+        kind, result, left, right, arguments, runtime);
+}

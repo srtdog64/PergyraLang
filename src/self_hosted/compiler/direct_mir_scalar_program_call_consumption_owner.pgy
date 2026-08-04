@@ -1,0 +1,18 @@
+// Exact coverage of every persisted direct-call marker in one expression DAG.
+
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+
+func DirectMirScalarProgramCallsComplete(
+    ref sequence: MirExpressionGraphSequence, consumed: Array<Bool>
+) -> Bool {
+    if ArrayLength(consumed) != ArrayLength(
+            sequence.arena.topology.node_kinds) { return false; }
+    let node: Int = 0;
+    while node < ArrayLength(consumed) {
+        let is_call: Bool = sequence.arena.topology.node_kinds[node] ==
+            AstExpressionNodeCall();
+        if is_call != consumed[node] { return false; }
+        node = node + 1;
+    }
+    return true;
+}
