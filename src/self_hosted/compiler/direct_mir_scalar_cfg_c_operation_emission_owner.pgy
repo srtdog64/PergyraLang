@@ -1,10 +1,10 @@
 // Per-operation C projection from the sealed typed scalar-CFG receipt.
-
 import "direct_mir_scalar_cfg_c_operand_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_c_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_c_mutation_emission_owner.pgy";
 import "direct_mir_scalar_cfg_c_collection_operation_emission_owner.pgy";
+import "direct_mir_scalar_cfg_collection_plan_c_operation_owner.pgy";
 
 func DirectMirScalarCfgEmitCOperation(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
@@ -15,6 +15,8 @@ func DirectMirScalarCfgEmitCOperation(
 ) -> String {
     let kind: Int = plan.operation_kinds[operation];
     let output: String = "";
+    let legalized_collection: String = DirectMirScalarCfgCollectionPlanCOperation(plan, operation, formatted_print, concat, int_line_format, string_line_format, int_c_type);
+    if legalized_collection != "" { return legalized_collection; }
     if kind == DirectMirScalarCfgOpConstInt() ||
             kind == DirectMirScalarCfgOpConstString() {
         output = Concat(output, "    ");

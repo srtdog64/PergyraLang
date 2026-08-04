@@ -1,0 +1,49 @@
+// Exclusive collection-plan selection before scalar-CFG graph construction.
+
+import "direct_mir_scalar_cfg_collection_plan_index_assignment_admission_owner.pgy";
+import "direct_mir_scalar_cfg_array_index_assignment_route_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_admission_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_admission_owner.pgy";
+
+struct DirectMirScalarCfgCollectionPlanSelection {
+    let collections: DirectMirScalarCfgCollectionPlan;
+    let string_arrays: DirectMirScalarCfgStringArrayPlan;
+    let array_int_program: DirectMirScalarCfgArrayIntProgramFact;
+}
+
+func DirectMirScalarCfgCollectionPlansFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref ranges: DirectMirScalarCfgRangeFactSet,
+    ref foreach_facts: DirectMirScalarCfgForEachFactSet
+) -> DirectMirScalarCfgCollectionPlanSelection {
+    let collections: DirectMirScalarCfgCollectionPlan =
+        DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
+            admitted, index, use_facts, wire
+        );
+    if DirectMirScalarCfgArrayIndexAssignmentRouteClaimed(admitted, index) &&
+        !collections.valid {
+        Die("direct MIR collection operation legalization is invalid");
+    }
+    let string_arrays: DirectMirScalarCfgStringArrayPlan =
+        DirectMirScalarCfgStringArrayPlanEmpty();
+    let array_int_program: DirectMirScalarCfgArrayIntProgramFact =
+        DirectMirScalarCfgArrayIntProgramFactEmpty();
+    if !collections.valid {
+        string_arrays = DirectMirScalarCfgStringArrayPlanFromOwners(
+            admitted, index, use_facts, wire, ranges, foreach_facts
+        );
+        array_int_program = DirectMirScalarCfgArrayIntProgramFromOwners(
+            admitted, index, use_facts, wire, foreach_facts, ranges
+        );
+    }
+    if !DirectMirScalarCfgStringArrayPlanAbsent(string_arrays) &&
+        !DirectMirScalarCfgStringArrayPlanShapeReady(string_arrays, false) {
+        Die("direct MIR scalar CFG String array plan is invalid");
+    }
+    return DirectMirScalarCfgCollectionPlanSelection(
+        collections, string_arrays, array_int_program
+    );
+}

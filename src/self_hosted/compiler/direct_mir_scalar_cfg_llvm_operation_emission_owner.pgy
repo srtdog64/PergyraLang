@@ -1,11 +1,10 @@
 // Per-operation LLVM projection from the sealed typed scalar-CFG receipt.
-
 import "direct_mir_scalar_cfg_llvm_operand_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_llvm_mutation_emission_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_collection_operation_emission_owner.pgy";
-
+import "direct_mir_scalar_cfg_collection_plan_llvm_operation_owner.pgy";
 func DirectMirScalarCfgLlvmLoadedOperand(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
     side: String, llvm_type: String, value: Int, local: Int
@@ -19,7 +18,6 @@ func DirectMirScalarCfgLlvmLoadedOperand(
     ));
     return Concat(output, ", align 8\n");
 }
-
 func DirectMirScalarCfgEmitLlvmOperation(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
     formatted_print: CompilerRuntimeCallAbiFact,
@@ -28,6 +26,8 @@ func DirectMirScalarCfgEmitLlvmOperation(
 ) -> String {
     let kind: Int = plan.operation_kinds[operation];
     let output: String = "";
+    let legalized_collection: String = DirectMirScalarCfgCollectionPlanLlvmOperation(plan, operation, formatted_print, concat);
+    if legalized_collection != "" { return legalized_collection; }
     if kind == DirectMirScalarCfgOpConstInt() {
         output = Concat(output, "  store i64 ");
         output = Concat(output, plan.operation_left_literals[operation]);

@@ -1,0 +1,231 @@
+// Target-neutral collection values, ordered operations, and observations.
+
+func DirectMirScalarCfgCollectionOpInitialize() -> Int { return 1; }
+func DirectMirScalarCfgCollectionOpGet() -> Int { return 2; }
+func DirectMirScalarCfgCollectionOpSet() -> Int { return 3; }
+func DirectMirScalarCfgCollectionObservationSumInt() -> Int { return 1; }
+func DirectMirScalarCfgCollectionObservationConcatString() -> Int { return 2; }
+
+struct DirectMirScalarCfgCollectionValueSet {
+    let valid: Bool;
+    let definition_global_rows: Array<Int>;
+    let value_ids: Array<String>;
+    let names: Array<String>;
+    let element_types: Array<String>;
+    let storage_identities: Array<String>;
+    let predecessor_value_rows: Array<Int>;
+    let abi_layout_ids: Array<Int>;
+    let abi_sizes: Array<Int>;
+    let abi_aligns: Array<Int>;
+    let data_offsets: Array<Int>;
+    let length_offsets: Array<Int>;
+    let capacity_offsets: Array<Int>;
+    let allocator_offsets: Array<Int>;
+    let initial_element_starts: Array<Int>;
+    let initial_element_counts: Array<Int>;
+    let initial_int_elements: Array<Int>;
+    let initial_string_elements: Array<String>;
+}
+
+struct DirectMirScalarCfgCollectionOperationSet {
+    let valid: Bool;
+    let global_rows: Array<Int>;
+    let source_ordinals: Array<Int>;
+    let kinds: Array<Int>;
+    let receiver_value_rows: Array<Int>;
+    let result_value_rows: Array<Int>;
+    let indices: Array<Int>;
+    let input_types: Array<String>;
+    let input_ints: Array<Int>;
+    let input_strings: Array<String>;
+    let graph_operation_rows: Array<Int>;
+}
+
+struct DirectMirScalarCfgCollectionObservationSet {
+    let valid: Bool;
+    let global_rows: Array<Int>;
+    let kinds: Array<Int>;
+    let receiver_value_rows: Array<Int>;
+    let get_operation_starts: Array<Int>;
+    let get_operation_counts: Array<Int>;
+    let graph_operation_rows: Array<Int>;
+}
+
+struct DirectMirScalarCfgCollectionPlan {
+    let valid: Bool;
+    let digest: Int;
+    let values: DirectMirScalarCfgCollectionValueSet;
+    let operations: DirectMirScalarCfgCollectionOperationSet;
+    let observations: DirectMirScalarCfgCollectionObservationSet;
+}
+
+func DirectMirScalarCfgCollectionValueSetEmpty(
+    valid: Bool
+) -> DirectMirScalarCfgCollectionValueSet {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return DirectMirScalarCfgCollectionValueSet(
+        valid, ints, strings, strings, strings, strings, ints, ints, ints,
+        ints, ints, ints, ints, ints, ints, ints, ints, strings
+    );
+}
+
+func DirectMirScalarCfgCollectionOperationSetEmpty(
+    valid: Bool
+) -> DirectMirScalarCfgCollectionOperationSet {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return DirectMirScalarCfgCollectionOperationSet(
+        valid, ints, ints, ints, ints, ints, ints, strings, ints, strings,
+        ints
+    );
+}
+
+func DirectMirScalarCfgCollectionObservationSetEmpty(
+    valid: Bool
+) -> DirectMirScalarCfgCollectionObservationSet {
+    let ints: Array<Int> = [];
+    return DirectMirScalarCfgCollectionObservationSet(
+        valid, ints, ints, ints, ints, ints, ints
+    );
+}
+
+func DirectMirScalarCfgCollectionPlanEmpty(
+) -> DirectMirScalarCfgCollectionPlan {
+    return DirectMirScalarCfgCollectionPlan(
+        false, 0, DirectMirScalarCfgCollectionValueSetEmpty(false),
+        DirectMirScalarCfgCollectionOperationSetEmpty(false),
+        DirectMirScalarCfgCollectionObservationSetEmpty(false)
+    );
+}
+
+func DirectMirScalarCfgCollectionPlanAbsent(
+    ref plan: DirectMirScalarCfgCollectionPlan
+) -> Bool {
+    return !plan.valid && plan.digest == 0 &&
+        ArrayLength(plan.values.value_ids) == 0 &&
+        ArrayLength(plan.operations.kinds) == 0 &&
+        ArrayLength(plan.observations.kinds) == 0;
+}
+
+func DirectMirScalarCfgCollectionValueRow(
+    ref plan: DirectMirScalarCfgCollectionPlan, wanted: String
+) -> Int {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(plan.values.value_ids) {
+        if plan.values.value_ids[row] == wanted {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarCfgCollectionSourceDefinition(
+    ref plan: DirectMirScalarCfgCollectionPlan, global: Int
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(plan.values.definition_global_rows) {
+        if plan.values.predecessor_value_rows[row] < 0 &&
+            plan.values.definition_global_rows[row] == global { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarCfgCollectionOwnsDefinition(
+    ref plan: DirectMirScalarCfgCollectionPlan, global: Int
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(plan.values.definition_global_rows) {
+        if plan.values.definition_global_rows[row] == global { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarCfgCollectionObservationRowAtGlobal(
+    ref plan: DirectMirScalarCfgCollectionPlan, global: Int
+) -> Int {
+    let row: Int = 0;
+    while row < ArrayLength(plan.observations.global_rows) {
+        if plan.observations.global_rows[row] == global { return row; }
+        row = row + 1;
+    }
+    return -1;
+}
+
+func DirectMirScalarCfgCollectionSetRowAtGlobal(
+    ref plan: DirectMirScalarCfgCollectionPlan, global: Int
+) -> Int {
+    let row: Int = 0;
+    while row < ArrayLength(plan.operations.global_rows) {
+        if plan.operations.kinds[row] ==
+                DirectMirScalarCfgCollectionOpSet() &&
+            plan.operations.global_rows[row] == global { return row; }
+        row = row + 1;
+    }
+    return -1;
+}
+
+func DirectMirScalarCfgCollectionOwnsSourceLocal(
+    ref plan: DirectMirScalarCfgCollectionPlan,
+    name: String, type_name: String
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(plan.values.value_ids) {
+        if plan.values.names[row] == name && type_name == Concat(
+                "Array<", Concat(plan.values.element_types[row], ">")
+            ) { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarCfgCollectionRootValueRow(
+    ref plan: DirectMirScalarCfgCollectionPlan, wanted: Int
+) -> Int {
+    if wanted < 0 || wanted >= ArrayLength(plan.values.value_ids) { return -1; }
+    let row: Int = wanted;
+    let steps: Int = 0;
+    while plan.values.predecessor_value_rows[row] >= 0 {
+        row = plan.values.predecessor_value_rows[row]; steps = steps + 1;
+        if row < 0 || row >= ArrayLength(plan.values.value_ids) ||
+            steps > ArrayLength(plan.values.value_ids) { return -1; }
+    }
+    return row;
+}
+
+func DirectMirScalarCfgCollectionSetOperationAtGraphRow(
+    ref plan: DirectMirScalarCfgCollectionPlan, graph_operation: Int
+) -> Int {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(plan.operations.kinds) {
+        if plan.operations.kinds[row] ==
+                DirectMirScalarCfgCollectionOpSet() &&
+            plan.operations.graph_operation_rows[row] == graph_operation {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarCfgCollectionObservationAtGraphRow(
+    ref plan: DirectMirScalarCfgCollectionPlan, graph_operation: Int
+) -> Int {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(plan.observations.kinds) {
+        if plan.observations.graph_operation_rows[row] == graph_operation {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}

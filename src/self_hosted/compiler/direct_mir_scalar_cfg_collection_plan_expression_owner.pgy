@@ -1,0 +1,38 @@
+// Scalar GraphPlan operation kind derived from legalized collection rows.
+
+import "direct_mir_scalar_cfg_collection_plan_fact_owner.pgy";
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+
+func DirectMirScalarCfgCollectionPlanExpressionFact(
+    ref plan: DirectMirScalarCfgCollectionPlan, global: Int
+) -> DirectMirScalarCfgExpressionFact {
+    let set_row: Int = DirectMirScalarCfgCollectionSetRowAtGlobal(
+        plan, global
+    );
+    let kind: Int = 0;
+    if set_row >= 0 {
+        let result_row: Int = plan.operations.result_value_rows[set_row];
+        if result_row >= 0 && result_row <
+                ArrayLength(plan.values.element_types) {
+            if plan.values.element_types[result_row] == "Int" {
+                kind = DirectMirScalarCfgOpArraySetInt();
+            } else if plan.values.element_types[result_row] == "String" {
+                kind = DirectMirScalarCfgOpArraySetString();
+            }
+        }
+    } else {
+        let observation: Int =
+            DirectMirScalarCfgCollectionObservationRowAtGlobal(plan, global);
+        if observation >= 0 && plan.observations.kinds[observation] ==
+                DirectMirScalarCfgCollectionObservationSumInt() {
+            kind = DirectMirScalarCfgOpLogArrayIndexSumInt();
+        } else if observation >= 0 &&
+            plan.observations.kinds[observation] ==
+                DirectMirScalarCfgCollectionObservationConcatString() {
+            kind = DirectMirScalarCfgOpLogArrayIndexConcatString();
+        }
+    }
+    return DirectMirScalarCfgExpressionFact(
+        kind != 0, kind, -1, -1, -1, -1, "", ""
+    );
+}

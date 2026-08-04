@@ -122,3 +122,11 @@ PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
     bash "$ARRAY_POP_GATE" || fail "bounded ArrayPop GraphPlan gate failed"
 
 echo "[$LABEL] Int/String ArrayPop effects share one sealed GraphPlan receipt"
+
+ARRAY_INDEX_ASSIGNMENT_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir_array_index_assignment_projection.sh"
+require_file "$ARRAY_INDEX_ASSIGNMENT_GATE"
+PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
+    bash "$ARRAY_INDEX_ASSIGNMENT_GATE" || \
+    fail "bounded collection operation legalization gate failed"
+
+echo "[$LABEL] indexed assignments legalize as CollectionValue/Get/Set rows"

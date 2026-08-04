@@ -1,0 +1,448 @@
+// Exact indexed-assignment admission into the general collection plan.
+
+import "direct_mir_scalar_cfg_collection_plan_fact_owner.pgy";
+import "direct_mir_scalar_cfg_collection_plan_identity_owner.pgy";
+import "direct_mir_scalar_cfg_collection_plan_index_assignment_source_owner.pgy";
+import "direct_mir_scalar_cfg_index_assignment_graph_owner.pgy";
+import "direct_mir_scalar_cfg_instruction_graph_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+
+func DirectMirScalarCfgIndexAssignmentUseCount(
+    ref index: MirRoutineFactIndex,
+    ref uses: MirRoutineInstructionUseFacts,
+    wanted: String
+) -> Int {
+    let count: Int = 0;
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        let use_row: Int = 0;
+        while use_row < MirRoutineInstructionUseCountAtGlobal(uses, global) {
+            let use_opt: Option<String> =
+                MirRoutineInstructionUseAtGlobal(uses, global, use_row);
+            if IsSome(use_opt) && UnwrapOption(use_opt) == wanted {
+                count = count + 1;
+            }
+            use_row = use_row + 1;
+        }
+        instruction = instruction + 1;
+    }
+    return count;
+}
+
+func DirectMirScalarCfgIndexAssignmentAbiMatchesInt(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    capture: MirRoutineInstructionScalarCapture,
+    source: DirectMirScalarCfgArrayIntCollectionFact
+) -> Bool {
+    let abi_opt: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            admitted.routines.source_json, capture.abi_type_name,
+            capture.abi_type_value_ready, capture.abi_type_start,
+            capture.abi_type_end, capture.abi_layout_id_start,
+            capture.abi_layout_id_end, capture.abi_layout_required_start,
+            capture.abi_layout_required_end, capture.abi_layout_start,
+            capture.abi_layout_end
+        );
+    if !IsSome(abi_opt) { return false; }
+    let abi: MirAbiLayoutRowCapture = UnwrapOption(abi_opt);
+    return DirectMirArrayIntCapturedAbiReady(abi) &&
+        MirAbiLayoutIdFromCapture(abi) == source.abi_layout_id &&
+        ToInt(abi.size_text) == source.abi_size &&
+        ToInt(abi.align_text) == source.abi_align &&
+        ToInt(abi.field_offsets[0]) == source.data_offset &&
+        ToInt(abi.field_offsets[1]) == source.length_offset &&
+        ToInt(abi.field_offsets[2]) == source.capacity_offset &&
+        ToInt(abi.field_offsets[3]) == source.allocator_offset;
+}
+
+func DirectMirScalarCfgIndexAssignmentAbiMatchesString(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    capture: MirRoutineInstructionScalarCapture,
+    source: DirectMirScalarCfgArrayStringCollectionFact
+) -> Bool {
+    let abi_opt: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            admitted.routines.source_json, capture.abi_type_name,
+            capture.abi_type_value_ready, capture.abi_type_start,
+            capture.abi_type_end, capture.abi_layout_id_start,
+            capture.abi_layout_id_end, capture.abi_layout_required_start,
+            capture.abi_layout_required_end, capture.abi_layout_start,
+            capture.abi_layout_end
+        );
+    if !IsSome(abi_opt) { return false; }
+    let abi: MirAbiLayoutRowCapture = UnwrapOption(abi_opt);
+    return DirectMirArrayStringCapturedAbiReady(abi) &&
+        MirAbiLayoutIdFromCapture(abi) == source.abi_layout_id &&
+        ToInt(abi.size_text) == source.abi_size &&
+        ToInt(abi.align_text) == source.abi_align &&
+        ToInt(abi.field_offsets[0]) == source.data_offset &&
+        ToInt(abi.field_offsets[1]) == source.length_offset &&
+        ToInt(abi.field_offsets[2]) == source.capacity_offset &&
+        ToInt(abi.field_offsets[3]) == source.allocator_offset;
+}
+
+func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref uses: MirRoutineInstructionUseFacts,
+    ref wire: DirectMirScalarCfgWireLocalRefs
+) -> DirectMirScalarCfgCollectionPlan {
+    let empty: DirectMirScalarCfgCollectionPlan =
+        DirectMirScalarCfgCollectionPlanEmpty();
+    if !index.valid || ArrayLength(index.block_starts) != 1 ||
+        !index.block_reachable[0] || index.block_succ_true[0] >= 0 ||
+        index.block_succ_false[0] >= 0 {
+        return empty;
+    }
+    let source_set: DirectMirScalarCfgIndexAssignmentSourceSet =
+        DirectMirScalarCfgIndexAssignmentSourceSetFromOwners(
+            admitted, index, uses, wire
+        );
+    if !source_set.valid { return empty; }
+    let int_source: DirectMirScalarCfgArrayIntCollectionFact =
+        source_set.int_source;
+    let string_source: DirectMirScalarCfgArrayStringCollectionFact =
+        source_set.string_source;
+    let transitions: Array<Int> = [-1, -1];
+    let sources: Array<String> = [
+        int_source.collection_value_id, string_source.collection_value_id
+    ];
+    let results: Array<String> = ["", ""];
+    let assignment_indices: Array<Int> = [-1, -1];
+    let int_value: Int = 0;
+    let string_value: String = "";
+    let observations: Array<Int> = [-1, -1];
+    let observation_starts: Array<Int> = [0, 0];
+    let observation_counts: Array<Int> = [0, 0];
+    let observation_indices: Array<Int> = [];
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        let capture: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, global
+            );
+        let kind: String = admitted.routines.instruction_kinds[global];
+        let source_type: String =
+            admitted.routines.instruction_source_types[global];
+        let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            admitted.routines.source_json,
+            admitted.routines.instruction_starts[global],
+            admitted.routines.instruction_ends[global]
+        );
+        let graph: MirExpressionGraphSequence =
+            DirectMirScalarCfgInstructionGraphAt(object, "expr0_graph");
+        if kind == "def" && source_type == "AST_ASSIGNMENT" &&
+            DirectMirScalarCfgCollectionTypeSupported(capture.abi_type_name) {
+            let type_row: Int = -1;
+            if capture.abi_type_name == CompilerAbiLayoutArrayIntTypeName() {
+                type_row = 0;
+            } else if capture.abi_type_name ==
+                    CompilerAbiLayoutArrayStringTypeName() { type_row = 1; }
+            let target_graph: MirExpressionGraphSequence =
+                DirectMirScalarCfgInstructionGraphAt(object, "expr1_graph");
+            let target: DirectMirScalarCfgStringArrayIndexGraphFact =
+                DirectMirScalarCfgStringArrayIndexGraphFactFrom(target_graph);
+            let source_use: Option<String> =
+                MirRoutineInstructionUseAtGlobal(uses, global, 0);
+            let expected_name: String = int_source.collection_name;
+            if type_row == 1 {
+                expected_name = string_source.collection_name;
+            }
+            if type_row < 0 || transitions[type_row] >= 0 ||
+                !target.valid || target.index_literal == "" ||
+                target.index_name != "" || capture.name != "ssa-def" ||
+                capture.arg1 != "local" || capture.arg0 != expected_name ||
+                target.collection_name != capture.arg0 ||
+                capture.result == "" || capture.result == sources[type_row] ||
+                MirRoutineInstructionUseCountAtGlobal(uses, global) != 1 ||
+                !IsSome(source_use) ||
+                UnwrapOption(source_use) != sources[type_row] {
+                return empty;
+            }
+            let index_value: Int = ToInt(target.index_literal);
+            if index_value < 0 || (type_row == 0 &&
+                    index_value >= ArrayLength(int_source.elements)) ||
+                (type_row == 1 &&
+                    index_value >= ArrayLength(string_source.elements)) {
+                return empty;
+            }
+            if type_row == 0 {
+                let literal: DirectMirScalarCfgArrayIntLiteralGraphFact =
+                    DirectMirScalarCfgArrayIntLiteralGraphFactFrom(graph);
+                if !literal.valid ||
+                    !DirectMirScalarCfgIndexAssignmentAbiMatchesInt(
+                        admitted, capture, int_source
+                    ) { return empty; }
+                int_value = literal.value;
+            } else {
+                let literal_opt: Option<String> =
+                    DirectMirScalarCfgStringArraySingleLiteral(
+                        graph, AstExpressionNodeStringLiteral()
+                    );
+                if !IsSome(literal_opt) ||
+                    !DirectMirScalarCfgIndexAssignmentAbiMatchesString(
+                        admitted, capture, string_source
+                    ) { return empty; }
+                let value_opt: Option<String> = DirectMirAsciiLiteralContent(
+                    UnwrapOption(literal_opt)
+                );
+                if !IsSome(value_opt) { return empty; }
+                string_value = UnwrapOption(value_opt);
+            }
+            ArraySet(transitions, type_row, global);
+            ArraySet(results, type_row, capture.result);
+            ArraySet(assignment_indices, type_row, index_value);
+        } else if kind == "stmt" && capture.arg0 == "Log" {
+            let int_observation:
+                DirectMirScalarCfgIndexAssignmentObservationGraphFact =
+                DirectMirScalarCfgIndexAssignmentIntObservationGraphFactFrom(
+                    graph
+                );
+            let string_observation:
+                DirectMirScalarCfgIndexAssignmentObservationGraphFact =
+                DirectMirScalarCfgIndexAssignmentStringObservationGraphFactFrom(
+                    graph
+                );
+            if int_observation.valid && string_observation.valid {
+                return empty;
+            }
+            if int_observation.valid || string_observation.valid {
+            let type_row: Int = 0;
+            let observed:
+                DirectMirScalarCfgIndexAssignmentObservationGraphFact =
+                int_observation;
+            if string_observation.valid {
+                type_row = 1; observed = string_observation;
+            }
+            let use_opt: Option<String> =
+                MirRoutineInstructionUseAtGlobal(uses, global, 0);
+            let expected_name: String = int_source.collection_name;
+            if type_row == 1 {
+                expected_name = string_source.collection_name;
+            }
+            if observations[type_row] >= 0 || observed.collection_name !=
+                    expected_name || capture.result != "" ||
+                MirRoutineInstructionUseCountAtGlobal(uses, global) != 1 ||
+                !IsSome(use_opt) || results[type_row] == "" ||
+                UnwrapOption(use_opt) != results[type_row] {
+                return empty;
+            }
+            let expected_count: Int = 3;
+            if type_row == 1 { expected_count = 2; }
+            if ArrayLength(observed.indices) != expected_count {
+                return empty;
+            }
+            ArraySet(observations, type_row, global);
+            ArraySet(observation_starts, type_row,
+                ArrayLength(observation_indices));
+            ArraySet(observation_counts, type_row, expected_count);
+            let index_row: Int = 0;
+            while index_row < expected_count {
+                let value: Int = observed.indices[index_row];
+                let length: Int = ArrayLength(int_source.elements);
+                if type_row == 1 {
+                    length = ArrayLength(string_source.elements);
+                }
+                if value < 0 || value >= length { return empty; }
+                ArrayPush(observation_indices, value);
+                index_row = index_row + 1;
+            }
+            }
+        }
+        instruction = instruction + 1;
+    }
+    if transitions[0] < 0 || transitions[1] < 0 ||
+        observations[0] < 0 || observations[1] < 0 || string_value == "" ||
+        int_source.definition_global_row >= transitions[0] ||
+        transitions[0] >= observations[0] ||
+        string_source.definition_global_row >= transitions[1] ||
+        transitions[1] >= observations[1] || results[0] == results[1] ||
+        DirectMirScalarCfgIndexAssignmentUseCount(
+            index, uses, sources[0]
+        ) != 1 || DirectMirScalarCfgIndexAssignmentUseCount(
+            index, uses, sources[1]
+        ) != 1 || DirectMirScalarCfgIndexAssignmentUseCount(
+            index, uses, results[0]
+        ) != 1 || DirectMirScalarCfgIndexAssignmentUseCount(
+            index, uses, results[1]
+        ) != 1 { return empty; }
+    let value_definition_globals: Array<Int> = [
+        int_source.definition_global_row, transitions[0],
+        string_source.definition_global_row, transitions[1]
+    ];
+    let value_ids: Array<String> = [
+        sources[0], results[0], sources[1], results[1]
+    ];
+    let value_names: Array<String> = [
+        int_source.collection_name, int_source.collection_name,
+        string_source.collection_name, string_source.collection_name
+    ];
+    let element_types: Array<String> = ["Int", "Int", "String", "String"];
+    let storage_ids: Array<String> = [
+        int_source.storage_identity, int_source.storage_identity,
+        string_source.storage_identity, string_source.storage_identity
+    ];
+    let predecessor_rows: Array<Int> = [-1, 0, -1, 2];
+    let abi_ids: Array<Int> = [
+        int_source.abi_layout_id, int_source.abi_layout_id,
+        string_source.abi_layout_id, string_source.abi_layout_id
+    ];
+    let abi_sizes: Array<Int> = [
+        int_source.abi_size, int_source.abi_size,
+        string_source.abi_size, string_source.abi_size
+    ];
+    let abi_aligns: Array<Int> = [
+        int_source.abi_align, int_source.abi_align,
+        string_source.abi_align, string_source.abi_align
+    ];
+    let data_offsets: Array<Int> = [
+        int_source.data_offset, int_source.data_offset,
+        string_source.data_offset, string_source.data_offset
+    ];
+    let length_offsets: Array<Int> = [
+        int_source.length_offset, int_source.length_offset,
+        string_source.length_offset, string_source.length_offset
+    ];
+    let capacity_offsets: Array<Int> = [
+        int_source.capacity_offset, int_source.capacity_offset,
+        string_source.capacity_offset, string_source.capacity_offset
+    ];
+    let allocator_offsets: Array<Int> = [
+        int_source.allocator_offset, int_source.allocator_offset,
+        string_source.allocator_offset, string_source.allocator_offset
+    ];
+    let initial_starts: Array<Int> = [0, -1, 0, -1];
+    let initial_counts: Array<Int> = [
+        ArrayLength(int_source.elements), 0,
+        ArrayLength(string_source.elements), 0
+    ];
+    let values: DirectMirScalarCfgCollectionValueSet =
+        DirectMirScalarCfgCollectionValueSet(
+            true, value_definition_globals, value_ids, value_names,
+            element_types, storage_ids, predecessor_rows, abi_ids,
+            abi_sizes, abi_aligns, data_offsets, length_offsets,
+            capacity_offsets, allocator_offsets, initial_starts,
+            initial_counts, int_source.elements, string_source.elements
+        );
+    let operation_globals: Array<Int> = [];
+    let operation_ordinals: Array<Int> = [];
+    let operation_kinds: Array<Int> = [];
+    let operation_receivers: Array<Int> = [];
+    let operation_results: Array<Int> = [];
+    let operation_indices: Array<Int> = [];
+    let operation_input_types: Array<String> = [];
+    let operation_input_ints: Array<Int> = [];
+    let operation_input_strings: Array<String> = [];
+    let operation_graph_rows: Array<Int> = [];
+    let observation_globals: Array<Int> = [];
+    let observation_kinds: Array<Int> = [];
+    let observation_receivers: Array<Int> = [];
+    let observation_get_starts: Array<Int> = [];
+    let observation_get_counts: Array<Int> = [];
+    let observation_graph_rows: Array<Int> = [];
+    instruction = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        let source_value_row: Int = -1;
+        let result_value_row: Int = -1;
+        let assignment_row: Int = -1;
+        let observation_row: Int = -1;
+        if global == int_source.definition_global_row {
+            result_value_row = 0;
+        } else if global == string_source.definition_global_row {
+            result_value_row = 2;
+        } else if global == transitions[0] {
+            source_value_row = 0; result_value_row = 1; assignment_row = 0;
+        } else if global == transitions[1] {
+            source_value_row = 2; result_value_row = 3; assignment_row = 1;
+        } else if global == observations[0] { observation_row = 0;
+        } else if global == observations[1] { observation_row = 1; }
+        if result_value_row >= 0 && assignment_row < 0 {
+            ArrayPush(operation_globals, global);
+            ArrayPush(operation_ordinals, 0);
+            ArrayPush(operation_kinds,
+                DirectMirScalarCfgCollectionOpInitialize());
+            ArrayPush(operation_receivers, -1);
+            ArrayPush(operation_results, result_value_row);
+            ArrayPush(operation_indices, -1);
+            ArrayPush(operation_input_types, "");
+            ArrayPush(operation_input_ints, 0);
+            ArrayPush(operation_input_strings, "");
+            ArrayPush(operation_graph_rows, -1);
+        } else if assignment_row >= 0 {
+            ArrayPush(operation_globals, global);
+            ArrayPush(operation_ordinals, 0);
+            ArrayPush(operation_kinds, DirectMirScalarCfgCollectionOpSet());
+            ArrayPush(operation_receivers, source_value_row);
+            ArrayPush(operation_results, result_value_row);
+            ArrayPush(operation_indices, assignment_indices[assignment_row]);
+            ArrayPush(operation_input_types, element_types[result_value_row]);
+            ArrayPush(operation_input_ints, int_value);
+            ArrayPush(operation_input_strings, string_value);
+            if assignment_row == 0 {
+                ArraySet(operation_input_strings,
+                    ArrayLength(operation_input_strings) - 1, "");
+            } else {
+                ArraySet(operation_input_ints,
+                    ArrayLength(operation_input_ints) - 1, 0);
+            }
+            ArrayPush(operation_graph_rows, -1);
+        } else if observation_row >= 0 {
+            let receiver: Int = 1;
+            if observation_row == 1 { receiver = 3; }
+            ArrayPush(observation_globals, global);
+            ArrayPush(observation_kinds,
+                DirectMirScalarCfgCollectionObservationSumInt());
+            if observation_row == 1 {
+                ArraySet(observation_kinds,
+                    ArrayLength(observation_kinds) - 1,
+                    DirectMirScalarCfgCollectionObservationConcatString());
+            }
+            ArrayPush(observation_receivers, receiver);
+            ArrayPush(observation_get_starts, ArrayLength(operation_kinds));
+            ArrayPush(observation_get_counts,
+                observation_counts[observation_row]);
+            ArrayPush(observation_graph_rows, -1);
+            let item: Int = 0;
+            while item < observation_counts[observation_row] {
+                ArrayPush(operation_globals, global);
+                ArrayPush(operation_ordinals, item);
+                ArrayPush(operation_kinds,
+                    DirectMirScalarCfgCollectionOpGet());
+                ArrayPush(operation_receivers, receiver);
+                ArrayPush(operation_results, -1);
+                ArrayPush(operation_indices, observation_indices[
+                    observation_starts[observation_row] + item
+                ]);
+                ArrayPush(operation_input_types, "");
+                ArrayPush(operation_input_ints, 0);
+                ArrayPush(operation_input_strings, "");
+                ArrayPush(operation_graph_rows, -1);
+                item = item + 1;
+            }
+        }
+        instruction = instruction + 1;
+    }
+    let operations: DirectMirScalarCfgCollectionOperationSet =
+        DirectMirScalarCfgCollectionOperationSet(
+            true, operation_globals, operation_ordinals, operation_kinds,
+            operation_receivers, operation_results, operation_indices,
+            operation_input_types, operation_input_ints,
+            operation_input_strings, operation_graph_rows
+        );
+    let observation_set: DirectMirScalarCfgCollectionObservationSet =
+        DirectMirScalarCfgCollectionObservationSet(
+            true, observation_globals, observation_kinds,
+            observation_receivers, observation_get_starts,
+            observation_get_counts, observation_graph_rows
+        );
+    let plan: DirectMirScalarCfgCollectionPlan =
+        DirectMirScalarCfgCollectionPlan(
+            true, 0, values, operations, observation_set
+        );
+    return DirectMirScalarCfgCollectionPlanWithDigest(
+        plan, DirectMirScalarCfgCollectionPlanDigest(plan)
+    );
+}

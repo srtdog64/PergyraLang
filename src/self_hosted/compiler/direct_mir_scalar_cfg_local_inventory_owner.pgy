@@ -1,19 +1,19 @@
 // Source-local inventory closure across scalar and collection owners.
-
 import "direct_mir_scalar_cfg_foreach_set_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_program_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_collection_plan_fact_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
-
 func DirectMirScalarCfgLocalInventoryReady(
     ref index: MirRoutineFactIndex,
     local_names: Array<String>,
     ref foreaches: DirectMirScalarCfgForEachFactSet,
     ref string_arrays: DirectMirScalarCfgStringArrayPlan,
-    ref array_int_program: DirectMirScalarCfgArrayIntProgramFact
+    ref array_int_program: DirectMirScalarCfgArrayIntProgramFact,
+    ref collections: DirectMirScalarCfgCollectionPlan
 ) -> Bool {
     if ArrayLength(index.source_local_names) !=
         ArrayLength(index.source_local_types) { return false; }
@@ -65,6 +65,12 @@ func DirectMirScalarCfgLocalInventoryReady(
                 array_int_program, index.source_local_names[row],
                 index.source_local_types[row]
             ) { claimed = true; }
+            if DirectMirScalarCfgCollectionOwnsSourceLocal(
+                collections, index.source_local_names[row],
+                index.source_local_types[row]
+            ) {
+                claimed = true;
+            }
             if !claimed { return false; }
             ArraySet(consumed, row, true);
         }

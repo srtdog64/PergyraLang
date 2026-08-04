@@ -1,0 +1,86 @@
+// Discover the two literal collection sources admitted by the bounded rung.
+
+import "direct_mir_scalar_cfg_collection_plan_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_collection_admission_owner.pgy";
+
+struct DirectMirScalarCfgIndexAssignmentSourceSet {
+    valid: Bool,
+    int_source: DirectMirScalarCfgArrayIntCollectionFact,
+    string_source: DirectMirScalarCfgArrayStringCollectionFact
+}
+
+func DirectMirScalarCfgIndexAssignmentSourceSetFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref uses: MirRoutineInstructionUseFacts,
+    ref wire: DirectMirScalarCfgWireLocalRefs
+) -> DirectMirScalarCfgIndexAssignmentSourceSet {
+    let int_source: DirectMirScalarCfgArrayIntCollectionFact =
+        DirectMirScalarCfgArrayIntCollectionFactEmpty();
+    let string_source: DirectMirScalarCfgArrayStringCollectionFact =
+        DirectMirScalarCfgArrayStringCollectionFactEmpty();
+    let typed_assignments: Int = 0;
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        let capture: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, global
+            );
+        let kind: String = admitted.routines.instruction_kinds[global];
+        let source_type: String =
+            admitted.routines.instruction_source_types[global];
+        if kind == "def" && source_type == "AST_ASSIGNMENT" &&
+            DirectMirScalarCfgCollectionTypeSupported(
+                capture.abi_type_name
+            ) { typed_assignments = typed_assignments + 1; }
+        if kind == "def" && source_type == "AST_LET_DECL" &&
+            capture.abi_type_name == CompilerAbiLayoutArrayIntTypeName() {
+            if int_source.valid {
+                return DirectMirScalarCfgIndexAssignmentSourceSet(
+                    false, int_source, string_source
+                );
+            }
+            let definition: MirRoutineResultDefinitionFact =
+                MirRoutineFactIndexUniqueResultDefinition(
+                    index, capture.result
+                );
+            int_source = DirectMirScalarCfgArrayIntCollectionFromOwners(
+                admitted, index, uses, wire, definition, capture
+            );
+            if !DirectMirScalarCfgArrayIntCollectionFactReady(int_source) {
+                return DirectMirScalarCfgIndexAssignmentSourceSet(
+                    false, int_source, string_source
+                );
+            }
+        } else if kind == "def" && source_type == "AST_LET_DECL" &&
+            capture.abi_type_name == CompilerAbiLayoutArrayStringTypeName() {
+            if string_source.valid {
+                return DirectMirScalarCfgIndexAssignmentSourceSet(
+                    false, int_source, string_source
+                );
+            }
+            let definition: MirRoutineResultDefinitionFact =
+                MirRoutineFactIndexUniqueResultDefinition(
+                    index, capture.result
+                );
+            string_source = DirectMirScalarCfgArrayStringCollectionFromOwners(
+                admitted, index, uses, wire, definition, capture,
+                capture.result, capture.arg0
+            );
+            if !DirectMirScalarCfgArrayStringCollectionFactReady(
+                    string_source
+                ) {
+                return DirectMirScalarCfgIndexAssignmentSourceSet(
+                    false, int_source, string_source
+                );
+            }
+        }
+        instruction = instruction + 1;
+    }
+    let valid: Bool = typed_assignments == 2 && int_source.valid &&
+        string_source.valid;
+    return DirectMirScalarCfgIndexAssignmentSourceSet(
+        valid, int_source, string_source
+    );
+}

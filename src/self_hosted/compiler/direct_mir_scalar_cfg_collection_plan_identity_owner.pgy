@@ -1,0 +1,78 @@
+// Stable identity for target-neutral collection values and operation rows.
+
+import "direct_mir_scalar_cfg_collection_plan_fact_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+
+func DirectMirScalarCfgCollectionPlanDigest(
+    ref plan: DirectMirScalarCfgCollectionPlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirScalarCfgHashInts(
+        457L, plan.values.definition_global_rows
+    );
+    hash = DirectMirScalarCfgHashStrings(hash, plan.values.value_ids);
+    hash = DirectMirScalarCfgHashStrings(hash, plan.values.names);
+    hash = DirectMirScalarCfgHashStrings(hash, plan.values.element_types);
+    hash = DirectMirScalarCfgHashStrings(
+        hash, plan.values.storage_identities
+    );
+    hash = DirectMirScalarCfgHashInts(
+        hash, plan.values.predecessor_value_rows
+    );
+    hash = DirectMirScalarCfgHashInts(hash, plan.values.abi_layout_ids);
+    hash = DirectMirScalarCfgHashInts(hash, plan.values.abi_sizes);
+    hash = DirectMirScalarCfgHashInts(hash, plan.values.abi_aligns);
+    hash = DirectMirScalarCfgHashInts(hash, plan.values.data_offsets);
+    hash = DirectMirScalarCfgHashInts(hash, plan.values.length_offsets);
+    hash = DirectMirScalarCfgHashInts(hash, plan.values.capacity_offsets);
+    hash = DirectMirScalarCfgHashInts(hash, plan.values.allocator_offsets);
+    hash = DirectMirScalarCfgHashInts(
+        hash, plan.values.initial_element_starts
+    );
+    hash = DirectMirScalarCfgHashInts(
+        hash, plan.values.initial_element_counts
+    );
+    hash = DirectMirScalarCfgHashInts(hash, plan.values.initial_int_elements);
+    hash = DirectMirScalarCfgHashStrings(
+        hash, plan.values.initial_string_elements
+    );
+    hash = DirectMirScalarCfgHashInts(hash, plan.operations.global_rows);
+    hash = DirectMirScalarCfgHashInts(hash, plan.operations.source_ordinals);
+    hash = DirectMirScalarCfgHashInts(hash, plan.operations.kinds);
+    hash = DirectMirScalarCfgHashInts(
+        hash, plan.operations.receiver_value_rows
+    );
+    hash = DirectMirScalarCfgHashInts(
+        hash, plan.operations.result_value_rows
+    );
+    hash = DirectMirScalarCfgHashInts(hash, plan.operations.indices);
+    hash = DirectMirScalarCfgHashStrings(hash, plan.operations.input_types);
+    hash = DirectMirScalarCfgHashInts(hash, plan.operations.input_ints);
+    hash = DirectMirScalarCfgHashStrings(hash, plan.operations.input_strings);
+    hash = DirectMirScalarCfgHashInts(
+        hash, plan.operations.graph_operation_rows
+    );
+    hash = DirectMirScalarCfgHashInts(hash, plan.observations.global_rows);
+    hash = DirectMirScalarCfgHashInts(hash, plan.observations.kinds);
+    hash = DirectMirScalarCfgHashInts(
+        hash, plan.observations.receiver_value_rows
+    );
+    hash = DirectMirScalarCfgHashInts(
+        hash, plan.observations.get_operation_starts
+    );
+    hash = DirectMirScalarCfgHashInts(
+        hash, plan.observations.get_operation_counts
+    );
+    hash = DirectMirScalarCfgHashInts(
+        hash, plan.observations.graph_operation_rows
+    );
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarCfgCollectionPlanWithDigest(
+    plan: DirectMirScalarCfgCollectionPlan, digest: Int
+) -> DirectMirScalarCfgCollectionPlan {
+    return DirectMirScalarCfgCollectionPlan(
+        plan.valid, digest, plan.values, plan.operations, plan.observations
+    );
+}

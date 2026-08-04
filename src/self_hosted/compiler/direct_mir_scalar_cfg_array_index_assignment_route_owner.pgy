@@ -1,0 +1,30 @@
+// Coarse claimant for typed indexed Array assignment before exact admission.
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_cfg_instruction_graph_owner.pgy";
+
+func DirectMirScalarCfgArrayIndexAssignmentRouteClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex
+) -> Bool {
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        if admitted.routines.instruction_kinds[global] == "def" &&
+            admitted.routines.instruction_source_types[global] ==
+                "AST_ASSIGNMENT" &&
+            DirectMirScalarCfgCollectionTypeSupported(
+                index.instruction_facts.abi_type_names[instruction]
+            ) {
+            let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+                admitted.routines.source_json,
+                admitted.routines.instruction_starts[global],
+                admitted.routines.instruction_ends[global]
+            );
+            let target: MirExpressionGraphSequence =
+                DirectMirScalarCfgInstructionGraphAt(object, "expr1_graph");
+            if target.ready_node_count != 1 { return true; }
+        }
+        instruction = instruction + 1;
+    }
+    return false;
+}

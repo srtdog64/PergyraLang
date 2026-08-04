@@ -1,0 +1,92 @@
+// Final GraphPlan closure for fully legalized collection operations.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_collection_observation_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_collection_plan_identity_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_absence_owner.pgy";
+
+func DirectMirScalarCfgCollectionPlanReady(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let collections: DirectMirScalarCfgCollectionPlan = plan.collections;
+    let observed: Int = 0;
+    let graph_operation: Int = 0;
+    while graph_operation < ArrayLength(plan.operation_kinds) {
+        if plan.operation_kinds[graph_operation] ==
+                DirectMirScalarCfgOpLogArrayIndexSumInt() ||
+            plan.operation_kinds[graph_operation] ==
+                DirectMirScalarCfgOpLogArrayIndexConcatString() {
+            observed = observed + 1;
+        }
+        graph_operation = graph_operation + 1;
+    }
+    if observed == 0 { return DirectMirScalarCfgCollectionPlanAbsent(collections); }
+    if !collections.valid || collections.digest == 0 ||
+        collections.digest != DirectMirScalarCfgCollectionPlanDigest(
+            collections
+        ) || observed != ArrayLength(collections.observations.kinds) ||
+        !DirectMirScalarCfgCollectionValuesReady(collections.values) ||
+        !DirectMirScalarCfgCollectionOperationsReady(collections) ||
+        !DirectMirScalarCfgCollectionObservationsReady(collections) ||
+        !DirectMirScalarCfgStringArrayPlanAbsent(plan.string_arrays) ||
+        !DirectMirScalarCfgArrayIntProgramAbsent(plan.array_int_program) ||
+        !DirectMirScalarCfgCollectionPopProgramAbsent(plan.collection_pops) ||
+        ArrayLength(plan.local_names) != 0 ||
+        ArrayLength(plan.value_names) != 0 { return false; }
+    let expected_graph_operations: Int =
+        ArrayLength(collections.observations.kinds);
+    let row: Int = 0;
+    while row < ArrayLength(collections.operations.kinds) {
+        if collections.operations.kinds[row] ==
+            DirectMirScalarCfgCollectionOpSet() {
+            expected_graph_operations = expected_graph_operations + 1;
+        }
+        row = row + 1;
+    }
+    if expected_graph_operations != ArrayLength(plan.operation_kinds) {
+        return false;
+    }
+    let graph_claims: Array<Int> = [];
+    let graph_row: Int = 0;
+    while graph_row < ArrayLength(plan.operation_kinds) {
+        ArrayPush(graph_claims, 0);
+        graph_row = graph_row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(collections.operations.kinds) {
+        let kind: Int = collections.operations.kinds[row];
+        let operation: Int = collections.operations.graph_operation_rows[row];
+        if kind == DirectMirScalarCfgCollectionOpSet() {
+            let result: Int = collections.operations.result_value_rows[row];
+            let expected: Int = DirectMirScalarCfgOpArraySetInt();
+            if collections.values.element_types[result] == "String" {
+                expected = DirectMirScalarCfgOpArraySetString();
+            }
+            if operation < 0 || operation >=
+                    ArrayLength(plan.operation_kinds) ||
+                plan.operation_kinds[operation] != expected { return false; }
+            ArraySet(graph_claims, operation, graph_claims[operation] + 1);
+        }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(collections.observations.kinds) {
+        let operation: Int =
+            collections.observations.graph_operation_rows[row];
+        let expected: Int = DirectMirScalarCfgOpLogArrayIndexSumInt();
+        if collections.observations.kinds[row] ==
+                DirectMirScalarCfgCollectionObservationConcatString() {
+            expected = DirectMirScalarCfgOpLogArrayIndexConcatString();
+        }
+        if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
+            plan.operation_kinds[operation] != expected { return false; }
+        ArraySet(graph_claims, operation, graph_claims[operation] + 1);
+        row = row + 1;
+    }
+    graph_row = 0;
+    while graph_row < ArrayLength(graph_claims) {
+        if graph_claims[graph_row] != 1 { return false; }
+        graph_row = graph_row + 1;
+    }
+    return true;
+}

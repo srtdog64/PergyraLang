@@ -15494,6 +15494,113 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy" 110
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_fact_owner.pgy" 240
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_fact_owner.pgy" \
+    'func DirectMirScalarCfgCollectionOpInitialize()'
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_fact_owner.pgy" \
+    'let predecessor_value_rows: Array<Int>;'
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_fact_owner.pgy" \
+    'Mode()'
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_identity_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_identity_owner.pgy" 100
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_value_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_value_readiness_owner.pgy" 120
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_operation_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_operation_readiness_owner.pgy" 100
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_observation_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_observation_readiness_owner.pgy" 70
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_observation_readiness_owner.pgy" \
+    'get_claims[operation] != expected'
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_readiness_owner.pgy" 100
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_readiness_owner.pgy" \
+    'graph_claims[graph_row] != 1'
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_binding_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_binding_owner.pgy" 80
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_expression_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_expression_owner.pgy" 50
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_typed_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_typed_readiness_owner.pgy" 30
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_array_int_absence_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_array_int_absence_owner.pgy" 20
+reject_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_operation_shape_owner.pgy"
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_index_assignment_route_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_index_assignment_route_owner.pgy" 30
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_index_assignment_graph_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_index_assignment_graph_owner.pgy" 160
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_index_assignment_admission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_index_assignment_admission_owner.pgy" 460
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_index_assignment_admission_owner.pgy" \
+    'array_index_assign.pgy'
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_index_assignment_source_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_index_assignment_source_owner.pgy" 100
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_selection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_selection_owner.pgy" 60
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_c_storage_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_c_storage_owner.pgy" 140
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_c_storage_owner.pgy" \
+    'int_emitted = true;'
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_c_storage_owner.pgy" \
+    'string_emitted = true;'
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_c_operation_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_c_operation_owner.pgy" 100
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_llvm_storage_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_llvm_storage_owner.pgy" 180
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_llvm_operation_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_llvm_operation_owner.pgy" 140
+for collection_backend_owner in \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_c_storage_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_c_operation_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_llvm_storage_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_llvm_operation_owner.pgy; do
+    reject_text "$collection_backend_owner" 'source_json'
+    reject_text "$collection_backend_owner" 'JsonObjectFactTable'
+    reject_text "$collection_backend_owner" 'pgy_ai_set'
+    reject_text "$collection_backend_owner" 'pgy_as_set'
+done
+for collection_owner in \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_fact_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_identity_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_array_index_assignment_route_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_index_assignment_graph_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_index_assignment_source_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_index_assignment_admission_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_selection_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_binding_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_expression_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_value_readiness_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_operation_readiness_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_observation_readiness_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_readiness_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_typed_readiness_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_array_int_absence_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_operation_shape_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_c_storage_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_c_operation_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_llvm_storage_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_llvm_operation_owner.pgy; do
+    require_text "src/self_hosted/OWNERS.md" "$collection_owner"
+done
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_plan_seal_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_plan_seal_owner.pgy" 70
@@ -15783,13 +15890,17 @@ require_file "tests/self_hosted/parity/one_mir_array_int_reverse_projection.sh"
 require_file "tests/self_hosted/parity/one_mir_array_int_reverse_mutations.py"
 require_file "tests/self_hosted/parity/one_mir_array_int_reverse_artifact_contract.sh"
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" \
-    'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v12'
+    'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v13'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" \
     'func DirectMirScalarCfgOpArrayReverseInt() -> Int { return 20; }'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" \
     'func DirectMirScalarCfgOpArrayPopString() -> Int { return 21; }'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" \
     'func DirectMirScalarCfgOpArrayPopInt() -> Int { return 22; }'
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" \
+    'func DirectMirScalarCfgOpLogArrayIndexSumInt() -> Int { return 23; }'
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" \
+    'func DirectMirScalarCfgOpLogArrayIndexConcatString() -> Int { return 24; }'
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_pop_route_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_pop_route_owner.pgy" 30

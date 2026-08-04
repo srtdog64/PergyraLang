@@ -1,0 +1,102 @@
+// Structural and ownership closure for collection ValueId versions.
+
+import "direct_mir_scalar_cfg_collection_plan_fact_owner.pgy";
+import "direct_mir_array_storage_layout_contract_owner.pgy";
+
+func DirectMirScalarCfgCollectionValueLength(
+    ref values: DirectMirScalarCfgCollectionValueSet, wanted: Int
+) -> Int {
+    if wanted < 0 || wanted >= ArrayLength(values.value_ids) { return -1; }
+    let row: Int = wanted;
+    let steps: Int = 0;
+    while values.predecessor_value_rows[row] >= 0 {
+        row = values.predecessor_value_rows[row]; steps = steps + 1;
+        if row < 0 || row >= ArrayLength(values.value_ids) ||
+            steps > ArrayLength(values.value_ids) { return -1; }
+    }
+    return values.initial_element_counts[row];
+}
+
+func DirectMirScalarCfgCollectionValuesReady(
+    ref values: DirectMirScalarCfgCollectionValueSet
+) -> Bool {
+    let count: Int = ArrayLength(values.value_ids);
+    if !values.valid || count < 1 ||
+        count != ArrayLength(values.definition_global_rows) ||
+        count != ArrayLength(values.names) ||
+        count != ArrayLength(values.element_types) ||
+        count != ArrayLength(values.storage_identities) ||
+        count != ArrayLength(values.predecessor_value_rows) ||
+        count != ArrayLength(values.abi_layout_ids) ||
+        count != ArrayLength(values.abi_sizes) ||
+        count != ArrayLength(values.abi_aligns) ||
+        count != ArrayLength(values.data_offsets) ||
+        count != ArrayLength(values.length_offsets) ||
+        count != ArrayLength(values.capacity_offsets) ||
+        count != ArrayLength(values.allocator_offsets) ||
+        count != ArrayLength(values.initial_element_starts) ||
+        count != ArrayLength(values.initial_element_counts) { return false; }
+    let layout: DirectMirArrayStorageLayoutContract =
+        DirectMirArrayStorageLayoutContractFact();
+    let row: Int = 0;
+    while row < count {
+        let predecessor: Int = values.predecessor_value_rows[row];
+        if values.definition_global_rows[row] < 0 ||
+            values.value_ids[row] == "" || values.names[row] == "" ||
+            (values.element_types[row] != "Int" &&
+             values.element_types[row] != "String") ||
+            values.storage_identities[row] == "" ||
+            values.abi_layout_ids[row] <= 0 ||
+            values.abi_sizes[row] != layout.size ||
+            values.abi_aligns[row] != layout.align ||
+            values.data_offsets[row] != layout.data_offset ||
+            values.length_offsets[row] != layout.length_offset ||
+            values.capacity_offsets[row] != layout.capacity_offset ||
+            values.allocator_offsets[row] != layout.allocator_offset ||
+            predecessor < -1 || predecessor >= count ||
+            predecessor == row { return false; }
+        if predecessor < 0 {
+            let start: Int = values.initial_element_starts[row];
+            let length: Int = values.initial_element_counts[row];
+            if start < 0 || length < 0 || (values.element_types[row] ==
+                    "Int" && start + length >
+                        ArrayLength(values.initial_int_elements)) ||
+                (values.element_types[row] == "String" && start + length >
+                    ArrayLength(values.initial_string_elements)) {
+                return false;
+            }
+        } else if values.initial_element_starts[row] != -1 ||
+            values.initial_element_counts[row] != 0 ||
+            values.definition_global_rows[predecessor] >=
+                values.definition_global_rows[row] ||
+            values.names[predecessor] != values.names[row] ||
+            values.element_types[predecessor] != values.element_types[row] ||
+            values.storage_identities[predecessor] !=
+                values.storage_identities[row] ||
+            values.abi_layout_ids[predecessor] != values.abi_layout_ids[row] ||
+            values.abi_sizes[predecessor] != values.abi_sizes[row] ||
+            values.abi_aligns[predecessor] != values.abi_aligns[row] ||
+            values.data_offsets[predecessor] != values.data_offsets[row] ||
+            values.length_offsets[predecessor] != values.length_offsets[row] ||
+            values.capacity_offsets[predecessor] !=
+                values.capacity_offsets[row] ||
+            values.allocator_offsets[predecessor] !=
+                values.allocator_offsets[row] { return false; }
+        let prior: Int = 0;
+        while prior < row {
+            if values.value_ids[prior] == values.value_ids[row] ||
+                values.definition_global_rows[prior] ==
+                    values.definition_global_rows[row] { return false; }
+            if predecessor < 0 &&
+                values.storage_identities[prior] ==
+                    values.storage_identities[row] &&
+                values.predecessor_value_rows[prior] < 0 { return false; }
+            prior = prior + 1;
+        }
+        if DirectMirScalarCfgCollectionValueLength(values, row) < 0 {
+            return false;
+        }
+        row = row + 1;
+    }
+    return DirectMirArrayStorageLayoutContractReady(layout);
+}

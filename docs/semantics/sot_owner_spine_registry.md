@@ -186,6 +186,7 @@ src/self_hosted/compiler/direct_mir_cfg_entry_fact_owner.pgy | DirectMirCfgEntry
 src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy | DirectMirCfgShapeFactsFromOwners | projection.direct_mir_cfg_plan | projection
 src/self_hosted/compiler/direct_mir_cfg_plan_fact_owner.pgy | DirectMirCfgPlanReady | projection.direct_mir_cfg_plan | local_view
 src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy | DirectMirScalarCfgGraphPlanReady | projection.direct_mir_scalar_cfg_graph_plan | local_view
+src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_fact_owner.pgy | DirectMirScalarCfgCollectionPlan | projection.direct_mir_scalar_cfg_graph_plan | embedded_projection
 src/self_hosted/compiler/direct_mir_loop_cfg_plan_fact_owner.pgy | DirectMirLoopCfgPlanFactReady | projection.direct_mir_cfg_plan | local_view
 src/self_hosted/compiler/direct_mir_scalar_cfg_range_fact_owner.pgy | DirectMirScalarCfgRangeIterationFactReady | projection.direct_mir_scalar_cfg_graph_plan | local_view
 src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy | DirectMirScalarCfgRangeIterationFactsFromOwners | projection.direct_mir_scalar_cfg_graph_plan | projection

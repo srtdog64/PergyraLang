@@ -2267,6 +2267,43 @@ inventory must not become a second fact-family owner registry.
   program receipt joining the foreach-owned `Array<Int>` source, the
   String-plan-owned source, and the globally ordered `4->3`, `3->2`, `3->2`
   pop effects. Partial Int-only or String-only admission is invalid.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_fact_owner.pgy`
+  and `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_identity_owner.pgy`
+  -- the target-neutral collection SSA-value, ordered `Initialize`/`Get`/`Set`,
+  and observation columns carried by `GraphPlan`. Storage identity and
+  predecessor rows stay distinct from source names, and one digest seals the
+  complete value/operation/observation view.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_array_index_assignment_route_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_cfg_index_assignment_graph_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_index_assignment_source_owner.pgy`,
+  and `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_index_assignment_admission_owner.pgy`
+  -- coarse claim and exact admission of the currently bounded Int/String
+  indexed-assignment graph into the general collection plan. The claimant owns
+  rejection routing; only exact typed graph/use/ABI/length admission can
+  publish the plan.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_selection_owner.pgy`
+  -- the exclusive selection boundary between the embedded general collection
+  plan and the older String/ArrayInt plans. Once the indexed-assignment route
+  is claimed, invalid admission cannot retry either older plan.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_binding_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_expression_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_value_readiness_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_operation_readiness_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_observation_readiness_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_readiness_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_typed_readiness_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_array_int_absence_owner.pgy`,
+  and `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_operation_shape_owner.pgy`
+  -- graph-row binding and final plan validation. Every collection version,
+  operation, observation, target operation row, ABI layout, and inactive legacy
+  Array-operation handoff must be complete and exclusive before sealing.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_c_storage_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_c_operation_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_llvm_storage_owner.pgy`,
+  and `src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_llvm_operation_owner.pgy`
+  -- selected-target storage materialization and ordered operation projection
+  from the sealed collection plan only. They cannot read MIR JSON, call the
+  private three-field mutation helpers, or precompute final observations.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_pop_foreach_owner.pgy`
   and the ArrayInt pop admission/binding/identity/lookup/readiness owners --
   bind the two Int effects to the pre-existing foreach collection identity.

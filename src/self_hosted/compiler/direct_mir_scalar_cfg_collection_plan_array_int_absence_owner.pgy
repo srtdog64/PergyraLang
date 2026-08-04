@@ -1,0 +1,14 @@
+// Exact handoff from the retired Array<Int> mode inventory to CollectionPlan.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarCfgCollectionClaimsArrayIntOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> Bool {
+    let set_row: Int = DirectMirScalarCfgCollectionSetOperationAtGraphRow(
+        plan.collections, operation
+    );
+    return set_row >= 0 && plan.operation_kinds[operation] ==
+            DirectMirScalarCfgOpArraySetInt() &&
+        plan.collections.operations.input_types[set_row] == "Int";
+}

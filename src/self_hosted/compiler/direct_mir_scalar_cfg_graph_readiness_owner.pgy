@@ -5,6 +5,7 @@ import "direct_mir_scalar_cfg_range_graph_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_foreach_graph_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_typed_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_collection_pop_program_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_collection_plan_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_graph_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_program_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_condition_role_owner.pgy";
@@ -165,7 +166,7 @@ func DirectMirScalarCfgGraphPlanReady(
             plan.string_arrays.accesses.kinds[indexed_row] ==
                 DirectMirScalarCfgStringArrayAccessLogRead();
         if kind < DirectMirScalarCfgOpConstInt() ||
-            kind > DirectMirScalarCfgOpArrayPopInt() || result < -1 ||
+            kind > DirectMirScalarCfgOpLogArrayIndexConcatString() || result < -1 ||
             left < -1 || right < -1 || left_local < -1 ||
             right_local < -1 || result >= value_count ||
             left >= value_count || right >= value_count ||
@@ -229,6 +230,7 @@ func DirectMirScalarCfgGraphPlanReady(
         !DirectMirScalarCfgStringArrayGraphReady(plan) ||
         !DirectMirScalarCfgArrayIntProgramReady(plan) ||
         !DirectMirScalarCfgCollectionPopProgramReady(plan) ||
+        !DirectMirScalarCfgCollectionPlanReady(plan) ||
         !DirectMirScalarCfgTypedPlanReady(plan) { return false; }
     return CompilerArtifactIdentityReady(
         CompilerEmittedCArtifactKind(), plan.revision, plan.digest

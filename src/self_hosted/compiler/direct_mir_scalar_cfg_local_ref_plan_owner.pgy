@@ -6,6 +6,7 @@ import "direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_program_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_collection_plan_fact_owner.pgy";
 import "direct_mir_scalar_cfg_local_inventory_owner.pgy";
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
@@ -50,7 +51,8 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(
     ref ranges: DirectMirScalarCfgRangeFactSet,
     ref foreach_sources: DirectMirScalarCfgForEachFactSet,
     ref string_arrays: DirectMirScalarCfgStringArrayPlan,
-    ref array_int_program: DirectMirScalarCfgArrayIntProgramFact
+    ref array_int_program: DirectMirScalarCfgArrayIntProgramFact,
+    ref collections: DirectMirScalarCfgCollectionPlan
 ) -> DirectMirScalarCfgLocalRefPlan {
     let empty: DirectMirScalarCfgLocalRefPlan =
         DirectMirScalarCfgLocalRefPlanEmpty();
@@ -85,6 +87,8 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(
             string_arrays, global
         ) && !DirectMirScalarCfgArrayIntOwnsDefinition(
             array_int_program, global
+        ) && !DirectMirScalarCfgCollectionOwnsDefinition(
+            collections, global
         ) {
             if kind != "def" && kind != "phi" { return empty; }
             let local_name: String = index.instruction_facts.arg0s[instruction];
@@ -152,7 +156,7 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(
     }
     if !DirectMirScalarCfgLocalInventoryReady(
         index, local_names, foreach_sources, string_arrays,
-        array_int_program
+        array_int_program, collections
     ) {
         Die("direct MIR scalar CFG foreach local inventory is invalid");
         return empty;

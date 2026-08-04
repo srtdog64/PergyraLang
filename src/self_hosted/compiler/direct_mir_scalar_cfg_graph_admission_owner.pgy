@@ -13,6 +13,8 @@ import "direct_mir_scalar_cfg_array_int_program_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_reverse_operation_seed_owner.pgy";
 import "direct_mir_scalar_cfg_collection_expression_owner.pgy";
 import "direct_mir_scalar_cfg_branch_admission_owner.pgy";
+import "direct_mir_scalar_cfg_collection_plan_expression_owner.pgy";
+import "direct_mir_scalar_cfg_collection_plan_binding_owner.pgy";
 import "../mir_lower/phi_predecessor_binding_fact_owner.pgy";
 func DirectMirScalarCfgGraphPlanFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -36,10 +38,12 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
     let string_array_source: DirectMirScalarCfgStringArrayPlan = input.string_arrays;
     let array_int_source: DirectMirScalarCfgArrayIntProgramFact =
         input.array_int_program;
+    let collection_source: DirectMirScalarCfgCollectionPlan =
+        input.collections;
     let local_refs: DirectMirScalarCfgLocalRefPlan =
         DirectMirScalarCfgLocalRefPlanFromOwners(
             admitted, index, use_facts, wire, range_sources, foreach_sources,
-            string_array_source, array_int_source
+            string_array_source, array_int_source, collection_source
         );
     if !local_refs.valid { Die("direct MIR scalar CFG LocalRef plan is invalid"); }
     let type_plan: DirectMirScalarCfgValueTypePlan =
@@ -83,6 +87,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
         DirectMirScalarCfgArrayIntProgramAtValueRows(
             array_int_source, value_names, range_iterations
         );
+    let collections: DirectMirScalarCfgCollectionPlan = collection_source;
     if array_int_source.valid && !array_int_program.valid {
         Die("direct MIR scalar CFG Array<Int> value binding is invalid");
     }
@@ -148,8 +153,39 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                     )) || (kind == "def" &&
                     DirectMirScalarCfgArrayIntOwnsDefinition(
                         array_int_program, global_row
+                    )) || (kind == "def" &&
+                    DirectMirScalarCfgCollectionSourceDefinition(
+                        collections, global_row
                     )) {
                 // Collection storage is owned by the sealed foreach receipt.
+            } else if kind == "def" &&
+                    DirectMirScalarCfgCollectionOwnsDefinition(
+                        collections, global_row
+                    ) {
+                let expression: DirectMirScalarCfgExpressionFact =
+                    DirectMirScalarCfgCollectionPlanExpressionFact(
+                        collections, global_row
+                    );
+                if !expression.valid {
+                    Die("direct MIR indexed Array assignment is invalid");
+                }
+                collections =
+                    DirectMirScalarCfgCollectionPlanAtGraphOperation(
+                        collections, global_row,
+                        ArrayLength(operation_kinds)
+                    );
+                if !collections.valid {
+                    Die("direct MIR indexed Array operation binding is invalid");
+                }
+                DirectMirScalarCfgAppendOperation(
+                    operation_kinds, operation_result_values,
+                    operation_left_values, operation_right_values,
+                    operation_left_locals, operation_right_locals,
+                    operation_left_literals, operation_right_literals,
+                    operation_phi_starts, operation_phi_counts,
+                    expression.kind, -1, expression,
+                    ArrayLength(phi_predecessor_blocks), 0
+                );
             } else if kind == "def" {
                 let scalar: MirRoutineInstructionScalarCapture =
                     MirRoutineInstructionFactBundleAtGlobal(
@@ -287,6 +323,34 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                     ) || block != foreach.init_block)) {
                     Die("direct MIR scalar CFG range initializer is invalid");
                 }
+            } else if kind == "stmt" &&
+                    DirectMirScalarCfgCollectionObservationRowAtGlobal(
+                        collections, global_row
+                    ) >= 0 {
+                let expression: DirectMirScalarCfgExpressionFact =
+                    DirectMirScalarCfgCollectionPlanExpressionFact(
+                        collections, global_row
+                    );
+                if !expression.valid {
+                    Die("direct MIR indexed Array observation is invalid");
+                }
+                collections =
+                    DirectMirScalarCfgCollectionPlanAtGraphOperation(
+                        collections, global_row,
+                        ArrayLength(operation_kinds)
+                    );
+                if !collections.valid {
+                    Die("direct MIR indexed Array operation binding is invalid");
+                }
+                DirectMirScalarCfgAppendOperation(
+                    operation_kinds, operation_result_values,
+                    operation_left_values, operation_right_values,
+                    operation_left_locals, operation_right_locals,
+                    operation_left_literals, operation_right_literals,
+                    operation_phi_starts, operation_phi_counts,
+                    expression.kind, -1, expression,
+                    ArrayLength(phi_predecessor_blocks), 0
+                );
             } else if kind == "stmt" {
                 let scalar: MirRoutineInstructionScalarCapture =
                     MirRoutineInstructionFactBundleAtGlobal(
@@ -373,6 +437,6 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
         operation_right_literals, operation_phi_starts,
         operation_phi_counts, phi_predecessor_blocks, phi_incoming_values,
         range_iterations, foreach_iterations, foreach_elements,
-        string_arrays, array_int_program
+        string_arrays, array_int_program, collections
     );
 }

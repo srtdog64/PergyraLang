@@ -6,9 +6,9 @@ func DirectMirScalarCfgMinimumPlanShapeReady(
     ref plan: DirectMirScalarCfgGraphPlan,
     local_count: Int, value_count: Int, block_count: Int
 ) -> Bool {
-    if plan.array_int_program.mode ==
+    if (plan.array_int_program.mode ==
             DirectMirScalarCfgArrayIntFreshReverseMode() &&
-        plan.array_int_program.reverse.valid {
+        plan.array_int_program.reverse.valid) || plan.collections.valid {
         return local_count == 0 && value_count == 0 && block_count == 1;
     }
     return local_count >= 1 && block_count >= 2;

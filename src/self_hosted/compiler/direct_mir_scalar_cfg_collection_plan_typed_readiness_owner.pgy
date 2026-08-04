@@ -1,0 +1,26 @@
+// Typed ownership for GraphPlan rows backed by generic collection facts.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarCfgCollectionTypedOperationReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    operation: Int, kind: Int, indexed_kind: Int
+) -> Bool {
+    let set_row: Int = DirectMirScalarCfgCollectionSetOperationAtGraphRow(
+        plan.collections, operation
+    );
+    if kind == DirectMirScalarCfgOpArraySetString() {
+        return indexed_kind ==
+                DirectMirScalarCfgStringArrayAccessSetKind() ||
+            (set_row >= 0 &&
+             plan.collections.operations.input_types[set_row] == "String");
+    }
+    if kind == DirectMirScalarCfgOpArraySetInt() && set_row >= 0 {
+        return plan.collections.operations.input_types[set_row] == "Int";
+    }
+    return true;
+}
+
+func DirectMirScalarCfgCollectionOperationRequiresConcat(kind: Int) -> Bool {
+    return kind == DirectMirScalarCfgOpLogArrayIndexConcatString();
+}

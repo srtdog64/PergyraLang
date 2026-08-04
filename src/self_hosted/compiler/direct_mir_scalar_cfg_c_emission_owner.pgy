@@ -9,6 +9,7 @@ import "direct_mir_scalar_cfg_c_operation_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_c_materialization_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_c_emission_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_c_emission_owner.pgy";
+import "direct_mir_scalar_cfg_collection_plan_c_storage_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
 func DirectMirScalarCfgEmitC(
@@ -32,6 +33,8 @@ func DirectMirScalarCfgEmitC(
         plan, target
     ));
     output = Concat(output, DirectMirScalarCfgArrayIntCPreamble(plan, target));
+    output = Concat(output,
+        DirectMirScalarCfgCollectionPlanCPreamble(plan, target));
     output = Concat(output, DirectMirScalarCfgStringCPreamble(plan, concat));
     output = Concat(output, "\nint main(void) {\n");
     output = Concat(
@@ -45,6 +48,8 @@ func DirectMirScalarCfgEmitC(
     ));
     output = Concat(output,
         DirectMirScalarCfgArrayIntCDeclarations(plan, target));
+    output = Concat(output,
+        DirectMirScalarCfgCollectionPlanCDeclarations(plan, target));
     output = Concat(output, "    goto pgy_block_0;\n");
     let block: Int = 0;
     while block < ArrayLength(plan.block_succ_true) {

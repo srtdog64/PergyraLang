@@ -3,6 +3,7 @@ import "direct_mir_scalar_graph_admission_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_reverse_route_owner.pgy";
 import "direct_mir_scalar_cfg_array_pop_route_owner.pgy";
+import "direct_mir_scalar_cfg_array_index_assignment_route_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 func DirectMirScalarCfgRoutineRouteClaimed(
     ref admitted: MirMachineLayerAdmittedJsonInput, routine_row: Int) -> Bool {
@@ -58,7 +59,8 @@ func DirectMirScalarCfgRoutineRouteClaimed(
         }
         row = row + 1;
     }
-    return branch_seen || reverse_claimed || pop_claimed;
+    return branch_seen || reverse_claimed || pop_claimed ||
+        DirectMirScalarCfgArrayIndexAssignmentRouteClaimed(admitted, index);
 }
 func DirectMirScalarCfgGraphRouteClaimed(
     ref admitted: MirMachineLayerAdmittedJsonInput

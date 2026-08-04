@@ -10,6 +10,7 @@ import "direct_mir_scalar_cfg_llvm_operation_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_program_llvm_storage_owner.pgy";
+import "direct_mir_scalar_cfg_collection_plan_llvm_storage_owner.pgy";
 import "direct_mir_llvm_text_format_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
@@ -51,6 +52,8 @@ func DirectMirScalarCfgEmitLlvm(
     output = Concat(output, DirectMirScalarCfgStringLlvmGlobals(plan));
     output = Concat(output, DirectMirScalarCfgStringArrayLlvmGlobals(plan));
     output = Concat(output,
+        DirectMirScalarCfgCollectionPlanLlvmGlobals(plan));
+    output = Concat(output,
         DirectMirScalarCfgStringLlvmConcatBlock(plan, concat));
     output = Concat(output, "\ndeclare i32 @");
     output = Concat(output, formatted_print.symbol);
@@ -63,6 +66,8 @@ func DirectMirScalarCfgEmitLlvm(
         DirectMirScalarCfgStringArrayLlvmDeclarations(plan, target));
     output = Concat(output,
         DirectMirScalarCfgArrayIntProgramLlvmDeclarations(plan, target));
+    output = Concat(output,
+        DirectMirScalarCfgCollectionPlanLlvmDeclarations(plan, target));
     output = Concat(output, "  br label %pgy.block.0\n");
     let block: Int = 0;
     while block < ArrayLength(plan.block_succ_true) {

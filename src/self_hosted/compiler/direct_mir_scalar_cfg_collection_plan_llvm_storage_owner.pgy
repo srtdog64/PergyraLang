@@ -1,0 +1,169 @@
+// LLVM globals and four-field storage for legalized collection roots.
+
+import "direct_mir_scalar_cfg_collection_plan_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_llvm_storage_emission_owner.pgy";
+import "direct_mir_array_int_abi_projection_owner.pgy";
+import "direct_mir_array_string_abi_projection_owner.pgy";
+
+func DirectMirScalarCfgCollectionPlanLlvmGlobals(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> String {
+    let output: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(plan.collections.values.value_ids) {
+        if plan.collections.values.predecessor_value_rows[row] < 0 &&
+            plan.collections.values.element_types[row] == "String" {
+            let start: Int =
+                plan.collections.values.initial_element_starts[row];
+            let count: Int =
+                plan.collections.values.initial_element_counts[row];
+            let item: Int = 0;
+            while item < count {
+                output = Concat(output, DirectMirScalarCfgStringLlvmConstant(
+                    Concat(".pgy.collection.", Concat(ToString(row),
+                        Concat(".", ToString(item)))),
+                    plan.collections.values.initial_string_elements[
+                        start + item
+                    ]
+                ));
+                item = item + 1;
+            }
+        }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(plan.collections.operations.kinds) {
+        if plan.collections.operations.kinds[row] ==
+                DirectMirScalarCfgCollectionOpSet() &&
+            plan.collections.operations.input_types[row] == "String" {
+            output = Concat(output, DirectMirScalarCfgStringLlvmConstant(
+                Concat(".pgy.collection.set.", ToString(row)),
+                plan.collections.operations.input_strings[row]
+            ));
+        }
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarCfgCollectionPlanLlvmDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact
+) -> String {
+    let output: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(plan.collections.values.value_ids) {
+        if plan.collections.values.predecessor_value_rows[row] < 0 {
+            let length: Int =
+                plan.collections.values.initial_element_counts[row];
+            let llvm_element: String = "i32";
+            let element_align: String = "4";
+            let aggregate: String = "";
+            let data_index: Int = -1;
+            let length_index: Int = -1;
+            let capacity_index: Int = -1;
+            let allocator_index: Int = -1;
+            if plan.collections.values.element_types[row] == "Int" {
+                let abi: DirectMirArrayIntAbiProjection =
+                    DirectMirArrayIntAbiProjectionFromCanonicalLayout(
+                        target, plan.collections.values.abi_layout_ids[row],
+                        plan.collections.values.abi_sizes[row],
+                        plan.collections.values.abi_aligns[row],
+                        plan.collections.values.data_offsets[row],
+                        plan.collections.values.length_offsets[row],
+                        plan.collections.values.capacity_offsets[row],
+                        plan.collections.values.allocator_offsets[row]
+                    );
+                aggregate = abi.llvm_aggregate_type;
+                data_index = abi.data_index; length_index = abi.length_index;
+                capacity_index = abi.capacity_index;
+                allocator_index = abi.allocator_index;
+            } else {
+                let abi: DirectMirArrayStringAbiProjection =
+                    DirectMirArrayStringAbiProjectionFromCanonicalLayout(
+                        target, plan.collections.values.abi_layout_ids[row],
+                        plan.collections.values.abi_sizes[row],
+                        plan.collections.values.abi_aligns[row],
+                        plan.collections.values.data_offsets[row],
+                        plan.collections.values.length_offsets[row],
+                        plan.collections.values.capacity_offsets[row],
+                        plan.collections.values.allocator_offsets[row]
+                    );
+                llvm_element = "ptr"; element_align = "8";
+                aggregate = abi.llvm_aggregate_type;
+                data_index = abi.data_index; length_index = abi.length_index;
+                capacity_index = abi.capacity_index;
+                allocator_index = abi.allocator_index;
+            }
+            let prefix: String = Concat("collection.", ToString(row));
+            output = Concat(output, Concat("  %pgy.array.", prefix));
+            output = Concat(output, Concat(".storage = alloca [",
+                Concat(ToString(length), Concat(" x ", Concat(
+                    llvm_element, "]")))));
+            output = Concat(output, Concat(", align ",
+                Concat(element_align, "\n")));
+            let item: Int = 0;
+            while item < length {
+                output = Concat(output, Concat("  %pgy.array.", prefix));
+                output = Concat(output, Concat(".slot.", ToString(item)));
+                output = Concat(output, Concat(" = getelementptr inbounds [",
+                    Concat(ToString(length), Concat(" x ", llvm_element))));
+                output = Concat(output, Concat("], ptr %pgy.array.", prefix));
+                output = Concat(output, Concat(".storage, i64 0, i64 ",
+                    Concat(ToString(item), "\n  store ")));
+                if llvm_element == "i32" {
+                    let start: Int =
+                        plan.collections.values.initial_element_starts[row];
+                    output = Concat(output, Concat("i32 ", ToString(
+                        plan.collections.values.initial_int_elements[
+                            start + item
+                        ]
+                    )));
+                } else {
+                    output = Concat(output, Concat("ptr @.pgy.collection.",
+                        Concat(ToString(row), Concat(".", ToString(item)))));
+                }
+                output = Concat(output, Concat(", ptr %pgy.array.", prefix));
+                output = Concat(output, Concat(".slot.",
+                    Concat(ToString(item), Concat(", align ",
+                        Concat(element_align, "\n")))));
+                item = item + 1;
+            }
+            output = Concat(output, Concat("  %pgy.array.", prefix));
+            output = Concat(output, Concat(".data = getelementptr inbounds [",
+                Concat(ToString(length), Concat(" x ", llvm_element))));
+            output = Concat(output, Concat("], ptr %pgy.array.", prefix));
+            output = Concat(output, ".storage, i64 0, i64 0\n");
+            output = Concat(output, Concat("  %pgy.array.", prefix));
+            output = Concat(output, Concat(".object = alloca ", aggregate));
+            output = Concat(output, ", align 8\n");
+            output = Concat(output,
+                DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
+                    prefix, aggregate, "data", data_index));
+            output = Concat(output,
+                DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
+                    prefix, aggregate, "length", length_index));
+            output = Concat(output,
+                DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
+                    prefix, aggregate, "capacity", capacity_index));
+            output = Concat(output,
+                DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
+                    prefix, aggregate, "allocator", allocator_index));
+            output = Concat(output, Concat("  store ptr %pgy.array.", prefix));
+            output = Concat(output, Concat(".data, ptr %pgy.array.", prefix));
+            output = Concat(output, ".data.field, align 8\n");
+            output = Concat(output, Concat("  store i64 ", ToString(length)));
+            output = Concat(output, Concat(", ptr %pgy.array.", prefix));
+            output = Concat(output, ".length.field, align 8\n");
+            output = Concat(output, Concat("  store i64 ", ToString(length)));
+            output = Concat(output, Concat(", ptr %pgy.array.", prefix));
+            output = Concat(output, ".capacity.field, align 8\n");
+            output = Concat(output, Concat(
+                "  store ptr null, ptr %pgy.array.", prefix));
+            output = Concat(output, ".allocator.field, align 8\n");
+        }
+        row = row + 1;
+    }
+    return output;
+}

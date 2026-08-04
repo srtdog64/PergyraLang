@@ -1,0 +1,139 @@
+// Exact persisted expression graphs for typed indexed Array transitions.
+
+import "direct_mir_scalar_cfg_array_int_static_graph_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_graph_shape_owner.pgy";
+
+struct DirectMirScalarCfgIndexAssignmentObservationGraphFact {
+    let valid: Bool;
+    let collection_name: String;
+    let indices: Array<Int>;
+}
+
+func DirectMirScalarCfgIndexAssignmentObservationGraphFactEmpty(
+) -> DirectMirScalarCfgIndexAssignmentObservationGraphFact {
+    let indices: Array<Int> = [];
+    return DirectMirScalarCfgIndexAssignmentObservationGraphFact(
+        false, "", indices
+    );
+}
+
+func DirectMirScalarCfgIndexAssignmentCallTargetsReady(
+    ref graph: MirExpressionGraphSequence
+) -> Bool {
+    let row: Int = 0;
+    while row < graph.ready_node_count {
+        if row == 1 {
+            if graph.arena.call_target_kinds[row] !=
+                    SemanticCallTargetDirect() ||
+                graph.arena.call_target_names[row] == "" { return false; }
+        } else if graph.arena.call_target_kinds[row] !=
+                SemanticCallTargetNone() ||
+            graph.arena.call_target_names[row] != "" { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarCfgIndexAssignmentIntObservationGraphFactFrom(
+    ref graph: MirExpressionGraphSequence
+) -> DirectMirScalarCfgIndexAssignmentObservationGraphFact {
+    let invalid: DirectMirScalarCfgIndexAssignmentObservationGraphFact =
+        DirectMirScalarCfgIndexAssignmentObservationGraphFactEmpty();
+    if !graph.ok || graph.ready_node_count != 14 ||
+        ArrayLength(graph.roots) != 1 || graph.roots[0] != 13 ||
+        graph.arena.node_texts[0] != "ToString" ||
+        graph.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        graph.arena.topology.node_kinds[1] != AstExpressionNodeCall() ||
+        graph.arena.topology.left_children[1] != 0 ||
+        graph.arena.call_target_names[1] != "ToString" ||
+        graph.arena.topology.node_kinds[8] != AstExpressionNodeAdd() ||
+        graph.arena.topology.left_children[8] != 4 ||
+        graph.arena.topology.right_children[8] != 7 ||
+        graph.arena.topology.node_kinds[12] != AstExpressionNodeAdd() ||
+        graph.arena.topology.left_children[12] != 8 ||
+        graph.arena.topology.right_children[12] != 11 ||
+        graph.arena.topology.node_kinds[13] !=
+            AstExpressionNodeCallArgument() ||
+        graph.arena.topology.left_children[13] != 1 ||
+        graph.arena.topology.right_children[13] != 12 ||
+        !DirectMirScalarCfgIndexAssignmentCallTargetsReady(graph) {
+        return invalid;
+    }
+    let indices: Array<Int> = [];
+    let starts: Array<Int> = [2, 5, 9];
+    let row: Int = 0;
+    let name: String = "";
+    while row < 3 {
+        let start: Int = starts[row];
+        if graph.arena.topology.node_kinds[start] != AstExpressionNodeLeaf() ||
+            graph.arena.topology.node_kinds[start + 1] !=
+                AstExpressionNodeIntegerLiteral() ||
+            graph.arena.topology.node_kinds[start + 2] !=
+                AstExpressionNodeIndex() ||
+            graph.arena.topology.left_children[start + 2] != start ||
+            graph.arena.topology.right_children[start + 2] != start + 1 ||
+            !DirectMirScalarCfgCanonicalInt(
+                graph.arena.node_texts[start + 1]
+            ) { return invalid; }
+        if row == 0 { name = graph.arena.node_texts[start]; }
+        if name == "" || graph.arena.node_texts[start] != name {
+            return invalid;
+        }
+        ArrayPush(indices, ToInt(graph.arena.node_texts[start + 1]));
+        row = row + 1;
+    }
+    return DirectMirScalarCfgIndexAssignmentObservationGraphFact(
+        true, name, indices
+    );
+}
+
+func DirectMirScalarCfgIndexAssignmentStringObservationGraphFactFrom(
+    ref graph: MirExpressionGraphSequence
+) -> DirectMirScalarCfgIndexAssignmentObservationGraphFact {
+    let invalid: DirectMirScalarCfgIndexAssignmentObservationGraphFact =
+        DirectMirScalarCfgIndexAssignmentObservationGraphFactEmpty();
+    if !graph.ok || graph.ready_node_count != 10 ||
+        ArrayLength(graph.roots) != 1 || graph.roots[0] != 9 ||
+        graph.arena.node_texts[0] != "Concat" ||
+        graph.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        graph.arena.topology.node_kinds[1] != AstExpressionNodeCall() ||
+        graph.arena.topology.left_children[1] != 0 ||
+        graph.arena.call_target_names[1] != "Concat" ||
+        graph.arena.topology.node_kinds[5] !=
+            AstExpressionNodeCallArgument() ||
+        graph.arena.topology.left_children[5] != 1 ||
+        graph.arena.topology.right_children[5] != 4 ||
+        graph.arena.topology.node_kinds[9] !=
+            AstExpressionNodeCallArgument() ||
+        graph.arena.topology.left_children[9] != 5 ||
+        graph.arena.topology.right_children[9] != 8 ||
+        !DirectMirScalarCfgIndexAssignmentCallTargetsReady(graph) {
+        return invalid;
+    }
+    let indices: Array<Int> = [];
+    let starts: Array<Int> = [2, 6];
+    let row: Int = 0;
+    let name: String = "";
+    while row < 2 {
+        let start: Int = starts[row];
+        if graph.arena.topology.node_kinds[start] != AstExpressionNodeLeaf() ||
+            graph.arena.topology.node_kinds[start + 1] !=
+                AstExpressionNodeIntegerLiteral() ||
+            graph.arena.topology.node_kinds[start + 2] !=
+                AstExpressionNodeIndex() ||
+            graph.arena.topology.left_children[start + 2] != start ||
+            graph.arena.topology.right_children[start + 2] != start + 1 ||
+            !DirectMirScalarCfgCanonicalInt(
+                graph.arena.node_texts[start + 1]
+            ) { return invalid; }
+        if row == 0 { name = graph.arena.node_texts[start]; }
+        if name == "" || graph.arena.node_texts[start] != name {
+            return invalid;
+        }
+        ArrayPush(indices, ToInt(graph.arena.node_texts[start + 1]));
+        row = row + 1;
+    }
+    return DirectMirScalarCfgIndexAssignmentObservationGraphFact(
+        true, name, indices
+    );
+}

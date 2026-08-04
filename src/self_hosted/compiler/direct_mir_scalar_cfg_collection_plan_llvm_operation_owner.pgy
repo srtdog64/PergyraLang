@@ -1,0 +1,123 @@
+// LLVM projection of legalized collection Set/Get observation rows.
+
+import "direct_mir_scalar_cfg_collection_plan_fact_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirScalarCfgCollectionPlanLlvmOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    concat: CompilerRuntimeCallAbiFact
+) -> String {
+    let set_row: Int = DirectMirScalarCfgCollectionSetOperationAtGraphRow(
+        plan.collections, operation
+    );
+    if set_row >= 0 {
+        let receiver: Int =
+            plan.collections.operations.receiver_value_rows[set_row];
+        let root: Int = DirectMirScalarCfgCollectionRootValueRow(
+            plan.collections, receiver
+        );
+        let llvm_type: String = "i32";
+        let alignment: String = "4";
+        if plan.collections.operations.input_types[set_row] == "String" {
+            llvm_type = "ptr"; alignment = "8";
+        }
+        let stem: String = Concat("%pgy.op.", ToString(operation));
+        let output: String = Concat("  ", Concat(stem,
+            Concat(".set.ptr = getelementptr inbounds ", llvm_type)));
+        output = Concat(output, Concat(", ptr %pgy.array.collection.",
+            Concat(ToString(root), Concat(".data, i64 ", ToString(
+                plan.collections.operations.indices[set_row]
+            )))));
+        output = Concat(output, "\n  store ");
+        if llvm_type == "i32" {
+            output = Concat(output, Concat("i32 ", ToString(
+                plan.collections.operations.input_ints[set_row]
+            )));
+        } else {
+            output = Concat(output, Concat("ptr @.pgy.collection.set.",
+                ToString(set_row)));
+        }
+        return Concat(output, Concat(", ptr ", Concat(stem,
+            Concat(".set.ptr, align ", Concat(alignment, "\n")))));
+    }
+    let observation: Int = DirectMirScalarCfgCollectionObservationAtGraphRow(
+        plan.collections, operation
+    );
+    if observation < 0 { return ""; }
+    let receiver: Int =
+        plan.collections.observations.receiver_value_rows[observation];
+    let root: Int = DirectMirScalarCfgCollectionRootValueRow(
+        plan.collections, receiver
+    );
+    let start: Int =
+        plan.collections.observations.get_operation_starts[observation];
+    let count: Int =
+        plan.collections.observations.get_operation_counts[observation];
+    let is_int: Bool = plan.collections.observations.kinds[observation] ==
+        DirectMirScalarCfgCollectionObservationSumInt();
+    let llvm_type: String = "ptr";
+    let alignment: String = "8";
+    if is_int { llvm_type = "i32"; alignment = "4"; }
+    let output: String = "";
+    let accumulator: String = "";
+    let item: Int = 0;
+    while item < count {
+        let stem: String = Concat("%pgy.op.", Concat(ToString(operation),
+            Concat(".get.", ToString(item))));
+        output = Concat(output, Concat("  ", Concat(stem,
+            Concat(".ptr = getelementptr inbounds ", llvm_type))));
+        output = Concat(output, Concat(", ptr %pgy.array.collection.",
+            Concat(ToString(root), Concat(".data, i64 ", ToString(
+                plan.collections.operations.indices[start + item]
+            )))));
+        output = Concat(output, Concat("\n  ", Concat(stem,
+            Concat(".value = load ", llvm_type))));
+        output = Concat(output, Concat(", ptr ", Concat(stem,
+            Concat(".ptr, align ", Concat(alignment, "\n")))));
+        if is_int {
+            let operand: String = Concat(stem, ".value");
+            if item == 0 { accumulator = operand; }
+            else {
+                let sum: String = Concat("%pgy.op.", Concat(
+                    ToString(operation), Concat(".sum.", ToString(item))
+                ));
+                output = Concat(output, Concat("  ", Concat(sum,
+                    Concat(" = add i32 ", Concat(accumulator,
+                        Concat(", ", Concat(operand, "\n")))))));
+                accumulator = sum;
+            }
+        }
+        item = item + 1;
+    }
+    if is_int {
+        let extended: String = Concat("%pgy.op.", Concat(
+            ToString(operation), ".sum.i64"
+        ));
+        output = Concat(output, Concat("  ", Concat(extended,
+            Concat(" = sext i32 ", Concat(accumulator, " to i64\n")))));
+        output = Concat(output, Concat("  %pgy.op.", ToString(operation)));
+        output = Concat(output, Concat(".printed = call i32 (ptr, ...) @",
+            formatted_print.symbol));
+        output = Concat(output,
+            "(ptr @.pgy.scalar.cfg.int.format, i64 ");
+        return Concat(output, Concat(extended, ")\n"));
+    }
+    if count != 2 || !CompilerRuntimeCallAbiStringConcatFactReady(concat) ||
+        concat.runtime_call_abi_id !=
+            plan.string_concat_runtime_call_abi_id {
+        Die("direct MIR collection LLVM concat observation is invalid");
+    }
+    let stem: String = Concat("%pgy.op.", ToString(operation));
+    output = Concat(output, Concat("  ", Concat(stem,
+        Concat(".concat = call ptr @", concat.symbol))));
+    output = Concat(output, Concat("(ptr ", Concat(stem,
+        ".get.0.value, ptr ")));
+    output = Concat(output, Concat(stem, ".get.1.value)\n"));
+    output = Concat(output, Concat("  ", Concat(stem,
+        Concat(".printed = call i32 (ptr, ...) @",
+            formatted_print.symbol))));
+    output = Concat(output,
+        "(ptr @.pgy.scalar.cfg.string.format, ptr ");
+    return Concat(output, Concat(stem, ".concat)\n"));
+}
