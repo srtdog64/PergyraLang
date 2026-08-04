@@ -1,6 +1,6 @@
 // Exclusive Array<Int> mode dispatch for GraphPlan operation binding.
 
-import "direct_mir_scalar_cfg_array_int_read_only_operation_binding_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_nonmutating_operation_binding_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_mutating_operation_binding_owner.pgy";
 
 func DirectMirScalarCfgArrayIntProgramAtOperation(
@@ -8,13 +8,10 @@ func DirectMirScalarCfgArrayIntProgramAtOperation(
     global_row: Int, operation_row: Int
 ) -> DirectMirScalarCfgArrayIntProgramFact {
     if !fact.valid || operation_row < 0 { return fact; }
-    if fact.mode == DirectMirScalarCfgArrayIntReadOnlyInitializedMode() {
-        return DirectMirScalarCfgArrayIntProgramFact(
-            true, fact.mode, fact.collection, fact.producer, fact.consumer,
-            fact.static_mutation,
-            DirectMirScalarCfgArrayIntReadOnlyAtOperation(
-                fact.read_only, global_row, operation_row
-            )
+    if fact.mode == DirectMirScalarCfgArrayIntReadOnlyInitializedMode() ||
+        fact.mode == DirectMirScalarCfgArrayIntFreshReverseMode() {
+        return DirectMirScalarCfgArrayIntNonmutatingAtOperation(
+            fact, global_row, operation_row
         );
     }
     return DirectMirScalarCfgArrayIntMutatingAtOperation(

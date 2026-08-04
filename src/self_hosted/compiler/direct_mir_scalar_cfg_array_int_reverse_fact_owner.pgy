@@ -1,0 +1,70 @@
+// Fresh-result identity and observations for the bounded ArrayReverse mode.
+
+import "direct_mir_scalar_cfg_array_int_collection_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReverseLengthLog() -> Int { return 1; }
+func DirectMirScalarCfgArrayIntReverseIndexLog() -> Int { return 2; }
+
+struct DirectMirScalarCfgArrayIntDerivedCollectionFact {
+    let valid: Bool;
+    let definition_global_row: Int;
+    let collection_value_id: String;
+    let collection_name: String;
+    let storage_identity: String;
+    let abi_layout_id: Int;
+    let abi_size: Int;
+    let abi_align: Int;
+    let data_offset: Int;
+    let length_offset: Int;
+    let capacity_offset: Int;
+    let allocator_offset: Int;
+}
+
+func DirectMirScalarCfgArrayIntDerivedCollectionFactEmpty(
+) -> DirectMirScalarCfgArrayIntDerivedCollectionFact {
+    return DirectMirScalarCfgArrayIntDerivedCollectionFact(
+        false, -1, "", "", "", 0, 0, 0, 0, 0, 0, 0
+    );
+}
+
+struct DirectMirScalarCfgArrayIntReverseFact {
+    let valid: Bool;
+    let source_value_id: String;
+    let result: DirectMirScalarCfgArrayIntDerivedCollectionFact;
+    let reverse_global_row: Int;
+    let reverse_operation_row: Int;
+    let log_global_rows: Array<Int>;
+    let log_kinds: Array<Int>;
+    let log_indices: Array<Int>;
+    let log_operation_rows: Array<Int>;
+}
+
+func DirectMirScalarCfgArrayIntReverseFactEmpty(
+) -> DirectMirScalarCfgArrayIntReverseFact {
+    let ints: Array<Int> = [];
+    return DirectMirScalarCfgArrayIntReverseFact(
+        false, "", DirectMirScalarCfgArrayIntDerivedCollectionFactEmpty(),
+        -1, -1, ints, ints, ints, ints
+    );
+}
+
+func DirectMirScalarCfgArrayIntDerivedCollectionReady(
+    ref result: DirectMirScalarCfgArrayIntDerivedCollectionFact,
+    ref source: DirectMirScalarCfgArrayIntCollectionFact
+) -> Bool {
+    return result.valid && result.definition_global_row >= 0 &&
+        result.collection_value_id != "" && result.collection_name != "" &&
+        result.storage_identity == Concat(
+            "local-array:", result.collection_value_id
+        ) && result.definition_global_row != source.definition_global_row &&
+        result.collection_value_id != source.collection_value_id &&
+        result.collection_name != source.collection_name &&
+        result.storage_identity != source.storage_identity &&
+        result.abi_layout_id == source.abi_layout_id &&
+        result.abi_size == source.abi_size &&
+        result.abi_align == source.abi_align &&
+        result.data_offset == source.data_offset &&
+        result.length_offset == source.length_offset &&
+        result.capacity_offset == source.capacity_offset &&
+        result.allocator_offset == source.allocator_offset;
+}

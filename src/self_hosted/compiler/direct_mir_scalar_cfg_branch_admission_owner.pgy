@@ -1,0 +1,99 @@
+// Terminator admission and condition ownership for one scalar CFG block.
+
+import "direct_mir_scalar_cfg_collection_expression_owner.pgy";
+import "direct_mir_scalar_cfg_instruction_position_owner.pgy";
+
+func DirectMirScalarCfgBranchConditionFromOwners(
+    ref index: MirRoutineFactIndex,
+    ref uses: MirRoutineInstructionUseFacts,
+    ref ranges: DirectMirScalarCfgRangeFactSet,
+    ref foreaches: DirectMirScalarCfgForEachFactSet,
+    ref string_arrays: DirectMirScalarCfgStringArrayPlan,
+    ref array_int: DirectMirScalarCfgArrayIntProgramFact,
+    ref instruction: JsonObjectFactTable,
+    source: String, global_row: Int, local_instruction: Int,
+    block: Int, instruction_row: Int,
+    ref value_names: Array<String>, ref value_local_rows: Array<Int>,
+    ref local_refs: DirectMirScalarCfgLocalRefPlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs
+) -> DirectMirScalarCfgExpressionFact {
+    let condition: DirectMirScalarCfgExpressionFact =
+        DirectMirScalarCfgExpressionFact(
+            true, DirectMirScalarCfgConditionNone(), -1, -1, -1, -1, "", ""
+        );
+    if instruction_row + 1 != index.block_instruction_counts[block] {
+        Die("direct MIR scalar CFG branch is not the terminator");
+    }
+    if source == "AST_BREAK" {
+        if index.block_succ_true[block] < 0 ||
+            index.block_succ_false[block] >= 0 ||
+            MirRoutineBlockDominates(
+                index, index.block_succ_true[block], block
+            ) || MirRoutineInstructionUseCountAtGlobal(uses, global_row) != 0 {
+            Die("direct MIR scalar CFG break edge is invalid");
+        }
+        return condition;
+    }
+    if source == "AST_CONTINUE" {
+        if index.block_succ_true[block] < 0 ||
+            index.block_succ_false[block] >= 0 ||
+            !MirRoutineBlockDominates(
+                index, index.block_succ_true[block], block
+            ) || MirRoutineInstructionUseCountAtGlobal(uses, global_row) != 0 {
+            Die("direct MIR scalar CFG continue edge is invalid");
+        }
+        return condition;
+    }
+    if source == "AST_FOR_LOOP" {
+        let foreach: DirectMirScalarCfgForEachFact =
+            DirectMirScalarCfgForEachFactAtBranchGlobalRow(
+                foreaches, global_row
+            );
+        let range: DirectMirScalarCfgRangeIterationFact =
+            DirectMirScalarCfgRangeFactAtBranchGlobalRow(ranges, global_row);
+        if range.valid == foreach.valid || (range.valid &&
+            (!DirectMirScalarCfgRangeIterationFactReady(
+                range, ArrayLength(index.block_starts)
+            ) || block != range.header_block)) || (foreach.valid &&
+            (!DirectMirScalarCfgForEachFactReady(
+                foreach, ArrayLength(index.block_starts)
+            ) || block != foreach.header_block)) {
+            Die("direct MIR scalar CFG range branch is invalid");
+        }
+        if foreach.valid {
+            return DirectMirScalarCfgExpressionFact(
+                true, DirectMirScalarCfgConditionForEach(),
+                -1, -1, -1, -1, "", ""
+            );
+        }
+        if range.stop_value_id != "" {
+            return DirectMirScalarCfgExpressionFact(
+                true, DirectMirScalarCfgConditionLess(),
+                -1, -1, range.local_row, -1, "", ""
+            );
+        }
+        return DirectMirScalarCfgExpressionFact(
+            true, DirectMirScalarCfgConditionLess(),
+            -1, -1, range.local_row, -1, "", range.stop_literal
+        );
+    }
+    condition = DirectMirScalarCfgCollectionConditionExpressionFact(
+        string_arrays, array_int, instruction, uses, global_row,
+        local_instruction, value_names, local_refs, wire
+    );
+    if !condition.valid || index.block_succ_true[block] < 0 ||
+        (index.block_succ_false[block] < 0 &&
+            (condition.kind != DirectMirScalarCfgConditionBool() ||
+             condition.left_literal != "true")) ||
+        (condition.left_value >= 0 && !DirectMirScalarCfgValueUseDominates(
+            index, value_names, value_local_rows, condition.left_value,
+            block, instruction_row
+        )) || (condition.right_value >= 0 &&
+            !DirectMirScalarCfgValueUseDominates(
+                index, value_names, value_local_rows, condition.right_value,
+                block, instruction_row
+            )) {
+        Die("direct MIR scalar CFG condition fact is invalid");
+    }
+    return condition;
+}

@@ -1,0 +1,42 @@
+// Operation expressions for dynamic-push and initialized-set Array modes.
+
+import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
+import "direct_mir_scalar_cfg_expression_owner.pgy";
+
+func DirectMirScalarCfgArrayIntMutatingExpressionFact(
+    ref fact: DirectMirScalarCfgArrayIntProgramFact, global_row: Int
+) -> DirectMirScalarCfgExpressionFact {
+    if global_row == fact.producer.push_global_row {
+        return DirectMirScalarCfgExpressionFact(
+            true, DirectMirScalarCfgOpArrayPushInt(),
+            fact.producer.induction_value_row,
+            fact.producer.induction_value_row, -1, -1, "", ""
+        );
+    }
+    if global_row == fact.consumer.read_global_row {
+        return DirectMirScalarCfgExpressionFact(
+            true, DirectMirScalarCfgOpAddArrayReadInt(),
+            fact.consumer.sum_left_value_row,
+            fact.consumer.index_value_row, -1, -1, "", ""
+        );
+    }
+    if global_row == fact.consumer.length_log_global_row {
+        return DirectMirScalarCfgExpressionFact(
+            true, DirectMirScalarCfgOpLogArrayLength(),
+            -1, -1, -1, -1, "", ""
+        );
+    }
+    if global_row == fact.static_mutation.set_global_row {
+        return DirectMirScalarCfgExpressionFact(
+            true, DirectMirScalarCfgOpArraySetInt(),
+            -1, -1, -1, -1, "", ""
+        );
+    }
+    if global_row == fact.static_mutation.indexed_log_global_row {
+        return DirectMirScalarCfgExpressionFact(
+            true, DirectMirScalarCfgOpLogArrayIndexInt(),
+            -1, -1, -1, -1, "", ""
+        );
+    }
+    return DirectMirScalarCfgExpressionFactEmpty();
+}

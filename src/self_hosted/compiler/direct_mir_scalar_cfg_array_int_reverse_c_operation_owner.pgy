@@ -1,0 +1,56 @@
+// C source-load/result-store operations for the fresh ArrayReverse receipt.
+
+import "direct_mir_scalar_cfg_c_collection_operation_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReverseCOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    int_line_format: String, int_c_type: String
+) -> DirectMirScalarCfgCCollectionOperationEmission {
+    let fact: DirectMirScalarCfgArrayIntReverseFact =
+        plan.array_int_program.reverse;
+    if plan.array_int_program.mode !=
+            DirectMirScalarCfgArrayIntFreshReverseMode() || !fact.valid {
+        return DirectMirScalarCfgCCollectionOperationEmission(false, "");
+    }
+    if operation == fact.reverse_operation_row {
+        let output: String = "";
+        let target_index: Int = 0;
+        while target_index < 3 {
+            output = Concat(output,
+                "    pgy_array_int_reverse_collection.data[");
+            output = Concat(output, ToString(target_index));
+            output = Concat(output,
+                "] = pgy_array_int_collection.data[");
+            output = Concat(output, ToString(2 - target_index));
+            output = Concat(output, "];\n");
+            target_index = target_index + 1;
+        }
+        output = Concat(output,
+            "    pgy_array_int_reverse_collection.length = pgy_array_int_collection.length;\n");
+        return DirectMirScalarCfgCCollectionOperationEmission(true, output);
+    }
+    let row: Int = 0;
+    while row < ArrayLength(fact.log_operation_rows) {
+        if fact.log_operation_rows[row] == operation {
+            let output: String = Concat("    ", formatted_print.symbol);
+            output = Concat(output, Concat("(\"", int_line_format));
+            output = Concat(output, Concat("\", (", int_c_type));
+            if fact.log_kinds[row] ==
+                    DirectMirScalarCfgArrayIntReverseLengthLog() {
+                output = Concat(output,
+                    ")pgy_array_int_reverse_collection.length);\n");
+            } else {
+                output = Concat(output,
+                    ")pgy_array_int_reverse_collection.data[");
+                output = Concat(output, ToString(fact.log_indices[row]));
+                output = Concat(output, "]);\n");
+            }
+            return DirectMirScalarCfgCCollectionOperationEmission(
+                true, output
+            );
+        }
+        row = row + 1;
+    }
+    return DirectMirScalarCfgCCollectionOperationEmission(false, "");
+}

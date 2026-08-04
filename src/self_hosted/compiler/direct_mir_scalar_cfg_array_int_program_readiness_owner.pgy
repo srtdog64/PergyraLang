@@ -1,9 +1,10 @@
 // Final graph-plan closure for bounded Array<Int> mutation and consumption.
-
 import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_consumer_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_static_mutation_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_read_only_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_reverse_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_operation_absence_owner.pgy";
 import "direct_mir_scalar_cfg_while_induction_owner.pgy";
 import "direct_mir_scalar_cfg_operation_position_owner.pgy";
 
@@ -45,22 +46,16 @@ func DirectMirScalarCfgArrayIntProgramReady(
     let fact: DirectMirScalarCfgArrayIntProgramFact =
         plan.array_int_program;
     if DirectMirScalarCfgArrayIntProgramAbsent(fact) {
-        let row: Int = 0;
-        while row < ArrayLength(plan.operation_kinds) {
-            if plan.operation_kinds[row] == DirectMirScalarCfgOpArrayPushInt() ||
-                plan.operation_kinds[row] ==
-                    DirectMirScalarCfgOpAddArrayReadInt() ||
-                plan.operation_kinds[row] ==
-                    DirectMirScalarCfgOpArrayReadInt() { return false; }
-            row = row + 1;
-        }
-        return true;
+        return DirectMirScalarCfgArrayIntOwnedOperationsAbsent(plan);
     }
     if fact.mode == DirectMirScalarCfgArrayIntStaticSetMode() {
         return DirectMirScalarCfgArrayIntStaticMutationReady(plan);
     }
     if fact.mode == DirectMirScalarCfgArrayIntReadOnlyInitializedMode() {
         return DirectMirScalarCfgArrayIntReadOnlyReady(plan);
+    }
+    if fact.mode == DirectMirScalarCfgArrayIntFreshReverseMode() {
+        return DirectMirScalarCfgArrayIntReverseReady(plan);
     }
     let p: DirectMirScalarCfgArrayIntProducerFact = fact.producer;
     let c: DirectMirScalarCfgArrayIntConsumerFact = fact.consumer;
@@ -72,6 +67,7 @@ func DirectMirScalarCfgArrayIntProgramReady(
         ArrayLength(fact.collection.elements) != 0 ||
         !p.valid || !c.valid || fact.static_mutation.valid ||
         !DirectMirScalarCfgArrayIntReadOnlyAbsent(fact.read_only) ||
+        !DirectMirScalarCfgArrayIntReverseAbsent(fact.reverse) ||
         p.bound < 1 || p.bound > 46340 ||
         (p.push_value_kind != DirectMirScalarCfgArrayIntPushValueMultiply() &&
          p.push_value_kind != DirectMirScalarCfgArrayIntPushValueAdd()) ||

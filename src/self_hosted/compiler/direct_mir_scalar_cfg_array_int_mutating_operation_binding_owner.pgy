@@ -44,6 +44,6 @@ func DirectMirScalarCfgArrayIntMutatingAtOperation(
             fact.static_mutation.set_index, fact.static_mutation.set_value,
             fact.static_mutation.indexed_log_global_row,
             fact.static_mutation.indexed_log_index, set, indexed_log
-        ), fact.read_only
+        ), fact.read_only, fact.reverse
     );
 }

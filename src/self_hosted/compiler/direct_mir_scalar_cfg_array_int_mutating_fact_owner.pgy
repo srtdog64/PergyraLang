@@ -1,0 +1,50 @@
+// Producer and consumer receipts for mutation-oriented Array<Int> modes.
+
+func DirectMirScalarCfgArrayIntPushValueMultiply() -> Int { return 1; }
+func DirectMirScalarCfgArrayIntPushValueAdd() -> Int { return 2; }
+
+struct DirectMirScalarCfgArrayIntProducerFact {
+    let valid: Bool;
+    let header_block: Int;
+    let body_block: Int;
+    let exit_block: Int;
+    let bound: Int;
+    let push_global_row: Int;
+    let push_value_kind: Int;
+    let induction_value_id: String;
+    let induction_value_row: Int;
+    let push_operation_row: Int;
+}
+
+struct DirectMirScalarCfgArrayIntConsumerFact {
+    let valid: Bool;
+    let header_block: Int;
+    let body_block: Int;
+    let exit_block: Int;
+    let length_global_row: Int;
+    let read_global_row: Int;
+    let length_log_global_row: Int;
+    let index_value_id: String;
+    let index_value_row: Int;
+    let sum_left_value_id: String;
+    let sum_left_value_row: Int;
+    let read_result_value_id: String;
+    let read_result_value_row: Int;
+    let read_operation_row: Int;
+    let length_log_operation_row: Int;
+}
+
+func DirectMirScalarCfgArrayIntProducerFactEmpty(
+) -> DirectMirScalarCfgArrayIntProducerFact {
+    return DirectMirScalarCfgArrayIntProducerFact(
+        false, -1, -1, -1, 0, -1, 0, "", -1, -1
+    );
+}
+
+func DirectMirScalarCfgArrayIntConsumerFactEmpty(
+) -> DirectMirScalarCfgArrayIntConsumerFact {
+    return DirectMirScalarCfgArrayIntConsumerFact(
+        false, -1, -1, -1, -1, -1, -1, "", -1,
+        "", -1, "", -1, -1, -1
+    );
+}

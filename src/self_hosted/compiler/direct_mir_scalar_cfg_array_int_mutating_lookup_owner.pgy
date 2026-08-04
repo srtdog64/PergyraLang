@@ -1,0 +1,30 @@
+// Lookup for the source Array<Int> and the three pre-reverse program modes.
+
+import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntMutatingOwnsDefinition(
+    ref fact: DirectMirScalarCfgArrayIntProgramFact, global_row: Int
+) -> Bool {
+    return fact.valid && fact.collection.definition_global_row == global_row;
+}
+
+func DirectMirScalarCfgArrayIntMutatingOwnsSourceLocal(
+    ref fact: DirectMirScalarCfgArrayIntProgramFact,
+    name: String, type_name: String
+) -> Bool {
+    return fact.valid && fact.collection.collection_name == name &&
+        type_name == CompilerAbiLayoutArrayIntTypeName();
+}
+
+func DirectMirScalarCfgArrayIntMutatingOperationGlobal(
+    ref fact: DirectMirScalarCfgArrayIntProgramFact, global_row: Int
+) -> Bool {
+    return fact.valid && (fact.producer.push_global_row == global_row ||
+        fact.consumer.read_global_row == global_row ||
+        fact.consumer.length_log_global_row == global_row ||
+        fact.static_mutation.set_global_row == global_row ||
+        fact.static_mutation.indexed_log_global_row == global_row ||
+        fact.read_only.initial_read.global_row == global_row ||
+        fact.read_only.update_read.global_row == global_row ||
+        fact.read_only.log_global_row == global_row);
+}

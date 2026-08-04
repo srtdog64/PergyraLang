@@ -1,0 +1,27 @@
+// Operation binding for read-only and fresh-transform Array<Int> modes.
+
+import "direct_mir_scalar_cfg_array_int_read_only_operation_binding_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_reverse_binding_owner.pgy";
+
+func DirectMirScalarCfgArrayIntNonmutatingAtOperation(
+    fact: DirectMirScalarCfgArrayIntProgramFact,
+    global_row: Int, operation_row: Int
+) -> DirectMirScalarCfgArrayIntProgramFact {
+    if fact.mode == DirectMirScalarCfgArrayIntReadOnlyInitializedMode() {
+        return DirectMirScalarCfgArrayIntProgramFact(
+            true, fact.mode, fact.collection, fact.producer, fact.consumer,
+            fact.static_mutation,
+            DirectMirScalarCfgArrayIntReadOnlyAtOperation(
+                fact.read_only, global_row, operation_row
+            ), fact.reverse
+        );
+    }
+    if fact.mode != DirectMirScalarCfgArrayIntFreshReverseMode() { return fact; }
+    return DirectMirScalarCfgArrayIntProgramFact(
+        true, fact.mode, fact.collection, fact.producer, fact.consumer,
+        fact.static_mutation, fact.read_only,
+        DirectMirScalarCfgArrayIntReverseAtOperation(
+            fact.reverse, global_row, operation_row
+        )
+    );
+}

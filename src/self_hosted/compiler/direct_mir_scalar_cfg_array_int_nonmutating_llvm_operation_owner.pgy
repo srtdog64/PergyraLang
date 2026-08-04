@@ -1,0 +1,22 @@
+// LLVM operation routing for read-only and fresh-result Array<Int> modes.
+
+import "direct_mir_scalar_cfg_array_int_read_only_llvm_emission_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_reverse_llvm_operation_owner.pgy";
+
+func DirectMirScalarCfgArrayIntNonmutatingLlvmOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact
+) -> DirectMirScalarCfgLlvmCollectionOperationEmission {
+    if plan.array_int_program.mode ==
+            DirectMirScalarCfgArrayIntFreshReverseMode() {
+        return DirectMirScalarCfgArrayIntReverseLlvmOperation(
+            plan, operation, formatted_print
+        );
+    }
+    if plan.operation_kinds[operation] == DirectMirScalarCfgOpArrayReadInt() {
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(
+            true, DirectMirScalarCfgArrayIntReadOnlyLlvmRead(plan, operation)
+        );
+    }
+    return DirectMirScalarCfgLlvmCollectionOperationEmission(false, "");
+}

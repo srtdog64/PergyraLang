@@ -1,0 +1,27 @@
+// Stable target-neutral identity for the fresh ArrayReverse receipt.
+
+import "direct_mir_scalar_cfg_array_int_reverse_fact_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReverseDigestComponent(
+    hash: Long, ref fact: DirectMirScalarCfgArrayIntReverseFact
+) -> Long {
+    hash = DirectMirCfgHashString(hash, fact.source_value_id);
+    hash = DirectMirCfgHashInt(hash, fact.result.definition_global_row);
+    hash = DirectMirCfgHashString(hash, fact.result.collection_value_id);
+    hash = DirectMirCfgHashString(hash, fact.result.collection_name);
+    hash = DirectMirCfgHashString(hash, fact.result.storage_identity);
+    hash = DirectMirCfgHashInt(hash, fact.result.abi_layout_id);
+    hash = DirectMirCfgHashInt(hash, fact.result.abi_size);
+    hash = DirectMirCfgHashInt(hash, fact.result.abi_align);
+    hash = DirectMirCfgHashInt(hash, fact.result.data_offset);
+    hash = DirectMirCfgHashInt(hash, fact.result.length_offset);
+    hash = DirectMirCfgHashInt(hash, fact.result.capacity_offset);
+    hash = DirectMirCfgHashInt(hash, fact.result.allocator_offset);
+    hash = DirectMirCfgHashInt(hash, fact.reverse_global_row);
+    hash = DirectMirCfgHashInt(hash, fact.reverse_operation_row);
+    hash = DirectMirScalarCfgHashInts(hash, fact.log_global_rows);
+    hash = DirectMirScalarCfgHashInts(hash, fact.log_kinds);
+    hash = DirectMirScalarCfgHashInts(hash, fact.log_indices);
+    return DirectMirScalarCfgHashInts(hash, fact.log_operation_rows);
+}

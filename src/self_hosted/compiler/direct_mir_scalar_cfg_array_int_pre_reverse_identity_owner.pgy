@@ -1,0 +1,15 @@
+// Digest tail for the initialized static and read-only Array<Int> modes.
+
+import "direct_mir_scalar_cfg_array_int_static_mutation_identity_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_read_only_identity_owner.pgy";
+
+func DirectMirScalarCfgArrayIntPreReverseDigestComponent(
+    hash: Long, ref fact: DirectMirScalarCfgArrayIntProgramFact
+) -> Long {
+    hash = DirectMirScalarCfgArrayIntStaticMutationDigestComponent(
+        hash, fact.static_mutation
+    );
+    return DirectMirScalarCfgArrayIntReadOnlyDigestComponent(
+        hash, fact.read_only
+    );
+}

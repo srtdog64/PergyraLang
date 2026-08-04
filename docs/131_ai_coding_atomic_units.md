@@ -412,9 +412,23 @@ Its C/LLVM gate executes `9`, first-max `12`, last-max `14`, and all-negative
 `-2`; 23 malformed identity, range, read, CFG, phi, and Log variants publish no
 artifact and never retry another mode.
 
+The fresh `ArrayReverse` rung added a sharper architecture falsifier. Its first
+implementation used the exact valid-reverse predicate as the route claimant.
+Changing the call target or edge therefore made the predicate false and let a
+malformed transform fall through to the older one-block compiler path. Exact
+output, valid-input parity, and most negative tests were green while ownership
+was still wrong. The repair deliberately overclaims every `Array<Int>`-valued
+call graph, including an invalid expression sequence; exact admission then
+accepts or rejects it, and a negative gate forbids the legacy local-inventory
+diagnostic. A separate audit also found that operation 20 (`ArrayReverse`) was
+missing from the inactive Array-program inventory. That inventory now has one
+named owner for every `Array<Int>` operation kind, so a future mode cannot
+exist without its program receipt. This is repository-local evidence for the
+external author's architecture warning, not merely agreement with it.
+
 The lesson is that consistency tests constrain language surface;
 owner/consumer/fallback gates constrain compiler architecture. The external
-comment is therefore a warning signal, while these three executable rungs are
+comment is therefore a warning signal, while these executable rungs are
 the repository-local evidence.
 
 The central rule is:

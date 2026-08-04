@@ -10526,5 +10526,67 @@ Released/default replacement remains 0%.
   `direct MIR scalar local type inventory is missing or invalid`. The next
   owner delta must claim both source and fresh result Array identities across
   `ArrayReverse`, preserve its fresh-value contract, and execute exact
-  `3`, `2`, `1` without fixture routing, backend MIR reads, output
+  `3`, `2`, `1`, `3` (length then values) without fixture routing, backend MIR reads, output
   precomputation, silent aliasing, a second Array planner, or plan retry.
+
+## 2026-08-04 - fresh bounded `ArrayReverse` result substitutes
+
+- Closed `src/self_hosted/codegen/fixture/array_reverse.pgy` through the
+  current-source Pergyra-built direct C and LLVM routes. Its 7,260-byte MIR
+  (`7D4FDBA6CC28906541B406DC508FE6C0870DC8B5DB638C2A41787FF711C8F64D`)
+  emits 1,136-byte C
+  (`6ED02FD672F59C9D7DEA890BE563004713FFD150E059A6A8D3F2D664F2477B30`)
+  and 5,133-byte LLVM
+  (`151E297EE76A0D357D1D5869AA138F3E3A241091D27587210D4A4AB55D4AB0C3`).
+  Both host-compile and execute exact `3`, `2`, `1`, `3`: result length first,
+  then the reversed `[2, 1, 3]` values. The final current-source driver is
+  5,233,261 bytes with SHA-256
+  `5EA829E9E344BA5770FC4D7BB243F0619944DB03033A9F01CB1F1C0D8AFD4798`.
+- The existing target-neutral Array program receipt now owns a fourth mutually
+  exclusive mode. It seals distinct source/result definition rows, ValueIds,
+  local names, storage identities, equal canonical four-field ABI layouts, one
+  exact direct `ArrayReverse` call, and four result observations. A one-block,
+  zero-scalar-local GraphPlan is legal only when that receipt is valid.
+- C and LLVM allocate separate caller-owned result storage. The reverse
+  operation loads source positions `2,1,0`, stores result positions `0,1,2`,
+  then copies current source length. Neither target precomputes result literals,
+  aliases the source, mutates it in place, reopens MIR, or calls the incompatible
+  legacy three-field `pgy_ai_reverse` helper.
+- The focused gate passed exact baseline and alternate `4,-5,6` execution,
+  display and coherent ValueId-renumber artifact equality, and 20 no-artifact
+  identity/call/use/ABI/index/CFG negatives for both targets. Dynamic push,
+  initialized sum/set, and read-only maximum sibling regressions all remained
+  green in 157.7 seconds. The component/removed-path ratchet passed in 269.6
+  seconds.
+- A final read-only architecture audit found two P1 ownership holes before
+  commit. Exact valid-reverse admission had also been used as the route claim,
+  so malformed call targets/edges and duplicate transforms could fall through
+  to the legacy one-block local-inventory path. The route now deliberately
+  overclaims any `Array<Int>`-valued call graph or invalid expression sequence,
+  while exact admission alone accepts it; the focused gate bans the legacy
+  diagnostic. The audit also found operation 20 was not rejected when the Array
+  program receipt was absent. One operation-inventory owner now covers push,
+  read, set, index-log, and reverse without raising either line cap.
+- Branch terminator admission was split from the saturated graph admission
+  owner. This exposed three stale test-owner pins for continue, foreach, and
+  dominance; all were repointed to the named branch owner and their focused
+  execution gates passed. No semantic compatibility alias or cap increase was
+  added.
+- Final cumulative scalar-CFG integration reached every fail-fast row and its
+  final ArrayReverse success marker in 647.4 seconds; the wrapper command
+  returned 0, although Windows `Start-Process` left the child `ExitCode` field
+  blank. A 500 ms process-tree sample observed 0.361 GiB peak working set and
+  0.316 GiB peak private memory, below the 2.4 GiB attention and 3 GiB stop
+  thresholds. This is test-inclusive integration evidence, not ordinary
+  compiler latency.
+- Classification is bounded `SUBSTITUTING` only for the exact nonescaping local
+  three-element fresh-reverse shape. Full CI, proof suites, public matrices,
+  released-driver promotion, and current gen2==gen3 were not run.
+- The next sole falsifier is `array_pop.pgy`. The current driver produces its
+  14,007-byte MIR
+  (`AB92771EA08C27C73EDAB26E06441BF88CC3843C64FEFD784156694D321F73D4`),
+  but both direct targets reject before publication with
+  `direct MIR String array source plan is invalid`. The next rung must first
+  close the one-program multi-collection source identity reached by the two
+  `ArrayPop` effects; fixture routing, partial Int-only success, native helper
+  retry, and treating capacity as current length remain forbidden.

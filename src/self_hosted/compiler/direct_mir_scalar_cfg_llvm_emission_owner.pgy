@@ -9,7 +9,7 @@ import "direct_mir_scalar_cfg_llvm_terminator_emission_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_operation_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy";
-import "direct_mir_scalar_cfg_array_int_llvm_storage_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_llvm_storage_owner.pgy";
 import "direct_mir_llvm_text_format_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
@@ -62,7 +62,7 @@ func DirectMirScalarCfgEmitLlvm(
     output = Concat(output,
         DirectMirScalarCfgStringArrayLlvmDeclarations(plan, target));
     output = Concat(output,
-        DirectMirScalarCfgArrayIntLlvmDeclarations(plan, target));
+        DirectMirScalarCfgArrayIntProgramLlvmDeclarations(plan, target));
     output = Concat(output, "  br label %pgy.block.0\n");
     let block: Int = 0;
     while block < ArrayLength(plan.block_succ_true) {

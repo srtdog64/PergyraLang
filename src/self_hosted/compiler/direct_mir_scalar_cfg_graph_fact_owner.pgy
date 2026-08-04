@@ -60,7 +60,7 @@ struct DirectMirScalarCfgGraphPlan {
 }
 
 func DirectMirScalarCfgGraphPlanSchema() -> String {
-    return "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v10";
+    return "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v11";
 }
 
 func DirectMirScalarCfgOpConstInt() -> Int { return 1; }
@@ -82,6 +82,7 @@ func DirectMirScalarCfgOpAddArrayReadInt() -> Int { return 16; }
 func DirectMirScalarCfgOpArraySetInt() -> Int { return 17; }
 func DirectMirScalarCfgOpLogArrayIndexInt() -> Int { return 18; }
 func DirectMirScalarCfgOpArrayReadInt() -> Int { return 19; }
+func DirectMirScalarCfgOpArrayReverseInt() -> Int { return 20; }
 
 func DirectMirScalarCfgConditionNone() -> Int { return 0; }
 func DirectMirScalarCfgConditionBool() -> Int { return 1; }

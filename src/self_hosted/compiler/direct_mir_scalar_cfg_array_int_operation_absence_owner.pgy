@@ -1,0 +1,25 @@
+// Exact Array<Int>-owned operation inventory for inactive program receipts.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntOwnedOperationKind(kind: Int) -> Bool {
+    return kind == DirectMirScalarCfgOpArrayPushInt() ||
+        kind == DirectMirScalarCfgOpAddArrayReadInt() ||
+        kind == DirectMirScalarCfgOpArraySetInt() ||
+        kind == DirectMirScalarCfgOpLogArrayIndexInt() ||
+        kind == DirectMirScalarCfgOpArrayReadInt() ||
+        kind == DirectMirScalarCfgOpArrayReverseInt();
+}
+
+func DirectMirScalarCfgArrayIntOwnedOperationsAbsent(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(plan.operation_kinds) {
+        if DirectMirScalarCfgArrayIntOwnedOperationKind(
+                plan.operation_kinds[row]
+            ) { return false; }
+        row = row + 1;
+    }
+    return true;
+}

@@ -28,7 +28,7 @@ command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 
 SNAPSHOT_OWNER="$ROOT_DIR/src/self_hosted/mir/routine_local_predecessor_snapshot_owner.pgy"
 BINDING_OWNER="$ROOT_DIR/src/self_hosted/mir/routine_loop_header_backedge_binding_owner.pgy"
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
+ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_branch_admission_owner.pgy"
 require_text "$SNAPSHOT_OWNER" 'SelfMirLocalPredecessorSnapshotsAppend('
 require_text "$BINDING_OWNER" 'SelfMirLocalPredecessorVersionAt('
 require_text "$ADMISSION" 'source == "AST_CONTINUE"'

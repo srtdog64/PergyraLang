@@ -1,0 +1,85 @@
+// LLVM source-load/result-store operations for the fresh ArrayReverse receipt.
+
+import "direct_mir_scalar_cfg_llvm_collection_operation_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReverseLlvmOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact
+) -> DirectMirScalarCfgLlvmCollectionOperationEmission {
+    let fact: DirectMirScalarCfgArrayIntReverseFact =
+        plan.array_int_program.reverse;
+    if plan.array_int_program.mode !=
+            DirectMirScalarCfgArrayIntFreshReverseMode() || !fact.valid {
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(false, "");
+    }
+    let stem: String = Concat("%pgy.op.", ToString(operation));
+    if operation == fact.reverse_operation_row {
+        let output: String = "";
+        let target_index: Int = 0;
+        while target_index < 3 {
+            let part: String = Concat(stem, Concat(
+                ".reverse.", ToString(target_index)
+            ));
+            output = Concat(output, Concat("  ", part));
+            output = Concat(output,
+                ".source.ptr = getelementptr inbounds i32, ptr %pgy.array.int.data, i64 ");
+            output = Concat(output, Concat(ToString(2 - target_index), "\n  "));
+            output = Concat(output, Concat(part,
+                ".source = load i32, ptr "));
+            output = Concat(output, Concat(part, ".source.ptr, align 4\n  "));
+            output = Concat(output, Concat(part,
+                ".result.ptr = getelementptr inbounds i32, ptr %pgy.array.int.reverse.data, i64 "));
+            output = Concat(output, Concat(ToString(target_index), "\n"));
+            output = Concat(output, Concat("  store i32 ", part));
+            output = Concat(output, Concat(".source, ptr ", part));
+            output = Concat(output, ".result.ptr, align 4\n");
+            target_index = target_index + 1;
+        }
+        output = Concat(output, Concat("  ", stem));
+        output = Concat(output,
+            ".reverse.length = load i64, ptr %pgy.array.int.length.field, align 8\n");
+        output = Concat(output, Concat("  store i64 ", stem));
+        output = Concat(output,
+            ".reverse.length, ptr %pgy.array.int.reverse.length.field, align 8\n");
+        return DirectMirScalarCfgLlvmCollectionOperationEmission(true, output);
+    }
+    let row: Int = 0;
+    while row < ArrayLength(fact.log_operation_rows) {
+        if fact.log_operation_rows[row] == operation {
+            let output: String = "";
+            let value: String = "";
+            if fact.log_kinds[row] ==
+                    DirectMirScalarCfgArrayIntReverseLengthLog() {
+                output = Concat("  ", Concat(stem,
+                    ".length = load i64, ptr %pgy.array.int.reverse.length.field, align 8\n"));
+                value = Concat(stem, ".length");
+            } else {
+                output = Concat("  ", Concat(stem,
+                    ".read.ptr = getelementptr inbounds i32, ptr %pgy.array.int.reverse.data, i64 "));
+                output = Concat(output, Concat(
+                    ToString(fact.log_indices[row]), "\n  "
+                ));
+                output = Concat(output, Concat(stem,
+                    ".read.i32 = load i32, ptr "));
+                output = Concat(output, Concat(stem,
+                    ".read.ptr, align 4\n  "));
+                output = Concat(output, Concat(stem,
+                    ".read.i64 = sext i32 "));
+                output = Concat(output, Concat(stem,
+                    ".read.i32 to i64\n"));
+                value = Concat(stem, ".read.i64");
+            }
+            output = Concat(output, Concat("  ", stem));
+            output = Concat(output, ".printed = call i32 (ptr, ...) @");
+            output = Concat(output, formatted_print.symbol);
+            output = Concat(output,
+                "(ptr @.pgy.scalar.cfg.int.format, i64 ");
+            output = Concat(output, Concat(value, ")\n"));
+            return DirectMirScalarCfgLlvmCollectionOperationEmission(
+                true, output
+            );
+        }
+        row = row + 1;
+    }
+    return DirectMirScalarCfgLlvmCollectionOperationEmission(false, "");
+}

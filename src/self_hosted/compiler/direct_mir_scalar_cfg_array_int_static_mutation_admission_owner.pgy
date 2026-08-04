@@ -222,6 +222,7 @@ func DirectMirScalarCfgArrayIntStaticMutationFromOwners(
         ), DirectMirScalarCfgArrayIntStaticMutationFact(
             true, set_global, set_index, set_value,
             indexed_log_global, indexed_log_index, -1, -1
-        ), DirectMirScalarCfgArrayIntReadOnlyRangeFactEmpty()
+        ), DirectMirScalarCfgArrayIntReadOnlyRangeFactEmpty(),
+        DirectMirScalarCfgArrayIntReverseFactEmpty()
     );
 }

@@ -1,0 +1,215 @@
+// Source admission for one empty Array<Int> mutated by a bounded while loop.
+
+import "direct_mir_scalar_cfg_array_int_graph_shape_owner.pgy";
+import "direct_mir_scalar_cfg_array_length_log_graph_owner.pgy";
+import "direct_mir_scalar_cfg_instruction_graph_owner.pgy";
+import "direct_mir_scalar_cfg_instruction_position_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_set_owner.pgy";
+import "../mir_lower/routine_definition_dominance_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntDynamicPushFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref uses: MirRoutineInstructionUseFacts,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    collection: DirectMirScalarCfgArrayIntCollectionFact
+) -> DirectMirScalarCfgArrayIntProgramFact {
+    let empty: DirectMirScalarCfgArrayIntProgramFact =
+        DirectMirScalarCfgArrayIntProgramFactEmpty();
+    let producer_header: Int = -1; let producer_body: Int = -1;
+    let producer_exit: Int = -1; let bound: Int = 0;
+    let induction_id: String = ""; let push_global: Int = -1;
+    let push_kind: Int = 0; let push_block: Int = -1;
+    let consumer_header: Int = -1; let consumer_body: Int = -1;
+    let consumer_exit: Int = -1; let length_global: Int = -1;
+    let index_id: String = ""; let read_global: Int = -1;
+    let sum_id: String = ""; let read_result: String = "";
+    let length_log_global: Int = -1; let claimed_uses: Int = 0;
+    let collection_uses: Int = 0;
+    let block: Int = 0;
+    while block < ArrayLength(index.block_starts) {
+        let local: Int = 0;
+        while local < index.block_instruction_counts[block] {
+            let local_instruction: Int =
+                index.block_instruction_starts[block] + local;
+            let global: Int = index.instruction_facts.global_start +
+                local_instruction;
+            let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+                admitted.routines.source_json,
+                admitted.routines.instruction_starts[global],
+                admitted.routines.instruction_ends[global]
+            );
+            let graph: MirExpressionGraphSequence =
+                DirectMirScalarCfgInstructionGraphAt(object, "expr0_graph");
+            let kind: String = admitted.routines.instruction_kinds[global];
+            let source: String =
+                admitted.routines.instruction_source_types[global];
+            let capture: MirRoutineInstructionScalarCapture =
+                MirRoutineInstructionFactBundleAtGlobal(
+                    index.instruction_facts, global
+                );
+            let use_row: Int = 0;
+            while use_row < MirRoutineInstructionUseCountAtGlobal(
+                    uses, global
+                ) {
+                if DirectMirScalarCfgArrayIntUseAt(
+                    uses, global, use_row, collection.collection_value_id
+                ) { collection_uses = collection_uses + 1; }
+                use_row = use_row + 1;
+            }
+            if kind == "branch" && source == "AST_BINARY" {
+                let producer_graph: DirectMirScalarCfgArrayIntBoundGraphFact =
+                    DirectMirScalarCfgArrayIntBoundGraphFactFrom(graph);
+                let length_graph:
+                    DirectMirScalarCfgArrayIntLengthConditionGraphFact =
+                    DirectMirScalarCfgArrayIntLengthConditionGraphFactFrom(graph);
+                if producer_graph.valid &&
+                    MirRoutineInstructionUseCountAtGlobal(uses, global) == 1 {
+                    let producer_use: Option<String> =
+                        MirRoutineInstructionUseAtGlobal(uses, global, 0);
+                    if producer_header >= 0 || !IsSome(producer_use) ||
+                        !MirSsaNameMatches(
+                            UnwrapOption(producer_use),
+                            producer_graph.index_name, true
+                        ) { return empty; }
+                    producer_header = block;
+                    producer_body = index.block_succ_true[block];
+                    producer_exit = index.block_succ_false[block];
+                    bound = producer_graph.bound;
+                    induction_id = UnwrapOption(producer_use);
+                } else if length_graph.valid {
+                    if consumer_header >= 0 ||
+                        MirRoutineInstructionUseCountAtGlobal(
+                            uses, global
+                        ) != 2 ||
+                        !DirectMirScalarCfgArrayIntUseAt(
+                            uses, global, 1, collection.collection_value_id
+                        ) { return empty; }
+                    let index_use: Option<String> =
+                        MirRoutineInstructionUseAtGlobal(uses, global, 0);
+                    if !IsSome(index_use) || !MirSsaNameMatches(
+                            UnwrapOption(index_use), length_graph.index_name,
+                            true
+                        ) || length_graph.collection_name !=
+                            collection.collection_name { return empty; }
+                    consumer_header = block;
+                    consumer_body = index.block_succ_true[block];
+                    consumer_exit = index.block_succ_false[block];
+                    length_global = global;
+                    index_id = UnwrapOption(index_use);
+                    claimed_uses = claimed_uses + 1;
+                }
+            } else if kind == "stmt" && capture.arg0 == "ArrayPush" {
+                let push: DirectMirScalarCfgArrayIntPushGraphFact =
+                    DirectMirScalarCfgArrayIntPushGraphFactFrom(graph);
+                if push_global >= 0 || !push.valid ||
+                    MirRoutineInstructionUseCountAtGlobal(uses, global) != 2 ||
+                    !DirectMirScalarCfgArrayIntUseAt(
+                        uses, global, 0, collection.collection_value_id
+                    ) { return empty; }
+                let value_use: Option<String> =
+                    MirRoutineInstructionUseAtGlobal(uses, global, 1);
+                if !IsSome(value_use) || !MirSsaNameMatches(
+                    UnwrapOption(value_use), push.value_name, true
+                ) { return empty; }
+                if induction_id != "" && induction_id !=
+                        UnwrapOption(value_use) { return empty; }
+                push_global = global; push_kind = push.kind;
+                push_block = block; induction_id = UnwrapOption(value_use);
+                claimed_uses = claimed_uses + 1;
+            } else if kind == "def" && source == "AST_ASSIGNMENT" {
+                let read: DirectMirScalarCfgArrayIntReadGraphFact =
+                    DirectMirScalarCfgArrayIntReadGraphFactFrom(graph);
+                if read.valid {
+                    if read_global >= 0 ||
+                        MirRoutineInstructionUseCountAtGlobal(
+                            uses, global
+                        ) != 3 || !DirectMirScalarCfgArrayIntUseAt(
+                            uses, global, 1, collection.collection_value_id
+                        ) { return empty; }
+                    let left: Option<String> =
+                        MirRoutineInstructionUseAtGlobal(uses, global, 0);
+                    let index_use: Option<String> =
+                        MirRoutineInstructionUseAtGlobal(uses, global, 2);
+                    if !IsSome(left) || !IsSome(index_use) ||
+                        !MirSsaNameMatches(
+                            UnwrapOption(left), read.sum_name, true
+                        ) || !MirSsaNameMatches(
+                            UnwrapOption(index_use), read.index_name, true
+                        ) || read.collection_name !=
+                            collection.collection_name { return empty; }
+                    if index_id != "" && index_id !=
+                            UnwrapOption(index_use) { return empty; }
+                    read_global = global; sum_id = UnwrapOption(left);
+                    index_id = UnwrapOption(index_use);
+                    read_result = capture.result;
+                    claimed_uses = claimed_uses + 1;
+                }
+            } else if kind == "stmt" && capture.arg0 == "Log" {
+                let length_log: DirectMirScalarCfgArrayLengthLogGraphFact =
+                    DirectMirScalarCfgArrayLengthLogGraphFactFrom(graph);
+                if length_log.valid && length_log.collection_name ==
+                        collection.collection_name {
+                    if length_log_global >= 0 ||
+                        MirRoutineInstructionUseCountAtGlobal(
+                            uses, global
+                        ) != 1 || !DirectMirScalarCfgArrayIntUseAt(
+                            uses, global, 0, collection.collection_value_id
+                        ) { return empty; }
+                    length_log_global = global;
+                    claimed_uses = claimed_uses + 1;
+                }
+            }
+            local = local + 1;
+        }
+        block = block + 1;
+    }
+    let push_position: DirectMirScalarCfgInstructionPositionFact =
+        DirectMirScalarCfgInstructionPositionAt(index, push_global);
+    let read_position: DirectMirScalarCfgInstructionPositionFact =
+        DirectMirScalarCfgInstructionPositionAt(index, read_global);
+    let log_position: DirectMirScalarCfgInstructionPositionFact =
+        DirectMirScalarCfgInstructionPositionAt(index, length_log_global);
+    let definition: MirRoutineResultDefinitionFact =
+        MirRoutineFactIndexUniqueResultDefinition(
+            index, collection.collection_value_id
+        );
+    if bound < 1 || bound > 46340 || producer_header < 0 ||
+        producer_body < 0 || producer_exit < 0 ||
+        index.block_succ_true[producer_body] != producer_header ||
+        index.block_succ_false[producer_body] >= 0 ||
+        !push_position.valid || push_position.block != producer_body ||
+        induction_id == "" || consumer_header < 0 || consumer_body < 0 ||
+        consumer_exit < 0 || index.block_succ_true[consumer_body] !=
+            consumer_header || index.block_succ_false[consumer_body] >= 0 ||
+        index.block_succ_true[producer_exit] != consumer_header ||
+        index.block_succ_false[producer_exit] >= 0 || !read_position.valid ||
+        read_position.block != consumer_body || !log_position.valid ||
+        log_position.block != consumer_exit || index_id == "" ||
+        sum_id == "" || read_result == "" || claimed_uses != 4 ||
+        collection_uses != claimed_uses ||
+        !MirRoutineDefinitionDominatesInstruction(
+            index, definition,
+            push_position.block, push_position.local
+        ) || !MirRoutineDefinitionDominatesInstruction(
+            index, definition,
+            read_position.block, read_position.local
+        ) || !MirRoutineDefinitionDominatesInstruction(
+            index, definition,
+            log_position.block, log_position.local
+        ) { return empty; }
+    return DirectMirScalarCfgArrayIntProgramFact(
+        true, DirectMirScalarCfgArrayIntDynamicPushMode(), collection,
+        DirectMirScalarCfgArrayIntProducerFact(
+            true, producer_header, producer_body, producer_exit, bound,
+            push_global, push_kind, induction_id, -1, -1
+        ),
+        DirectMirScalarCfgArrayIntConsumerFact(
+            true, consumer_header, consumer_body, consumer_exit,
+            length_global, read_global, length_log_global, index_id, -1,
+            sum_id, -1, read_result, -1, -1, -1
+        ), DirectMirScalarCfgArrayIntStaticMutationFactEmpty(),
+        DirectMirScalarCfgArrayIntReadOnlyRangeFactEmpty(),
+        DirectMirScalarCfgArrayIntReverseFactEmpty()
+    );
+}

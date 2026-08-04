@@ -1,15 +1,13 @@
 // Identity tail for mutually exclusive initialized Array<Int> variants.
 
-import "direct_mir_scalar_cfg_array_int_static_mutation_identity_owner.pgy";
-import "direct_mir_scalar_cfg_array_int_read_only_identity_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_pre_reverse_identity_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_reverse_identity_owner.pgy";
 
 func DirectMirScalarCfgArrayIntProgramVariantDigestComponent(
     hash: Long, ref fact: DirectMirScalarCfgArrayIntProgramFact
 ) -> Long {
-    hash = DirectMirScalarCfgArrayIntStaticMutationDigestComponent(
-        hash, fact.static_mutation
-    );
-    return DirectMirScalarCfgArrayIntReadOnlyDigestComponent(
-        hash, fact.read_only
+    hash = DirectMirScalarCfgArrayIntPreReverseDigestComponent(hash, fact);
+    return DirectMirScalarCfgArrayIntReverseDigestComponent(
+        hash, fact.reverse
     );
 }

@@ -1,0 +1,57 @@
+// Fresh canonical LLVM storage owned by the bounded ArrayReverse result.
+
+import "direct_mir_array_int_abi_projection_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_llvm_storage_emission_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReverseLlvmDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact
+) -> String {
+    let fact: DirectMirScalarCfgArrayIntReverseFact =
+        plan.array_int_program.reverse;
+    if plan.array_int_program.mode !=
+            DirectMirScalarCfgArrayIntFreshReverseMode() || !fact.valid {
+        return "";
+    }
+    let abi: DirectMirArrayIntAbiProjection =
+        DirectMirArrayIntAbiProjectionFromCanonicalLayout(
+            target, fact.result.abi_layout_id, fact.result.abi_size,
+            fact.result.abi_align, fact.result.data_offset,
+            fact.result.length_offset, fact.result.capacity_offset,
+            fact.result.allocator_offset
+        );
+    let output: String =
+        "  %pgy.array.int.reverse.storage = alloca [3 x i32], align 4\n";
+    output = Concat(output,
+        "  %pgy.array.int.reverse.data = getelementptr inbounds [3 x i32], ptr %pgy.array.int.reverse.storage, i64 0, i64 0\n");
+    output = Concat(output, Concat(
+        "  %pgy.array.int.reverse.object = alloca ", abi.llvm_aggregate_type
+    ));
+    output = Concat(output, ", align 8\n");
+    output = Concat(output,
+        DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
+            "int.reverse", abi.llvm_aggregate_type, "data", abi.data_index
+        ));
+    output = Concat(output,
+        DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
+            "int.reverse", abi.llvm_aggregate_type, "length", abi.length_index
+        ));
+    output = Concat(output,
+        DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
+            "int.reverse", abi.llvm_aggregate_type,
+            "capacity", abi.capacity_index
+        ));
+    output = Concat(output,
+        DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
+            "int.reverse", abi.llvm_aggregate_type,
+            "allocator", abi.allocator_index
+        ));
+    output = Concat(output,
+        "  store ptr %pgy.array.int.reverse.data, ptr %pgy.array.int.reverse.data.field, align 8\n");
+    output = Concat(output,
+        "  store i64 0, ptr %pgy.array.int.reverse.length.field, align 8\n");
+    output = Concat(output,
+        "  store i64 3, ptr %pgy.array.int.reverse.capacity.field, align 8\n");
+    return Concat(output,
+        "  store ptr null, ptr %pgy.array.int.reverse.allocator.field, align 8\n");
+}

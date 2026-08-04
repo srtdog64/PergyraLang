@@ -8,6 +8,7 @@ import "direct_mir_scalar_cfg_string_array_graph_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_program_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_condition_role_owner.pgy";
 import "direct_mir_scalar_cfg_collection_operation_shape_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_reverse_plan_shape_owner.pgy";
 func DirectMirScalarCfgOperandCount(
     value: Int, local: Int, literal: String
 ) -> Int {
@@ -27,14 +28,17 @@ func DirectMirScalarCfgGraphPlanReady(
     if !plan.valid || plan.schema != DirectMirScalarCfgGraphPlanSchema() ||
         plan.revision != CompilerArtifactPlanRevision() || plan.digest == 0 ||
         plan.digest != DirectMirScalarCfgGraphPlanDigest(plan) ||
-        plan.mir_digest == 0 || plan.cfg_digest == 0 || local_count < 1 ||
+        plan.mir_digest == 0 || plan.cfg_digest == 0 ||
+        !DirectMirScalarCfgMinimumPlanShapeReady(
+            plan, local_count, value_count, block_count
+        ) ||
         !DirectMirScalarCfgLocalRefsReady(
             plan.local_names, plan.local_ref_kinds,
             plan.local_ref_value_ids, plan.local_ref_syntax_ids,
             plan.value_local_rows, plan.range_iterations,
             plan.foreach_iterations
         ) ||
-        block_count < 2 || operation_count < 1 ||
+        operation_count < 1 ||
         value_count != ArrayLength(plan.value_local_rows) ||
         value_count != ArrayLength(plan.value_definition_blocks) ||
         block_count != ArrayLength(plan.block_succ_false) ||
@@ -160,7 +164,7 @@ func DirectMirScalarCfgGraphPlanReady(
             plan.string_arrays.accesses.kinds[indexed_row] ==
                 DirectMirScalarCfgStringArrayAccessLogRead();
         if kind < DirectMirScalarCfgOpConstInt() ||
-            kind > DirectMirScalarCfgOpArrayReadInt() || result < -1 ||
+            kind > DirectMirScalarCfgOpArrayReverseInt() || result < -1 ||
             left < -1 || right < -1 || left_local < -1 ||
             right_local < -1 || result >= value_count ||
             left >= value_count || right >= value_count ||
@@ -229,12 +233,4 @@ func DirectMirScalarCfgGraphPlanReady(
     ) && CompilerArtifactIdentityReady(
         CompilerEmittedLlvmArtifactKind(), plan.revision, plan.digest
     );
-}
-
-func DirectMirScalarCfgGraphPlanMutationRejected(
-    plan: DirectMirScalarCfgGraphPlan
-) -> Bool {
-    let mutated: DirectMirScalarCfgGraphPlan =
-        DirectMirScalarCfgGraphPlanWithDigest(plan, plan.digest + 1);
-    return !DirectMirScalarCfgGraphPlanReady(mutated);
 }

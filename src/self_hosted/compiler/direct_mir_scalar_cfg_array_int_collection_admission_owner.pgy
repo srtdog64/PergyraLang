@@ -43,10 +43,12 @@ func DirectMirScalarCfgArrayIntCollectionFromOwners(
         DirectMirArrayIntGraphFromExpressionFact(
             admitted.routines.source_json, expression, 0
         );
+    let empty_literal: Bool = DirectMirArrayLiteralEmptyReady(graph);
     let elements: Array<Int> = [];
-    if !DirectMirArrayLiteralEmptyReady(graph) {
+    if !empty_literal {
         elements = DirectMirArrayIntLiteralElements(graph);
     }
+    if !empty_literal && ArrayLength(elements) == 0 { return invalid; }
     let fact: DirectMirScalarCfgArrayIntCollectionFact =
         DirectMirScalarCfgArrayIntCollectionFact(
             true, definition.global_row, declaration.result,

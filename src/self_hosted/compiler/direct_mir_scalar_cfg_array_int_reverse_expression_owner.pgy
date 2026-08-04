@@ -1,0 +1,31 @@
+// Operand-free GraphPlan expressions owned by the fresh reverse receipt.
+
+import "direct_mir_scalar_cfg_array_int_reverse_fact_owner.pgy";
+import "direct_mir_scalar_cfg_expression_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReverseExpressionFact(
+    ref fact: DirectMirScalarCfgArrayIntReverseFact, global_row: Int
+) -> DirectMirScalarCfgExpressionFact {
+    if !fact.valid { return DirectMirScalarCfgExpressionFactEmpty(); }
+    if global_row == fact.reverse_global_row {
+        return DirectMirScalarCfgExpressionFact(
+            true, DirectMirScalarCfgOpArrayReverseInt(),
+            -1, -1, -1, -1, "", ""
+        );
+    }
+    let row: Int = 0;
+    while row < ArrayLength(fact.log_global_rows) {
+        if fact.log_global_rows[row] == global_row {
+            let kind: Int = DirectMirScalarCfgOpLogArrayIndexInt();
+            if fact.log_kinds[row] ==
+                    DirectMirScalarCfgArrayIntReverseLengthLog() {
+                kind = DirectMirScalarCfgOpLogArrayLength();
+            }
+            return DirectMirScalarCfgExpressionFact(
+                true, kind, -1, -1, -1, -1, "", ""
+            );
+        }
+        row = row + 1;
+    }
+    return DirectMirScalarCfgExpressionFactEmpty();
+}

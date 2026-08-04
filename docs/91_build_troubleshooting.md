@@ -6,6 +6,52 @@
 
 ---
 
+## A malformed typed transform retries through an older one-block route
+
+Do not use the exact valid-transform admission predicate as the route claimant.
+If a mutation breaks the call target, edge, or graph readiness, exact admission
+correctly returns false; using that result for routing then incorrectly says
+the typed owner never claimed the input and permits a legacy compiler path to
+try it.
+
+Route at a coarser semantic boundary. For the bounded `ArrayReverse` rung, any
+`Array<Int>`-valued call graph, including an invalid expression sequence, is
+claimed by the Array transform route. The exact reverse admission remains the
+only authority that can accept it. Negative gates must reject both artifact
+publication and recognizable diagnostics from the legacy route; checking only
+the final error category is insufficient.
+
+When a new operation kind is added, also update the inactive-program operation
+inventory. The 2026-08-04 audit found that operation 20 (`ArrayReverse`) could
+exist in a plan whose Array program receipt was absent because the old sentinel
+listed only push/read operations. Keep the complete `Array<Int>`-owned
+operation set in one responsibility-named owner and make the absent-program
+readiness consume it. Do not scatter another manual list into each mode.
+
+---
+
+## A focused gate says an owner string is missing after a responsibility split
+
+This is not automatically a compiler semantic failure. During the 2026-08-04
+`ArrayReverse` rung, branch terminator admission moved from
+`direct_mir_scalar_cfg_graph_admission_owner.pgy` to the responsibility-named
+`direct_mir_scalar_cfg_branch_admission_owner.pgy`. The cumulative gate then
+failed at three static checks that still looked for `AST_CONTINUE`,
+`DirectMirScalarCfgConditionForEach()`, or `MirRoutineBlockDominates(` in the
+old file.
+
+Verify the executable owner first. If the moved fact exists only in the new
+owner and the focused C/LLVM behavior still passes, repoint the test pin to the
+new owner and rerun that focused gate before rerunning cumulative integration.
+Do not copy the string back into the old file, add an alias, or weaken the pin.
+
+The failed cumulative attempts sampled only 0.363-0.372 GiB working set and
+0.318-0.327 GiB private memory. The final green run sampled 0.381/0.335 GiB.
+Those are test-inclusive process-tree maxima, not ordinary compiler-build
+latency or evidence for raising a memory allowance.
+
+---
+
 ## String-array self-host plan fails before backend emission
 
 The direct-MIR String-array replacement exposed three self-host language and

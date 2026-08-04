@@ -1,6 +1,7 @@
 // Exact inactive-payload sentinels for mutually exclusive Array<Int> modes.
 
 import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_reverse_absence_owner.pgy";
 
 func DirectMirScalarCfgArrayIntProducerAbsent(
     ref fact: DirectMirScalarCfgArrayIntProducerFact

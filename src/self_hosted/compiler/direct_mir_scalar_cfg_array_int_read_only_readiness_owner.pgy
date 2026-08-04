@@ -33,7 +33,8 @@ func DirectMirScalarCfgArrayIntReadOnlyReady(
         !DirectMirScalarCfgArrayIntConsumerAbsent(program.consumer) ||
         !DirectMirScalarCfgArrayIntStaticMutationAbsent(
             program.static_mutation
-        ) || fact.initial_read.index_literal != 0 ||
+        ) || !DirectMirScalarCfgArrayIntReverseAbsent(program.reverse) ||
+        fact.initial_read.index_literal != 0 ||
         fact.initial_read.index_name != "" ||
         fact.update_read.index_literal != -1 ||
         fact.update_read.index_name != range.binding_name ||

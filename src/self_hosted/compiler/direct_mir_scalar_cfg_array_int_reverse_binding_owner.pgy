@@ -1,0 +1,35 @@
+// Bind fresh reverse materialization and result observations to operation rows.
+
+import "direct_mir_scalar_cfg_array_int_reverse_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReverseAtOperation(
+    fact: DirectMirScalarCfgArrayIntReverseFact,
+    global_row: Int, operation_row: Int
+) -> DirectMirScalarCfgArrayIntReverseFact {
+    if !fact.valid || operation_row < 0 { return fact; }
+    let reverse_operation: Int = fact.reverse_operation_row;
+    let log_operations: Array<Int> = fact.log_operation_rows;
+    if global_row == fact.reverse_global_row {
+        if reverse_operation >= 0 { return DirectMirScalarCfgArrayIntReverseFactEmpty(); }
+        reverse_operation = operation_row;
+    } else {
+        let found: Int = -1; let row: Int = 0;
+        while row < ArrayLength(fact.log_global_rows) {
+            if fact.log_global_rows[row] == global_row {
+                if found >= 0 { return DirectMirScalarCfgArrayIntReverseFactEmpty(); }
+                found = row;
+            }
+            row = row + 1;
+        }
+        if found < 0 || found >= ArrayLength(log_operations) ||
+            log_operations[found] >= 0 {
+            return DirectMirScalarCfgArrayIntReverseFactEmpty();
+        }
+        ArraySet(log_operations, found, operation_row);
+    }
+    return DirectMirScalarCfgArrayIntReverseFact(
+        true, fact.source_value_id, fact.result, fact.reverse_global_row,
+        reverse_operation, fact.log_global_rows, fact.log_kinds,
+        fact.log_indices, log_operations
+    );
+}

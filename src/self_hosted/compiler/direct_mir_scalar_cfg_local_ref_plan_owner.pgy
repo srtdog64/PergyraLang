@@ -172,7 +172,7 @@ func DirectMirScalarCfgLocalRefsReady(
     ref foreach_facts: DirectMirScalarCfgForEachFactSet
 ) -> Bool {
     let count: Int = ArrayLength(local_names);
-    if count < 1 || count != ArrayLength(local_ref_kinds) ||
+    if count != ArrayLength(local_ref_kinds) ||
         count != ArrayLength(local_ref_value_ids) ||
         count != ArrayLength(local_ref_syntax_ids) {
         return false;

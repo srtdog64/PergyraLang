@@ -1,13 +1,14 @@
 // Exact route classifier for the general scalar CFG graph plan.
 import "direct_mir_scalar_graph_admission_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_reverse_route_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 func DirectMirScalarCfgRoutineRouteClaimed(
     ref admitted: MirMachineLayerAdmittedJsonInput, routine_row: Int) -> Bool {
     if !MirProgramRoutineIndexRowReady(admitted.routines, routine_row) ||
         admitted.routines.kinds[routine_row] != "function" ||
         admitted.routines.owners[routine_row] != "" ||
-        admitted.routines.routine_block_counts[routine_row] < 2 {
+        admitted.routines.routine_block_counts[routine_row] < 1 {
         return false;
     }
     let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
@@ -23,6 +24,8 @@ func DirectMirScalarCfgRoutineRouteClaimed(
     if !DirectMirScalarCfgRoutineSourceLocalTypesSupported(index) {
         return false;
     }
+    let reverse_claimed: Bool =
+        DirectMirScalarCfgArrayIntReverseRouteClaimed(admitted, index);
     let branch_seen: Bool = false;
     let row: Int = 0;
     while row < ArrayLength(index.instruction_facts.starts) {
@@ -52,7 +55,7 @@ func DirectMirScalarCfgRoutineRouteClaimed(
         }
         row = row + 1;
     }
-    return branch_seen;
+    return branch_seen || reverse_claimed;
 }
 func DirectMirScalarCfgGraphRouteClaimed(
     ref admitted: MirMachineLayerAdmittedJsonInput

@@ -10,7 +10,9 @@ import "direct_mir_scalar_cfg_string_array_expression_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_binding_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_program_binding_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_program_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_reverse_operation_seed_owner.pgy";
 import "direct_mir_scalar_cfg_collection_expression_owner.pgy";
+import "direct_mir_scalar_cfg_branch_admission_owner.pgy";
 import "../mir_lower/phi_predecessor_binding_fact_owner.pgy";
 func DirectMirScalarCfgGraphPlanFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -106,6 +108,18 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
         }
         let operation_start: Int = ArrayLength(operation_kinds);
         ArrayPush(block_operation_starts, operation_start);
+        array_int_program =
+            DirectMirScalarCfgAppendArrayIntReverseOperation(
+                array_int_program, block, operation_kinds,
+                operation_result_values, operation_left_values,
+                operation_right_values, operation_left_locals,
+                operation_right_locals, operation_left_literals,
+                operation_right_literals, operation_phi_starts,
+                operation_phi_counts, ArrayLength(phi_predecessor_blocks)
+            );
+        if array_int_source.valid && !array_int_program.valid {
+            Die("direct MIR scalar CFG ArrayReverse operation is invalid");
+        }
         let condition: DirectMirScalarCfgExpressionFact =
             DirectMirScalarCfgExpressionFact(
                 true, DirectMirScalarCfgConditionNone(), -1, -1,
@@ -323,93 +337,12 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                     ArrayLength(phi_predecessor_blocks), 0
                 );
             } else if kind == "branch" {
-                if instruction_row + 1 !=
-                    index.block_instruction_counts[block] {
-                    Die("direct MIR scalar CFG branch is not the terminator");
-                }
-                if source == "AST_BREAK" {
-                    if index.block_succ_true[block] < 0 ||
-                        index.block_succ_false[block] >= 0 ||
-                        MirRoutineBlockDominates(
-                            index, index.block_succ_true[block], block
-                        ) ||
-                        MirRoutineInstructionUseCountAtGlobal(
-                            use_facts, global_row
-                        ) != 0 {
-                        Die("direct MIR scalar CFG break edge is invalid");
-                    }
-                } else if source == "AST_CONTINUE" {
-                    if index.block_succ_true[block] < 0 ||
-                        index.block_succ_false[block] >= 0 ||
-                        !MirRoutineBlockDominates(
-                            index, index.block_succ_true[block], block
-                        ) || MirRoutineInstructionUseCountAtGlobal(
-                            use_facts, global_row
-                        ) != 0 {
-                        Die("direct MIR scalar CFG continue edge is invalid");
-                    }
-                } else if source == "AST_FOR_LOOP" {
-                    let foreach: DirectMirScalarCfgForEachFact =
-                        DirectMirScalarCfgForEachFactAtBranchGlobalRow(
-                            foreach_iterations, global_row
-                        );
-                    let range: DirectMirScalarCfgRangeIterationFact =
-                        DirectMirScalarCfgRangeFactAtBranchGlobalRow(
-                            range_iterations, global_row
-                        );
-                    if range.valid == foreach.valid || (range.valid &&
-                        (!DirectMirScalarCfgRangeIterationFactReady(
-                            range, ArrayLength(index.block_starts)
-                        ) || block != range.header_block)) || (foreach.valid &&
-                        (!DirectMirScalarCfgForEachFactReady(
-                            foreach, ArrayLength(index.block_starts)
-                        ) || block != foreach.header_block)) {
-                        Die("direct MIR scalar CFG range branch is invalid");
-                    }
-                    if foreach.valid {
-                        condition = DirectMirScalarCfgExpressionFact(
-                            true, DirectMirScalarCfgConditionForEach(),
-                            -1, -1, -1, -1, "", ""
-                        );
-                    } else if range.stop_value_id != "" {
-                        condition = DirectMirScalarCfgExpressionFact(
-                            true, DirectMirScalarCfgConditionLess(), -1, -1,
-                            range.local_row, -1, "", ""
-                        );
-                    } else {
-                        condition = DirectMirScalarCfgExpressionFact(
-                            true, DirectMirScalarCfgConditionLess(), -1, -1,
-                            range.local_row, -1, "", range.stop_literal
-                        );
-                    }
-                } else {
-                    condition =
-                        DirectMirScalarCfgCollectionConditionExpressionFact(
-                            string_arrays, array_int_program,
-                            instruction, use_facts, global_row,
-                            local_instruction, value_names, local_refs, wire
-                        );
-                    if !condition.valid ||
-                        index.block_succ_true[block] < 0 ||
-                        (index.block_succ_false[block] < 0 &&
-                            (condition.kind !=
-                                DirectMirScalarCfgConditionBool() ||
-                             condition.left_literal != "true")) ||
-                        (condition.left_value >= 0 &&
-                            !DirectMirScalarCfgValueUseDominates(
-                                index, value_names, value_local_rows,
-                                condition.left_value,
-                                block, instruction_row
-                            )) ||
-                        (condition.right_value >= 0 &&
-                            !DirectMirScalarCfgValueUseDominates(
-                                index, value_names, value_local_rows,
-                                condition.right_value,
-                                block, instruction_row
-                            )) {
-                        Die("direct MIR scalar CFG condition fact is invalid");
-                    }
-                }
+                condition = DirectMirScalarCfgBranchConditionFromOwners(
+                    index, use_facts, range_iterations, foreach_iterations,
+                    string_arrays, array_int_program, instruction, source,
+                    global_row, local_instruction, block, instruction_row,
+                    value_names, value_local_rows, local_refs, wire
+                );
             }
             instruction_row = instruction_row + 1;
         }

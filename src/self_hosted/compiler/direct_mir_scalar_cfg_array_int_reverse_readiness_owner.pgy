@@ -1,0 +1,62 @@
+// Final GraphPlan closure for one fresh bounded ArrayReverse value.
+
+import "direct_mir_scalar_cfg_array_int_program_absence_owner.pgy";
+import "direct_mir_scalar_cfg_operation_position_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReverseReady(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let program: DirectMirScalarCfgArrayIntProgramFact =
+        plan.array_int_program;
+    let fact: DirectMirScalarCfgArrayIntReverseFact = program.reverse;
+    if !program.valid || program.mode !=
+            DirectMirScalarCfgArrayIntFreshReverseMode() || !fact.valid ||
+        !DirectMirScalarCfgArrayIntCollectionFactReady(program.collection) ||
+        ArrayLength(program.collection.elements) != 3 ||
+        !DirectMirScalarCfgArrayIntDerivedCollectionReady(
+            fact.result, program.collection
+        ) || fact.source_value_id != program.collection.collection_value_id ||
+        !DirectMirScalarCfgArrayIntProducerAbsent(program.producer) ||
+        !DirectMirScalarCfgArrayIntConsumerAbsent(program.consumer) ||
+        !DirectMirScalarCfgArrayIntStaticMutationAbsent(
+            program.static_mutation
+        ) || !DirectMirScalarCfgArrayIntReadOnlyAbsent(program.read_only) ||
+        ArrayLength(plan.local_names) != 0 ||
+        ArrayLength(plan.value_names) != 0 ||
+        ArrayLength(plan.block_succ_true) != 1 ||
+        plan.block_succ_true[0] != -1 || plan.block_succ_false[0] != -1 ||
+        plan.block_operation_starts[0] != 0 ||
+        plan.block_operation_counts[0] != 5 ||
+        plan.block_condition_kinds[0] != DirectMirScalarCfgConditionNone() ||
+        ArrayLength(plan.operation_kinds) != 5 ||
+        fact.reverse_operation_row != 0 ||
+        plan.operation_kinds[0] != DirectMirScalarCfgOpArrayReverseInt() ||
+        DirectMirScalarCfgOperationBlock(plan, 0) != 0 ||
+        ArrayLength(fact.log_global_rows) != 4 ||
+        ArrayLength(fact.log_kinds) != 4 ||
+        ArrayLength(fact.log_indices) != 4 ||
+        ArrayLength(fact.log_operation_rows) != 4 {
+        return false;
+    }
+    let row: Int = 0;
+    while row < 4 {
+        let expected_kind: Int = DirectMirScalarCfgArrayIntReverseIndexLog();
+        let expected_index: Int = row - 1;
+        let expected_operation_kind: Int =
+            DirectMirScalarCfgOpLogArrayIndexInt();
+        if row == 0 {
+            expected_kind = DirectMirScalarCfgArrayIntReverseLengthLog();
+            expected_operation_kind = DirectMirScalarCfgOpLogArrayLength();
+        }
+        if fact.log_global_rows[row] <= fact.reverse_global_row ||
+            fact.log_kinds[row] != expected_kind ||
+            fact.log_indices[row] != expected_index ||
+            fact.log_operation_rows[row] != row + 1 ||
+            plan.operation_kinds[row + 1] != expected_operation_kind ||
+            DirectMirScalarCfgOperationBlock(plan, row + 1) != 0 {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}

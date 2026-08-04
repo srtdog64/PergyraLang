@@ -1,6 +1,7 @@
 // Immutable scalar-CFG plan construction, digesting, and mutation rejection.
 
 import "direct_mir_scalar_cfg_graph_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_graph_mutation_owner.pgy";
 import "direct_mir_scalar_cfg_graph_identity_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 

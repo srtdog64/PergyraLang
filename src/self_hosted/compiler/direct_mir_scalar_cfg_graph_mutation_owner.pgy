@@ -1,0 +1,11 @@
+// Digest mutation rejection for one otherwise sealed scalar CFG plan.
+
+import "direct_mir_scalar_cfg_graph_readiness_owner.pgy";
+
+func DirectMirScalarCfgGraphPlanMutationRejected(
+    plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let mutated: DirectMirScalarCfgGraphPlan =
+        DirectMirScalarCfgGraphPlanWithDigest(plan, plan.digest + 1);
+    return !DirectMirScalarCfgGraphPlanReady(mutated);
+}

@@ -1,0 +1,37 @@
+// Coarse semantic claimant for one-block ArrayReverse programs.
+
+import "direct_mir_scalar_cfg_array_int_reverse_graph_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_transform_route_fact_owner.pgy";
+import "direct_mir_scalar_cfg_instruction_graph_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReverseRouteClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex
+) -> Bool {
+    let found: Int = 0;
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        let capture: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, global
+            );
+        if admitted.routines.instruction_kinds[global] == "def" &&
+            capture.valid && capture.abi_type_name ==
+                CompilerAbiLayoutArrayIntTypeName() {
+            let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+                admitted.routines.source_json,
+                admitted.routines.instruction_starts[global],
+                admitted.routines.instruction_ends[global]
+            );
+            let graph: MirExpressionGraphSequence =
+                DirectMirScalarCfgInstructionGraphAt(object, "expr0_graph");
+            if DirectMirScalarCfgArrayIntTransformRouteFact(graph) {
+                found = found + 1;
+            }
+        }
+        instruction = instruction + 1;
+    }
+    return found >= 1;
+}

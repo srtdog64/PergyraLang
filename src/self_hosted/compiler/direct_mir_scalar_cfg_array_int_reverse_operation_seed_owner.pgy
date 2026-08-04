@@ -1,0 +1,35 @@
+// Materialize the entry-block ArrayReverse operation in the general plan rows.
+
+import "direct_mir_scalar_cfg_array_int_operation_binding_owner.pgy";
+import "direct_mir_scalar_cfg_operation_plan_owner.pgy";
+
+func DirectMirScalarCfgAppendArrayIntReverseOperation(
+    fact: DirectMirScalarCfgArrayIntProgramFact, block: Int,
+    inout kinds: Array<Int>, inout result_values: Array<Int>,
+    inout left_values: Array<Int>, inout right_values: Array<Int>,
+    inout left_locals: Array<Int>, inout right_locals: Array<Int>,
+    inout left_literals: Array<String>,
+    inout right_literals: Array<String>,
+    inout phi_starts: Array<Int>, inout phi_counts: Array<Int>,
+    phi_row_count: Int
+) -> DirectMirScalarCfgArrayIntProgramFact {
+    if fact.mode != DirectMirScalarCfgArrayIntFreshReverseMode() { return fact; }
+    if !fact.reverse.valid || block != 0 || ArrayLength(kinds) != 0 {
+        return DirectMirScalarCfgArrayIntProgramFactEmpty();
+    }
+    let expression: DirectMirScalarCfgExpressionFact =
+        DirectMirScalarCfgExpressionFact(
+            true, DirectMirScalarCfgOpArrayReverseInt(),
+            -1, -1, -1, -1, "", ""
+        );
+    let operation: Int = ArrayLength(kinds);
+    DirectMirScalarCfgAppendOperation(
+        kinds, result_values, left_values, right_values,
+        left_locals, right_locals, left_literals, right_literals,
+        phi_starts, phi_counts, expression.kind, -1, expression,
+        phi_row_count, 0
+    );
+    return DirectMirScalarCfgArrayIntProgramAtOperation(
+        fact, fact.reverse.reverse_global_row, operation
+    );
+}

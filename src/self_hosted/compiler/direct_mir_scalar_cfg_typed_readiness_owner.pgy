@@ -4,6 +4,7 @@ import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_log_operation_owner.pgy";
 
 func DirectMirScalarCfgPlanOperandType(
     ref plan: DirectMirScalarCfgGraphPlan, value: Int, local: Int
@@ -129,8 +130,9 @@ func DirectMirScalarCfgTypedOperationsReady(
                 indexed_kind != DirectMirScalarCfgStringArrayAccessPushKind()) ||
             (kind == DirectMirScalarCfgOpLogArrayLength() &&
                 indexed_kind != DirectMirScalarCfgStringArrayAccessLengthLog() &&
-                row != plan.array_int_program.consumer.
-                    length_log_operation_row) ||
+                !DirectMirScalarCfgArrayIntOwnsLengthLogOperation(
+                    plan.array_int_program, row
+                )) ||
             (kind == DirectMirScalarCfgOpArrayPushInt() &&
                 (result >= 0 || !left_is_int || !right_is_int)) ||
             (kind == DirectMirScalarCfgOpAddArrayReadInt() &&

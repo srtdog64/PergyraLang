@@ -1,0 +1,16 @@
+// Composition of source and optional fresh-result Array<Int> LLVM storage.
+
+import "direct_mir_scalar_cfg_array_int_llvm_storage_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_reverse_llvm_storage_owner.pgy";
+
+func DirectMirScalarCfgArrayIntProgramLlvmDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact
+) -> String {
+    let output: String =
+        DirectMirScalarCfgArrayIntLlvmDeclarations(plan, target);
+    return Concat(
+        output,
+        DirectMirScalarCfgArrayIntReverseLlvmDeclarations(plan, target)
+    );
+}

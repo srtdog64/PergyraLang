@@ -20,6 +20,7 @@ func DirectMirScalarCfgArrayIntStaticMutationReady(
         !DirectMirScalarCfgArrayIntCollectionFactReady(fact.collection) ||
         length < 1 || fact.producer.valid || !c.valid || !mutation.valid ||
         !DirectMirScalarCfgArrayIntReadOnlyAbsent(fact.read_only) ||
+        !DirectMirScalarCfgArrayIntReverseAbsent(fact.reverse) ||
         c.index_value_row < 0 || c.index_value_row >= values ||
         c.sum_left_value_row < 0 || c.sum_left_value_row >= values ||
         c.read_result_value_row < 0 || c.read_result_value_row >= values ||

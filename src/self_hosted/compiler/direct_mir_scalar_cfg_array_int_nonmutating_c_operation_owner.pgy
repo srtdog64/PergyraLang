@@ -1,0 +1,23 @@
+// C operation routing for read-only and fresh-result Array<Int> modes.
+
+import "direct_mir_scalar_cfg_array_int_read_only_c_emission_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_reverse_c_operation_owner.pgy";
+
+func DirectMirScalarCfgArrayIntNonmutatingCOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    int_line_format: String, int_c_type: String
+) -> DirectMirScalarCfgCCollectionOperationEmission {
+    if plan.array_int_program.mode ==
+            DirectMirScalarCfgArrayIntFreshReverseMode() {
+        return DirectMirScalarCfgArrayIntReverseCOperation(
+            plan, operation, formatted_print, int_line_format, int_c_type
+        );
+    }
+    if plan.operation_kinds[operation] == DirectMirScalarCfgOpArrayReadInt() {
+        return DirectMirScalarCfgCCollectionOperationEmission(
+            true, DirectMirScalarCfgArrayIntReadOnlyCRead(plan, operation)
+        );
+    }
+    return DirectMirScalarCfgCCollectionOperationEmission(false, "");
+}

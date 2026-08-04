@@ -1,0 +1,19 @@
+// Coarse fail-closed route fact for Array<Int>-valued call graphs.
+
+import "direct_mir_scalar_cfg_instruction_graph_owner.pgy";
+
+func DirectMirScalarCfgArrayIntTransformRouteFact(
+    ref graph: MirExpressionGraphSequence
+) -> Bool {
+    if !graph.ok { return true; }
+    let kinds: Int = ArrayLength(graph.arena.topology.node_kinds);
+    let targets: Int = ArrayLength(graph.arena.call_target_names);
+    if kinds != targets { return true; }
+    let node: Int = 0;
+    while node < kinds {
+        if graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() ||
+            graph.arena.call_target_names[node] != "" { return true; }
+        node = node + 1;
+    }
+    return false;
+}

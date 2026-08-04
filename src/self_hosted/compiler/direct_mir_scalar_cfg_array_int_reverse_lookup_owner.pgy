@@ -1,0 +1,30 @@
+// Definition, source-local, and instruction ownership for fresh ArrayReverse.
+
+import "direct_mir_scalar_cfg_array_int_reverse_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReverseOwnsDefinition(
+    ref fact: DirectMirScalarCfgArrayIntReverseFact, global_row: Int
+) -> Bool {
+    return fact.valid && fact.result.definition_global_row == global_row;
+}
+
+func DirectMirScalarCfgArrayIntReverseOwnsSourceLocal(
+    ref fact: DirectMirScalarCfgArrayIntReverseFact,
+    name: String, type_name: String
+) -> Bool {
+    return fact.valid && fact.result.collection_name == name &&
+        type_name == CompilerAbiLayoutArrayIntTypeName();
+}
+
+func DirectMirScalarCfgArrayIntReverseOperationGlobal(
+    ref fact: DirectMirScalarCfgArrayIntReverseFact, global_row: Int
+) -> Bool {
+    if !fact.valid { return false; }
+    if fact.reverse_global_row == global_row { return true; }
+    let row: Int = 0;
+    while row < ArrayLength(fact.log_global_rows) {
+        if fact.log_global_rows[row] == global_row { return true; }
+        row = row + 1;
+    }
+    return false;
+}

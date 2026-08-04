@@ -108,3 +108,10 @@ PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
     bash "$ARRAY_INT_MAX_GATE" || fail "Array<Int> read-only maximum receipt gate failed"
 
 echo "[$LABEL] read-only Array<Int> range maximum shares one receipt"
+
+ARRAY_INT_REVERSE_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir_array_int_reverse_projection.sh"
+require_file "$ARRAY_INT_REVERSE_GATE"
+PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
+    bash "$ARRAY_INT_REVERSE_GATE" || fail "fresh ArrayReverse receipt gate failed"
+
+echo "[$LABEL] fresh ArrayReverse result shares one sealed Array<Int> receipt"

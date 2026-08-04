@@ -4,6 +4,8 @@ import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
 import "direct_mir_scalar_cfg_expression_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_condition_expression_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_read_only_expression_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_reverse_expression_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_mutating_expression_owner.pgy";
 
 func DirectMirScalarCfgArrayIntExpressionFact(
     ref fact: DirectMirScalarCfgArrayIntProgramFact, global_row: Int
@@ -14,37 +16,10 @@ func DirectMirScalarCfgArrayIntExpressionFact(
             fact.read_only, global_row
         );
     if read_only.valid { return read_only; }
-    if global_row == fact.producer.push_global_row {
-        return DirectMirScalarCfgExpressionFact(
-            true, DirectMirScalarCfgOpArrayPushInt(),
-            fact.producer.induction_value_row,
-            fact.producer.induction_value_row, -1, -1, "", ""
+    let reverse: DirectMirScalarCfgExpressionFact =
+        DirectMirScalarCfgArrayIntReverseExpressionFact(
+            fact.reverse, global_row
         );
-    }
-    if global_row == fact.consumer.read_global_row {
-        return DirectMirScalarCfgExpressionFact(
-            true, DirectMirScalarCfgOpAddArrayReadInt(),
-            fact.consumer.sum_left_value_row,
-            fact.consumer.index_value_row, -1, -1, "", ""
-        );
-    }
-    if global_row == fact.consumer.length_log_global_row {
-        return DirectMirScalarCfgExpressionFact(
-            true, DirectMirScalarCfgOpLogArrayLength(),
-            -1, -1, -1, -1, "", ""
-        );
-    }
-    if global_row == fact.static_mutation.set_global_row {
-        return DirectMirScalarCfgExpressionFact(
-            true, DirectMirScalarCfgOpArraySetInt(),
-            -1, -1, -1, -1, "", ""
-        );
-    }
-    if global_row == fact.static_mutation.indexed_log_global_row {
-        return DirectMirScalarCfgExpressionFact(
-            true, DirectMirScalarCfgOpLogArrayIndexInt(),
-            -1, -1, -1, -1, "", ""
-        );
-    }
-    return DirectMirScalarCfgExpressionFactEmpty();
+    if reverse.valid { return reverse; }
+    return DirectMirScalarCfgArrayIntMutatingExpressionFact(fact, global_row);
 }

@@ -1,0 +1,166 @@
+// Exact source admission for a fresh bounded ArrayReverse result.
+
+import "direct_mir_scalar_cfg_array_int_reverse_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_reverse_graph_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_source_identity_owner.pgy";
+import "direct_mir_scalar_cfg_instruction_graph_owner.pgy";
+import "direct_mir_scalar_cfg_instruction_position_owner.pgy";
+import "direct_mir_array_int_abi_fact_owner.pgy";
+import "../mir_lower/abi_layout_admission_fact_owner.pgy";
+import "../mir_lower/routine_definition_dominance_fact_owner.pgy";
+
+func DirectMirScalarCfgArrayIntReverseFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref uses: MirRoutineInstructionUseFacts,
+    collection: DirectMirScalarCfgArrayIntCollectionFact
+) -> DirectMirScalarCfgArrayIntProgramFact {
+    let invalid: DirectMirScalarCfgArrayIntProgramFact =
+        DirectMirScalarCfgArrayIntProgramFactEmpty();
+    let result: DirectMirScalarCfgArrayIntDerivedCollectionFact =
+        DirectMirScalarCfgArrayIntDerivedCollectionFactEmpty();
+    let reverse_global: Int = -1;
+    let log_globals: Array<Int> = [];
+    let log_kinds: Array<Int> = [];
+    let log_indices: Array<Int> = [];
+    let source_uses: Int = 0;
+    let result_uses: Int = 0;
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            admitted.routines.source_json,
+            admitted.routines.instruction_starts[global],
+            admitted.routines.instruction_ends[global]
+        );
+        let graph: MirExpressionGraphSequence =
+            DirectMirScalarCfgInstructionGraphAt(object, "expr0_graph");
+        let capture: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, global
+            );
+        let call: DirectMirScalarCfgArrayIntReverseCallGraphFact =
+            DirectMirScalarCfgArrayIntReverseCallGraphFactFrom(graph);
+        if call.valid {
+            if reverse_global >= 0 || capture.name != "ssa-def" ||
+                admitted.routines.instruction_source_types[global] !=
+                    "AST_LET_DECL" || capture.arg1 != "" ||
+                capture.abi_type_name != CompilerAbiLayoutArrayIntTypeName() ||
+                call.source_name != collection.collection_name ||
+                MirRoutineInstructionUseCountAtGlobal(uses, global) != 1 ||
+                !DirectMirScalarCfgArrayIntUseAt(
+                    uses, global, 0, collection.collection_value_id
+                ) || !DirectMirScalarCfgArrayIntSourceLocalReady(
+                    index, capture.arg0
+                ) { return invalid; }
+            let definition: MirRoutineResultDefinitionFact =
+                MirRoutineFactIndexUniqueResultDefinition(
+                    index, capture.result
+                );
+            let abi_opt: Option<MirAbiLayoutRowCapture> =
+                MirCapturedRequiredAbiLayoutRowAdmission(
+                    admitted.routines.source_json, capture.abi_type_name,
+                    capture.abi_type_value_ready, capture.abi_type_start,
+                    capture.abi_type_end, capture.abi_layout_id_start,
+                    capture.abi_layout_id_end,
+                    capture.abi_layout_required_start,
+                    capture.abi_layout_required_end,
+                    capture.abi_layout_start, capture.abi_layout_end
+                );
+            if !MirRoutineResultDefinitionFactReady(definition) ||
+                definition.global_row != global || !IsSome(abi_opt) {
+                return invalid;
+            }
+            let abi: MirAbiLayoutRowCapture = UnwrapOption(abi_opt);
+            if !DirectMirArrayIntCapturedAbiReady(abi) { return invalid; }
+            result = DirectMirScalarCfgArrayIntDerivedCollectionFact(
+                true, global, capture.result, capture.arg0,
+                Concat("local-array:", capture.result),
+                MirAbiLayoutIdFromCapture(abi), ToInt(abi.size_text),
+                ToInt(abi.align_text), ToInt(abi.field_offsets[0]),
+                ToInt(abi.field_offsets[1]), ToInt(abi.field_offsets[2]),
+                ToInt(abi.field_offsets[3])
+            );
+            reverse_global = global;
+        } else if capture.name == "stmt" && capture.arg0 == "Log" {
+            let observation:
+                DirectMirScalarCfgArrayIntReverseObservationGraphFact =
+                DirectMirScalarCfgArrayIntReverseObservationGraphFactFrom(
+                    graph
+                );
+            if observation.valid {
+                if !result.valid || observation.collection_name !=
+                        result.collection_name ||
+                    MirRoutineInstructionUseCountAtGlobal(uses, global) != 1 ||
+                    !DirectMirScalarCfgArrayIntUseAt(
+                        uses, global, 0, result.collection_value_id
+                    ) { return invalid; }
+                ArrayPush(log_globals, global);
+                ArrayPush(log_kinds, observation.kind);
+                ArrayPush(log_indices, observation.index);
+            }
+        }
+        let use_row: Int = 0;
+        while use_row < MirRoutineInstructionUseCountAtGlobal(uses, global) {
+            let value: Option<String> =
+                MirRoutineInstructionUseAtGlobal(uses, global, use_row);
+            if IsSome(value) && UnwrapOption(value) ==
+                    collection.collection_value_id {
+                source_uses = source_uses + 1;
+            }
+            if result.valid && IsSome(value) && UnwrapOption(value) ==
+                    result.collection_value_id {
+                result_uses = result_uses + 1;
+            }
+            use_row = use_row + 1;
+        }
+        instruction = instruction + 1;
+    }
+    let source_definition: MirRoutineResultDefinitionFact =
+        MirRoutineFactIndexUniqueResultDefinition(
+            index, collection.collection_value_id
+        );
+    let reverse_position: DirectMirScalarCfgInstructionPositionFact =
+        DirectMirScalarCfgInstructionPositionAt(index, reverse_global);
+    let log_row: Int = 0;
+    while log_row < ArrayLength(log_globals) {
+        let position: DirectMirScalarCfgInstructionPositionFact =
+            DirectMirScalarCfgInstructionPositionAt(
+                index, log_globals[log_row]
+            );
+        if !position.valid || position.block != 0 ||
+            log_globals[log_row] <= reverse_global { return invalid; }
+        log_row = log_row + 1;
+    }
+    if !DirectMirScalarCfgArrayIntCollectionFactReady(collection) ||
+        ArrayLength(collection.elements) != 3 || !reverse_position.valid ||
+        reverse_position.block != 0 || ArrayLength(index.block_starts) != 1 ||
+        index.block_succ_true[0] >= 0 || index.block_succ_false[0] >= 0 ||
+        source_uses != 1 || result_uses != 4 ||
+        ArrayLength(log_globals) != 4 ||
+        !DirectMirScalarCfgArrayIntDerivedCollectionReady(
+            result, collection
+        ) || !MirRoutineDefinitionDominatesInstruction(
+            index, source_definition,
+            reverse_position.block, reverse_position.local
+        ) { return invalid; }
+    let operation_rows: Array<Int> = [];
+    log_row = 0;
+    while log_row < ArrayLength(log_globals) {
+        ArrayPush(operation_rows, -1); log_row = log_row + 1;
+    }
+    let reverse: DirectMirScalarCfgArrayIntReverseFact =
+        DirectMirScalarCfgArrayIntReverseFact(
+            true, collection.collection_value_id, result,
+            reverse_global, -1, log_globals, log_kinds,
+            log_indices, operation_rows
+        );
+    return DirectMirScalarCfgArrayIntProgramFact(
+        true, DirectMirScalarCfgArrayIntFreshReverseMode(), collection,
+        DirectMirScalarCfgArrayIntProducerFactEmpty(),
+        DirectMirScalarCfgArrayIntConsumerFactEmpty(),
+        DirectMirScalarCfgArrayIntStaticMutationFactEmpty(),
+        DirectMirScalarCfgArrayIntReadOnlyRangeFactEmpty(), reverse
+    );
+}

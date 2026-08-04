@@ -1,30 +1,30 @@
 // Definition, source-local, and operation lookup over one Array<Int> receipt.
 
 import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_mutating_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_reverse_lookup_owner.pgy";
 
 func DirectMirScalarCfgArrayIntOwnsDefinition(
     ref fact: DirectMirScalarCfgArrayIntProgramFact, global_row: Int
 ) -> Bool {
-    return fact.valid && fact.collection.definition_global_row == global_row;
+    return DirectMirScalarCfgArrayIntMutatingOwnsDefinition(fact, global_row) ||
+        DirectMirScalarCfgArrayIntReverseOwnsDefinition(fact.reverse, global_row);
 }
 
 func DirectMirScalarCfgArrayIntOwnsSourceLocal(
     ref fact: DirectMirScalarCfgArrayIntProgramFact,
     name: String, type_name: String
 ) -> Bool {
-    return fact.valid && fact.collection.collection_name == name &&
-        type_name == CompilerAbiLayoutArrayIntTypeName();
+    return DirectMirScalarCfgArrayIntMutatingOwnsSourceLocal(
+            fact, name, type_name) ||
+        DirectMirScalarCfgArrayIntReverseOwnsSourceLocal(fact.reverse, name, type_name);
 }
 
 func DirectMirScalarCfgArrayIntOperationGlobal(
     ref fact: DirectMirScalarCfgArrayIntProgramFact, global_row: Int
 ) -> Bool {
-    return fact.valid && (fact.producer.push_global_row == global_row ||
-        fact.consumer.read_global_row == global_row ||
-        fact.consumer.length_log_global_row == global_row ||
-        fact.static_mutation.set_global_row == global_row ||
-        fact.static_mutation.indexed_log_global_row == global_row ||
-        fact.read_only.initial_read.global_row == global_row ||
-        fact.read_only.update_read.global_row == global_row ||
-        fact.read_only.log_global_row == global_row);
+    return DirectMirScalarCfgArrayIntMutatingOperationGlobal(
+            fact, global_row) ||
+        DirectMirScalarCfgArrayIntReverseOperationGlobal(
+            fact.reverse, global_row);
 }
