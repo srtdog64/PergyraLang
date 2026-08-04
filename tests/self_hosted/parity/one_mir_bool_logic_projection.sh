@@ -24,36 +24,13 @@ command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 
 while IFS='|' read -r owner cap; do
+    [[ -z "$owner" || "$owner" == \#* ]] && continue
     [[ -f "$ROOT_DIR/$owner" ]] || fail "missing owner: $owner"
     lines="$(wc -l <"$ROOT_DIR/$owner")"
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
-done <<'EOF'
-src/self_hosted/compiler/direct_mir_returned_array_program_route_owner.pgy|100
-src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy|110
-src/self_hosted/compiler/direct_mir_scalar_program_expression_fact_owner.pgy|180
-src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy|225
-src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy|125
-src/self_hosted/compiler/direct_mir_scalar_program_expression_mutation_owner.pgy|40
-src/self_hosted/compiler/direct_mir_scalar_program_expression_readiness_owner.pgy|155
-src/self_hosted/compiler/direct_mir_scalar_program_callable_admission_owner.pgy|45
-src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_owner.pgy|150
-src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_readiness_owner.pgy|210
-src/self_hosted/compiler/direct_mir_scalar_cfg_program_arithmetic_admission_owner.pgy|75
-src/self_hosted/compiler/direct_mir_scalar_cfg_program_admission_owner.pgy|55
-src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_storage_owner.pgy|90
-src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_storage_mutation_owner.pgy|100
-src/self_hosted/compiler/direct_mir_scalar_cfg_program_value_storage_owner.pgy|85
-src/self_hosted/compiler/direct_mir_scalar_cfg_program_instruction_expression_owner.pgy|45
-src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_admission_owner.pgy|260
-src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_admission_owner.pgy|105
-src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_partition_owner.pgy|80
-src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy|105
-src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy|220
-src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy|175
-src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_global_owner.pgy|35
-src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy|250
-src/self_hosted/compiler/direct_mir_scalar_program_projection_owner.pgy|55
-EOF
+done <"$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv"
+[[ "$(wc -l <"$ROOT_DIR/src/self_hosted/compiler/direct_mir_returned_array_program_route_owner.pgy")" -le 100 ]] ||
+    fail "returned-array route owner hard cap exceeded"
 
 ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy"
 C_EMIT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy"

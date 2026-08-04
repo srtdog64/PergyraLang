@@ -68,7 +68,8 @@ func DirectMirScalarCfgTypedForEachReady(
 func DirectMirScalarCfgTypedOperationsReady(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
-    let concat_seen: Bool = false;
+    let concat_seen: Bool =
+        plan.program.string_concat_runtime_call_abi_id != 0;
     let row: Int = 0;
     while row < ArrayLength(plan.operation_kinds) {
         let kind: Int = plan.operation_kinds[row];

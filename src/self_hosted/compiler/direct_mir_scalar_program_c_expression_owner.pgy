@@ -10,6 +10,7 @@ func DirectMirScalarProgramCLocalName(row: Int) -> String {
 func DirectMirScalarProgramCExpressionValues(
     ref expressions: DirectMirScalarProgramExpressionSet,
     expression_row: Int,
+    concat: CompilerRuntimeCallAbiFact,
     compare: CompilerRuntimeCallAbiFact
 ) -> Array<String> {
     let values: Array<String> = [];
@@ -65,6 +66,12 @@ func DirectMirScalarProgramCExpressionValues(
             value = Concat("(", Concat(left, Concat(" < ", Concat(right, ")"))));
         } else if kind == DirectMirScalarProgramExprAddInt() {
             value = Concat("(", Concat(left, Concat(" + ", Concat(right, ")"))));
+        } else if kind == DirectMirScalarProgramExprConcatString() {
+            if !CompilerRuntimeCallAbiStringConcatFactReady(concat) {
+                Die("direct MIR scalar program string concat ABI is invalid");
+            }
+            value = Concat(concat.symbol, Concat("(",
+                Concat(left, Concat(", ", Concat(right, ")")))));
         } else if kind == DirectMirScalarProgramExprDirectCall() {
             value = Concat("pgy_scalar_routine_", Concat(
                 ToString(expressions.node_callable_rows[node]),
@@ -85,10 +92,11 @@ func DirectMirScalarProgramCExpressionValues(
 func DirectMirScalarProgramCExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet,
     expression_row: Int,
+    concat: CompilerRuntimeCallAbiFact,
     compare: CompilerRuntimeCallAbiFact
 ) -> String {
     let values: Array<String> = DirectMirScalarProgramCExpressionValues(
-        expressions, expression_row, compare
+        expressions, expression_row, concat, compare
     );
     let root: Int = expressions.graph_roots[expression_row] -
         expressions.graph_starts[expression_row];

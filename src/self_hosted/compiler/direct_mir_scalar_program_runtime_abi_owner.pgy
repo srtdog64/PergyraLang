@@ -1,0 +1,54 @@
+// Runtime ABI requirements derived only from normalized expression kinds.
+
+import "direct_mir_scalar_program_expression_readiness_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirScalarProgramStringCompareRequired(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(expressions.node_kinds) {
+        if expressions.node_kinds[row] ==
+                DirectMirScalarProgramExprEqualString() ||
+            expressions.node_kinds[row] ==
+                DirectMirScalarProgramExprNotEqualString() { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramStringConcatRequired(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(expressions.node_kinds) {
+        if expressions.node_kinds[row] ==
+                DirectMirScalarProgramExprConcatString() { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramStringCompareRuntimeCallAbiId(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> Option<Int> {
+    if !DirectMirScalarProgramStringCompareRequired(expressions) {
+        return Some(0);
+    }
+    let compare: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringCompareFact();
+    if !CompilerRuntimeCallAbiStringCompareFactReady(compare) { return None; }
+    return Some(compare.runtime_call_abi_id);
+}
+
+func DirectMirScalarProgramStringConcatRuntimeCallAbiId(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> Option<Int> {
+    if !DirectMirScalarProgramStringConcatRequired(expressions) {
+        return Some(0);
+    }
+    let concat: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringConcatFact();
+    if !CompilerRuntimeCallAbiStringConcatFactReady(concat) { return None; }
+    return Some(concat.runtime_call_abi_id);
+}

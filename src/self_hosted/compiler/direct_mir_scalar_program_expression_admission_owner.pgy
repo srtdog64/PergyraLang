@@ -176,6 +176,12 @@ func DirectMirScalarProgramAppendExpression(
                     right_type == CompilerAbiLayoutStringTypeName() {
                 kind = DirectMirScalarProgramExprEqualString();
             }
+            if source_kind == AstExpressionNodeAdd() &&
+                    left_type == CompilerAbiLayoutStringTypeName() &&
+                    right_type == CompilerAbiLayoutStringTypeName() {
+                kind = DirectMirScalarProgramExprConcatString();
+                type_name = CompilerAbiLayoutStringTypeName();
+            }
             if ((kind == DirectMirScalarProgramExprModuloInt() ||
                  kind == DirectMirScalarProgramExprEqualInt() ||
                  kind == DirectMirScalarProgramExprLessInt() ||
@@ -183,7 +189,8 @@ func DirectMirScalarProgramAppendExpression(
                 (left_type != CompilerAbiLayoutIntTypeName() ||
                  right_type != CompilerAbiLayoutIntTypeName())) ||
                ((kind == DirectMirScalarProgramExprEqualString() ||
-                 kind == DirectMirScalarProgramExprNotEqualString()) &&
+                 kind == DirectMirScalarProgramExprNotEqualString() ||
+                 kind == DirectMirScalarProgramExprConcatString()) &&
                 (left_type != CompilerAbiLayoutStringTypeName() ||
                  right_type != CompilerAbiLayoutStringTypeName())) ||
                ((kind == DirectMirScalarProgramExprLogicalNot() ||

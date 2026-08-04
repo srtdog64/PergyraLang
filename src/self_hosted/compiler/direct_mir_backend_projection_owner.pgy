@@ -16,6 +16,7 @@ import "direct_mir_array_int_emission_owner.pgy";
 import "direct_mir_nominal_literal_projection_owner.pgy";
 import "direct_mir_nominal_literal_route_fact_owner.pgy";
 import "direct_mir_multi_routine_projection_owner.pgy";
+import "direct_mir_scalar_program_projection_owner.pgy";
 import "direct_mir_option_match_cfg_plan_owner.pgy";
 import "direct_mir_option_match_cfg_emission_owner.pgy";
 import "direct_mir_option_match_abi_projection_owner.pgy";
@@ -106,96 +107,110 @@ func CompileAdmittedDirectMirForTarget(
                 DirectMirCompileTimeDeclarationErasureRouteClaimed(admitted) ||
                 (block_count == 1 && instruction_count == 1);
             if nominal_literal_route.claimed {
-            payload = CompileAdmittedDirectMirNominalLiteral(
-                admitted, nominal_literal_route, target_projection
-            );
-        } else if literal_log_route {
-            let literal_log: DirectMirLiteralLogPlan =
-                DirectMirLiteralLogPlanFromAdmitted(admitted);
-            if is_llvm {
-                payload = DirectMirLiteralLogEmitLlvm(literal_log);
-            } else {
-                payload = DirectMirLiteralLogEmitC(
-                    literal_log, CompilerAbiLayoutIntCValueType()
+                payload = CompileAdmittedDirectMirNominalLiteral(
+                    admitted, nominal_literal_route, target_projection
                 );
-            }
-        } else if DirectMirScalarCfgGraphRouteClaimed(admitted) {
-            payload = CompileAdmittedDirectMirScalarCfgForTarget(
-                admitted, target_projection
-            );
-        } else if block_count == 1 {
-            let formatted_print: CompilerRuntimeCallAbiFact =
-                CompilerRuntimeCallAbiFormattedPrintFact();
-            if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
-                Die("direct MIR one-block runtime ABI owner is incomplete");
-            }
-            let line_format: String = StringRuntimeCIntLineFormat();
-            if DirectMirArrayIntPlanCandidate(admitted) {
-                let plan: DirectMirArrayIntPlan =
-                    DirectMirArrayIntPlanFromAdmitted(admitted);
-                let abi_projection: DirectMirArrayIntAbiProjection =
-                    DirectMirArrayIntAbiProjectionFromPlan(
-                        plan, target_projection
-                    );
+            } else if literal_log_route {
+                let literal_log: DirectMirLiteralLogPlan =
+                    DirectMirLiteralLogPlanFromAdmitted(admitted);
                 if is_llvm {
-                    payload = DirectMirArrayIntEmitLlvm(
-                        plan, abi_projection, formatted_print, line_format
+                    payload = DirectMirLiteralLogEmitLlvm(literal_log);
+                } else {
+                    payload = DirectMirLiteralLogEmitC(
+                        literal_log, CompilerAbiLayoutIntCValueType()
+                    );
+                }
+            } else {
+                let scalar_program_route: DirectMirScalarProgramRouteFact =
+                    DirectMirScalarProgramRouteFactFromAdmitted(admitted);
+                if scalar_program_route.claimed {
+                    payload = CompileAdmittedDirectMirScalarProgramForTarget(
+                        admitted, scalar_program_route, target_projection
+                    );
+                } else if DirectMirScalarCfgGraphRouteClaimed(admitted) {
+                    payload = CompileAdmittedDirectMirScalarCfgForTarget(
+                        admitted, target_projection
+                    );
+                } else if block_count == 1 {
+                    let formatted_print: CompilerRuntimeCallAbiFact =
+                        CompilerRuntimeCallAbiFormattedPrintFact();
+                    if !CompilerRuntimeCallAbiFlatFactOwnerReady(
+                            formatted_print) {
+                        Die("direct MIR one-block runtime ABI owner is incomplete");
+                    }
+                    let line_format: String = StringRuntimeCIntLineFormat();
+                    if DirectMirArrayIntPlanCandidate(admitted) {
+                        let plan: DirectMirArrayIntPlan =
+                            DirectMirArrayIntPlanFromAdmitted(admitted);
+                        let abi_projection: DirectMirArrayIntAbiProjection =
+                            DirectMirArrayIntAbiProjectionFromPlan(
+                                plan, target_projection
+                            );
+                        if is_llvm {
+                            payload = DirectMirArrayIntEmitLlvm(
+                                plan, abi_projection, formatted_print,
+                                line_format
+                            );
+                        } else {
+                            payload = DirectMirArrayIntEmitC(
+                                plan, abi_projection, formatted_print,
+                                line_format
+                            );
+                        }
+                    } else {
+                        let int_c_type: String =
+                            CompilerAbiLayoutIntCValueType();
+                        let scalar: DirectMirScalarBlockProjection =
+                            DirectMirScalarBlockProjectionFromAdmitted(admitted);
+                        if !scalar.valid || !formatted_print.ok {
+                            Die("direct MIR backend projection rejected unsupported scalar facts");
+                        }
+                        if is_llvm {
+                            payload = DirectMirScalarEmitLlvm(
+                                scalar, formatted_print, line_format
+                            );
+                        } else {
+                            payload = DirectMirScalarEmitC(
+                                scalar, formatted_print, line_format,
+                                int_c_type
+                            );
+                        }
+                    }
+                } else if block_count == 7 {
+                    let formatted_print: CompilerRuntimeCallAbiFact =
+                        CompilerRuntimeCallAbiFormattedPrintFact();
+                    if !CompilerRuntimeCallAbiFlatFactOwnerReady(
+                            formatted_print) {
+                        Die("direct MIR Option match runtime ABI owner is incomplete");
+                    }
+                    let plan: DirectMirOptionMatchCfgPlan =
+                        DirectMirOptionMatchCfgPlanFromAdmitted(admitted);
+                    if !DirectMirOptionMatchCfgPlanReady(plan) {
+                        Die("direct MIR Option match verified plan identity is invalid before emission");
+                    }
+                    let abi_projection: DirectMirOptionMatchAbiProjection =
+                        DirectMirOptionMatchAbiProjectionFromFact(
+                            plan.abi, target_projection
+                        );
+                    let line_format: String = StringRuntimeCIntLineFormat();
+                    if is_llvm {
+                        payload = DirectMirOptionMatchCfgEmitLlvm(
+                            plan, abi_projection, formatted_print, line_format
+                        );
+                    } else {
+                        payload = DirectMirOptionMatchCfgEmitC(
+                            plan, abi_projection, formatted_print, line_format
+                        );
+                    }
+                } else if block_count == 3 || block_count == 4 ||
+                        block_count == 5 || block_count == 6 {
+                    payload = CompileAdmittedDirectMirCfgPayloadForTarget(
+                        admitted, enum_route, target_projection
                     );
                 } else {
-                    payload = DirectMirArrayIntEmitC(
-                        plan, abi_projection, formatted_print, line_format
-                    );
-                }
-            } else {
-                let int_c_type: String = CompilerAbiLayoutIntCValueType();
-                let scalar: DirectMirScalarBlockProjection =
-                    DirectMirScalarBlockProjectionFromAdmitted(admitted);
-                if !scalar.valid || !formatted_print.ok {
-                    Die("direct MIR backend projection rejected unsupported scalar facts");
-                }
-                if is_llvm {
-                    payload = DirectMirScalarEmitLlvm(
-                        scalar, formatted_print, line_format
-                    );
-                } else {
-                    payload = DirectMirScalarEmitC(
-                        scalar, formatted_print, line_format, int_c_type
-                    );
+                    Die("direct MIR backend projection rejected unsupported CFG shape");
                 }
             }
-        } else if block_count == 7 {
-            let formatted_print: CompilerRuntimeCallAbiFact =
-                CompilerRuntimeCallAbiFormattedPrintFact();
-            if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
-                Die("direct MIR Option match runtime ABI owner is incomplete");
-            }
-            let plan: DirectMirOptionMatchCfgPlan =
-                DirectMirOptionMatchCfgPlanFromAdmitted(admitted);
-            if !DirectMirOptionMatchCfgPlanReady(plan) {
-                Die("direct MIR Option match verified plan identity is invalid before emission");
-            }
-            let abi_projection: DirectMirOptionMatchAbiProjection =
-                DirectMirOptionMatchAbiProjectionFromFact(
-                    plan.abi, target_projection
-                );
-            let line_format: String = StringRuntimeCIntLineFormat();
-            if is_llvm {
-                payload = DirectMirOptionMatchCfgEmitLlvm(
-                    plan, abi_projection, formatted_print, line_format
-                );
-            } else {
-                payload = DirectMirOptionMatchCfgEmitC(
-                    plan, abi_projection, formatted_print, line_format
-                );
-            }
-        } else if block_count == 3 || block_count == 4 || block_count == 5 ||
-            block_count == 6 {
-            payload = CompileAdmittedDirectMirCfgPayloadForTarget(
-                admitted, enum_route, target_projection
-            );
-        } else {
-            Die("direct MIR backend projection rejected unsupported CFG shape");
-        }
         }
     } else {
         Die("direct MIR backend projection rejected missing routines");

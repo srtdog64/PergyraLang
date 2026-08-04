@@ -131,16 +131,25 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
     if !fact.valid { return 0; }
     let block_count: Int = ArrayLength(plan.block_succ_true);
     let operation_count: Int = ArrayLength(plan.operation_kinds);
+    let routine_count: Int = ArrayLength(plan.routines.roles);
     let callable: Int = fact.callable.routine_ordinal;
-    if ArrayLength(plan.routines.roles) != 2 || callable != 1 ||
-        fact.callable.signature.digest !=
-            plan.routines.signature_digests[callable] ||
-        fact.callable.signature.source_syntax_id !=
-            plan.routines.source_syntax_ids[callable] ||
+    if routine_count < 1 || routine_count > 2 ||
         ArrayLength(fact.block_condition_expression_rows) != block_count ||
         ArrayLength(fact.block_return_expression_rows) != block_count ||
         ArrayLength(fact.operation_expression_rows) != operation_count ||
         !DirectMirScalarCfgProgramRoutineEdgesReady(plan) { return 2; }
+    if routine_count == 1 {
+        if !DirectMirScalarCfgProgramCallableFactCanonicalEmpty(
+                fact.callable) ||
+            !DirectMirClosedModuleCallAbiFactCanonicalEmpty(
+                fact.closed_call_abi) { return 12; }
+    } else if callable != 1 ||
+        fact.callable.signature.digest !=
+            plan.routines.signature_digests[callable] ||
+        fact.callable.signature.source_syntax_id !=
+            plan.routines.source_syntax_ids[callable] {
+        return 13;
+    }
     let block: Int = 0;
     while block < block_count {
         let routine: Int = DirectMirScalarCfgProgramRoutineForBlock(plan, block);

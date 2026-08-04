@@ -12,10 +12,15 @@ struct DirectMirClosedModuleCallAbiFact {
     let external_interop: Bool;
 }
 
+func DirectMirClosedModuleCallAbiFactEmpty(
+) -> DirectMirClosedModuleCallAbiFact {
+    return DirectMirClosedModuleCallAbiFact(false, 0, "", "", "", true);
+}
+
 func DirectMirClosedModuleCallAbiFactFromOwner(
 ) -> DirectMirClosedModuleCallAbiFact {
     if !CompilerTargetCapabilityEnvelopeReady() {
-        return DirectMirClosedModuleCallAbiFact(false, 0, "", "", "", true);
+        return DirectMirClosedModuleCallAbiFactEmpty();
     }
     return DirectMirClosedModuleCallAbiFact(
         true, CompilerTargetCapabilityFingerprint(),

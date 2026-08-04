@@ -1,0 +1,65 @@
+// Optional callable identity carried by the scalar-program extension.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+
+struct DirectMirScalarCfgProgramCallableFact {
+    let valid: Bool;
+    let digest: Int;
+    let signature: DirectMirRoutineSignatureFact;
+    let routine_ordinal: Int;
+}
+
+func DirectMirScalarCfgProgramCallableFactInvalid(
+) -> DirectMirScalarCfgProgramCallableFact {
+    return DirectMirScalarCfgProgramCallableFact(
+        false, 0, InvalidDirectMirRoutineSignatureFact(), -1
+    );
+}
+
+func DirectMirScalarCfgProgramCallableFactDigest(
+    ref fact: DirectMirScalarCfgProgramCallableFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(229L, fact.signature.digest);
+    hash = DirectMirCfgHashInt(hash, fact.routine_ordinal);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarCfgProgramCallableFactReady(
+    ref fact: DirectMirScalarCfgProgramCallableFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirScalarCfgProgramCallableFactDigest(fact) &&
+        DirectMirRoutineSignatureFactReady(fact.signature) &&
+        fact.routine_ordinal > 0 && fact.signature.param_count == 1 &&
+        ((fact.signature.return_type == CompilerAbiLayoutBoolTypeName() &&
+          fact.signature.param.type_name == CompilerAbiLayoutIntTypeName()) ||
+         (fact.signature.return_type == CompilerAbiLayoutStringTypeName() &&
+          fact.signature.param.type_name == CompilerAbiLayoutStringTypeName()));
+}
+
+func DirectMirScalarCfgProgramCallableFactCanonicalEmpty(
+    ref fact: DirectMirScalarCfgProgramCallableFact
+) -> Bool {
+    let signature: DirectMirRoutineSignatureFact = fact.signature;
+    let param: DirectMirRoutineParamFact = signature.param;
+    return !fact.valid && fact.digest == 0 && fact.routine_ordinal < 0 &&
+        !signature.valid && signature.digest == 0 && signature.row < 0 &&
+        signature.name == "" && signature.kind == "" &&
+        signature.source_syntax_id == 0 && signature.receiver_carriage == "" &&
+        signature.return_type == "" && signature.param_count == 0 &&
+        !param.valid && param.digest == 0 && param.name == "" &&
+        param.type_name == "" && param.carriage == "" &&
+        param.resource == "" && param.pass_shape == "" &&
+        param.abi_type_name == "" && param.abi_layout_id == 0 &&
+        !param.abi_required && !param.abi.valid && param.abi.type_name == "" &&
+        param.abi.size_text == "" && param.abi.align_text == "" &&
+        param.abi.runtime_fn == "" && param.abi.inner_c_type == "" &&
+        param.abi.representation_text == "" && param.abi.discriminant == "" &&
+        param.abi.primary_tag_text == "" && param.abi.secondary_tag_text == "" &&
+        param.abi.niche_none_pattern == "" &&
+        ArrayLength(param.abi.field_names) == 0 &&
+        ArrayLength(param.abi.field_offsets) == 0 &&
+        ArrayLength(param.abi.field_sizes) == 0 &&
+        ArrayLength(param.abi.field_aligns) == 0;
+}

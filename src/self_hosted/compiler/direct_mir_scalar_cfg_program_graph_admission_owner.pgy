@@ -1,4 +1,4 @@
-// Sole bounded multi-routine issuer for the one immutable scalar GraphPlan.
+// Sole one-/two-routine issuer for the one immutable scalar GraphPlan.
 
 import "direct_mir_scalar_cfg_program_routine_admission_owner.pgy";
 import "direct_mir_scalar_cfg_program_routine_partition_owner.pgy";
@@ -18,36 +18,44 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
         DirectMirScalarCfgGraphInputFromAdmitted(
             admitted, route.entrypoint_row, producer
         );
-    let callable_input: DirectMirScalarCfgGraphInput =
-        DirectMirScalarCfgGraphInputFromAdmitted(
-            admitted, route.callable_row, producer
-        );
     let callable: DirectMirScalarCfgProgramCallableFact =
-        DirectMirScalarProgramCallableFactFromAdmitted(
+        DirectMirScalarCfgProgramCallableFactInvalid();
+    let routine_rows: Array<Int> = [route.entrypoint_row];
+    if route.callable_row >= 0 {
+        callable = DirectMirScalarProgramCallableFactFromAdmitted(
             admitted, route.callable_row, 1
         );
-    let empty_storage: DirectMirScalarCfgProgramGraphStorage =
-        DirectMirScalarCfgProgramGraphStorageEmpty();
-    let empty_expressions: DirectMirScalarProgramExpressionSet =
-        DirectMirScalarProgramExpressionSetEmpty();
-    let entry_admission: DirectMirScalarCfgProgramRoutineAdmission =
-        DirectMirScalarCfgProgramAppendRoutine(
-            admitted, route.entrypoint_row, 0, callable, entry,
-            empty_storage, empty_expressions);
-    if !entry_admission.valid {
-        Die("direct MIR scalar CFG program entrypoint admission is invalid");
-    }
-    let callable_admission: DirectMirScalarCfgProgramRoutineAdmission =
-        DirectMirScalarCfgProgramAppendRoutine(
-            admitted, route.callable_row, 1, callable, callable_input,
-            entry_admission.storage, entry_admission.expressions);
-    if !callable_admission.valid {
-        Die("direct MIR scalar CFG program callable admission is invalid");
+        if !DirectMirScalarCfgProgramCallableFactReady(callable) {
+            Die("direct MIR scalar CFG program callable is invalid");
+        }
+        ArrayPush(routine_rows, route.callable_row);
     }
     let storage: DirectMirScalarCfgProgramGraphStorage =
-        callable_admission.storage;
+        DirectMirScalarCfgProgramGraphStorageEmpty();
     let expressions: DirectMirScalarProgramExpressionSet =
-        callable_admission.expressions;
+        DirectMirScalarProgramExpressionSetEmpty();
+    let callable_input: DirectMirScalarCfgGraphInput = entry;
+    let ordinal: Int = 0;
+    while ordinal < ArrayLength(routine_rows) {
+        let input: DirectMirScalarCfgGraphInput = entry;
+        if ordinal > 0 {
+            input = DirectMirScalarCfgGraphInputFromAdmitted(
+                admitted, routine_rows[ordinal], producer
+            );
+            callable_input = input;
+        }
+        let admission: DirectMirScalarCfgProgramRoutineAdmission =
+            DirectMirScalarCfgProgramAppendRoutine(
+                admitted, routine_rows[ordinal], ordinal, callable, input,
+                storage, expressions
+            );
+        if !admission.valid {
+            Die("direct MIR scalar CFG program routine admission is invalid");
+        }
+        storage = admission.storage;
+        expressions = admission.expressions;
+        ordinal = ordinal + 1;
+    }
     let partition: DirectMirScalarCfgRoutinePartitionFact =
         DirectMirScalarCfgProgramRoutinePartitionFromOwners(
             admitted.routines, entry.index, callable_input.index,

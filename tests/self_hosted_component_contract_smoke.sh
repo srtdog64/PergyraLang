@@ -14184,30 +14184,13 @@ require_text "Makefile" "SELFHOST_ONE_MIR_ARRAY_PARAM_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_PARAM_GATE)'
 require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-array-param-projection-test-smoke"
-for scalar_program_owner_cap in \
-    direct_mir_returned_array_program_route_owner.pgy:100 \
-    direct_mir_scalar_program_route_fact_owner.pgy:110 \
-    direct_mir_scalar_program_expression_fact_owner.pgy:175 \
-    direct_mir_scalar_program_expression_admission_owner.pgy:330 \
-    direct_mir_scalar_program_expression_readiness_owner.pgy:135 \
-    direct_mir_scalar_program_callable_admission_owner.pgy:125 \
-    direct_mir_scalar_cfg_program_extension_fact_owner.pgy:110 \
-    direct_mir_scalar_cfg_program_extension_readiness_owner.pgy:115 \
-    direct_mir_scalar_cfg_program_extension_mutation_owner.pgy:35 \
-    direct_mir_scalar_cfg_program_arithmetic_admission_owner.pgy:75 \
-    direct_mir_scalar_cfg_program_admission_owner.pgy:320 \
-    direct_mir_scalar_program_c_expression_owner.pgy:95 \
-    direct_mir_scalar_cfg_program_c_emission_owner.pgy:85 \
-    direct_mir_scalar_program_llvm_expression_owner.pgy:160 \
-    direct_mir_scalar_cfg_program_llvm_emission_owner.pgy:125 \
-    direct_mir_scalar_program_projection_owner.pgy:50; do
-    scalar_program_owner="${scalar_program_owner_cap%%:*}"
-    scalar_program_cap="${scalar_program_owner_cap##*:}"
-    require_file "src/self_hosted/compiler/$scalar_program_owner"
-    require_max_lines \
-        "src/self_hosted/compiler/$scalar_program_owner" \
-        "$scalar_program_cap"
-done
+while IFS='|' read -r scalar_program_owner scalar_program_cap; do
+    [[ -z "$scalar_program_owner" || "$scalar_program_owner" == \#* ]] && continue
+    require_file "$scalar_program_owner"
+    require_max_lines "$scalar_program_owner" "$scalar_program_cap"
+done < tests/self_hosted/parity/scalar_program_owner_caps.tsv
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_returned_array_program_route_owner.pgy" 100
 require_file "tests/self_hosted/parity/one_mir_bool_logic_projection.sh"
 require_file "tests/self_hosted/parity/one_mir_bool_logic_mutations.py"
 require_max_lines \

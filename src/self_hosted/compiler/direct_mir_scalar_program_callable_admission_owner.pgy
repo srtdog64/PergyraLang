@@ -1,6 +1,6 @@
 // Typed callable identity admitted independently of CFG block topology.
 
-import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
+import "direct_mir_scalar_program_callable_fact_owner.pgy";
 
 func DirectMirScalarProgramCallableFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,

@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# Multi-routine String equality must execute through one sealed scalar GraphPlan.
+# Single-routine String concat/equality through the shared scalar GraphPlan.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
-LABEL="self-host-one-mir-string-equality"
+LABEL="self-host-one-mir-string-equality-concat"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
 CC="${CC:-gcc}"
 CLANG="${PGY_SELFHOST_CLANG:-clang}"
 PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python || true)}"
-WORK_REL=".tmp/self_hosted/one_mir_string_equality"
+WORK_REL=".tmp/self_hosted/one_mir_string_equality_concat"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
-SOURCE_REL="src/self_hosted/codegen/fixture/string_equality.pgy"
+SOURCE_REL="src/self_hosted/codegen/fixture/string_equality_concat.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
@@ -25,47 +25,38 @@ command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 
 while IFS='|' read -r owner cap; do
     [[ -z "$owner" || "$owner" == \#* ]] && continue
+    [[ -f "$ROOT_DIR/$owner" ]] || fail "missing owner: $owner"
     lines="$(wc -l <"$ROOT_DIR/$owner")"
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
 done <"$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv"
 
-GENERIC="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
 PROGRAM="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_admission_owner.pgy"
-ROUTINE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_admission_owner.pgy"
+ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_single_string_route_owner.pgy"
 C_EMIT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy"
 LLVM_EMIT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy"
-ABI="$ROOT_DIR/src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy"
-CALL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy"
-for term in DirectMirScalarCfgProgramAdmissionState program.active; do
-    reject_text "$GENERIC" "$term"
-done
+GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
 [[ "$(grep -Fc 'DirectMirScalarCfgProgramAppendRoutine(' "$PROGRAM")" -eq 1 ]] ||
-    fail "one loop does not own every scalar-program routine admission"
-require_text "$PROGRAM" 'while ordinal < ArrayLength(routine_rows)'
+    fail "one loop must own every scalar-program routine admission"
 [[ "$(grep -Fc 'DirectMirScalarCfgSealGraphPlan(' "$PROGRAM")" -eq 1 ]] ||
     fail "program graph must seal exactly once"
-require_text "$ROUTINE" 'func DirectMirScalarCfgProgramAppendRoutine('
-for owner in "$C_EMIT" "$LLVM_EMIT"; do
-    require_text "$owner" 'while routine < ArrayLength(plan.routines.roles)'
-    require_text "$owner" 'plan.routines.block_starts[routine]'
-    for term in admitted source_json JsonObjectFactTable BuildMir FromAdmitted \
-        string_equality.pgy; do reject_text "$owner" "$term"; done
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v17'
+reject_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v16'
+for term in string_equality_concat.pgy routine_block_counts 'let block_count:'; do
+    reject_text "$ROUTE" "$term"
 done
-require_text "$ABI" 'CompilerRuntimeCallAbiStringCompareFact('
-require_text "$CALL" 'arena.identities.call_target_syntax_ids[1]'
-if grep -RFq -- 'pgy_scalar_callable_0' "$ROOT_DIR/src/self_hosted/compiler" ||
-   grep -RFq -- 'pgy.scalar.callable.0' "$ROOT_DIR/src/self_hosted/compiler"; then
-    fail "retired callable-specific backend symbol returned"
-fi
+for owner in "$C_EMIT" "$LLVM_EMIT"; do
+    for term in admitted source_json JsonObjectFactTable BuildMir FromAdmitted \
+        string_equality_concat.pgy; do reject_text "$owner" "$term"; done
+done
 
 mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \
     -o "$WORK_REL/program.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/program.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "1A9D856F377CCF27424E72F19B535EE8431B737D1ED61FF868E3CB3DC6638228" ]] ||
+[[ "$mir_sha" == "85E6A08A02F7C6DB568455793D7EF777847C17C9A56366782DFB38B6D8014538" ]] ||
     fail "source MIR identity changed: $mir_sha"
-"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_string_equality_mutations.py" \
+"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_string_equality_concat_mutations.py" \
     "$WORK_DIR/program.json" "$WORK_DIR"
 
 project() {
@@ -79,9 +70,10 @@ project() {
         "$WORK_DIR/$stem.$target.err"
 }
 
-goods=(program display-only routine-order)
-bads=(bad-call-target bad-parameter-identity bad-string-comparison-kind \
-    bad-return-type bad-callable-edge missing-terminal-return)
+goods=(program display-only semantic-fail)
+bads=(bad-first-concat-child bad-second-concat-kind \
+    bad-equality-literal-kind bad-equality-root-child bad-use-identity \
+    bad-leaf-identity)
 for target in c llvm; do
     suffix=c; [[ "$target" == llvm ]] && suffix=ll
     for good in "${goods[@]}"; do
@@ -90,34 +82,33 @@ for target in c llvm; do
     done
     cmp -s "$WORK_DIR/base.$suffix" "$WORK_DIR/display-only.$suffix" ||
         fail "$target display text changed the artifact"
-    cmp -s "$WORK_DIR/base.$suffix" "$WORK_DIR/routine-order.$suffix" ||
-        fail "$target routine order changed the artifact"
+    ! cmp -s "$WORK_DIR/base.$suffix" "$WORK_DIR/semantic-fail.$suffix" ||
+        fail "$target semantic String change did not change the artifact"
     for bad in "${bads[@]}"; do
         if project "$bad" "$bad" "$target" "$suffix"; then
             fail "$target accepted $bad"
         fi
         [[ ! -e "$WORK_DIR/$bad.$suffix" ]] || fail "$target published $bad"
-        grep -Fq -- 'direct MIR scalar' "$WORK_DIR/$bad.$target.out" \
-            "$WORK_DIR/$bad.$target.err" || fail "$target $bad escaped scalar diagnostic"
-        ! grep -Fq -- 'terminal multi-routine graph is unsupported' \
-            "$WORK_DIR/$bad.$target.out" "$WORK_DIR/$bad.$target.err" ||
-            fail "$target $bad retried the retired terminal route"
+        grep -Fq -- 'direct MIR scalar CFG program' "$WORK_DIR/$bad.$target.out" \
+            "$WORK_DIR/$bad.$target.err" || fail "$target $bad escaped scalar owner"
+        ! grep -Fq -- 'condition fact is invalid' "$WORK_DIR/$bad.$target.out" \
+            "$WORK_DIR/$bad.$target.err" || fail "$target $bad retried generic CFG"
     done
 done
 
+require_text "$WORK_DIR/base.c" 'pgy_concat('
 require_text "$WORK_DIR/base.c" 'strcmp('
-require_text "$WORK_DIR/base.c" 'pgy_scalar_routine_1'
-require_text "$WORK_DIR/base.ll" 'declare i32 @strcmp(ptr, ptr)'
-require_text "$WORK_DIR/base.ll" '@pgy.scalar.routine.1'
-expected=$'I\nS\nS\n?\neq'
-for stem in base display-only routine-order; do
+require_text "$WORK_DIR/base.ll" 'define internal ptr @pgy_concat'
+require_text "$WORK_DIR/base.ll" 'call i32 @strcmp'
+for stem in base display-only semantic-fail; do
     "$CC" -std=c11 "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem.c.exe" || fail "C compile failed: $stem"
     "$CLANG" "$WORK_DIR/$stem.ll" -o "$WORK_DIR/$stem.llvm.exe" || fail "LLVM compile failed: $stem"
+    expected="concat_eq_ok"; [[ "$stem" == semantic-fail ]] && expected="concat_eq_fail"
     c_out="$("$WORK_DIR/$stem.c.exe" | tr -d '\r')" || fail "C execution failed: $stem"
     llvm_out="$("$WORK_DIR/$stem.llvm.exe" | tr -d '\r')" || fail "LLVM execution failed: $stem"
-    [[ "$c_out" == "$expected" ]] || fail "C stdout changed: $stem"
-    [[ "$llvm_out" == "$expected" ]] || fail "LLVM stdout changed: $stem"
+    [[ "$c_out" == "$expected" ]] || fail "C stdout changed: $stem=$c_out"
+    [[ "$llvm_out" == "$expected" ]] || fail "LLVM stdout changed: $stem=$llvm_out"
 done
 final_sha="$(sha256sum "$WORK_DIR/program.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
 [[ "$final_sha" == "$mir_sha" ]] || fail "projection mutated admitted MIR"
-echo "[$LABEL] ok: one layered GraphPlan executes routine-partitioned String equality in C and LLVM"
+echo "[$LABEL] ok: one GraphPlan executes typed String concat/equality in C and LLVM"

@@ -1,0 +1,59 @@
+// Typed header claim for the bounded two-routine scalar program route.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "abi_layout_row_owner.pgy";
+
+struct DirectMirScalarProgramTwoRoutineRows {
+    let valid: Bool;
+    let entrypoint_row: Int;
+    let callable_row: Int;
+}
+
+func DirectMirScalarProgramTwoRoutineRowsFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirScalarProgramTwoRoutineRows {
+    let entrypoint_row: Int = -1;
+    let callable_row: Int = -1;
+    let row: Int = 0;
+    while row < 2 {
+        let block_zero_count: Int =
+            MirProgramRoutineIndexBlockInstructionCountAt(
+                admitted.routines, row, 0
+            );
+        let signature: DirectMirRoutineSignatureFact =
+            DirectMirRoutineSignatureFactAt(
+                admitted.routines, row, block_zero_count
+            );
+        if !DirectMirRoutineSignatureFactReady(signature) {
+            return DirectMirScalarProgramTwoRoutineRows(false, -1, -1);
+        }
+        if admitted.routines.names[row] == "Main" {
+            if entrypoint_row >= 0 || signature.return_type != "Void" ||
+                signature.param_count != 0 {
+                return DirectMirScalarProgramTwoRoutineRows(false, -1, -1);
+            }
+            entrypoint_row = row;
+        } else {
+            let bool_callable: Bool = signature.return_type ==
+                    CompilerAbiLayoutBoolTypeName() &&
+                signature.param.type_name == CompilerAbiLayoutIntTypeName();
+            let string_callable: Bool = signature.return_type ==
+                    CompilerAbiLayoutStringTypeName() &&
+                signature.param.type_name == CompilerAbiLayoutStringTypeName();
+            if callable_row >= 0 || signature.param_count != 1 ||
+                (!bool_callable && !string_callable) ||
+                signature.param.carriage != "value" ||
+                signature.param.resource != "none" ||
+                signature.param.pass_shape != "direct" ||
+                signature.param.abi_required {
+                return DirectMirScalarProgramTwoRoutineRows(false, -1, -1);
+            }
+            callable_row = row;
+        }
+        row = row + 1;
+    }
+    return DirectMirScalarProgramTwoRoutineRows(
+        entrypoint_row >= 0 && callable_row >= 0,
+        entrypoint_row, callable_row
+    );
+}

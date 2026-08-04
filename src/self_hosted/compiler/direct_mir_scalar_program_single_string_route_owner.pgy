@@ -1,0 +1,56 @@
+// Coarse single-routine String-program claim before strict GraphPlan admission.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+
+func DirectMirScalarSingleStringProgramRouteClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    if MirProgramRoutineIndexCount(admitted.routines) != 1 ||
+        !MirProgramRoutineIndexRowReady(admitted.routines, 0) ||
+        !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
+        JsonArrayObjectFactCount(admitted.document.declarations) != 0 {
+        return false;
+    }
+    let first_block_count: Int =
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, 0, 0
+        );
+    let signature: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(
+            admitted.routines, 0, first_block_count
+        );
+    if !DirectMirRoutineSignatureFactReady(signature) ||
+        signature.name != "Main" || signature.return_type != "Void" ||
+        signature.param_count != 0 {
+        return false;
+    }
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, 0
+    );
+    if !index.valid || ArrayLength(index.source_local_types) < 1 {
+        return false;
+    }
+    let local: Int = 0;
+    while local < ArrayLength(index.source_local_types) {
+        if index.source_local_types[local] !=
+                CompilerAbiLayoutStringTypeName() {
+            return false;
+        }
+        local = local + 1;
+    }
+    let branch_seen: Bool = false;
+    let row: Int = 0;
+    while row < ArrayLength(index.instruction_facts.starts) {
+        let global_row: Int = index.instruction_facts.global_start + row;
+        if admitted.routines.instruction_kinds[global_row] == "branch" &&
+            (admitted.routines.instruction_source_types[global_row] ==
+                "AST_BINARY" ||
+             admitted.routines.instruction_source_types[global_row] ==
+                "AST_IDENTIFIER") {
+            branch_seen = true;
+        }
+        row = row + 1;
+    }
+    return branch_seen;
+}

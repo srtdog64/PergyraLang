@@ -12,29 +12,34 @@ func DirectMirScalarCfgProgramExtensionFromOwners(
     block_return_expression_rows: Array<Int>
 ) -> DirectMirScalarCfgProgramExtensionFact {
     let callable: DirectMirScalarCfgProgramCallableFact =
-        DirectMirScalarProgramCallableFactFromAdmitted(
+        DirectMirScalarCfgProgramCallableFactInvalid();
+    let closed_call_abi: DirectMirClosedModuleCallAbiFact =
+        DirectMirClosedModuleCallAbiFactEmpty();
+    if route.callable_row >= 0 {
+        callable = DirectMirScalarProgramCallableFactFromAdmitted(
             admitted, route.callable_row, 1
         );
+        closed_call_abi = DirectMirClosedModuleCallAbiFactFromOwner();
+    }
     let sealed_expressions: DirectMirScalarProgramExpressionSet =
         DirectMirScalarProgramExpressionSetWithDigest(
             expressions,
             DirectMirScalarProgramExpressionSetDigest(expressions)
         );
-    let compare_id: Int = 0;
-    if DirectMirScalarProgramStringCompareRequired(sealed_expressions) {
-        let compare: CompilerRuntimeCallAbiFact =
-            CompilerRuntimeCallAbiStringCompareFact();
-        if !CompilerRuntimeCallAbiStringCompareFactReady(compare) {
-            Die("direct MIR scalar program string compare ABI is invalid");
-        }
-        compare_id = compare.runtime_call_abi_id;
+    let compare_id_opt: Option<Int> =
+        DirectMirScalarProgramStringCompareRuntimeCallAbiId(sealed_expressions);
+    let concat_id_opt: Option<Int> =
+        DirectMirScalarProgramStringConcatRuntimeCallAbiId(sealed_expressions);
+    if !IsSome(compare_id_opt) || !IsSome(concat_id_opt) {
+        Die("direct MIR scalar program runtime ABI is invalid");
     }
     let source: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(
             true, 0, callable, sealed_expressions,
             block_condition_expression_rows, operation_expression_rows,
             block_return_expression_rows,
-            DirectMirClosedModuleCallAbiFactFromOwner(), compare_id
+            closed_call_abi, UnwrapOption(compare_id_opt),
+            UnwrapOption(concat_id_opt)
         );
     let fact: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFactWithDigest(

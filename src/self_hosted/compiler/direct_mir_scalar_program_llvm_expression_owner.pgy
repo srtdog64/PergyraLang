@@ -32,6 +32,7 @@ func DirectMirScalarProgramLlvmType(type_name: String) -> String {
 func DirectMirScalarProgramLlvmExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet,
     expression_row: Int,
+    concat: CompilerRuntimeCallAbiFact,
     compare: CompilerRuntimeCallAbiFact
 ) -> DirectMirScalarProgramLlvmExpression {
     let instructions: String = "";
@@ -88,9 +89,7 @@ func DirectMirScalarProgramLlvmExpressionAt(
             } else if kind == DirectMirScalarProgramExprEqualString() ||
                     kind == DirectMirScalarProgramExprNotEqualString() {
                 if !CompilerRuntimeCallAbiStringCompareFactReady(compare) {
-                    return DirectMirScalarProgramLlvmExpression(
-                        false, "", "", ""
-                    );
+                    return DirectMirScalarProgramLlvmExpression(false, "", "", "");
                 }
                 instructions = Concat(instructions, " = call i32 @");
                 instructions = Concat(instructions, compare.symbol);
@@ -105,6 +104,13 @@ func DirectMirScalarProgramLlvmExpressionAt(
                 instructions = Concat(instructions, " = icmp slt i64 ");
             } else if kind == DirectMirScalarProgramExprAddInt() {
                 instructions = Concat(instructions, " = add nsw i64 ");
+            } else if kind == DirectMirScalarProgramExprConcatString() {
+                if !CompilerRuntimeCallAbiStringConcatFactReady(concat) {
+                    return DirectMirScalarProgramLlvmExpression(false, "", "", "");
+                }
+                instructions = Concat(instructions, " = call ptr @");
+                instructions = Concat(instructions, concat.symbol);
+                instructions = Concat(instructions, "(ptr ");
             } else if kind == DirectMirScalarProgramExprDirectCall() {
                 instructions = Concat(instructions, " = call ");
                 instructions = Concat(instructions,
@@ -120,11 +126,14 @@ func DirectMirScalarProgramLlvmExpressionAt(
                             expressions.node_lefts[node]]));
                 instructions = Concat(instructions, " ");
             } else {
-                return DirectMirScalarProgramLlvmExpression(
-                    false, "", "", ""
-                );
+                return DirectMirScalarProgramLlvmExpression(false, "", "", "");
             }
-            if kind == DirectMirScalarProgramExprEqualString() ||
+            if kind == DirectMirScalarProgramExprConcatString() {
+                instructions = Concat(instructions, left);
+                instructions = Concat(instructions, ", ptr ");
+                instructions = Concat(instructions, right);
+                instructions = Concat(instructions, ")");
+            } else if kind == DirectMirScalarProgramExprEqualString() ||
                     kind == DirectMirScalarProgramExprNotEqualString() {
                 instructions = Concat(instructions, left);
                 instructions = Concat(instructions, ", ptr ");
@@ -148,7 +157,8 @@ func DirectMirScalarProgramLlvmExpressionAt(
             } else if kind == DirectMirScalarProgramExprDirectCall() {
                 instructions = Concat(instructions, ")");
             } else if kind != DirectMirScalarProgramExprEqualString() &&
-                    kind != DirectMirScalarProgramExprNotEqualString() {
+                    kind != DirectMirScalarProgramExprNotEqualString() &&
+                    kind != DirectMirScalarProgramExprConcatString() {
                 instructions = Concat(instructions, ", ");
                 instructions = Concat(instructions, right);
             }
