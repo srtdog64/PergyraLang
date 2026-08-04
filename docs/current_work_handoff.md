@@ -6,79 +6,89 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - Bool program extension closed in one GraphPlan
+## Active self-host context - routine-partitioned String program closed
 
-- Executable checkpoint: `0194446df85ee2601e5f083fc12dd7b9e8af4f5b`
+- Executable checkpoint: `be376971f87149f0131a9e2893db6e4e9320608b`
   on `main`, with this handoff as its intended docs-only descendant. The final
-  current-source Pergyra-built driver is 4,864,189 bytes with SHA-256
-  `984840C0F99CDA6341815B75CEA0610A5A41E2E7CC32BA67801BC38CD02E223D`.
+  current-source Pergyra-built driver is 4,896,518 bytes with SHA-256
+  `D1002D338C1A9F515C8B77D83EAF1DD5AA3C44434F70186FA8783B7221CDD33E`.
 - Intended post-handoff dirty state contains only user-owned stdlib work:
   modified `docs/138_standard_library_scope.md` and
-  `docs/148_stdlib_architecture.md`, plus untracked `stdlib/math.pgy` and
-  `tests/cases/stdlib_math_matrix/`. No compiler-rung file remains dirty.
-- Closed executable rung: `src/self_hosted/codegen/fixture/bool_logic.pgy`.
-  Its 17,188-byte self-produced MIR has SHA-256
-  `77A60A6644C7D4BFE4B805D40306CCC90BD6F1612E2988CF4E2051BB4C6C1612`.
-  The same MIR emits 1,562-byte C
-  (`49768E89B4FB55643083427A6FC416C3558FCFAD0E1B05CA5444DC63ADCBF111`)
-  and 4,295-byte LLVM
-  (`DA61B501007835851A3FB56D5D38E276B4FBDC7B34AB5CD05B5D6CD9F15260B1`).
-  Both host-compile and execute exact `flag-on`, `other-off`, `and`, `logic`,
-  `grouped`, `0`, `2`, `4`.
-- `DirectMirScalarCfgGraphPlan` v14 remains the sole CFG, SSA, phi, local,
-  operation, digest, and mutation authority. The new optional program extension
-  carries only one closed-module `(Int) -> Bool` callable, typed expression-DAG
-  row links, and ABI evidence. The shared C/LLVM block loops consume small
-  extension hooks; the rejected sibling program plan and whole-program emitters
-  did not land.
-- Returned-Array routing now requires semantic iteration evidence instead of a
-  block count. Direct calls bind target identity and actual argument type.
-  Eager logical RHS is limited to a nontrapping Bool DAG. Raw modulo accepts
-  only a nonzero, non-minus-one literal divisor, and `local + 1` requires a
-  dominating positive-bound condition; LLVM emits `add nsw`. Phi admission
-  validates every incoming row before appending any of them.
-- Focused evidence includes behavior-changing graph variants, display-only and
-  routine-order artifact equality, plus use/type/backedge/phi/call/short-
-  circuit, `% 0`, `% -1`, and unbounded-add no-artifact negatives for C and
-  LLVM. Inactive extension expression/ABI payload also fails the plan mutation
-  gate. Returned Array foreach, Array parameter, scalar CFG, break exit, and
-  continue backedge regressions stayed green; hard and full component contracts
-  passed.
-- The final compiler build took 170.616 seconds and peaked at 2.327 GiB working
-  set / 2.536 GiB private memory. This is below the 3 GiB stop threshold but
-  above the 2.4 GiB attention threshold on private memory. Projection gates
-  were not pressure-sampled. Full CI, current gen2==gen3, proof suites, and
-  public release promotion did not run.
-- Classification is bounded `SUBSTITUTING` only for this exact Bool/logical/
-  direct-call scalar program through installed direct C and LLVM. Effectful
-  short-circuit lowering, multiple callables, arbitrary signatures and returns,
-  and whole compiler/default replacement remain open.
+  `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
+  `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`. No
+  compiler-rung file remains dirty.
+- Closed executable rung: `src/self_hosted/codegen/fixture/string_equality.pgy`.
+  Its 14,698-byte self-produced MIR has SHA-256
+  `1A9D856F377CCF27424E72F19B535EE8431B737D1ED61FF868E3CB3DC6638228`.
+  The same MIR emits 1,180-byte C
+  (`E038A9C4029FF42246CD8183C3903E7F737993CFD1AB2B2E161B9D8122315162`)
+  and 3,939-byte LLVM
+  (`023600C2083186D8CB6AD56D633CF501DF2983FCA58A8C10CB1A2B6FDBFF38C6`).
+  Both host-compile and execute exact `I`, `S`, `S`, `?`, `eq`.
+- `DirectMirScalarCfgGraphPlan` v16 remains the sole CFG, SSA, phi, local,
+  operation, routine-range, digest, and mutation authority. Main and
+  `Kind(String) -> String` pass through the same per-routine admission owner,
+  flat storage, canonical Main-first partition, and one seal. Direct calls join
+  persisted callee syntax identity; String equality/inequality consumes the
+  runtime ABI registry's `strcmp` fact. C and LLVM have target-specific syntax
+  renderers but consume the same routine schedule and typed expression rows.
+- The first mutable aggregate implementation was rejected even though it
+  compiled: rebinding a growable Array through a copied nested struct did not
+  update the enclosing length after reallocation. Value, block, operation, and
+  routine-count storage are now layered persistent owners whose mutations
+  return reconstructed values. This is an ownership correction, not a cache or
+  allocation-limit workaround. Typed-expression append failure is an
+  `Option<Int>` rather than a new `-1` sentinel.
+- Focused evidence: display-only and admitted routine-order mutations are
+  artifact-identical for both targets. Wrong call target, formal-parameter
+  identity, String-comparison kind, return type, callable edge, and missing
+  terminal return all fail without an artifact. Static gates require exactly
+  two calls to the one routine admission owner, exactly one GraphPlan seal, no
+  old callable-specific backend symbol, no backend MIR read, and hard LoC caps
+  of 260 lines or less across the active new owner set. The previous Bool gate
+  and reallocating Array parameter gate remain green on the same driver.
+- Final current-source composition build took 143.9 seconds. The focused String,
+  Bool, and Array-parameter gates took 34.6 seconds together.
+  This session deliberately did not pressure-sample every focused gate; no new
+  memory peak is claimed. Full CI, current gen2==gen3, prover suites, sanitizer
+  suites, and public release promotion did not run.
+- `documentation_quality_smoke.sh` passed. The proof-spine structure passed only
+  under the repository's explicit missing-prover declaration; Coq/Rocq proofs
+  were not checked on this host. The global Pergyra-likeness gate remains red:
+  sentinel `239 > 22` and zone-bound steps `26 < 29`. The executable diff has
+  equal added/removed likeness sentinel matches after the new append failure was
+  converted to `Option<Int>`; the pre-existing global debt was not widened or
+  misreported as this String rung's blocker.
+- Classification is bounded `SUBSTITUTING` only for this exact two-routine
+  String comparison/return/direct-call program through installed direct C and
+  LLVM. Arbitrary routine counts/signatures, recursion, String concatenation,
+  effectful short-circuiting, and whole compiler/default replacement remain
+  open.
+- Bounded hierarchy/duplication audit: the active new owner set tops out at 256
+  lines and contains no generic `helper` filename. Repository-wide observation
+  found one 876-line probe and many 570-627-line historical owners. Repeated
+  tool-local names such as `InputErrorJson`, `FixturePathFromArgs`, and
+  `ArrayContainsString` are candidates for an explicit policy-free utility
+  owner, but name/LoC evidence alone does not prove a safe extraction. They are
+  inactive inventory until an executable rung reaches their fact boundary.
 - Next observed executable falsifier: only
-  `src/self_hosted/codegen/fixture/string_equality.pgy` is active. The current
-  producer emits a 12,186-byte MIR with SHA-256
-  `1859C1E166B34072657A36F05EDDCBED41E5C0276DE38BB28A6B949EFB20F843`.
+  `src/self_hosted/codegen/fixture/string_equality_concat.pgy` is active. The
+  current producer emits a 6,109-byte MIR with SHA-256
+  `85E6A08A02F7C6DB568455793D7EF777847C17C9A56366782DFB38B6D8014538`.
   Both targets publish no artifact and stop at
-  `direct MIR terminal multi-routine graph is unsupported`; required execution
-  is exact `I`, `S`, `S`, `?`, `eq`.
-- Observed architecture constraint: `Kind(String) -> String` is a real
-  six-block, multi-return CFG. A callable-only successor/return array, embedded
-  decision compiler, or second target block loop would recreate the rejected
-  microcompiler even if it stayed under a line cap.
-- Next objective card: promote the existing GraphPlan to one routine-partitioned
-  program graph with shared flat block/operation/phi storage and canonical
-  routine ranges. The same admission and target routine renderer must serve
-  `Main` and `Kind`; the program extension may add only routine ranges, typed
-  String equality/inequality and return-expression links, the closed call edge,
-  and String-compare ABI. `mir.execution_graph` remains fact supplier and
-  `CompileAdmittedDirectMirForTarget` the last legitimate consumer. Parameter
-  ordinal and call-target identity must be joined and sealed, never recovered
-  from display text; if current MIR cannot supply that join, producer carriage
-  is the first sub-rung. A malformed comparison, return, or endpoint must fail
-  in the claimed scalar owner before either artifact.
-- Forbidden fallback: a `string_equality` fixture/name branch, expression-text
-  parsing, precomputed output, routine/block-count classification, a second CFG
-  plan/emitter loop, terminal-graph retry, backend MIR reads, or native C
-  fallback.
+  `direct MIR scalar CFG condition fact is invalid`; required execution is
+  exact `concat_eq_ok`.
+- Next objective card: extend the existing typed expression arena with the
+  source-carried String-concatenation graph and runtime ABI fact, then consume
+  it through the same single-routine GraphPlan condition and both current
+  expression renderers. `mir.execution_graph` remains fact supplier and
+  `CompileAdmittedDirectMirForTarget` the last legitimate consumer. The
+  falsifying negative is a repaired/missing concat operand or ABI row that must
+  fail in the claimed scalar owner before either artifact.
+- Forbidden fallback: a `string_equality_concat` fixture/name branch,
+  expression-text parsing, precomputed concatenated output, a concat-specific
+  program plan/emitter, routine/block-count classification, backend MIR reads,
+  claimant retry, or native C fallback.
 
 ## Historical checkpoint archive - inactive navigation evidence
 

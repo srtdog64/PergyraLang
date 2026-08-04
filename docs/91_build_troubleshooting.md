@@ -6,6 +6,35 @@
 
 ---
 
+## A copied nested storage owner loses growable Array mutations
+
+A self-hosted Pergyra owner may compile and still lose mutations when a nested
+aggregate containing growable Arrays is copied into a local value, mutated, and
+then assumed to have updated the enclosing aggregate. An `ArrayPush` can
+reallocate and update the copied Array header while the original outer struct
+still carries the old pointer or length.
+
+This happened in the first routine-partitioned `string_equality.pgy` GraphPlan
+builder. The correct fix was not a larger allocation, a cache, or a special
+String route. Split value, block, operation, and routine-count storage into
+named persistent owners. Every mutation returns the rebuilt storage value, and
+the caller explicitly reconstructs the composition before the next append.
+
+The structural gate must pin the semantic shape as well as LoC:
+
+- Main and callable invoke the same routine-admission owner;
+- the program graph calls the GraphPlan seal exactly once;
+- the generic single-routine graph contains no program-active branch;
+- C and LLVM consume the same canonical routine ranges and typed expression
+  rows, even though their target syntax renderers remain separate;
+- no callable-specific symbol or backend MIR read can reappear.
+
+If a responsibility split moves identity consumption to a new named owner,
+move the focused gate pin to that owner. Do not keep a compatibility wrapper in
+the old large file merely to satisfy a stale text check.
+
+---
+
 ## Bool support starts growing a second scalar compiler
 
 Do not accept a green `bool_logic.pgy` gate if it is produced by a sibling

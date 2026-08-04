@@ -6,6 +6,48 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-04 - Routine-partitioned String program substitutes in one GraphPlan
+
+- Landed executable checkpoint `be376971`. The 4,896,518-byte current-source
+  Pergyra-built driver consumes one 14,698-byte `string_equality.pgy` MIR
+  (`1A9D856F377CCF27424E72F19B535EE8431B737D1ED61FF868E3CB3DC6638228`).
+  It emits 1,180-byte C
+  (`E038A9C4029FF42246CD8183C3903E7F737993CFD1AB2B2E161B9D8122315162`)
+  and 3,939-byte LLVM
+  (`023600C2083186D8CB6AD56D633CF501DF2983FCA58A8C10CB1A2B6FDBFF38C6`);
+  both compile and execute exact `I, S, S, ?, eq`.
+- GraphPlan v16 is still the only CFG/SSA/phi/local/operation/digest authority.
+  Main and `Kind(String) -> String` share one offset-aware routine admission,
+  flat storage, canonical Main-first partition and one seal. The extension adds
+  only typed expression/return links and ABI identity; backends never reopen
+  admitted MIR.
+- Replaced an initially compiled but invalid nested mutable storage aggregate.
+  Growable Array reallocation through a copied sub-struct left the enclosing
+  lengths stale. Layered persistent value/block/operation/count owners now
+  return reconstructed state. Expression-append failure is `Option<Int>`, not
+  another numeric sentinel. Direct-call admission and LLVM String-global
+  materialization were separately named to keep the central expression owner
+  at 217 lines; every new active owner is at most 256 lines.
+- The focused gate pins display/routine-order artifact equality, six no-artifact
+  identity/type/CFG/return negatives, exact two uses of the common routine
+  admission, one seal, no callable-specific symbols, no backend MIR read, and
+  hard LoC caps. Bool and Array-parameter regression gates stayed green.
+- Final build time was 143.9 seconds; String, Bool, and Array-parameter focused
+  gates took 34.6 seconds together. No pressure result is claimed. Full CI,
+  current fixed point, prover and sanitizer suites did not run.
+- Documentation quality passed. Proof execution is an explicit missing-Coq/Rocq
+  environment skip. The global likeness gate remains red at sentinel `239 >
+  22` and zone-bound steps `26 < 29`; this rung's diff has no net new sentinel
+  pattern after the append result became `Option<Int>`.
+- Classification is bounded `SUBSTITUTING` for this exact two-routine String
+  program. The next sole falsifier is `string_equality_concat.pgy`: its
+  6,109-byte MIR
+  (`85E6A08A02F7C6DB568455793D7EF777847C17C9A56366782DFB38B6D8014538`)
+  is rejected without either artifact at `direct MIR scalar CFG condition fact
+  is invalid`. The next rung must add String-concat expression/ABI carriage to
+  the existing GraphPlan; a concat-specific plan, text parsing, fixture branch,
+  or target-local semantic reconstruction is forbidden.
+
 ## 2026-08-04 - Bool/logical program substitutes through the sole GraphPlan
 
 - Landed executable checkpoint `0194446d`. The installed Pergyra-built driver

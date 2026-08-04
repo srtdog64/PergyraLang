@@ -16,25 +16,31 @@ For work after this snapshot, follow `docs/152_validation_isolation_policy.md`:
 rerun only the owner gate for the touched self-host rung unless a broader
 compiler-world owner changed or broad parity is explicitly requested.
 
-Focused evidence on 2026-08-04 closes `bool_logic.pgy` at checkpoint
-`0194446d`. One 17,188-byte self-produced MIR drives both installed direct
-targets through GraphPlan v14 and executes exact `flag-on, other-off, and,
-logic, grouped, 0, 2, 4`. The first green implementation was rejected because
-it duplicated the entrypoint plan, CFG/SSA/phi arrays, and target block loops.
-The landed optional extension carries only typed expression rows, one
-closed-module `(Int) -> Bool` callable, and ABI evidence inside the existing
-GraphPlan. Returned-Array routing no longer classifies by block count.
-Nontrapping eager logical RHS, typed call endpoints, checked modulo admission,
-dominating-bound add evidence, `add nsw`, transactional shared-phi validation,
-and inactive-payload rejection are pinned by focused and component gates. The
-final build took 170.616 seconds and peaked at 2.327 GiB working set / 2.536
-GiB private: below the 3 GiB stop line but above the 2.4 GiB attention line on
-private memory. This is bounded direct-C/LLVM `SUBSTITUTING`, not arbitrary
-program or released/default replacement. The next observed falsifier is the
-12,186-byte `string_equality.pgy` MIR
-(`1859C1E166B34072657A36F05EDDCBED41E5C0276DE38BB28A6B949EFB20F843`),
-rejected without artifact by both targets at `direct MIR terminal multi-routine
-graph is unsupported`.
+Focused evidence on 2026-08-04 closes `string_equality.pgy` at checkpoint
+`be376971`. One 14,698-byte self-produced MIR drives both installed direct
+targets through GraphPlan v16 and executes exact `I, S, S, ?, eq`. Main and the
+`Kind(String) -> String` callable use one per-routine admission loop, canonical
+routine ranges, flat graph storage, and one seal. Direct calls join persisted
+syntax identity; String comparison consumes the runtime ABI registry rather
+than a backend-local symbol. Display and admitted routine order do not change
+artifacts; six identity/type/CFG/return mutation families fail without C or
+LLVM publication. The existing Bool and reallocating Array-parameter gates
+remain green on the same Pergyra-built driver. Typed-expression admission uses
+`Option<Int>` for failure rather than adding another `-1` sentinel. The final
+build took 143.9 seconds and all three focused gates took 34.6 seconds; no new
+memory peak was measured because focused gates are not sampled on every run.
+This is bounded direct-C/LLVM `SUBSTITUTING`, not arbitrary program or
+released/default replacement. The next observed falsifier is the 6,109-byte
+`string_equality_concat.pgy` MIR
+(`85E6A08A02F7C6DB568455793D7EF777847C17C9A56366782DFB38B6D8014538`),
+rejected without artifact by both targets at `direct MIR scalar CFG condition
+fact is invalid`.
+
+The focused documentation gate passed. Coq/Rocq was unavailable, so proof-spine
+execution is an explicit environment skip rather than a proof pass. The global
+Pergyra-likeness gate remains red at sentinel `239 > 22` and zone-bound steps
+`26 < 29`; this executable delta has equal added/removed sentinel-pattern
+matches after its append result moved to `Option<Int>`.
 
 Focused evidence on 2026-07-27 advances the integrated driver beyond this
 dated full-suite snapshot. The Pergyra-built gen2 driver emitted verified MIR

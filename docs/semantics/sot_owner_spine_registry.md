@@ -1,7 +1,7 @@
 # SoT Owner Spine Registry
 
 Status: `architecture-owner-registry`  
-Date: 2026-08-03
+Date: 2026-08-04
 
 This registry fixes the first whole-compiler owner outline. It is the
 machine-gated companion to `docs/125_source_of_truth_spine.md` and
@@ -503,3 +503,16 @@ the element-specific constructor/push symbols. The `list_literal_context`
 DRV-2 row proves `List<Int>`, `List<String>`, and empty `List<String>` values,
 rejects a mismatched element and a missing declaration ABI type, and does not
 promote the broader Queue surface, which remains the next open seam.
+
+At checkpoint `be376971`, the `mir.execution_graph` row's self-hosted direct
+consumer evidence also includes
+`tests/self_hosted/parity/one_mir_string_equality_projection.sh`. One
+routine-partitioned `DirectMirScalarCfgGraphPlan` v16 owns the flat CFG, SSA,
+phi, local, operation, range, and digest facts for Main plus
+`Kind(String) -> String`; typed expression/return links and the registry-owned
+String-compare ABI are extensions, not a second graph authority. The gate pins
+one seal, one shared routine admission, persisted call/parameter identities,
+no backend MIR read, and no artifact for six repaired identity/type/CFG/return
+mutations. This is bounded consumer substitution evidence; the registry row
+remains `BRIDGE` because general execution-graph consumers and native owners
+remain open.

@@ -2,6 +2,23 @@
 
 Status: `BRIDGE`
 
+## 2026-08-04 bounded routine-partitioned String-program evidence
+
+Checkpoint `be376971` is bounded `SUBSTITUTING` evidence for one input-language
+program slice. The installed Pergyra-built entrypoint consumes one self-produced
+`string_equality.pgy` MIR through GraphPlan v16 and emits C and LLVM that both
+execute exact `I, S, S, ?, eq`. Main and `Kind(String) -> String` share one
+routine admission and canonical range partition; String comparison is typed and
+binds the runtime ABI registry's compare fact. Display spelling and admitted
+routine order are not semantic authority, and malformed call, parameter,
+comparison, return, or CFG identity publishes no artifact.
+
+This does not promote compiler-root `world`/`zone`/`subject`/`action`/`intent`.
+The reached responsibility is pure value computation and remains correctly
+implemented as `func`/`struct` owners. It also does not claim arbitrary routine
+graphs, String concatenation, recursion, effects, or default whole-compiler
+replacement.
+
 ## 2026-08-04 bounded Bool-program evidence
 
 Checkpoint `0194446d` is bounded `SUBSTITUTING` evidence for an input-language
