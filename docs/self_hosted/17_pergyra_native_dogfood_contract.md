@@ -2,6 +2,24 @@
 
 Status: `BRIDGE`
 
+## 2026-08-04 bounded String-window definition evidence
+
+Checkpoint `585776f0` is bounded `SUBSTITUTING` evidence for the exact
+`str_builtins.pgy` slice. The installed Pergyra-built entrypoint consumes its
+self-produced MIR through GraphPlan v19. Producer-carried argument chains join
+the canonical builtin registry, then typed StringLength, Substring,
+SubstringWithLen, and Concat definitions drive both C and LLVM. Both artifacts
+compile and execute `7`, `perg`, and `perg-yra`; semantic mutation executes
+`11`, `perg`, and `perg-yralang`, while malformed signatures and argument
+topology publish no artifact.
+
+This reached responsibility is pure value computation. `func`/`struct` owners
+remain the Pergyra-native form; adding decorative `action` or `intent` would
+misstate authority and effect boundaries. The evidence does not promote the
+compiler-root world/zone/action/intent composition, arbitrary builtin
+signatures, temporary String ownership, or released/default whole-compiler
+replacement.
+
 ## 2026-08-04 bounded single-routine String-concat evidence
 
 Checkpoint `094b6dad` is bounded `SUBSTITUTING` evidence for the exact

@@ -16,37 +16,32 @@ For work after this snapshot, follow `docs/152_validation_isolation_policy.md`:
 rerun only the owner gate for the touched self-host rung unless a broader
 compiler-world owner changed or broad parity is explicitly requested.
 
-Focused evidence on 2026-08-04 closes `string_concat_op.pgy` at checkpoint
-`1b3792d4`. The 4,918,539-byte current-source Pergyra-built driver
-(`91D0C2BE4543495E43A0A328A5AE0083D17B5392AF863AEE16001B10EEBE65AC`)
-consumes one 14,105-byte self-produced MIR
-(`994A28363848AD3F60504BFA95B71C25D02842CACBC0C88CC89342AB9B3A1DF7`)
-through GraphPlan v18. It emits 1,813-byte C
-(`8D29335DA4FFD2B5C5349466D53C49D5E94DBBCE524CC031B93D15A14C335D2C`)
-and 6,686-byte LLVM
-(`89F643911A4FC54DB0BC5F1D710993DB3A94CBCB2C19C947D3E5D39EE76E028A`).
-Both compile and execute exact `foobar`, `xyz`, `Hello, Pergyra!`,
-`foo/bar/end`, `n=7`, and `ABcd`.
+Focused evidence on 2026-08-04 closes `str_builtins.pgy` at checkpoint
+`585776f0`. The 4,942,644-byte current-source Pergyra-built driver
+(`40FAA8C611A2F8219CC1F22BFAC25EB0085049DCA8C270EE782CDE2AD7667619`)
+consumes one 11,879-byte self-produced MIR
+(`0378770C6AF86E963E8C73B700B4F043250DDA397AE5D3B7E9290220520220C4`)
+through GraphPlan v19. It emits 1,798-byte C
+(`F5475B5CAA4865B63037805394C7D2048431201D00E6EF66412C930E5E3ABEC9`)
+and 4,937-byte LLVM
+(`253076BF5DCDD75308303D9DDAF231995F63AFF6CD25C7C3AE9FC693BFEDAC4C`).
+Both compile and execute exact `7`, `perg`, and `perg-yra`.
 
-Persisted graph identity supplies nested call topology while the semantic
-builtin registry owns builtin name/signature identity. The normalized arena
-maps ToString, ToUpper, and ToLower calls into typed unary expression rows.
-One sealed runtime-ABI subfact owns compare, concat, and all three builtin
-requirements; C and LLVM materialize concrete runtime definitions from that
-fact. The old exact-call ToString/Log fusion was removed, so root and nested
-ToString use one real String-producing route. Direct user calls remain keyed by
-producer-carried syntax identity.
+Persisted argument-chain identity supplies n-ary topology while the semantic
+builtin registry owns builtin name, result, arity, and argument types. The
+normalized arena maps StringLength, Substring, SubstringWithLen, and Concat to
+typed definition expressions. One sealed runtime-ABI subfact owns the concrete
+requirements; C and LLVM materialize the same required symbols without backend
+MIR reads or expression-text recovery.
 
-The focused gate proves display-only artifact equality, two semantic mutation
-families with exact changed output, and seven no-artifact syntax/call/argument/
-type/registry/duplicate-consumption negatives per target. The final driver
-build took 130.3 seconds; final builtin and Bool/ToString-root gates took 10.4
-and 16.8 seconds. String concat/equality, String equality, Bool, Array-parameter,
-routine-partition, and expression-identity regressions were also green. No
-pressure result is claimed. All old LoC caps stayed fixed; the central C, LLVM,
-and admission owners shrank while responsibility-specific String expression,
-builtin join, runtime ABI, and materialization owners were added. The agent
-boundary sentinel is green.
+The focused gate proves display-only artifact equality, a semantic String
+mutation with exact changed `11`, `perg`, and `perg-yralang`, and five
+no-artifact signature/edge/type/registry negatives per target. The final driver
+build took 128.3 seconds. Window-builtin, nested-builtin, String concat/equality,
+and Bool gates were green on the final driver in 45.9 seconds. No pressure
+result is claimed. All existing LoC caps stayed fixed; responsibility-specific
+route, n-ary topology, readiness, runtime ABI, and target projection owners were
+added. Exact C runtime bodies are no longer duplicated.
 
 The component contract still stops at the independent pre-existing
 `ast_expression_graph_fact_owner.pgy` 616/600 cap. The SoT registry gate retains
@@ -54,14 +49,12 @@ its pre-existing duplicate Coq fact-authority failure. Full CI, fixed point,
 prover, sanitizer, and released/default promotion did not run.
 
 This is bounded direct-C/LLVM `SUBSTITUTING`, not arbitrary String-program or
-whole-compiler replacement. The next observed falsifier is `str_builtins.pgy`:
-its 11,879-byte MIR
-(`0378770C6AF86E963E8C73B700B4F043250DDA397AE5D3B7E9290220520220C4`)
-is rejected by both targets without artifact at `direct MIR scalar local type
-inventory is missing or invalid`. The next rung must admit definition results
-from canonical StringLength/substring/concat calls into the existing typed
-local inventory. Expression text, source-local spelling inference, a fixture
-route, a second graph/emitter, or backend-local builtin identity is forbidden.
+whole-compiler replacement. The next executable falsifier is not inferred from
+fixture order; it must be selected by probing current producer output after
+this closure. Expression text, source-local spelling inference, a fixture
+route, a second graph/emitter, or backend-local builtin identity remains
+forbidden. The bounded layering inventory and its shrink-only priorities are in
+`18_self_host_layering_duplication_audit.md`.
 
 Focused evidence on 2026-07-27 advances the integrated driver beyond this
 dated full-suite snapshot. The Pergyra-built gen2 driver emitted verified MIR

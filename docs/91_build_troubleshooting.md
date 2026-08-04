@@ -5657,3 +5657,34 @@ gcc sanitizer runtime library가 없어 ASan/UBSan link가 불가능했다. 이�
 invalid`로 오분류된다. 이를 Bool expression-text 예외나 block-count branch로 우회하지
 말고, 먼저 returned-collection claimant가 왜 non-Array program을 claim했는지 닫은 뒤
 기존 typed Bool/CFG facts를 한 scalar plan으로 소비한다.
+
+## String builtin definition이 legacy local inventory로 빠지는 경우
+
+2026-08-04 `str_builtins.pgy`에서 다음 진단이 관찰됐다.
+
+```text
+direct MIR scalar local type inventory is missing or invalid
+```
+
+이 진단은 producer가 local type을 누락했다는 뜻이 아니었다. 기존 route는 모든
+local이 String이면서 branch를 가진 프로그램만 claim했기 때문에, String/Int가 섞인
+직선 builtin 프로그램이 legacy one-block Int-only owner로 흘렀다. Fixture 이름,
+출력, local 개수나 backend를 패치하지 않는다. Typed route envelope를 먼저 세우고,
+semantic builtin registry와 persisted argument edge가 정확한 signature를 증명한 뒤
+기존 local/value inventory를 seal한다.
+
+그 뒤 보인 일반 GraphPlan identity 실패는 seal에서 nested readiness code를 함께
+출력해 추적했다. 일반 one-block minimum shape가 Array-reverse 이름의 owner 안에 있어
+정상 builtin program을 바깥에서 거부하고 있었다. 일반 최소 조건만 책임 이름의
+owner로 옮기고 Array/collection의 더 강한 shape는 그대로 유지한다.
+
+Focused 회귀는 다음 gate가 소유한다.
+
+```powershell
+& 'C:\msys64\usr\bin\bash.exe' -lc `
+  'cd /d/PergyraLang && tests/self_hosted/parity/one_mir_string_window_builtin_projection.sh'
+```
+
+이 gate는 C/LLVM 실행, semantic output mutation, 잘못된 result ABI, 최종/중간
+argument edge, argument type과 미등록 target의 artifact 없는 거부, 그리고 legacy
+route로의 재시도 금지를 검증한다.

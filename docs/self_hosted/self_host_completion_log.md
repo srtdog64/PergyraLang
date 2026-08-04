@@ -6,6 +6,43 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-04 - String window definitions substitute through n-ary GraphPlan facts
+
+- Landed executable checkpoint `585776f0`. The 4,942,644-byte current-source
+  Pergyra-built driver
+  (`40FAA8C611A2F8219CC1F22BFAC25EB0085049DCA8C270EE782CDE2AD7667619`)
+  consumes the 11,879-byte `str_builtins.pgy` MIR
+  (`0378770C6AF86E963E8C73B700B4F043250DDA397AE5D3B7E9290220520220C4`).
+  It emits 1,798-byte C
+  (`F5475B5CAA4865B63037805394C7D2048431201D00E6EF66412C930E5E3ABEC9`)
+  and 4,937-byte LLVM
+  (`253076BF5DCDD75308303D9DDAF231995F63AFF6CD25C7C3AE9FC693BFEDAC4C`);
+  both compile and execute exact `7`, `perg`, and `perg-yra`.
+- GraphPlan v19 remains the sole program graph authority. Persisted argument
+  edges and the canonical semantic registry normalize StringLength, Substring,
+  SubstringWithLen, and Concat to typed definition expressions. A malformed
+  result ABI, final or intermediate argument edge, argument type, or target
+  identity publishes no artifact in either backend and cannot retry legacy
+  local inventory.
+- The semantic mutation `pergyra` to `pergyralang` changes both target
+  artifacts and executes exact `11`, `perg`, and `perg-yralang`. Display-only
+  mutation remains artifact-equal. Window-builtin, nested-builtin, String
+  concat/equality, and Bool gates are green on the final driver.
+- The rung fixed two reached layering faults: a general builtin definition had
+  been hidden behind a branch-String claimant, and minimum GraphPlan readiness
+  had been hidden in an Array-reverse-named owner. N-ary topology, runtime ABI
+  identity/readiness, and C/LLVM materialization now have named owners. Exact C
+  String runtime bodies are shared. No old cap was raised and no helper bucket,
+  fixture route, second graph, backend MIR read, or native fallback was added.
+- The bounded architecture audit found no exact production `.pgy` duplicate
+  groups and no generic helper paths. The highest remaining debt is the
+  count-based direct backend dispatcher plus the existing 616/600 semantic
+  expression graph owner. See `18_self_host_layering_duplication_audit.md`.
+- Full CI, current fixed point, proofs, sanitizers, and pressure sampling did
+  not run. The component cap and duplicate-Coq-authority reds remain
+  independent. Select the next executable falsifier by current producer probe,
+  not by reviving the historical fixture queue.
+
 ## 2026-08-04 - Nested String builtins substitute through typed GraphPlan rows
 
 - Landed executable checkpoint `1b3792d4`. The 4,918,539-byte current-source

@@ -6,56 +6,51 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - nested String builtins closed
+## Active self-host context - String window definitions closed
 
-- Executable checkpoint: `1b3792d4` on `main`, with this handoff as its
+- Executable checkpoint: `585776f0` on `main`, with this handoff as its
   intended docs-only descendant. The final current-source Pergyra-built driver
-  is 4,918,539 bytes with SHA-256
-  `91D0C2BE4543495E43A0A328A5AE0083D17B5392AF863AEE16001B10EEBE65AC`.
+  is 4,942,644 bytes with SHA-256
+  `40FAA8C611A2F8219CC1F22BFAC25EB0085049DCA8C270EE782CDE2AD7667619`.
 - Intended post-handoff dirty state contains only user-owned stdlib work:
   modified `docs/138_standard_library_scope.md` and
   `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
   `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`. No
   compiler-rung file remains dirty.
-- Closed executable rung:
-  `src/self_hosted/codegen/fixture/string_concat_op.pgy`. Its 14,105-byte
-  self-produced MIR has SHA-256
-  `994A28363848AD3F60504BFA95B71C25D02842CACBC0C88CC89342AB9B3A1DF7`.
-  It emits 1,813-byte C
-  (`8D29335DA4FFD2B5C5349466D53C49D5E94DBBCE524CC031B93D15A14C335D2C`)
-  and 6,686-byte LLVM
-  (`89F643911A4FC54DB0BC5F1D710993DB3A94CBCB2C19C947D3E5D39EE76E028A`).
-  Both host-compile and execute exact `foobar`, `xyz`, `Hello, Pergyra!`,
-  `foo/bar/end`, `n=7`, and `ABcd`.
-- `DirectMirScalarCfgGraphPlan` v18 remains the sole CFG, SSA, phi, local,
+- Closed executable rung: `src/self_hosted/codegen/fixture/str_builtins.pgy`.
+  Its 11,879-byte self-produced MIR has SHA-256
+  `0378770C6AF86E963E8C73B700B4F043250DDA397AE5D3B7E9290220520220C4`.
+  It emits 1,798-byte C
+  (`F5475B5CAA4865B63037805394C7D2048431201D00E6EF66412C930E5E3ABEC9`)
+  and 4,937-byte LLVM
+  (`253076BF5DCDD75308303D9DDAF231995F63AFF6CD25C7C3AE9FC693BFEDAC4`).
+  Both host-compile and execute exact `7`, `perg`, and `perg-yra`.
+- `DirectMirScalarCfgGraphPlan` v19 remains the sole CFG, SSA, phi, local,
   operation, routine-range, expression-link, digest, and mutation authority.
-  Persisted graph identity supplies call topology; the semantic builtin
-  signature registry owns builtin name/signature identity. Normalization
-  collapses `call` plus `call_argument` into typed unary `ToString`, `ToUpper`,
-  or `ToLower` expression rows while preserving the same concat/call DAG.
-- One sealed runtime-ABI subfact now owns compare, concat, ToString, ToUpper,
-  and ToLower requirements. C and LLVM project concrete symbols from that fact
-  and materialize the required runtime blocks. The former exact-call
-  `ToString`/Log fusion was deleted, so root and nested ToString share one real
-  String-producing path; direct user calls remain syntax-ID-owned.
-- Focused evidence: display-only graph and expression text are artifact-equal.
-  String and builtin input mutations change both artifacts and execute their
-  exact changed output. Seven malformed syntax-ID, call edge, argument edge,
-  argument type, registry name, and duplicate-consumption variants fail in
-  both targets without artifact or generic-CFG retry.
-- The final composition build took 130.3 seconds. The final builtin gate took
-  10.4 seconds and the final Bool/ToString-root regression took 16.8 seconds.
-  Earlier on the same owner set, String concat/equality, String equality,
-  Bool, and Array-parameter regressions all passed in 40.1 seconds; static
-  routine-partition and expression-identity gates also passed. No memory
-  pressure result is claimed. Full CI, current gen2==gen3, proofs, sanitizers,
-  and released/default promotion did not run.
-- Layering audit result: loose ABI integer fields became one sealed subfact;
-  expression classification, nested builtin joins, backend String expression
-  syntax, and backend builtin materialization have named owners. Repeated C
-  runtime bodies were factored behind their existing String runtime owner. The
-  dead exact-call ToString branch was removed. No `helper` bucket or new plan,
-  graph, backend MIR read, or output-specific path was added.
+  Persisted argument-chain edges supply n-ary topology; the semantic builtin
+  registry owns exact names, result types, arity, and argument types. Typed
+  rows now cover StringLength, Substring, bounded SubstringWithLen, concat, and
+  integer subtraction without expression-text recovery.
+- One sealed runtime-ABI subfact owns length, substring, bounded substring, and
+  concat requirements. C and LLVM project and materialize those concrete
+  symbols from the same receipt. The C String runtime reuses one copy of each
+  exact body.
+- Focused evidence: display-only facts are artifact-equal. Mutating `pergyra`
+  to `pergyralang` changes both artifacts and executes exact `11`, `perg`, and
+  `perg-yralang`. Bad result ABI, final/intermediate argument edges, argument
+  type, and unregistered target all fail in both targets without artifact or
+  retry through legacy local inventory.
+- The final composition build took 128.3 seconds. The final window-builtin,
+  nested-builtin, String concat/equality, and Bool regressions all passed on
+  the final driver in 45.9 seconds. No memory pressure result is claimed. Full
+  CI, current gen2==gen3, proofs, sanitizers, and released/default promotion
+  did not run.
+- Layering audit result: the general builtin route is no longer hidden behind
+  the branch-String claimant, and general minimum GraphPlan readiness is no
+  longer owned by an Array-reverse-named file. Argument chains, n-ary operands,
+  expression identities, ABI identity/readiness, and C/LLVM window projection
+  have named owners. No `helper` bucket, second plan/graph, backend MIR read,
+  fixture route, count-output branch, or native fallback was added.
 - All old hard caps stayed fixed. New owners are registered in the shared
   `scalar_program_owner_caps.tsv`; the central expression owners shrank to 90
   C and 135 LLVM lines, and admission shrank from 224 to 178 lines despite the
@@ -64,28 +59,23 @@ owner, and the named executable gate.
   stops at the pre-existing `ast_expression_graph_fact_owner.pgy` 616/600 cap.
   `scripts/sot_registry_gate.py` still rejects duplicate Coq fact authorities.
   These are not this executable rung's blockers.
-- Classification is bounded `SUBSTITUTING` only for this exact String builtin
+- Classification is bounded `SUBSTITUTING` only for this exact String-window
   program through installed direct C and LLVM. It does not close arbitrary
-  builtin arity, all String runtime operations, Float/Array locals, temporary
-  String lifetime, or whole-compiler/default replacement.
-- Next observed executable falsifier: only
-  `src/self_hosted/codegen/fixture/str_builtins.pgy` is active. Its current
-  producer emits an 11,879-byte MIR with SHA-256
-  `0378770C6AF86E963E8C73B700B4F043250DDA397AE5D3B7E9290220520220C4`.
-  Both targets publish no artifact and stop at `direct MIR scalar local type
-  inventory is missing or invalid`.
-- Next objective card: admit definition expressions whose result is produced
-  by canonical String builtins (`StringLength`, bounded substring operations,
-  and concat) so `n`, `sub`, and `tail` enter the existing typed local/value
-  inventory. The semantic builtin registry remains the identity/signature
-  owner, persisted expression graphs supply arguments, GraphPlan remains the
-  sole storage/ordering owner, and the direct target compiler remains the last
-  consumer. The first falsifier is a wrong result type or argument edge that
-  must fail before local inventory closure or artifact publication.
-- Forbidden fallback: a `str_builtins` fixture/name branch, expression-text
-  parsing, source-local spelling inference, precomputed output, a builtin-
-  specific graph/emitter, widening all builtin arities at once, backend MIR
-  reads, claimant retry, or native C fallback.
+  builtin arity/signatures, effectful short circuit, multiple callables,
+  Float/Array locals, temporary String lifetime, or whole-compiler/default
+  replacement.
+- The bounded layering/duplication audit is recorded in
+  `docs/self_hosted/18_self_host_layering_duplication_audit.md`. Immediate P1
+  debt is the count-based direct backend dispatcher and the 616/600 semantic
+  expression graph owner. Those are not independent cleanup tracks: fix them
+  only when reached by the next executable rung or when they block its gate.
+- Next executable falsifier is deliberately unselected. Probe current producer
+  fixtures after this closure and select the first real dual-target failure;
+  do not revive a historical queue item or infer completion from fixture order.
+- Forbidden fallback remains a fixture/name branch, expression-text parsing,
+  source-local spelling inference, precomputed output, a builtin-specific
+  graph/emitter, widening every signature at once, backend MIR reads, claimant
+  retry, or native C fallback.
 
 ## Historical checkpoint archive - inactive navigation evidence
 
