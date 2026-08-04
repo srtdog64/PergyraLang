@@ -2350,6 +2350,41 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_instruction_expression_owner.pgy`
   -- one instruction-to-expression-row admission boundary shared by Main and
   the callable for definition, Log, branch condition, and return positions.
+- `src/self_hosted/compiler/direct_mir_array_string_literal_fact_owner.pgy` and
+  `src/self_hosted/compiler/direct_mir_bounded_literal_index_owner.pgy` --
+  shared target-neutral typed
+  String-literal-array payload and fixed-cardinality index proof. The typed
+  program and older local indexed collection route consume these owners rather
+  than decoding parallel literal graphs.
+- `src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_admission_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_readiness_owner.pgy`,
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_program_array_string_expression_kind_owner.pgy`
+  --
+  Array<String> literal admission into the existing typed ExpressionSet, its
+  semantic readiness, and its stable expression kind identity.
+- `src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_callable_route_envelope_owner.pgy`,
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_empty_owner.pgy`
+  -- one
+  callable value/carriage/ABI policy, broad typed claimant envelope, and the
+  canonical empty signature projection. Final signature readiness remains with
+  `direct_mir_scalar_program_callable_signature_owner.pgy`.
+- `src/self_hosted/compiler/direct_mir_scalar_program_array_string_callable_abi_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_fact_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_admission_owner.pgy`,
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_plan_readiness_owner.pgy`
+  -- exact join between canonical Array<String> ABI, caller-frame literal,
+  by-value parameter, bounded callee index, borrowed result, and the sealed
+  GraphPlan columns.
+- `src/self_hosted/compiler/direct_mir_scalar_program_extension_abi_seal_owner.pgy`
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_readiness_owner.pgy`
+  -- small
+  extension ABI/boundary sealing and final extension-fact verification owners;
+  they keep construction separate from mutation/readiness policy.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_admission_owner.pgy`
   -- the sole per-routine local/value/block/operation/phi append loop. Both Main
   and the callable use it with explicit offsets and no topology classifier.
@@ -2380,6 +2415,12 @@ inventory must not become a second fact-family owner registry.
   `src/self_hosted/compiler/direct_mir_scalar_program_c_string_scalar_materialization_owner.pgy`
   -- small C composition boundaries for the independent String search and
   transform expression/body owners; they own no semantic dispatch.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_literal_expression_owner.pgy`
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_cleanup_owner.pgy`
+  -- MIR-blind C
+  block-lifetime literal materialization and boundary-selected cleanup. The
+  cleanup owner skips only the sealed borrowed-static local.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy`
   -- MIR-blind range-driven C program rendering. One routine renderer serves
   entrypoint and callable; it never reopens admitted MIR.
@@ -2400,9 +2441,16 @@ inventory must not become a second fact-family owner registry.
   `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_special_expression_owner.pgy`
   -- MIR-blind LLVM StringTrim call/body ownership and the small search/
   transform expression composition boundary.
-- `src/self_hosted/compiler/direct_mir_scalar_program_llvm_foreign_declaration_owner.pgy`
+- `src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_literal_expression_owner.pgy`
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_cleanup_owner.pgy`
+  -- MIR-blind
+  LLVM caller-frame literal materialization and boundary-selected cleanup from
+  the same ownership fact as C.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy`
   -- one plan-derived declaration set for generated LLVM runtime bodies. It
-  owns declaration cardinality only; semantic bodies remain with their runtime
+  is shared by scalar-program and legacy scalar-CFG projections and owns
+  declaration cardinality only; semantic bodies remain with their runtime
   owners.
 - `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_global_owner.pgy`
   -- literal String global materialization, separated from expression policy.

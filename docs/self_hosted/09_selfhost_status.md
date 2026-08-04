@@ -16,6 +16,45 @@ For work after this snapshot, follow `docs/152_validation_isolation_policy.md`:
 rerun only the owner gate for the touched self-host rung unless a broader
 compiler-world owner changed or broad parity is explicitly requested.
 
+Focused evidence on 2026-08-05 closes
+`string_array_index_return.pgy` at checkpoint `52715894`. The 5,048,145-byte
+current-source Pergyra-built driver
+(`B698C2C4C86C6BACB96C3D7F3E6FABB030F8B2629DEA06800C574BF89822CD2A`)
+consumes one 6,234-byte self-produced MIR
+(`EE124A64CBFF373C365992E7EAC63084C8358A152F094AC13A2595C45BCF0DE6`)
+through GraphPlan v23. It emits 1,819-byte C
+(`FFD6E40F6100B917BA7E65B30E9EEF981238CD388C53E92BEC3675E2BD4B00DD`)
+and 4,660-byte LLVM
+(`B1B03043830710D151AC18D9FAD7C39B372DFC6D9F22CD801EC3E4826CB2A0F9`).
+Both compile and execute exact `one`.
+
+One target-neutral boundary fact seals the literal cardinality, canonical
+`Array<String>` ABI, by-value formal parameter, bounded callee index,
+caller-frame storage, borrowed static elements, and borrowed result. C and LLVM
+materialize different target storage from that fact and suppress deep cleanup
+only for the sealed borrowed local; owned Split arrays keep their existing
+cleanup. The canonical typed literal parser is shared with the legacy indexed
+String-array route, so no second graph or literal decoder was added.
+
+The focused gate proves display and routine-order equality, semantic value and
+index changes, exact execution, and no-artifact rejection for malformed
+parameter, ABI, local, call, return, index, topology, and literal-spine facts.
+Nine adjacent scalar/string/array regressions are green on the final driver;
+owner caps remain green without raising an existing cap. The final build took
+128.8 seconds. Full CI, fixed point, proofs, sanitizers, pressure sampling, and
+release promotion did not run. This is bounded direct-C/LLVM `SUBSTITUTING`,
+not arbitrary aggregate calls or whole-compiler replacement.
+
+The next observed falsifier is `string_utils_core.pgy`: its producer emits
+7,229-byte MIR
+(`46DC2EC9AF786D4D072608B32F6C29F919B99994CFA9749E1319794EFBFBD6D9`),
+while both targets fail closed without artifact at `direct MIR scalar local
+type inventory is missing or invalid`. The native C oracle executes exact
+`hello world pergyra` and `3.500000`. The next rung must admit the reached Float
+local and carry canonical Join/ToFloat facts through this same GraphPlan;
+source-text type recovery, a fixture route, a second graph/emitter, count
+routing, backend reconstruction, and native retry remain forbidden.
+
 Focused evidence on 2026-08-05 closes `str_trim.pgy` at checkpoint
 `d88cab37`. The 5,030,274-byte current-source Pergyra-built driver
 (`62FD572FAD63D9917A96E2154DF1AAF3AA277E4F3B878FAB769B4AF5DC6287BE`)

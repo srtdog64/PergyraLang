@@ -6,6 +6,30 @@
 
 ---
 
+## Array<String> literal crashes or invalid-frees during cleanup
+
+Do not choose cleanup from the collection type alone. `Array<String>` can own
+heap-produced elements, as with Split, or borrow static literal pointers backed
+by the caller frame. Calling the same deep `pgy_as_drop` path for both makes a
+literal program appear correct until cleanup attempts to free static storage.
+
+Seal storage and element ownership at the target-neutral program boundary. For
+the bounded literal/call/index slice the owner records caller-frame backing,
+borrowed static elements, and a borrowed String result whose last use occurs
+before the caller frame ends. C may use a block-lifetime compound literal and
+LLVM may use an `alloca`, but both cleanup projections must consume that same
+fact and skip deep-drop only for the identified borrowed local. Owned runtime
+arrays retain deep cleanup.
+
+The regression must execute both targets and also reject negative and
+upper-bound literal indices before publication. Byte-equal output alone does
+not prove lifetime correctness; inspect that the borrowed literal local has no
+deep-drop call while owned collection regressions remain green. The focused
+gate is
+`tests/self_hosted/parity/one_mir_string_array_index_return_projection.sh`.
+
+---
+
 ## LLVM rejects an identical repeated foreign declaration
 
 Do not treat identical text as harmless or make every runtime body conditionally

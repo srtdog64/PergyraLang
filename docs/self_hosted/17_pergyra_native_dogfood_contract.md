@@ -2,6 +2,29 @@
 
 Status: `BRIDGE`
 
+## 2026-08-05 bounded Array<String> call/index evidence
+
+Checkpoint `52715894` is bounded `SUBSTITUTING` evidence for the exact
+`string_array_index_return.pgy` slice. The installed Pergyra-built entrypoint
+consumes its self-produced MIR through GraphPlan v23. One sealed boundary fact
+joins the canonical `Array<String>` ABI, caller-frame literal storage,
+by-value parameter, literal-bounded callee index, borrowed static elements,
+and borrowed String result. Direct C and LLVM both compile and execute exact
+`one`; semantic value/index variants execute their exact results, while
+malformed parameter, ABI, call, return, bound, and topology families publish no
+artifact.
+
+This rung is pure value construction, carriage, and observation. `func` and
+`struct` are therefore the Pergyra-native forms. Adding `action`, `zone`,
+`intent`, or `tobject` would falsely claim a state transition, resource
+boundary, real-world purpose, or nominal identity. The installed production
+entrypoint replaces the prior direct-backend rejection, so this is
+`SUBSTITUTING`, not keyword `SURFACE`.
+
+The evidence does not promote arbitrary aggregate parameters, dynamic index
+proof, owned returned-String lifetime, multiple callables, compiler-purpose
+intent, or the whole self-host root. Those remain separate executable rungs.
+
 ## 2026-08-05 bounded StringTrim runtime evidence
 
 Checkpoint `d88cab37` is bounded `SUBSTITUTING` evidence for the exact

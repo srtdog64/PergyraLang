@@ -6,6 +6,50 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-05 - Array<String> call/index substitutes through GraphPlan v23
+
+- Committed executable checkpoint `52715894`. The 5,048,145-byte installed
+  Pergyra-built driver has SHA-256
+  `B698C2C4C86C6BACB96C3D7F3E6FABB030F8B2629DEA06800C574BF89822CD2A`.
+- `string_array_index_return.pgy` produces 6,234-byte MIR
+  (`EE124A64CBFF373C365992E7EAC63084C8358A152F094AC13A2595C45BCF0DE6`).
+  That one MIR emits 1,819-byte C
+  (`FFD6E40F6100B917BA7E65B30E9EEF981238CD388C53E92BEC3675E2BD4B00DD`)
+  and 4,660-byte LLVM
+  (`B1B03043830710D151AC18D9FAD7C39B372DFC6D9F22CD801EC3E4826CB2A0F9`);
+  both host-compile and execute exact `one`.
+- GraphPlan v23 remains the only program graph. A boundary fact seals caller
+  literal cardinality, canonical `Array<String>` ABI, by-value formal
+  parameter, callee literal index, borrowed String return, and last caller use.
+  The existing local indexed-array route consumes the same typed literal fact
+  instead of retaining an independent decoder.
+- Lifetime is plan-owned: C uses block-lifetime compound-literal storage, LLVM
+  uses caller-frame stack storage, and both omit deep-drop only for the sealed
+  borrowed-static local. Owned runtime collection producers keep deep cleanup.
+  This closes the invalid-free risk that a type-only `Array<String>` cleanup
+  rule would introduce.
+- Callable value/ABI policy is one owner. Scalar parameters require no physical
+  ABI row; the reached aggregate parameter requires the exact captured row.
+  A separate claimant envelope prevents malformed members of the family from
+  leaking into terminal generic retry while final readiness stays strict.
+- `one_mir_string_array_index_return_projection.sh` proves display and routine
+  order equality, semantic value/index changes, exact C/LLVM execution, and
+  no-artifact rejection for parameter type/carriage/pass/ABI/layout, local
+  layout, call target/argument, return type, lower/upper index bounds, topology,
+  and literal-spine drift. Nine adjacent scalar/string/array regressions pass.
+- The LLVM declaration compositor is now CFG-scoped and shared by both program
+  and legacy scalar projection. The reached legacy indexed String-array concat
+  artifact now receives its required `malloc`/`strlen`/`memcpy` declarations.
+- The final composition build passed in 128.8 seconds. Full CI, current
+  gen2==gen3, proofs, sanitizers, pressure sampling, and release promotion did
+  not run. This is bounded direct-C/LLVM `SUBSTITUTING` only.
+- The next current-driver falsifier is `string_utils_core.pgy`: 7,229-byte MIR,
+  SHA-256
+  `46DC2EC9AF786D4D072608B32F6C29F919B99994CFA9749E1319794EFBFBD6D9`,
+  then artifact-free C/LLVM rejection at `direct MIR scalar local type
+  inventory is missing or invalid`. The native C oracle executes exact
+  `hello world pergyra` and `3.500000`.
+
 ## 2026-08-05 - StringTrim runtime program substitutes through GraphPlan v23
 
 - Landed executable checkpoint `d88cab37`. The 5,030,274-byte current-source

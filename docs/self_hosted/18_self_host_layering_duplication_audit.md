@@ -23,6 +23,39 @@ rung, the SoT registry, or executable gates.
 
 ## What was closed in the current rung
 
+The `string_array_index_return.pgy` rung displaced the reached terminal
+multi-routine rejection through GraphPlan v23 without reviving the legacy
+String-array plan. It exposed four ownership seams:
+
+1. scalar callable policy assumed that every parameter had no physical ABI;
+2. the typed program expression set could not carry a literal
+   `Array<String>` even though another route already decoded that literal;
+3. indexed-return readiness proved neither literal cardinality nor lifetime;
+4. cleanup selected deep ownership from `Array<String>` spelling alone.
+
+Callable value/carriage/ABI policy now has one owner. A shared target-neutral
+literal fact feeds both the older local collection route and the typed program
+arena. One program boundary fact joins the caller literal, canonical ABI,
+by-value formal, bounded callee index, returned String, and last caller use.
+C uses block-lifetime backing and LLVM uses caller-frame backing; both consume
+the same borrowed-static element and borrowed-result identity. Deep cleanup is
+suppressed only for that sealed local, while owned Split results keep cleanup.
+
+The executable evidence is
+`tests/self_hosted/parity/one_mir_string_array_index_return_projection.sh`.
+It proves exact C/LLVM execution, display and routine-order equality, semantic
+value/index changes, lower/upper bound failure, and malformed parameter/ABI/
+call/return/topology/literal rejection before artifact publication. The final
+driver also passes nine adjacent scalar/string/array regressions. Every new
+owner has a local hard cap; no existing cap was raised.
+
+The rung remains idiomatic Pergyra. It is pure value construction and
+carriage, so `func`/`struct` own it. `action`, `zone`, `intent`, and `tobject`
+would invent state, resource, purpose, or identity boundaries absent from the
+executable semantics.
+
+### Previous StringTrim runtime closure
+
 The `str_trim.pgy` rung displaced the reached unary String transform rejection
 through GraphPlan v23. It kept expression identity, canonical signature,
 readiness, runtime behavior, C/LLVM syntax, and target materialization in
@@ -174,10 +207,40 @@ inventory path.
 Exact file duplication is therefore not the main problem. The remaining debt
 is responsibility density and coarse dispatch.
 
+## SoT registry duplicate audit
+
+The current `python scripts/sot_registry_gate.py .` failure is a real registry
+collision, not a parser artifact. The bounded audit found six duplicated Coq
+fact groups spanning 17 registry rows:
+
+| Coq fact | Collision shape | Required correction |
+| --- | --- | --- |
+| `SFDirectMirCfgCertificate` | general CFG and Option-match certificates share one fact ID | Give genuinely distinct certificate families distinct proof IDs, or prove one owner and mark the other as a derived view. |
+| `SFDirectMirCfgProjectionPlan` | general CFG, Option-match, and Array<Int> plans share one fact ID | Separate target plan identities unless they are projections of one registered owner. |
+| `SFDirectMirScalarCfgGraphPlan` | String-array, pop, and Array<Int> subfacts are registered beside the enclosing GraphPlan as peers | Keep the enclosing GraphPlan authoritative and register responsibility-specific values as named subfacts/views, not duplicate top-level authorities. |
+| `SFAbiLayoutRows` | the canonical ABI row and Option/Array<Int>/Array<String> projections are all promoted as authorities | Keep `abi.layout_rows` as owner; classify concrete-family rows as derived projections with distinct evidence identities. |
+| `SFDirectMirCallReturnGraph` | program identity and verified plan share one fact ID | Model identity and plan as separate lifecycle stages rather than dual owners. |
+| `SFDirectMirCallParameterGraph` | program identity and verified plan share one fact ID | Model identity and plan as separate lifecycle stages rather than dual owners. |
+
+The gate stops at duplicates, so the audit also recorded the next hidden drift
+instead of calling the registry otherwise healthy: the proof mapping misses six
+facts; the summary says 36 CLOSED while the table currently has 53; seven
+CLOSED rows still carry an open reason; seven relations are invalid; 73 fact
+owners are unclassified; 12 paths are stale; 26 evidence references drift; and
+two producer terms are invalid. These counts are an audit snapshot, not a
+second executable work queue.
+
+This registry cleanup did not run in parallel with the active self-host rung.
+Its acceptance card is: choose one duplicate group, fix owner identity and
+derived-view classification, migrate every consumer, make missing identity fail
+closed, and run `sot_registry_gate.py` plus the affected executable gate. Do
+not bulk-rename proof IDs merely to silence the first duplicate check.
+
 ## Open layering debt
 
 | Priority | Owner | Observed evidence | Required closure |
 | --- | --- | --- | --- |
+| P1 | `docs/semantics/sot_owner_spine_registry.md` | Six duplicate Coq fact groups span 17 rows; later validation has additional classification, path, evidence, and producer drift | Close one fact family at a time behind its real owner and affected executable gate. Do not treat derived ABI views or identity/plan stages as peer authorities. |
 | P1 | `compiler/direct_mir_backend_projection_owner.pgy` | 252 lines, 24 imports, and routes selected by exact routine/block/instruction counts including 1, 3-7. The `str_builtins2` four-block semantic family is now claimed earlier by GraphPlan v20, but the generic exact-count branch still serves other programs. | Replace each remaining count branch only when an executable typed route reaches it. Add a negative ratchet for each displaced semantic family; do not create one grand dispatcher replacement. |
 | P1 | `semantic/ast_expression_graph_fact_owner.pgy` | 616 lines against the 600-line repository ceiling; component contract is red | Split one owned subfact/view responsibility and return below the existing cap. Do not raise the cap. |
 | P1 | `mir/json_projection_owner.pgy` | 605 lines; the default stage ceiling is 600 | Move one complete JSON section to a named projection owner while keeping MIR facts authoritative and byte/parity gates intact. |
