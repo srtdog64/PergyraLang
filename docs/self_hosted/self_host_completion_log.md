@@ -6,6 +6,48 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-05 - Runtime String collection builtins substitute through GraphPlan v20
+
+- Landed executable checkpoint `97db96d1`. The 4,972,723-byte current-source
+  Pergyra-built driver
+  (`9A48625E5694780CC70E79B6CA35E70A9A58B4DC759CB59FE96DD427674D91EF`)
+  consumes the 20,672-byte `str_builtins2.pgy` MIR
+  (`CFE3D90203905D4F98BD5F3D72338DA95324388DB2F6B7CAAA88302E00B079D3`).
+  It emits 3,322-byte C
+  (`2B75104A03F8BA746C6FE129C3AC06E40EE0ABDF3DDA12EA23878530ED18D1C1`)
+  and 9,823-byte LLVM
+  (`C62334A0403D78EBE05E35B378B9DBCFEF19F53586205853795B666548B4D9EC`);
+  both execute `yes`, `3`, `bb`, `43`, `1`, `2`, and `left` exactly.
+- GraphPlan v20 remains the sole program graph authority. The typed arena adds
+  StringContains, Split/StringSplit, String-to-Int, Array<String> length, and
+  Array<String> index. One runtime-ABI fact and one captured four-field
+  Array<String> ABI fact feed both targets. Split is evaluated at runtime and
+  every produced Array<String> local is dropped.
+- The initial phi diagnostic was false attribution from exact four-block
+  dispatch. After the typed program route claimed the MIR, the shared
+  GraphInput still let the legacy String-array plan claim Split definitions.
+  A named program GraphInput entry now leaves these definitions with the
+  expression arena while preserving the general CFG collection owner.
+- The expression last-kind range moved to its identity owner. Duplicate kind
+  scans and an implicit reverse import in runtime projection readiness were
+  removed. C layout assertions now consume captured offsets rather than copied
+  constants. All responsibility owners have tight caps; no old cap increased.
+- Display-only mutation is artifact-equal. Semantic mutation executes exact
+  `no`, `3`, `bbbb`, `8`, `1`, `2`, `left`. Result/argument/index/target/syntax/
+  layout negatives publish no artifact and cannot retry the count/legacy
+  String-array/phi paths. Final collection, window, nested-builtin, and legacy
+  String-array gates are green.
+- Full CI, fixed point, proofs, sanitizers, and pressure sampling did not run.
+  Documentation quality passed after the registry update. The independent
+  616/600 semantic owner and duplicate-Coq-authority reds remain explicit; the
+  SoT authority-edge wrapper reaches the latter unchanged.
+- The next observed falsifier is `str_case_math.pgy`: 24,283-byte MIR
+  (`D0E8EDFAF1B91AED04D5ED99BBDDCD3BB7B250DB673810DD5CCB224E29CDA7AF`)
+  fails both targets without artifact at terminal multi-routine admission. The
+  next rung must add ordered multi-parameter callable facts and canonical
+  StringReplace/Abs/Min/Max calls to the same GraphPlan, not a fixture route,
+  evaluator, count classifier, or second emitter.
+
 ## 2026-08-04 - String window definitions substitute through n-ary GraphPlan facts
 
 - Landed executable checkpoint `585776f0`. The 4,942,644-byte current-source

@@ -1,8 +1,40 @@
 # Build Troubleshooting
 
-마지막 업데이트: 2026-08-04
+마지막 업데이트: 2026-08-05
 
 빌드/회귀 도중 자주 마주치는 문제와 대응. **항상 `mingw32-make rebuild`를 먼저 시도**하면 절반은 풀린다.
+
+---
+
+## A phi diagnostic appears for a phi-free four-block program
+
+Do not add a synthetic phi or relax phi readiness until routing ownership is
+checked. An exact block-count dispatcher can send a semantically unrelated
+program into a legacy CFG plan, so the first deep diagnostic describes the
+wrong claimant rather than the missing fact.
+
+This happened with `str_builtins2.pgy`. Its four blocks contain a
+StringContains branch and no phi, but the exact four-block path reached legacy
+scalar CFG and reported `direct MIR CFG merge phi result or
+incoming/predecessor fact is missing or invalid`. After the typed program route
+claimed it, a second conflict appeared: shared GraphInput eagerly treated every
+Array<String> definition as a legacy literal/mutation collection and rejected
+Split output.
+
+The correction is owner-directed:
+
+- let the semantic typed-program route claim before the count branch;
+- use the named program GraphInput entry so Split definitions remain owned by
+  the typed expression arena;
+- preserve the general CFG collection selector for programs that actually use
+  its literal/mutation protocol;
+- add no-retry negatives that reject the old phi, local-inventory, and legacy
+  String-array diagnostics.
+
+The focused evidence is
+`tests/self_hosted/parity/one_mir_string_collection_builtin_projection.sh`.
+It also pins the producer MIR hash, exact C/LLVM execution, semantic mutation,
+captured Array<String> ABI layout, and no artifact for malformed facts.
 
 ---
 

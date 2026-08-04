@@ -1,6 +1,6 @@
 # Self-Host Layering and Duplication Audit
 
-Updated: 2026-08-04 (Asia/Seoul)
+Updated: 2026-08-05 (Asia/Seoul)
 
 This is a bounded architecture audit of the production self-host path. It is
 not a general cleanup queue and it does not override the active executable
@@ -22,6 +22,25 @@ rung, the SoT registry, or executable gates.
   ownership/cap gates second.
 
 ## What was closed in the current rung
+
+The `str_builtins2.pgy` rung displaced one exact four-block dispatch family
+without opening a second graph. It also exposed and closed four responsibility
+seams:
+
+1. the shared GraphInput let the legacy String-array literal/mutation plan
+   claim Split-produced definitions before the typed program arena;
+2. expression shape readiness encoded `SubtractInt` as the last valid kind;
+3. String and String-collection runtime requirements duplicated the same kind
+   presence scan;
+4. collection projection readiness called a function owned by its importer,
+   leaving dependency direction implicit.
+
+The program now uses a named GraphInput entry that suppresses only external
+collection plans for this owner. The expression-kind identity owner supplies
+the last kind, one query owner supplies kind presence, and one generated-ABI
+readiness owner supplies both projections. The captured Array<String> ABI
+compares every offset across definitions, and C derives assertions from that
+fact. Existing caps stayed fixed; new owners have their own caps.
 
 The `str_builtins.pgy` failure exposed two layering faults rather than a need
 for a fixture exception.
@@ -63,7 +82,7 @@ is responsibility density and coarse dispatch.
 
 | Priority | Owner | Observed evidence | Required closure |
 | --- | --- | --- | --- |
-| P1 | `compiler/direct_mir_backend_projection_owner.pgy` | 252 lines, 24 imports, and routes selected by exact routine/block/instruction counts including 1, 3-7 | Replace each count branch only when an executable typed route reaches it. Add a negative ratchet forbidding each retired count classifier; do not create one grand dispatcher replacement. |
+| P1 | `compiler/direct_mir_backend_projection_owner.pgy` | 252 lines, 24 imports, and routes selected by exact routine/block/instruction counts including 1, 3-7. The `str_builtins2` four-block semantic family is now claimed earlier by GraphPlan v20, but the generic exact-count branch still serves other programs. | Replace each remaining count branch only when an executable typed route reaches it. Add a negative ratchet for each displaced semantic family; do not create one grand dispatcher replacement. |
 | P1 | `semantic/ast_expression_graph_fact_owner.pgy` | 616 lines against the 600-line repository ceiling; component contract is red | Split one owned subfact/view responsibility and return below the existing cap. Do not raise the cap. |
 | P1 | `mir/json_projection_owner.pgy` | 605 lines; the default stage ceiling is 600 | Move one complete JSON section to a named projection owner while keeping MIR facts authoritative and byte/parity gates intact. |
 | P2 | `codegen/emission/stmt_emit.pgy` | 621 lines under a file-specific 640 exception and 33 imports | Split complete statement families behind existing semantic statement facts, then remove the exception and restore the default ceiling. |

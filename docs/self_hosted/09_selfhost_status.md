@@ -16,6 +16,47 @@ For work after this snapshot, follow `docs/152_validation_isolation_policy.md`:
 rerun only the owner gate for the touched self-host rung unless a broader
 compiler-world owner changed or broad parity is explicitly requested.
 
+Focused evidence on 2026-08-05 closes `str_builtins2.pgy` at checkpoint
+`97db96d1`. The 4,972,723-byte current-source Pergyra-built driver
+(`9A48625E5694780CC70E79B6CA35E70A9A58B4DC759CB59FE96DD427674D91EF`)
+consumes one 20,672-byte self-produced MIR
+(`CFE3D90203905D4F98BD5F3D72338DA95324388DB2F6B7CAAA88302E00B079D3`)
+through GraphPlan v20. It emits 3,322-byte C
+(`2B75104A03F8BA746C6FE129C3AC06E40EE0ABDF3DDA12EA23878530ED18D1C1`)
+and 9,823-byte LLVM
+(`C62334A0403D78EBE05E35B378B9DBCFEF19F53586205853795B666548B4D9EC`).
+Both compile and execute exact `yes`, `3`, `bb`, `43`, `1`, `2`, and `left`.
+
+The normalized expression arena and sealed runtime facts now own
+StringContains, Split/StringSplit, String-to-Int, and Array<String> length/get.
+The required four-field Array<String> layout is captured once from admitted
+MIR, checked across every definition, and consumed by both targets. A named
+program GraphInput entry prevents the legacy String-array literal/mutation
+plan from claiming Split results; the general CFG collection path is
+unchanged. The expression-kind owner supplies the last valid kind, shared kind
+queries are no longer duplicated, and generated ABI readiness has an explicit
+dependency owner.
+
+The focused gate proves display-only artifact equality, semantic mutations
+with exact changed `no`, `3`, `bbbb`, `8`, `1`, `2`, `left`, and seven
+no-artifact type/topology/identity/layout negatives per target. The final build
+took 144.0 seconds. Collection, window, nested-builtin, and legacy String-array
+gates are green on the final driver. No existing LoC cap was raised. Full CI,
+fixed point, proofs, sanitizers, pressure sampling, and release promotion did
+not run. Documentation quality is green after the registry update; the SoT
+authority-edge gate reaches the pre-existing duplicate-Coq-authority red. This
+is bounded direct-C/LLVM `SUBSTITUTING`, not general collection or whole-
+compiler replacement.
+
+The next observed falsifier is `str_case_math.pgy`: its 24,283-byte MIR
+(`D0E8EDFAF1B91AED04D5ED99BBDDCD3BB7B250DB673810DD5CCB224E29CDA7AF`)
+is rejected by both targets without artifact at
+`direct MIR terminal multi-routine graph is unsupported`. It requires ordered
+three-parameter callable facts plus registry-owned StringReplace/Abs/Min/Max
+inside the same GraphPlan. Fixture routing, expression-text evaluation, a
+second graph/emitter, count routing, backend MIR reads, or native retry remain
+forbidden.
+
 Focused evidence on 2026-08-04 closes `str_builtins.pgy` at checkpoint
 `585776f0`. The 4,942,644-byte current-source Pergyra-built driver
 (`40FAA8C611A2F8219CC1F22BFAC25EB0085049DCA8C270EE782CDE2AD7667619`)

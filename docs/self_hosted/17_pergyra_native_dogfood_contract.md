@@ -2,6 +2,28 @@
 
 Status: `BRIDGE`
 
+## 2026-08-05 bounded runtime String collection evidence
+
+Checkpoint `97db96d1` is bounded `SUBSTITUTING` evidence for the exact
+`str_builtins2.pgy` slice. The installed Pergyra-built entrypoint consumes its
+self-produced MIR through GraphPlan v20 and executes StringContains,
+Split/StringSplit, String-to-Int, Array<String> length/index, and cleanup in
+both direct C and LLVM. Runtime output is exact `yes`, `3`, `bb`, `43`, `1`,
+`2`, `left`; semantic mutation changes the output in both targets, while
+malformed type, call topology, target/syntax identity, or ABI layout publishes
+no artifact.
+
+This is pure value computation and bounded collection ownership, so
+`func`/`struct` remain the correct Pergyra-native organization. Adding an
+`action`, `zone`, or `intent` would invent an authority or real-world purpose
+that this rung does not have. The production entrypoint is nevertheless real:
+the Pergyra implementation replaces the prior C-owned direct-backend path for
+this semantic program, so the grade is `SUBSTITUTING`, not keyword `SURFACE`.
+
+The result does not promote arbitrary Array ownership, bounds policy,
+multi-parameter callables, compiler-purpose intent, or the whole self-host
+root. Those remain separate executable rungs.
+
 ## 2026-08-04 bounded String-window definition evidence
 
 Checkpoint `585776f0` is bounded `SUBSTITUTING` evidence for the exact
