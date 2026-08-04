@@ -6,82 +6,79 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - read-only `Array<Int>` maximum closed
+## Active self-host context - fresh bounded `ArrayReverse` closed
 
-- Executable checkpoint: `4be9ac088bc870f15b92d934c793700b74e6abeb` on
-  `main`, with this handoff as its intended docs-only descendant. The
-  current-source Pergyra-built driver used for final evidence is 4,613,637
-  bytes with SHA-256
-  `CF1178FAB3E78BA717676E91F88537384661973ABEEFEFCC2C5D5E193F4A7443`.
-- Closed executable rung: `src/self_hosted/codegen/fixture/array_max.pgy`.
-  Its 9,706-byte self-produced MIR has SHA-256
-  `F3200219061C8257830EF18A2A0E201B4D2C4460E2384C05A204AD7144CE10F3`.
-  The same MIR emits a 1,022-byte C artifact
-  (`0A0C028BDDD8AB273EAE22395CD7D8296F3DECCABCECD91A8A07537BA959458F`)
-  and a 3,936-byte LLVM artifact
-  (`32F5B7296DC777837FAFC6F4007B2B38EBA29E18BB1502FC75FD901D7E6AFD98`).
-  Both host-compile and execute exact `9`.
-- The same target-neutral scalar-CFG `GraphPlan` and one Array program receipt
-  now own three mutually exclusive modes: dynamic push, initialized static set,
-  and initialized read-only range maximum. The five old loop-mutation owner
-  paths and `LoopMutation` symbols were retired without an alias and are now
-  negative-ratcheted.
-- The read-only mode consumes the existing collection/literal/ABI, generic
-  range, expression, ValueId, LocalRef, phi, and log facts. It owns only the
-  range syntax binding, greater-condition/update roles, exact predecessor/value
-  joins, and final readiness. There is no duplicate range planner, per-operation
-  whole-graph validation, fixture route, or backend MIR re-read.
-- C and LLVM use current length, initialize the accumulator from `xs[0]`, read
-  dynamic `xs[i]`, update the same phi-owned `best`, and log the final value.
-  Capacity is never treated as length, `9` is not precomputed, and neither
-  target retries another Array mode or escapes to native collection semantics.
-- The focused gate proves baseline `9`, first-max `12`, last-max `14`,
-  all-negative `-2`, display/phi-order artifact equality, and 23 no-artifact
-  negatives. The prior initialized sum/set and dynamic-push paths remained
-  executable regressions.
-- Observed evidence after the final split: composed source check about 6.0
-  seconds; current-source driver build 128.7 seconds; final max/sum/push
-  regression 102.3 seconds; component/removed-path ratchet 245.8 seconds; and
-  cumulative scalar-CFG integration 388.539 seconds. LLVM emitted only the
-  tolerated target-triple override warnings.
-- The final cumulative process tree was sampled every 500 ms. It observed
-  0.027 GiB peak working set and 0.010 GiB peak private memory; the low sample
-  can miss short-lived child peaks, so it is integration-test evidence rather
-  than an ordinary compiler-build memory claim. Neither the 2.4 GiB attention
-  threshold nor the 3 GiB hard stop fired.
-- No existing line cap was raised. The mixed operation binder was split into a
-  responsibility-named mutating owner plus a 23-line dispatcher, whose cap is
-  now 25. Classification is bounded `SUBSTITUTING` only for the exact local
-  read-only range/if/phi maximum shape, beside the two prior Array modes.
-- The Hacker News observation about AI language consistency versus compiler
-  architecture is retained as anecdote in
-  `docs/131_ai_coding_atomic_units.md`. Repository-local evidence is narrower:
-  this rung exposed an obsolete owner identity, duplicate range facts, an
-  invalid absence sentinel, and an SSA name/ID mismatch, all now covered by
-  named owners and negative gates.
+- Executable checkpoint: `5877398b60f2d725f296407c910b4c50fd16b5ec` on
+  `main`, with this handoff as its intended docs-only descendant. The final
+  current-source Pergyra-built driver is 5,233,261 bytes with SHA-256
+  `5EA829E9E344BA5770FC4D7BB243F0619944DB03033A9F01CB1F1C0D8AFD4798`.
+- Closed executable rung: `src/self_hosted/codegen/fixture/array_reverse.pgy`.
+  Its 7,260-byte self-produced MIR has SHA-256
+  `7D4FDBA6CC28906541B406DC508FE6C0870DC8B5DB638C2A41787FF711C8F64D`.
+  The same MIR emits a 1,136-byte C artifact
+  (`6ED02FD672F59C9D7DEA890BE563004713FFD150E059A6A8D3F2D664F2477B30`)
+  and a 5,133-byte LLVM artifact
+  (`151E297EE76A0D357D1D5869AA138F3E3A241091D27587210D4A4AB55D4AB0C3`).
+  Both host-compile and execute exact `3`, `2`, `1`, `3`.
+- The one target-neutral Array program receipt now owns four mutually exclusive
+  modes: dynamic push, initialized static set, initialized read-only maximum,
+  and bounded fresh reverse. The reverse receipt seals distinct source/result
+  definition, ValueId, source-local, storage, and canonical four-field ABI
+  identities; no reverse-specific top-level planner exists.
+- C and LLVM allocate separate source/result storage, load source positions
+  `2,1,0`, store result positions `0,1,2`, and copy current source length only
+  after the result stores. Neither target mutates or aliases source storage,
+  reopens MIR, precomputes `[2,1,3]`, or calls the incompatible legacy
+  `pgy_ai_reverse` helper.
+- A final read-only audit caught two P1 ownership defects before commit. Exact
+  reverse validity had doubled as the route claim, allowing malformed call
+  targets/edges to retry the legacy one-block local-inventory route. The route
+  now coarsely claims every `Array<Int>`-valued call graph or invalid expression
+  sequence, and exact admission alone decides acceptance. Operation 20 was also
+  missing from absent-program readiness; one named inventory now rejects every
+  `Array<Int>`-owned operation without a program receipt.
+- Focused evidence: baseline plus alternate `4,-5,6`, display/ValueId-renumber
+  artifact equality, and 20 C/LLVM no-artifact negatives passed in 33.3
+  seconds. Push, sum/set, and maximum sibling regressions passed in 157.7
+  seconds; component/removed-path contracts passed in 269.6 seconds; the final
+  cumulative CFG/AIR graph reached its final success row in 647.4 seconds.
+- Memory was sampled only at the final cumulative boundary. The 500 ms process-
+  tree sample observed 0.361 GiB peak working set and 0.316 GiB peak private
+  memory, below the 2.4 GiB attention and 3 GiB stop thresholds. This is test-
+  inclusive integration evidence, not ordinary self-host compile latency.
+- No existing line cap was raised. Saturated mixed responsibilities were split
+  into named owners; the new transform route fact is 19/25 lines, operation-
+  absence owner 25/30, reverse route 37/40, and final program readiness 147/155.
+  Classification is bounded `SUBSTITUTING` only for the exact local three-
+  element fresh-reverse shape. Full CI, public matrices, current gen2==gen3,
+  released-driver promotion, and proof suites did not run.
 - Known independent red: `python scripts/sot_registry_gate.py` still exits 1 at
   the pre-existing `registry contains duplicate Coq fact authorities`. This
-  rung did not add or weaken that conflict. Full CI, public matrices, current
-  gen2==gen3 fixpoint, and proof suites did not run.
-- Next objective card: only `src/self_hosted/codegen/fixture/array_reverse.pgy`
-  is active. The current driver produces a 7,260-byte MIR with SHA-256
-  `7D4FDBA6CC28906541B406DC508FE6C0870DC8B5DB638C2A41787FF711C8F64D`.
-  Both direct targets reject before artifact publication with
-  `direct MIR scalar local type inventory is missing or invalid` because no
-  current receipt claims both the source `nums` and fresh result `reversed`
-  collection identities across the `ArrayReverse` call.
-- Objective: extend the one scalar-CFG plan with an explicit fresh-value Array
-  transform receipt and execute exact `3`, `2`, `1`. Priority is source/result
-  identity and non-aliasing semantics, owner-directed call/result facts,
-  fallback exclusion, then C/LLVM parity. The canonical Array ABI, literal
-  spine, expression graph, LocalRef, runtime ABI, and local inventory owners
-  supply facts; `CompileAdmittedDirectMirForTarget` is the last legitimate
-  consumer.
-- Forbidden fallback: fixture/text or block-count routing, backend MIR reads,
-  precomputed output, silently aliasing source and result, a second Array
-  planner, or trying another plan after the named owner rejects the program.
+  rung did not add or weaken that conflict.
+- Next objective card: only `src/self_hosted/codegen/fixture/array_pop.pgy` is
+  active. The current driver produces a 14,007-byte MIR with SHA-256
+  `AB92771EA08C27C73EDAB26E06441BF88CC3843C64FEFD784156694D321F73D4`.
+  Both direct targets reject before publication with
+  `direct MIR String array source plan is invalid`.
+- Objective: close one program-level multi-collection source identity reached
+  by the two `ArrayPop` effects. Priority is shared source identity and current-
+  length semantics, owner-directed effect/result facts, fallback exclusion,
+  then exact C/LLVM parity. The existing typed collection/ABI and scalar-CFG
+  GraphPlan owners supply facts; `CompileAdmittedDirectMirForTarget` remains the
+  last legitimate consumer. The first falsifier must distinguish both pop
+  effects and reject stale or cross-collection receivers before publication.
+- Forbidden fallback: fixture/text routing, partial Int-only success, a second
+  collection planner, backend MIR reads, native helper retry, capacity as
+  current length, or trying an older plan after the named owner rejects.
 
 ## Historical checkpoint archive - inactive navigation evidence
+
+### Previous read-only `Array<Int>` maximum closure
+
+- Executable checkpoint `4be9ac088bc870f15b92d934c793700b74e6abeb`
+  closes `array_max.pgy` with exact `9`, first/last/all-negative variants, 23
+  no-artifact negatives, and one three-mode Array program receipt. It is now
+  historical input to the four-mode receipt above.
 
 ### Previous initialized `Array<Int>` sum/set closure
 
