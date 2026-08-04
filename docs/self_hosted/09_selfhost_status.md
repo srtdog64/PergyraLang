@@ -16,31 +16,47 @@ For work after this snapshot, follow `docs/152_validation_isolation_policy.md`:
 rerun only the owner gate for the touched self-host rung unless a broader
 compiler-world owner changed or broad parity is explicitly requested.
 
-Focused evidence on 2026-08-04 closes `string_equality.pgy` at checkpoint
-`be376971`. One 14,698-byte self-produced MIR drives both installed direct
-targets through GraphPlan v16 and executes exact `I, S, S, ?, eq`. Main and the
-`Kind(String) -> String` callable use one per-routine admission loop, canonical
-routine ranges, flat graph storage, and one seal. Direct calls join persisted
-syntax identity; String comparison consumes the runtime ABI registry rather
-than a backend-local symbol. Display and admitted routine order do not change
-artifacts; six identity/type/CFG/return mutation families fail without C or
-LLVM publication. The existing Bool and reallocating Array-parameter gates
-remain green on the same Pergyra-built driver. Typed-expression admission uses
-`Option<Int>` for failure rather than adding another `-1` sentinel. The final
-build took 143.9 seconds and all three focused gates took 34.6 seconds; no new
-memory peak was measured because focused gates are not sampled on every run.
-This is bounded direct-C/LLVM `SUBSTITUTING`, not arbitrary program or
-released/default replacement. The next observed falsifier is the 6,109-byte
-`string_equality_concat.pgy` MIR
-(`85E6A08A02F7C6DB568455793D7EF777847C17C9A56366782DFB38B6D8014538`),
-rejected without artifact by both targets at `direct MIR scalar CFG condition
-fact is invalid`.
+Focused evidence on 2026-08-04 closes `string_equality_concat.pgy` at
+checkpoint `094b6dad`. The 4,909,469-byte current-source Pergyra-built driver
+(`D2C68BD67E4F844F8E12625FCEA7F250492E74ED718C4AB7C3B642BE19D8A9A8`)
+consumes one 6,109-byte self-produced MIR
+(`85E6A08A02F7C6DB568455793D7EF777847C17C9A56366782DFB38B6D8014538`)
+through GraphPlan v17. It emits 886-byte C
+(`D00807FE90B660B2EB5E35D73D3A79809002AB199E0B91E560D6CAD748195FA2`)
+and 2,698-byte LLVM
+(`5C4324F08A2368AADBE45DA3F415E3ADD605CA116D9BC70ECCFC25B55D2A7642`);
+both compile and execute exact `concat_eq_ok`.
 
-The focused documentation gate passed. Coq/Rocq was unavailable, so proof-spine
-execution is an explicit environment skip rather than a proof pass. The global
-Pergyra-likeness gate remains red at sentinel `239 > 22` and zone-bound steps
-`26 < 29`; this executable delta has equal added/removed sentinel-pattern
-matches after its append result moved to `Option<Int>`.
+The existing typed expression arena now owns nested String concat as well as
+comparison. One expression-kind-to-runtime-ABI owner selects concat/compare
+IDs, one GraphPlan seal joins them with operation-owned requirements, and both
+backends consume the same sealed receipt. A single routine carries a canonical
+empty callable/closed-call ABI instead of a dummy callable. One syntactic
+routine-admission call inside a loop serves both one- and two-routine programs.
+Display-only mutation is artifact-identical, a source String mutation executes
+`concat_eq_fail`, and six malformed child/kind/type/use identities fail without
+artifact or retry through the generic CFG route.
+
+The final driver build took 124.5 seconds. The final focused gates were green:
+concat 10.7 seconds, previous String equality 11.5 seconds, Bool 18.8 seconds,
+and reallocating Array parameter 8.6 seconds. No pressure result is claimed.
+Shared scalar-program LoC caps now have one data owner consumed by the focused
+and component gates; no cap was raised. The component contract still stops at
+the independent pre-existing `ast_expression_graph_fact_owner.pgy` 616/600
+cap failure before reaching this section. The global Pergyra-likeness gate
+remains red at its prior sentinel `239 > 22` and zone-bound steps `26 < 29`;
+this rung adds no sentinel match. The SoT registry gate retains its pre-existing
+duplicate Coq fact-authority failure. Full CI, fixed point, prover, sanitizer,
+and released/default promotion did not run.
+
+This is bounded direct-C/LLVM `SUBSTITUTING`, not arbitrary String-program or
+whole-compiler replacement. The next observed falsifier is
+`string_concat_op.pgy`: its 14,105-byte MIR
+(`994A28363848AD3F60504BFA95B71C25D02842CACBC0C88CC89342AB9B3A1DF7`)
+is rejected by both targets without artifact at `direct MIR scalar CFG program
+routine admission is invalid`. The first missing owner fact is a builtin call
+node such as `ToString(n)` nested inside a concat DAG; expression text,
+precomputed output, a fixture route, or a second program emitter is forbidden.
 
 Focused evidence on 2026-07-27 advances the integrated driver beyond this
 dated full-suite snapshot. The Pergyra-built gen2 driver emitted verified MIR

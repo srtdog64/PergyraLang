@@ -6,6 +6,53 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-04 - Typed String concat substitutes through the shared GraphPlan
+
+- Landed executable checkpoint `094b6dad`. The 4,909,469-byte current-source
+  Pergyra-built driver
+  (`D2C68BD67E4F844F8E12625FCEA7F250492E74ED718C4AB7C3B642BE19D8A9A8`)
+  consumes the 6,109-byte `string_equality_concat.pgy` MIR
+  (`85E6A08A02F7C6DB568455793D7EF777847C17C9A56366782DFB38B6D8014538`).
+  It emits 886-byte C
+  (`D00807FE90B660B2EB5E35D73D3A79809002AB199E0B91E560D6CAD748195FA2`)
+  and 2,698-byte LLVM
+  (`5C4324F08A2368AADBE45DA3F415E3ADD605CA116D9BC70ECCFC25B55D2A7642`);
+  both compile and execute exact `concat_eq_ok`.
+- GraphPlan v17 remains the sole graph authority. The existing typed arena
+  gained one String-concat kind. Expression requirements select canonical
+  concat/compare runtime ABI IDs, the seal joins them with operation-owned ABI
+  needs, and both renderers consume that receipt without reading MIR. A single
+  routine uses canonical empty callable/closed-call facts rather than a dummy
+  callable.
+- Generalized the same routine admission and partition from exactly two rows to
+  one or two. One syntactic admission call sits inside the row loop, and one
+  GraphPlan seal remains. Route classification uses a bounded String semantic
+  envelope, not fixture name, expression text, routine/block counts, or output
+  constants.
+- The focused gate proves display-only artifact equality, a semantic input
+  mutation that executes `concat_eq_fail`, and six no-artifact child/kind/type/
+  use negatives per target. Generic-CFG retry is rejected. Previous String,
+  Bool, and Array-parameter gates remain green on the final driver.
+- The final build took 124.5 seconds; final focused times were 10.7, 11.5,
+  18.8, and 8.6 seconds. No memory pressure result is claimed. Full CI,
+  current gen2==gen3, proofs, sanitizers, and release promotion did not run.
+- Layering audit split optional callable identity, expression-derived runtime
+  ABI, one/two-routine route claims, and routine identity assembly into named
+  owners. Their hard caps are 65, 60, 60/65, and 75 lines. The duplicated and
+  contradictory scalar-program cap tables were replaced by one shared cap
+  data owner; no cap increased.
+- Independent known reds remain explicit. The global likeness gate is still at
+  sentinel `239 > 22` and zone-bound steps `26 < 29`, with no new sentinel in
+  this rung. The component contract stops earlier at the pre-existing 616/600
+  `ast_expression_graph_fact_owner.pgy` cap, and the SoT registry keeps its
+  pre-existing duplicate Coq fact-authority failure.
+- The next sole falsifier is `string_concat_op.pgy`. Its 14,105-byte MIR
+  (`994A28363848AD3F60504BFA95B71C25D02842CACBC0C88CC89342AB9B3A1DF7`)
+  is rejected by both targets without artifact at scalar-program routine
+  admission. The first missing fact is a builtin call such as `ToString(n)`
+  nested inside a concat DAG. A fixture branch, text parse, precomputed output,
+  second program plan/emitter, or backend-local builtin identity is forbidden.
+
 ## 2026-08-04 - Routine-partitioned String program substitutes in one GraphPlan
 
 - Landed executable checkpoint `be376971`. The 4,896,518-byte current-source

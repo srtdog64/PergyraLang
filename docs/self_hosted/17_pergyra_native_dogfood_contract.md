@@ -2,6 +2,22 @@
 
 Status: `BRIDGE`
 
+## 2026-08-04 bounded single-routine String-concat evidence
+
+Checkpoint `094b6dad` is bounded `SUBSTITUTING` evidence for the exact
+`string_equality_concat.pgy` slice. The installed Pergyra-built entrypoint
+consumes its self-produced MIR through GraphPlan v17. Typed nested String concat
+and comparison select canonical runtime ABI receipts before the shared C/LLVM
+renderers; both artifacts compile and execute `concat_eq_ok`. A semantic String
+mutation executes `concat_eq_fail`, while six malformed expression identities
+publish no artifact and cannot retry the generic CFG owner.
+
+This is still pure value computation, so `func`/`struct` owners are the correct
+Pergyra-native form. Decorative `action` or `intent` would falsify the language
+responsibility boundary. It does not promote compiler-root world/zone/action/
+intent dogfood, arbitrary String programs, nested builtin calls, temporary
+String ownership, or released/default whole-compiler replacement.
+
 ## 2026-08-04 bounded routine-partitioned String-program evidence
 
 Checkpoint `be376971` is bounded `SUBSTITUTING` evidence for one input-language

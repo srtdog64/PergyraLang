@@ -2251,12 +2251,13 @@ inventory must not become a second fact-family owner registry.
   operation/type envelope, never fixture names or exact block counts. A
   validated multi-routine composition may select its exact `Main` row.
 - `src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy` --
-  row-order-neutral exact header-family claim for `Main: () -> Void` plus one
-  closed-module `(Int) -> Bool` or `(String) -> String` callable. It does not
-  claim by fixture name, surface word, block count, or routine order.
+  common one/two-routine route receipt. The bounded semantic claims live in
+  `direct_mir_scalar_program_single_string_route_owner.pgy` and
+  `direct_mir_scalar_program_two_routine_route_owner.pgy`; neither claims by
+  fixture name, display spelling, block count, or routine order.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_fact_owner.pgy`
   -- normalized typed expression-DAG arena shared by every program routine,
-  including String equality/inequality and routine-qualified direct calls.
+  including String concat/equality/inequality and routine-qualified calls.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy`
   -- graph/use/LocalRef normalization for literals, logical operators, Int
   arithmetic, String comparison, and `ToString(Int)`; formal parameters bind
@@ -2273,11 +2274,16 @@ inventory must not become a second fact-family owner registry.
   -- exact node arity, type, endpoint, and literal invariants for that arena;
   raw modulo projection is admitted only for nonzero, non-minus-one literals.
 - `src/self_hosted/compiler/direct_mir_scalar_program_callable_admission_owner.pgy`
-  -- strict supported callable-signature fact; block and return admission are
-  owned by the shared per-routine GraphPlan builder.
+  -- admission of the strict supported callable signature. The optional
+  callable receipt and canonical-empty invariant live in
+  `direct_mir_scalar_program_callable_fact_owner.pgy`; block and return
+  admission remain owned by the shared per-routine GraphPlan builder.
+- `src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_owner.pgy`
+  -- the sole expression-kind-to-String-runtime-ABI requirement mapper for
+  concat and compare. Backends consume the sealed IDs and do not infer calls.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_owner.pgy`
   -- optional callable identity, typed expression-row links, per-block return
-  rows, and closed-module runtime ABI carried by the existing scalar CFG
+  rows, and String/closed-module ABI IDs carried by the existing scalar CFG
   GraphPlan; it owns no duplicate CFG, SSA, phi, local, or operation arrays.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_readiness_owner.pgy`
   -- range-aware cross-links from extension rows to the sole GraphPlan. It
@@ -2291,9 +2297,9 @@ inventory must not become a second fact-family owner registry.
   condition whose true edge dominates the addition block. It owns neither a
   loop topology nor a second expression graph.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_admission_owner.pgy`
-  -- the small admitted-program composition boundary. It selects the canonical
-  two-routine route and delegates to one program GraphPlan builder; it owns no
-  storage loop, backend decision, or sibling plan.
+  -- the small admitted-program composition boundary. It seals the optional
+  callable and expression-derived runtime ABI IDs; it owns no storage loop,
+  backend decision, or sibling plan.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_storage_owner.pgy`,
   `direct_mir_scalar_cfg_program_graph_storage_mutation_owner.pgy`, and
   `direct_mir_scalar_cfg_program_value_storage_owner.pgy` -- layered persistent
@@ -2308,17 +2314,21 @@ inventory must not become a second fact-family owner registry.
   and the callable use it with explicit offsets and no topology classifier.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_partition_owner.pgy`
   -- canonical Main-first contiguous range construction over the flat GraphPlan
-  storage, independent of admitted routine-array order.
+  storage, independent of admitted routine-array order. Routine signature and
+  role arrays are assembled by the bounded
+  `direct_mir_scalar_cfg_program_routine_identity_owner.pgy`.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_admission_owner.pgy`
-  -- invokes the same routine admission for Main and callable, constructs one
-  partition/extension, and calls the sole GraphPlan seal exactly once.
+  -- loops over one or two canonical rows through one routine-admission call,
+  constructs one partition/extension, and calls the sole GraphPlan seal once.
 - `src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy`
-  -- MIR-blind C expression rendering from the sealed typed arena.
+  -- MIR-blind C expression rendering from the sealed typed arena and String
+  runtime ABI receipts.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy`
   -- MIR-blind range-driven C program rendering. One routine renderer serves
   entrypoint and callable; it never reopens admitted MIR.
 - `src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy`
-  -- MIR-blind LLVM SSA expression rendering.
+  -- MIR-blind LLVM SSA expression rendering from the same typed arena and ABI
+  receipts.
 - `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_global_owner.pgy`
   -- literal String global materialization, separated from expression policy.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy`

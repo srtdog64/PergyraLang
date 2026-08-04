@@ -6,6 +6,46 @@
 
 ---
 
+## A focused gate and the component contract disagree on the same LoC cap
+
+Do not “fix” this by choosing the larger number in every copy. Multiple cap
+tables are multiple policy authorities: a file can be green in its executable
+owner gate and fail an older component inventory before the relevant contract
+is reached.
+
+This was observed while closing the one-routine String-concat GraphPlan. The
+focused scalar-program gates carried current caps such as 220/250 lines for the
+C/LLVM program emitters, while the component contract still asserted 85/125.
+The correction is `tests/self_hosted/parity/scalar_program_owner_caps.tsv`, the
+single shared data owner consumed by all four gates. A responsibility split
+changes that row only after the new named owner and its focused evidence exist;
+consumers must not retain a copied table.
+
+Keep unrelated cap failures distinct. On 2026-08-04 the component contract
+still stopped earlier at `ast_expression_graph_fact_owner.pgy` 616/600. That
+pre-existing hierarchy debt is not evidence that the scalar-program cap
+registry failed, and it must not be hidden by raising 600 during an unrelated
+String rung.
+
+---
+
+## A one-routine program is forced through a two-routine extension
+
+Do not manufacture a dummy callable or a synthetic closed-module ABI merely to
+reuse a two-routine GraphPlan. Optional state must be canonical empty and part
+of the plan digest/readiness contract. Otherwise inactive payload can escape
+through fields that no consumer believes are active.
+
+The String-concat rung generalizes the same program GraphPlan to one or two
+routines. One row loop calls the routine-admission owner once syntactically;
+the single-routine extension seals an empty callable and closed-call ABI, while
+String concat/compare IDs are derived only from normalized expression kinds.
+The top-level seal joins that requirement with operation-owned String ABI facts
+and rejects disagreement. C and LLVM then materialize the same selected concat
+helper instead of guessing from emitted syntax.
+
+---
+
 ## A copied nested storage owner loses growable Array mutations
 
 A self-hosted Pergyra owner may compile and still lose mutations when a nested
