@@ -14184,6 +14184,88 @@ require_text "Makefile" "SELFHOST_ONE_MIR_ARRAY_PARAM_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_PARAM_GATE)'
 require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-array-param-projection-test-smoke"
+for scalar_program_owner_cap in \
+    direct_mir_returned_array_program_route_owner.pgy:100 \
+    direct_mir_scalar_program_route_fact_owner.pgy:110 \
+    direct_mir_scalar_program_expression_fact_owner.pgy:175 \
+    direct_mir_scalar_program_expression_admission_owner.pgy:330 \
+    direct_mir_scalar_program_expression_readiness_owner.pgy:135 \
+    direct_mir_scalar_program_callable_admission_owner.pgy:125 \
+    direct_mir_scalar_cfg_program_extension_fact_owner.pgy:110 \
+    direct_mir_scalar_cfg_program_extension_readiness_owner.pgy:115 \
+    direct_mir_scalar_cfg_program_extension_mutation_owner.pgy:35 \
+    direct_mir_scalar_cfg_program_arithmetic_admission_owner.pgy:75 \
+    direct_mir_scalar_cfg_program_admission_owner.pgy:320 \
+    direct_mir_scalar_program_c_expression_owner.pgy:95 \
+    direct_mir_scalar_cfg_program_c_emission_owner.pgy:85 \
+    direct_mir_scalar_program_llvm_expression_owner.pgy:160 \
+    direct_mir_scalar_cfg_program_llvm_emission_owner.pgy:125 \
+    direct_mir_scalar_program_projection_owner.pgy:50; do
+    scalar_program_owner="${scalar_program_owner_cap%%:*}"
+    scalar_program_cap="${scalar_program_owner_cap##*:}"
+    require_file "src/self_hosted/compiler/$scalar_program_owner"
+    require_max_lines \
+        "src/self_hosted/compiler/$scalar_program_owner" \
+        "$scalar_program_cap"
+done
+require_file "tests/self_hosted/parity/one_mir_bool_logic_projection.sh"
+require_file "tests/self_hosted/parity/one_mir_bool_logic_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_bool_logic_projection.sh" 160
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_bool_logic_mutations.py" 150
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_readiness_owner.pgy" \
+    "DirectMirScalarCfgProgramExtensionReadinessCode"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_mutation_owner.pgy" \
+    "DirectMirScalarCfgProgramExtensionMutationRejected"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_owner.pgy" \
+    "DirectMirScalarProgramExpressionSetCanonicalEmpty"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_owner.pgy" \
+    "DirectMirClosedModuleCallAbiFactCanonicalEmpty"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_arithmetic_admission_owner.pgy" \
+    "MirRoutineBlockDominates("
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_expression_readiness_owner.pgy" \
+    'facts.node_literals[right] != "0"'
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
+    ' = add nsw i64 '
+for forbidden_program_graph_owner in \
+    'DirectMirScalarCfgProgramPlanFromAdmitted' \
+    'DirectMirScalarCfgSealGraphPlan(' \
+    'let block_starts: Array<Int>' \
+    'let phi_predecessors: Array<Int>' \
+    'let phi_incoming_values: Array<Int>'; do
+    reject_text \
+        "src/self_hosted/compiler/direct_mir_scalar_cfg_program_admission_owner.pgy" \
+        "$forbidden_program_graph_owner"
+done
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+    "DirectMirScalarCfgAppendProgramOperation"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+    "DirectMirScalarCfgProgramExtensionFromAdmission"
+require_text \
+    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
+    "if scalar_program_route.claimed {"
+require_text "Makefile" "SELFHOST_ONE_MIR_BOOL_LOGIC_GATE ?="
+require_text "Makefile" '$(SELFHOST_ONE_MIR_BOOL_LOGIC_GATE)'
+require_text ".github/workflows/ci.yml" \
+    "self-host-one-mir-bool-logic-projection-test-smoke"
+for scalar_program_emitter in \
+    direct_mir_scalar_cfg_program_c_emission_owner.pgy \
+    direct_mir_scalar_cfg_program_llvm_emission_owner.pgy; do
+    reject_text "src/self_hosted/compiler/$scalar_program_emitter" \
+        "source_json"
+    reject_text "src/self_hosted/compiler/$scalar_program_emitter" \
+        "FromAdmitted"
+done
 for collection_emitter in \
     direct_mir_collection_program_c_emission_owner.pgy \
     direct_mir_collection_program_llvm_emission_owner.pgy; do
@@ -14310,8 +14392,8 @@ require_max_lines \
     "tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh" 200
 require_max_lines \
     "tests/self_hosted/parity/one_mir_struct_value_flow_mutations.py" 240
-require_text "src/self_hosted/compiler/direct_mir_array_return_program_identity_owner.pgy" \
-    "JsonArrayObjectFactCount(admitted.document.declarations) == 0"
+require_text "src/self_hosted/compiler/direct_mir_returned_array_program_route_owner.pgy" \
+    "JsonArrayObjectFactCount(admitted.document.declarations) != 0"
 require_text "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
     "DirectMirTwoRoutineNominalProgramCandidate(admitted)"
 require_text "src/self_hosted/compiler/direct_mir_struct_value_flow_plan_owner.pgy" \
@@ -15515,9 +15597,20 @@ require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_typed_readiness_own
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_identity_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_identity_owner.pgy" 100
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_operand_shape_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_operand_shape_owner.pgy" 30
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy" \
+    "DirectMirScalarCfgOperandsEmpty"
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy" 240
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_phi_operation_admission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_phi_operation_admission_owner.pgy" 80
+reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+    "MirRoutinePhiFactAt("
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_mutation_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_mutation_owner.pgy" 15
@@ -15947,7 +16040,7 @@ require_file "tests/self_hosted/parity/one_mir_array_int_reverse_projection.sh"
 require_file "tests/self_hosted/parity/one_mir_array_int_reverse_mutations.py"
 require_file "tests/self_hosted/parity/one_mir_array_int_reverse_artifact_contract.sh"
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" \
-    'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v13'
+    'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v14'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" \
     'func DirectMirScalarCfgOpArrayReverseInt() -> Int { return 20; }'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" \
@@ -16449,8 +16542,10 @@ reject_file "src/self_hosted/compiler/direct_mir_scalar_cfg_indexed_string_llvm_
     src/self_hosted >/dev/null || fail "foreach-only collection definition owner reappeared"
 require_text "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
     'DirectMirScalarCfgGraphRouteClaimed(admitted)'
-require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_phi_operation_admission_owner.pgy" \
     'MirPhiPredecessorBindingFactFromOwners('
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_phi_operation_admission_owner.pgy" \
+    'predecessor = 0;'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
     'DirectMirScalarCfgAssignmentTargetReady('
 reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
@@ -16506,7 +16601,9 @@ require_text "src/self_hosted/mir_lower/latest_local_value_fact_owner.pgy" \
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_operation_plan_owner.pgy" \
     'MirRoutineLatestDominatingLocalValueMatches('
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_projection_owner.pgy" \
-    'DirectMirScalarCfgGraphPlanFromAdmitted(admitted, 0, producer)'
+    'DirectMirScalarCfgGraphPlanFromAdmitted('
+require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_projection_owner.pgy" \
+    'DirectMirScalarCfgProgramAdmissionStateEmpty()'
 reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
     'nested_if_in_loop.pgy'
 reject_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \

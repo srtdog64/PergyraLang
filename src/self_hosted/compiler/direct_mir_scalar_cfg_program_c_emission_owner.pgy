@@ -1,0 +1,79 @@
+// C hooks for the optional typed-expression seam on the scalar CFG plan.
+
+import "direct_mir_scalar_cfg_program_extension_readiness_owner.pgy";
+import "direct_mir_scalar_program_c_expression_owner.pgy";
+import "direct_mir_scalar_cfg_c_operand_owner.pgy";
+import "../mir/runtime_call_abi_fact_owner.pgy";
+
+func DirectMirScalarCfgProgramCPreamble(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> String {
+    if !plan.program.valid { return ""; }
+    if !DirectMirScalarCfgProgramExtensionReadyForPlan(plan) {
+        Die("direct MIR scalar CFG program C preamble is invalid");
+    }
+    let expressions: DirectMirScalarProgramExpressionSet =
+        plan.program.expressions;
+    let output: String = "#include <stdbool.h>\n#include <stdio.h>\n";
+    output = Concat(
+        output, "static bool pgy_scalar_callable_0(long long pgy_param_0) {\n    return "
+    );
+    output = Concat(output, DirectMirScalarProgramCExpressionAt(
+        expressions, plan.program.callable.return_expression_row
+    ));
+    return Concat(output, ";\n}\n");
+}
+
+func DirectMirScalarCfgProgramCOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    int_line_format: String, string_line_format: String,
+    int_c_type: String
+) -> String {
+    if !plan.program.valid { return ""; }
+    let kind: Int = plan.operation_kinds[operation];
+    let expression_row: Int =
+        plan.program.operation_expression_rows[operation];
+    if kind == DirectMirScalarCfgOpExpressionDefinition() {
+        let output: String = "    ";
+        output = Concat(output, DirectMirScalarCfgCLocal(
+            plan, plan.operation_result_values[operation]
+        ));
+        output = Concat(output, " = ");
+        output = Concat(output, DirectMirScalarProgramCExpressionAt(
+            plan.program.expressions, expression_row
+        ));
+        return Concat(output, ";\n");
+    }
+    if kind != DirectMirScalarCfgOpExpressionLog() { return ""; }
+    let root: Int = plan.program.expressions.graph_roots[expression_row];
+    let to_string: Bool = plan.program.expressions.node_kinds[root] ==
+        DirectMirScalarProgramExprToStringInt();
+    let output: String = Concat("    ", formatted_print.symbol);
+    if to_string {
+        output = Concat(output, Concat("(\"", int_line_format));
+        output = Concat(output, "\", (");
+        output = Concat(output, int_c_type);
+        output = Concat(output, ")");
+    } else {
+        output = Concat(output, Concat("(\"", string_line_format));
+        output = Concat(output, "\", ");
+    }
+    output = Concat(output, DirectMirScalarProgramCExpressionAt(
+        plan.program.expressions, expression_row
+    ));
+    return Concat(output, ");\n");
+}
+
+func DirectMirScalarCfgProgramCCondition(
+    ref plan: DirectMirScalarCfgGraphPlan, block: Int
+) -> String {
+    if plan.block_condition_kinds[block] !=
+            DirectMirScalarCfgConditionExpression() {
+        return "";
+    }
+    return DirectMirScalarProgramCExpressionAt(
+        plan.program.expressions,
+        plan.program.block_condition_expression_rows[block]
+    );
+}

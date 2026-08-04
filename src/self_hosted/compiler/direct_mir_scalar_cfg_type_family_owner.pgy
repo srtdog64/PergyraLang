@@ -5,6 +5,7 @@ import "../mir_lower/routine_fact_index_owner.pgy";
 
 func DirectMirScalarCfgScalarTypeSupported(type_name: String) -> Bool {
     return type_name == CompilerAbiLayoutIntTypeName() ||
+        type_name == CompilerAbiLayoutBoolTypeName() ||
         type_name == CompilerAbiLayoutStringTypeName();
 }
 

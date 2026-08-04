@@ -35,3 +35,11 @@ func DirectMirClosedModuleCallAbiFactReady(
         fact.llvm_classifier == "llvm_default_internal_classified" &&
         !fact.external_interop;
 }
+
+func DirectMirClosedModuleCallAbiFactCanonicalEmpty(
+    ref fact: DirectMirClosedModuleCallAbiFact
+) -> Bool {
+    return !fact.valid && fact.target_capability_fingerprint == 0 &&
+        fact.scope == "" && fact.c_classifier == "" &&
+        fact.llvm_classifier == "" && fact.external_interop;
+}

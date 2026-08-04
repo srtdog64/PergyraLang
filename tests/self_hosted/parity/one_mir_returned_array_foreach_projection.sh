@@ -27,11 +27,15 @@ PRODUCER_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_int_producer
 COLLECTION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_owner.pgy"
 SET_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_set_owner.pgy"
 ROUTER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy"
+SHARED_ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_returned_array_program_route_owner.pgy"
 require_text "$ROUTER" 'DirectMirReturnedArrayForEachProgramCandidate(admitted)'
 require_text "$PROGRAM_OWNER" 'DirectMirReturnedArrayForEachProgramFactFromAdmitted'
 require_text "$PRODUCER_OWNER" 'DirectMirArrayIntProducerFactFromRoutine'
 require_text "$COLLECTION_OWNER" 'DirectMirArrayReturnProducerName(graph)'
 require_text "$SET_OWNER" 'DirectMirScalarCfgForEachStorageRow('
+reject_text "$SHARED_ROUTE" 'entrypoint_block_count'
+require_text "$PROGRAM_OWNER" \
+    'DirectMirScalarCfgCollectionIterationCount(admitted, index) > 0'
 for owner in "$PROGRAM_OWNER" "$PRODUCER_OWNER" "$COLLECTION_OWNER"; do
     reject_text "$owner" 'for_each_call.pgy'
     reject_text "$owner" '"MakeValues()"'

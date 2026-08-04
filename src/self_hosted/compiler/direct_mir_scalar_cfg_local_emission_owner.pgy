@@ -12,6 +12,8 @@ func DirectMirScalarCfgCLocalDeclarations(
         output = Concat(output, "    ");
         if plan.local_types[row] == CompilerAbiLayoutStringTypeName() {
             output = Concat(output, CompilerAbiLayoutStringCValueType());
+        } else if plan.local_types[row] == CompilerAbiLayoutBoolTypeName() {
+            output = Concat(output, "bool");
         } else { output = Concat(output, int_c_type); }
         output = Concat(output, " pgy_local_");
         output = Concat(output, ToString(row));
@@ -35,11 +37,17 @@ func DirectMirScalarCfgLlvmLocalDeclarations(
             output = Concat(output,
                 " = alloca ptr, align 8\n  store ptr null, ptr %pgy.local."
             );
+        } else if plan.local_types[row] == CompilerAbiLayoutBoolTypeName() {
+            output = Concat(output,
+                " = alloca i1, align 1\n  store i1 false, ptr %pgy.local."
+            );
         } else { output = Concat(output,
             " = alloca i64, align 8\n  store i64 0, ptr %pgy.local."
         ); }
         output = Concat(output, ToString(row));
-        output = Concat(output, ", align 8\n");
+        if plan.local_types[row] == CompilerAbiLayoutBoolTypeName() {
+            output = Concat(output, ", align 1\n");
+        } else { output = Concat(output, ", align 8\n"); }
         row = row + 1;
     }
     return output;

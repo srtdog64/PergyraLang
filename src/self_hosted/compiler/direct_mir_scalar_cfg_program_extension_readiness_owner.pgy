@@ -1,0 +1,113 @@
+// Cross-links between the optional program seam and the sole scalar CFG plan.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarCfgProgramExpressionRowReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    expression_row: Int, expected_type: String, callable_scope: Bool
+) -> Bool {
+    let facts: DirectMirScalarProgramExpressionSet = plan.program.expressions;
+    if expression_row < 0 ||
+        expression_row >= ArrayLength(facts.graph_roots) {
+        return false;
+    }
+    let start: Int = facts.graph_starts[expression_row];
+    let count: Int = facts.graph_counts[expression_row];
+    let root: Int = facts.graph_roots[expression_row];
+    if facts.node_types[root] != expected_type { return false; }
+    let node: Int = start;
+    while node < start + count {
+        let kind: Int = facts.node_kinds[node];
+        if callable_scope && kind == DirectMirScalarProgramExprAddInt() {
+            return false;
+        }
+        if kind == DirectMirScalarProgramExprParameter() && !callable_scope {
+            return false;
+        }
+        if kind == DirectMirScalarProgramExprLocal() &&
+            (callable_scope || facts.node_local_rows[node] < 0 ||
+             facts.node_local_rows[node] >= ArrayLength(plan.local_names) ||
+             facts.node_types[node] !=
+                plan.local_types[facts.node_local_rows[node]]) {
+            return false;
+        }
+        if kind == DirectMirScalarProgramExprDirectCall() &&
+            (callable_scope || facts.node_callable_rows[node] !=
+                plan.program.callable.signature.row) {
+            return false;
+        }
+        node = node + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarCfgProgramExtensionReadinessCode(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Int {
+    let fact: DirectMirScalarCfgProgramExtensionFact = plan.program;
+    if fact.valid && (fact.digest == 0 || fact.digest !=
+            DirectMirScalarCfgProgramExtensionFactDigest(fact)) {
+        return 11;
+    }
+    if fact.valid && !DirectMirScalarCfgProgramCallableFactReady(
+            fact.callable) { return 12; }
+    if fact.valid && !DirectMirScalarProgramExpressionSetSemanticallyReady(
+            fact.expressions) { return 13; }
+    if fact.valid && !DirectMirClosedModuleCallAbiFactReady(
+            fact.closed_call_abi) { return 14; }
+    if !DirectMirScalarCfgProgramExtensionFactReady(fact) { return 1; }
+    if !fact.valid { return 0; }
+    let block_count: Int = ArrayLength(plan.block_succ_true);
+    let operation_count: Int = ArrayLength(plan.operation_kinds);
+    if ArrayLength(fact.block_condition_expression_rows) != block_count ||
+        ArrayLength(fact.operation_expression_rows) != operation_count ||
+        !DirectMirScalarCfgProgramExpressionRowReady(
+            plan, fact.callable.return_expression_row,
+            CompilerAbiLayoutBoolTypeName(), true
+        ) {
+        return 2;
+    }
+    let block: Int = 0;
+    while block < block_count {
+        let row: Int = fact.block_condition_expression_rows[block];
+        if plan.block_condition_kinds[block] ==
+                DirectMirScalarCfgConditionExpression() {
+            if plan.block_succ_true[block] < 0 ||
+                plan.block_succ_false[block] < 0 ||
+                !DirectMirScalarCfgProgramExpressionRowReady(
+                    plan, row, CompilerAbiLayoutBoolTypeName(), false
+                ) {
+                return 3;
+            }
+        } else if row != -1 { return 4; }
+        block = block + 1;
+    }
+    let operation: Int = 0;
+    while operation < operation_count {
+        let kind: Int = plan.operation_kinds[operation];
+        let row: Int = fact.operation_expression_rows[operation];
+        let result: Int = plan.operation_result_values[operation];
+        if kind == DirectMirScalarCfgOpExpressionDefinition() {
+            if result < 0 || result >= ArrayLength(plan.value_names) ||
+                !DirectMirScalarCfgProgramExpressionRowReady(
+                    plan, row, plan.value_types[result], false
+                ) {
+                return 5;
+            }
+        } else if kind == DirectMirScalarCfgOpExpressionLog() {
+            if result != -1 || !DirectMirScalarCfgProgramExpressionRowReady(
+                    plan, row, CompilerAbiLayoutStringTypeName(), false
+                ) {
+                return 6;
+            }
+        } else if row != -1 { return 7; }
+        operation = operation + 1;
+    }
+    return 0;
+}
+
+func DirectMirScalarCfgProgramExtensionReadyForPlan(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    return DirectMirScalarCfgProgramExtensionReadinessCode(plan) == 0;
+}

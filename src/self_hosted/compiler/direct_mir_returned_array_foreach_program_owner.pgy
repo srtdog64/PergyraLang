@@ -4,6 +4,7 @@
 import "direct_mir_array_int_producer_fact_owner.pgy";
 import "direct_mir_scalar_cfg_foreach_admission_owner.pgy";
 import "direct_mir_scalar_cfg_graph_route_owner.pgy";
+import "direct_mir_returned_array_program_route_owner.pgy";
 
 struct DirectMirReturnedArrayForEachProgramFact {
     let valid: Bool;
@@ -56,22 +57,16 @@ func DirectMirReturnedArrayForEachProgramFactReady(
 func DirectMirReturnedArrayForEachProgramCandidate(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> Bool {
-    if MirProgramRoutineIndexCount(admitted.routines) != 2 ||
-        !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
-        JsonArrayObjectFactCount(admitted.document.declarations) != 0 {
+    let route: DirectMirReturnedArrayProgramRouteFact =
+        DirectMirReturnedArrayProgramRouteFactFromAdmitted(admitted);
+    if !DirectMirReturnedArrayProgramRouteFactReady(route) {
         return false;
     }
-    let main_row: Int = -1;
-    let row: Int = 0;
-    while row < 2 {
-        if admitted.routines.names[row] == "Main" {
-            if main_row >= 0 { return false; }
-            main_row = row;
-        }
-        row = row + 1;
-    }
-    return main_row >= 0 &&
-        admitted.routines.routine_block_counts[main_row] >= 2;
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, route.entrypoint_row
+    );
+    return index.valid &&
+        DirectMirScalarCfgCollectionIterationCount(admitted, index) > 0;
 }
 
 func DirectMirReturnedArrayForEachProgramFactFromAdmitted(

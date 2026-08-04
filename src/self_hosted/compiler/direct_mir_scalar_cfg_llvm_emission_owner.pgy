@@ -11,6 +11,7 @@ import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_program_llvm_storage_owner.pgy";
 import "direct_mir_scalar_cfg_collection_plan_llvm_storage_owner.pgy";
+import "direct_mir_scalar_cfg_program_llvm_emission_owner.pgy";
 import "direct_mir_llvm_text_format_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
@@ -55,6 +56,8 @@ func DirectMirScalarCfgEmitLlvm(
         DirectMirScalarCfgCollectionPlanLlvmGlobals(plan));
     output = Concat(output,
         DirectMirScalarCfgStringLlvmConcatBlock(plan, concat));
+    output = Concat(output,
+        DirectMirScalarCfgProgramLlvmGlobalsAndCallable(plan));
     output = Concat(output, "\ndeclare i32 @");
     output = Concat(output, formatted_print.symbol);
     output = Concat(output, "(ptr, ...)\n\ndefine i32 @main() {\nentry:\n");
@@ -83,9 +86,18 @@ func DirectMirScalarCfgEmitLlvm(
         let operation_end: Int = operation +
             plan.block_operation_counts[block];
         while operation < operation_end {
-            output = Concat(output, DirectMirScalarCfgEmitLlvmOperation(
-                plan, operation, formatted_print, concat, target
-            ));
+            let program_operation: String =
+                DirectMirScalarCfgProgramLlvmOperation(
+                    plan, operation, formatted_print,
+                    int_line_format, string_line_format
+                );
+            if program_operation != "" {
+                output = Concat(output, program_operation);
+            } else {
+                output = Concat(output, DirectMirScalarCfgEmitLlvmOperation(
+                    plan, operation, formatted_print, concat, target
+                ));
+            }
             operation = operation + 1;
         }
         output = Concat(
@@ -97,9 +109,15 @@ func DirectMirScalarCfgEmitLlvm(
         output = Concat(
             output, DirectMirScalarCfgForEachLlvmBlockExit(plan, block)
         );
-        output = Concat(
-            output, DirectMirScalarCfgLlvmTerminator(plan, target, block)
-        );
+        let program_terminator: String =
+            DirectMirScalarCfgProgramLlvmTerminator(plan, block);
+        if program_terminator != "" {
+            output = Concat(output, program_terminator);
+        } else {
+            output = Concat(
+                output, DirectMirScalarCfgLlvmTerminator(plan, target, block)
+            );
+        }
         block = block + 1;
     }
     output = Concat(output, "}\n");

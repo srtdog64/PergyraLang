@@ -1,0 +1,174 @@
+// Normalized typed scalar-expression DAGs carried by one program plan.
+
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "abi_layout_row_owner.pgy";
+import "../lib/json_scan.pgy";
+
+func DirectMirScalarProgramExprLocal() -> Int { return 1; }
+func DirectMirScalarProgramExprParameter() -> Int { return 2; }
+func DirectMirScalarProgramExprIntLiteral() -> Int { return 3; }
+func DirectMirScalarProgramExprBoolLiteral() -> Int { return 4; }
+func DirectMirScalarProgramExprStringLiteral() -> Int { return 5; }
+func DirectMirScalarProgramExprModuloInt() -> Int { return 6; }
+func DirectMirScalarProgramExprEqualInt() -> Int { return 7; }
+func DirectMirScalarProgramExprLogicalNot() -> Int { return 8; }
+func DirectMirScalarProgramExprLogicalAnd() -> Int { return 9; }
+func DirectMirScalarProgramExprLogicalOr() -> Int { return 10; }
+func DirectMirScalarProgramExprLessInt() -> Int { return 11; }
+func DirectMirScalarProgramExprAddInt() -> Int { return 12; }
+func DirectMirScalarProgramExprDirectCall() -> Int { return 13; }
+func DirectMirScalarProgramExprToStringInt() -> Int { return 14; }
+
+struct DirectMirScalarProgramExpressionSet {
+    let valid: Bool;
+    let digest: Int;
+    let graph_global_rows: Array<Int>;
+    let graph_starts: Array<Int>;
+    let graph_counts: Array<Int>;
+    let graph_roots: Array<Int>;
+    let node_kinds: Array<Int>;
+    let node_types: Array<String>;
+    let node_lefts: Array<Int>;
+    let node_rights: Array<Int>;
+    let node_local_rows: Array<Int>;
+    let node_parameter_ordinals: Array<Int>;
+    let node_literals: Array<String>;
+    let node_callable_rows: Array<Int>;
+}
+
+func DirectMirScalarProgramExpressionSetEmpty(
+) -> DirectMirScalarProgramExpressionSet {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return DirectMirScalarProgramExpressionSet(
+        true, 0, ints, ints, ints, ints, ints, strings,
+        ints, ints, ints, ints, strings, ints
+    );
+}
+
+func DirectMirScalarProgramExpressionSetCanonicalEmpty(
+    ref facts: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    return facts.valid && facts.digest == 0 &&
+        ArrayLength(facts.graph_global_rows) == 0 &&
+        ArrayLength(facts.graph_starts) == 0 &&
+        ArrayLength(facts.graph_counts) == 0 &&
+        ArrayLength(facts.graph_roots) == 0 &&
+        ArrayLength(facts.node_kinds) == 0 &&
+        ArrayLength(facts.node_types) == 0 &&
+        ArrayLength(facts.node_lefts) == 0 &&
+        ArrayLength(facts.node_rights) == 0 &&
+        ArrayLength(facts.node_local_rows) == 0 &&
+        ArrayLength(facts.node_parameter_ordinals) == 0 &&
+        ArrayLength(facts.node_literals) == 0 &&
+        ArrayLength(facts.node_callable_rows) == 0;
+}
+
+func DirectMirScalarProgramExpressionSetDigest(
+    ref facts: DirectMirScalarProgramExpressionSet
+) -> Int {
+    if !facts.valid { return 0; }
+    let hash: Long = DirectMirScalarCfgHashInts(
+        227L, facts.graph_global_rows
+    );
+    hash = DirectMirScalarCfgHashInts(hash, facts.graph_starts);
+    hash = DirectMirScalarCfgHashInts(hash, facts.graph_counts);
+    hash = DirectMirScalarCfgHashInts(hash, facts.graph_roots);
+    hash = DirectMirScalarCfgHashInts(hash, facts.node_kinds);
+    hash = DirectMirScalarCfgHashStrings(hash, facts.node_types);
+    hash = DirectMirScalarCfgHashInts(hash, facts.node_lefts);
+    hash = DirectMirScalarCfgHashInts(hash, facts.node_rights);
+    hash = DirectMirScalarCfgHashInts(hash, facts.node_local_rows);
+    hash = DirectMirScalarCfgHashInts(
+        hash, facts.node_parameter_ordinals
+    );
+    hash = DirectMirScalarCfgHashStrings(hash, facts.node_literals);
+    hash = DirectMirScalarCfgHashInts(hash, facts.node_callable_rows);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarProgramExpressionSetWithDigest(
+    facts: DirectMirScalarProgramExpressionSet,
+    digest: Int
+) -> DirectMirScalarProgramExpressionSet {
+    return DirectMirScalarProgramExpressionSet(
+        facts.valid, digest, facts.graph_global_rows, facts.graph_starts,
+        facts.graph_counts, facts.graph_roots, facts.node_kinds,
+        facts.node_types, facts.node_lefts, facts.node_rights,
+        facts.node_local_rows, facts.node_parameter_ordinals,
+        facts.node_literals, facts.node_callable_rows
+    );
+}
+
+func DirectMirScalarProgramLiteralEmbeddable(value: String) -> Bool {
+    let row: Int = 0;
+    while row < StringLength(value) {
+        let code: Int = JsonCharCodeAt(value, StringLength(value), row);
+        if code < 32 || code > 126 || code == 34 || code == 92 {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramExpressionSetShapeReady(
+    ref facts: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    let graph_count: Int = ArrayLength(facts.graph_starts);
+    let node_count: Int = ArrayLength(facts.node_kinds);
+    if !facts.valid || graph_count < 1 ||
+        graph_count != ArrayLength(facts.graph_global_rows) ||
+        graph_count != ArrayLength(facts.graph_counts) ||
+        graph_count != ArrayLength(facts.graph_roots) ||
+        node_count != ArrayLength(facts.node_types) ||
+        node_count != ArrayLength(facts.node_lefts) ||
+        node_count != ArrayLength(facts.node_rights) ||
+        node_count != ArrayLength(facts.node_local_rows) ||
+        node_count != ArrayLength(facts.node_parameter_ordinals) ||
+        node_count != ArrayLength(facts.node_literals) ||
+        node_count != ArrayLength(facts.node_callable_rows) {
+        return false;
+    }
+    let expected_start: Int = 0;
+    let graph: Int = 0;
+    while graph < graph_count {
+        let count: Int = facts.graph_counts[graph];
+        let root: Int = facts.graph_roots[graph];
+        if facts.graph_global_rows[graph] < 0 ||
+            facts.graph_starts[graph] != expected_start || count < 1 ||
+            root < expected_start || root >= expected_start + count {
+            return false;
+        }
+        expected_start = expected_start + count;
+        graph = graph + 1;
+    }
+    if expected_start != node_count { return false; }
+    let node: Int = 0;
+    while node < node_count {
+        let kind: Int = facts.node_kinds[node];
+        let left: Int = facts.node_lefts[node];
+        let right: Int = facts.node_rights[node];
+        let local: Int = facts.node_local_rows[node];
+        let param: Int = facts.node_parameter_ordinals[node];
+        let literal: String = facts.node_literals[node];
+        let callable: Int = facts.node_callable_rows[node];
+        if kind < DirectMirScalarProgramExprLocal() ||
+            kind > DirectMirScalarProgramExprToStringInt() ||
+            facts.node_types[node] == "" || left >= node || right >= node ||
+            left < -1 || right < -1 || local < -1 || param < -1 ||
+            callable < -1 || !DirectMirScalarProgramLiteralEmbeddable(literal) {
+            return false;
+        }
+        node = node + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramExpressionSetReady(
+    ref facts: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    return DirectMirScalarProgramExpressionSetShapeReady(facts) &&
+        facts.digest != 0 &&
+        facts.digest == DirectMirScalarProgramExpressionSetDigest(facts);
+}

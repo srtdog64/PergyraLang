@@ -1,0 +1,75 @@
+// Sole scalar-GraphPlan phi binding and operation-row admission owner.
+
+import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
+import "direct_mir_scalar_cfg_operation_plan_owner.pgy";
+import "../mir_lower/phi_predecessor_binding_fact_owner.pgy";
+
+struct DirectMirScalarCfgPhiOperationAdmission {
+    let valid: Bool;
+    let kind: Int;
+    let result_value: Int;
+    let phi_start: Int;
+    let phi_count: Int;
+}
+
+func DirectMirScalarCfgPhiOperationFromOwners(
+    ref index: MirRoutineFactIndex,
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref uses: MirRoutineInstructionUseFacts,
+    routine_row: Int, block: Int, instruction_row: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    inout phi_predecessors: Array<Int>,
+    inout phi_incoming_values: Array<Int>
+) -> DirectMirScalarCfgPhiOperationAdmission {
+    let invalid: DirectMirScalarCfgPhiOperationAdmission =
+        DirectMirScalarCfgPhiOperationAdmission(false, 0, -1, -1, 0);
+    let phi: MirRoutinePhiFact = MirRoutinePhiFactAt(
+        index, admitted.routines, uses,
+        routine_row, block, instruction_row
+    );
+    let binding: MirPhiPredecessorBindingFact =
+        MirPhiPredecessorBindingFactFromOwners(index, phi);
+    let result_value: Int = DirectMirScalarCfgGraphValueRow(
+        locals.value_names, phi.result_name
+    );
+    if !MirPhiPredecessorBindingFactReady(
+            binding, phi.predecessor_count
+        ) || result_value < 0 {
+        return invalid;
+    }
+    let kind: Int = DirectMirScalarCfgPhiOperationKind(
+        types.value_types[result_value]
+    );
+    if kind == 0 { return invalid; }
+    let phi_start: Int = ArrayLength(phi_predecessors);
+    let predecessor: Int = 0;
+    while predecessor < ArrayLength(binding.predecessor_blocks) {
+        let incoming_row: Int = binding.incoming_rows[predecessor];
+        let incoming_value: Int = DirectMirScalarCfgGraphValueRow(
+            locals.value_names, phi.incoming_results[incoming_row]
+        );
+        if incoming_value < 0 ||
+            locals.value_local_rows[incoming_value] !=
+                locals.value_local_rows[result_value] ||
+            types.value_types[incoming_value] !=
+                types.value_types[result_value] {
+            return invalid;
+        }
+        predecessor = predecessor + 1;
+    }
+    predecessor = 0;
+    while predecessor < ArrayLength(binding.predecessor_blocks) {
+        let incoming_row: Int = binding.incoming_rows[predecessor];
+        let incoming_value: Int = DirectMirScalarCfgGraphValueRow(
+            locals.value_names, phi.incoming_results[incoming_row]
+        );
+        ArrayPush(phi_predecessors, binding.predecessor_blocks[predecessor]);
+        ArrayPush(phi_incoming_values, incoming_value);
+        predecessor = predecessor + 1;
+    }
+    return DirectMirScalarCfgPhiOperationAdmission(
+        true, kind, result_value, phi_start,
+        ArrayLength(binding.predecessor_blocks)
+    );
+}

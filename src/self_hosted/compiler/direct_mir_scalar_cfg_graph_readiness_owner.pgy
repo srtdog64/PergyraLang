@@ -11,15 +11,8 @@ import "direct_mir_scalar_cfg_array_int_program_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_condition_role_owner.pgy";
 import "direct_mir_scalar_cfg_collection_operation_shape_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_reverse_plan_shape_owner.pgy";
-func DirectMirScalarCfgOperandCount(
-    value: Int, local: Int, literal: String
-) -> Int {
-    let count: Int = 0;
-    if value >= 0 { count = count + 1; }
-    if local >= 0 { count = count + 1; }
-    if literal != "" { count = count + 1; }
-    return count;
-}
+import "direct_mir_scalar_cfg_operand_shape_owner.pgy";
+import "direct_mir_scalar_cfg_program_extension_readiness_owner.pgy";
 func DirectMirScalarCfgGraphPlanReady(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
@@ -98,7 +91,7 @@ func DirectMirScalarCfgGraphPlanReady(
             true_target < -1 || true_target >= block_count ||
             false_target < -1 || false_target >= block_count ||
             condition < DirectMirScalarCfgConditionNone() ||
-            condition > DirectMirScalarCfgConditionForEach() ||
+            condition > DirectMirScalarCfgConditionExpression() ||
             left_value < -1 || right_value < -1 ||
             left_local < -1 || right_local < -1 ||
             left_value >= value_count || right_value >= value_count ||
@@ -106,20 +99,19 @@ func DirectMirScalarCfgGraphPlanReady(
             return false;
         }
         if condition == DirectMirScalarCfgConditionNone() {
-            if false_target >= 0 || DirectMirScalarCfgOperandCount(
-                    left_value, left_local, left_literal
-                ) != 0 || DirectMirScalarCfgOperandCount(
-                    right_value, right_local, right_literal
-                ) != 0 {
+            if false_target >= 0 || !DirectMirScalarCfgOperandsEmpty(
+                    left_value, left_local, left_literal,
+                    right_value, right_local, right_literal) {
                 return false;
             }
-        } else if condition == DirectMirScalarCfgConditionForEach() {
+        } else if condition == DirectMirScalarCfgConditionExpression() ||
+                condition == DirectMirScalarCfgConditionForEach() {
             if true_target < 0 || false_target < 0 ||
-                DirectMirScalarCfgOperandCount(
-                    left_value, left_local, left_literal
-                ) != 0 || DirectMirScalarCfgOperandCount(
-                    right_value, right_local, right_literal
-                ) != 0 { return false; }
+                (condition == DirectMirScalarCfgConditionExpression() &&
+                 !plan.program.valid) ||
+                !DirectMirScalarCfgOperandsEmpty(
+                    left_value, left_local, left_literal,
+                    right_value, right_local, right_literal) { return false; }
         } else if true_target < 0 ||
             DirectMirScalarCfgOperandCount(
                 left_value, left_local, left_literal
@@ -166,7 +158,7 @@ func DirectMirScalarCfgGraphPlanReady(
             plan.string_arrays.accesses.kinds[indexed_row] ==
                 DirectMirScalarCfgStringArrayAccessLogRead();
         if kind < DirectMirScalarCfgOpConstInt() ||
-            kind > DirectMirScalarCfgOpLogArrayIndexConcatString() || result < -1 ||
+            kind > DirectMirScalarCfgOpExpressionLog() || result < -1 ||
             left < -1 || right < -1 || left_local < -1 ||
             right_local < -1 || result >= value_count ||
             left >= value_count || right >= value_count ||
@@ -179,6 +171,14 @@ func DirectMirScalarCfgGraphPlanReady(
                 kind == DirectMirScalarCfgOpPhiString() {
             if result < 0 || phi_count < 2 || left_count != 0 ||
                 right_count != 0 {
+                return false;
+            }
+        } else if kind == DirectMirScalarCfgOpExpressionDefinition() ||
+                kind == DirectMirScalarCfgOpExpressionLog() {
+            if !plan.program.valid || phi_count != 0 || left_count != 0 ||
+                right_count != 0 ||
+                (kind == DirectMirScalarCfgOpExpressionDefinition() && result < 0) ||
+                (kind == DirectMirScalarCfgOpExpressionLog() && result != -1) {
                 return false;
             }
         } else if phi_count != 0 ||
@@ -212,9 +212,7 @@ func DirectMirScalarCfgGraphPlanReady(
         expected_phi = expected_phi + phi_count;
         operation = operation + 1;
     }
-    if expected_phi != ArrayLength(plan.phi_predecessor_blocks) {
-        return false;
-    }
+    if expected_phi != ArrayLength(plan.phi_predecessor_blocks) { return false; }
     let phi_row: Int = 0;
     while phi_row < expected_phi {
         if plan.phi_predecessor_blocks[phi_row] < 0 ||
@@ -231,7 +229,8 @@ func DirectMirScalarCfgGraphPlanReady(
         !DirectMirScalarCfgArrayIntProgramReady(plan) ||
         !DirectMirScalarCfgCollectionPopProgramReady(plan) ||
         !DirectMirScalarCfgCollectionPlanReady(plan) ||
-        !DirectMirScalarCfgTypedPlanReady(plan) { return false; }
+        !DirectMirScalarCfgTypedPlanReady(plan) ||
+        !DirectMirScalarCfgProgramExtensionReadyForPlan(plan) { return false; }
     return CompilerArtifactIdentityReady(
         CompilerEmittedCArtifactKind(), plan.revision, plan.digest
     ) && CompilerArtifactIdentityReady(

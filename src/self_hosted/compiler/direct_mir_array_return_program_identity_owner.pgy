@@ -5,6 +5,7 @@
 import "direct_mir_array_return_graph_fact_owner.pgy";
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_scalar_graph_admission_owner.pgy";
+import "direct_mir_returned_array_program_route_owner.pgy";
 import "../air/mir_cfg_identity_owner.pgy";
 
 struct DirectMirArrayReturnProgramIdentity {
@@ -60,9 +61,9 @@ func DirectMirArrayReturnProgramIdentityReady(
 func DirectMirArrayReturnProgramCandidate(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> Bool {
-    return MirProgramRoutineIndexCount(admitted.routines) == 2 &&
-        JsonArrayObjectFactTableReady(admitted.document.declarations) &&
-        JsonArrayObjectFactCount(admitted.document.declarations) == 0;
+    let route: DirectMirReturnedArrayProgramRouteFact =
+        DirectMirReturnedArrayProgramRouteFactFromAdmitted(admitted);
+    return DirectMirReturnedArrayProgramRouteFactReady(route);
 }
 
 func DirectMirArrayReturnProgramEnvelopeReady(

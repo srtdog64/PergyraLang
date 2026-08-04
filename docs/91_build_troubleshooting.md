@@ -6,6 +6,72 @@
 
 ---
 
+## Bool support starts growing a second scalar compiler
+
+Do not accept a green `bool_logic.pgy` gate if it is produced by a sibling
+entrypoint fact, CFG/SSA/phi array set, program plan, and complete C/LLVM block
+loop. That shape is a verified micro-compiler even when every file is under its
+LoC cap.
+
+The first 2026-08-04 implementation did exactly that and passed exact C/LLVM
+execution. The pre-commit architecture audit rejected it. The corrected shape
+keeps `DirectMirScalarCfgGraphPlan` as the only owner of CFG, SSA, phi, locals,
+operations, digest, and mutation rejection. Bool/direct-call support contributes
+only an optional typed-expression/call extension. The existing C and LLVM block
+loops call small extension hooks; no second whole-program emitter remains.
+
+Two independent correctness traps were found during that consolidation:
+
+- returned `Array<Int>` routes used `entrypoint_block_count` to distinguish a
+  plain return from foreach composition. The shared route now owns only the
+  exact `Main`/producer header family, and the foreach claimant requires an
+  actual collection-iteration fact. Block topology no longer selects semantic
+  ownership;
+- C rendered `&&`/`||` with language short-circuiting while LLVM eagerly
+  emitted both expression children before `and`/`or`. This bounded rung admits
+  an eager RHS only when the typed DAG proves a nontrapping Bool-only subtree
+  (`local`, parameter, Bool literal, logical not/and/or). A modulo/call RHS is
+  rejected before either artifact until branch/merge lowering owns true
+  effectful short-circuit semantics.
+
+Direct calls must also verify the actual LocalRef/value type against the
+`(Int) -> Bool` endpoint. Do not stamp every call argument as Int. A Bool local
+substituted for the admitted Int argument must publish no C or LLVM artifact.
+The closed-module ABI fact travels with the extension; formatted-print symbols
+and formats still come from the runtime-call ABI owner.
+
+Raw C `%` and LLVM `srem` are equivalent only after admission proves a safe
+divisor. This rung accepts a literal divisor other than `0` and `-1`; both
+unsafe cases fail before artifact publication. Its only admitted signed add is
+`local + 1` under an earlier `local < positive-bound` condition whose true edge
+dominates the add block. The bound is canonical, positive, and at most 18
+decimal digits, and LLVM emits `add nsw` to preserve the C contract. A green
+fixture is not permission to emit unchecked arithmetic outside this evidence.
+
+The shared phi owner must validate every incoming predecessor, local identity,
+and type before appending any row. Validating and appending in one loop leaves
+partially mutated arrays when a later incoming is invalid. The two-pass shape
+is therefore a transactional owner invariant, not cosmetic iteration style.
+
+Keep timing categories separate. Rebuilding the composed Pergyra driver source
+can take minutes because it reparses, regenerates about 8 MB of C, and invokes
+the host compiler. Projecting one already-produced 17 KB MIR is a different,
+much smaller operation. The focused mutation matrix is test cost, not ordinary
+program compilation latency. Do not pressure-sample each projection. Preserve
+the 2.4 GiB attention and 3 GiB stop thresholds and record memory only at the
+final integration boundary. The historical multi-GiB defect was repeated
+whole-program graph/readiness validation; raising the allowance or optimizing
+fixtures would conceal the owner error.
+
+The final corrected compiler build (`scalar-bool-single-graphplan-final-build-v3`)
+took 170.616 seconds. Peak working set was 2.327 GiB and peak private memory was
+2.536 GiB: below the 3 GiB stop threshold, but above the 2.4 GiB attention
+threshold on private memory. Record this as an attention-level regression
+baseline, not as ordinary source compilation latency and not as permission to
+raise the limit.
+
+---
+
 ## A new collection fixture starts growing another verified micro-compiler
 
 Do not answer a new Array topology by adding a fixture-shaped program fact,

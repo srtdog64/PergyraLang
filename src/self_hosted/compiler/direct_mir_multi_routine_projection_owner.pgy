@@ -7,6 +7,7 @@ import "direct_mir_inferred_generic_nominal_projection_owner.pgy";
 import "direct_mir_inferred_generic_member_projection_owner.pgy";
 import "direct_mir_multi_routine_terminal_projection_owner.pgy";
 import "direct_mir_role_operator_emission_owner.pgy";
+import "direct_mir_scalar_program_projection_owner.pgy";
 func CompileAdmittedDirectMirMultiRoutineForTarget(
     ref admitted: MirMachineLayerAdmittedJsonInput, target_projection: CompilerTargetProjectionFact) -> String {
     let is_c: Bool = CompilerTargetProjectionFactReadyFor(
@@ -41,6 +42,10 @@ func CompileAdmittedDirectMirMultiRoutineForTarget(
         return DirectMirArrayReturnEmitC(
             return_plan, return_abi, formatted_print, line_format
         );
+    }
+    let scalar_program_route: DirectMirScalarProgramRouteFact = DirectMirScalarProgramRouteFactFromAdmitted(admitted);
+    if scalar_program_route.claimed {
+        return CompileAdmittedDirectMirScalarProgramForTarget(admitted, scalar_program_route, target_projection);
     }
     if DirectMirTwoRoutineNominalProgramCandidate(admitted) {
         let two_routine: DirectMirTwoRoutineClassificationFact =

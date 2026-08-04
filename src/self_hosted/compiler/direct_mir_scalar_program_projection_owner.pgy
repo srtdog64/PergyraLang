@@ -1,13 +1,15 @@
-// One verified scalar CFG plan projected to either public backend.
+// Exclusive backend projection for an admitted multi-routine scalar program.
+
+import "direct_mir_scalar_cfg_program_admission_owner.pgy";
 import "direct_mir_scalar_cfg_graph_admission_owner.pgy";
 import "direct_mir_scalar_cfg_c_emission_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_emission_owner.pgy";
-import "target_projection_fact_owner.pgy";
+import "direct_mir_scalar_program_route_fact_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
-import "abi_layout_row_owner.pgy";
 
-func CompileAdmittedDirectMirScalarCfgForTarget(
+func CompileAdmittedDirectMirScalarProgramForTarget(
     ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref route: DirectMirScalarProgramRouteFact,
     target_projection: CompilerTargetProjectionFact
 ) -> String {
     let is_c: Bool = CompilerTargetProjectionFactReadyFor(
@@ -17,30 +19,28 @@ func CompileAdmittedDirectMirScalarCfgForTarget(
         target_projection, CompilerTargetCpuLlvmProjection()
     );
     if !is_c && !is_llvm {
-        Die("direct MIR scalar CFG projection rejected the target fact");
+        Die("direct MIR scalar program target projection is invalid");
     }
     let producer: DirectMirArrayIntProducerFact =
         DirectMirArrayIntProducerFactEmpty();
     let plan: DirectMirScalarCfgGraphPlan =
         DirectMirScalarCfgGraphPlanFromAdmitted(
-            admitted, 0, producer,
-            DirectMirScalarCfgProgramAdmissionStateEmpty()
+            admitted, route.entrypoint_row, producer,
+            DirectMirScalarCfgProgramAdmissionStateFromAdmitted(admitted, route)
         );
+    if !DirectMirScalarCfgGraphPlanReady(plan) {
+        Die("direct MIR scalar program plan is invalid before projection");
+    }
     let formatted_print: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiFormattedPrintFact();
     let concat: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiStringConcatFact();
-    if !DirectMirScalarCfgGraphPlanReady(plan) ||
-        !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
-        Die("direct MIR scalar CFG plan or runtime ABI is incomplete");
-    }
     let int_line_format: String = StringRuntimeCIntLineFormat();
     let string_line_format: String = StringRuntimeCStringLineFormat();
     if is_llvm {
         return DirectMirScalarCfgEmitLlvm(
-            plan, formatted_print, concat,
-            int_line_format, string_line_format,
-            target_projection
+            plan, formatted_print, concat, int_line_format,
+            string_line_format, target_projection
         );
     }
     return DirectMirScalarCfgEmitC(

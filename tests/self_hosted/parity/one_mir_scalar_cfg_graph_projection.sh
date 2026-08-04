@@ -31,18 +31,20 @@ fi
 [[ -n "$PYTHON_BIN" ]] || fail "python is required for structured falsifiers"
 
 ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
+GRAPH_PHI="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_phi_operation_admission_owner.pgy"
 BRANCH_ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_branch_admission_owner.pgy"
 PHI_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/phi_predecessor_binding_fact_owner.pgy"
 C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_c_emission_owner.pgy"
 LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy"
 ROUTER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
 require_text "$ROUTER" 'DirectMirScalarCfgGraphRouteClaimed(admitted)'
-require_text "$ADMISSION" 'MirPhiPredecessorBindingFactFromOwners('
+require_text "$ADMISSION" 'DirectMirScalarCfgPhiOperationFromOwners('
+require_text "$GRAPH_PHI" 'MirPhiPredecessorBindingFactFromOwners('
 require_text "$BRANCH_ADMISSION" 'MirRoutineBlockDominates('
 require_text "$PHI_OWNER" 'predecessor_blocks'
 require_text "$C_OWNER" 'DirectMirScalarCfgGraphPlanReady(plan)'
 require_text "$LLVM_OWNER" 'DirectMirScalarCfgGraphPlanReady(plan)'
-for owner in "$ADMISSION" "$PHI_OWNER" "$C_OWNER" "$LLVM_OWNER"; do
+for owner in "$ADMISSION" "$GRAPH_PHI" "$PHI_OWNER" "$C_OWNER" "$LLVM_OWNER"; do
     reject_text "$owner" 'nested_if_in_loop.pgy'
     reject_text "$owner" 'block_count == 8'
 done

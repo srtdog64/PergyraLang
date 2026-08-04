@@ -10,6 +10,7 @@ import "direct_mir_scalar_cfg_string_c_materialization_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_c_emission_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_c_emission_owner.pgy";
 import "direct_mir_scalar_cfg_collection_plan_c_storage_owner.pgy";
+import "direct_mir_scalar_cfg_program_c_emission_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
 func DirectMirScalarCfgEmitC(
@@ -36,6 +37,7 @@ func DirectMirScalarCfgEmitC(
     output = Concat(output,
         DirectMirScalarCfgCollectionPlanCPreamble(plan, target));
     output = Concat(output, DirectMirScalarCfgStringCPreamble(plan, concat));
+    output = Concat(output, DirectMirScalarCfgProgramCPreamble(plan));
     output = Concat(output, "\nint main(void) {\n");
     output = Concat(
         output, DirectMirScalarCfgCLocalDeclarations(plan, int_c_type)
@@ -63,10 +65,19 @@ func DirectMirScalarCfgEmitC(
         let operation_end: Int = operation +
             plan.block_operation_counts[block];
         while operation < operation_end {
-            output = Concat(output, DirectMirScalarCfgEmitCOperation(
-                plan, operation, formatted_print, concat,
-                int_line_format, string_line_format, int_c_type
-            ));
+            let program_operation: String =
+                DirectMirScalarCfgProgramCOperation(
+                    plan, operation, formatted_print,
+                    int_line_format, string_line_format, int_c_type
+                );
+            if program_operation != "" {
+                output = Concat(output, program_operation);
+            } else {
+                output = Concat(output, DirectMirScalarCfgEmitCOperation(
+                    plan, operation, formatted_print, concat,
+                    int_line_format, string_line_format, int_c_type
+                ));
+            }
             operation = operation + 1;
         }
         output = Concat(
@@ -91,7 +102,10 @@ func DirectMirScalarCfgEmitC(
             }
         } else {
             output = Concat(output, "    if (");
-            if condition == DirectMirScalarCfgConditionForEach() {
+            if condition == DirectMirScalarCfgConditionExpression() {
+                output = Concat(output,
+                    DirectMirScalarCfgProgramCCondition(plan, block));
+            } else if condition == DirectMirScalarCfgConditionForEach() {
                 output = Concat(
                     output, DirectMirScalarCfgForEachCCondition(plan, block)
                 );

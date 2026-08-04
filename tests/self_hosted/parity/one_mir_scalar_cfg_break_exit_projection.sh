@@ -30,11 +30,13 @@ command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 BREAK_OWNER="$ROOT_DIR/src/self_hosted/mir/routine_local_predecessor_snapshot_owner.pgy"
 EXIT_OWNER="$ROOT_DIR/src/self_hosted/mir/routine_loop_exit_phi_owner.pgy"
 ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
+GRAPH_PHI="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_phi_operation_admission_owner.pgy"
 ROUTER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
 require_text "$BREAK_OWNER" 'SelfMirLocalPredecessorSnapshotsAppend('
 require_text "$EXIT_OWNER" 'SelfMirLoopExitMergeLocalVersions('
 require_text "$ROUTER" 'DirectMirScalarCfgGraphRouteClaimed(admitted)'
-require_text "$ADMISSION" 'MirPhiPredecessorBindingFactFromOwners('
+require_text "$ADMISSION" 'DirectMirScalarCfgPhiOperationFromOwners('
+require_text "$GRAPH_PHI" 'MirPhiPredecessorBindingFactFromOwners('
 reject_text "$ADMISSION" 'break_after_stmt.pgy'
 reject_text "$ADMISSION" 'DirectMirScalarCfgBreakExitMergeBridgeRequired('
 [[ ! -e "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_break_exit_bridge_owner.pgy" ]] ||

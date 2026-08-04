@@ -27,7 +27,8 @@ func CompileAdmittedDirectMirReturnedArrayForEachForTarget(
     }
     let plan: DirectMirScalarCfgGraphPlan =
         DirectMirScalarCfgGraphPlanFromAdmitted(
-            admitted, program.main_row, program.producer
+            admitted, program.main_row, program.producer,
+            DirectMirScalarCfgProgramAdmissionStateEmpty()
         );
     let formatted_print: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiFormattedPrintFact();

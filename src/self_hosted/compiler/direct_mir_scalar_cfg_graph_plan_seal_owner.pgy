@@ -1,10 +1,8 @@
 // Immutable scalar-CFG plan construction, digesting, and mutation rejection.
-
 import "direct_mir_scalar_cfg_graph_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_graph_mutation_owner.pgy";
 import "direct_mir_scalar_cfg_graph_identity_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
-
 func DirectMirScalarCfgSealGraphPlan(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref index: MirRoutineFactIndex,
@@ -31,7 +29,8 @@ func DirectMirScalarCfgSealGraphPlan(
     foreach_elements: DirectMirScalarCfgForEachElementFacts,
     string_arrays: DirectMirScalarCfgStringArrayPlan,
     array_int: DirectMirScalarCfgArrayIntProgramFact,
-    collections: DirectMirScalarCfgCollectionPlan
+    collections: DirectMirScalarCfgCollectionPlan,
+    program: DirectMirScalarCfgProgramExtensionFact
 ) -> DirectMirScalarCfgGraphPlan {
     let collection_pops: DirectMirScalarCfgCollectionPopProgramFact = DirectMirScalarCfgCollectionPopProgramFromOwners(foreaches, string_arrays, array_int);
     let plan: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgGraphPlan(
@@ -56,7 +55,8 @@ func DirectMirScalarCfgSealGraphPlan(
         operation_phi_counts, phi_predecessor_blocks, phi_incoming_values,
         ranges, foreaches, foreach_elements, string_arrays, array_int,
         collection_pops, collections,
-        DirectMirScalarCfgStringConcatRuntimeCallAbiId(operation_kinds)
+        DirectMirScalarCfgStringConcatRuntimeCallAbiId(operation_kinds),
+        program
     );
     let verified: DirectMirScalarCfgGraphPlan =
         DirectMirScalarCfgGraphPlanWithDigest(

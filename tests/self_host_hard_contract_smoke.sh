@@ -444,6 +444,26 @@ require_text \
     'DirectMirCollectionProgramPlanMutationRejected'
 require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_PARAM_GATE)'
 require_text "Makefile" \
+    "self-host-one-mir-bool-logic-projection-test-smoke: self-host-compiler"
+require_file "tests/self_hosted/parity/one_mir_bool_logic_projection.sh"
+require_file "tests/self_hosted/parity/one_mir_bool_logic_mutations.py"
+require_text "tests/self_hosted/parity/one_mir_bool_logic_projection.sh" \
+    'bad-backedge'
+require_text "tests/self_hosted/parity/one_mir_bool_logic_projection.sh" \
+    'routine-order'
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_readiness_owner.pgy" \
+    'DirectMirScalarCfgProgramExtensionReadinessCode'
+require_text "tests/self_hosted/parity/one_mir_bool_logic_projection.sh" \
+    'bad-short-circuit-rhs'
+require_text "tests/self_hosted/parity/one_mir_bool_logic_projection.sh" \
+    'bad-call-argument-type'
+require_text "tests/self_hosted/parity/one_mir_bool_logic_projection.sh" \
+    'bad-modulo-zero'
+require_text "tests/self_hosted/parity/one_mir_bool_logic_projection.sh" \
+    'bad-add-unbounded'
+require_text "Makefile" '$(SELFHOST_ONE_MIR_BOOL_LOGIC_GATE)'
+require_text "Makefile" \
     "self-host-one-mir-struct-argument-projection-test-smoke: self-host-compiler"
 require_file "tests/self_hosted/parity/one_mir_struct_argument_projection.sh"
 require_file "tests/self_hosted/parity/one_mir_struct_argument_mutations.py"
@@ -478,6 +498,8 @@ require_text ".github/workflows/ci.yml" \
 require_text ".github/workflows/ci.yml" \
     'self-host-one-mir-array-param-projection-test-smoke'
 require_text ".github/workflows/ci.yml" \
+    'self-host-one-mir-bool-logic-projection-test-smoke'
+require_text ".github/workflows/ci.yml" \
     'self-host-one-mir-struct-argument-projection-test-smoke'
 require_text "Makefile" \
     'self-host-one-mir-struct-value-flow-projection-test-smoke: self-host-compiler'
@@ -493,8 +515,8 @@ require_text "tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh" 
     'repaired-all-layout-offsets'
 require_text "src/self_hosted/compiler/direct_mir_struct_value_flow_plan_owner.pgy" \
     'independent_nominal_values_by_value'
-require_text "src/self_hosted/compiler/direct_mir_array_return_program_identity_owner.pgy" \
-    'JsonArrayObjectFactCount(admitted.document.declarations) == 0'
+require_text "src/self_hosted/compiler/direct_mir_returned_array_program_route_owner.pgy" \
+    'JsonArrayObjectFactCount(admitted.document.declarations) != 0'
 require_text ".github/workflows/ci.yml" \
     'self-host-one-mir-struct-value-flow-projection-test-smoke'
 require_text ".github/workflows/ci.yml" \

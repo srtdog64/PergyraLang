@@ -1,0 +1,145 @@
+// LLVM expression projection from the sealed scalar-program expression arena.
+
+import "direct_mir_scalar_program_expression_readiness_owner.pgy";
+
+struct DirectMirScalarProgramLlvmExpression {
+    let valid: Bool;
+    let instructions: String;
+    let value: String;
+    let type_name: String;
+}
+
+func DirectMirScalarProgramLlvmNodeName(
+    expression_row: Int, node: Int
+) -> String {
+    return Concat("%pgy.expr.", Concat(
+        ToString(expression_row), Concat(".", ToString(node))
+    ));
+}
+
+func DirectMirScalarProgramLlvmLocalName(row: Int) -> String {
+    return Concat("%pgy.local.", ToString(row));
+}
+
+func DirectMirScalarProgramLlvmType(type_name: String) -> String {
+    if type_name == CompilerAbiLayoutIntTypeName() { return "i64"; }
+    if type_name == CompilerAbiLayoutBoolTypeName() { return "i1"; }
+    if type_name == CompilerAbiLayoutStringTypeName() { return "ptr"; }
+    return "";
+}
+
+func DirectMirScalarProgramLlvmExpressionAt(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    expression_row: Int
+) -> DirectMirScalarProgramLlvmExpression {
+    let instructions: String = "";
+    let values: Array<String> = [];
+    let start: Int = expressions.graph_starts[expression_row];
+    let count: Int = expressions.graph_counts[expression_row];
+    let node: Int = start;
+    while node < start + count {
+        let kind: Int = expressions.node_kinds[node];
+        let left: String = "";
+        let right: String = "";
+        if expressions.node_lefts[node] >= start {
+            left = values[expressions.node_lefts[node] - start];
+        }
+        if expressions.node_rights[node] >= start {
+            right = values[expressions.node_rights[node] - start];
+        }
+        let value: String = "";
+        let result: String = DirectMirScalarProgramLlvmNodeName(
+            expression_row, node
+        );
+        if kind == DirectMirScalarProgramExprLocal() {
+            let type_name: String = DirectMirScalarProgramLlvmType(
+                expressions.node_types[node]
+            );
+            value = result;
+            instructions = Concat(instructions, "  ");
+            instructions = Concat(instructions, value);
+            instructions = Concat(instructions, " = load ");
+            instructions = Concat(instructions, type_name);
+            instructions = Concat(instructions, ", ptr ");
+            instructions = Concat(instructions,
+                DirectMirScalarProgramLlvmLocalName(
+                    expressions.node_local_rows[node]
+                ));
+            instructions = Concat(instructions, "\n");
+        } else if kind == DirectMirScalarProgramExprParameter() {
+            value = "%pgy.param.0";
+        } else if kind == DirectMirScalarProgramExprIntLiteral() ||
+                kind == DirectMirScalarProgramExprBoolLiteral() {
+            value = expressions.node_literals[node];
+        } else if kind == DirectMirScalarProgramExprStringLiteral() {
+            value = Concat("@pgy.scalar.string.", ToString(node));
+        } else if kind == DirectMirScalarProgramExprToStringInt() {
+            value = left;
+        } else {
+            value = result;
+            instructions = Concat(instructions, "  ");
+            instructions = Concat(instructions, value);
+            if kind == DirectMirScalarProgramExprModuloInt() {
+                instructions = Concat(instructions, " = srem i64 ");
+            } else if kind == DirectMirScalarProgramExprEqualInt() {
+                instructions = Concat(instructions, " = icmp eq i64 ");
+            } else if kind == DirectMirScalarProgramExprLogicalNot() {
+                instructions = Concat(instructions, " = xor i1 ");
+            } else if kind == DirectMirScalarProgramExprLogicalAnd() {
+                instructions = Concat(instructions, " = and i1 ");
+            } else if kind == DirectMirScalarProgramExprLogicalOr() {
+                instructions = Concat(instructions, " = or i1 ");
+            } else if kind == DirectMirScalarProgramExprLessInt() {
+                instructions = Concat(instructions, " = icmp slt i64 ");
+            } else if kind == DirectMirScalarProgramExprAddInt() {
+                instructions = Concat(instructions, " = add nsw i64 ");
+            } else if kind == DirectMirScalarProgramExprDirectCall() {
+                instructions = Concat(instructions,
+                    " = call i1 @pgy.scalar.callable.0(i64 ");
+            } else {
+                return DirectMirScalarProgramLlvmExpression(
+                    false, "", "", ""
+                );
+            }
+            instructions = Concat(instructions, left);
+            if kind == DirectMirScalarProgramExprLogicalNot() {
+                instructions = Concat(instructions, ", true");
+            } else if kind == DirectMirScalarProgramExprDirectCall() {
+                instructions = Concat(instructions, ")");
+            } else {
+                instructions = Concat(instructions, ", ");
+                instructions = Concat(instructions, right);
+            }
+            instructions = Concat(instructions, "\n");
+        }
+        ArrayPush(values, value);
+        node = node + 1;
+    }
+    let root: Int = expressions.graph_roots[expression_row] - start;
+    return DirectMirScalarProgramLlvmExpression(
+        true, instructions, values[root],
+        expressions.node_types[expressions.graph_roots[expression_row]]
+    );
+}
+
+func DirectMirScalarProgramLlvmStringGlobals(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> String {
+    let output: String = "";
+    let node: Int = 0;
+    while node < ArrayLength(expressions.node_kinds) {
+        if expressions.node_kinds[node] ==
+                DirectMirScalarProgramExprStringLiteral() {
+            let literal: String = expressions.node_literals[node];
+            output = Concat(output, "@pgy.scalar.string.");
+            output = Concat(output, ToString(node));
+            output = Concat(output, " = private unnamed_addr constant [");
+            output = Concat(output, ToString(StringLength(literal) + 1));
+            output = Concat(output, " x i8] c\"");
+            output = Concat(output, literal);
+            output = Concat(output, "\\00\"\n");
+        }
+        node = node + 1;
+    }
+    return output;
+}

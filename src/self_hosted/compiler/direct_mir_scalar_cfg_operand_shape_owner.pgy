@@ -1,0 +1,22 @@
+// Sole owner of the flat operand-cardinality invariant used by GraphPlan rows.
+
+func DirectMirScalarCfgOperandCount(
+    value: Int, local: Int, literal: String
+) -> Int {
+    let count: Int = 0;
+    if value >= 0 { count = count + 1; }
+    if local >= 0 { count = count + 1; }
+    if literal != "" { count = count + 1; }
+    return count;
+}
+
+func DirectMirScalarCfgOperandsEmpty(
+    left_value: Int, left_local: Int, left_literal: String,
+    right_value: Int, right_local: Int, right_literal: String
+) -> Bool {
+    return DirectMirScalarCfgOperandCount(
+        left_value, left_local, left_literal
+    ) == 0 && DirectMirScalarCfgOperandCount(
+        right_value, right_local, right_literal
+    ) == 0;
+}

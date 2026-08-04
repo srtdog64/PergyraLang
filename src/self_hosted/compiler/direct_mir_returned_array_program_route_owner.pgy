@@ -1,0 +1,84 @@
+// One shallow semantic claim shared by returned Array<Int> program routes.
+
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "abi_layout_row_owner.pgy";
+import "../mir_lower/routine_inventory_owner.pgy";
+
+struct DirectMirReturnedArrayProgramRouteFact {
+    let claimed: Bool;
+    let digest: Int;
+    let entrypoint_row: Int;
+    let producer_row: Int;
+}
+
+func DirectMirReturnedArrayProgramRouteFactEmpty(
+) -> DirectMirReturnedArrayProgramRouteFact {
+    return DirectMirReturnedArrayProgramRouteFact(false, 0, -1, -1);
+}
+
+func DirectMirReturnedArrayProgramRouteFactDigest(
+    ref fact: DirectMirReturnedArrayProgramRouteFact
+) -> Int {
+    if !fact.claimed { return 0; }
+    let hash: Long = DirectMirCfgHashInt(211L, fact.entrypoint_row);
+    hash = DirectMirCfgHashInt(hash, fact.producer_row);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirReturnedArrayProgramRouteFactReady(
+    ref fact: DirectMirReturnedArrayProgramRouteFact
+) -> Bool {
+    return fact.claimed && fact.digest != 0 &&
+        fact.digest == DirectMirReturnedArrayProgramRouteFactDigest(fact) &&
+        fact.entrypoint_row >= 0 && fact.producer_row >= 0 &&
+        fact.entrypoint_row != fact.producer_row;
+}
+
+func DirectMirReturnedArrayProgramRouteFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirReturnedArrayProgramRouteFact {
+    let invalid: DirectMirReturnedArrayProgramRouteFact =
+        DirectMirReturnedArrayProgramRouteFactEmpty();
+    if MirProgramRoutineIndexCount(admitted.routines) != 2 ||
+        !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
+        JsonArrayObjectFactCount(admitted.document.declarations) != 0 {
+        return invalid;
+    }
+    let entrypoint_row: Int = -1;
+    let producer_row: Int = -1;
+    let row: Int = 0;
+    while row < 2 {
+        let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
+            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.ends[row]
+        );
+        if admitted.routines.names[row] == "Main" {
+            if entrypoint_row >= 0 || admitted.routines.kinds[row] != "function" ||
+                header.return_type != "Void" ||
+                ArrayLength(header.param_names) != 0 {
+                return invalid;
+            }
+            entrypoint_row = row;
+        } else if admitted.routines.kinds[row] == "function" && header.return_type ==
+                CompilerAbiLayoutArrayIntTypeName() {
+            if producer_row >= 0 { return invalid; }
+            producer_row = row;
+        }
+        row = row + 1;
+    }
+    if entrypoint_row < 0 || producer_row < 0 { return invalid; }
+    let fact: DirectMirReturnedArrayProgramRouteFact =
+        DirectMirReturnedArrayProgramRouteFact(
+            true, 0, entrypoint_row, producer_row
+        );
+    let verified: DirectMirReturnedArrayProgramRouteFact =
+        DirectMirReturnedArrayProgramRouteFact(
+            fact.claimed,
+            DirectMirReturnedArrayProgramRouteFactDigest(fact),
+            fact.entrypoint_row, fact.producer_row
+        );
+    if !DirectMirReturnedArrayProgramRouteFactReady(verified) {
+        return invalid;
+    }
+    return verified;
+}

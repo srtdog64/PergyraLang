@@ -1999,6 +1999,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_array_return_emission_owner.pgy` --
   final C/LLVM consumers for the same two-routine plan. Both materialize a real
   producer call with caller-owned storage and no Pergyra runtime symbol.
+- `src/self_hosted/compiler/direct_mir_returned_array_program_route_owner.pgy`
+  -- shared shallow `Array<Int>` return claim used by both returned-Array
+  routes; routine and block counts alone cannot claim collection semantics.
 - `src/self_hosted/compiler/direct_mir_returned_array_foreach_program_owner.pgy`
   -- exclusive multi-routine identity joining one `Main` scalar CFG to one
   admitted `Array<Int>` producer independently of routine row order.
@@ -2164,6 +2167,9 @@ inventory must not become a second fact-family owner registry.
   foreach element receipts, and the selected concat ABI identity.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_identity_owner.pgy` --
   stable digest construction and immutable digest replacement for that plan.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_operand_shape_owner.pgy` --
+  the flat GraphPlan row operand-cardinality invariant. Readiness consumers use
+  this owner instead of recreating value/local/literal exclusivity checks.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy` --
   sealed plan cardinality, operand exclusivity, target identity, phi, and range
   topology readiness plus the repaired-digest negative.
@@ -2204,8 +2210,12 @@ inventory must not become a second fact-family owner registry.
   carried source-local identity; display target text is not a fallback.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy`
   -- target-neutral plan issuer over typed MIR indices, use/dominance facts,
-  exact phi bindings, and the range receipt. Claimed invalid graphs cannot
-  retry a legacy topology path.
+  exact phi bindings, range receipts, and the optional scalar-program dialect.
+  It is the only block/operation/phi assembly loop; claimed invalid graphs
+  cannot retry a legacy topology path.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_phi_operation_admission_owner.pgy`
+  -- shared predecessor-order, local identity, type, and operation-row admission
+  for every scalar GraphPlan phi. Dialects do not reconstruct phi arrays.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy` --
   one decoded scalar-CFG input bundle shared by graph admission. It owns the
   admitted document/index/use/wire setup, not a second plan or route.
@@ -2228,6 +2238,48 @@ inventory must not become a second fact-family owner registry.
   topology-independent per-routine classification by the supported
   operation/type envelope, never fixture names or exact block counts. A
   validated multi-routine composition may select its exact `Main` row.
+- `src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy` --
+  row-order-neutral exact header-family claim for `Main: () -> Void` plus one
+  closed-module `(Int) -> Bool` callable. It does not claim by Bool surface or
+  routine count alone.
+- `src/self_hosted/compiler/direct_mir_scalar_program_expression_fact_owner.pgy`
+  -- normalized typed expression-DAG arena shared by callable and entrypoint.
+- `src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy`
+  -- graph/use/LocalRef normalization for Bool literals, logical operators,
+  Int arithmetic, direct `Int -> Bool` calls, and `ToString(Int)`.
+- `src/self_hosted/compiler/direct_mir_scalar_program_expression_readiness_owner.pgy`
+  -- exact node arity, type, endpoint, and literal invariants for that arena;
+  raw modulo projection is admitted only for nonzero, non-minus-one literals.
+- `src/self_hosted/compiler/direct_mir_scalar_program_callable_admission_owner.pgy`
+  -- strict one-block `Int -> Bool` signature and return-DAG admission.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_owner.pgy`
+  -- optional callable, typed-expression rows, and closed-module ABI carried by
+  the existing scalar CFG GraphPlan; it owns no CFG, SSA, phi, or local arrays.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_readiness_owner.pgy`
+  -- cross-links extension rows to the sole GraphPlan and fail-closes unsafe
+  eager LLVM logical RHS, wrong local types, and unbound callable endpoints.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_mutation_owner.pgy`
+  -- executable negative proving an inactive extension cannot hide expression
+  or closed-module ABI payload outside its zero digest.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_arithmetic_admission_owner.pgy`
+  -- bounded-add evidence from an already admitted `local < positive bound`
+  condition whose true edge dominates the addition block. It owns neither a
+  loop topology nor a second expression graph.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_admission_owner.pgy`
+  -- Bool/call expression dialect state consumed inside the shared GraphPlan
+  loop. It owns expression-row cross-links only and cannot create block, SSA,
+  phi, local, or operation arrays or issue a sibling plan.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy`
+  -- MIR-blind C expression rendering from the sealed typed arena.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy`
+  -- MIR-blind C callable/expression hooks consumed by the shared CFG emitter.
+- `src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy`
+  -- MIR-blind LLVM SSA expression and string-global rendering.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy`
+  -- MIR-blind LLVM callable/expression hooks consumed by the same CFG emitter.
+- `src/self_hosted/compiler/direct_mir_scalar_program_projection_owner.pgy` --
+  selected-target boundary that issues one sealed GraphPlan and never retries a
+  returned-Array, Option, terminal-graph, or native backend path.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_operation_plan_owner.pgy` --
   operation-row assembly plus latest-dominating ValueId joins.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_loop_flow_admission_owner.pgy`

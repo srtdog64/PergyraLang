@@ -1,0 +1,80 @@
+// C expression projection from the sealed scalar-program expression arena.
+
+import "direct_mir_scalar_program_expression_readiness_owner.pgy";
+
+func DirectMirScalarProgramCLocalName(row: Int) -> String {
+    return Concat("pgy_local_", ToString(row));
+}
+
+func DirectMirScalarProgramCExpressionValues(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    expression_row: Int
+) -> Array<String> {
+    let values: Array<String> = [];
+    let start: Int = expressions.graph_starts[expression_row];
+    let count: Int = expressions.graph_counts[expression_row];
+    let node: Int = start;
+    while node < start + count {
+        let kind: Int = expressions.node_kinds[node];
+        let left: String = "";
+        let right: String = "";
+        if expressions.node_lefts[node] >= start {
+            left = values[expressions.node_lefts[node] - start];
+        }
+        if expressions.node_rights[node] >= start {
+            right = values[expressions.node_rights[node] - start];
+        }
+        let value: String = "";
+        if kind == DirectMirScalarProgramExprLocal() {
+            value = DirectMirScalarProgramCLocalName(
+                expressions.node_local_rows[node]
+            );
+        } else if kind == DirectMirScalarProgramExprParameter() {
+            value = "pgy_param_0";
+        } else if kind == DirectMirScalarProgramExprIntLiteral() {
+            value = Concat(expressions.node_literals[node], "LL");
+        } else if kind == DirectMirScalarProgramExprBoolLiteral() {
+            value = expressions.node_literals[node];
+        } else if kind == DirectMirScalarProgramExprStringLiteral() {
+            value = Concat("\"", Concat(
+                expressions.node_literals[node], "\""
+            ));
+        } else if kind == DirectMirScalarProgramExprModuloInt() {
+            value = Concat("(", Concat(left, Concat(" % ", Concat(right, ")"))));
+        } else if kind == DirectMirScalarProgramExprEqualInt() {
+            value = Concat("(", Concat(left, Concat(" == ", Concat(right, ")"))));
+        } else if kind == DirectMirScalarProgramExprLogicalNot() {
+            value = Concat("(!", Concat(left, ")"));
+        } else if kind == DirectMirScalarProgramExprLogicalAnd() {
+            value = Concat("(", Concat(left, Concat(" && ", Concat(right, ")"))));
+        } else if kind == DirectMirScalarProgramExprLogicalOr() {
+            value = Concat("(", Concat(left, Concat(" || ", Concat(right, ")"))));
+        } else if kind == DirectMirScalarProgramExprLessInt() {
+            value = Concat("(", Concat(left, Concat(" < ", Concat(right, ")"))));
+        } else if kind == DirectMirScalarProgramExprAddInt() {
+            value = Concat("(", Concat(left, Concat(" + ", Concat(right, ")"))));
+        } else if kind == DirectMirScalarProgramExprDirectCall() {
+            value = Concat("pgy_scalar_callable_0(", Concat(left, ")"));
+        } else if kind == DirectMirScalarProgramExprToStringInt() {
+            // String materialization is fused with the only admitted Log use.
+            value = left;
+        } else {
+            Die("direct MIR scalar program C expression kind is unsupported");
+        }
+        ArrayPush(values, value);
+        node = node + 1;
+    }
+    return values;
+}
+
+func DirectMirScalarProgramCExpressionAt(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    expression_row: Int
+) -> String {
+    let values: Array<String> = DirectMirScalarProgramCExpressionValues(
+        expressions, expression_row
+    );
+    let root: Int = expressions.graph_roots[expression_row] -
+        expressions.graph_starts[expression_row];
+    return values[root];
+}

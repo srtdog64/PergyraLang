@@ -88,6 +88,7 @@ jobs:
           self-host-one-mir-array-return-projection-test-smoke
           self-host-one-mir-array-argument-projection-test-smoke
           self-host-one-mir-array-param-projection-test-smoke
+          self-host-one-mir-bool-logic-projection-test-smoke
           self-host-one-mir-struct-argument-projection-test-smoke
           self-host-one-mir-struct-value-flow-projection-test-smoke
           self-host-one-mir-option-struct-value-flow-projection-test-smoke

@@ -1,0 +1,135 @@
+// Exact schema and type invariants for normalized scalar-program expressions.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+
+func DirectMirScalarProgramNonTrappingBoolNode(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    if node < 0 || node >= ArrayLength(facts.node_kinds) ||
+        facts.node_types[node] != CompilerAbiLayoutBoolTypeName() {
+        return false;
+    }
+    let kind: Int = facts.node_kinds[node];
+    if kind == DirectMirScalarProgramExprLocal() ||
+        kind == DirectMirScalarProgramExprParameter() ||
+        kind == DirectMirScalarProgramExprBoolLiteral() {
+        return true;
+    }
+    if kind == DirectMirScalarProgramExprLogicalNot() {
+        return DirectMirScalarProgramNonTrappingBoolNode(
+            facts, facts.node_lefts[node]
+        );
+    }
+    if kind == DirectMirScalarProgramExprLogicalAnd() ||
+        kind == DirectMirScalarProgramExprLogicalOr() {
+        return DirectMirScalarProgramNonTrappingBoolNode(
+            facts, facts.node_lefts[node]
+        ) && DirectMirScalarProgramNonTrappingBoolNode(
+            facts, facts.node_rights[node]
+        );
+    }
+    return false;
+}
+
+func DirectMirScalarProgramExpressionNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    if node < 0 || node >= ArrayLength(facts.node_kinds) {
+        return false;
+    }
+    let kind: Int = facts.node_kinds[node];
+    let type_name: String = facts.node_types[node];
+    let left: Int = facts.node_lefts[node];
+    let right: Int = facts.node_rights[node];
+    let local: Int = facts.node_local_rows[node];
+    let param: Int = facts.node_parameter_ordinals[node];
+    let literal: String = facts.node_literals[node];
+    let callable: Int = facts.node_callable_rows[node];
+    if kind == DirectMirScalarProgramExprLocal() {
+        return local >= 0 && left == -1 && right == -1 && param == -1 &&
+            literal == "" && callable == -1;
+    }
+    if kind == DirectMirScalarProgramExprParameter() {
+        return param == 0 && left == -1 && right == -1 && local == -1 &&
+            literal == "" && callable == -1;
+    }
+    if kind == DirectMirScalarProgramExprIntLiteral() {
+        return type_name == CompilerAbiLayoutIntTypeName() &&
+            DirectMirScalarCfgCanonicalInt(literal) && left == -1 &&
+            right == -1 && local == -1 && param == -1 && callable == -1;
+    }
+    if kind == DirectMirScalarProgramExprBoolLiteral() {
+        return type_name == CompilerAbiLayoutBoolTypeName() &&
+            (literal == "true" || literal == "false") && left == -1 &&
+            right == -1 && local == -1 && param == -1 && callable == -1;
+    }
+    if kind == DirectMirScalarProgramExprStringLiteral() {
+        return type_name == CompilerAbiLayoutStringTypeName() &&
+            DirectMirScalarProgramLiteralEmbeddable(literal) && left == -1 &&
+            right == -1 && local == -1 && param == -1 && callable == -1;
+    }
+    if kind == DirectMirScalarProgramExprLogicalNot() {
+        return type_name == CompilerAbiLayoutBoolTypeName() && left >= 0 &&
+            facts.node_types[left] == CompilerAbiLayoutBoolTypeName() &&
+            right == -1 && local == -1 && param == -1 && literal == "" &&
+            callable == -1;
+    }
+    if kind == DirectMirScalarProgramExprDirectCall() {
+        return type_name == CompilerAbiLayoutBoolTypeName() && left >= 0 &&
+            facts.node_types[left] == CompilerAbiLayoutIntTypeName() &&
+            right == -1 && local == -1 && param == -1 && literal == "" &&
+            callable >= 0;
+    }
+    if kind == DirectMirScalarProgramExprToStringInt() {
+        return type_name == CompilerAbiLayoutStringTypeName() && left >= 0 &&
+            facts.node_types[left] == CompilerAbiLayoutIntTypeName() &&
+            right == -1 && local == -1 && param == -1 && literal == "" &&
+            callable == -1;
+    }
+    let int_binary: Bool = kind == DirectMirScalarProgramExprModuloInt() ||
+        kind == DirectMirScalarProgramExprEqualInt() ||
+        kind == DirectMirScalarProgramExprLessInt() ||
+        kind == DirectMirScalarProgramExprAddInt();
+    let bool_binary: Bool = kind == DirectMirScalarProgramExprLogicalAnd() ||
+        kind == DirectMirScalarProgramExprLogicalOr();
+    if (!int_binary && !bool_binary) || left < 0 || right < 0 ||
+        local != -1 || param != -1 || literal != "" || callable != -1 {
+        return false;
+    }
+    if int_binary {
+        if facts.node_types[left] != CompilerAbiLayoutIntTypeName() ||
+            facts.node_types[right] != CompilerAbiLayoutIntTypeName() {
+            return false;
+        }
+        if kind == DirectMirScalarProgramExprModuloInt() {
+            return type_name == CompilerAbiLayoutIntTypeName() &&
+                facts.node_kinds[right] ==
+                    DirectMirScalarProgramExprIntLiteral() &&
+                facts.node_literals[right] != "0" &&
+                facts.node_literals[right] != "-1";
+        }
+        if kind == DirectMirScalarProgramExprAddInt() {
+            return type_name == CompilerAbiLayoutIntTypeName();
+        }
+        return type_name == CompilerAbiLayoutBoolTypeName();
+    }
+    return type_name == CompilerAbiLayoutBoolTypeName() &&
+        DirectMirScalarProgramNonTrappingBoolNode(facts, right) &&
+        facts.node_types[left] == CompilerAbiLayoutBoolTypeName() &&
+        facts.node_types[right] == CompilerAbiLayoutBoolTypeName();
+}
+
+func DirectMirScalarProgramExpressionSetSemanticallyReady(
+    ref facts: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    if !DirectMirScalarProgramExpressionSetReady(facts) { return false; }
+    let node: Int = 0;
+    while node < ArrayLength(facts.node_kinds) {
+        if !DirectMirScalarProgramExpressionNodeReady(facts, node) {
+            return false;
+        }
+        node = node + 1;
+    }
+    return true;
+}
