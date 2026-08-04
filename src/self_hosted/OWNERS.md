@@ -2284,10 +2284,18 @@ inventory must not become a second fact-family owner registry.
   `src/self_hosted/compiler/direct_mir_scalar_program_string_search_expression_readiness_owner.pgy`
   -- stable StringIndexOf expression identity plus its exact typed two-argument
   readiness. They own no target syntax or search evaluation.
+- `src/self_hosted/compiler/direct_mir_scalar_program_string_trim_expression_kind_owner.pgy`
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_program_string_transform_expression_readiness_owner.pgy`
+  -- stable StringTrim expression identity plus exact typed unary-transform
+  readiness. They own no target syntax or trim evaluation.
 - `src/self_hosted/compiler/direct_mir_scalar_program_string_window_builtin_signature_owner.pgy`
   -- canonical bounded String window/search signature projection from the
   semantic builtin registry; consumers cannot own copied spelling/arity/type
   tables.
+- `src/self_hosted/compiler/direct_mir_scalar_program_string_transform_builtin_signature_owner.pgy`
+  -- canonical bounded unary String-transform signature and actual-argument
+  projection from the same semantic builtin registry.
 - `src/self_hosted/compiler/direct_mir_scalar_program_callable_admission_owner.pgy`
   -- admission of the strict supported callable signature. The optional
   callable receipt and canonical-empty invariant live in
@@ -2303,6 +2311,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_program_string_index_runtime_owner.pgy`
   -- canonical StringIndexOf ABI identity, result sentinel/range/unit, and
   signed-headroom contract consumed by both target materializers.
+- `src/self_hosted/compiler/direct_mir_scalar_program_string_trim_runtime_owner.pgy`
+  -- canonical StringTrim ABI identity, ASCII boundary set, null behavior, and
+  owned-result contract consumed by both target materializers.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_owner.pgy`
   -- optional callable identity, typed expression-row links, per-block return
   rows, and String/closed-module ABI IDs carried by the existing scalar CFG
@@ -2359,6 +2370,16 @@ inventory must not become a second fact-family owner registry.
   `src/self_hosted/compiler/direct_mir_scalar_program_c_string_index_materialization_owner.pgy`
   -- MIR-blind C StringIndexOf call rendering and runtime-body materialization
   from the sealed search ABI fact.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_string_transform_expression_owner.pgy`
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_program_c_string_trim_materialization_owner.pgy`
+  -- MIR-blind C StringTrim call rendering and runtime-body materialization
+  from the sealed transform fact.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_string_special_expression_owner.pgy`
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_program_c_string_scalar_materialization_owner.pgy`
+  -- small C composition boundaries for the independent String search and
+  transform expression/body owners; they own no semantic dispatch.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy`
   -- MIR-blind range-driven C program rendering. One routine renderer serves
   entrypoint and callable; it never reopens admitted MIR.
@@ -2373,6 +2394,16 @@ inventory must not become a second fact-family owner registry.
   -- MIR-blind LLVM StringIndexOf call/runtime materialization and checked
   Substring runtime materialization. The window owner composes these blocks and
   does not own their bodies.
+- `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_transform_expression_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_trim_materialization_owner.pgy`,
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_special_expression_owner.pgy`
+  -- MIR-blind LLVM StringTrim call/body ownership and the small search/
+  transform expression composition boundary.
+- `src/self_hosted/compiler/direct_mir_scalar_program_llvm_foreign_declaration_owner.pgy`
+  -- one plan-derived declaration set for generated LLVM runtime bodies. It
+  owns declaration cardinality only; semantic bodies remain with their runtime
+  owners.
 - `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_global_owner.pgy`
   -- literal String global materialization, separated from expression policy.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy`

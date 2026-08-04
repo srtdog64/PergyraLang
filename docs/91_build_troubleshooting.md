@@ -6,6 +6,25 @@
 
 ---
 
+## LLVM rejects an identical repeated foreign declaration
+
+Do not treat identical text as harmless or make every runtime body conditionally
+guess what a sibling emitted. LLVM rejects a repeated declaration in the same
+module even when its spelling and type are identical. This occurred when
+`str_trim.pgy` combined the existing concat runtime with the new trim runtime:
+both emitted `declare ptr @memcpy(ptr, ptr, i64)` and clang reported `invalid
+redefinition of function 'memcpy'`.
+
+Foreign declaration cardinality belongs to the final target composition, while
+runtime bodies keep their semantic responsibility. Derive one unique
+declaration set from the sealed GraphPlan/runtime ABI, emit it before all
+bodies, and remove declaration text from the body owners. The focused combined
+gate must count each reached declaration exactly once and rerun the adjacent
+runtime families (`StringIndexOf`, window, replace, collection, and concat),
+because a single-function fixture cannot falsify this integration defect.
+
+---
+
 ## `struct call argument fact missing` appears after extending a nested ABI fact
 
 Do not assume the producer failed first. A self-host struct constructor is

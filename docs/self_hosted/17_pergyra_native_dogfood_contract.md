@@ -2,6 +2,27 @@
 
 Status: `BRIDGE`
 
+## 2026-08-05 bounded StringTrim runtime evidence
+
+Checkpoint `d88cab37` is bounded `SUBSTITUTING` evidence for the exact
+`str_trim.pgy` slice. The installed Pergyra-built entrypoint consumes its
+self-produced MIR through GraphPlan v23. Registry-derived unary transform
+facts and one sealed runtime contract drive real StringTrim materialization in
+direct C and LLVM. Both artifacts compile and execute `hello world`, `11`, `0`,
+and `[x]`; semantic, already-trimmed, and empty cases execute their exact
+results, while six malformed identity/type/topology families publish no
+artifact.
+
+This rung is pure value transformation. `func`/`struct` therefore remain the
+Pergyra-native form; decorative `action`, `zone`, or `intent` would invent an
+authority, resource, or real-world-purpose boundary. The installed production
+entrypoint replaces the prior direct-backend rejection, so this is
+`SUBSTITUTING`, not keyword `SURFACE`.
+
+The evidence does not promote every escaped literal spelling, general String
+ownership/lifetime, arbitrary transforms, compiler-purpose intent, or the
+whole self-host root. Those remain separate executable rungs.
+
 ## 2026-08-05 bounded StringIndexOf window evidence
 
 Checkpoint `fb0561f6` is bounded `SUBSTITUTING` evidence for the exact

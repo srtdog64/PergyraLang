@@ -23,6 +23,31 @@ rung, the SoT registry, or executable gates.
 
 ## What was closed in the current rung
 
+The `str_trim.pgy` rung displaced the reached unary String transform rejection
+through GraphPlan v23. It kept expression identity, canonical signature,
+readiness, runtime behavior, C/LLVM syntax, and target materialization in
+responsibility-named owners. Small search/transform and scalar-runtime
+compositors kept the existing 50-line C expression, 85-line LLVM expression,
+and 20-line C materialization caps unchanged.
+
+The first combined LLVM artifact then turned the previously recorded foreign-
+declaration seam into an executable failure: concat and trim each emitted
+`declare ptr @memcpy(ptr, ptr, i64)`. One plan-derived foreign-declaration owner
+now emits each required `strlen`, `malloc`, `memcpy`, `strstr`, `strncmp`,
+collection, conversion, and abort declaration once. Runtime materialization
+owners retain only their semantic bodies. This is bounded declaration
+composition, not a general FFI registry.
+
+The executable evidence is
+`tests/self_hosted/parity/one_mir_string_trim_projection.sh`. It proves exact
+C/LLVM execution, display neutrality, semantic/already-trimmed/empty cases,
+six malformed no-artifact families, and exact declaration cardinality in the
+combined artifact. StringIndexOf, window, case/math replace, collection,
+concat, and nested String regressions all remain green. Every new owner is in
+`scalar_program_owner_caps.tsv`; no existing cap was raised.
+
+### Previous StringIndexOf window closure
+
 The `str_indexof.pgy` rung displaced the reached String search rejection
 through GraphPlan v22 and closed three responsibility-density faults:
 
@@ -141,11 +166,10 @@ inventory path.
   signatures or responsibilities. `Die` also crosses a production text owner
   and a fuzz/tool boundary. These are not byte duplication, but the first two
   are composition and naming seams when their graphs meet.
-- Repeated LLVM foreign declarations remain in responsibility-specific runtime
-  materializers: `strstr` appears in collection, index, and replace owners;
-  `memcpy` and `abort` also appear in multiple owners. Current combined
-  programs accept identical declarations, so this is an integration seam, not
-  an observed executable failure.
+- LLVM runtime foreign declarations now have one plan-derived composition
+  owner. The formerly repeated `strstr`, `memcpy`, and `abort` spellings were
+  removed from responsibility-specific runtime bodies after the combined
+  StringTrim/concat artifact reproduced an actual duplicate-declaration error.
 
 Exact file duplication is therefore not the main problem. The remaining debt
 is responsibility density and coarse dispatch.
@@ -160,7 +184,6 @@ is responsibility density and coarse dispatch.
 | P2 | `codegen/emission/stmt_emit.pgy` | 621 lines under a file-specific 640 exception and 33 imports | Split complete statement families behind existing semantic statement facts, then remove the exception and restore the default ceiling. |
 | P2 | `semantic/body_check_owner.pgy` and `codegen/emission/program_emit.pgy` | both declare generic `CheckFunction`; the semantic form is a legacy source-text scanner while the codegen form consumes AST/semantic state | Rename by responsibility immediately when either owner is touched. Delete the text-scanning semantic path only when typed facts reach its last consumer; no compatibility dual read. |
 | P2 | `semantic/text_scan_owner.pgy` and `lexer/char_owner.pgy` | both declare generic `CharAt` for different text boundaries | Rename by responsibility when either owner is reached; do not create a shared helper unless one policy-free byte/character contract is actually identical and imported by both. |
-| P2 | LLVM String runtime materialization owners | `strstr`, `memcpy`, and `abort` declarations are repeated across responsibility-specific owners; current regressions accept identical declarations | Introduce one declaration projection only when a combined executable runtime reaches a declaration collision. Keep semantic runtime bodies with their current owners and add a combined-runtime negative; do not open a general foreign-function registry. |
 | P2 | `air/mir_break_cfg_certificate_fact_owner.pgy` | 627 lines under an explicit 650 ceiling | Split certificate construction from readiness/projection when the break-CFG executable rung is next active; then lower the exception. |
 | P3 | `tools/initializer_projection_probe/main.pgy` | 876 lines, but it is a test/probe tool rather than the production compiler path | Split scenario construction from reporting only when this probe is changed. It does not block self-host substitution. |
 

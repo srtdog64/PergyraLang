@@ -16,6 +16,44 @@ For work after this snapshot, follow `docs/152_validation_isolation_policy.md`:
 rerun only the owner gate for the touched self-host rung unless a broader
 compiler-world owner changed or broad parity is explicitly requested.
 
+Focused evidence on 2026-08-05 closes `str_trim.pgy` at checkpoint
+`d88cab37`. The 5,030,274-byte current-source Pergyra-built driver
+(`62FD572FAD63D9917A96E2154DF1AAF3AA277E4F3B878FAB769B4AF5DC6287BE`)
+consumes one 11,463-byte self-produced MIR
+(`1A10A12B315C2B48E715441966738724C0E1D8E5A120766DC87987E494D52BE8`)
+through GraphPlan v23. It emits 1,577-byte C
+(`6CD19BFA68AF738019BD720F6ACF6C33B8B6CCFDF92DC1E9E9EDB6F2DF96BA5F`)
+and 6,244-byte LLVM
+(`84196925990CDA66A47F5F981C8BE60975A82D5FB6EE151409BC3E2084C49430`).
+Both compile and execute exact `hello world`, `11`, `0`, and `[x]`.
+
+The same GraphPlan now carries canonical StringTrim signature, expression,
+runtime behavior, and target materialization facts. The runtime contract fixes
+space/tab/LF/CR boundaries, null-to-empty behavior, and owned-String result
+identity. The first combined LLVM artifact rejected duplicate `memcpy`
+declarations; one plan-derived foreign-declaration owner now emits each runtime
+declaration once while the semantic runtime owners retain their bodies.
+
+The focused gate proves display-only equality, semantic change,
+already-trimmed and empty inputs, exact C/LLVM execution, six no-artifact
+malformed families, and one declaration each for `strlen`, `malloc`, `memcpy`,
+and `abort`. The final build took 135.9 seconds; the focused gate took 16.5
+seconds and six adjacent String runtime regressions took 88 seconds. Existing
+central caps stayed fixed and all new owners are capped. Full CI, fixed point,
+proofs, sanitizers, pressure sampling, and release promotion did not run. This
+is bounded direct-C/LLVM `SUBSTITUTING`, not arbitrary String transforms or
+whole-compiler replacement.
+
+The next observed falsifier is `string_array_index_return.pgy`: its producer
+emits 6,234-byte MIR
+(`EE124A64CBFF373C365992E7EAC63084C8358A152F094AC13A2595C45BCF0DE6`),
+while both targets reject the terminal multi-routine graph without an artifact.
+The native C oracle executes `one`. The next rung must reuse the canonical
+Array<String> ABI for typed parameter carriage and indexed String return in the
+same GraphPlan; source-name/routine-order inference, flattened arrays, raw
+pointer carriage, a second emitter, count routing, and native retry remain
+forbidden.
+
 Focused evidence on 2026-08-05 closes `str_indexof.pgy` at checkpoint
 `fb0561f6`. The 5,019,513-byte current-source Pergyra-built driver
 (`699D7D7847AE07B1F6E6BB5AF22CACACAF23185EE4CD363939BB744342AC598E`)

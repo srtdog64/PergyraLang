@@ -6,6 +6,46 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-05 - StringTrim runtime program substitutes through GraphPlan v23
+
+- Landed executable checkpoint `d88cab37`. The 5,030,274-byte current-source
+  Pergyra-built driver
+  (`62FD572FAD63D9917A96E2154DF1AAF3AA277E4F3B878FAB769B4AF5DC6287BE`)
+  consumes the 11,463-byte `str_trim.pgy` MIR
+  (`1A10A12B315C2B48E715441966738724C0E1D8E5A120766DC87987E494D52BE8`).
+  It emits 1,577-byte C
+  (`6CD19BFA68AF738019BD720F6ACF6C33B8B6CCFDF92DC1E9E9EDB6F2DF96BA5F`)
+  and 6,244-byte LLVM
+  (`84196925990CDA66A47F5F981C8BE60975A82D5FB6EE151409BC3E2084C49430`);
+  both execute `hello world`, `11`, `0`, and `[x]` exactly.
+- GraphPlan v23 remains the sole program graph. Canonical signature,
+  expression-kind/readiness, runtime behavior, and C/LLVM materialization
+  owners carry StringTrim without a fixture route, evaluator, second graph, or
+  backend MIR read. The C core reuses one trim body.
+- The first LLVM compile failed on duplicate `memcpy`: concat and trim runtime
+  owners both emitted the declaration. One plan-derived LLVM foreign-
+  declaration owner now emits unique `strlen`, `malloc`, `memcpy`, `strstr`,
+  `strncmp`, collection, and abort declarations as required. Runtime owners
+  emit bodies only. Six adjacent String runtime gates prove the integration.
+- The focused gate covers display equality, semantic change, already-trimmed
+  and empty values, exact execution, six malformed result/type/topology/target
+  families, and exact one-count declarations for the combined artifact.
+- Layering audit: every new responsibility owner has a tight cap, and all
+  pre-existing central caps stayed unchanged and green. Production exact-
+  duplicate files and generic helper paths remain zero; the previously open
+  foreign-declaration seam is closed at the executable composition boundary.
+- The final composition build took 135.9 seconds; the focused gate took 16.5
+  seconds and adjacent regressions took 88 seconds. Full CI, current fixed
+  point, proofs, sanitizers, and pressure sampling did not run. The independent
+  616/600 semantic owner and duplicate-Coq-authority reds remain explicit.
+- The next observed falsifier is `string_array_index_return.pgy`: 6,234-byte
+  MIR (`EE124A64CBFF373C365992E7EAC63084C8358A152F094AC13A2595C45BCF0DE6`)
+  is rejected by both targets at terminal multi-routine admission without an
+  artifact; native C executes `one`. Continue by carrying the canonical
+  Array<String> parameter, indexed String return, and caller use through the
+  same GraphPlan. Do not infer routine/name order, flatten the Array, pass an
+  unowned pointer, create a second emitter, count-route, or retry native code.
+
 ## 2026-08-05 - StringIndexOf window program substitutes through GraphPlan v22
 
 - Landed executable checkpoint `fb0561f6`. The 5,019,513-byte current-source

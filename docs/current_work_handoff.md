@@ -6,7 +6,85 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - StringIndexOf window program closed
+## Active self-host context - StringTrim runtime program closed
+
+- Executable checkpoint: `d88cab37` on `main`, with this handoff as its
+  intended docs-only descendant. The final current-source Pergyra-built driver
+  is 5,030,274 bytes with SHA-256
+  `62FD572FAD63D9917A96E2154DF1AAF3AA277E4F3B878FAB769B4AF5DC6287BE`.
+- Intended post-handoff dirty state contains only user-owned stdlib work:
+  modified `docs/138_standard_library_scope.md` and
+  `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
+  `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`. No
+  compiler-rung file remains dirty.
+- Closed executable rung: `src/self_hosted/codegen/fixture/str_trim.pgy`.
+  Its 11,463-byte self-produced MIR has SHA-256
+  `1A10A12B315C2B48E715441966738724C0E1D8E5A120766DC87987E494D52BE8`.
+  The same MIR emits 1,577-byte C
+  (`6CD19BFA68AF738019BD720F6ACF6C33B8B6CCFDF92DC1E9E9EDB6F2DF96BA5F`)
+  and 6,244-byte LLVM
+  (`84196925990CDA66A47F5F981C8BE60975A82D5FB6EE151409BC3E2084C49430`).
+  Both host-compile and execute exact `hello world`, `11`, `0`, and `[x]`.
+- `DirectMirScalarCfgGraphPlan` v23 remains the sole CFG, SSA, phi, local,
+  operation, routine-range, expression-link, digest, and mutation authority.
+  The canonical builtin registry supplies StringTrim identity; a sealed runtime
+  subfact owns its ASCII space/tab/LF/CR boundary, null-to-empty behavior, and
+  owned-String result contract.
+- C and LLVM expressions consume the same typed unary transform fact. The C
+  runtime's pre-existing trim body is now a reusable responsibility owner;
+  LLVM materializes the leading/trailing scan and allocation from the same ABI
+  projection. No compile-time trimming or expression-text recovery exists.
+- The first combined LLVM artifact exposed the prior declaration layering
+  debt as a real failure: `memcpy` was declared by both concat and trim runtime
+  owners. One `direct_mir_scalar_program_llvm_foreign_declaration_owner.pgy`
+  now derives unique declarations from the sealed plan; runtime owners emit
+  bodies only. StringIndexOf, window, case/math replace, collection, concat,
+  and nested String regressions all remain green.
+- Focused evidence covers base, display-only equality, semantic change,
+  already-trimmed input, empty input, and six malformed result/type/topology/
+  target families. Every malformed family fails before artifact publication;
+  `strlen`, `malloc`, `memcpy`, and `abort` each occur as exactly one LLVM
+  declaration in the combined artifact.
+- The final composition build passed in 135.9 seconds. The focused gate passed
+  in 16.5 seconds and six adjacent runtime regressions passed in 88 seconds.
+  No memory-pressure result is claimed. Full CI, current gen2==gen3, proofs,
+  sanitizers, and released/default promotion did not run.
+- Layering closure: expression kind, signature, readiness, runtime contract,
+  C/LLVM expression, materialization, small composition, and LLVM foreign
+  declarations have named owners. All are capped; every pre-existing central
+  cap remains unchanged and green. No helper bucket, duplicate production
+  file, second graph/emitter, backend MIR read, fixture route, evaluator, or
+  native fallback was added.
+- Independent red evidence remains explicit. The component contract still
+  stops at the pre-existing `ast_expression_graph_fact_owner.pgy` 616/600 cap,
+  and the SoT registry still has the previously recorded duplicate Coq fact
+  authorities. These are not this rung's blockers.
+- Classification is bounded `SUBSTITUTING` only for this StringTrim program
+  through installed direct C and LLVM. It does not promote all escaped literal
+  spellings, temporary String lifetime, arbitrary transforms, or whole-
+  compiler/default replacement.
+- Next observed executable falsifier:
+  `src/self_hosted/codegen/fixture/string_array_index_return.pgy`. The producer
+  succeeds with 6,234-byte MIR, SHA-256
+  `EE124A64CBFF373C365992E7EAC63084C8358A152F094AC13A2595C45BCF0DE6`.
+  C and LLVM publish no artifact and fail closed at `direct MIR terminal
+  multi-routine graph is unsupported`; the native C oracle executes exact
+  `one`.
+- Next objective card: keep `CompileAdmittedDirectMirForTarget` as production
+  entry and GraphPlan v23 as fact owner; carry one canonical `Array<String>`
+  parameter into `Pick`, prove its indexed String return and caller result use,
+  and reuse the existing captured Array<String> ABI in both targets. The last
+  consumers are the installed direct target projections. Falsify routine
+  order, parameter type/carriage, call target/argument/result, index bound, and
+  ABI layout before artifact publication.
+- Forbidden fallback remains a fixture/name/output branch, first-routine or
+  source-name inference, flattened Array values, an unowned raw pointer,
+  backend-only reconstruction, a second graph/emitter, count routing, claimant
+  retry, or native C fallback.
+
+## Historical checkpoint archive - inactive navigation evidence
+
+### Previous StringIndexOf window program closure
 
 - Executable checkpoint: `fb0561f6` on `main`, with this handoff as its
   intended docs-only descendant. The final current-source Pergyra-built driver
@@ -82,8 +160,6 @@ owner, and the named executable gate.
 - Forbidden fallback remains a fixture/name/output branch, expression-text
   parsing, compile-time trim evaluation, a second graph/emitter, routine/block-
   count routing, backend MIR reads, claimant retry, or native C fallback.
-
-## Historical checkpoint archive - inactive navigation evidence
 
 ### Previous ordered call and String case/math closure
 
