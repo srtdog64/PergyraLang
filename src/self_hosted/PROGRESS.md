@@ -35,12 +35,17 @@
   `1859C1E166B34072657A36F05EDDCBED41E5C0276DE38BB28A6B949EFB20F843`.
   Both targets reject without artifact at `direct MIR terminal multi-routine
   graph is unsupported`; required output is `I, S, S, ?, eq`.
-- Next objective card: add typed String equality/inequality and String return
-  carriage to the existing scalar-program extension. The existing execution
-  graph remains fact owner and the direct target compiler remains last
-  consumer. Fixture/name branching, text parsing, precomputed output, a second
-  plan/emitter loop, terminal retry, backend MIR reads, and native fallback are
-  forbidden.
+- `Kind(String) -> String` is a six-block, multi-return CFG. The next objective
+  is therefore a routine-partitioned promotion of the existing GraphPlan, not
+  a callable-only successor table or embedded decision microcompiler. One flat
+  block/operation/phi storage and the same admission/target routine renderer
+  must serve `Main` and `Kind`; the extension may own only routine ranges,
+  String comparison/return row links, the sealed call edge, and compare ABI.
+  Parameter ordinal and target identity must be owner-joined and sealed; if the
+  admitted MIR cannot supply that join, producer carriage is the first
+  sub-rung. Fixture/name branching, display-text parsing, precomputed output,
+  a second plan/emitter loop, terminal retry, backend MIR reads, and native
+  fallback are forbidden.
 
 ## Historical self-host ledger - inactive navigation evidence
 

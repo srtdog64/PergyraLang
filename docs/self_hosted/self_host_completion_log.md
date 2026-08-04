@@ -45,10 +45,14 @@ rewrite history.
   its 12,186-byte MIR
   (`1859C1E166B34072657A36F05EDDCBED41E5C0276DE38BB28A6B949EFB20F843`)
   is produced, but both targets publish no artifact and report `direct MIR
-  terminal multi-routine graph is unsupported`. The next rung must add typed
-  String equality/inequality and String return carriage inside the same scalar
-  extension; fixture branches, expression text, second plans, terminal retry,
-  backend MIR reads, and native fallback are forbidden.
+  terminal multi-routine graph is unsupported`. `Kind` is a six-block,
+  multi-return callable, so the next rung must promote the existing GraphPlan
+  to routine-partitioned shared block/operation/phi storage and reuse one
+  admission/target routine renderer for both routines. Callable-only successor
+  arrays or a decision microcompiler are also forbidden. The extension may
+  carry only routine ranges, typed String comparison/return links, a sealed
+  call edge and compare ABI. Fixture branches, expression text, second plans,
+  terminal retry, backend MIR reads, and native fallback remain forbidden.
 
 ## 2026-08-04 - Reallocating Array return/parameter carriage substitutes
 

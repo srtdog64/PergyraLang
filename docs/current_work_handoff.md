@@ -60,12 +60,21 @@ owner, and the named executable gate.
   Both targets publish no artifact and stop at
   `direct MIR terminal multi-routine graph is unsupported`; required execution
   is exact `I`, `S`, `S`, `?`, `eq`.
-- Next objective card: extend the existing scalar-program expression/callable
-  seam with typed String equality/inequality and String-to-String return
-  carriage while keeping `mir.execution_graph` as fact supplier and
-  `CompileAdmittedDirectMirForTarget` as last legitimate consumer. First
-  falsifier: a malformed String comparison or call endpoint must fail in the
-  claimed scalar owner before either artifact.
+- Observed architecture constraint: `Kind(String) -> String` is a real
+  six-block, multi-return CFG. A callable-only successor/return array, embedded
+  decision compiler, or second target block loop would recreate the rejected
+  microcompiler even if it stayed under a line cap.
+- Next objective card: promote the existing GraphPlan to one routine-partitioned
+  program graph with shared flat block/operation/phi storage and canonical
+  routine ranges. The same admission and target routine renderer must serve
+  `Main` and `Kind`; the program extension may add only routine ranges, typed
+  String equality/inequality and return-expression links, the closed call edge,
+  and String-compare ABI. `mir.execution_graph` remains fact supplier and
+  `CompileAdmittedDirectMirForTarget` the last legitimate consumer. Parameter
+  ordinal and call-target identity must be joined and sealed, never recovered
+  from display text; if current MIR cannot supply that join, producer carriage
+  is the first sub-rung. A malformed comparison, return, or endpoint must fail
+  in the claimed scalar owner before either artifact.
 - Forbidden fallback: a `string_equality` fixture/name branch, expression-text
   parsing, precomputed output, routine/block-count classification, a second CFG
   plan/emitter loop, terminal-graph retry, backend MIR reads, or native C
