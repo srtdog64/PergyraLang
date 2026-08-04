@@ -16,6 +16,43 @@ For work after this snapshot, follow `docs/152_validation_isolation_policy.md`:
 rerun only the owner gate for the touched self-host rung unless a broader
 compiler-world owner changed or broad parity is explicitly requested.
 
+Focused evidence on 2026-08-05 closes `str_indexof.pgy` at checkpoint
+`fb0561f6`. The 5,019,513-byte current-source Pergyra-built driver
+(`699D7D7847AE07B1F6E6BB5AF22CACACAF23185EE4CD363939BB744342AC598E`)
+consumes one 14,215-byte self-produced MIR
+(`28F0C0C026E62F749AEF2150B5100444962B6260D242F4560E9A2262954F1C75`)
+through GraphPlan v22. It emits 1,898-byte C
+(`DC0BB8CDFAEA1CE29E62AE2C2ED294FAA1EAE767BDE8708BDF0D9AA653C0430A`)
+and 5,632-byte LLVM
+(`68E1A169E649979F92BCFC7749824BEF0B75885D0ABB3337EE9774064F5D3E7F`).
+Both compile and execute exact `5`, `-1`, `hello`, and `world`.
+
+The same typed GraphPlan now owns the canonical StringIndexOf signature,
+expression kind, runtime ABI, and `-1`-or-byte-offset result range. The reached
+`p + 1` and length-subtraction forms are admitted only from a same-source,
+same-block StringIndexOf definition. Both targets materialize the search from
+the sealed fact; no compile-time search result, text reconstruction, or backend
+MIR read exists. This rung also corrected self-host Substring invalid-window
+behavior to match the native empty-string contract.
+
+The focused gate proves display-only equality, semantic mutation, absent and
+empty-needle behavior, exact dual-target execution, and seven no-artifact
+malformed families. The final composition build took 167.8 seconds and the
+focused gate took 17.7 seconds; adjacent String and routine regressions are
+green. New condition-bound, StringIndexOf range, and LLVM substring owners have
+tight caps; no existing cap was raised. Full CI, fixed point, proofs,
+sanitizers, pressure sampling, and release promotion did not run. This is
+bounded direct-C/LLVM `SUBSTITUTING`, not arbitrary String search or whole-
+compiler replacement.
+
+The next observed falsifier is `str_trim.pgy`: its producer emits 11,463-byte
+MIR (`1A10A12B315C2B48E715441966738724C0E1D8E5A120766DC87987E494D52BE8`),
+while both targets reject expression row 1 for `StringTrim(raw)` without an
+artifact. The next rung must join the canonical StringTrim contract to this
+same GraphPlan and materialize it in both targets. Fixture routing,
+compile-time trimming, a second emitter, count routing, backend MIR reads, and
+native retry remain forbidden.
+
 Focused evidence on 2026-08-05 closes `str_case_math.pgy` at checkpoint
 `1b620f9b`. The 5,006,609-byte current-source Pergyra-built driver
 (`FD3C0343318992F13A60FCBE8B4C7628AC3486466A236F317E4F2AFBC2B1FB42`)

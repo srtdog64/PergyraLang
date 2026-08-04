@@ -23,6 +23,39 @@ rung, the SoT registry, or executable gates.
 
 ## What was closed in the current rung
 
+The `str_indexof.pgy` rung displaced the reached String search rejection
+through GraphPlan v22 and closed three responsibility-density faults:
+
+1. the arithmetic admission coordinator mixed an already established
+   condition-bound proof with unrelated arithmetic families;
+2. StringIndexOf result semantics, target expression syntax, and runtime
+   materialization had no sealed owner shared by C and LLVM;
+3. checked LLVM Substring materialization had accumulated inside the window
+   compositor and would have exceeded its fixed cap when the native invalid-
+   window contract was restored.
+
+Condition-bound proof now has its own owner. A second exact proof admits only
+the reached `p + 1` and `StringLength(source) - p - 1` relation from one
+earlier same-block StringIndexOf definition over the same source. Canonical
+signature, expression-kind/readiness, runtime-ABI/result-range, and target
+materialization owners carry the search operation. LLVM checked Substring has
+a responsibility owner and its former file is again a small compositor.
+
+The executable evidence is
+`tests/self_hosted/parity/one_mir_string_indexof_projection.sh`. It covers
+display-only equality, semantic mutation, missing and empty needles, exact
+C/LLVM execution, and seven malformed families with no artifact. Every new
+owner is capped in `scalar_program_owner_caps.tsv`; no existing cap was raised.
+No fixture route, output evaluator, second graph/emitter, backend MIR read,
+generic helper bucket, or native fallback was introduced.
+
+The runtime correction is also architectural evidence: the absent-search case
+exposed that self-host Substring did not own the native invalid-window
+contract. Both targets now derive checked/clamped behavior from the String
+runtime owner instead of relying on valid fixture inputs.
+
+### Previous ordered-call and String case/math closure
+
 The `str_case_math.pgy` rung displaced the reached terminal multi-routine
 rejection through GraphPlan v21. It exposed five layering faults that a
 fixture route would have hidden:
@@ -105,8 +138,14 @@ inventory path.
 - Production files above 600 lines: four. One tool is also above 600 lines.
 - Duplicate production function spelling other than entrypoint `Main`:
   `CheckFunction` and `CharAt` each appear in two owners with different
-  signatures or responsibilities. This is not byte duplication, but it is a
-  composition and naming seam when those graphs meet.
+  signatures or responsibilities. `Die` also crosses a production text owner
+  and a fuzz/tool boundary. These are not byte duplication, but the first two
+  are composition and naming seams when their graphs meet.
+- Repeated LLVM foreign declarations remain in responsibility-specific runtime
+  materializers: `strstr` appears in collection, index, and replace owners;
+  `memcpy` and `abort` also appear in multiple owners. Current combined
+  programs accept identical declarations, so this is an integration seam, not
+  an observed executable failure.
 
 Exact file duplication is therefore not the main problem. The remaining debt
 is responsibility density and coarse dispatch.
@@ -121,6 +160,7 @@ is responsibility density and coarse dispatch.
 | P2 | `codegen/emission/stmt_emit.pgy` | 621 lines under a file-specific 640 exception and 33 imports | Split complete statement families behind existing semantic statement facts, then remove the exception and restore the default ceiling. |
 | P2 | `semantic/body_check_owner.pgy` and `codegen/emission/program_emit.pgy` | both declare generic `CheckFunction`; the semantic form is a legacy source-text scanner while the codegen form consumes AST/semantic state | Rename by responsibility immediately when either owner is touched. Delete the text-scanning semantic path only when typed facts reach its last consumer; no compatibility dual read. |
 | P2 | `semantic/text_scan_owner.pgy` and `lexer/char_owner.pgy` | both declare generic `CharAt` for different text boundaries | Rename by responsibility when either owner is reached; do not create a shared helper unless one policy-free byte/character contract is actually identical and imported by both. |
+| P2 | LLVM String runtime materialization owners | `strstr`, `memcpy`, and `abort` declarations are repeated across responsibility-specific owners; current regressions accept identical declarations | Introduce one declaration projection only when a combined executable runtime reaches a declaration collision. Keep semantic runtime bodies with their current owners and add a combined-runtime negative; do not open a general foreign-function registry. |
 | P2 | `air/mir_break_cfg_certificate_fact_owner.pgy` | 627 lines under an explicit 650 ceiling | Split certificate construction from readiness/projection when the break-CFG executable rung is next active; then lower the exception. |
 | P3 | `tools/initializer_projection_probe/main.pgy` | 876 lines, but it is a test/probe tool rather than the production compiler path | Split scenario construction from reporting only when this probe is changed. It does not block self-host substitution. |
 

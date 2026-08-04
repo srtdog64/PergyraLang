@@ -6,6 +6,42 @@
 
 ---
 
+## `struct call argument fact missing` appears after extending a nested ABI fact
+
+Do not assume the producer failed first. A self-host struct constructor is
+positional, so adding a field to a nested ABI owner also changes every direct
+constructor consumer. A stale mutation or verifier constructor can still
+compile far enough to surface an unrelated-looking missing argument fact when
+the rebuilt composition executes.
+
+This occurred when the runtime ABI gained its StringIndexOf subfact. Production
+construction was current, but the extension-ABI mutation owner still built the
+old positional shape. Search every constructor of the changed struct, update
+the negative/mutation consumers as well as the production producer, then run
+the focused owner gate. Do not add an optional default or compatibility
+constructor: that would make old and new ABI shapes concurrent authorities.
+
+---
+
+## StringIndexOf absence turns a later Substring into a huge allocation
+
+An absent search result is `-1`. In `str_indexof.pgy`, the subsequent
+`Substring(source, index + 1, StringLength(source) - index - 1)` legitimately
+reaches a zero start and the full source length. The first negative fixture
+instead exposed a pre-existing mismatch: self-host C/LLVM Substring trusted a
+negative or oversized length and passed it toward allocation/copy, while the
+native runtime returns an empty String for an invalid window.
+
+Fix the runtime owner, not the fixture or its arithmetic. The StringIndexOf ABI
+must seal the missing sentinel, byte-offset unit, upper bound, and one signed
+headroom for the length relation. C and LLVM must derive checked/clamped
+Substring behavior from the same contract. The focused gate must execute at
+least found, missing, and empty-needle cases and must reject a forged result
+range before artifact publication. A base literal alone cannot prove the
+runtime boundary.
+
+---
+
 ## A phi diagnostic appears for a phi-free four-block program
 
 Do not add a synthetic phi or relax phi readiness until routing ownership is

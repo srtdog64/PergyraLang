@@ -6,7 +6,86 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - ordered call and String case/math closed
+## Active self-host context - StringIndexOf window program closed
+
+- Executable checkpoint: `fb0561f6` on `main`, with this handoff as its
+  intended docs-only descendant. The final current-source Pergyra-built driver
+  is 5,019,513 bytes with SHA-256
+  `699D7D7847AE07B1F6E6BB5AF22CACACAF23185EE4CD363939BB744342AC598E`.
+- Intended post-handoff dirty state contains only user-owned stdlib work:
+  modified `docs/138_standard_library_scope.md` and
+  `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
+  `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`. No
+  compiler-rung file remains dirty.
+- Closed executable rung: `src/self_hosted/codegen/fixture/str_indexof.pgy`.
+  Its 14,215-byte self-produced MIR has SHA-256
+  `28F0C0C026E62F749AEF2150B5100444962B6260D242F4560E9A2262954F1C75`.
+  The same MIR emits 1,898-byte C
+  (`DC0BB8CDFAEA1CE29E62AE2C2ED294FAA1EAE767BDE8708BDF0D9AA653C0430A`)
+  and 5,632-byte LLVM
+  (`68E1A169E649979F92BCFC7749824BEF0B75885D0ABB3337EE9774064F5D3E7F`).
+  Both host-compile and execute exact `5`, `-1`, `hello`, and `world`.
+- `DirectMirScalarCfgGraphPlan` v22 remains the sole CFG, SSA, phi, local,
+  operation, routine-range, expression-link, digest, and mutation authority.
+  A canonical StringIndexOf signature and sealed runtime subfact now carry its
+  `-1`-or-byte-offset result contract into both backends.
+- The reached `p + 1` and `StringLength(source) - p - 1` forms are admitted
+  only when `p` has one earlier same-block StringIndexOf definition over the
+  same source. This is bounded structural range evidence, not compile-time
+  search evaluation or a general signed-arithmetic relaxation.
+- Runtime parity was corrected at the same owner boundary: self-host C and
+  LLVM Substring now reject/clamp invalid windows to the native empty-string
+  behavior, StringLength preserves one signed-result headroom, and
+  StringIndexOf handles missing and null input explicitly.
+- Focused evidence covers base, semantic mutation, absent search, empty needle,
+  display-only equality, and seven malformed signature/topology/type/target/
+  range families. Every malformed family fails before artifact publication in
+  both targets.
+- The final composition build passed in 167.8 seconds. The final focused gate
+  passed in 17.7 seconds; String window, case/math, collection, equality/concat,
+  and routine-partition regressions are green on this source lineage. No
+  memory-pressure result is claimed. Full CI, current gen2==gen3, proofs,
+  sanitizers, and released/default promotion did not run.
+- Layering closure: condition-bound and StringIndexOf range proofs have
+  separate owners; LLVM checked substring materialization was split from its
+  compositor; all new owners have explicit caps and no existing cap was
+  raised. No helper bucket, duplicate production file, second graph/emitter,
+  backend MIR read, fixture route, compile-time evaluator, or native fallback
+  was added.
+- The bounded audit still finds zero byte-identical production `.pgy` groups
+  and zero generic helper paths. Four production owners remain above 600
+  lines. Duplicate `CheckFunction` and `CharAt` spellings remain responsibility
+  naming seams. Repeated `strstr`, `memcpy`, and `abort` declarations across
+  LLVM runtime materializers are an integration seam, to be centralized only
+  when a combined executable runtime reaches a real collision.
+- Independent red evidence remains explicit. The component contract still
+  stops at the pre-existing `ast_expression_graph_fact_owner.pgy` 616/600 cap,
+  and the SoT registry still has the previously recorded duplicate Coq fact
+  authorities. These are not this rung's blockers.
+- Classification is bounded `SUBSTITUTING` only for this StringIndexOf/window
+  program through installed direct C and LLVM. It does not promote arbitrary
+  String search, temporary String ownership, general arithmetic, or whole-
+  compiler/default replacement.
+- Next observed executable falsifier:
+  `src/self_hosted/codegen/fixture/str_trim.pgy`. The producer succeeds with
+  11,463-byte MIR, SHA-256
+  `1A10A12B315C2B48E715441966738724C0E1D8E5A120766DC87987E494D52BE8`.
+  C and LLVM publish no artifact and fail closed at expression row 1
+  (`AST_LET_DECL`) for `StringTrim(raw)`.
+- Next objective card: keep `CompileAdmittedDirectMirForTarget` as production
+  entry and GraphPlan v22 as fact owner; join the canonical StringTrim
+  signature/runtime contract to typed expression admission and materialize it
+  from the same sealed fact in C and LLVM. The last consumers are the installed
+  direct target projections. Falsify result/argument type, argument chain,
+  unregistered target, target syntax, and boundary whitespace semantics before
+  artifact publication.
+- Forbidden fallback remains a fixture/name/output branch, expression-text
+  parsing, compile-time trim evaluation, a second graph/emitter, routine/block-
+  count routing, backend MIR reads, claimant retry, or native C fallback.
+
+## Historical checkpoint archive - inactive navigation evidence
+
+### Previous ordered call and String case/math closure
 
 - Executable checkpoint: `1b620f9b` on `main`, with this handoff as its
   intended docs-only descendant. The final current-source Pergyra-built driver
@@ -87,8 +166,6 @@ owner, and the named executable gate.
   parsing, compile-time StringIndexOf evaluation, unproved signed arithmetic,
   a second graph/emitter, routine/block-count routing, backend MIR reads,
   claimant retry, or native C fallback.
-
-## Historical checkpoint archive - inactive navigation evidence
 
 ### Previous String window definition closure
 

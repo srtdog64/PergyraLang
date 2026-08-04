@@ -2,6 +2,27 @@
 
 Status: `BRIDGE`
 
+## 2026-08-05 bounded StringIndexOf window evidence
+
+Checkpoint `fb0561f6` is bounded `SUBSTITUTING` evidence for the exact
+`str_indexof.pgy` slice. The installed Pergyra-built entrypoint consumes its
+self-produced MIR through GraphPlan v22. A registry-derived signature and one
+sealed runtime subfact drive real StringIndexOf materialization in direct C and
+LLVM. Both artifacts compile and execute `5`, `-1`, `hello`, and `world`;
+semantic, absent-search, and empty-needle cases execute their exact results,
+while seven malformed identity/type/topology/range families publish no
+artifact.
+
+This rung is pure value computation. `func`/`struct` therefore remain the
+Pergyra-native form; decorative `action`, `zone`, or `intent` would invent an
+authority, resource, or real-world-purpose boundary. The installed production
+entrypoint replaces the prior direct-backend rejection, so this is
+`SUBSTITUTING`, not keyword `SURFACE`.
+
+The evidence does not promote arbitrary String search, general signed
+arithmetic, temporary String ownership, compiler-purpose intent, or the whole
+self-host root. Those remain separate executable rungs.
+
 ## 2026-08-05 bounded ordered-call and String case/math evidence
 
 Checkpoint `1b620f9b` is bounded `SUBSTITUTING` evidence for the exact

@@ -6,6 +6,47 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-05 - StringIndexOf window program substitutes through GraphPlan v22
+
+- Landed executable checkpoint `fb0561f6`. The 5,019,513-byte current-source
+  Pergyra-built driver
+  (`699D7D7847AE07B1F6E6BB5AF22CACACAF23185EE4CD363939BB744342AC598E`)
+  consumes the 14,215-byte `str_indexof.pgy` MIR
+  (`28F0C0C026E62F749AEF2150B5100444962B6260D242F4560E9A2262954F1C75`).
+  It emits 1,898-byte C
+  (`DC0BB8CDFAEA1CE29E62AE2C2ED294FAA1EAE767BDE8708BDF0D9AA653C0430A`)
+  and 5,632-byte LLVM
+  (`68E1A169E649979F92BCFC7749824BEF0B75885D0ABB3337EE9774064F5D3E7F`);
+  both execute `5`, `-1`, `hello`, and `world` exactly.
+- GraphPlan v22 remains the sole program graph. Canonical signature,
+  expression-kind, runtime-ABI, result-range, and target materialization owners
+  carry StringIndexOf without a fixture route, evaluator, second graph, or
+  backend MIR read. The reached index arithmetic is admitted only from the
+  same-source, same-block search definition.
+- The first absent-search mutation exposed a real pre-existing runtime mismatch:
+  self-host Substring passed negative lengths to allocation/copy while native
+  Substring returns empty for an invalid window. C and LLVM now enforce the
+  same checked/clamped contract; StringLength reserves signed-result headroom.
+- The focused gate covers display equality, semantic change, absent search,
+  empty needle, exact execution, and seven malformed signature/topology/type/
+  target/range families. String window, case/math, collection,
+  equality/concat, and routine-partition regressions remain green.
+- Layering audit: the old arithmetic coordinator shrank from 74 to 32 lines
+  after condition-bound proof moved to its owner; LLVM checked substring
+  materialization moved out of its compositor. All new owners are capped and
+  no cap increased. Production exact-duplicate files and generic helper paths
+  remain zero.
+- The final composition build took 167.8 seconds and the final focused gate
+  took 17.7 seconds. Full CI, current fixed point, proofs, sanitizers, and
+  pressure sampling did not run. The independent 616/600 semantic owner and
+  duplicate-Coq-authority reds remain explicit.
+- The next observed falsifier is `str_trim.pgy`: 11,463-byte MIR
+  (`1A10A12B315C2B48E715441966738724C0E1D8E5A120766DC87987E494D52BE8`)
+  is rejected by both targets at expression row 1 for `StringTrim(raw)` with no
+  artifact. Continue through a canonical StringTrim signature/runtime fact and
+  dual-target materialization; do not add a fixture branch, evaluator, count
+  route, second graph/emitter, or native retry.
+
 ## 2026-08-05 - Ordered call and String case/math substitute through GraphPlan v21
 
 - Landed executable checkpoint `1b620f9b`. The 5,006,609-byte current-source
