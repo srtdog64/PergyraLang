@@ -43,9 +43,6 @@ func DirectMirScalarProgramLlvmBuiltinMaterialization(
         Die("direct MIR scalar program LLVM builtin ABI is invalid");
     }
     let output: String = "";
-    if plan.string_concat_runtime_call_abi_id == 0 {
-        output = "declare i64 @strlen(ptr)\ndeclare ptr @malloc(i64)\n";
-    }
     if abi.string_to_string_id != 0 {
         output = Concat(output,
             "@.pgy.scalar.tostr.format = private unnamed_addr constant [5 x i8] c\"%lld\\00\", align 1\n");

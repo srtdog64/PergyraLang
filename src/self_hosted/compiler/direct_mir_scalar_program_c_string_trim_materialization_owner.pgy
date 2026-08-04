@@ -1,0 +1,10 @@
+// C runtime body required by the sealed StringTrim ABI fact.
+
+import "direct_mir_scalar_program_runtime_abi_fact_owner.pgy";
+
+func DirectMirScalarProgramCStringTrimMaterialization(
+    ref abi: DirectMirScalarProgramRuntimeAbiFact
+) -> String {
+    if abi.string_trim.runtime_call_abi_id == 0 { return ""; }
+    return StringRuntimeCStringTrimBlock();
+}

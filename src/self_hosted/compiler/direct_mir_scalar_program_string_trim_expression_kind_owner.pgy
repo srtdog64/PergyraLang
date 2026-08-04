@@ -1,0 +1,3 @@
+// Stable normalized identity for StringTrim.
+
+func DirectMirScalarProgramExprStringTrim() -> Int { return 35; }

@@ -1,0 +1,16 @@
+// LLVM composition of responsibility-specific String search/transform calls.
+
+import "direct_mir_scalar_program_llvm_string_search_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_transform_expression_owner.pgy";
+
+func DirectMirScalarProgramLlvmStringSpecialExpressionAt(
+    kind: Int, result: String, left: String, right: String,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> DirectMirScalarProgramLlvmStringExpression {
+    let search: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmStringSearchExpressionAt(
+            kind, result, left, right, runtime);
+    if search.matched { return search; }
+    return DirectMirScalarProgramLlvmStringTransformExpressionAt(
+        kind, result, left, runtime);
+}

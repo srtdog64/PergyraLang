@@ -81,8 +81,7 @@ func DirectMirScalarCfgStringLlvmConcatBlock(
         plan.string_concat_runtime_call_abi_id != concat.runtime_call_abi_id {
         Die("direct MIR scalar CFG String concat LLVM ABI is invalid");
     }
-    let output: String =
-        "declare i64 @strlen(ptr)\ndeclare ptr @malloc(i64)\ndeclare ptr @memcpy(ptr, ptr, i64)\n\n";
+    let output: String = "";
     output = Concat(output, Concat("define internal ptr @", concat.symbol));
     output = Concat(output, "(ptr %a, ptr %b) {\nentry:\n");
     output = Concat(output, "  %la = call i64 @strlen(ptr %a)\n");

@@ -1,0 +1,24 @@
+// LLVM projection of registry-owned unary String transforms.
+
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramLlvmStringTransformExpressionAt(
+    kind: Int, result: String, argument: String,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind != DirectMirScalarProgramExprStringTrim() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    if !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+            runtime.string_trim, "trim", StringRuntimeCStringTrimFn(),
+            "string_to_string") {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let output: String = Concat("  ", Concat(result, Concat(
+        " = call ptr @", Concat(runtime.string_trim.symbol, Concat(
+        "(ptr ", Concat(argument, ")\n"))))));
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}

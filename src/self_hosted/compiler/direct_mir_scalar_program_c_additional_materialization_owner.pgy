@@ -3,7 +3,7 @@
 import "direct_mir_scalar_program_c_string_window_materialization_owner.pgy";
 import "direct_mir_scalar_program_c_string_collection_materialization_owner.pgy";
 import "direct_mir_scalar_program_c_case_math_materialization_owner.pgy";
-import "direct_mir_scalar_program_c_string_index_materialization_owner.pgy";
+import "direct_mir_scalar_program_c_string_scalar_materialization_owner.pgy";
 
 func DirectMirScalarProgramCAdditionalMaterialization(
     ref plan: DirectMirScalarCfgGraphPlan,
@@ -11,7 +11,7 @@ func DirectMirScalarProgramCAdditionalMaterialization(
 ) -> String {
     let output: String = DirectMirScalarProgramCStringWindowMaterialization(
         plan.program.runtime_abi);
-    output = Concat(output, DirectMirScalarProgramCStringIndexMaterialization(
+    output = Concat(output, DirectMirScalarProgramCStringScalarMaterialization(
         plan.program.runtime_abi));
     output = Concat(output,
         DirectMirScalarProgramCStringCollectionMaterialization(plan, runtime));

@@ -1,0 +1,17 @@
+// C projection of registry-owned unary String transforms.
+
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramCStringTransformExpression(
+    kind: Int, argument: String,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> Option<String> {
+    if kind != DirectMirScalarProgramExprStringTrim() { return None; }
+    if !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+            runtime.string_trim, "trim", StringRuntimeCStringTrimFn(),
+            "string_to_string") {
+        Die("direct MIR scalar StringTrim ABI is invalid");
+    }
+    return Some(Concat(runtime.string_trim.symbol, Concat(
+        "(", Concat(argument, ")"))));
+}

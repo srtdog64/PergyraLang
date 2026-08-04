@@ -1,0 +1,20 @@
+// Bounded projection of canonical unary String-transform signatures.
+
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+
+func DirectMirScalarProgramStringTransformBuiltinSignatureExpected(
+    name: String
+) -> Array<String> {
+    if name == "StringTrim" {
+        return ["String", "Unknown", ToString(
+            DirectMirScalarProgramExprStringTrim())];
+    }
+    return [];
+}
+
+func DirectMirScalarProgramStringTransformBuiltinArgumentType(
+    name: String, expected: String
+) -> String {
+    if name == "StringTrim" { return "String"; }
+    return expected;
+}

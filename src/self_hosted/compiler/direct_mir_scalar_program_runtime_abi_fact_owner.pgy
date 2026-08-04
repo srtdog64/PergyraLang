@@ -1,8 +1,8 @@
 // Sealed runtime ABI IDs required by one normalized scalar-program arena.
-
 import "direct_mir_scalar_cfg_hash_owner.pgy";
 import "direct_mir_scalar_program_case_math_runtime_requirement_owner.pgy";
 import "direct_mir_scalar_program_string_index_runtime_owner.pgy";
+import "direct_mir_scalar_program_string_trim_runtime_owner.pgy";
 
 struct DirectMirScalarProgramRuntimeAbiFact {
     let valid: Bool;
@@ -16,6 +16,7 @@ struct DirectMirScalarProgramRuntimeAbiFact {
     let string_substring_id: Int;
     let string_substring_with_len_id: Int;
     let string_index: DirectMirScalarProgramStringIndexRuntimeFact;
+    let string_trim: DirectMirScalarProgramStringTrimRuntimeFact;
     let string_contains_id: Int;
     let string_split_id: Int;
     let string_to_int_id: Int;
@@ -28,7 +29,8 @@ func DirectMirScalarProgramRuntimeAbiFactEmpty(
 ) -> DirectMirScalarProgramRuntimeAbiFact {
     return DirectMirScalarProgramRuntimeAbiFact(
         false, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        DirectMirScalarProgramStringIndexRuntimeFactEmpty(), 0, 0, 0, 0, 0,
+        DirectMirScalarProgramStringIndexRuntimeFactEmpty(),
+        DirectMirScalarProgramStringTrimRuntimeFactEmpty(), 0, 0, 0, 0, 0,
         DirectMirScalarProgramCaseMathRuntimeIdsEmpty()
     );
 }
@@ -43,6 +45,8 @@ func DirectMirScalarProgramRuntimeAbiFactCanonicalEmpty(
         fact.string_substring_with_len_id == 0 &&
         DirectMirScalarProgramStringIndexRuntimeFactCanonicalEmpty(
             fact.string_index) &&
+        DirectMirScalarProgramStringTrimRuntimeFactCanonicalEmpty(
+            fact.string_trim) &&
         fact.string_contains_id == 0 && fact.string_split_id == 0 &&
         fact.string_to_int_id == 0 && fact.array_string_length_id == 0 &&
         fact.array_string_get_id == 0 &&

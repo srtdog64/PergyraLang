@@ -241,6 +241,18 @@ func StringRuntimeCStringIndexOfBlock() -> String {
     return Concat(block, "    return (long long)(p - hay);\n}\n\n");
 }
 
+func StringRuntimeCStringTrimBlock() -> String {
+    let block: String = Concat("static char *", Concat(
+        StringRuntimeCStringTrimFn(), "(const char *s)\n{\n"));
+    block = Concat(block, "    if (s == NULL) { char *e = (char *)malloc(1); if (e != NULL) e[0] = '\\0'; return e; }\n");
+    block = Concat(block, "    while (*s == ' ' || *s == '\\t' || *s == '\\n' || *s == '\\r') { s++; }\n");
+    block = Concat(block, "    size_t len = strlen(s);\n");
+    block = Concat(block, "    while (len > 0 && (s[len-1] == ' ' || s[len-1] == '\\t' || s[len-1] == '\\n' || s[len-1] == '\\r')) { len--; }\n");
+    block = Concat(block, "    char *r = (char *)malloc(len + 1);\n    if (r == NULL) return r;\n");
+    block = Concat(block, "    memcpy(r, s, len);\n    r[len] = '\\0';\n");
+    return Concat(block, "    return r;\n}\n\n");
+}
+
 func StringRuntimeCStringCoreBlock(
     runtime_header_owns_bool_to_string: Bool
 ) -> String {
@@ -256,13 +268,7 @@ func StringRuntimeCStringCoreBlock(
     block = Concat(block, StringRuntimeCSubstringBlock());
     block = Concat(block, StringRuntimeCSubstringWithLenBlock());
     block = Concat(block, StringRuntimeCStringIndexOfBlock());
-    block = Concat(block, Concat("static char *", Concat(StringRuntimeCStringTrimFn(), "(const char *s)\n{\n")));
-    block = Concat(block, "    while (*s == ' ' || *s == '\\t' || *s == '\\n' || *s == '\\r') { s++; }\n");
-    block = Concat(block, "    size_t len = strlen(s);\n");
-    block = Concat(block, "    while (len > 0 && (s[len-1] == ' ' || s[len-1] == '\\t' || s[len-1] == '\\n' || s[len-1] == '\\r')) { len--; }\n");
-    block = Concat(block, "    char *r = (char *)malloc(len + 1);\n");
-    block = Concat(block, "    memcpy(r, s, len);\n    r[len] = '\\0';\n");
-    block = Concat(block, "    return r;\n}\n\n");
+    block = Concat(block, StringRuntimeCStringTrimBlock());
     block = Concat(block, StringRuntimeCToStringBlock());
     if !runtime_header_owns_bool_to_string {
         block = Concat(block, Concat("static char *", Concat(StringRuntimeCBoolToStringFn(), "(_Bool v)\n{\n")));

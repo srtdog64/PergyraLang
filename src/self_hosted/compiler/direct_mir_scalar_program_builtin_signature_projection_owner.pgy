@@ -5,6 +5,7 @@ import "../semantic/builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_collection_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_case_math_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_string_window_builtin_signature_owner.pgy";
+import "direct_mir_scalar_program_string_transform_builtin_signature_owner.pgy";
 
 struct DirectMirScalarProgramBuiltinSignatureFact {
     let valid: Bool;
@@ -40,6 +41,9 @@ func DirectMirScalarProgramBuiltinSignatureExpected(
     let window: Array<String> =
         DirectMirScalarProgramStringWindowBuiltinSignatureExpected(name);
     if ArrayLength(window) != 0 { return window; }
+    let transform: Array<String> =
+        DirectMirScalarProgramStringTransformBuiltinSignatureExpected(name);
+    if ArrayLength(transform) != 0 { return transform; }
     if name == "Concat" {
         return ["String", "String|String", ToString(
             DirectMirScalarProgramExprConcatString())];
@@ -93,6 +97,8 @@ func DirectMirScalarProgramBuiltinArgumentPrefixReady(
         expected = DirectMirScalarProgramCollectionBuiltinArgumentType(
             signature.name, expected);
         expected = DirectMirScalarProgramCaseMathBuiltinArgumentType(
+            signature.name, expected);
+        expected = DirectMirScalarProgramStringTransformBuiltinArgumentType(
             signature.name, expected);
         if actual_types[i] != expected { return false; }
         i = i + 1;

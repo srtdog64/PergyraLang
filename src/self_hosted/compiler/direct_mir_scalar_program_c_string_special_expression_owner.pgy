@@ -1,0 +1,15 @@
+// C composition of responsibility-specific String search/transform calls.
+
+import "direct_mir_scalar_program_c_string_search_expression_owner.pgy";
+import "direct_mir_scalar_program_c_string_transform_expression_owner.pgy";
+
+func DirectMirScalarProgramCStringSpecialExpression(
+    kind: Int, left: String, right: String,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> Option<String> {
+    let search: Option<String> = DirectMirScalarProgramCStringSearchExpression(
+        kind, left, right, runtime);
+    if IsSome(search) { return search; }
+    return DirectMirScalarProgramCStringTransformExpression(
+        kind, left, runtime);
+}

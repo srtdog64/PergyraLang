@@ -24,6 +24,7 @@ func DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
         expected.string_substring_with_len_id ==
             fact.string_substring_with_len_id &&
         expected.string_index.digest == fact.string_index.digest &&
+        expected.string_trim.digest == fact.string_trim.digest &&
         expected.string_contains_id == fact.string_contains_id &&
         expected.string_split_id == fact.string_split_id &&
         expected.string_to_int_id == fact.string_to_int_id &&

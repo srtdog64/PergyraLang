@@ -1,0 +1,19 @@
+// LLVM runtime body required by the sealed StringTrim ABI fact.
+
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramLlvmStringTrimMaterialization(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> String {
+    if plan.program.runtime_abi.string_trim.runtime_call_abi_id == 0 {
+        return "";
+    }
+    let symbol: String = runtime.string_trim.symbol;
+    let out: String = "";
+    out = Concat(out, Concat("define internal ptr @", Concat(symbol,
+        "(ptr %source) {\nentry:\n")));
+    out = Concat(out,
+        "  %source.null = icmp eq ptr %source, null\n  br i1 %source.null, label %null.input, label %leading\n\nnull.input:\n  %null.result = call ptr @malloc(i64 1)\n  %null.failed = icmp eq ptr %null.result, null\n  br i1 %null.failed, label %return.null, label %null.store\n\nnull.store:\n  store i8 0, ptr %null.result, align 1\n  ret ptr %null.result\n\nleading:\n  br label %leading.loop\n\nleading.loop:\n  %start = phi i64 [ 0, %leading ], [ %start.next, %leading.space ]\n  %leading.at = getelementptr inbounds i8, ptr %source, i64 %start\n  %leading.char = load i8, ptr %leading.at, align 1\n  %leading.nul = icmp eq i8 %leading.char, 0\n  %leading.sp = icmp eq i8 %leading.char, 32\n  %leading.tab = icmp eq i8 %leading.char, 9\n  %leading.lf = icmp eq i8 %leading.char, 10\n  %leading.cr = icmp eq i8 %leading.char, 13\n  %leading.ws0 = or i1 %leading.sp, %leading.tab\n  %leading.ws1 = or i1 %leading.lf, %leading.cr\n  %leading.ws = or i1 %leading.ws0, %leading.ws1\n  %leading.not.nul = xor i1 %leading.nul, true\n  %leading.more = and i1 %leading.ws, %leading.not.nul\n  br i1 %leading.more, label %leading.space, label %measure\n\nleading.space:\n  %start.next = add i64 %start, 1\n  br label %leading.loop\n\nmeasure:\n  %trimmed = getelementptr inbounds i8, ptr %source, i64 %start\n  %length = call i64 @strlen(ptr %trimmed)\n  br label %trailing.loop\n\ntrailing.loop:\n  %end = phi i64 [ %length, %measure ], [ %end.previous, %trailing.space ]\n  %empty = icmp eq i64 %end, 0\n  br i1 %empty, label %allocate, label %trailing.inspect\n\ntrailing.inspect:\n  %last = sub i64 %end, 1\n  %trailing.at = getelementptr inbounds i8, ptr %trimmed, i64 %last\n  %trailing.char = load i8, ptr %trailing.at, align 1\n  %trailing.sp = icmp eq i8 %trailing.char, 32\n  %trailing.tab = icmp eq i8 %trailing.char, 9\n  %trailing.lf = icmp eq i8 %trailing.char, 10\n  %trailing.cr = icmp eq i8 %trailing.char, 13\n  %trailing.ws0 = or i1 %trailing.sp, %trailing.tab\n  %trailing.ws1 = or i1 %trailing.lf, %trailing.cr\n  %trailing.ws = or i1 %trailing.ws0, %trailing.ws1\n  br i1 %trailing.ws, label %trailing.space, label %allocate\n\ntrailing.space:\n  %end.previous = sub i64 %end, 1\n  br label %trailing.loop\n\nallocate:\n  %size = add i64 %end, 1\n  %result = call ptr @malloc(i64 %size)\n  %allocation.failed = icmp eq ptr %result, null\n  br i1 %allocation.failed, label %return.null, label %copy\n\ncopy:\n  call ptr @memcpy(ptr %result, ptr %trimmed, i64 %end)\n  %terminator = getelementptr inbounds i8, ptr %result, i64 %end\n  store i8 0, ptr %terminator, align 1\n  ret ptr %result\n\nreturn.null:\n  ret ptr null\n}\n\n");
+    return out;
+}

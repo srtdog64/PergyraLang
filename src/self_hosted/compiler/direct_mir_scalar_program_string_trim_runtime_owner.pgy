@@ -1,0 +1,129 @@
+// Sealed runtime identity and behavior contract for StringTrim.
+
+import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+struct DirectMirScalarProgramStringTrimContract {
+    let valid: Bool;
+    let ascii_whitespace_mask: Int;
+    let null_returns_empty: Bool;
+    let returns_owned_string: Bool;
+}
+
+struct DirectMirScalarProgramStringTrimRuntimeFact {
+    let valid: Bool;
+    let digest: Int;
+    let runtime_call_abi_id: Int;
+    let contract: DirectMirScalarProgramStringTrimContract;
+}
+
+func DirectMirScalarProgramStringTrimContractEmpty(
+) -> DirectMirScalarProgramStringTrimContract {
+    return DirectMirScalarProgramStringTrimContract(false, 0, false, false);
+}
+
+func DirectMirScalarProgramStringTrimContractFact(
+) -> DirectMirScalarProgramStringTrimContract {
+    // Bits 0..3 mean space, tab, line feed, and carriage return.
+    return DirectMirScalarProgramStringTrimContract(true, 15, true, true);
+}
+
+func DirectMirScalarProgramStringTrimContractReady(
+    ref fact: DirectMirScalarProgramStringTrimContract
+) -> Bool {
+    return fact.valid && fact.ascii_whitespace_mask == 15 &&
+        fact.null_returns_empty && fact.returns_owned_string;
+}
+
+func DirectMirScalarProgramStringTrimContractCanonicalEmpty(
+    ref fact: DirectMirScalarProgramStringTrimContract
+) -> Bool {
+    return !fact.valid && fact.ascii_whitespace_mask == 0 &&
+        !fact.null_returns_empty && !fact.returns_owned_string;
+}
+
+func DirectMirScalarProgramStringTrimRuntimeFactEmpty(
+) -> DirectMirScalarProgramStringTrimRuntimeFact {
+    return DirectMirScalarProgramStringTrimRuntimeFact(
+        false, 0, 0, DirectMirScalarProgramStringTrimContractEmpty());
+}
+
+func DirectMirScalarProgramStringTrimRuntimeDigest(
+    ref fact: DirectMirScalarProgramStringTrimRuntimeFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(277L, fact.runtime_call_abi_id);
+    hash = DirectMirCfgHashInt(hash, fact.contract.ascii_whitespace_mask);
+    let null_behavior: Int = 0;
+    let ownership: Int = 0;
+    if fact.contract.null_returns_empty { null_behavior = 1; }
+    if fact.contract.returns_owned_string { ownership = 1; }
+    hash = DirectMirCfgHashInt(hash, null_behavior);
+    hash = DirectMirCfgHashInt(hash, ownership);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarProgramStringTrimRuntimeFactReady(
+    ref fact: DirectMirScalarProgramStringTrimRuntimeFact
+) -> Bool {
+    if (!fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirScalarProgramStringTrimRuntimeDigest(fact)) {
+        return false;
+    }
+    return (fact.runtime_call_abi_id == 0 &&
+            DirectMirScalarProgramStringTrimContractCanonicalEmpty(
+                fact.contract)) ||
+        (fact.runtime_call_abi_id != 0 &&
+            DirectMirScalarProgramStringTrimContractReady(fact.contract));
+}
+
+func DirectMirScalarProgramStringTrimRuntimeFactCanonicalEmpty(
+    ref fact: DirectMirScalarProgramStringTrimRuntimeFact
+) -> Bool {
+    return !fact.valid && fact.digest == 0 && fact.runtime_call_abi_id == 0 &&
+        DirectMirScalarProgramStringTrimContractCanonicalEmpty(fact.contract);
+}
+
+func DirectMirScalarProgramStringTrimRuntimeRequirement(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> DirectMirScalarProgramStringTrimRuntimeFact {
+    let required: Bool = DirectMirScalarProgramExpressionContainsKind(
+        expressions, DirectMirScalarProgramExprStringTrim());
+    let abi: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+            "trim", StringRuntimeCStringTrimFn());
+    if required && !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+            abi, "trim", StringRuntimeCStringTrimFn(), "string_to_string") {
+        return DirectMirScalarProgramStringTrimRuntimeFactEmpty();
+    }
+    let abi_id: Int = 0;
+    let contract: DirectMirScalarProgramStringTrimContract =
+        DirectMirScalarProgramStringTrimContractEmpty();
+    if required {
+        abi_id = abi.runtime_call_abi_id;
+        contract = DirectMirScalarProgramStringTrimContractFact();
+    }
+    let source: DirectMirScalarProgramStringTrimRuntimeFact =
+        DirectMirScalarProgramStringTrimRuntimeFact(true, 0, abi_id, contract);
+    return DirectMirScalarProgramStringTrimRuntimeFact(
+        true, DirectMirScalarProgramStringTrimRuntimeDigest(source),
+        abi_id, contract);
+}
+
+func DirectMirScalarProgramStringTrimRuntimeProjectionReady(
+    projected: CompilerRuntimeCallAbiFact,
+    ref fact: DirectMirScalarProgramStringTrimRuntimeFact
+) -> Bool {
+    return DirectMirScalarProgramStringTrimRuntimeFactReady(fact) &&
+        (fact.runtime_call_abi_id == 0 ||
+         (CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+            projected, "trim", StringRuntimeCStringTrimFn(),
+            "string_to_string") && projected.runtime_call_abi_id ==
+                fact.runtime_call_abi_id));
+}
+
+func DirectMirScalarProgramStringTrimRuntimeProjection(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+        "trim", StringRuntimeCStringTrimFn());
+}

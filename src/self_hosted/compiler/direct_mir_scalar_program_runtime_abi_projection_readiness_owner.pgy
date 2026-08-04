@@ -43,6 +43,8 @@ func DirectMirScalarProgramRuntimeAbiProjectionReady(
             "string_int_int_int_to_string") &&
         DirectMirScalarProgramStringIndexRuntimeProjectionReady(
             projection.string_index, fact.string_index) &&
+        DirectMirScalarProgramStringTrimRuntimeProjectionReady(
+            projection.string_trim, fact.string_trim) &&
         DirectMirScalarProgramStringCollectionRuntimeProjectionReady(
             projection, fact) &&
         DirectMirScalarProgramCaseMathRuntimeProjectionReady(

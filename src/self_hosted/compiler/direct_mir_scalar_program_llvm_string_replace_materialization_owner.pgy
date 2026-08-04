@@ -9,8 +9,7 @@ func DirectMirScalarProgramLlvmStringReplaceMaterialization(
     if ids.replace_id == 0 { return ""; }
     if !projection.replace.ok || projection.replace.runtime_call_abi_id !=
             ids.replace_id { return ""; }
-    let output: String =
-        "declare ptr @strstr(ptr, ptr)\ndeclare i32 @strncmp(ptr, ptr, i64)\ndeclare ptr @memcpy(ptr, ptr, i64)\n\n";
+    let output: String = "";
     output = Concat(output, Concat("define internal ptr @",
         Concat(projection.replace.symbol,
         "(ptr %source, ptr %old, ptr %replacement) {\nentry:\n")));

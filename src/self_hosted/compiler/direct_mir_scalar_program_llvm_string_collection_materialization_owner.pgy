@@ -52,8 +52,6 @@ func DirectMirScalarProgramLlvmStringCollectionMaterialization(
         Die("direct MIR scalar program LLVM String collection ABI is invalid");
     }
     let output: String = "%pgy.array.string = type { ptr, i64, i64, ptr }\n";
-    output = Concat(output,
-        "declare ptr @realloc(ptr, i64)\ndeclare void @free(ptr)\ndeclare ptr @strstr(ptr, ptr)\ndeclare i64 @atoll(ptr)\ndeclare ptr @memcpy(ptr, ptr, i64)\ndeclare void @abort()\n\n");
     if abi.string_contains_id != 0 {
         output = Concat(output, Concat("define internal i1 @",
             Concat(runtime.string_contains.symbol,

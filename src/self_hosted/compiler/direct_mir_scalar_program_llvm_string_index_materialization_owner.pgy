@@ -10,7 +10,7 @@ func DirectMirScalarProgramLlvmStringIndexMaterialization(
         return "";
     }
     let symbol: String = runtime.string_index.symbol;
-    let out: String = "declare ptr @strstr(ptr, ptr)\n\n";
+    let out: String = "";
     out = Concat(out, Concat("define internal i64 @", Concat(symbol,
         "(ptr %haystack, ptr %needle) {\nentry:\n")));
     out = Concat(out, "  %haystack.null = icmp eq ptr %haystack, null\n");

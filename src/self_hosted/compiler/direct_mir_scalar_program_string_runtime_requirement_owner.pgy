@@ -45,6 +45,8 @@ func DirectMirScalarProgramStringRuntimeRequirement(
             "substring-with-len", StringRuntimeCSubstringWithLenFn());
     let string_index: DirectMirScalarProgramStringIndexRuntimeFact =
         DirectMirScalarProgramStringIndexRuntimeRequirement(expressions);
+    let string_trim: DirectMirScalarProgramStringTrimRuntimeFact =
+        DirectMirScalarProgramStringTrimRuntimeRequirement(expressions);
     let compare_required: Bool =
         DirectMirScalarProgramExpressionContainsKind(
             expressions, DirectMirScalarProgramExprEqualString()) ||
@@ -82,6 +84,7 @@ func DirectMirScalarProgramStringRuntimeRequirement(
             bounded, "substring-with-len", StringRuntimeCSubstringWithLenFn(),
             "string_int_int_int_to_string")) || !collection.valid ||
         !DirectMirScalarProgramStringIndexRuntimeFactReady(string_index) ||
+        !DirectMirScalarProgramStringTrimRuntimeFactReady(string_trim) ||
         !DirectMirScalarProgramCaseMathRuntimeIdsReady(case_math) {
         return DirectMirScalarProgramRuntimeAbiFactEmpty();
     }
@@ -101,7 +104,7 @@ func DirectMirScalarProgramStringRuntimeRequirement(
         DirectMirScalarProgramRuntimeAbiFact(
             true, 0, compare_id, concat_id, to_string_id, to_upper_id,
             to_lower_id, length_id, substring_id, bounded_id,
-            string_index,
+            string_index, string_trim,
             collection.contains_id, collection.split_id,
             collection.to_int_id, collection.array_length_id,
             collection.array_get_id, case_math);
