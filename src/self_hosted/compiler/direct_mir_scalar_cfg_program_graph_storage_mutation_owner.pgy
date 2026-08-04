@@ -1,0 +1,90 @@
+// Persistent mutations for the typed program storage layers.
+
+import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+
+func DirectMirScalarCfgProgramOperationsAppendExpression(
+    storage: DirectMirScalarCfgProgramOperationStorage,
+    kind: Int, result_value: Int, expression_row: Int
+) -> DirectMirScalarCfgProgramOperationStorage {
+    let kinds: Array<Int> = storage.kinds;
+    let results: Array<Int> = storage.result_values;
+    let left_values: Array<Int> = storage.left_values;
+    let right_values: Array<Int> = storage.right_values;
+    let left_locals: Array<Int> = storage.left_locals;
+    let right_locals: Array<Int> = storage.right_locals;
+    let left_literals: Array<String> = storage.left_literals;
+    let right_literals: Array<String> = storage.right_literals;
+    let phi_starts: Array<Int> = storage.phi_starts;
+    let phi_counts: Array<Int> = storage.phi_counts;
+    let expression_rows: Array<Int> = storage.expression_rows;
+    ArrayPush(kinds, kind);
+    ArrayPush(results, result_value);
+    ArrayPush(left_values, -1); ArrayPush(right_values, -1);
+    ArrayPush(left_locals, -1); ArrayPush(right_locals, -1);
+    ArrayPush(left_literals, ""); ArrayPush(right_literals, "");
+    ArrayPush(phi_starts, ArrayLength(storage.phi_predecessor_blocks));
+    ArrayPush(phi_counts, 0); ArrayPush(expression_rows, expression_row);
+    return DirectMirScalarCfgProgramOperationStorage(
+        storage.valid, kinds, results, left_values, right_values,
+        left_locals, right_locals, left_literals, right_literals,
+        phi_starts, phi_counts, storage.phi_predecessor_blocks,
+        storage.phi_incoming_values, expression_rows);
+}
+
+func DirectMirScalarCfgProgramBlocksAppend(
+    storage: DirectMirScalarCfgProgramBlockStorage,
+    true_target: Int, false_target: Int,
+    operation_start: Int, operation_count: Int,
+    condition_expression_row: Int, return_expression_row: Int
+) -> DirectMirScalarCfgProgramBlockStorage {
+    let succ_true: Array<Int> = storage.succ_true;
+    let succ_false: Array<Int> = storage.succ_false;
+    let operation_starts: Array<Int> = storage.operation_starts;
+    let operation_counts: Array<Int> = storage.operation_counts;
+    let condition_kinds: Array<Int> = storage.condition_kinds;
+    let left_values: Array<Int> = storage.condition_left_values;
+    let right_values: Array<Int> = storage.condition_right_values;
+    let left_locals: Array<Int> = storage.condition_left_locals;
+    let right_locals: Array<Int> = storage.condition_right_locals;
+    let left_literals: Array<String> = storage.condition_left_literals;
+    let right_literals: Array<String> = storage.condition_right_literals;
+    let condition_rows: Array<Int> = storage.condition_expression_rows;
+    let return_rows: Array<Int> = storage.return_expression_rows;
+    let condition_kind: Int = DirectMirScalarCfgConditionNone();
+    if condition_expression_row >= 0 {
+        condition_kind = DirectMirScalarCfgConditionExpression();
+    }
+    ArrayPush(succ_true, true_target); ArrayPush(succ_false, false_target);
+    ArrayPush(operation_starts, operation_start);
+    ArrayPush(operation_counts, operation_count);
+    ArrayPush(condition_kinds, condition_kind);
+    ArrayPush(left_values, -1); ArrayPush(right_values, -1);
+    ArrayPush(left_locals, -1); ArrayPush(right_locals, -1);
+    ArrayPush(left_literals, ""); ArrayPush(right_literals, "");
+    ArrayPush(condition_rows, condition_expression_row);
+    ArrayPush(return_rows, return_expression_row);
+    return DirectMirScalarCfgProgramBlockStorage(
+        storage.valid, succ_true, succ_false, operation_starts,
+        operation_counts, condition_kinds, left_values, right_values,
+        left_locals, right_locals, left_literals, right_literals,
+        condition_rows, return_rows);
+}
+
+func DirectMirScalarCfgProgramRoutineCountsAppend(
+    storage: DirectMirScalarCfgProgramRoutineCounts,
+    local_count: Int, value_count: Int, block_count: Int,
+    operation_count: Int, phi_count: Int
+) -> DirectMirScalarCfgProgramRoutineCounts {
+    let local_counts: Array<Int> = storage.local_counts;
+    let value_counts: Array<Int> = storage.value_counts;
+    let block_counts: Array<Int> = storage.block_counts;
+    let operation_counts: Array<Int> = storage.operation_counts;
+    let phi_counts: Array<Int> = storage.phi_counts;
+    ArrayPush(local_counts, local_count); ArrayPush(value_counts, value_count);
+    ArrayPush(block_counts, block_count);
+    ArrayPush(operation_counts, operation_count);
+    ArrayPush(phi_counts, phi_count);
+    return DirectMirScalarCfgProgramRoutineCounts(
+        local_counts, value_counts, block_counts,
+        operation_counts, phi_counts);
+}

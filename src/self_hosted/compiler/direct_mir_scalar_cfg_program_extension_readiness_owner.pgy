@@ -1,13 +1,40 @@
-// Cross-links between the optional program seam and the sole scalar CFG plan.
+// Cross-links between typed program expressions and routine-owned GraphPlan ranges.
 
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 
+func DirectMirScalarCfgProgramRoutineForBlock(
+    ref plan: DirectMirScalarCfgGraphPlan, block: Int
+) -> Int {
+    let routine: Int = 0;
+    while routine < ArrayLength(plan.routines.block_starts) {
+        let start: Int = plan.routines.block_starts[routine];
+        if block >= start && block < start +
+                plan.routines.block_counts[routine] { return routine; }
+        routine = routine + 1;
+    }
+    return -1;
+}
+
+func DirectMirScalarCfgProgramRoutineForOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> Int {
+    let routine: Int = 0;
+    while routine < ArrayLength(plan.routines.operation_starts) {
+        let start: Int = plan.routines.operation_starts[routine];
+        if operation >= start && operation < start +
+                plan.routines.operation_counts[routine] { return routine; }
+        routine = routine + 1;
+    }
+    return -1;
+}
+
 func DirectMirScalarCfgProgramExpressionRowReady(
     ref plan: DirectMirScalarCfgGraphPlan,
-    expression_row: Int, expected_type: String, callable_scope: Bool
+    expression_row: Int, expected_type: String, routine: Int
 ) -> Bool {
     let facts: DirectMirScalarProgramExpressionSet = plan.program.expressions;
-    if expression_row < 0 ||
+    if routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
+        expression_row < 0 ||
         expression_row >= ArrayLength(facts.graph_roots) {
         return false;
     }
@@ -15,28 +42,83 @@ func DirectMirScalarCfgProgramExpressionRowReady(
     let count: Int = facts.graph_counts[expression_row];
     let root: Int = facts.graph_roots[expression_row];
     if facts.node_types[root] != expected_type { return false; }
+    let local_start: Int = plan.routines.local_starts[routine];
+    let local_end: Int = local_start + plan.routines.local_counts[routine];
     let node: Int = start;
     while node < start + count {
         let kind: Int = facts.node_kinds[node];
-        if callable_scope && kind == DirectMirScalarProgramExprAddInt() {
-            return false;
-        }
-        if kind == DirectMirScalarProgramExprParameter() && !callable_scope {
-            return false;
-        }
         if kind == DirectMirScalarProgramExprLocal() &&
-            (callable_scope || facts.node_local_rows[node] < 0 ||
-             facts.node_local_rows[node] >= ArrayLength(plan.local_names) ||
+            (facts.node_local_rows[node] < local_start ||
+             facts.node_local_rows[node] >= local_end ||
              facts.node_types[node] !=
                 plan.local_types[facts.node_local_rows[node]]) {
             return false;
         }
-        if kind == DirectMirScalarProgramExprDirectCall() &&
-            (callable_scope || facts.node_callable_rows[node] !=
-                plan.program.callable.signature.row) {
+        if kind == DirectMirScalarProgramExprParameter() &&
+            (plan.routines.parameter_counts[routine] != 1 ||
+             facts.node_parameter_ordinals[node] != 0 ||
+             facts.node_types[node] !=
+                plan.routines.parameter_types[routine]) {
             return false;
         }
+        if kind == DirectMirScalarProgramExprDirectCall() {
+            let target: Int = facts.node_callable_rows[node];
+            let argument: Int = facts.node_lefts[node];
+            if routine != plan.routines.entrypoint_ordinal ||
+                target != plan.program.callable.routine_ordinal ||
+                target < 0 || target >= ArrayLength(plan.routines.roles) ||
+                argument < start ||
+                plan.routines.parameter_counts[target] != 1 ||
+                facts.node_types[argument] !=
+                    plan.routines.parameter_types[target] ||
+                facts.node_types[node] != plan.routines.return_types[target] {
+                return false;
+            }
+        }
         node = node + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarCfgProgramExpressionUseCount(
+    ref plan: DirectMirScalarCfgGraphPlan, expression_row: Int
+) -> Int {
+    let count: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(plan.program.block_condition_expression_rows) {
+        if plan.program.block_condition_expression_rows[row] ==
+                expression_row { count = count + 1; }
+        if plan.program.block_return_expression_rows[row] ==
+                expression_row { count = count + 1; }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(plan.program.operation_expression_rows) {
+        if plan.program.operation_expression_rows[row] ==
+                expression_row { count = count + 1; }
+        row = row + 1;
+    }
+    return count;
+}
+
+func DirectMirScalarCfgProgramRoutineEdgesReady(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let block: Int = 0;
+    while block < ArrayLength(plan.block_succ_true) {
+        let routine: Int = DirectMirScalarCfgProgramRoutineForBlock(plan, block);
+        if routine < 0 { return false; }
+        let start: Int = plan.routines.block_starts[routine];
+        let end: Int = start + plan.routines.block_counts[routine];
+        let true_target: Int = plan.block_succ_true[block];
+        let false_target: Int = plan.block_succ_false[block];
+        if (true_target >= 0 &&
+                (true_target < start || true_target >= end)) ||
+            (false_target >= 0 &&
+                (false_target < start || false_target >= end)) {
+            return false;
+        }
+        block = block + 1;
     }
     return true;
 }
@@ -45,63 +127,67 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Int {
     let fact: DirectMirScalarCfgProgramExtensionFact = plan.program;
-    if fact.valid && (fact.digest == 0 || fact.digest !=
-            DirectMirScalarCfgProgramExtensionFactDigest(fact)) {
-        return 11;
-    }
-    if fact.valid && !DirectMirScalarCfgProgramCallableFactReady(
-            fact.callable) { return 12; }
-    if fact.valid && !DirectMirScalarProgramExpressionSetSemanticallyReady(
-            fact.expressions) { return 13; }
-    if fact.valid && !DirectMirClosedModuleCallAbiFactReady(
-            fact.closed_call_abi) { return 14; }
     if !DirectMirScalarCfgProgramExtensionFactReady(fact) { return 1; }
     if !fact.valid { return 0; }
     let block_count: Int = ArrayLength(plan.block_succ_true);
     let operation_count: Int = ArrayLength(plan.operation_kinds);
-    if ArrayLength(fact.block_condition_expression_rows) != block_count ||
+    let callable: Int = fact.callable.routine_ordinal;
+    if ArrayLength(plan.routines.roles) != 2 || callable != 1 ||
+        fact.callable.signature.digest !=
+            plan.routines.signature_digests[callable] ||
+        fact.callable.signature.source_syntax_id !=
+            plan.routines.source_syntax_ids[callable] ||
+        ArrayLength(fact.block_condition_expression_rows) != block_count ||
+        ArrayLength(fact.block_return_expression_rows) != block_count ||
         ArrayLength(fact.operation_expression_rows) != operation_count ||
-        !DirectMirScalarCfgProgramExpressionRowReady(
-            plan, fact.callable.return_expression_row,
-            CompilerAbiLayoutBoolTypeName(), true
-        ) {
-        return 2;
-    }
+        !DirectMirScalarCfgProgramRoutineEdgesReady(plan) { return 2; }
     let block: Int = 0;
     while block < block_count {
-        let row: Int = fact.block_condition_expression_rows[block];
+        let routine: Int = DirectMirScalarCfgProgramRoutineForBlock(plan, block);
+        let condition_row: Int = fact.block_condition_expression_rows[block];
+        let return_row: Int = fact.block_return_expression_rows[block];
         if plan.block_condition_kinds[block] ==
                 DirectMirScalarCfgConditionExpression() {
-            if plan.block_succ_true[block] < 0 ||
-                plan.block_succ_false[block] < 0 ||
-                !DirectMirScalarCfgProgramExpressionRowReady(
-                    plan, row, CompilerAbiLayoutBoolTypeName(), false
-                ) {
-                return 3;
-            }
-        } else if row != -1 { return 4; }
+            if !DirectMirScalarCfgProgramExpressionRowReady(
+                    plan, condition_row,
+                    CompilerAbiLayoutBoolTypeName(), routine) ||
+                return_row != -1 { return 3; }
+        } else if condition_row != -1 { return 4; }
+        let terminal: Bool = plan.block_succ_true[block] < 0 &&
+            plan.block_succ_false[block] < 0;
+        if routine == plan.routines.entrypoint_ordinal {
+            if return_row != -1 { return 5; }
+        } else if terminal {
+            if !DirectMirScalarCfgProgramExpressionRowReady(
+                    plan, return_row, plan.routines.return_types[routine],
+                    routine) { return 6; }
+        } else if return_row != -1 { return 7; }
         block = block + 1;
     }
     let operation: Int = 0;
     while operation < operation_count {
         let kind: Int = plan.operation_kinds[operation];
-        let row: Int = fact.operation_expression_rows[operation];
-        let result: Int = plan.operation_result_values[operation];
+        let expression_row: Int = fact.operation_expression_rows[operation];
+        let routine: Int =
+            DirectMirScalarCfgProgramRoutineForOperation(plan, operation);
         if kind == DirectMirScalarCfgOpExpressionDefinition() {
-            if result < 0 || result >= ArrayLength(plan.value_names) ||
+            let result: Int = plan.operation_result_values[operation];
+            if result < 0 || result >= ArrayLength(plan.value_types) ||
                 !DirectMirScalarCfgProgramExpressionRowReady(
-                    plan, row, plan.value_types[result], false
-                ) {
-                return 5;
-            }
+                    plan, expression_row, plan.value_types[result], routine
+                ) { return 8; }
         } else if kind == DirectMirScalarCfgOpExpressionLog() {
-            if result != -1 || !DirectMirScalarCfgProgramExpressionRowReady(
-                    plan, row, CompilerAbiLayoutStringTypeName(), false
-                ) {
-                return 6;
-            }
-        } else if row != -1 { return 7; }
+            if !DirectMirScalarCfgProgramExpressionRowReady(
+                    plan, expression_row,
+                    CompilerAbiLayoutStringTypeName(), routine) { return 9; }
+        } else if expression_row != -1 { return 10; }
         operation = operation + 1;
+    }
+    let expression_row: Int = 0;
+    while expression_row < ArrayLength(fact.expressions.graph_starts) {
+        if DirectMirScalarCfgProgramExpressionUseCount(
+                plan, expression_row) != 1 { return 11; }
+        expression_row = expression_row + 1;
     }
     return 0;
 }

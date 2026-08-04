@@ -1,0 +1,76 @@
+// Routine-local value facts rebased into the one program-wide value layer.
+
+import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
+import "direct_mir_scalar_cfg_value_type_owner.pgy";
+
+func DirectMirScalarCfgProgramValuesAppendRoutine(
+    storage: DirectMirScalarCfgProgramValueStorage,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    block_offset: Int
+) -> DirectMirScalarCfgProgramValueStorage {
+    if !storage.valid || !locals.valid || !types.valid ||
+        ArrayLength(locals.local_names) != ArrayLength(types.local_types) ||
+        ArrayLength(locals.value_names) != ArrayLength(types.value_types) {
+        return DirectMirScalarCfgProgramValueStorage(
+            false, storage.local_names, storage.local_types,
+            storage.local_ref_kinds, storage.local_ref_value_ids,
+            storage.local_ref_syntax_ids, storage.value_names,
+            storage.value_types, storage.value_local_rows,
+            storage.value_definition_blocks);
+    }
+    let local_names: Array<String> = storage.local_names;
+    let local_types: Array<String> = storage.local_types;
+    let local_ref_kinds: Array<Int> = storage.local_ref_kinds;
+    let local_ref_value_ids: Array<String> = storage.local_ref_value_ids;
+    let local_ref_syntax_ids: Array<Int> = storage.local_ref_syntax_ids;
+    let value_names: Array<String> = storage.value_names;
+    let value_types: Array<String> = storage.value_types;
+    let value_local_rows: Array<Int> = storage.value_local_rows;
+    let value_definition_blocks: Array<Int> =
+        storage.value_definition_blocks;
+    let local_offset: Int = ArrayLength(local_names);
+    let local: Int = 0;
+    while local < ArrayLength(locals.local_names) {
+        ArrayPush(local_names, locals.local_names[local]);
+        ArrayPush(local_types, types.local_types[local]);
+        ArrayPush(local_ref_kinds, locals.local_ref_kinds[local]);
+        ArrayPush(local_ref_value_ids, locals.local_ref_value_ids[local]);
+        ArrayPush(local_ref_syntax_ids, locals.local_ref_syntax_ids[local]);
+        local = local + 1;
+    }
+    let value: Int = 0;
+    while value < ArrayLength(locals.value_names) {
+        ArrayPush(value_names, locals.value_names[value]);
+        ArrayPush(value_types, types.value_types[value]);
+        ArrayPush(value_local_rows,
+            locals.value_local_rows[value] + local_offset);
+        ArrayPush(value_definition_blocks,
+            locals.value_definition_blocks[value] + block_offset);
+        value = value + 1;
+    }
+    return DirectMirScalarCfgProgramValueStorage(
+        true, local_names, local_types, local_ref_kinds,
+        local_ref_value_ids, local_ref_syntax_ids, value_names,
+        value_types, value_local_rows, value_definition_blocks);
+}
+
+func DirectMirScalarCfgProgramLocalRefPlan(
+    ref storage: DirectMirScalarCfgProgramGraphStorage
+) -> DirectMirScalarCfgLocalRefPlan {
+    return DirectMirScalarCfgLocalRefPlan(
+        storage.values.valid, storage.values.local_names,
+        storage.values.local_ref_kinds, storage.values.local_ref_value_ids,
+        storage.values.local_ref_syntax_ids, storage.values.value_names,
+        storage.values.value_local_rows,
+        storage.values.value_definition_blocks);
+}
+
+func DirectMirScalarCfgProgramValueTypePlan(
+    ref storage: DirectMirScalarCfgProgramGraphStorage
+) -> DirectMirScalarCfgValueTypePlan {
+    return DirectMirScalarCfgValueTypePlan(
+        storage.values.valid, storage.values.local_types,
+        storage.values.value_types);
+}

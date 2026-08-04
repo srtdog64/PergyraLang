@@ -13,7 +13,9 @@ func DirectMirScalarProgramNonTrappingBoolNode(
     let kind: Int = facts.node_kinds[node];
     if kind == DirectMirScalarProgramExprLocal() ||
         kind == DirectMirScalarProgramExprParameter() ||
-        kind == DirectMirScalarProgramExprBoolLiteral() {
+        kind == DirectMirScalarProgramExprBoolLiteral() ||
+        kind == DirectMirScalarProgramExprEqualString() ||
+        kind == DirectMirScalarProgramExprNotEqualString() {
         return true;
     }
     if kind == DirectMirScalarProgramExprLogicalNot() {
@@ -76,8 +78,8 @@ func DirectMirScalarProgramExpressionNodeReady(
             callable == -1;
     }
     if kind == DirectMirScalarProgramExprDirectCall() {
-        return type_name == CompilerAbiLayoutBoolTypeName() && left >= 0 &&
-            facts.node_types[left] == CompilerAbiLayoutIntTypeName() &&
+        return DirectMirScalarCfgScalarTypeSupported(type_name) && left >= 0 &&
+            DirectMirScalarCfgScalarTypeSupported(facts.node_types[left]) &&
             right == -1 && local == -1 && param == -1 && literal == "" &&
             callable >= 0;
     }
@@ -93,9 +95,17 @@ func DirectMirScalarProgramExpressionNodeReady(
         kind == DirectMirScalarProgramExprAddInt();
     let bool_binary: Bool = kind == DirectMirScalarProgramExprLogicalAnd() ||
         kind == DirectMirScalarProgramExprLogicalOr();
-    if (!int_binary && !bool_binary) || left < 0 || right < 0 ||
+    let string_binary: Bool = kind == DirectMirScalarProgramExprEqualString() ||
+        kind == DirectMirScalarProgramExprNotEqualString();
+    if (!int_binary && !bool_binary && !string_binary) ||
+        left < 0 || right < 0 ||
         local != -1 || param != -1 || literal != "" || callable != -1 {
         return false;
+    }
+    if string_binary {
+        return type_name == CompilerAbiLayoutBoolTypeName() &&
+            facts.node_types[left] == CompilerAbiLayoutStringTypeName() &&
+            facts.node_types[right] == CompilerAbiLayoutStringTypeName();
     }
     if int_binary {
         if facts.node_types[left] != CompilerAbiLayoutIntTypeName() ||

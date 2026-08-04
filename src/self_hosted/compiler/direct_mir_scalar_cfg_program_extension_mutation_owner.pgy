@@ -17,13 +17,14 @@ func DirectMirScalarCfgProgramExtensionMutationRejected() -> Bool {
     let expression_mutation: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(
             false, 0, empty.callable, expression_payload,
-            empty_ints, empty_ints, empty.closed_call_abi
+            empty_ints, empty_ints, empty_ints,
+            empty.closed_call_abi, 0
         );
     let abi_mutation: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(
             false, 0, empty.callable, empty.expressions,
-            empty_ints, empty_ints,
-            DirectMirClosedModuleCallAbiFact(false, 1, "", "", "", true)
+            empty_ints, empty_ints, empty_ints,
+            DirectMirClosedModuleCallAbiFact(false, 1, "", "", "", true), 0
         );
     return !DirectMirScalarCfgProgramExtensionFactReady(expression_mutation) &&
         !DirectMirScalarCfgProgramExtensionFactReady(abi_mutation);

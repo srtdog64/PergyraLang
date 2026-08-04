@@ -18,6 +18,8 @@ func DirectMirScalarProgramExprLessInt() -> Int { return 11; }
 func DirectMirScalarProgramExprAddInt() -> Int { return 12; }
 func DirectMirScalarProgramExprDirectCall() -> Int { return 13; }
 func DirectMirScalarProgramExprToStringInt() -> Int { return 14; }
+func DirectMirScalarProgramExprEqualString() -> Int { return 15; }
+func DirectMirScalarProgramExprNotEqualString() -> Int { return 16; }
 
 struct DirectMirScalarProgramExpressionSet {
     let valid: Bool;
@@ -154,7 +156,7 @@ func DirectMirScalarProgramExpressionSetShapeReady(
         let literal: String = facts.node_literals[node];
         let callable: Int = facts.node_callable_rows[node];
         if kind < DirectMirScalarProgramExprLocal() ||
-            kind > DirectMirScalarProgramExprToStringInt() ||
+            kind > DirectMirScalarProgramExprNotEqualString() ||
             facts.node_types[node] == "" || left >= node || right >= node ||
             left < -1 || right < -1 || local < -1 || param < -1 ||
             callable < -1 || !DirectMirScalarProgramLiteralEmbeddable(literal) {

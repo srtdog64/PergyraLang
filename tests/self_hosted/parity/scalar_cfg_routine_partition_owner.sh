@@ -24,12 +24,14 @@ EOF
 FACT="src/self_hosted/compiler/direct_mir_scalar_cfg_routine_partition_fact_owner.pgy"
 GRAPH="src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
 SEAL="src/self_hosted/compiler/direct_mir_scalar_cfg_graph_plan_seal_owner.pgy"
+ADMISSION="src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
 READY="src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy"
 MUTATION="src/self_hosted/compiler/direct_mir_scalar_cfg_graph_mutation_owner.pgy"
 
 require_text "$GRAPH" 'let routines: DirectMirScalarCfgRoutinePartitionFact;'
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v15'
-require_text "$SEAL" 'DirectMirScalarCfgSingleRoutinePartitionFromOwners('
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v16'
+require_text "$ADMISSION" 'DirectMirScalarCfgSingleRoutinePartitionFromOwners('
+require_text "$SEAL" 'ref routine_partition: DirectMirScalarCfgRoutinePartitionFact'
 require_text "$READY" 'DirectMirScalarCfgRoutinePartitionReady('
 require_text "$MUTATION" 'DirectMirScalarCfgRoutinePartitionMutationRejected(plan.routines)'
 for column in source_syntax_ids signature_digests cfg_digests \
@@ -39,6 +41,6 @@ done
 for forbidden in 'routine/block-count classification' 'string_equality.pgy'; do
     reject_text "$FACT" "$forbidden"
 done
-reject_text "$GRAPH" 'graph-plan.v14'
+reject_text "$GRAPH" 'graph-plan.v15'
 
 echo "[$LABEL] ok: GraphPlan routine ranges are sealed, contiguous, and mutation-tested"

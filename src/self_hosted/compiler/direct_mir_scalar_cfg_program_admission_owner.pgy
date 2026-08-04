@@ -1,283 +1,47 @@
-// Bool/direct-call expression dialect admitted inside the sole GraphPlan loop.
-// This owner never constructs CFG, SSA, phi, local, or operation arrays.
+// Seals typed program cross-links after the sole flat GraphPlan loop closes.
 
 import "direct_mir_scalar_program_callable_admission_owner.pgy";
 import "direct_mir_scalar_program_route_fact_owner.pgy";
-import "direct_mir_scalar_cfg_program_arithmetic_admission_owner.pgy";
-import "direct_mir_scalar_cfg_operation_plan_owner.pgy";
 
-struct DirectMirScalarCfgProgramAdmissionState {
-    let active: Bool;
-    let route: DirectMirScalarProgramRouteFact;
-    let callable: DirectMirScalarCfgProgramCallableFact;
-    let expressions: DirectMirScalarProgramExpressionSet;
-    let block_condition_expression_rows: Array<Int>;
-    let operation_expression_rows: Array<Int>;
-    let pending_condition_expression_row: Int;
-}
-
-struct DirectMirScalarCfgProgramOperationAdmission {
-    let valid: Bool;
-    let kind: Int;
-    let result_value: Int;
-    let expression_row: Int;
-    let expressions: DirectMirScalarProgramExpressionSet;
-}
-
-struct DirectMirScalarCfgProgramConditionAdmission {
-    let valid: Bool;
-    let expression_row: Int;
-    let expressions: DirectMirScalarProgramExpressionSet;
-}
-
-func DirectMirScalarCfgProgramAdmissionStateEmpty(
-) -> DirectMirScalarCfgProgramAdmissionState {
-    let rows: Array<Int> = [];
-    return DirectMirScalarCfgProgramAdmissionState(
-        false, DirectMirScalarProgramRouteFactEmpty(),
-        DirectMirScalarCfgProgramCallableFactInvalid(),
-        DirectMirScalarProgramExpressionSetEmpty(), rows, rows, -1
-    );
-}
-
-func DirectMirScalarCfgProgramAdmissionStateFromAdmitted(
+func DirectMirScalarCfgProgramExtensionFromOwners(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref route: DirectMirScalarProgramRouteFact
-) -> DirectMirScalarCfgProgramAdmissionState {
-    if !DirectMirScalarProgramRouteFactReady(route) {
-        Die("direct MIR scalar CFG program route is invalid");
-    }
-    let source: DirectMirScalarProgramExpressionSet =
-        DirectMirScalarProgramExpressionSetEmpty();
-    let callable: DirectMirScalarProgramCallableAdmission =
-        DirectMirScalarProgramCallableFromAdmitted(
-            admitted, route.callable_row, source
-        );
-    if !callable.valid {
-        Die("direct MIR scalar CFG program callable is invalid");
-    }
-    let conditions: Array<Int> = [];
-    let operations: Array<Int> = [];
-    return DirectMirScalarCfgProgramAdmissionState(
-        true, route, callable.fact, callable.expressions,
-        conditions, operations, -1
-    );
-}
-
-func DirectMirScalarCfgProgramAdmissionStateReadyForRoutine(
-    ref state: DirectMirScalarCfgProgramAdmissionState,
-    routine_row: Int
-) -> Bool {
-    if !state.active {
-        return !state.route.claimed && !state.callable.valid &&
-            DirectMirScalarProgramExpressionSetCanonicalEmpty(
-                state.expressions) &&
-            ArrayLength(state.block_condition_expression_rows) == 0 &&
-            ArrayLength(state.operation_expression_rows) == 0 &&
-            state.pending_condition_expression_row == -1;
-    }
-    return DirectMirScalarProgramRouteFactReady(state.route) &&
-        state.route.entrypoint_row == routine_row &&
-        DirectMirScalarCfgProgramCallableFactReady(state.callable) &&
-        state.expressions.valid && state.expressions.digest == 0 &&
-        ArrayLength(state.expressions.graph_starts) == 1 &&
-        ArrayLength(state.block_condition_expression_rows) == 0 &&
-        ArrayLength(state.operation_expression_rows) == 0 &&
-        state.pending_condition_expression_row == -1;
-}
-
-func DirectMirScalarCfgProgramOperationFromOwners(
-    ref state: DirectMirScalarCfgProgramAdmissionState,
-    kind: String, source: String,
-    ref object: JsonObjectFactTable,
-    ref capture: MirRoutineInstructionScalarCapture,
-    ref uses: MirRoutineInstructionUseFacts,
-    global_row: Int, local_instruction: Int,
-    ref locals: DirectMirScalarCfgLocalRefPlan,
-    ref types: DirectMirScalarCfgValueTypePlan,
-    ref wire: DirectMirScalarCfgWireLocalRefs
-) -> DirectMirScalarCfgProgramOperationAdmission {
-    let invalid: DirectMirScalarCfgProgramOperationAdmission =
-        DirectMirScalarCfgProgramOperationAdmission(
-            false, 0, -1, -1, state.expressions
-        );
-    let result_value: Int = -1;
-    let expected_type: String = CompilerAbiLayoutStringTypeName();
-    let operation_kind: Int = DirectMirScalarCfgOpExpressionLog();
-    if kind == "def" {
-        result_value = DirectMirScalarCfgGraphValueRow(
-            locals.value_names, capture.result
-        );
-        if result_value < 0 { return invalid; }
-        expected_type = types.value_types[result_value];
-        operation_kind = DirectMirScalarCfgOpExpressionDefinition();
-    } else if kind != "stmt" { return invalid; }
-    let expression_row: Int = ArrayLength(state.expressions.graph_starts);
-    let expressions: DirectMirScalarProgramExpressionSet =
-        DirectMirScalarProgramAppendExpression(
-            state.expressions, object, uses, global_row, local_instruction,
-            locals, types, wire, "", state.callable.signature.name,
-            state.callable.signature.source_syntax_id,
-            state.callable.signature.row
-        );
-    if !expressions.valid ||
-        ArrayLength(expressions.graph_starts) != expression_row + 1 ||
-        expressions.node_types[expressions.graph_roots[expression_row]] !=
-            expected_type || (kind == "def" && source != "AST_LET_DECL" &&
-            source != "AST_ASSIGNMENT") || (kind == "stmt" &&
-            (source != "AST_CALL" || capture.arg0 != "Log" ||
-             capture.result != "")) {
-        return invalid;
-    }
-    return DirectMirScalarCfgProgramOperationAdmission(
-        true, operation_kind, result_value, expression_row, expressions
-    );
-}
-
-func DirectMirScalarCfgAppendProgramOperation(
-    state: DirectMirScalarCfgProgramAdmissionState,
-    ref index: MirRoutineFactIndex, block: Int,
-    kind: String, source: String, ref object: JsonObjectFactTable,
-    ref uses: MirRoutineInstructionUseFacts,
-    global_row: Int, local_instruction: Int,
-    ref locals: DirectMirScalarCfgLocalRefPlan,
-    ref types: DirectMirScalarCfgValueTypePlan,
-    ref wire: DirectMirScalarCfgWireLocalRefs,
-    inout operation_kinds: Array<Int>,
-    inout operation_results: Array<Int>,
-    inout operation_left_values: Array<Int>,
-    inout operation_right_values: Array<Int>,
-    inout operation_left_locals: Array<Int>,
-    inout operation_right_locals: Array<Int>,
-    inout operation_left_literals: Array<String>,
-    inout operation_right_literals: Array<String>,
-    inout operation_phi_starts: Array<Int>,
-    inout operation_phi_counts: Array<Int>,
-    phi_start: Int
-) -> DirectMirScalarCfgProgramAdmissionState {
-    let capture: MirRoutineInstructionScalarCapture =
-        MirRoutineInstructionFactBundleAtGlobal(
-            index.instruction_facts, global_row
-        );
-    let dialect: DirectMirScalarCfgProgramOperationAdmission =
-        DirectMirScalarCfgProgramOperationFromOwners(
-            state, kind, source, object, capture, uses,
-            global_row, local_instruction, locals, types, wire
-        );
-    if !capture.valid || !dialect.valid ||
-        !DirectMirScalarCfgProgramArithmeticReady(
-            dialect.expressions, state.block_condition_expression_rows,
-            index, block, dialect.expression_row
-        ) {
-        Die("direct MIR scalar CFG program operation is invalid");
-    }
-    DirectMirScalarCfgAppendOperation(
-        operation_kinds, operation_results,
-        operation_left_values, operation_right_values,
-        operation_left_locals, operation_right_locals,
-        operation_left_literals, operation_right_literals,
-        operation_phi_starts, operation_phi_counts,
-        dialect.kind, dialect.result_value,
-        DirectMirScalarCfgExpressionFactEmpty(), phi_start, 0
-    );
-    return DirectMirScalarCfgProgramRecordOperation(
-        state, dialect.expression_row, dialect.expressions
-    );
-}
-
-func DirectMirScalarCfgProgramConditionFromOwners(
-    ref state: DirectMirScalarCfgProgramAdmissionState,
-    ref index: MirRoutineFactIndex, block: Int,
-    ref object: JsonObjectFactTable,
-    ref uses: MirRoutineInstructionUseFacts,
-    global_row: Int, local_instruction: Int,
-    ref locals: DirectMirScalarCfgLocalRefPlan,
-    ref types: DirectMirScalarCfgValueTypePlan,
-    ref wire: DirectMirScalarCfgWireLocalRefs
-) -> DirectMirScalarCfgProgramConditionAdmission {
-    let expression_row: Int = ArrayLength(state.expressions.graph_starts);
-    let expressions: DirectMirScalarProgramExpressionSet =
-        DirectMirScalarProgramAppendExpression(
-            state.expressions, object, uses, global_row, local_instruction,
-            locals, types, wire, "", state.callable.signature.name,
-            state.callable.signature.source_syntax_id,
-            state.callable.signature.row
-        );
-    let ready: Bool = expressions.valid &&
-        ArrayLength(expressions.graph_starts) == expression_row + 1 &&
-        expressions.node_types[expressions.graph_roots[expression_row]] ==
-            CompilerAbiLayoutBoolTypeName() &&
-        DirectMirScalarCfgProgramArithmeticReady(
-            expressions, state.block_condition_expression_rows,
-            index, block, expression_row
-        );
-    return DirectMirScalarCfgProgramConditionAdmission(
-        ready, expression_row, expressions
-    );
-}
-
-func DirectMirScalarCfgProgramRecordOperation(
-    state: DirectMirScalarCfgProgramAdmissionState,
-    expression_row: Int,
-    expressions: DirectMirScalarProgramExpressionSet
-) -> DirectMirScalarCfgProgramAdmissionState {
-    if !state.active { return state; }
-    let rows: Array<Int> = state.operation_expression_rows;
-    ArrayPush(rows, expression_row);
-    return DirectMirScalarCfgProgramAdmissionState(
-        true, state.route, state.callable, expressions,
-        state.block_condition_expression_rows, rows,
-        state.pending_condition_expression_row
-    );
-}
-
-func DirectMirScalarCfgProgramRecordCondition(
-    state: DirectMirScalarCfgProgramAdmissionState,
-    condition: DirectMirScalarCfgProgramConditionAdmission
-) -> DirectMirScalarCfgProgramAdmissionState {
-    if !state.active || !condition.valid ||
-        state.pending_condition_expression_row >= 0 {
-        Die("direct MIR scalar CFG program condition is invalid");
-    }
-    return DirectMirScalarCfgProgramAdmissionState(
-        true, state.route, state.callable, condition.expressions,
-        state.block_condition_expression_rows,
-        state.operation_expression_rows, condition.expression_row
-    );
-}
-
-func DirectMirScalarCfgProgramCloseBlock(
-    state: DirectMirScalarCfgProgramAdmissionState
-) -> DirectMirScalarCfgProgramAdmissionState {
-    if !state.active { return state; }
-    let rows: Array<Int> = state.block_condition_expression_rows;
-    ArrayPush(rows, state.pending_condition_expression_row);
-    return DirectMirScalarCfgProgramAdmissionState(
-        true, state.route, state.callable, state.expressions,
-        rows, state.operation_expression_rows, -1
-    );
-}
-
-func DirectMirScalarCfgProgramExtensionFromAdmission(
-    ref state: DirectMirScalarCfgProgramAdmissionState
+    ref route: DirectMirScalarProgramRouteFact,
+    expressions: DirectMirScalarProgramExpressionSet,
+    block_condition_expression_rows: Array<Int>,
+    operation_expression_rows: Array<Int>,
+    block_return_expression_rows: Array<Int>
 ) -> DirectMirScalarCfgProgramExtensionFact {
-    if !state.active { return DirectMirScalarCfgProgramExtensionFactEmpty(); }
-    if state.pending_condition_expression_row != -1 {
-        Die("direct MIR scalar CFG program block was not closed");
-    }
-    let expressions: DirectMirScalarProgramExpressionSet =
-        DirectMirScalarProgramExpressionSetWithDigest(
-            state.expressions,
-            DirectMirScalarProgramExpressionSetDigest(state.expressions)
+    let callable: DirectMirScalarCfgProgramCallableFact =
+        DirectMirScalarProgramCallableFactFromAdmitted(
+            admitted, route.callable_row, 1
         );
+    let sealed_expressions: DirectMirScalarProgramExpressionSet =
+        DirectMirScalarProgramExpressionSetWithDigest(
+            expressions,
+            DirectMirScalarProgramExpressionSetDigest(expressions)
+        );
+    let compare_id: Int = 0;
+    if DirectMirScalarProgramStringCompareRequired(sealed_expressions) {
+        let compare: CompilerRuntimeCallAbiFact =
+            CompilerRuntimeCallAbiStringCompareFact();
+        if !CompilerRuntimeCallAbiStringCompareFactReady(compare) {
+            Die("direct MIR scalar program string compare ABI is invalid");
+        }
+        compare_id = compare.runtime_call_abi_id;
+    }
     let source: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(
-            true, 0, state.callable, expressions,
-            state.block_condition_expression_rows,
-            state.operation_expression_rows,
-            DirectMirClosedModuleCallAbiFactFromOwner()
+            true, 0, callable, sealed_expressions,
+            block_condition_expression_rows, operation_expression_rows,
+            block_return_expression_rows,
+            DirectMirClosedModuleCallAbiFactFromOwner(), compare_id
         );
-    return DirectMirScalarCfgProgramExtensionFactWithDigest(
-        source, DirectMirScalarCfgProgramExtensionFactDigest(source)
-    );
+    let fact: DirectMirScalarCfgProgramExtensionFact =
+        DirectMirScalarCfgProgramExtensionFactWithDigest(
+            source, DirectMirScalarCfgProgramExtensionFactDigest(source)
+        );
+    if !DirectMirScalarCfgProgramExtensionFactReady(fact) {
+        Die("direct MIR scalar program extension is invalid");
+    }
+    return fact;
 }

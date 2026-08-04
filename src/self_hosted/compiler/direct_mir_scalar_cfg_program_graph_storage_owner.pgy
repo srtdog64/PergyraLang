@@ -1,0 +1,83 @@
+// Typed storage layers composed once into the immutable flat GraphPlan.
+
+import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
+
+struct DirectMirScalarCfgProgramValueStorage {
+    let valid: Bool;
+    let local_names: Array<String>;
+    let local_types: Array<String>;
+    let local_ref_kinds: Array<Int>;
+    let local_ref_value_ids: Array<String>;
+    let local_ref_syntax_ids: Array<Int>;
+    let value_names: Array<String>;
+    let value_types: Array<String>;
+    let value_local_rows: Array<Int>;
+    let value_definition_blocks: Array<Int>;
+}
+
+struct DirectMirScalarCfgProgramBlockStorage {
+    let valid: Bool;
+    let succ_true: Array<Int>;
+    let succ_false: Array<Int>;
+    let operation_starts: Array<Int>;
+    let operation_counts: Array<Int>;
+    let condition_kinds: Array<Int>;
+    let condition_left_values: Array<Int>;
+    let condition_right_values: Array<Int>;
+    let condition_left_locals: Array<Int>;
+    let condition_right_locals: Array<Int>;
+    let condition_left_literals: Array<String>;
+    let condition_right_literals: Array<String>;
+    let condition_expression_rows: Array<Int>;
+    let return_expression_rows: Array<Int>;
+}
+
+struct DirectMirScalarCfgProgramOperationStorage {
+    let valid: Bool;
+    let kinds: Array<Int>;
+    let result_values: Array<Int>;
+    let left_values: Array<Int>;
+    let right_values: Array<Int>;
+    let left_locals: Array<Int>;
+    let right_locals: Array<Int>;
+    let left_literals: Array<String>;
+    let right_literals: Array<String>;
+    let phi_starts: Array<Int>;
+    let phi_counts: Array<Int>;
+    let phi_predecessor_blocks: Array<Int>;
+    let phi_incoming_values: Array<Int>;
+    let expression_rows: Array<Int>;
+}
+
+struct DirectMirScalarCfgProgramRoutineCounts {
+    let local_counts: Array<Int>;
+    let value_counts: Array<Int>;
+    let block_counts: Array<Int>;
+    let operation_counts: Array<Int>;
+    let phi_counts: Array<Int>;
+}
+
+struct DirectMirScalarCfgProgramGraphStorage {
+    let values: DirectMirScalarCfgProgramValueStorage;
+    let blocks: DirectMirScalarCfgProgramBlockStorage;
+    let operations: DirectMirScalarCfgProgramOperationStorage;
+    let routines: DirectMirScalarCfgProgramRoutineCounts;
+}
+
+func DirectMirScalarCfgProgramGraphStorageEmpty(
+) -> DirectMirScalarCfgProgramGraphStorage {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return DirectMirScalarCfgProgramGraphStorage(
+        DirectMirScalarCfgProgramValueStorage(
+            true, strings, strings, ints, strings, ints,
+            strings, strings, ints, ints),
+        DirectMirScalarCfgProgramBlockStorage(
+            true, ints, ints, ints, ints, ints, ints, ints, ints, ints,
+            strings, strings, ints, ints),
+        DirectMirScalarCfgProgramOperationStorage(
+            true, ints, ints, ints, ints, ints, ints, strings, strings,
+            ints, ints, ints, ints, ints),
+        DirectMirScalarCfgProgramRoutineCounts(ints, ints, ints, ints, ints)
+    );
+}

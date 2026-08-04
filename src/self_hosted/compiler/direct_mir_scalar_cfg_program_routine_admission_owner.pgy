@@ -1,0 +1,256 @@
+// Appends every admitted program routine through one range-aware flat loop.
+
+import "direct_mir_scalar_cfg_program_value_storage_owner.pgy";
+import "direct_mir_scalar_cfg_program_graph_storage_mutation_owner.pgy";
+import "direct_mir_scalar_cfg_program_instruction_expression_owner.pgy";
+import "direct_mir_scalar_cfg_graph_input_owner.pgy";
+import "direct_mir_scalar_cfg_phi_operation_admission_owner.pgy";
+import "direct_mir_scalar_cfg_program_arithmetic_admission_owner.pgy";
+
+struct DirectMirScalarCfgProgramRoutineAdmission {
+    let valid: Bool;
+    let storage: DirectMirScalarCfgProgramGraphStorage;
+    let expressions: DirectMirScalarProgramExpressionSet;
+}
+
+func DirectMirScalarCfgProgramInputIsScalar(
+    ref input: DirectMirScalarCfgGraphInput
+) -> Bool {
+    return DirectMirScalarCfgRangeFactCount(input.ranges) == 0 &&
+        DirectMirScalarCfgForEachFactCount(input.foreach_facts) == 0 &&
+        !input.string_arrays.valid && !input.array_int_program.valid &&
+        !input.collections.valid;
+}
+
+func DirectMirScalarCfgProgramOperationsAppendPhi(
+    storage: DirectMirScalarCfgProgramOperationStorage,
+    ref index: MirRoutineFactIndex,
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref uses: MirRoutineInstructionUseFacts,
+    routine_row: Int, block: Int, instruction_row: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    value_offset: Int, block_offset: Int
+) -> DirectMirScalarCfgProgramOperationStorage {
+    let predecessors: Array<Int> = storage.phi_predecessor_blocks;
+    let incoming: Array<Int> = storage.phi_incoming_values;
+    let start: Int = ArrayLength(predecessors);
+    let phi: DirectMirScalarCfgPhiOperationAdmission =
+        DirectMirScalarCfgPhiOperationFromOwners(
+            index, admitted, uses, routine_row, block, instruction_row,
+            locals, types, predecessors, incoming);
+    if !phi.valid || phi.phi_start != start {
+        return DirectMirScalarCfgProgramOperationStorage(
+            false, storage.kinds, storage.result_values,
+            storage.left_values, storage.right_values,
+            storage.left_locals, storage.right_locals,
+            storage.left_literals, storage.right_literals,
+            storage.phi_starts, storage.phi_counts,
+            predecessors, incoming, storage.expression_rows);
+    }
+    let row: Int = start;
+    while row < start + phi.phi_count {
+        ArraySet(predecessors, row, predecessors[row] + block_offset);
+        ArraySet(incoming, row, incoming[row] + value_offset);
+        row = row + 1;
+    }
+    let kinds: Array<Int> = storage.kinds;
+    let results: Array<Int> = storage.result_values;
+    let left_values: Array<Int> = storage.left_values;
+    let right_values: Array<Int> = storage.right_values;
+    let left_locals: Array<Int> = storage.left_locals;
+    let right_locals: Array<Int> = storage.right_locals;
+    let left_literals: Array<String> = storage.left_literals;
+    let right_literals: Array<String> = storage.right_literals;
+    let phi_starts: Array<Int> = storage.phi_starts;
+    let phi_counts: Array<Int> = storage.phi_counts;
+    let expression_rows: Array<Int> = storage.expression_rows;
+    ArrayPush(kinds, phi.kind);
+    ArrayPush(results, phi.result_value + value_offset);
+    ArrayPush(left_values, -1); ArrayPush(right_values, -1);
+    ArrayPush(left_locals, -1); ArrayPush(right_locals, -1);
+    ArrayPush(left_literals, ""); ArrayPush(right_literals, "");
+    ArrayPush(phi_starts, phi.phi_start); ArrayPush(phi_counts, phi.phi_count);
+    ArrayPush(expression_rows, -1);
+    return DirectMirScalarCfgProgramOperationStorage(
+        true, kinds, results, left_values, right_values,
+        left_locals, right_locals, left_literals, right_literals,
+        phi_starts, phi_counts, predecessors, incoming, expression_rows);
+}
+
+func DirectMirScalarCfgProgramAppendRoutine(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    routine_row: Int, routine_ordinal: Int,
+    ref callable: DirectMirScalarCfgProgramCallableFact,
+    ref input: DirectMirScalarCfgGraphInput,
+    storage: DirectMirScalarCfgProgramGraphStorage,
+    expressions: DirectMirScalarProgramExpressionSet
+) -> DirectMirScalarCfgProgramRoutineAdmission {
+    let invalid: DirectMirScalarCfgProgramRoutineAdmission =
+        DirectMirScalarCfgProgramRoutineAdmission(false, storage, expressions);
+    if !input.index.valid || !DirectMirScalarCfgProgramInputIsScalar(input) {
+        Die("direct MIR scalar program routine input is not scalar");
+        return invalid;
+    }
+    let index: MirRoutineFactIndex = input.index;
+    let locals: DirectMirScalarCfgLocalRefPlan =
+        DirectMirScalarCfgLocalRefPlanFromOwners(
+            admitted, index, input.use_facts, input.wire, input.ranges,
+            input.foreach_facts, input.string_arrays,
+            input.array_int_program, input.collections);
+    let types: DirectMirScalarCfgValueTypePlan =
+        DirectMirScalarCfgValueTypePlanFromOwners(
+            index, locals, input.foreach_elements);
+    let signature: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(
+            admitted.routines, routine_row,
+            index.block_instruction_counts[0]);
+    if !DirectMirRoutineSignatureFactReady(signature) ||
+        (routine_ordinal == 0 && (signature.name != "Main" ||
+         signature.return_type != "Void" || signature.param_count != 0)) ||
+        (routine_ordinal != 0 && signature.digest !=
+            callable.signature.digest) {
+        Die("direct MIR scalar program routine signature is invalid");
+        return invalid;
+    }
+    let local_offset: Int = ArrayLength(storage.values.local_names);
+    let value_offset: Int = ArrayLength(storage.values.value_names);
+    let block_offset: Int = ArrayLength(storage.blocks.succ_true);
+    let operation_offset: Int = ArrayLength(storage.operations.kinds);
+    let phi_offset: Int =
+        ArrayLength(storage.operations.phi_predecessor_blocks);
+    let values: DirectMirScalarCfgProgramValueStorage =
+        DirectMirScalarCfgProgramValuesAppendRoutine(
+            storage.values, locals, types, block_offset);
+    if !values.valid {
+        Die("direct MIR scalar program routine value storage is invalid");
+        return invalid;
+    }
+    let blocks: DirectMirScalarCfgProgramBlockStorage = storage.blocks;
+    let operations: DirectMirScalarCfgProgramOperationStorage =
+        storage.operations;
+    let parameter_type: String = "";
+    if signature.param_count == 1 { parameter_type = signature.param.type_name; }
+    let block: Int = 0;
+    while block < ArrayLength(index.block_starts) {
+        if !index.block_reachable[block] { return invalid; }
+        let operation_start: Int = ArrayLength(operations.kinds);
+        let condition_row: Int = -1;
+        let return_row: Int = -1;
+        let instruction_row: Int = 0;
+        while instruction_row < index.block_instruction_counts[block] {
+            let local_instruction: Int =
+                index.block_instruction_starts[block] + instruction_row;
+            let global_row: Int =
+                index.instruction_facts.global_start + local_instruction;
+            let kind: String = admitted.routines.instruction_kinds[global_row];
+            let source: String =
+                admitted.routines.instruction_source_types[global_row];
+            let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+                admitted.routines.source_json,
+                admitted.routines.instruction_starts[global_row],
+                admitted.routines.instruction_ends[global_row]);
+            let capture: MirRoutineInstructionScalarCapture =
+                MirRoutineInstructionFactBundleAtGlobal(
+                    index.instruction_facts, global_row);
+            if !capture.valid { return invalid; }
+            if kind == "def" {
+                let result: Int = DirectMirScalarCfgGraphValueRow(
+                    locals.value_names, capture.result);
+                if result < 0 || (source != "AST_LET_DECL" &&
+                    source != "AST_ASSIGNMENT") { return invalid; }
+                let expression_row_opt: Option<Int> =
+                    DirectMirScalarCfgProgramAppendTypedExpression(
+                        expressions, instruction, input.use_facts, global_row,
+                        local_instruction, locals, types, input.wire,
+                        local_offset, parameter_type, callable,
+                        types.value_types[result]);
+                if !IsSome(expression_row_opt) { return invalid; }
+                let expression_row: Int = UnwrapOption(expression_row_opt);
+                if !DirectMirScalarCfgProgramArithmeticReady(
+                        expressions, blocks.condition_expression_rows,
+                        index, block, expression_row) { return invalid; }
+                operations =
+                    DirectMirScalarCfgProgramOperationsAppendExpression(
+                        operations,
+                        DirectMirScalarCfgOpExpressionDefinition(),
+                        result + value_offset, expression_row);
+            } else if kind == "stmt" {
+                if source != "AST_CALL" || capture.arg0 != "Log" ||
+                    capture.result != "" { return invalid; }
+                let expression_row_opt: Option<Int> =
+                    DirectMirScalarCfgProgramAppendTypedExpression(
+                        expressions, instruction, input.use_facts, global_row,
+                        local_instruction, locals, types, input.wire,
+                        local_offset, parameter_type, callable,
+                        CompilerAbiLayoutStringTypeName());
+                if !IsSome(expression_row_opt) { return invalid; }
+                let expression_row: Int = UnwrapOption(expression_row_opt);
+                operations =
+                    DirectMirScalarCfgProgramOperationsAppendExpression(
+                        operations, DirectMirScalarCfgOpExpressionLog(),
+                        -1, expression_row);
+            } else if kind == "phi" {
+                operations = DirectMirScalarCfgProgramOperationsAppendPhi(
+                    operations, index, admitted, input.use_facts, routine_row,
+                    block, instruction_row, locals, types, value_offset,
+                    block_offset);
+                if !operations.valid { return invalid; }
+            } else if kind == "branch" {
+                if instruction_row + 1 !=
+                        index.block_instruction_counts[block] ||
+                    index.block_succ_true[block] < 0 ||
+                    index.block_succ_false[block] < 0 { return invalid; }
+                let condition_row_opt: Option<Int> =
+                    DirectMirScalarCfgProgramAppendTypedExpression(
+                    expressions, instruction, input.use_facts, global_row,
+                    local_instruction, locals, types, input.wire,
+                    local_offset, parameter_type, callable,
+                    CompilerAbiLayoutBoolTypeName());
+                if !IsSome(condition_row_opt) { return invalid; }
+                condition_row = UnwrapOption(condition_row_opt);
+                if !DirectMirScalarCfgProgramArithmeticReady(
+                        expressions, blocks.condition_expression_rows,
+                        index, block, condition_row) { return invalid; }
+            } else if kind == "return" {
+                if routine_ordinal == 0 || instruction_row + 1 !=
+                        index.block_instruction_counts[block] ||
+                    index.block_succ_true[block] >= 0 ||
+                    index.block_succ_false[block] >= 0 ||
+                    capture.name != "return" || capture.result != "" ||
+                    capture.arg0 != "" || capture.arg1 != "" ||
+                    capture.abi_type_name != signature.return_type {
+                    return invalid;
+                }
+                let return_row_opt: Option<Int> =
+                    DirectMirScalarCfgProgramAppendTypedExpression(
+                    expressions, instruction, input.use_facts, global_row,
+                    local_instruction, locals, types, input.wire,
+                    local_offset, parameter_type, callable,
+                    signature.return_type);
+                if !IsSome(return_row_opt) { return invalid; }
+                return_row = UnwrapOption(return_row_opt);
+            } else { return invalid; }
+            instruction_row = instruction_row + 1;
+        }
+        let true_target: Int = index.block_succ_true[block];
+        let false_target: Int = index.block_succ_false[block];
+        if true_target >= 0 { true_target = true_target + block_offset; }
+        if false_target >= 0 { false_target = false_target + block_offset; }
+        blocks = DirectMirScalarCfgProgramBlocksAppend(
+            blocks, true_target, false_target, operation_start,
+            ArrayLength(operations.kinds) - operation_start,
+            condition_row, return_row);
+        block = block + 1;
+    }
+    let routines: DirectMirScalarCfgProgramRoutineCounts =
+        DirectMirScalarCfgProgramRoutineCountsAppend(
+            storage.routines, ArrayLength(values.local_names) - local_offset,
+            ArrayLength(values.value_names) - value_offset,
+            ArrayLength(blocks.succ_true) - block_offset,
+            ArrayLength(operations.kinds) - operation_offset,
+            ArrayLength(operations.phi_predecessor_blocks) - phi_offset);
+    return DirectMirScalarCfgProgramRoutineAdmission(
+        true, DirectMirScalarCfgProgramGraphStorage(
+            values, blocks, operations, routines), expressions);
+}

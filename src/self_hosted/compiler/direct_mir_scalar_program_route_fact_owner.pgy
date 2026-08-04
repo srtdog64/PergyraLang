@@ -1,4 +1,4 @@
-// Exact header-family claim for Main: () -> Void plus one (Int) -> Bool callable.
+// Bounded two-routine scalar program claim keyed only by typed header facts.
 
 import "direct_mir_scalar_cfg_hash_owner.pgy";
 import "abi_layout_row_owner.pgy";
@@ -66,11 +66,14 @@ func DirectMirScalarProgramRouteFactFromAdmitted(
             }
             entrypoint_row = row;
         } else {
-            if callable_row >= 0 ||
-                admitted.routines.routine_block_counts[row] != 1 ||
-                signature.return_type != CompilerAbiLayoutBoolTypeName() ||
-                signature.param_count != 1 ||
-                signature.param.type_name != CompilerAbiLayoutIntTypeName() ||
+            let bool_callable: Bool = signature.return_type ==
+                    CompilerAbiLayoutBoolTypeName() &&
+                signature.param.type_name == CompilerAbiLayoutIntTypeName();
+            let string_callable: Bool = signature.return_type ==
+                    CompilerAbiLayoutStringTypeName() &&
+                signature.param.type_name == CompilerAbiLayoutStringTypeName();
+            if callable_row >= 0 || signature.param_count != 1 ||
+                (!bool_callable && !string_callable) ||
                 signature.param.carriage != "value" ||
                 signature.param.resource != "none" ||
                 signature.param.pass_shape != "direct" ||

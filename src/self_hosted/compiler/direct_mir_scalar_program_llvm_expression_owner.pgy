@@ -1,6 +1,7 @@
 // LLVM expression projection from the sealed scalar-program expression arena.
 
 import "direct_mir_scalar_program_expression_readiness_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
 
 struct DirectMirScalarProgramLlvmExpression {
     let valid: Bool;
@@ -30,7 +31,8 @@ func DirectMirScalarProgramLlvmType(type_name: String) -> String {
 
 func DirectMirScalarProgramLlvmExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet,
-    expression_row: Int
+    expression_row: Int,
+    compare: CompilerRuntimeCallAbiFact
 ) -> DirectMirScalarProgramLlvmExpression {
     let instructions: String = "";
     let values: Array<String> = [];
@@ -83,6 +85,16 @@ func DirectMirScalarProgramLlvmExpressionAt(
                 instructions = Concat(instructions, " = srem i64 ");
             } else if kind == DirectMirScalarProgramExprEqualInt() {
                 instructions = Concat(instructions, " = icmp eq i64 ");
+            } else if kind == DirectMirScalarProgramExprEqualString() ||
+                    kind == DirectMirScalarProgramExprNotEqualString() {
+                if !CompilerRuntimeCallAbiStringCompareFactReady(compare) {
+                    return DirectMirScalarProgramLlvmExpression(
+                        false, "", "", ""
+                    );
+                }
+                instructions = Concat(instructions, " = call i32 @");
+                instructions = Concat(instructions, compare.symbol);
+                instructions = Concat(instructions, "(ptr ");
             } else if kind == DirectMirScalarProgramExprLogicalNot() {
                 instructions = Concat(instructions, " = xor i1 ");
             } else if kind == DirectMirScalarProgramExprLogicalAnd() {
@@ -94,19 +106,49 @@ func DirectMirScalarProgramLlvmExpressionAt(
             } else if kind == DirectMirScalarProgramExprAddInt() {
                 instructions = Concat(instructions, " = add nsw i64 ");
             } else if kind == DirectMirScalarProgramExprDirectCall() {
+                instructions = Concat(instructions, " = call ");
                 instructions = Concat(instructions,
-                    " = call i1 @pgy.scalar.callable.0(i64 ");
+                    DirectMirScalarProgramLlvmType(
+                        expressions.node_types[node]));
+                instructions = Concat(instructions, " @pgy.scalar.routine.");
+                instructions = Concat(instructions,
+                    ToString(expressions.node_callable_rows[node]));
+                instructions = Concat(instructions, "(");
+                instructions = Concat(instructions,
+                    DirectMirScalarProgramLlvmType(
+                        expressions.node_types[
+                            expressions.node_lefts[node]]));
+                instructions = Concat(instructions, " ");
             } else {
                 return DirectMirScalarProgramLlvmExpression(
                     false, "", "", ""
                 );
             }
-            instructions = Concat(instructions, left);
+            if kind == DirectMirScalarProgramExprEqualString() ||
+                    kind == DirectMirScalarProgramExprNotEqualString() {
+                instructions = Concat(instructions, left);
+                instructions = Concat(instructions, ", ptr ");
+                instructions = Concat(instructions, right);
+                instructions = Concat(instructions, ")\n  ");
+                let compared: String = Concat(result, ".bool");
+                instructions = Concat(instructions, compared);
+                if kind == DirectMirScalarProgramExprEqualString() {
+                    instructions = Concat(instructions, " = icmp eq i32 ");
+                } else {
+                    instructions = Concat(instructions, " = icmp ne i32 ");
+                }
+                instructions = Concat(instructions, result);
+                instructions = Concat(instructions, ", 0");
+                value = compared;
+            } else {
+                instructions = Concat(instructions, left);
+            }
             if kind == DirectMirScalarProgramExprLogicalNot() {
                 instructions = Concat(instructions, ", true");
             } else if kind == DirectMirScalarProgramExprDirectCall() {
                 instructions = Concat(instructions, ")");
-            } else {
+            } else if kind != DirectMirScalarProgramExprEqualString() &&
+                    kind != DirectMirScalarProgramExprNotEqualString() {
                 instructions = Concat(instructions, ", ");
                 instructions = Concat(instructions, right);
             }
@@ -120,26 +162,4 @@ func DirectMirScalarProgramLlvmExpressionAt(
         true, instructions, values[root],
         expressions.node_types[expressions.graph_roots[expression_row]]
     );
-}
-
-func DirectMirScalarProgramLlvmStringGlobals(
-    ref expressions: DirectMirScalarProgramExpressionSet
-) -> String {
-    let output: String = "";
-    let node: Int = 0;
-    while node < ArrayLength(expressions.node_kinds) {
-        if expressions.node_kinds[node] ==
-                DirectMirScalarProgramExprStringLiteral() {
-            let literal: String = expressions.node_literals[node];
-            output = Concat(output, "@pgy.scalar.string.");
-            output = Concat(output, ToString(node));
-            output = Concat(output, " = private unnamed_addr constant [");
-            output = Concat(output, ToString(StringLength(literal) + 1));
-            output = Concat(output, " x i8] c\"");
-            output = Concat(output, literal);
-            output = Concat(output, "\\00\"\n");
-        }
-        node = node + 1;
-    }
-    return output;
 }

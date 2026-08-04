@@ -2,13 +2,17 @@
 
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 
-func DirectMirScalarCfgCLocalDeclarations(
-    ref plan: DirectMirScalarCfgGraphPlan, int_c_type: String
+func DirectMirScalarCfgCLocalDeclarationsInRange(
+    ref plan: DirectMirScalarCfgGraphPlan, int_c_type: String,
+    start: Int, count: Int
 ) -> String {
-    if int_c_type == "" { Die("direct MIR scalar CFG C local type is empty"); }
+    if int_c_type == "" || start < 0 || count < 0 ||
+        start + count > ArrayLength(plan.local_names) {
+        Die("direct MIR scalar CFG C local range is invalid");
+    }
     let output: String = "";
-    let row: Int = 0;
-    while row < ArrayLength(plan.local_names) {
+    let row: Int = start;
+    while row < start + count {
         output = Concat(output, "    ");
         if plan.local_types[row] == CompilerAbiLayoutStringTypeName() {
             output = Concat(output, CompilerAbiLayoutStringCValueType());
@@ -25,12 +29,24 @@ func DirectMirScalarCfgCLocalDeclarations(
     return output;
 }
 
-func DirectMirScalarCfgLlvmLocalDeclarations(
-    ref plan: DirectMirScalarCfgGraphPlan
+func DirectMirScalarCfgCLocalDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan, int_c_type: String
 ) -> String {
+    return DirectMirScalarCfgCLocalDeclarationsInRange(
+        plan, int_c_type, 0, ArrayLength(plan.local_names)
+    );
+}
+
+func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
+    ref plan: DirectMirScalarCfgGraphPlan, start: Int, count: Int
+) -> String {
+    if start < 0 || count < 0 ||
+        start + count > ArrayLength(plan.local_names) {
+        Die("direct MIR scalar CFG LLVM local range is invalid");
+    }
     let output: String = "";
-    let row: Int = 0;
-    while row < ArrayLength(plan.local_names) {
+    let row: Int = start;
+    while row < start + count {
         output = Concat(output, "  %pgy.local.");
         output = Concat(output, ToString(row));
         if plan.local_types[row] == CompilerAbiLayoutStringTypeName() {
@@ -51,4 +67,13 @@ func DirectMirScalarCfgLlvmLocalDeclarations(
         row = row + 1;
     }
     return output;
+}
+
+
+func DirectMirScalarCfgLlvmLocalDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> String {
+    return DirectMirScalarCfgLlvmLocalDeclarationsInRange(
+        plan, 0, ArrayLength(plan.local_names)
+    );
 }

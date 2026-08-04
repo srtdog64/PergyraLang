@@ -1,0 +1,71 @@
+// Canonical Main-first routine ranges for the bounded scalar program route.
+
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+
+func DirectMirScalarCfgTwoRoutineStarts(counts: Array<Int>) -> Array<Int> {
+    if ArrayLength(counts) != 2 || counts[0] < 0 || counts[1] < 0 {
+        let invalid: Array<Int> = [];
+        return invalid;
+    }
+    return [0, counts[0]];
+}
+
+func DirectMirScalarCfgProgramRoutinePartitionFromOwners(
+    ref routines: MirProgramRoutineIndex,
+    ref entry_index: MirRoutineFactIndex,
+    ref callable_index: MirRoutineFactIndex,
+    entry_row: Int, callable_row: Int,
+    local_counts: Array<Int>, value_counts: Array<Int>,
+    block_counts: Array<Int>, operation_counts: Array<Int>,
+    phi_counts: Array<Int>
+) -> DirectMirScalarCfgRoutinePartitionFact {
+    let entry: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(
+            routines, entry_row, entry_index.block_instruction_counts[0]
+        );
+    let callable: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(
+            routines, callable_row,
+            callable_index.block_instruction_counts[0]
+        );
+    if !DirectMirRoutineSignatureFactReady(entry) ||
+        !DirectMirRoutineSignatureFactReady(callable) ||
+        entry.name != "Main" || entry.return_type != "Void" ||
+        entry.param_count != 0 || callable.param_count != 1 ||
+        ArrayLength(local_counts) != 2 || ArrayLength(value_counts) != 2 ||
+        ArrayLength(block_counts) != 2 ||
+        ArrayLength(operation_counts) != 2 || ArrayLength(phi_counts) != 2 {
+        Die("direct MIR scalar CFG program routine partition is invalid");
+    }
+    let fact: DirectMirScalarCfgRoutinePartitionFact =
+        DirectMirScalarCfgRoutinePartitionFact(
+            true, 0, 0,
+            [DirectMirScalarCfgRoutineRoleEntrypoint(),
+             DirectMirScalarCfgRoutineRoleCallable()],
+            [entry_row, callable_row],
+            [entry.source_syntax_id, callable.source_syntax_id],
+            [entry.name, callable.name],
+            [entry.return_type, callable.return_type],
+            [entry.param_count, callable.param_count],
+            ["", callable.param.type_name],
+            [entry.digest, callable.digest],
+            [DirectMirCfgDigestFromIndex(entry_index),
+             DirectMirCfgDigestFromIndex(callable_index)],
+            DirectMirScalarCfgTwoRoutineStarts(local_counts), local_counts,
+            DirectMirScalarCfgTwoRoutineStarts(value_counts), value_counts,
+            DirectMirScalarCfgTwoRoutineStarts(block_counts), block_counts,
+            DirectMirScalarCfgTwoRoutineStarts(operation_counts),
+            operation_counts,
+            DirectMirScalarCfgTwoRoutineStarts(phi_counts), phi_counts
+        );
+    return DirectMirScalarCfgRoutinePartitionFact(
+        fact.valid, DirectMirScalarCfgRoutinePartitionDigest(fact),
+        fact.entrypoint_ordinal, fact.roles, fact.source_rows,
+        fact.source_syntax_ids, fact.names, fact.return_types,
+        fact.parameter_counts, fact.parameter_types,
+        fact.signature_digests, fact.cfg_digests, fact.local_starts,
+        fact.local_counts, fact.value_starts, fact.value_counts,
+        fact.block_starts, fact.block_counts, fact.operation_starts,
+        fact.operation_counts, fact.phi_starts, fact.phi_counts
+    );
+}

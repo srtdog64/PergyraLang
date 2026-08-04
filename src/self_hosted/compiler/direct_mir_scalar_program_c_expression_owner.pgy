@@ -1,6 +1,7 @@
 // C expression projection from the sealed scalar-program expression arena.
 
 import "direct_mir_scalar_program_expression_readiness_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
 
 func DirectMirScalarProgramCLocalName(row: Int) -> String {
     return Concat("pgy_local_", ToString(row));
@@ -8,7 +9,8 @@ func DirectMirScalarProgramCLocalName(row: Int) -> String {
 
 func DirectMirScalarProgramCExpressionValues(
     ref expressions: DirectMirScalarProgramExpressionSet,
-    expression_row: Int
+    expression_row: Int,
+    compare: CompilerRuntimeCallAbiFact
 ) -> Array<String> {
     let values: Array<String> = [];
     let start: Int = expressions.graph_starts[expression_row];
@@ -43,6 +45,16 @@ func DirectMirScalarProgramCExpressionValues(
             value = Concat("(", Concat(left, Concat(" % ", Concat(right, ")"))));
         } else if kind == DirectMirScalarProgramExprEqualInt() {
             value = Concat("(", Concat(left, Concat(" == ", Concat(right, ")"))));
+        } else if kind == DirectMirScalarProgramExprEqualString() ||
+                kind == DirectMirScalarProgramExprNotEqualString() {
+            if !CompilerRuntimeCallAbiStringCompareFactReady(compare) {
+                Die("direct MIR scalar program string compare ABI is invalid");
+            }
+            value = Concat("(", Concat(compare.symbol, Concat("(",
+                Concat(left, Concat(", ", Concat(right, ")"))))));
+            if kind == DirectMirScalarProgramExprEqualString() {
+                value = Concat(value, " == 0)");
+            } else { value = Concat(value, " != 0)"); }
         } else if kind == DirectMirScalarProgramExprLogicalNot() {
             value = Concat("(!", Concat(left, ")"));
         } else if kind == DirectMirScalarProgramExprLogicalAnd() {
@@ -54,7 +66,10 @@ func DirectMirScalarProgramCExpressionValues(
         } else if kind == DirectMirScalarProgramExprAddInt() {
             value = Concat("(", Concat(left, Concat(" + ", Concat(right, ")"))));
         } else if kind == DirectMirScalarProgramExprDirectCall() {
-            value = Concat("pgy_scalar_callable_0(", Concat(left, ")"));
+            value = Concat("pgy_scalar_routine_", Concat(
+                ToString(expressions.node_callable_rows[node]),
+                Concat("(", Concat(left, ")"))
+            ));
         } else if kind == DirectMirScalarProgramExprToStringInt() {
             // String materialization is fused with the only admitted Log use.
             value = left;
@@ -69,10 +84,11 @@ func DirectMirScalarProgramCExpressionValues(
 
 func DirectMirScalarProgramCExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet,
-    expression_row: Int
+    expression_row: Int,
+    compare: CompilerRuntimeCallAbiFact
 ) -> String {
     let values: Array<String> = DirectMirScalarProgramCExpressionValues(
-        expressions, expression_row
+        expressions, expression_row, compare
     );
     let root: Int = expressions.graph_roots[expression_row] -
         expressions.graph_starts[expression_row];

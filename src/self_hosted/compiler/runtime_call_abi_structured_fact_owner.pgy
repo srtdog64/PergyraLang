@@ -115,6 +115,32 @@ func CompilerRuntimeCallAbiStringConcatFactReady(
         );
 }
 
+func CompilerRuntimeCallAbiStringCompareFact(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiFactFromRowInput(
+        CompilerRuntimeCallAbiRowInput(
+            "string", "compare", StringRuntimeCStringCompareFn(),
+            CompilerRuntimeCallAbiMaterialTargetLibrary()
+        )
+    );
+}
+
+func CompilerRuntimeCallAbiStringCompareFactReady(
+    compare: CompilerRuntimeCallAbiFact
+) -> Bool {
+    return compare.ok && compare.domain == "string" &&
+        compare.operation == "compare" && compare.symbol ==
+            StringRuntimeCStringCompareFn() &&
+        compare.symbol_kind == "function" &&
+        compare.materialization ==
+            CompilerRuntimeCallAbiMaterialTargetLibrary() &&
+        compare.call_shape ==
+            CompilerRuntimeCallAbiStringCallShape("compare") &&
+        compare.runtime_call_abi_id == CompilerRuntimeCallAbiRowId(
+            "string", "", "compare"
+        );
+}
+
 func CompilerRuntimeCallAbiFlatFactOwnerReady(
     formatted: CompilerRuntimeCallAbiFact
 ) -> Bool {

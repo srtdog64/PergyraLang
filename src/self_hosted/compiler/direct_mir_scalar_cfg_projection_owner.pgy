@@ -23,13 +23,14 @@ func CompileAdmittedDirectMirScalarCfgForTarget(
         DirectMirArrayIntProducerFactEmpty();
     let plan: DirectMirScalarCfgGraphPlan =
         DirectMirScalarCfgGraphPlanFromAdmitted(
-            admitted, 0, producer,
-            DirectMirScalarCfgProgramAdmissionStateEmpty()
+            admitted, 0, producer
         );
     let formatted_print: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiFormattedPrintFact();
     let concat: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiStringConcatFact();
+    let compare: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringCompareFact();
     if !DirectMirScalarCfgGraphPlanReady(plan) ||
         !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
         Die("direct MIR scalar CFG plan or runtime ABI is incomplete");
@@ -38,13 +39,14 @@ func CompileAdmittedDirectMirScalarCfgForTarget(
     let string_line_format: String = StringRuntimeCStringLineFormat();
     if is_llvm {
         return DirectMirScalarCfgEmitLlvm(
-            plan, formatted_print, concat,
+            plan, formatted_print, concat, compare,
             int_line_format, string_line_format,
             target_projection
         );
     }
     return DirectMirScalarCfgEmitC(
-        plan, formatted_print, concat, int_line_format, string_line_format,
+        plan, formatted_print, concat, compare,
+        int_line_format, string_line_format,
         CompilerAbiLayoutIntCValueType(), target_projection
     );
 }

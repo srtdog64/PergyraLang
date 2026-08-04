@@ -1,48 +1,64 @@
-// C hooks for the optional typed-expression seam on the scalar CFG plan.
+// Range-aware C projection for every routine in the scalar program GraphPlan.
 
 import "direct_mir_scalar_cfg_program_extension_readiness_owner.pgy";
 import "direct_mir_scalar_program_c_expression_owner.pgy";
 import "direct_mir_scalar_cfg_c_operand_owner.pgy";
+import "direct_mir_scalar_cfg_local_emission_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
-func DirectMirScalarCfgProgramCPreamble(
-    ref plan: DirectMirScalarCfgGraphPlan
+func DirectMirScalarCfgProgramCType(
+    type_name: String, int_c_type: String
 ) -> String {
-    if !plan.program.valid { return ""; }
-    if !DirectMirScalarCfgProgramExtensionReadyForPlan(plan) {
-        Die("direct MIR scalar CFG program C preamble is invalid");
+    if type_name == CompilerAbiLayoutIntTypeName() { return int_c_type; }
+    if type_name == CompilerAbiLayoutBoolTypeName() { return "bool"; }
+    if type_name == CompilerAbiLayoutStringTypeName() {
+        return CompilerAbiLayoutStringCValueType();
     }
-    let expressions: DirectMirScalarProgramExpressionSet =
-        plan.program.expressions;
-    let output: String = "#include <stdbool.h>\n#include <stdio.h>\n";
-    output = Concat(
-        output, "static bool pgy_scalar_callable_0(long long pgy_param_0) {\n    return "
-    );
-    output = Concat(output, DirectMirScalarProgramCExpressionAt(
-        expressions, plan.program.callable.return_expression_row
-    ));
-    return Concat(output, ";\n}\n");
+    return "";
+}
+
+func DirectMirScalarCfgProgramCRoutineName(routine: Int) -> String {
+    return Concat("pgy_scalar_routine_", ToString(routine));
+}
+
+func DirectMirScalarCfgProgramCSignature(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    routine: Int, int_c_type: String, prototype: Bool
+) -> String {
+    if routine == plan.routines.entrypoint_ordinal {
+        if prototype { return ""; }
+        return "int main(void)";
+    }
+    let output: String = "static ";
+    output = Concat(output, DirectMirScalarCfgProgramCType(
+        plan.routines.return_types[routine], int_c_type));
+    output = Concat(output, " ");
+    output = Concat(output, DirectMirScalarCfgProgramCRoutineName(routine));
+    output = Concat(output, "(");
+    output = Concat(output, DirectMirScalarCfgProgramCType(
+        plan.routines.parameter_types[routine], int_c_type));
+    output = Concat(output, " pgy_param_0)");
+    if prototype { return Concat(output, ";\n"); }
+    return output;
 }
 
 func DirectMirScalarCfgProgramCOperation(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
     formatted_print: CompilerRuntimeCallAbiFact,
+    compare: CompilerRuntimeCallAbiFact,
     int_line_format: String, string_line_format: String,
     int_c_type: String
 ) -> String {
-    if !plan.program.valid { return ""; }
     let kind: Int = plan.operation_kinds[operation];
     let expression_row: Int =
         plan.program.operation_expression_rows[operation];
     if kind == DirectMirScalarCfgOpExpressionDefinition() {
         let output: String = "    ";
         output = Concat(output, DirectMirScalarCfgCLocal(
-            plan, plan.operation_result_values[operation]
-        ));
+            plan, plan.operation_result_values[operation]));
         output = Concat(output, " = ");
         output = Concat(output, DirectMirScalarProgramCExpressionAt(
-            plan.program.expressions, expression_row
-        ));
+            plan.program.expressions, expression_row, compare));
         return Concat(output, ";\n");
     }
     if kind != DirectMirScalarCfgOpExpressionLog() { return ""; }
@@ -60,20 +76,133 @@ func DirectMirScalarCfgProgramCOperation(
         output = Concat(output, "\", ");
     }
     output = Concat(output, DirectMirScalarProgramCExpressionAt(
-        plan.program.expressions, expression_row
-    ));
+        plan.program.expressions, expression_row, compare));
     return Concat(output, ");\n");
 }
 
-func DirectMirScalarCfgProgramCCondition(
-    ref plan: DirectMirScalarCfgGraphPlan, block: Int
+func DirectMirScalarCfgProgramCRoutine(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    concat: CompilerRuntimeCallAbiFact,
+    compare: CompilerRuntimeCallAbiFact,
+    int_line_format: String, string_line_format: String,
+    int_c_type: String
 ) -> String {
-    if plan.block_condition_kinds[block] !=
-            DirectMirScalarCfgConditionExpression() {
-        return "";
+    let output: String = DirectMirScalarCfgProgramCSignature(
+        plan, routine, int_c_type, false);
+    output = Concat(output, " {\n");
+    output = Concat(output, DirectMirScalarCfgCLocalDeclarationsInRange(
+        plan, int_c_type, plan.routines.local_starts[routine],
+        plan.routines.local_counts[routine]));
+    let block_start: Int = plan.routines.block_starts[routine];
+    let block_end: Int = block_start + plan.routines.block_counts[routine];
+    output = Concat(output, "    goto pgy_r");
+    output = Concat(output, ToString(routine));
+    output = Concat(output, "_block_");
+    output = Concat(output, ToString(block_start));
+    output = Concat(output, ";\n");
+    let block: Int = block_start;
+    while block < block_end {
+        output = Concat(output, "pgy_r");
+        output = Concat(output, ToString(routine));
+        output = Concat(output, "_block_");
+        output = Concat(output, ToString(block));
+        output = Concat(output, ":\n");
+        let operation: Int = plan.block_operation_starts[block];
+        let operation_end: Int = operation +
+            plan.block_operation_counts[block];
+        while operation < operation_end {
+            let emitted: String = DirectMirScalarCfgProgramCOperation(
+                plan, operation, formatted_print, compare,
+                int_line_format, string_line_format, int_c_type);
+            if emitted == "" &&
+                (plan.operation_kinds[operation] ==
+                    DirectMirScalarCfgOpPhiInt() ||
+                 plan.operation_kinds[operation] ==
+                    DirectMirScalarCfgOpPhiString()) {
+                // Memory locals already carry the selected predecessor value.
+            }
+            if emitted == "" && plan.operation_kinds[operation] !=
+                    DirectMirScalarCfgOpPhiInt() &&
+                    plan.operation_kinds[operation] !=
+                    DirectMirScalarCfgOpPhiString() {
+                Die("direct MIR scalar program C operation is unsupported");
+            }
+            output = Concat(output, emitted);
+            operation = operation + 1;
+        }
+        let return_row: Int =
+            plan.program.block_return_expression_rows[block];
+        if return_row >= 0 {
+            output = Concat(output, "    return ");
+            output = Concat(output, DirectMirScalarProgramCExpressionAt(
+                plan.program.expressions, return_row, compare));
+            output = Concat(output, ";\n");
+        } else if plan.block_condition_kinds[block] ==
+                DirectMirScalarCfgConditionExpression() {
+            output = Concat(output, "    if (");
+            output = Concat(output, DirectMirScalarProgramCExpressionAt(
+                plan.program.expressions,
+                plan.program.block_condition_expression_rows[block],
+                compare));
+            output = Concat(output, ") goto pgy_r");
+            output = Concat(output, ToString(routine));
+            output = Concat(output, "_block_");
+            output = Concat(output, ToString(plan.block_succ_true[block]));
+            output = Concat(output, ";\n    goto pgy_r");
+            output = Concat(output, ToString(routine));
+            output = Concat(output, "_block_");
+            output = Concat(output, ToString(plan.block_succ_false[block]));
+            output = Concat(output, ";\n");
+        } else if plan.block_succ_true[block] >= 0 {
+            output = Concat(output, "    goto pgy_r");
+            output = Concat(output, ToString(routine));
+            output = Concat(output, "_block_");
+            output = Concat(output, ToString(plan.block_succ_true[block]));
+            output = Concat(output, ";\n");
+        } else if routine == plan.routines.entrypoint_ordinal {
+            output = Concat(output, "    return 0;\n");
+        } else {
+            Die("direct MIR scalar program callable return is missing");
+        }
+        block = block + 1;
     }
-    return DirectMirScalarProgramCExpressionAt(
-        plan.program.expressions,
-        plan.program.block_condition_expression_rows[block]
-    );
+    return Concat(output, "}\n");
+}
+
+func DirectMirScalarCfgEmitProgramC(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    concat: CompilerRuntimeCallAbiFact,
+    compare: CompilerRuntimeCallAbiFact,
+    int_line_format: String, string_line_format: String,
+    int_c_type: String
+) -> String {
+    if !DirectMirScalarCfgProgramExtensionReadyForPlan(plan) {
+        Die("direct MIR scalar CFG program C projection is invalid");
+    }
+    let output: String = "#include <stdbool.h>\n#include <stdio.h>\n";
+    if plan.program.string_compare_runtime_call_abi_id != 0 {
+        if !CompilerRuntimeCallAbiStringCompareFactReady(compare) {
+            Die("direct MIR scalar CFG program C compare ABI is invalid");
+        }
+        output = Concat(output, "#include <string.h>\n");
+    }
+    let routine: Int = 0;
+    while routine < ArrayLength(plan.routines.roles) {
+        if routine != plan.routines.entrypoint_ordinal {
+            output = Concat(output, DirectMirScalarCfgProgramCSignature(
+                plan, routine, int_c_type, true));
+        }
+        routine = routine + 1;
+    }
+    output = Concat(output, "\n");
+    routine = 0;
+    while routine < ArrayLength(plan.routines.roles) {
+        output = Concat(output, DirectMirScalarCfgProgramCRoutine(
+            plan, routine, formatted_print, concat, compare,
+            int_line_format, string_line_format, int_c_type));
+        routine = routine + 1;
+    }
+    return output;
 }

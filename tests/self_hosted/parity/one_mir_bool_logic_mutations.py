@@ -96,7 +96,7 @@ def bad_backedge(document):
 
 def bad_call_target(document):
     target = instruction(document, 12, 7)["expr0_graph"]["nodes"][1]
-    target["call_target_name"] = "MissingEven"
+    target["call_target_syntax_id"] = 999999
 
 
 def bad_call_argument_type(document):

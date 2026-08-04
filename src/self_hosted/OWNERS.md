@@ -2252,25 +2252,37 @@ inventory must not become a second fact-family owner registry.
   validated multi-routine composition may select its exact `Main` row.
 - `src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy` --
   row-order-neutral exact header-family claim for `Main: () -> Void` plus one
-  closed-module `(Int) -> Bool` callable. It does not claim by Bool surface or
-  routine count alone.
+  closed-module `(Int) -> Bool` or `(String) -> String` callable. It does not
+  claim by fixture name, surface word, block count, or routine order.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_fact_owner.pgy`
-  -- normalized typed expression-DAG arena shared by callable and entrypoint.
+  -- normalized typed expression-DAG arena shared by every program routine,
+  including String equality/inequality and routine-qualified direct calls.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy`
-  -- graph/use/LocalRef normalization for Bool literals, logical operators,
-  Int arithmetic, direct calls, and `ToString(Int)`; source routines and formal
-  parameters bind only through persisted syntax IDs/ordinals, never text.
+  -- graph/use/LocalRef normalization for literals, logical operators, Int
+  arithmetic, String comparison, and `ToString(Int)`; formal parameters bind
+  only through persisted syntax IDs/ordinals, never display text.
+- `src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy`
+  -- typed one-argument direct-call admission. User routines join the canonical
+  routine partition by persisted call-target syntax ID, while builtin identity
+  remains owned by the builtin registry.
+- `src/self_hosted/compiler/direct_mir_scalar_program_expression_mutation_owner.pgy`
+  -- small persistent append primitives for expression rows. It owns no
+  semantic selection policy and prevents callers from aliasing growable arena
+  arrays through a stale enclosing struct value.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_readiness_owner.pgy`
   -- exact node arity, type, endpoint, and literal invariants for that arena;
   raw modulo projection is admitted only for nonzero, non-minus-one literals.
 - `src/self_hosted/compiler/direct_mir_scalar_program_callable_admission_owner.pgy`
-  -- strict one-block `Int -> Bool` signature and return-DAG admission.
+  -- strict supported callable-signature fact; block and return admission are
+  owned by the shared per-routine GraphPlan builder.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_owner.pgy`
-  -- optional callable, typed-expression rows, and closed-module ABI carried by
-  the existing scalar CFG GraphPlan; it owns no CFG, SSA, phi, or local arrays.
+  -- optional callable identity, typed expression-row links, per-block return
+  rows, and closed-module runtime ABI carried by the existing scalar CFG
+  GraphPlan; it owns no duplicate CFG, SSA, phi, local, or operation arrays.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_readiness_owner.pgy`
-  -- cross-links extension rows to the sole GraphPlan and fail-closes unsafe
-  eager LLVM logical RHS, wrong local types, and unbound callable endpoints.
+  -- range-aware cross-links from extension rows to the sole GraphPlan. It
+  fail-closes cross-routine CFG edges, local/parameter/call identity drift,
+  wrong return types, unsafe eager logical RHS, and unused expressions.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_mutation_owner.pgy`
   -- executable negative proving an inactive extension cannot hide expression
   or closed-module ABI payload outside its zero digest.
@@ -2279,17 +2291,40 @@ inventory must not become a second fact-family owner registry.
   condition whose true edge dominates the addition block. It owns neither a
   loop topology nor a second expression graph.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_admission_owner.pgy`
-  -- Bool/call expression dialect state consumed inside the shared GraphPlan
-  loop. It owns expression-row cross-links only and cannot create block, SSA,
-  phi, local, or operation arrays or issue a sibling plan.
+  -- the small admitted-program composition boundary. It selects the canonical
+  two-routine route and delegates to one program GraphPlan builder; it owns no
+  storage loop, backend decision, or sibling plan.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_storage_owner.pgy`,
+  `direct_mir_scalar_cfg_program_graph_storage_mutation_owner.pgy`, and
+  `direct_mir_scalar_cfg_program_value_storage_owner.pgy` -- layered persistent
+  value, block, operation, and routine-count storage. Mutations return rebuilt
+  owner values so growable Array reallocation cannot leave stale lengths in a
+  copied aggregate.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_instruction_expression_owner.pgy`
+  -- one instruction-to-expression-row admission boundary shared by Main and
+  the callable for definition, Log, branch condition, and return positions.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_admission_owner.pgy`
+  -- the sole per-routine local/value/block/operation/phi append loop. Both Main
+  and the callable use it with explicit offsets and no topology classifier.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_partition_owner.pgy`
+  -- canonical Main-first contiguous range construction over the flat GraphPlan
+  storage, independent of admitted routine-array order.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_admission_owner.pgy`
+  -- invokes the same routine admission for Main and callable, constructs one
+  partition/extension, and calls the sole GraphPlan seal exactly once.
 - `src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy`
   -- MIR-blind C expression rendering from the sealed typed arena.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy`
-  -- MIR-blind C callable/expression hooks consumed by the shared CFG emitter.
+  -- MIR-blind range-driven C program rendering. One routine renderer serves
+  entrypoint and callable; it never reopens admitted MIR.
 - `src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy`
-  -- MIR-blind LLVM SSA expression and string-global rendering.
+  -- MIR-blind LLVM SSA expression rendering.
+- `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_global_owner.pgy`
+  -- literal String global materialization, separated from expression policy.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy`
-  -- MIR-blind LLVM callable/expression hooks consumed by the same CFG emitter.
+  -- MIR-blind range-driven LLVM program rendering. Its target syntax differs
+  from C, but routine schedule, ranges, expression facts, and return ownership
+  all come from the same sealed plan.
 - `src/self_hosted/compiler/direct_mir_scalar_program_projection_owner.pgy` --
   selected-target boundary that issues one sealed GraphPlan and never retries a
   returned-Array, Option, terminal-graph, or native backend path.

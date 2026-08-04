@@ -1,7 +1,6 @@
 // Exclusive backend projection for an admitted multi-routine scalar program.
 
-import "direct_mir_scalar_cfg_program_admission_owner.pgy";
-import "direct_mir_scalar_cfg_graph_admission_owner.pgy";
+import "direct_mir_scalar_cfg_program_graph_admission_owner.pgy";
 import "direct_mir_scalar_cfg_c_emission_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_emission_owner.pgy";
 import "direct_mir_scalar_program_route_fact_owner.pgy";
@@ -21,13 +20,8 @@ func CompileAdmittedDirectMirScalarProgramForTarget(
     if !is_c && !is_llvm {
         Die("direct MIR scalar program target projection is invalid");
     }
-    let producer: DirectMirArrayIntProducerFact =
-        DirectMirArrayIntProducerFactEmpty();
     let plan: DirectMirScalarCfgGraphPlan =
-        DirectMirScalarCfgGraphPlanFromAdmitted(
-            admitted, route.entrypoint_row, producer,
-            DirectMirScalarCfgProgramAdmissionStateFromAdmitted(admitted, route)
-        );
+        DirectMirScalarCfgProgramGraphPlanFromAdmitted(admitted, route);
     if !DirectMirScalarCfgGraphPlanReady(plan) {
         Die("direct MIR scalar program plan is invalid before projection");
     }
@@ -35,16 +29,19 @@ func CompileAdmittedDirectMirScalarProgramForTarget(
         CompilerRuntimeCallAbiFormattedPrintFact();
     let concat: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiStringConcatFact();
+    let compare: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringCompareFact();
     let int_line_format: String = StringRuntimeCIntLineFormat();
     let string_line_format: String = StringRuntimeCStringLineFormat();
     if is_llvm {
         return DirectMirScalarCfgEmitLlvm(
-            plan, formatted_print, concat, int_line_format,
+            plan, formatted_print, concat, compare, int_line_format,
             string_line_format, target_projection
         );
     }
     return DirectMirScalarCfgEmitC(
-        plan, formatted_print, concat, int_line_format, string_line_format,
+        plan, formatted_print, concat, compare,
+        int_line_format, string_line_format,
         CompilerAbiLayoutIntCValueType(), target_projection
     );
 }

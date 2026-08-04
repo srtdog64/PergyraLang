@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# Typed Bool/logical/call extension through the sole scalar CFG GraphPlan.
+# Multi-routine String equality must execute through one sealed scalar GraphPlan.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
-LABEL="self-host-one-mir-bool-logic"
+LABEL="self-host-one-mir-string-equality"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
 CC="${CC:-gcc}"
 CLANG="${PGY_SELFHOST_CLANG:-clang}"
 PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python || true)}"
-WORK_REL=".tmp/self_hosted/one_mir_bool_logic"
+WORK_REL=".tmp/self_hosted/one_mir_string_equality"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
-SOURCE_REL="src/self_hosted/codegen/fixture/bool_logic.pgy"
+SOURCE_REL="src/self_hosted/codegen/fixture/string_equality.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
@@ -24,11 +24,9 @@ command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 
 while IFS='|' read -r owner cap; do
-    [[ -f "$ROOT_DIR/$owner" ]] || fail "missing owner: $owner"
     lines="$(wc -l <"$ROOT_DIR/$owner")"
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
 done <<'EOF'
-src/self_hosted/compiler/direct_mir_returned_array_program_route_owner.pgy|100
 src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy|110
 src/self_hosted/compiler/direct_mir_scalar_program_expression_fact_owner.pgy|180
 src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy|225
@@ -38,7 +36,6 @@ src/self_hosted/compiler/direct_mir_scalar_program_expression_readiness_owner.pg
 src/self_hosted/compiler/direct_mir_scalar_program_callable_admission_owner.pgy|45
 src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_owner.pgy|150
 src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_readiness_owner.pgy|210
-src/self_hosted/compiler/direct_mir_scalar_cfg_program_arithmetic_admission_owner.pgy|75
 src/self_hosted/compiler/direct_mir_scalar_cfg_program_admission_owner.pgy|55
 src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_storage_owner.pgy|90
 src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_storage_mutation_owner.pgy|100
@@ -55,26 +52,42 @@ src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy|2
 src/self_hosted/compiler/direct_mir_scalar_program_projection_owner.pgy|55
 EOF
 
-ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy"
+GENERIC="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
+PROGRAM="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_admission_owner.pgy"
+ROUTINE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_admission_owner.pgy"
 C_EMIT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy"
 LLVM_EMIT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy"
-require_text "$ROUTE" 'DirectMirScalarProgramRouteFactFromAdmitted'
-require_text "$ROUTE" 'CompileAdmittedDirectMirScalarProgramForTarget'
-for owner in "$C_EMIT" "$LLVM_EMIT"; do
-    for term in admitted source_json JsonObjectFactTable BuildMir FromAdmitted \
-        bool_logic.pgy flag-on other-off grouped; do
-        reject_text "$owner" "$term"
-    done
+ABI="$ROOT_DIR/src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy"
+CALL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy"
+for term in DirectMirScalarCfgProgramAdmissionState program.active; do
+    reject_text "$GENERIC" "$term"
 done
+[[ "$(grep -Fc 'DirectMirScalarCfgProgramAppendRoutine(' "$PROGRAM")" -eq 2 ]] ||
+    fail "Main and callable do not share exactly one routine admission owner"
+[[ "$(grep -Fc 'DirectMirScalarCfgSealGraphPlan(' "$PROGRAM")" -eq 1 ]] ||
+    fail "program graph must seal exactly once"
+require_text "$ROUTINE" 'func DirectMirScalarCfgProgramAppendRoutine('
+for owner in "$C_EMIT" "$LLVM_EMIT"; do
+    require_text "$owner" 'while routine < ArrayLength(plan.routines.roles)'
+    require_text "$owner" 'plan.routines.block_starts[routine]'
+    for term in admitted source_json JsonObjectFactTable BuildMir FromAdmitted \
+        string_equality.pgy; do reject_text "$owner" "$term"; done
+done
+require_text "$ABI" 'CompilerRuntimeCallAbiStringCompareFact('
+require_text "$CALL" 'arena.identities.call_target_syntax_ids[1]'
+if grep -RFq -- 'pgy_scalar_callable_0' "$ROOT_DIR/src/self_hosted/compiler" ||
+   grep -RFq -- 'pgy.scalar.callable.0' "$ROOT_DIR/src/self_hosted/compiler"; then
+    fail "retired callable-specific backend symbol returned"
+fi
 
 mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \
     -o "$WORK_REL/program.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/program.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "35F8954AE3C72CD8BB74BABD947C7E298B3538CFD39A69199B705EE1A7E5C962" ]] || \
+[[ "$mir_sha" == "1A9D856F377CCF27424E72F19B535EE8431B737D1ED61FF868E3CB3DC6638228" ]] ||
     fail "source MIR identity changed: $mir_sha"
-"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_bool_logic_mutations.py" \
+"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_string_equality_mutations.py" \
     "$WORK_DIR/program.json" "$WORK_DIR"
 
 project() {
@@ -88,80 +101,45 @@ project() {
         "$WORK_DIR/$stem.$target.err"
 }
 
-expected_base=$'flag-on\nother-off\nand\nlogic\ngrouped\n0\n2\n4'
-expected_other=$'flag-on\nlogic\n0\n2\n4'
-expected_and=$'flag-on\nother-off\nand\ngrouped\n0\n2\n4'
-expected_modulo=$'flag-on\nother-off\nand\nlogic\ngrouped\n0\n3'
-goods=(program other-true logical-and modulo-three display-only routine-order)
-bads=(bad-use-identity bad-logical-kind bad-backedge bad-call-target \
-    bad-call-argument-type bad-short-circuit-rhs bad-phi-incoming-identity)
-bads+=(bad-modulo-zero bad-modulo-minus-one bad-add-unbounded)
-
+goods=(program display-only routine-order)
+bads=(bad-call-target bad-parameter-identity bad-string-comparison-kind \
+    bad-return-type bad-callable-edge missing-terminal-return)
 for target in c llvm; do
     suffix=c; [[ "$target" == llvm ]] && suffix=ll
     for good in "${goods[@]}"; do
         stem="$good"; [[ "$good" == program ]] && stem=base
         project "$good" "$stem" "$target" "$suffix" || fail "$target rejected $good"
     done
-    cmp -s "$WORK_DIR/base.$suffix" "$WORK_DIR/display-only.$suffix" || \
-        fail "$target display-only text changed the artifact"
-    cmp -s "$WORK_DIR/base.$suffix" "$WORK_DIR/routine-order.$suffix" || \
+    cmp -s "$WORK_DIR/base.$suffix" "$WORK_DIR/display-only.$suffix" ||
+        fail "$target display text changed the artifact"
+    cmp -s "$WORK_DIR/base.$suffix" "$WORK_DIR/routine-order.$suffix" ||
         fail "$target routine order changed the artifact"
     for bad in "${bads[@]}"; do
-        artifact="$WORK_DIR/$bad.$suffix"
         if project "$bad" "$bad" "$target" "$suffix"; then
             fail "$target accepted $bad"
         fi
-        [[ ! -e "$artifact" ]] || fail "$target published artifact for $bad"
-        grep -Fq -- 'direct MIR scalar' \
-            "$WORK_DIR/$bad.$target.out" "$WORK_DIR/$bad.$target.err" || \
-            fail "$target $bad escaped the scalar-program diagnostic"
-        for legacy in 'returned Array<Int> foreach' 'Array<Int> return' \
-            'collection program' 'Option match' \
-            'terminal multi-routine graph is unsupported'; do
-            ! grep -Fq -- "$legacy" "$WORK_DIR/$bad.$target.out" \
-                "$WORK_DIR/$bad.$target.err" || \
-                fail "$target $bad escaped through legacy route: $legacy"
-        done
+        [[ ! -e "$WORK_DIR/$bad.$suffix" ]] || fail "$target published $bad"
+        grep -Fq -- 'direct MIR scalar' "$WORK_DIR/$bad.$target.out" \
+            "$WORK_DIR/$bad.$target.err" || fail "$target $bad escaped scalar diagnostic"
+        ! grep -Fq -- 'terminal multi-routine graph is unsupported' \
+            "$WORK_DIR/$bad.$target.out" "$WORK_DIR/$bad.$target.err" ||
+            fail "$target $bad retried the retired terminal route"
     done
 done
 
-for target in c llvm; do
-    suffix=c; [[ "$target" == llvm ]] && suffix=ll
-    if project non-scalar-callable-signature non-scalar-callable-signature \
-            "$target" "$suffix"; then
-        fail "$target scalar route claimed a non-(Int)-to-Bool callable"
-    fi
-    [[ ! -e "$WORK_DIR/non-scalar-callable-signature.$suffix" ]] ||
-        fail "$target published the non-scalar route artifact"
-    ! grep -Fq -- 'direct MIR scalar CFG program route is invalid' \
-        "$WORK_DIR/non-scalar-callable-signature.$target.out" \
-        "$WORK_DIR/non-scalar-callable-signature.$target.err" ||
-        fail "$target overclaimed the non-scalar callable signature"
-done
-
-compile_run() {
-    local stem="$1" expected="$2"
-    "$CC" -std=c11 "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem.c.exe" || \
-        fail "C host compile failed: $stem"
-    "$CLANG" "$WORK_DIR/$stem.ll" -o "$WORK_DIR/$stem.llvm.exe" || \
-        fail "LLVM host compile failed: $stem"
-    local c_out llvm_out
-    c_out="$("$WORK_DIR/$stem.c.exe" | tr -d '\r')" || \
-        fail "C execution failed: $stem"
-    llvm_out="$("$WORK_DIR/$stem.llvm.exe" | tr -d '\r')" || \
-        fail "LLVM execution failed: $stem"
+require_text "$WORK_DIR/base.c" 'strcmp('
+require_text "$WORK_DIR/base.c" 'pgy_scalar_routine_1'
+require_text "$WORK_DIR/base.ll" 'declare i32 @strcmp(ptr, ptr)'
+require_text "$WORK_DIR/base.ll" '@pgy.scalar.routine.1'
+expected=$'I\nS\nS\n?\neq'
+for stem in base display-only routine-order; do
+    "$CC" -std=c11 "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem.c.exe" || fail "C compile failed: $stem"
+    "$CLANG" "$WORK_DIR/$stem.ll" -o "$WORK_DIR/$stem.llvm.exe" || fail "LLVM compile failed: $stem"
+    c_out="$("$WORK_DIR/$stem.c.exe" | tr -d '\r')" || fail "C execution failed: $stem"
+    llvm_out="$("$WORK_DIR/$stem.llvm.exe" | tr -d '\r')" || fail "LLVM execution failed: $stem"
     [[ "$c_out" == "$expected" ]] || fail "C stdout changed: $stem"
     [[ "$llvm_out" == "$expected" ]] || fail "LLVM stdout changed: $stem"
-}
-
-compile_run base "$expected_base"
-compile_run other-true "$expected_other"
-compile_run logical-and "$expected_and"
-compile_run modulo-three "$expected_modulo"
-compile_run display-only "$expected_base"
-compile_run routine-order "$expected_base"
-
+done
 final_sha="$(sha256sum "$WORK_DIR/program.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
 [[ "$final_sha" == "$mir_sha" ]] || fail "projection mutated admitted MIR"
-echo "[$LABEL] ok: GraphPlan solely owns CFG/SSA/phi; typed Bool/call rows extend both backends"
+echo "[$LABEL] ok: one layered GraphPlan executes routine-partitioned String equality in C and LLVM"

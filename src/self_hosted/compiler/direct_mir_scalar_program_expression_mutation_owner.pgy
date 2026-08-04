@@ -1,0 +1,30 @@
+// Persistent append primitives for the normalized expression arena.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramExpressionSetInvalid(
+    facts: DirectMirScalarProgramExpressionSet
+) -> DirectMirScalarProgramExpressionSet {
+    return DirectMirScalarProgramExpressionSet(
+        false, 0, facts.graph_global_rows, facts.graph_starts,
+        facts.graph_counts, facts.graph_roots, facts.node_kinds,
+        facts.node_types, facts.node_lefts, facts.node_rights,
+        facts.node_local_rows, facts.node_parameter_ordinals,
+        facts.node_literals, facts.node_callable_rows);
+}
+
+func DirectMirScalarProgramAppendExpressionNode(
+    inout kinds: Array<Int>, inout types: Array<String>,
+    inout lefts: Array<Int>, inout rights: Array<Int>,
+    inout local_rows: Array<Int>, inout parameter_ordinals: Array<Int>,
+    inout literals: Array<String>, inout callable_rows: Array<Int>,
+    kind: Int, type_name: String, left: Int, right: Int,
+    local_row: Int, parameter_ordinal: Int, literal: String,
+    callable_row: Int
+) -> Void {
+    ArrayPush(kinds, kind); ArrayPush(types, type_name);
+    ArrayPush(lefts, left); ArrayPush(rights, right);
+    ArrayPush(local_rows, local_row);
+    ArrayPush(parameter_ordinals, parameter_ordinal);
+    ArrayPush(literals, literal); ArrayPush(callable_rows, callable_row);
+}

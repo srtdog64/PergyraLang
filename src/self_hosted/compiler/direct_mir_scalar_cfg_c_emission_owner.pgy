@@ -17,6 +17,7 @@ func DirectMirScalarCfgEmitC(
     ref plan: DirectMirScalarCfgGraphPlan,
     formatted_print: CompilerRuntimeCallAbiFact,
     concat: CompilerRuntimeCallAbiFact,
+    compare: CompilerRuntimeCallAbiFact,
     int_line_format: String,
     string_line_format: String,
     int_c_type: String,
@@ -29,6 +30,12 @@ func DirectMirScalarCfgEmitC(
         int_c_type == "" {
         Die("direct MIR scalar CFG C plan or runtime ABI is invalid");
     }
+    if plan.program.valid {
+        return DirectMirScalarCfgEmitProgramC(
+            plan, formatted_print, concat, compare, int_line_format,
+            string_line_format, int_c_type
+        );
+    }
     let output: String = DirectMirScalarCfgForEachCPreamble(plan, target);
     output = Concat(output, DirectMirScalarCfgStringArrayCPreamble(
         plan, target
@@ -37,7 +44,6 @@ func DirectMirScalarCfgEmitC(
     output = Concat(output,
         DirectMirScalarCfgCollectionPlanCPreamble(plan, target));
     output = Concat(output, DirectMirScalarCfgStringCPreamble(plan, concat));
-    output = Concat(output, DirectMirScalarCfgProgramCPreamble(plan));
     output = Concat(output, "\nint main(void) {\n");
     output = Concat(
         output, DirectMirScalarCfgCLocalDeclarations(plan, int_c_type)
@@ -65,19 +71,10 @@ func DirectMirScalarCfgEmitC(
         let operation_end: Int = operation +
             plan.block_operation_counts[block];
         while operation < operation_end {
-            let program_operation: String =
-                DirectMirScalarCfgProgramCOperation(
-                    plan, operation, formatted_print,
-                    int_line_format, string_line_format, int_c_type
-                );
-            if program_operation != "" {
-                output = Concat(output, program_operation);
-            } else {
-                output = Concat(output, DirectMirScalarCfgEmitCOperation(
-                    plan, operation, formatted_print, concat,
-                    int_line_format, string_line_format, int_c_type
-                ));
-            }
+            output = Concat(output, DirectMirScalarCfgEmitCOperation(
+                plan, operation, formatted_print, concat,
+                int_line_format, string_line_format, int_c_type
+            ));
             operation = operation + 1;
         }
         output = Concat(
@@ -103,8 +100,7 @@ func DirectMirScalarCfgEmitC(
         } else {
             output = Concat(output, "    if (");
             if condition == DirectMirScalarCfgConditionExpression() {
-                output = Concat(output,
-                    DirectMirScalarCfgProgramCCondition(plan, block));
+                Die("direct MIR scalar CFG non-program expression escaped");
             } else if condition == DirectMirScalarCfgConditionForEach() {
                 output = Concat(
                     output, DirectMirScalarCfgForEachCCondition(plan, block)

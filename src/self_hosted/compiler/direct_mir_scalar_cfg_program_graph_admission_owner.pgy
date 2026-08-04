@@ -1,0 +1,93 @@
+// Sole bounded multi-routine issuer for the one immutable scalar GraphPlan.
+
+import "direct_mir_scalar_cfg_program_routine_admission_owner.pgy";
+import "direct_mir_scalar_cfg_program_routine_partition_owner.pgy";
+import "direct_mir_scalar_cfg_graph_plan_seal_owner.pgy";
+import "direct_mir_scalar_cfg_program_admission_owner.pgy";
+
+func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref route: DirectMirScalarProgramRouteFact
+) -> DirectMirScalarCfgGraphPlan {
+    if !DirectMirScalarProgramRouteFactReady(route) {
+        Die("direct MIR scalar CFG program route is invalid");
+    }
+    let producer: DirectMirArrayIntProducerFact =
+        DirectMirArrayIntProducerFactEmpty();
+    let entry: DirectMirScalarCfgGraphInput =
+        DirectMirScalarCfgGraphInputFromAdmitted(
+            admitted, route.entrypoint_row, producer
+        );
+    let callable_input: DirectMirScalarCfgGraphInput =
+        DirectMirScalarCfgGraphInputFromAdmitted(
+            admitted, route.callable_row, producer
+        );
+    let callable: DirectMirScalarCfgProgramCallableFact =
+        DirectMirScalarProgramCallableFactFromAdmitted(
+            admitted, route.callable_row, 1
+        );
+    let empty_storage: DirectMirScalarCfgProgramGraphStorage =
+        DirectMirScalarCfgProgramGraphStorageEmpty();
+    let empty_expressions: DirectMirScalarProgramExpressionSet =
+        DirectMirScalarProgramExpressionSetEmpty();
+    let entry_admission: DirectMirScalarCfgProgramRoutineAdmission =
+        DirectMirScalarCfgProgramAppendRoutine(
+            admitted, route.entrypoint_row, 0, callable, entry,
+            empty_storage, empty_expressions);
+    if !entry_admission.valid {
+        Die("direct MIR scalar CFG program entrypoint admission is invalid");
+    }
+    let callable_admission: DirectMirScalarCfgProgramRoutineAdmission =
+        DirectMirScalarCfgProgramAppendRoutine(
+            admitted, route.callable_row, 1, callable, callable_input,
+            entry_admission.storage, entry_admission.expressions);
+    if !callable_admission.valid {
+        Die("direct MIR scalar CFG program callable admission is invalid");
+    }
+    let storage: DirectMirScalarCfgProgramGraphStorage =
+        callable_admission.storage;
+    let expressions: DirectMirScalarProgramExpressionSet =
+        callable_admission.expressions;
+    let partition: DirectMirScalarCfgRoutinePartitionFact =
+        DirectMirScalarCfgProgramRoutinePartitionFromOwners(
+            admitted.routines, entry.index, callable_input.index,
+            route.entrypoint_row, route.callable_row,
+            storage.routines.local_counts, storage.routines.value_counts,
+            storage.routines.block_counts,
+            storage.routines.operation_counts,
+            storage.routines.phi_counts
+        );
+    let locals: DirectMirScalarCfgLocalRefPlan =
+        DirectMirScalarCfgProgramLocalRefPlan(storage);
+    let types: DirectMirScalarCfgValueTypePlan =
+        DirectMirScalarCfgProgramValueTypePlan(storage);
+    let program: DirectMirScalarCfgProgramExtensionFact =
+        DirectMirScalarCfgProgramExtensionFromOwners(
+            admitted, route, expressions,
+            storage.blocks.condition_expression_rows,
+            storage.operations.expression_rows,
+            storage.blocks.return_expression_rows
+        );
+    return DirectMirScalarCfgSealGraphPlan(
+        admitted, partition, partition.digest, locals, types,
+        storage.blocks.succ_true, storage.blocks.succ_false,
+        storage.blocks.operation_starts, storage.blocks.operation_counts,
+        storage.blocks.condition_kinds,
+        storage.blocks.condition_left_values,
+        storage.blocks.condition_right_values,
+        storage.blocks.condition_left_locals,
+        storage.blocks.condition_right_locals,
+        storage.blocks.condition_left_literals,
+        storage.blocks.condition_right_literals,
+        storage.operations.kinds, storage.operations.result_values,
+        storage.operations.left_values, storage.operations.right_values,
+        storage.operations.left_locals, storage.operations.right_locals,
+        storage.operations.left_literals, storage.operations.right_literals,
+        storage.operations.phi_starts, storage.operations.phi_counts,
+        storage.operations.phi_predecessor_blocks,
+        storage.operations.phi_incoming_values,
+        entry.ranges, entry.foreach_facts,
+        entry.foreach_elements, entry.string_arrays,
+        entry.array_int_program, entry.collections, program
+    );
+}

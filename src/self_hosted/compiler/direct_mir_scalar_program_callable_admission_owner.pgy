@@ -1,105 +1,34 @@
-// Strict Int -> Bool callable admission for the scalar-program plan.
+// Typed callable identity admitted independently of CFG block topology.
 
-import "direct_mir_scalar_program_expression_admission_owner.pgy";
 import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
-import "../mir_lower/routine_instruction_view_owner.pgy";
 
-struct DirectMirScalarProgramCallableAdmission {
-    let valid: Bool;
-    let fact: DirectMirScalarCfgProgramCallableFact;
-    let expressions: DirectMirScalarProgramExpressionSet;
-}
-
-func DirectMirScalarProgramCallableAdmissionInvalid(
-    expressions: DirectMirScalarProgramExpressionSet
-) -> DirectMirScalarProgramCallableAdmission {
-    return DirectMirScalarProgramCallableAdmission(
-        false,
-        DirectMirScalarCfgProgramCallableFactInvalid(),
-        expressions
-    );
-}
-
-func DirectMirScalarProgramCallableFromAdmitted(
+func DirectMirScalarProgramCallableFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    callable_row: Int,
-    expressions: DirectMirScalarProgramExpressionSet
-) -> DirectMirScalarProgramCallableAdmission {
-    let invalid: DirectMirScalarProgramCallableAdmission =
-        DirectMirScalarProgramCallableAdmissionInvalid(expressions);
-    if !MirProgramRoutineIndexRowReady(admitted.routines, callable_row) ||
-        admitted.routines.routine_block_counts[callable_row] != 1 {
-        return invalid;
+    callable_row: Int, routine_ordinal: Int
+) -> DirectMirScalarCfgProgramCallableFact {
+    if !MirProgramRoutineIndexRowReady(admitted.routines, callable_row) {
+        return DirectMirScalarCfgProgramCallableFactInvalid();
     }
+    let first_block_count: Int =
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, callable_row, 0
+        );
     let signature: DirectMirRoutineSignatureFact =
-        DirectMirRoutineSignatureFactAt(admitted.routines, callable_row, 1);
-    if !DirectMirRoutineSignatureFactReady(signature) ||
-        signature.return_type != CompilerAbiLayoutBoolTypeName() ||
-        signature.param_count != 1 ||
-        signature.param.type_name != CompilerAbiLayoutIntTypeName() ||
-        signature.param.carriage != "value" ||
-        signature.param.resource != "none" ||
-        signature.param.pass_shape != "direct" ||
-        signature.param.abi_required {
-        return invalid;
-    }
-    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
-        admitted.routines, callable_row
-    );
-    let uses: MirRoutineInstructionUseFacts =
-        BuildMirRoutineInstructionUseFacts(admitted.routines, callable_row);
-    let view: MirRoutineInstructionView = MirRoutineInstructionViewAt(
-        admitted.routines, callable_row, 0, 0
-    );
-    if !index.valid || !MirRoutineInstructionFactBundleReady(
-            index.instruction_facts, 1) ||
-        !MirRoutineInstructionUseFactsReady(uses, 1) || !view.valid ||
-        view.kind != "return" || view.source_type != "AST_BINARY" ||
-        index.block_succ_true[0] != -1 || index.block_succ_false[0] != -1 ||
-        MirRoutineInstructionUseCountAtGlobal(uses, view.global_row) != 0 {
-        return invalid;
-    }
-    let capture: MirRoutineInstructionScalarCapture =
-        MirRoutineInstructionFactBundleAtGlobal(
-            index.instruction_facts, view.global_row
+        DirectMirRoutineSignatureFactAt(
+            admitted.routines, callable_row, first_block_count
         );
-    if !capture.valid || capture.name != "return" || capture.result != "" ||
-        capture.arg0 != "" || capture.arg1 != "" ||
-        capture.abi_type_name != CompilerAbiLayoutBoolTypeName() {
-        return invalid;
-    }
-    let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json, view.start, view.end
-    );
-    let empty_locals: DirectMirScalarCfgLocalRefPlan =
-        DirectMirScalarCfgLocalRefPlanEmpty();
-    let empty_types: DirectMirScalarCfgValueTypePlan =
-        DirectMirScalarCfgValueTypePlanInvalid();
-    let empty_wire: DirectMirScalarCfgWireLocalRefs =
-        DirectMirScalarCfgWireLocalRefsEmpty();
-    let expression_row: Int = ArrayLength(expressions.graph_starts);
-    let appended: DirectMirScalarProgramExpressionSet =
-        DirectMirScalarProgramAppendExpression(
-            expressions, object, uses, view.global_row, 0,
-            empty_locals, empty_types, empty_wire,
-            signature.param.type_name, signature.name,
-            signature.source_syntax_id, 0
-        );
-    if !appended.valid ||
-        ArrayLength(appended.graph_starts) != expression_row + 1 ||
-        appended.node_types[appended.graph_roots[expression_row]] !=
-            CompilerAbiLayoutBoolTypeName() {
-        return invalid;
-    }
-    let unsealed: DirectMirScalarCfgProgramCallableFact =
+    let source: DirectMirScalarCfgProgramCallableFact =
         DirectMirScalarCfgProgramCallableFact(
-            true, 0, signature, view.global_row, expression_row
+            true, 0, signature, routine_ordinal
         );
     let fact: DirectMirScalarCfgProgramCallableFact =
         DirectMirScalarCfgProgramCallableFact(
-            true, DirectMirScalarCfgProgramCallableFactDigest(unsealed),
-            signature, view.global_row, expression_row
+            source.valid,
+            DirectMirScalarCfgProgramCallableFactDigest(source),
+            source.signature, source.routine_ordinal
         );
-    if !DirectMirScalarCfgProgramCallableFactReady(fact) { return invalid; }
-    return DirectMirScalarProgramCallableAdmission(true, fact, appended);
+    if !DirectMirScalarCfgProgramCallableFactReady(fact) {
+        return DirectMirScalarCfgProgramCallableFactInvalid();
+    }
+    return fact;
 }
