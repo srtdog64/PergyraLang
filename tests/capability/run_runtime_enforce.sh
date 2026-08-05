@@ -15,6 +15,19 @@
 # cannot launch (no clang / LLVM-C.dll), so the gate still protects the C path.
 set -u
 
+# Subject of this gate:
+#   a host-imposed runtime gate stopped failing closed, or stopped
+#   doing so identically on the C and LLVM backends.
+# That is a fact about the native pipeline, so the gate compiles
+# in-process instead of delegating to the installed self-host driver.
+# Delegated, a self-host coverage gap would read as a regression in
+# the subject above. Declared per harness because the compiler is
+# reached through make and nested scripts, and the variable is the
+# same declared opt-out as --native-pipeline -- never a fallback.
+# See docs/152_validation_isolation_policy.md.
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
+
 PGY_BIN="${PGY_BIN:-bin/pgy}"
 HERE="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$HERE" || exit 2
