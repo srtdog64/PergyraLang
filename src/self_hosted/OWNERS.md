@@ -394,7 +394,11 @@ inventory must not become a second fact-family owner registry.
   shape proof consumed exactly once by body analysis admission.
 - `src/self_hosted/semantic/ast_body_type_bundle_owner.pgy` -- canonical
   one-pass assembly of initializer, iteration, assignment, and statement type
-  facts plus readiness diagnostics consumed by driver and codegen projections.
+  facts consumed by driver and codegen projections.
+- `src/self_hosted/semantic/ast_body_type_bundle_readiness_owner.pgy` -- the
+  exact reason a bundle is not ready. The `Ready` predicate stays with the
+  bundle owner; naming every way a bundle can fail is a separate diagnostic
+  responsibility, and it is the part that grows with each new checked fact.
 - `src/self_hosted/semantic/ast_body_role_operator_resolution_owner.pgy` --
   body-level role-operator target overlay. It first detects whether the admitted
   declarations contain any role operator, resolves only that reached family,
@@ -415,7 +419,8 @@ inventory must not become a second fact-family owner registry.
   body-fixpoint value-category and place-kind rows for ref/inout argument
   lowering; codegen consumes the carried node fact without binding lookup.
 - `src/self_hosted/semantic/ast_expression_identity_fact_owner.pgy` and
-  `ast_expression_identity_resolution_owner.pgy` -- final source-syntax call
+  `src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy`
+  -- final source-syntax call
   target IDs and formal-parameter ordinals over semantic graph handles. They
   run after place/call-return closure; persisted MIR consumers may not recover
   either identity from node display text.
@@ -521,7 +526,15 @@ inventory must not become a second fact-family owner registry.
   expression node handles and child edges consumed by recursive semantic and
   codegen projections; compact-text production remains an explicit bridge for
   non-migrated expression owners and legacy/native canonicalization, not an
-  alternate hard-codegen authority.
+  alternate hard-codegen authority. Owns building and validating the graph.
+- `src/self_hosted/semantic/ast_expression_graph_node_view_owner.pgy` --
+  read-only per-node projection over a built graph: node text, node kind, call
+  return type and target, binding kind/ordinal. Reading a node is a separate
+  responsibility from proving the arena well-formed.
+- `src/self_hosted/semantic/ast_expression_place_kind_owner.pgy` -- place
+  classification: which place kind a node carries, and what that kind permits.
+  Addressability and direct-binding are properties of the KIND, not of any one
+  graph, so they are vocabulary rather than projection.
 - `src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy` --
   expression-graph lane lifetime policy; required lanes and producer-only
   collection-mutation receiver lanes are declared here rather than inferred by
@@ -882,9 +895,17 @@ inventory must not become a second fact-family owner registry.
   forbidden.
 - `src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy` -- bounded
   ordered graph-sequence construction over exact persisted graph captures.
+- `src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy` -- the
+  persisted-shape vocabulary: expression-graph node kind and call-target kind
+  names mapped to their wire codes. A name-to-code table is a vocabulary fact,
+  not sequencing logic.
 - `src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy` --
-  one-pass persisted graph-header and node-field capture. It validates the
-  exact schema while forbidding field-by-field JSON object rescans.
+  one-pass persisted graph-HEADER capture, plus the shared index-bounds helper.
+  It validates the exact schema while forbidding field-by-field JSON object
+  rescans.
+- `src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy` --
+  the same one-pass discipline for the persisted graph-NODE record. Two records
+  with two shapes, so two owners.
 - `src/self_hosted/mir_lower/expression_graph_persisted_shape_owner.pgy` --
   exact legacy/sealed persisted graph object shape and canonical digest-presence
   validation without consumer-side graph re-hashing.
@@ -1269,7 +1290,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy` -- self-host C Option/Result runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/result_runtime_owner.pgy` -- explicit
   `Result<T, E>` runtime ABI facts and specialized helper symbol ownership.
-- `src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy` -- self-host C string/text runtime symbol facts.
+- `src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy` -- the emitted C string/text runtime blocks.
+- `src/self_hosted/codegen/runtime_abi/string_runtime_symbol_owner.pgy` -- what those runtime entry points are called: C symbol and format-string names. Naming is an ABI fact; emitting is code generation.
 - `src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy` -- self-host C Allocator/TextBuilder symbol facts; implementation bodies remain owned by the canonical runtime inline headers.
 - `src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy` --
   owner-directed canonical runtime header composition for allocator,

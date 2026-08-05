@@ -1,0 +1,53 @@
+// Scalar-CFG plan vocabulary: operation codes and branch condition codes.
+//
+// Split out of direct_mir_scalar_cfg_graph_fact_owner.pgy, which owns the
+// plan shape itself. A code table is a vocabulary fact, and it is the part
+// that grows every time an operation is added -- keeping it here is what
+// kept pushing that owner over its line cap.
+import "../air/mir_cfg_identity_owner.pgy";
+import "artifact_zone_owner.pgy";
+import "target_capability_owner.pgy";
+import "direct_mir_scalar_cfg_range_iteration_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_set_owner.pgy";
+import "direct_mir_scalar_cfg_foreach_element_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
+import "direct_mir_scalar_cfg_collection_pop_program_fact_owner.pgy";
+import "direct_mir_scalar_cfg_collection_plan_fact_owner.pgy";
+import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+
+func DirectMirScalarCfgOpConstInt() -> Int { return 1; }
+func DirectMirScalarCfgOpCopyInt() -> Int { return 2; }
+func DirectMirScalarCfgOpAddInt() -> Int { return 3; }
+func DirectMirScalarCfgOpPhiInt() -> Int { return 4; }
+func DirectMirScalarCfgOpLogInt() -> Int { return 5; }
+func DirectMirScalarCfgOpLogString() -> Int { return 6; }
+func DirectMirScalarCfgOpConstString() -> Int { return 7; }
+func DirectMirScalarCfgOpCopyString() -> Int { return 8; }
+func DirectMirScalarCfgOpConcatString() -> Int { return 9; }
+func DirectMirScalarCfgOpPhiString() -> Int { return 10; }
+func DirectMirScalarCfgOpLogStringValue() -> Int { return 11; }
+func DirectMirScalarCfgOpArraySetString() -> Int { return 12; }
+func DirectMirScalarCfgOpArrayPushString() -> Int { return 13; }
+func DirectMirScalarCfgOpLogArrayLength() -> Int { return 14; }
+func DirectMirScalarCfgOpArrayPushInt() -> Int { return 15; }
+func DirectMirScalarCfgOpAddArrayReadInt() -> Int { return 16; }
+func DirectMirScalarCfgOpArraySetInt() -> Int { return 17; }
+func DirectMirScalarCfgOpLogArrayIndexInt() -> Int { return 18; }
+func DirectMirScalarCfgOpArrayReadInt() -> Int { return 19; }
+func DirectMirScalarCfgOpArrayReverseInt() -> Int { return 20; }
+func DirectMirScalarCfgOpArrayPopString() -> Int { return 21; }
+func DirectMirScalarCfgOpArrayPopInt() -> Int { return 22; }
+func DirectMirScalarCfgOpLogArrayIndexSumInt() -> Int { return 23; }
+func DirectMirScalarCfgOpLogArrayIndexConcatString() -> Int { return 24; }
+func DirectMirScalarCfgOpExpressionDefinition() -> Int { return 25; }
+func DirectMirScalarCfgOpExpressionLog() -> Int { return 26; }
+func DirectMirScalarCfgConditionNone() -> Int { return 0; }
+func DirectMirScalarCfgConditionBool() -> Int { return 1; }
+func DirectMirScalarCfgConditionLess() -> Int { return 2; }
+func DirectMirScalarCfgConditionEqual() -> Int { return 3; }
+func DirectMirScalarCfgConditionGreater() -> Int { return 4; }
+func DirectMirScalarCfgConditionForEach() -> Int { return 5; }
+func DirectMirScalarCfgConditionExpression() -> Int { return 6; }

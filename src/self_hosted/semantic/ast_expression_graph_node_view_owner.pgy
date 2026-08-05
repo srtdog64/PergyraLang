@@ -1,0 +1,92 @@
+// Read-only per-node projection over a built expression graph.
+//
+// Split out of ast_expression_graph_fact_owner.pgy, which owns building and
+// validating the graph. Reading a node's text, kind, call target or binding
+// is a separate responsibility from proving the arena well-formed.
+
+import "../hir/ast_expression_graph_owner.pgy";
+import "expression_normalization_owner.pgy";
+import "role_operator_vocabulary_owner.pgy";
+import "ast_expression_identity_fact_owner.pgy";
+
+func SemanticExpressionGraphViewAt(
+    facts: SemanticExpressionGraphFacts,
+    surface_index: Int,
+    lane: Int
+) -> SemanticExpressionGraphView {
+    let root_index: Int = surface_index * 3 + lane;
+    if !facts.ok || surface_index < 0 || lane < 0 || lane > 2 ||
+        root_index < 0 || root_index >= ArrayLength(facts.roots) ||
+        root_index >= ArrayLength(facts.has_roots) ||
+        !facts.has_roots[root_index] {
+        return SemanticExpressionGraphView(false, 0, facts);
+    }
+    return SemanticExpressionGraphView(
+        true, facts.roots[root_index], facts
+    );
+}
+
+func SemanticExpressionGraphNodeText(
+    ref facts: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Option<String> {
+    if !facts.ok || node_id < 0 ||
+        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
+        return None;
+    }
+    return Some(facts.arena.node_texts[node_id]);
+}
+
+func SemanticExpressionGraphNodeKind(
+    ref facts: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Option<Int> {
+    if !facts.ok || node_id < 0 ||
+        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
+        return None;
+    }
+    return Some(facts.arena.topology.node_kinds[node_id]);
+}
+
+func SemanticExpressionGraphCallReturnTypeName(
+    ref facts: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Option<String> {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(facts, node_id);
+    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeCall() {
+        return None;
+    }
+    let type_name: String = facts.arena.call_return_type_names[node_id];
+    if type_name == "" || type_name == "Unknown" { return None; }
+    return Some(type_name);
+}
+
+func SemanticExpressionGraphCallTargetSyntaxId(
+    ref facts: SemanticExpressionGraphFacts, node_id: Int
+) -> Option<Int> {
+    if !facts.ok || node_id < 0 ||
+        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
+        return None;
+    }
+    return Some(facts.arena.identities.call_target_syntax_ids[node_id]);
+}
+
+func SemanticExpressionGraphBindingKind(
+    ref facts: SemanticExpressionGraphFacts, node_id: Int
+) -> Option<Int> {
+    if !facts.ok || node_id < 0 ||
+        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
+        return None;
+    }
+    return Some(facts.arena.identities.binding_kinds[node_id]);
+}
+
+func SemanticExpressionGraphBindingOrdinal(
+    ref facts: SemanticExpressionGraphFacts, node_id: Int
+) -> Option<Int> {
+    if !facts.ok || node_id < 0 ||
+        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
+        return None;
+    }
+    return Some(facts.arena.identities.binding_ordinals[node_id]);
+}

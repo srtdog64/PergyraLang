@@ -8,6 +8,8 @@ import "expression_normalization_owner.pgy";
 import "role_operator_vocabulary_owner.pgy";
 import "ast_expression_identity_fact_owner.pgy";
 import "../hir/ast_expression_graph_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
+import "ast_expression_place_kind_owner.pgy";
 
 struct SemanticExpressionGraphArena {
     // Parser/HIR owns the immutable topology. Semantic owns only overlays.
@@ -436,114 +438,6 @@ func SemanticExpressionGraphFactsReadinessSummary(
             Concat(";target_names=", ToString(ArrayLength(facts.arena.call_target_names)))
         )
     );
-}
-
-func SemanticExpressionGraphViewAt(
-    facts: SemanticExpressionGraphFacts,
-    surface_index: Int,
-    lane: Int
-) -> SemanticExpressionGraphView {
-    let root_index: Int = surface_index * 3 + lane;
-    if !facts.ok || surface_index < 0 || lane < 0 || lane > 2 ||
-        root_index < 0 || root_index >= ArrayLength(facts.roots) ||
-        root_index >= ArrayLength(facts.has_roots) ||
-        !facts.has_roots[root_index] {
-        return SemanticExpressionGraphView(false, 0, facts);
-    }
-    return SemanticExpressionGraphView(
-        true, facts.roots[root_index], facts
-    );
-}
-
-func SemanticExpressionGraphNodeText(
-    ref facts: SemanticExpressionGraphFacts,
-    node_id: Int
-) -> Option<String> {
-    if !facts.ok || node_id < 0 ||
-        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
-        return None;
-    }
-    return Some(facts.arena.node_texts[node_id]);
-}
-
-func SemanticExpressionGraphNodeKind(
-    ref facts: SemanticExpressionGraphFacts,
-    node_id: Int
-) -> Option<Int> {
-    if !facts.ok || node_id < 0 ||
-        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
-        return None;
-    }
-    return Some(facts.arena.topology.node_kinds[node_id]);
-}
-
-func SemanticExpressionGraphPlaceKind(
-    ref facts: SemanticExpressionGraphFacts,
-    node_id: Int
-) -> Option<Int> {
-    if !facts.ok || node_id < 0 ||
-        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
-        return None;
-    }
-    let place_kind: Int = facts.arena.place_kinds[node_id];
-    if place_kind == SemanticExpressionPlaceUnknown() {
-        return None;
-    }
-    return Some(place_kind);
-}
-
-func SemanticExpressionGraphCallReturnTypeName(
-    ref facts: SemanticExpressionGraphFacts,
-    node_id: Int
-) -> Option<String> {
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(facts, node_id);
-    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeCall() {
-        return None;
-    }
-    let type_name: String = facts.arena.call_return_type_names[node_id];
-    if type_name == "" || type_name == "Unknown" { return None; }
-    return Some(type_name);
-}
-
-func SemanticExpressionGraphCallTargetSyntaxId(
-    ref facts: SemanticExpressionGraphFacts, node_id: Int
-) -> Option<Int> {
-    if !facts.ok || node_id < 0 ||
-        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
-        return None;
-    }
-    return Some(facts.arena.identities.call_target_syntax_ids[node_id]);
-}
-
-func SemanticExpressionGraphBindingKind(
-    ref facts: SemanticExpressionGraphFacts, node_id: Int
-) -> Option<Int> {
-    if !facts.ok || node_id < 0 ||
-        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
-        return None;
-    }
-    return Some(facts.arena.identities.binding_kinds[node_id]);
-}
-
-func SemanticExpressionGraphBindingOrdinal(
-    ref facts: SemanticExpressionGraphFacts, node_id: Int
-) -> Option<Int> {
-    if !facts.ok || node_id < 0 ||
-        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
-        return None;
-    }
-    return Some(facts.arena.identities.binding_ordinals[node_id]);
-}
-
-func SemanticExpressionPlaceKindAddressable(place_kind: Int) -> Bool {
-    return place_kind == SemanticExpressionPlaceBinding() ||
-        place_kind == SemanticExpressionPlaceReadonlyRefBinding() ||
-        place_kind == SemanticExpressionPlaceMember();
-}
-
-func SemanticExpressionPlaceKindDirectBinding(place_kind: Int) -> Bool {
-    return place_kind == SemanticExpressionPlaceBinding() ||
-        place_kind == SemanticExpressionPlaceReadonlyRefBinding();
 }
 
 func SemanticExpressionGraphLeftChild(

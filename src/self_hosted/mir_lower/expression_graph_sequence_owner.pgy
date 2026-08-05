@@ -5,6 +5,7 @@ import "../semantic/ast_expression_surface_fact_owner.pgy";
 import "../semantic/role_operator_vocabulary_owner.pgy";
 import "expression_graph_persisted_shape_owner.pgy";
 import "expression_graph_persisted_read_owner.pgy";
+import "expression_graph_kind_code_owner.pgy";
 struct MirExpressionGraphSequence {
     ok: Bool;
     ready_node_count: Int;
@@ -25,62 +26,6 @@ func MirExpressionGraphSequenceError(
     return MirExpressionGraphSequence(
         false, sequence.ready_node_count, sequence.roots, sequence.arena
     );
-}
-
-func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
-    if kind == "leaf" { return Some(AstExpressionNodeLeaf()); }
-    if kind == "logical_or" { return Some(AstExpressionNodeLogicalOr()); }
-    if kind == "logical_and" { return Some(AstExpressionNodeLogicalAnd()); }
-    if kind == "equality" { return Some(AstExpressionNodeEquality()); }
-    if kind == "inequality" { return Some(AstExpressionNodeInequality()); }
-    if kind == "less" { return Some(AstExpressionNodeLess()); }
-    if kind == "less_equal" { return Some(AstExpressionNodeLessEqual()); }
-    if kind == "greater" { return Some(AstExpressionNodeGreater()); }
-    if kind == "greater_equal" { return Some(AstExpressionNodeGreaterEqual()); }
-    if kind == "add" { return Some(AstExpressionNodeAdd()); }
-    if kind == "subtract" { return Some(AstExpressionNodeSubtract()); }
-    if kind == "multiply" { return Some(AstExpressionNodeMultiply()); }
-    if kind == "divide" { return Some(AstExpressionNodeDivide()); }
-    if kind == "modulo" { return Some(AstExpressionNodeModulo()); }
-    if kind == "index" { return Some(AstExpressionNodeIndex()); }
-    if kind == "logical_not" { return Some(AstExpressionNodeLogicalNot()); }
-    if kind == "negate" { return Some(AstExpressionNodeNegate()); }
-    if kind == "float_literal" { return Some(AstExpressionNodeFloatLiteral()); }
-    if kind == "integer_literal" { return Some(AstExpressionNodeIntegerLiteral()); }
-    if kind == "long_literal" { return Some(AstExpressionNodeLongLiteral()); }
-    if kind == "bool_literal" { return Some(AstExpressionNodeBoolLiteral()); }
-    if kind == "string_literal" { return Some(AstExpressionNodeStringLiteral()); }
-    if kind == "call" { return Some(AstExpressionNodeCall()); }
-    if kind == "call_argument" { return Some(AstExpressionNodeCallArgument()); }
-    if kind == "member_access" { return Some(AstExpressionNodeMemberAccess()); }
-    if kind == "try" { return Some(AstExpressionNodeTry()); }
-    if kind == "array_literal" { return Some(AstExpressionNodeArrayLiteral()); }
-    if kind == "array_element" { return Some(AstExpressionNodeArrayElement()); }
-    if kind == "struct_literal" { return Some(AstExpressionNodeStructLiteral()); }
-    if kind == "struct_field_binding" { return Some(AstExpressionNodeStructFieldBinding()); }
-    if kind == "struct_field" { return Some(AstExpressionNodeStructField()); }
-    if kind == "struct_field_name" { return Some(AstExpressionNodeStructFieldName()); }
-    if kind == "generic_type_actual" { return Some(AstExpressionNodeGenericTypeActual()); }
-    if kind == "generic_callee" { return Some(AstExpressionNodeGenericCallee()); }
-    if kind == "type_name" { return Some(AstExpressionNodeTypeName()); }
-    if kind == "cast" { return Some(AstExpressionNodeCast()); }
-    if kind == "await" { return Some(AstExpressionNodeAwait()); }
-    if kind == "coalesce" { return Some(AstExpressionNodeCoalesce()); }
-    if kind == "spawn" { return Some(AstExpressionNodeSpawn()); }
-    if kind == "set_literal" { return Some(AstExpressionNodeSetLiteral()); }
-    if kind == "set_element" { return Some(AstExpressionNodeSetElement()); }
-    return None;
-}
-
-func MirExpressionCallTargetKindCode(kind: String) -> Option<Int> {
-    if kind == "none" { return Some(SemanticCallTargetNone()); }
-    if kind == "direct" { return Some(SemanticCallTargetDirect()); }
-    if kind == "namespace" {
-        return Some(SemanticCallTargetNamespace());
-    }
-    if kind == "member" { return Some(SemanticCallTargetMember()); }
-    if kind == "role_operator" { return Some(SemanticCallTargetRoleOperator()); }
-    return None;
 }
 
 func MirExpressionGraphRangeReachable(

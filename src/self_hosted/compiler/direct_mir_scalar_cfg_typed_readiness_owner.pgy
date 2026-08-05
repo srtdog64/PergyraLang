@@ -8,6 +8,7 @@ import "direct_mir_scalar_cfg_array_int_pop_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_collection_pop_typed_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_collection_plan_typed_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_owner.pgy";
+import "direct_mir_scalar_cfg_typed_foreach_readiness_owner.pgy";
 func DirectMirScalarCfgPlanOperandType(
     ref plan: DirectMirScalarCfgGraphPlan, value: Int, local_binding: Int
 ) -> String {
@@ -18,53 +19,6 @@ func DirectMirScalarCfgPlanOperandType(
         return plan.local_types[local_binding];
     }
     return "";
-}
-func DirectMirScalarCfgTypedForEachReady(
-    ref plan: DirectMirScalarCfgGraphPlan
-) -> Bool {
-    if !DirectMirScalarCfgForEachElementFactsReady(plan.foreach_elements) ||
-        DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) !=
-            ArrayLength(plan.foreach_elements.loop_syntax_ids) {
-        return false;
-    }
-    let row: Int = 0;
-    while row < DirectMirScalarCfgForEachFactCount(plan.foreach_iterations) {
-        let fact: DirectMirScalarCfgForEachFact =
-            DirectMirScalarCfgForEachFactAt(plan.foreach_iterations, row);
-        let type_name: String =
-            DirectMirScalarCfgForEachElementTypeAtLoopSyntaxId(
-                plan.foreach_elements, fact.loop_syntax_id
-            );
-        if fact.binding_local_row < 0 || fact.binding_local_row >=
-                ArrayLength(plan.local_types) ||
-            plan.local_types[fact.binding_local_row] != type_name {
-            return false;
-        }
-        let strings: Array<String> =
-            DirectMirScalarCfgForEachStringElementsAtLoopSyntaxId(
-                plan.foreach_elements, fact.loop_syntax_id
-            );
-        if type_name == CompilerAbiLayoutIntTypeName() {
-            if ArrayLength(strings) != 0 { return false; }
-        } else if type_name == CompilerAbiLayoutStringTypeName() {
-            let start_opt: Option<Int> =
-                DirectMirScalarCfgForEachStringElementStartAtLoopSyntaxId(
-                    plan.foreach_elements, fact.loop_syntax_id
-                );
-            if !IsSome(start_opt) ||
-                ArrayLength(strings) != ArrayLength(fact.elements) {
-                return false;
-            }
-            let start: Int = UnwrapOption(start_opt);
-            let item: Int = 0;
-            while item < ArrayLength(fact.elements) {
-                if fact.elements[item] != start + item { return false; }
-                item = item + 1;
-            }
-        } else { return false; }
-        row = row + 1;
-    }
-    return true;
 }
 func DirectMirScalarCfgTypedOperationsReady(
     ref plan: DirectMirScalarCfgGraphPlan

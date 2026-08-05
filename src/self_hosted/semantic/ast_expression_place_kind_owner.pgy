@@ -1,0 +1,35 @@
+// Place classification for expression-graph nodes: which place kind a node
+// carries, and what that kind permits.
+//
+// Its own owner because a place kind is a vocabulary fact -- addressability
+// and direct-binding are properties of the KIND, not of any one graph.
+import "expression_normalization_owner.pgy";
+import "role_operator_vocabulary_owner.pgy";
+import "ast_expression_identity_fact_owner.pgy";
+import "../hir/ast_expression_graph_owner.pgy";
+
+func SemanticExpressionGraphPlaceKind(
+    ref facts: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Option<Int> {
+    if !facts.ok || node_id < 0 ||
+        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
+        return None;
+    }
+    let place_kind: Int = facts.arena.place_kinds[node_id];
+    if place_kind == SemanticExpressionPlaceUnknown() {
+        return None;
+    }
+    return Some(place_kind);
+}
+
+func SemanticExpressionPlaceKindAddressable(place_kind: Int) -> Bool {
+    return place_kind == SemanticExpressionPlaceBinding() ||
+        place_kind == SemanticExpressionPlaceReadonlyRefBinding() ||
+        place_kind == SemanticExpressionPlaceMember();
+}
+
+func SemanticExpressionPlaceKindDirectBinding(place_kind: Int) -> Bool {
+    return place_kind == SemanticExpressionPlaceBinding() ||
+        place_kind == SemanticExpressionPlaceReadonlyRefBinding();
+}

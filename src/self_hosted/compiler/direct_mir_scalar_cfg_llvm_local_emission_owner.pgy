@@ -1,0 +1,53 @@
+// LLVM local-slot declarations for the scalar CFG plan.
+//
+// Split out of direct_mir_scalar_cfg_local_emission_owner.pgy, which keeps
+// the C form. One file holding both backends is two responsibilities, and it
+// carried the owner past its line cap.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
+    ref plan: DirectMirScalarCfgGraphPlan, start: Int, count: Int
+) -> String {
+    if start < 0 || count < 0 ||
+        start + count > ArrayLength(plan.local_names) {
+        Die("direct MIR scalar CFG LLVM local range is invalid");
+    }
+    let output: String = "";
+    let row: Int = start;
+    while row < start + count {
+        output = Concat(output, "  %pgy.local.");
+        output = Concat(output, ToString(row));
+        if plan.local_types[row] == CompilerAbiLayoutStringTypeName() {
+            output = Concat(output,
+                " = alloca ptr, align 8\n  store ptr null, ptr %pgy.local."
+            );
+        } else if plan.local_types[row] == CompilerAbiLayoutBoolTypeName() {
+            output = Concat(output,
+                " = alloca i1, align 1\n  store i1 false, ptr %pgy.local."
+            );
+        } else if plan.local_types[row] ==
+                CompilerAbiLayoutArrayStringTypeName() {
+            output = Concat(output,
+                " = alloca %pgy.array.string, align 8\n  store %pgy.array.string zeroinitializer, ptr %pgy.local."
+            );
+        } else { output = Concat(output,
+            " = alloca i64, align 8\n  store i64 0, ptr %pgy.local."
+        ); }
+        output = Concat(output, ToString(row));
+        if plan.local_types[row] == CompilerAbiLayoutBoolTypeName() {
+            output = Concat(output, ", align 1\n");
+        } else { output = Concat(output, ", align 8\n"); }
+        row = row + 1;
+    }
+    return output;
+}
+
+
+func DirectMirScalarCfgLlvmLocalDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> String {
+    return DirectMirScalarCfgLlvmLocalDeclarationsInRange(
+        plan, 0, ArrayLength(plan.local_names)
+    );
+}

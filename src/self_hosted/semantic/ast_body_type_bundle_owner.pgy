@@ -12,6 +12,7 @@ import "ast_expression_identity_resolution_owner.pgy";
 import "ast_initializer_type_function_table_bridge_owner.pgy";
 import "ast_iteration_graph_root_owner.pgy";
 import "ast_body_role_operator_resolution_owner.pgy";
+import "ast_body_type_bundle_readiness_owner.pgy";
 struct SemanticAstBodyTypeBundle {
     verdict: SemanticAstBodyVerdict;
     initializer_types: SemanticAstInitializerTypeFacts;
@@ -214,6 +215,7 @@ func SemanticAstBodyTypeBundleFromAnalysis(
 ) -> SemanticAstBodyTypeBundle {
     return SemanticAstBodyTypeBundleFromAnalysisObserved(artifact, analysis, false);
 }
+
 func SemanticAstBodyTypeBundleReady(
     artifact: AstTreeArtifact,
     ref analysis: SemanticAstArtifactAnalysis,
@@ -222,63 +224,4 @@ func SemanticAstBodyTypeBundleReady(
     return SemanticAstBodyTypeBundleReadinessError(
         artifact, analysis, bundle
     ) == "";
-}
-func SemanticAstBodyTypeBundleReadinessError(
-    artifact: AstTreeArtifact,
-    ref analysis: SemanticAstArtifactAnalysis,
-    ref bundle: SemanticAstBodyTypeBundle
-) -> String {
-    if !analysis.verdict.ok {
-        return Concat(
-            "analysis_verdict:", Concat(
-                analysis.verdict.diagnostic_code,
-                Concat(":", analysis.verdict.diagnostic_message)
-            )
-        );
-    }
-    if !bundle.verdict.ok {
-        return Concat(
-            "bundle_verdict:", Concat(
-                bundle.verdict.diagnostic_code,
-                Concat(":node=", Concat(
-                    ToString(bundle.verdict.first_node_id),
-                    Concat(":", bundle.verdict.diagnostic_message)
-                ))
-            )
-        );
-    }
-    if !SemanticAstExpressionSurfaceBorrowReady(
-        artifact, analysis.expression_surfaces
-    ) { return "expression_surface_borrow"; }
-    if !SemanticExpressionGraphCarriedCallTargetsReady(
-        analysis.expression_surfaces.expression_graph
-    ) { return "call_target_rows"; }
-    if !SemanticExpressionGraphRoleOperatorTargetsReady(analysis.expression_surfaces.expression_graph, true) { return "role_operator_target_rows"; }
-    if !SemanticExpressionGraphPlaceKindsReady(
-        analysis.expression_surfaces.expression_graph
-    ) { return "expression_place_rows"; }
-    if !bundle.initializer_types.ok { return "initializer_types"; }
-    if !bundle.iteration_types.ok { return "iteration_types"; }
-    if !bundle.assignment_types.ok { return "assignment_types"; }
-    if !bundle.statement_types.ok { return "statement_types"; }
-    if !SemanticAstGenericSpecializationFactsMatchExpressionGraph(
-        bundle.generic_specializations, analysis.expression_surfaces
-    ) { return "generic_specializations"; }
-    if !SemanticExpressionGraphCallReturnTypesResolved(
-        analysis.expression_surfaces.expression_graph, analysis.signatures,
-        analysis.function_tables, bundle.generic_specializations
-    ) { return "call_return_type_rows"; }
-    if bundle.initializer_types.artifact_node_count != artifact.count {
-        return "initializer_node_count";
-    }
-    if bundle.iteration_types.artifact_node_count != artifact.count {
-        return "iteration_node_count";
-    }
-    if bundle.assignment_types.artifact_node_count != artifact.count {
-        return "assignment_node_count";
-    }
-    if bundle.statement_types.artifact_node_count != artifact.count {
-        return "statement_node_count";
-    }
-    return "";
 }
