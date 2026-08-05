@@ -29,13 +29,13 @@ func DirectMirScalarCfgForEachStringCollectionFromOwners(
     while row < ArrayLength(string_elements) {
         ArrayPush(indices, row); row = row + 1;
     }
-    let local: DirectMirScalarCfgForEachCollectionFact =
+    let local_binding: DirectMirScalarCfgForEachCollectionFact =
         DirectMirScalarCfgForEachCollectionFact(
             true, fact.storage_identity, indices,
             fact.abi_layout_id, fact.abi_size, fact.abi_align,
             fact.data_offset, fact.length_offset, fact.capacity_offset,
             fact.allocator_offset
         );
-    if !DirectMirScalarCfgForEachCollectionFactReady(local) { return invalid; }
-    return local;
+    if !DirectMirScalarCfgForEachCollectionFactReady(local_binding) { return invalid; }
+    return local_binding;
 }

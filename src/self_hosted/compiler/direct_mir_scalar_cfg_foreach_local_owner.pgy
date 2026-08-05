@@ -56,21 +56,21 @@ func DirectMirScalarCfgForEachFactsAtLocalRows(
     while row < DirectMirScalarCfgForEachFactCount(facts) {
         let fact: DirectMirScalarCfgForEachFact =
             DirectMirScalarCfgForEachFactAt(facts, row);
-        let local: Int = -1;
+        let local_binding: Int = -1;
         let candidate: Int = 0;
         while candidate < ArrayLength(local_names) {
             if local_ref_kinds[candidate] ==
                     DirectMirScalarCfgLocalRefForEach() &&
                 local_ref_syntax_ids[candidate] == fact.loop_syntax_id &&
                 local_names[candidate] == fact.binding_name {
-                if local >= 0 { return DirectMirScalarCfgForEachFactSetInvalid(); }
-                local = candidate;
+                if local_binding >= 0 { return DirectMirScalarCfgForEachFactSetInvalid(); }
+                local_binding = candidate;
             }
             candidate = candidate + 1;
         }
-        if local < 0 { return DirectMirScalarCfgForEachFactSetInvalid(); }
+        if local_binding < 0 { return DirectMirScalarCfgForEachFactSetInvalid(); }
         bound = DirectMirScalarCfgForEachFactSetAppend(
-            bound, DirectMirScalarCfgForEachFactAtLocalRow(fact, local)
+            bound, DirectMirScalarCfgForEachFactAtLocalRow(fact, local_binding)
         );
         if !bound.valid { return DirectMirScalarCfgForEachFactSetInvalid(); }
         row = row + 1;

@@ -177,7 +177,7 @@ func DirectMirRoleOperatorDeclarationFactFromAdmitted(
     let role: JsonObjectFactTable = JsonArrayObjectFactAt(
         admitted.document.declarations, role_row
     );
-    let ability: JsonObjectFactTable = JsonArrayObjectFactAt(
+    let ability_table: JsonObjectFactTable = JsonArrayObjectFactAt(
         admitted.document.declarations, ability_row
     );
     let erased: JsonObjectFactTable = JsonArrayObjectFactAt(
@@ -187,7 +187,7 @@ func DirectMirRoleOperatorDeclarationFactFromAdmitted(
         role.json, role.start, role.end, "source_syntax_id"
     );
     let ability_source: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        ability.json, ability.start, ability.end, "source_syntax_id"
+        ability_table.json, ability_table.start, ability_table.end, "source_syntax_id"
     );
     let erased_source: Option<String> = MirObjectUniqueNumberFactAtBounds(
         erased.json, erased.start, erased.end, "source_syntax_id"
@@ -198,7 +198,7 @@ func DirectMirRoleOperatorDeclarationFactFromAdmitted(
     let role_methods: JsonArrayObjectFactTable =
         JsonObjectFactArrayObjectTable(role, "methods");
     let ability_methods: JsonArrayObjectFactTable =
-        JsonObjectFactArrayObjectTable(ability, "methods");
+        JsonObjectFactArrayObjectTable(ability_table, "methods");
     let impls: JsonArrayObjectFactTable =
         JsonObjectFactArrayObjectTable(role, "impls");
     if !IsSome(role_source) || !IsSome(ability_source) ||
@@ -211,7 +211,7 @@ func DirectMirRoleOperatorDeclarationFactFromAdmitted(
             UnwrapOption(erased_source)
         ) || UnwrapOption(receiver_type) == "" ||
         !DirectMirObjectArrayEmpty(role, "fields") ||
-        !DirectMirObjectArrayEmpty(ability, "fields") ||
+        !DirectMirObjectArrayEmpty(ability_table, "fields") ||
         !DirectMirObjectArrayEmpty(erased, "methods") ||
         !DirectMirExactObjectArrayCount(role_methods, 1) ||
         !DirectMirExactObjectArrayCount(ability_methods, 1) ||
@@ -235,20 +235,20 @@ func DirectMirRoleOperatorDeclarationFactFromAdmitted(
         role_method.return_type != ability_method.return_type {
         Die("direct MIR role operator method declarations disagree");
     }
-    let impl: JsonObjectFactTable = JsonArrayObjectFactAt(impls, 0);
+    let impl_table: JsonObjectFactTable = JsonArrayObjectFactAt(impls, 0);
     let impl_ability: JsonObjectFactTable = JsonObjectFactObjectTable(
-        impl, "ability"
+        impl_table, "ability"
     );
     let impl_base: Option<String> = MirObjectUniqueStringFactAtBounds(
         impl_ability.json, impl_ability.start, impl_ability.end, "base"
     );
     let method_start: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        impl.json, impl.start, impl.end, "method_start"
+        impl_table.json, impl_table.start, impl_table.end, "method_start"
     );
     let method_count: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        impl.json, impl.start, impl.end, "method_count"
+        impl_table.json, impl_table.start, impl_table.end, "method_count"
     );
-    if !JsonObjectFactTableReady(impl) || JsonObjectFactCount(impl) != 3 ||
+    if !JsonObjectFactTableReady(impl_table) || JsonObjectFactCount(impl_table) != 3 ||
         !JsonObjectFactTableReady(impl_ability) ||
         JsonObjectFactCount(impl_ability) != 2 || !IsSome(impl_base) ||
         UnwrapOption(impl_base) != target.ability_name ||

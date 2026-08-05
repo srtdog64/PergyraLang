@@ -41,13 +41,13 @@ func DirectMirScalarCfgArrayIntProgramFromOwners(
             !DirectMirScalarCfgForEachOwnsDefinition(foreaches, global) &&
             declaration.valid && declaration.abi_type_name ==
                 CompilerAbiLayoutArrayIntTypeName() {
-            let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
                 admitted.routines.source_json,
                 admitted.routines.instruction_starts[global],
                 admitted.routines.instruction_ends[global]
             );
             let graph: MirExpressionGraphSequence =
-                DirectMirScalarCfgInstructionGraphAt(object, "expr0_graph");
+                DirectMirScalarCfgInstructionGraphAt(object_table, "expr0_graph");
             if DirectMirScalarCfgArrayIntReverseCallGraphFactFrom(
                     graph
                 ).valid {

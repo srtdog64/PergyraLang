@@ -136,13 +136,13 @@ func SemanticAstRoleMethodAbilityName(
         if TypedAstArenaNodeKindIs(
             arena, parent_id, TypedAstKindImplAbilityTag()
         ) {
-            let ability: Option<String> = TypedAstArenaAtomText(
+            let ability_name: Option<String> = TypedAstArenaAtomText(
                 arena, parent_id
             );
-            if !IsSome(ability) || UnwrapOption(ability) == "" {
+            if !IsSome(ability_name) || UnwrapOption(ability_name) == "" {
                 return None;
             }
-            return Some(SemanticCanonicalTypeName(UnwrapOption(ability)));
+            return Some(SemanticCanonicalTypeName(UnwrapOption(ability_name)));
         }
         if TypedAstArenaNodeKindIs(
             arena, parent_id, TypedAstKindRoleDeclTag()

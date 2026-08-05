@@ -57,16 +57,16 @@ func DirectMirScalarCfgWireLocalRefsFromOwners(
     let instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
-        let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
             admitted.routines.source_json,
             admitted.routines.instruction_starts[global],
             admitted.routines.instruction_ends[global]
         );
         let local_occurrences: Int = MirObjectFieldOccurrenceCountAtBounds(
-            object.json, object.start, object.end, "local_ref"
+            object_table.json, object_table.start, object_table.end, "local_ref"
         );
         let expr_occurrences: Int = MirObjectFieldOccurrenceCountAtBounds(
-            object.json, object.start, object.end, "expr0_local_refs"
+            object_table.json, object_table.start, object_table.end, "expr0_local_refs"
         );
         if (!required && (local_occurrences != 0 || expr_occurrences != 0)) ||
             (required && (local_occurrences != 1 || expr_occurrences != 1)) {
@@ -76,7 +76,7 @@ func DirectMirScalarCfgWireLocalRefsFromOwners(
         let rows: JsonArrayObjectFactTable = EmptyJsonArrayObjectFactTable();
         if required {
             let primary_opt: Option<String> = JsonObjectFactStringFieldOpt(
-                object, "local_ref"
+                object_table, "local_ref"
             );
             if IsSome(primary_opt) {
                 primary_ref = UnwrapOption(primary_opt);
@@ -85,7 +85,7 @@ func DirectMirScalarCfgWireLocalRefsFromOwners(
                 }
             }
             rows = JsonObjectFactArrayObjectTable(
-                object, "expr0_local_refs"
+                object_table, "expr0_local_refs"
             );
             if !JsonArrayObjectFactTableReady(rows) { return empty; }
         }

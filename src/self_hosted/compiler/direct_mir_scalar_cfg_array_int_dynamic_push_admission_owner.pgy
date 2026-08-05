@@ -28,19 +28,19 @@ func DirectMirScalarCfgArrayIntDynamicPushFromOwners(
     let collection_uses: Int = 0;
     let block: Int = 0;
     while block < ArrayLength(index.block_starts) {
-        let local: Int = 0;
-        while local < index.block_instruction_counts[block] {
+        let local_binding: Int = 0;
+        while local_binding < index.block_instruction_counts[block] {
             let local_instruction: Int =
-                index.block_instruction_starts[block] + local;
+                index.block_instruction_starts[block] + local_binding;
             let global: Int = index.instruction_facts.global_start +
                 local_instruction;
-            let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
                 admitted.routines.source_json,
                 admitted.routines.instruction_starts[global],
                 admitted.routines.instruction_ends[global]
             );
             let graph: MirExpressionGraphSequence =
-                DirectMirScalarCfgInstructionGraphAt(object, "expr0_graph");
+                DirectMirScalarCfgInstructionGraphAt(object_table, "expr0_graph");
             let kind: String = admitted.routines.instruction_kinds[global];
             let source: String =
                 admitted.routines.instruction_source_types[global];
@@ -160,7 +160,7 @@ func DirectMirScalarCfgArrayIntDynamicPushFromOwners(
                     claimed_uses = claimed_uses + 1;
                 }
             }
-            local = local + 1;
+            local_binding = local_binding + 1;
         }
         block = block + 1;
     }
@@ -190,13 +190,13 @@ func DirectMirScalarCfgArrayIntDynamicPushFromOwners(
         collection_uses != claimed_uses ||
         !MirRoutineDefinitionDominatesInstruction(
             index, definition,
-            push_position.block, push_position.local
+            push_position.block, push_position.local_binding
         ) || !MirRoutineDefinitionDominatesInstruction(
             index, definition,
-            read_position.block, read_position.local
+            read_position.block, read_position.local_binding
         ) || !MirRoutineDefinitionDominatesInstruction(
             index, definition,
-            log_position.block, log_position.local
+            log_position.block, log_position.local_binding
         ) { return empty; }
     return DirectMirScalarCfgArrayIntProgramFact(
         true, DirectMirScalarCfgArrayIntDynamicPushMode(), collection,

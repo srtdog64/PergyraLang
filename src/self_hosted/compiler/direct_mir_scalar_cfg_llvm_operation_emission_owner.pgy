@@ -7,14 +7,14 @@ import "direct_mir_scalar_cfg_llvm_collection_operation_emission_owner.pgy";
 import "direct_mir_scalar_cfg_collection_plan_llvm_operation_owner.pgy";
 func DirectMirScalarCfgLlvmLoadedOperand(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
-    side: String, llvm_type: String, value: Int, local: Int
+    side: String, llvm_type: String, value: Int, local_binding: Int
 ) -> String {
     let output: String = Concat("  %pgy.op.", ToString(operation));
     output = Concat(output, Concat(".", side));
     output = Concat(output, Concat(" = load ", llvm_type));
     output = Concat(output, ", ptr ");
     output = Concat(output, DirectMirScalarCfgLlvmOperandLocal(
-        plan, value, local
+        plan, value, local_binding
     ));
     return Concat(output, ", align 8\n");
 }

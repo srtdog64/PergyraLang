@@ -5,7 +5,7 @@ import "../mir_lower/routine_fact_index_owner.pgy";
 struct DirectMirScalarCfgInstructionPositionFact {
     let valid: Bool;
     let block: Int;
-    let local: Int;
+    let local_binding: Int;
 }
 
 func DirectMirScalarCfgInstructionPositionAt(

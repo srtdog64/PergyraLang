@@ -33,7 +33,7 @@ func DirectMirScalarCfgProgramLlvmOperation(
     let output: String = expression.instructions;
     if kind == DirectMirScalarCfgOpExpressionDefinition() {
         let result: Int = plan.operation_result_values[operation];
-        let local: Int = plan.value_local_rows[result];
+        let local_binding: Int = plan.value_local_rows[result];
         let llvm_type: String = DirectMirScalarProgramLlvmType(
             plan.value_types[result]);
         output = Concat(output, "  store ");
@@ -41,7 +41,7 @@ func DirectMirScalarCfgProgramLlvmOperation(
         output = Concat(output, " ");
         output = Concat(output, expression.value);
         output = Concat(output, ", ptr %pgy.local.");
-        output = Concat(output, ToString(local));
+        output = Concat(output, ToString(local_binding));
         if llvm_type == "i1" { return Concat(output, ", align 1\n"); }
         return Concat(output, ", align 8\n");
     }

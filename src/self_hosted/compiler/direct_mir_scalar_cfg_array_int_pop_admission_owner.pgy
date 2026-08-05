@@ -63,10 +63,10 @@ func DirectMirScalarCfgArrayIntForEachPopFromOwners(
     let claimed_uses: Int = 0;
     let block: Int = 0;
     while block < ArrayLength(index.block_starts) {
-        let local: Int = 0;
-        while local < index.block_instruction_counts[block] {
+        let local_binding: Int = 0;
+        while local_binding < index.block_instruction_counts[block] {
             let local_instruction: Int =
-                index.block_instruction_starts[block] + local;
+                index.block_instruction_starts[block] + local_binding;
             let global: Int = index.instruction_facts.global_start +
                 local_instruction;
             let use_count: Int = MirRoutineInstructionUseCountAtGlobal(
@@ -74,10 +74,10 @@ func DirectMirScalarCfgArrayIntForEachPopFromOwners(
             );
             let use_row: Int = 0;
             while use_row < use_count {
-                let use: Option<String> = MirRoutineInstructionUseAtGlobal(
+                let use_entry: Option<String> = MirRoutineInstructionUseAtGlobal(
                     uses, global, use_row
                 );
-                if IsSome(use) && UnwrapOption(use) ==
+                if IsSome(use_entry) && UnwrapOption(use_entry) ==
                         selected.collection_value_id {
                     collection_uses = collection_uses + 1;
                 }
@@ -96,7 +96,7 @@ func DirectMirScalarCfgArrayIntForEachPopFromOwners(
                     let expected: Int = ArrayLength(selected.elements) -
                         ArrayLength(pop_globals);
                     if block != selected.init_block ||
-                        local >= init_position.local || expected < 1 {
+                        local_binding >= init_position.local_binding || expected < 1 {
                         Die("direct MIR Array<Int> pop order is invalid");
                     }
                     ArrayPush(pop_globals, global);
@@ -109,13 +109,13 @@ func DirectMirScalarCfgArrayIntForEachPopFromOwners(
                 claimed_uses = claimed_uses + 1;
             } else if admitted.routines.instruction_kinds[global] == "stmt" &&
                     capture.valid && capture.arg0 == "Log" {
-                let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+                let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
                     admitted.routines.source_json,
                     admitted.routines.instruction_starts[global],
                     admitted.routines.instruction_ends[global]
                 );
                 let graph: MirExpressionGraphSequence =
-                    DirectMirScalarCfgInstructionGraphAt(object, "expr0_graph");
+                    DirectMirScalarCfgInstructionGraphAt(object_table, "expr0_graph");
                 let length: DirectMirScalarCfgArrayLengthLogGraphFact =
                     DirectMirScalarCfgArrayLengthLogGraphFactFrom(graph);
                 if length.valid && length.collection_name ==
@@ -132,7 +132,7 @@ func DirectMirScalarCfgArrayIntForEachPopFromOwners(
                     claimed_uses = claimed_uses + 1;
                 }
             }
-            local = local + 1;
+            local_binding = local_binding + 1;
         }
         block = block + 1;
     }

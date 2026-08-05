@@ -74,9 +74,9 @@ func MirGenericSpecializationIdentityEpochFromFacts(
     }
     let row: Int = 0;
     while row < JsonArrayObjectFactCount(table) {
-        let object: JsonObjectFactTable = JsonArrayObjectFactAt(table, row);
+        let object_table: JsonObjectFactTable = JsonArrayObjectFactAt(table, row);
         let owner: Option<String> = JsonObjectFactNumberFieldOpt(
-            object, "source_owner_syntax_id"
+            object_table, "source_owner_syntax_id"
         );
         if !IsSome(owner) ||
             !MirGenericSpecializationIdentityEpochInsertOwner(

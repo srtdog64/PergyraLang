@@ -221,9 +221,9 @@ func DirectMirScalarCfgLocalRefsReady(
     }
     row = 0;
     while row < ArrayLength(value_local_rows) {
-        let local: Int = value_local_rows[row];
-        if local < 0 || local >= count ||
-            local_ref_kinds[local] != DirectMirScalarCfgLocalRefValue() {
+        let local_binding: Int = value_local_rows[row];
+        if local_binding < 0 || local_binding >= count ||
+            local_ref_kinds[local_binding] != DirectMirScalarCfgLocalRefValue() {
             return false;
         }
         row = row + 1;

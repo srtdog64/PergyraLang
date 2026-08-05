@@ -29,14 +29,14 @@ func SelfMirJsonExpr0LocalRefs(
     instruction_index: Int
 ) -> String {
     let items: Array<String> = [];
-    let use: Int = 0;
-    while use < rows.expr0_counts[instruction_index] {
-        let index: Int = rows.expr0_starts[instruction_index] + use;
+    let use_entry: Int = 0;
+    while use_entry < rows.expr0_counts[instruction_index] {
+        let index: Int = rows.expr0_starts[instruction_index] + use_entry;
         ArrayPush(items, JsonEmitObject([
             JsonEmitFieldNumber("node", ToString(rows.expr0_nodes[index])),
             JsonEmitFieldString("ref", rows.expr0_refs[index])
         ]));
-        use = use + 1;
+        use_entry = use_entry + 1;
     }
     return JsonEmitArray(items);
 }
@@ -72,10 +72,10 @@ func SelfMirJsonLocalRefsWriteFile(
         output, rows.primary_refs[instruction_index]
     ) { return false; }
     CompilerArtifactWrite(output, ",\"expr0_local_refs\":[");
-    let use: Int = 0;
-    while use < rows.expr0_counts[instruction_index] {
-        if use > 0 { CompilerArtifactWrite(output, ","); }
-        let index: Int = rows.expr0_starts[instruction_index] + use;
+    let use_entry: Int = 0;
+    while use_entry < rows.expr0_counts[instruction_index] {
+        if use_entry > 0 { CompilerArtifactWrite(output, ","); }
+        let index: Int = rows.expr0_starts[instruction_index] + use_entry;
         CompilerArtifactWrite(output, "{\"node\":");
         CompilerArtifactWrite(output, ToString(rows.expr0_nodes[index]));
         CompilerArtifactWrite(output, ",\"ref\":");
@@ -83,7 +83,7 @@ func SelfMirJsonLocalRefsWriteFile(
             return false;
         }
         CompilerArtifactWrite(output, "}");
-        use = use + 1;
+        use_entry = use_entry + 1;
     }
     CompilerArtifactWrite(output, "]");
     return true;

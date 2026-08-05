@@ -31,14 +31,14 @@ func DirectMirScalarCfgProgramValuesAppendRoutine(
     let value_definition_blocks: Array<Int> =
         storage.value_definition_blocks;
     let local_offset: Int = ArrayLength(local_names);
-    let local: Int = 0;
-    while local < ArrayLength(locals.local_names) {
-        ArrayPush(local_names, locals.local_names[local]);
-        ArrayPush(local_types, types.local_types[local]);
-        ArrayPush(local_ref_kinds, locals.local_ref_kinds[local]);
-        ArrayPush(local_ref_value_ids, locals.local_ref_value_ids[local]);
-        ArrayPush(local_ref_syntax_ids, locals.local_ref_syntax_ids[local]);
-        local = local + 1;
+    let local_binding: Int = 0;
+    while local_binding < ArrayLength(locals.local_names) {
+        ArrayPush(local_names, locals.local_names[local_binding]);
+        ArrayPush(local_types, types.local_types[local_binding]);
+        ArrayPush(local_ref_kinds, locals.local_ref_kinds[local_binding]);
+        ArrayPush(local_ref_value_ids, locals.local_ref_value_ids[local_binding]);
+        ArrayPush(local_ref_syntax_ids, locals.local_ref_syntax_ids[local_binding]);
+        local_binding = local_binding + 1;
     }
     let value: Int = 0;
     while value < ArrayLength(locals.value_names) {

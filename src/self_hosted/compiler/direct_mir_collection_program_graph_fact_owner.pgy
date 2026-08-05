@@ -31,12 +31,12 @@ func DirectMirCollectionInstructionGraph(
     if global < 0 || global >= ArrayLength(admitted.routines.instruction_starts) {
         return MirExpressionGraphSequenceEmpty();
     }
-    let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+    let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
         admitted.routines.source_json,
         admitted.routines.instruction_starts[global],
         admitted.routines.instruction_ends[global]
     );
-    return DirectMirScalarCfgInstructionGraphAt(object, "expr0_graph");
+    return DirectMirScalarCfgInstructionGraphAt(object_table, "expr0_graph");
 }
 
 func DirectMirCollectionEmptyArrayGraphReady(

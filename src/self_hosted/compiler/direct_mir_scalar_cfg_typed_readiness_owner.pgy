@@ -9,13 +9,13 @@ import "direct_mir_scalar_cfg_collection_pop_typed_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_collection_plan_typed_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_owner.pgy";
 func DirectMirScalarCfgPlanOperandType(
-    ref plan: DirectMirScalarCfgGraphPlan, value: Int, local: Int
+    ref plan: DirectMirScalarCfgGraphPlan, value: Int, local_binding: Int
 ) -> String {
-    if value >= 0 && value < ArrayLength(plan.value_types) && local < 0 {
+    if value >= 0 && value < ArrayLength(plan.value_types) && local_binding < 0 {
         return plan.value_types[value];
     }
-    if local >= 0 && local < ArrayLength(plan.local_types) && value < 0 {
-        return plan.local_types[local];
+    if local_binding >= 0 && local_binding < ArrayLength(plan.local_types) && value < 0 {
+        return plan.local_types[local_binding];
     }
     return "";
 }
@@ -181,9 +181,9 @@ func DirectMirScalarCfgTypedPlanReady(
     }
     row = 0;
     while row < ArrayLength(plan.value_types) {
-        let local: Int = plan.value_local_rows[row];
-        if local < 0 || local >= ArrayLength(plan.local_types) ||
-            plan.value_types[row] != plan.local_types[local] {
+        let local_binding: Int = plan.value_local_rows[row];
+        if local_binding < 0 || local_binding >= ArrayLength(plan.local_types) ||
+            plan.value_types[row] != plan.local_types[local_binding] {
             return false;
         }
         row = row + 1;

@@ -90,12 +90,12 @@ func DirectMirScalarCfgRangeFactsAtLocalRows(
     while row < DirectMirScalarCfgRangeFactCount(facts) {
         let fact: DirectMirScalarCfgRangeIterationFact =
             DirectMirScalarCfgRangeFactAt(facts, row);
-        let local: Int = DirectMirScalarCfgIterationLocalRow(
+        let local_binding: Int = DirectMirScalarCfgIterationLocalRow(
             local_ref_kinds, local_ref_syntax_ids, fact.loop_syntax_id
         );
-        if local < 0 { return DirectMirScalarCfgRangeFactSetInvalid(); }
+        if local_binding < 0 { return DirectMirScalarCfgRangeFactSetInvalid(); }
         bound = DirectMirScalarCfgRangeFactSetAppend(
-            bound, DirectMirScalarCfgRangeIterationFactAtLocalRow(fact, local)
+            bound, DirectMirScalarCfgRangeIterationFactAtLocalRow(fact, local_binding)
         );
         if !bound.valid { return DirectMirScalarCfgRangeFactSetInvalid(); }
         row = row + 1;
@@ -131,10 +131,10 @@ func DirectMirScalarCfgIterationLocalsReady(
     while row < DirectMirScalarCfgRangeFactCount(facts) {
         let fact: DirectMirScalarCfgRangeIterationFact =
             DirectMirScalarCfgRangeFactAt(facts, row);
-        let local: Int = DirectMirScalarCfgIterationLocalRow(
+        let local_binding: Int = DirectMirScalarCfgIterationLocalRow(
             local_ref_kinds, local_ref_syntax_ids, fact.loop_syntax_id
         );
-        if local < 0 || fact.local_row != local { return false; }
+        if local_binding < 0 || fact.local_row != local_binding { return false; }
         row = row + 1;
     }
     return true;

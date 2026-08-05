@@ -20,7 +20,7 @@ func DirectMirScalarProgramExpressionNodeReady(
     let type_name: String = facts.node_types[node];
     let left: Int = facts.node_lefts[node];
     let right: Int = facts.node_rights[node];
-    let local: Int = facts.node_local_rows[node];
+    let local_binding: Int = facts.node_local_rows[node];
     let param: Int = facts.node_parameter_ordinals[node];
     let literal: String = facts.node_literals[node];
     let callable: Int = facts.node_callable_rows[node];
@@ -40,32 +40,32 @@ func DirectMirScalarProgramExpressionNodeReady(
         DirectMirScalarProgramStringTransformExpressionNodeReady(facts, node);
     if IsSome(transform_ready) { return UnwrapOption(transform_ready); }
     if kind == DirectMirScalarProgramExprLocal() {
-        return local >= 0 && left == -1 && right == -1 && param == -1 &&
+        return local_binding >= 0 && left == -1 && right == -1 && param == -1 &&
             literal == "" && callable == -1;
     }
     if kind == DirectMirScalarProgramExprParameter() {
-        return param >= 0 && left == -1 && right == -1 && local == -1 &&
+        return param >= 0 && left == -1 && right == -1 && local_binding == -1 &&
             literal == "" && callable == -1;
     }
     if kind == DirectMirScalarProgramExprIntLiteral() {
         return type_name == CompilerAbiLayoutIntTypeName() &&
             DirectMirScalarCfgCanonicalInt(literal) && left == -1 &&
-            right == -1 && local == -1 && param == -1 && callable == -1;
+            right == -1 && local_binding == -1 && param == -1 && callable == -1;
     }
     if kind == DirectMirScalarProgramExprBoolLiteral() {
         return type_name == CompilerAbiLayoutBoolTypeName() &&
             (literal == "true" || literal == "false") && left == -1 &&
-            right == -1 && local == -1 && param == -1 && callable == -1;
+            right == -1 && local_binding == -1 && param == -1 && callable == -1;
     }
     if kind == DirectMirScalarProgramExprStringLiteral() {
         return type_name == CompilerAbiLayoutStringTypeName() &&
             DirectMirScalarProgramLiteralEmbeddable(literal) && left == -1 &&
-            right == -1 && local == -1 && param == -1 && callable == -1;
+            right == -1 && local_binding == -1 && param == -1 && callable == -1;
     }
     if kind == DirectMirScalarProgramExprLogicalNot() {
         return type_name == CompilerAbiLayoutBoolTypeName() && left >= 0 &&
             facts.node_types[left] == CompilerAbiLayoutBoolTypeName() &&
-            right == -1 && local == -1 && param == -1 && literal == "" &&
+            right == -1 && local_binding == -1 && param == -1 && literal == "" &&
             callable == -1;
     }
     if kind == DirectMirScalarProgramExprDirectCall() {
@@ -74,19 +74,19 @@ func DirectMirScalarProgramExpressionNodeReady(
     if kind == DirectMirScalarProgramExprToStringInt() {
         return type_name == CompilerAbiLayoutStringTypeName() && left >= 0 &&
             facts.node_types[left] == CompilerAbiLayoutIntTypeName() &&
-            right == -1 && local == -1 && param == -1 && literal == "" &&
+            right == -1 && local_binding == -1 && param == -1 && literal == "" &&
             callable == -1;
     }
     if kind == DirectMirScalarProgramExprToUpperString() || kind ==
             DirectMirScalarProgramExprToLowerString() {
         return type_name == CompilerAbiLayoutStringTypeName() && left >= 0 &&
             facts.node_types[left] == CompilerAbiLayoutStringTypeName() &&
-            right == -1 && local == -1 && param == -1 && literal == "" && callable == -1;
+            right == -1 && local_binding == -1 && param == -1 && literal == "" && callable == -1;
     }
     if kind == DirectMirScalarProgramExprStringLength() {
         return type_name == CompilerAbiLayoutIntTypeName() && left >= 0 &&
             facts.node_types[left] == CompilerAbiLayoutStringTypeName() &&
-            right == -1 && local == -1 && param == -1 && literal == "" &&
+            right == -1 && local_binding == -1 && param == -1 && literal == "" &&
             callable == -1;
     }
     let int_binary: Bool = kind == DirectMirScalarProgramExprModuloInt() ||
@@ -101,7 +101,7 @@ func DirectMirScalarProgramExpressionNodeReady(
         kind == DirectMirScalarProgramExprConcatString();
     if (!int_binary && !bool_binary && !string_binary) ||
         left < 0 || right < 0 ||
-        local != -1 || param != -1 || literal != "" || callable != -1 {
+        local_binding != -1 || param != -1 || literal != "" || callable != -1 {
         return false;
     }
     if string_binary {

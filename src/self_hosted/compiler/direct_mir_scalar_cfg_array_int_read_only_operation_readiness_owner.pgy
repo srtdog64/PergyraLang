@@ -4,14 +4,14 @@ import "direct_mir_scalar_cfg_operation_position_owner.pgy";
 
 func DirectMirScalarCfgArrayIntReadOnlyOperationReady(
     ref plan: DirectMirScalarCfgGraphPlan,
-    operation: Int, result: Int, local: Int, literal: String,
+    operation: Int, result: Int, local_binding: Int, literal: String,
     block: Int
 ) -> Bool {
     return operation >= 0 && operation < ArrayLength(plan.operation_kinds) &&
         plan.operation_kinds[operation] == DirectMirScalarCfgOpArrayReadInt() &&
         plan.operation_result_values[operation] == result &&
         plan.operation_left_values[operation] == -1 &&
-        plan.operation_left_locals[operation] == local &&
+        plan.operation_left_locals[operation] == local_binding &&
         plan.operation_left_literals[operation] == literal &&
         plan.operation_right_values[operation] == -1 &&
         plan.operation_right_locals[operation] == -1 &&

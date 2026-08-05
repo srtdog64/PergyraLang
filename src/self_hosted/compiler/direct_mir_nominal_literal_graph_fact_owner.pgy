@@ -54,11 +54,11 @@ func DirectMirNominalLiteralGraphFactFromSequences(
         Die("direct MIR nominal literal graph topology is invalid");
     }
     let literal: String = constructor.arena.node_texts[3];
-    let local: String = field_read.arena.node_texts[0];
+    let local_binding: String = field_read.arena.node_texts[0];
     let binding: String = Concat(
         declaration.field_name, Concat(": ", literal)
     );
-    if literal == "" || ToString(ToInt(literal)) != literal || local == "" ||
+    if literal == "" || ToString(ToInt(literal)) != literal || local_binding == "" ||
         constructor.arena.node_texts[0] != declaration.name ||
         constructor.arena.node_texts[1] != Concat(declaration.name, " { }") ||
         constructor.arena.node_texts[2] != declaration.field_name ||
@@ -67,14 +67,14 @@ func DirectMirNominalLiteralGraphFactFromSequences(
             declaration.name, Concat(" { ", Concat(binding, " }"))
         ) || field_read.arena.node_texts[1] != declaration.field_name ||
         field_read.arena.node_texts[2] != Concat(
-            local, Concat(".", declaration.field_name)
+            local_binding, Concat(".", declaration.field_name)
         ) {
         Die("direct MIR nominal literal graph identity is invalid");
     }
     let fact: DirectMirNominalLiteralGraphFact =
         DirectMirNominalLiteralGraphFact(
             true, 0, declaration.name, declaration.field_name,
-            local, ToInt(literal)
+            local_binding, ToInt(literal)
         );
     let verified: DirectMirNominalLiteralGraphFact =
         DirectMirNominalLiteralGraphFact(

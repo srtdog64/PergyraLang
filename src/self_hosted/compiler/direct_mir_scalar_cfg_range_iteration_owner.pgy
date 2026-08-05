@@ -99,10 +99,10 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
         let header: Int = -1;
         let block: Int = 0;
         while block < ArrayLength(index.block_starts) {
-            let local: Int = 0;
-            while local < index.block_instruction_counts[block] {
+            let local_binding: Int = 0;
+            while local_binding < index.block_instruction_counts[block] {
                 let instruction: Int =
-                    index.block_instruction_starts[block] + local;
+                    index.block_instruction_starts[block] + local_binding;
                 let global: Int = index.instruction_facts.global_start +
                     instruction;
                 let kind: String = admitted.routines.instruction_kinds[global];
@@ -119,7 +119,7 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
                     if branch_global >= 0 { return invalid; }
                     branch_global = global; header = block;
                 }
-                local = local + 1;
+                local_binding = local_binding + 1;
             }
             block = block + 1;
         }

@@ -121,7 +121,7 @@ func DirectMirScalarCfgForEachCollectionFromOwners(
     if !IsSome(abi_opt) { return invalid; }
     let abi: MirAbiLayoutRowCapture = UnwrapOption(abi_opt);
     if !DirectMirArrayIntCapturedAbiReady(abi) { return invalid; }
-    let local: DirectMirScalarCfgForEachCollectionFact =
+    let local_binding: DirectMirScalarCfgForEachCollectionFact =
         DirectMirScalarCfgForEachCollectionFact(
             true, Concat("local-array:", declaration.result),
             DirectMirArrayIntLiteralElements(graph),
@@ -130,8 +130,8 @@ func DirectMirScalarCfgForEachCollectionFromOwners(
             ToInt(abi.field_offsets[1]), ToInt(abi.field_offsets[2]),
             ToInt(abi.field_offsets[3])
         );
-    if !DirectMirScalarCfgForEachCollectionFactReady(local) {
+    if !DirectMirScalarCfgForEachCollectionFactReady(local_binding) {
         return invalid;
     }
-    return local;
+    return local_binding;
 }

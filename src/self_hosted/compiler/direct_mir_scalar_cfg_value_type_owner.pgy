@@ -29,14 +29,14 @@ func DirectMirScalarCfgValueTypePlanFromOwners(
         return invalid;
     }
     let local_types: Array<String> = [];
-    let local: Int = 0;
-    while local < ArrayLength(locals.local_names) {
+    let local_binding: Int = 0;
+    while local_binding < ArrayLength(locals.local_names) {
         let type_name: String = "";
-        if locals.local_ref_kinds[local] ==
+        if locals.local_ref_kinds[local_binding] ==
                 DirectMirScalarCfgLocalRefValue() {
             let value: Int = 0;
             while value < ArrayLength(locals.value_names) {
-                if locals.value_local_rows[value] == local {
+                if locals.value_local_rows[value] == local_binding {
                     let definition: MirRoutineResultDefinitionFact =
                         MirRoutineFactIndexUniqueResultDefinition(
                             index, locals.value_names[value]
@@ -59,20 +59,20 @@ func DirectMirScalarCfgValueTypePlanFromOwners(
                 }
                 value = value + 1;
             }
-        } else if locals.local_ref_kinds[local] ==
+        } else if locals.local_ref_kinds[local_binding] ==
                 DirectMirScalarCfgLocalRefIteration() {
             type_name = CompilerAbiLayoutIntTypeName();
-        } else if locals.local_ref_kinds[local] ==
+        } else if locals.local_ref_kinds[local_binding] ==
                 DirectMirScalarCfgLocalRefForEach() {
             type_name = DirectMirScalarCfgForEachElementTypeAtLoopSyntaxId(
-                foreach_elements, locals.local_ref_syntax_ids[local]
+                foreach_elements, locals.local_ref_syntax_ids[local_binding]
             );
         }
         if !DirectMirScalarCfgSourceLocalTypeSupported(type_name) {
             return invalid;
         }
         ArrayPush(local_types, type_name);
-        local = local + 1;
+        local_binding = local_binding + 1;
     }
     let value_types: Array<String> = [];
     let value: Int = 0;
@@ -91,13 +91,13 @@ func DirectMirScalarCfgValueTypePlanFromOwners(
 
 func DirectMirScalarCfgOperandType(
     ref types: DirectMirScalarCfgValueTypePlan,
-    value: Int, local: Int
+    value: Int, local_binding: Int
 ) -> String {
-    if value >= 0 && value < ArrayLength(types.value_types) && local < 0 {
+    if value >= 0 && value < ArrayLength(types.value_types) && local_binding < 0 {
         return types.value_types[value];
     }
-    if local >= 0 && local < ArrayLength(types.local_types) && value < 0 {
-        return types.local_types[local];
+    if local_binding >= 0 && local_binding < ArrayLength(types.local_types) && value < 0 {
+        return types.local_types[local_binding];
     }
     return "";
 }

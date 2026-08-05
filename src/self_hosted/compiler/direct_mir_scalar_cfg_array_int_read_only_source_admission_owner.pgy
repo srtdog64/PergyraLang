@@ -42,9 +42,9 @@ func DirectMirScalarCfgArrayIntReadOnlySourceFromOwners(
     let collection_uses: Int = 0; let claimed_uses: Int = 0;
     let block: Int = 0;
     while block < ArrayLength(index.block_starts) {
-        let local: Int = 0;
-        while local < index.block_instruction_counts[block] {
-            let instruction: Int = index.block_instruction_starts[block] + local;
+        let local_binding: Int = 0;
+        while local_binding < index.block_instruction_counts[block] {
+            let instruction: Int = index.block_instruction_starts[block] + local_binding;
             let global: Int = index.instruction_facts.global_start + instruction;
             let kind: String = admitted.routines.instruction_kinds[global];
             let source: String = admitted.routines.instruction_source_types[global];
@@ -52,13 +52,13 @@ func DirectMirScalarCfgArrayIntReadOnlySourceFromOwners(
                 MirRoutineInstructionFactBundleAtGlobal(
                     index.instruction_facts, global
                 );
-            let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
                 admitted.routines.source_json,
                 admitted.routines.instruction_starts[global],
                 admitted.routines.instruction_ends[global]
             );
             let graph: MirExpressionGraphSequence =
-                DirectMirScalarCfgInstructionGraphAt(object, "expr0_graph");
+                DirectMirScalarCfgInstructionGraphAt(object_table, "expr0_graph");
             let use_row: Int = 0;
             while use_row < MirRoutineInstructionUseCountAtGlobal(uses, global) {
                 if DirectMirScalarCfgArrayIntUseAt(
@@ -140,7 +140,7 @@ func DirectMirScalarCfgArrayIntReadOnlySourceFromOwners(
                     log_global = global; logged_id = UnwrapOption(logged);
                 }
             }
-            local = local + 1;
+            local_binding = local_binding + 1;
         }
         block = block + 1;
     }

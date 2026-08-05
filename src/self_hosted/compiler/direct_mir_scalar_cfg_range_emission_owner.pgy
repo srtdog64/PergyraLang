@@ -23,22 +23,22 @@ func DirectMirScalarCfgRangeCBlockEffect(
     if !DirectMirScalarCfgRangeIterationFactReady(fact, block_count) {
         Die("direct MIR scalar CFG C range fact is invalid");
     }
-    let local: String = Concat(
+    let local_binding: String = Concat(
         "pgy_local_", ToString(fact.local_row)
     );
     if block == fact.init_block {
         return Concat(
             "    ", Concat(
-                local, Concat(" = ", Concat(fact.start_literal, ";\n"))
+                local_binding, Concat(" = ", Concat(fact.start_literal, ";\n"))
             )
         );
     }
     if DirectMirScalarCfgRangeBackedgeContains(fact, block) {
         return Concat(
             "    ", Concat(
-                local, Concat(
+                local_binding, Concat(
                     " = ", Concat(
-                        local, Concat(
+                        local_binding, Concat(
                             " + ", Concat(fact.step_literal, ";\n")
                         )
                     )
@@ -58,14 +58,14 @@ func DirectMirScalarCfgRangeLlvmBlockEffect(
     if !DirectMirScalarCfgRangeIterationFactReady(fact, block_count) {
         Die("direct MIR scalar CFG LLVM range fact is invalid");
     }
-    let local: String = Concat(
+    let local_binding: String = Concat(
         "%pgy.local.", ToString(fact.local_row)
     );
     if block == fact.init_block {
         return Concat(
             "  store i64 ", Concat(
                 fact.start_literal,
-                Concat(", ptr ", Concat(local, ", align 8\n"))
+                Concat(", ptr ", Concat(local_binding, ", align 8\n"))
             )
         );
     }
@@ -74,7 +74,7 @@ func DirectMirScalarCfgRangeLlvmBlockEffect(
     let output: String = Concat(
         "  ", Concat(
             prefix, Concat(".current = load i64, ptr ",
-                Concat(local, ", align 8\n"))
+                Concat(local_binding, ", align 8\n"))
         )
     );
     output = Concat(output, Concat(
@@ -88,7 +88,7 @@ func DirectMirScalarCfgRangeLlvmBlockEffect(
     ));
     return Concat(output, Concat(
         "  store i64 ", Concat(
-            prefix, Concat(".next, ptr ", Concat(local, ", align 8\n"))
+            prefix, Concat(".next, ptr ", Concat(local_binding, ", align 8\n"))
         )
     ));
 }

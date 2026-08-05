@@ -15,13 +15,13 @@ func DirectMirScalarCfgArrayIndexAssignmentRouteClaimed(
             DirectMirScalarCfgCollectionTypeSupported(
                 index.instruction_facts.abi_type_names[instruction]
             ) {
-            let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
                 admitted.routines.source_json,
                 admitted.routines.instruction_starts[global],
                 admitted.routines.instruction_ends[global]
             );
             let target: MirExpressionGraphSequence =
-                DirectMirScalarCfgInstructionGraphAt(object, "expr1_graph");
+                DirectMirScalarCfgInstructionGraphAt(object_table, "expr1_graph");
             if target.ready_node_count != 1 { return true; }
         }
         instruction = instruction + 1;

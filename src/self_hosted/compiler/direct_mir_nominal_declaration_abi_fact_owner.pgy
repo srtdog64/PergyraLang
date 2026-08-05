@@ -131,7 +131,7 @@ func DirectMirNominalDeclarationAbiFactFromDocument(
     }
     let start: Int = declarations.starts[row];
     let end: Int = declarations.ends[row];
-    let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+    let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
         json, start, end
     );
     let keys: Array<String> = [
@@ -144,7 +144,7 @@ func DirectMirNominalDeclarationAbiFactFromDocument(
     let ends: Array<Int> = [
         0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
     ];
-    if !JsonObjectFactTableReady(object) || JsonObjectFactCount(object) != 8 ||
+    if !JsonObjectFactTableReady(object_table) || JsonObjectFactCount(object_table) != 8 ||
         !MirAbiSelectedObjectBoundsWithin(
             json, start, end, keys, starts, ends
         ) || !MirAbiAllBoundsPresent(starts, ends) {
@@ -171,7 +171,7 @@ func DirectMirNominalDeclarationAbiFactFromDocument(
             starts[5], ends[5], starts[6], ends[6], starts[7], ends[7]
         );
     let fields: JsonArrayObjectFactTable =
-        JsonObjectFactArrayObjectTable(object, "fields");
+        JsonObjectFactArrayObjectTable(object_table, "fields");
     if !IsSome(admitted_abi) || !JsonArrayObjectFactTableReady(fields) {
         return InvalidDirectMirNominalDeclarationAbiFact();
     }

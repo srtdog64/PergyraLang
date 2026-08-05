@@ -26,9 +26,9 @@ func DirectMirInferredGenericScalarEmitC(
     let wrapper_parameter: String = CompilerSymbolCIdentifier(
         graph.wrapper_parameter_name
     );
-    let local: String = CompilerSymbolCIdentifier(graph.local_name);
+    let local_binding: String = CompilerSymbolCIdentifier(graph.local_name);
     if specialized == "" || generic_parameter == "" || wrapper == "" ||
-        wrapper_parameter == "" || local == "" || specialized == wrapper {
+        wrapper_parameter == "" || local_binding == "" || specialized == wrapper {
         Die("direct MIR inferred scalar C symbols are invalid");
     }
     let output: String = "#include <stdint.h>\n#include <stdio.h>\n\nstatic int32_t ";
@@ -46,11 +46,11 @@ func DirectMirInferredGenericScalarEmitC(
     output = Concat(output, "(");
     output = Concat(output, wrapper_parameter);
     output = Concat(output, ");\n}\n\nint main(void) {\n    int32_t ");
-    output = Concat(output, local);
+    output = Concat(output, local_binding);
     output = Concat(output, " = ");
     output = Concat(output, ToString(plan.initial_value));
     output = Concat(output, ";\n    ");
-    output = Concat(output, local);
+    output = Concat(output, local_binding);
     output = Concat(output, " = ");
     output = Concat(output, specialized);
     output = Concat(output, "(");
@@ -62,7 +62,7 @@ func DirectMirInferredGenericScalarEmitC(
     output = Concat(output, "\", (long long)");
     output = Concat(output, wrapper);
     output = Concat(output, "(");
-    output = Concat(output, local);
+    output = Concat(output, local_binding);
     output = Concat(output, "));\n    return 0;\n}\n");
     return output;
 }

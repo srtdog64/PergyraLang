@@ -26,11 +26,11 @@ func DirectMirScalarBuiltinProgramRouteClaimed(
     if !index.valid || ArrayLength(index.source_local_types) < 1 {
         return false;
     }
-    let local: Int = 0;
-    while local < ArrayLength(index.source_local_types) {
+    let local_binding: Int = 0;
+    while local_binding < ArrayLength(index.source_local_types) {
         if !DirectMirScalarCfgSourceLocalTypeSupported(
-                index.source_local_types[local]) { return false; }
-        local = local + 1;
+                index.source_local_types[local_binding]) { return false; }
+        local_binding = local_binding + 1;
     }
     let builtin_seen: Bool = false; let row: Int = 0;
     while row < ArrayLength(index.instruction_facts.starts) {

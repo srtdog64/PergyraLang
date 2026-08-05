@@ -6,7 +6,7 @@ import "ast_iteration_type_fact_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
 
 func SemanticExpressionDirectTargetSyntaxId(
-    ref signatures: SemanticAstFunctionSignatureFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
     target_name: String
 ) -> Int {
     let found: Int = 0;
@@ -38,7 +38,7 @@ func SemanticExpressionDirectTargetSyntaxId(
 }
 
 func SemanticExpressionFormalParameterOrdinal(
-    ref signatures: SemanticAstFunctionSignatureFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
     function_node_id: Int, binding_name: String
 ) -> Int {
     let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(

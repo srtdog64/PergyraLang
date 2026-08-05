@@ -29,19 +29,19 @@ func DirectMirScalarCfgArrayIntStaticMutationFromOwners(
     let collection_uses: Int = 0; let claimed_uses: Int = 0;
     let block: Int = 0;
     while block < ArrayLength(index.block_starts) {
-        let local: Int = 0;
-        while local < index.block_instruction_counts[block] {
+        let local_binding: Int = 0;
+        while local_binding < index.block_instruction_counts[block] {
             let local_instruction: Int =
-                index.block_instruction_starts[block] + local;
+                index.block_instruction_starts[block] + local_binding;
             let global: Int = index.instruction_facts.global_start +
                 local_instruction;
-            let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
                 admitted.routines.source_json,
                 admitted.routines.instruction_starts[global],
                 admitted.routines.instruction_ends[global]
             );
             let graph: MirExpressionGraphSequence =
-                DirectMirScalarCfgInstructionGraphAt(object, "expr0_graph");
+                DirectMirScalarCfgInstructionGraphAt(object_table, "expr0_graph");
             let kind: String = admitted.routines.instruction_kinds[global];
             let source: String =
                 admitted.routines.instruction_source_types[global];
@@ -117,7 +117,7 @@ func DirectMirScalarCfgArrayIntStaticMutationFromOwners(
             } else if kind == "stmt" && capture.arg0 == "ArraySet" {
                 let index_graph: MirExpressionGraphSequence =
                     DirectMirScalarCfgInstructionGraphAt(
-                        object, "expr1_graph"
+                        object_table, "expr1_graph"
                     );
                 let value_fact:
                     DirectMirScalarCfgArrayIntLiteralGraphFact =
@@ -165,7 +165,7 @@ func DirectMirScalarCfgArrayIntStaticMutationFromOwners(
                     claimed_uses = claimed_uses + 1;
                 }
             }
-            local = local + 1;
+            local_binding = local_binding + 1;
         }
         block = block + 1;
     }
@@ -193,24 +193,24 @@ func DirectMirScalarCfgArrayIntStaticMutationFromOwners(
         indexed_log_position.block != consumer_exit ||
         !length_log_position.valid ||
         length_log_position.block != consumer_exit ||
-        set_position.local >= indexed_log_position.local ||
-        indexed_log_position.local >= length_log_position.local ||
+        set_position.local_binding >= indexed_log_position.local_binding ||
+        indexed_log_position.local_binding >= length_log_position.local_binding ||
         index_id == "" || sum_id == "" || read_result == "" ||
         set_index < 0 || set_index >= initial_length ||
         indexed_log_index < 0 || indexed_log_index >= initial_length ||
         collection_uses != 5 || claimed_uses != collection_uses ||
         !MirRoutineDefinitionDominatesInstruction(
-            index, definition, length_position.block, length_position.local
+            index, definition, length_position.block, length_position.local_binding
         ) || !MirRoutineDefinitionDominatesInstruction(
-            index, definition, read_position.block, read_position.local
+            index, definition, read_position.block, read_position.local_binding
         ) || !MirRoutineDefinitionDominatesInstruction(
-            index, definition, set_position.block, set_position.local
+            index, definition, set_position.block, set_position.local_binding
         ) || !MirRoutineDefinitionDominatesInstruction(
             index, definition, indexed_log_position.block,
-            indexed_log_position.local
+            indexed_log_position.local_binding
         ) || !MirRoutineDefinitionDominatesInstruction(
             index, definition, length_log_position.block,
-            length_log_position.local
+            length_log_position.local_binding
         ) { return empty; }
     return DirectMirScalarCfgArrayIntProgramFact(
         true, DirectMirScalarCfgArrayIntStaticSetMode(), collection,

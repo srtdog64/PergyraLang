@@ -87,7 +87,7 @@ func DirectMirRoutineParamFactReady(
 func DirectMirRoutineParamFactFromBounds(
     json: String, start: Int, end: Int
 ) -> DirectMirRoutineParamFact {
-    let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+    let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
         json, start, end
     );
     let keys: Array<String> = [
@@ -103,7 +103,7 @@ func DirectMirRoutineParamFactFromBounds(
         0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
         0 - 1, 0 - 1, 0 - 1, 0 - 1
     ];
-    if !JsonObjectFactTableReady(object) || JsonObjectFactCount(object) != 9 ||
+    if !JsonObjectFactTableReady(object_table) || JsonObjectFactCount(object_table) != 9 ||
         !MirAbiSelectedObjectBoundsWithin(
             json, start, end, keys, starts, ends
         ) || !MirAbiAllBoundsPresent(starts, ends) {

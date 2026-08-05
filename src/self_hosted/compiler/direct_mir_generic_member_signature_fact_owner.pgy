@@ -66,21 +66,21 @@ func DirectMirGenericMemberSignatureFactReady(
 }
 
 func DirectMirGenericMemberReceiverParamReady(
-    ref object: JsonObjectFactTable
+    ref object_table: JsonObjectFactTable
 ) -> Bool {
-    return JsonObjectFactTableReady(object) &&
-        JsonObjectFactCount(object) == 9 &&
-        JsonObjectFactStringFieldEquals(object, "name", "self") &&
-        DirectMirObjectFieldKindEquals(object, "type", "null") &&
-        JsonObjectFactStringFieldEquals(object, "carriage", "value") &&
-        JsonObjectFactStringFieldEquals(object, "resource", "none") &&
-        JsonObjectFactStringFieldEquals(object, "pass", "direct") &&
-        DirectMirObjectFieldKindEquals(object, "abi_type_name", "null") &&
-        DirectMirObjectNumberEquals(object, "abi_layout_id", "0") &&
+    return JsonObjectFactTableReady(object_table) &&
+        JsonObjectFactCount(object_table) == 9 &&
+        JsonObjectFactStringFieldEquals(object_table, "name", "self") &&
+        DirectMirObjectFieldKindEquals(object_table, "type", "null") &&
+        JsonObjectFactStringFieldEquals(object_table, "carriage", "value") &&
+        JsonObjectFactStringFieldEquals(object_table, "resource", "none") &&
+        JsonObjectFactStringFieldEquals(object_table, "pass", "direct") &&
+        DirectMirObjectFieldKindEquals(object_table, "abi_type_name", "null") &&
+        DirectMirObjectNumberEquals(object_table, "abi_layout_id", "0") &&
         JsonObjectBoolFieldEqualsWithin(
-            object.json, object.start, object.end,
+            object_table.json, object_table.start, object_table.end,
             "abi_layout_required", false
-        ) && DirectMirObjectFieldKindEquals(object, "abi_layout", "null");
+        ) && DirectMirObjectFieldKindEquals(object_table, "abi_layout", "null");
 }
 
 func DirectMirGenericMemberSignatureFactAt(

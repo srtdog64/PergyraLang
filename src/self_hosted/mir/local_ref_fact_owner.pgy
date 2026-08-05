@@ -80,16 +80,16 @@ func SelfMirInstructionLocalRefRowsAttachExpr0(
         );
         if IsSome(kind) && IsSome(text) &&
             UnwrapOption(kind) == AstExpressionNodeLeaf() {
-            let local: Int = ArrayLength(local_names) - 1;
-            while local >= 0 {
-                if local_names[local] == UnwrapOption(text) {
-                    if local_versions[local] == 0 && local_refs[local] != "" {
+            let local_binding: Int = ArrayLength(local_names) - 1;
+            while local_binding >= 0 {
+                if local_names[local_binding] == UnwrapOption(text) {
+                    if local_versions[local_binding] == 0 && local_refs[local_binding] != "" {
                         ArrayPush(nodes, node - start);
-                        ArrayPush(refs, local_refs[local]);
+                        ArrayPush(refs, local_refs[local_binding]);
                     }
                     break;
                 }
-                local = local - 1;
+                local_binding = local_binding - 1;
             }
         }
         node = node + 1;
@@ -115,12 +115,12 @@ func SelfMirInstructionLocalRefRowsAppendRows(
         ArrayPush(primary, source.primary_refs[row]);
         ArrayPush(starts, ArrayLength(nodes));
         ArrayPush(counts, source.expr0_counts[row]);
-        let use: Int = 0;
-        while use < source.expr0_counts[row] {
-            let source_use: Int = source.expr0_starts[row] + use;
+        let use_entry: Int = 0;
+        while use_entry < source.expr0_counts[row] {
+            let source_use: Int = source.expr0_starts[row] + use_entry;
             ArrayPush(nodes, source.expr0_nodes[source_use]);
             ArrayPush(refs, source.expr0_refs[source_use]);
-            use = use + 1;
+            use_entry = use_entry + 1;
         }
         row = row + 1;
     }
@@ -144,15 +144,15 @@ func SelfMirInstructionLocalRefRowsReady(
         if rows.expr0_starts[row] != cursor || rows.expr0_counts[row] < 0 {
             return false;
         }
-        let use: Int = 0;
-        while use < rows.expr0_counts[row] {
-            let index: Int = cursor + use;
+        let use_entry: Int = 0;
+        while use_entry < rows.expr0_counts[row] {
+            let index: Int = cursor + use_entry;
             if rows.expr0_nodes[index] < 0 ||
                 rows.expr0_nodes[index] >= graphs.node_counts[row] ||
                 !SelfMirLocalRefValid(rows.expr0_refs[index]) {
                 return false;
             }
-            use = use + 1;
+            use_entry = use_entry + 1;
         }
         cursor = cursor + rows.expr0_counts[row];
         row = row + 1;

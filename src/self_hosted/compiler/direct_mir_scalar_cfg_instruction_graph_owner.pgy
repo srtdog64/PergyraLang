@@ -3,10 +3,10 @@
 import "../mir_lower/expression_graph_sequence_owner.pgy";
 
 func DirectMirScalarCfgInstructionGraphAt(
-    ref object: JsonObjectFactTable, key: String
+    ref object_table: JsonObjectFactTable, key: String
 ) -> MirExpressionGraphSequence {
     return MirExpressionGraphSequenceAppend(
         MirExpressionGraphSequenceEmpty(),
-        JsonObjectFactObjectTable(object, key)
+        JsonObjectFactObjectTable(object_table, key)
     );
 }

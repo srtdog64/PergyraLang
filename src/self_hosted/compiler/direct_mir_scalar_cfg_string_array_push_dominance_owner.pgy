@@ -32,8 +32,8 @@ func DirectMirScalarCfgStringArrayPushPrefixDominanceReady(
                     );
                 if !definition.valid || definition.block != 0 ||
                     !position.valid || position.block != 0 ||
-                    position.local <= definition.local ||
-                    (last_push.valid && position.local <= last_push.local) ||
+                    position.local_binding <= definition.local_binding ||
+                    (last_push.valid && position.local_binding <= last_push.local_binding) ||
                     fact.global_row <= prior_global {
                     return false;
                 }
@@ -53,7 +53,7 @@ func DirectMirScalarCfgStringArrayPushPrefixDominanceReady(
                             index, fact.global_row
                         );
                     if !position.valid || (position.block == 0 &&
-                        position.local <= last_push.local) ||
+                        position.local_binding <= last_push.local_binding) ||
                         (position.block != 0 &&
                          !MirRoutineBlockDominates(index, 0, position.block)) {
                         return false;
@@ -72,7 +72,7 @@ func DirectMirScalarCfgStringArrayPushPrefixDominanceReady(
                             index, fact.global_row
                         );
                     if !position.valid || (position.block == 0 &&
-                        position.local <= last_push.local) ||
+                        position.local_binding <= last_push.local_binding) ||
                         (position.block != 0 &&
                          !MirRoutineBlockDominates(index, 0, position.block)) {
                         return false;

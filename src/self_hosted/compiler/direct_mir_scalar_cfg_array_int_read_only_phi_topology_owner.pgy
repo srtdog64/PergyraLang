@@ -44,9 +44,9 @@ func DirectMirScalarCfgArrayIntReadOnlyPhiTopologyFromOwners(
     let joined_id: String = ""; let header_phi_count: Int = 0;
     let join_phi_count: Int = 0; let block: Int = 0;
     while block < ArrayLength(index.block_starts) {
-        let local: Int = 0;
-        while local < index.block_instruction_counts[block] {
-            let instruction: Int = index.block_instruction_starts[block] + local;
+        let local_binding: Int = 0;
+        while local_binding < index.block_instruction_counts[block] {
+            let instruction: Int = index.block_instruction_starts[block] + local_binding;
             let global: Int = index.instruction_facts.global_start + instruction;
             if admitted.routines.instruction_kinds[global] == "phi" {
                 let capture: MirRoutineInstructionScalarCapture =
@@ -73,7 +73,7 @@ func DirectMirScalarCfgArrayIntReadOnlyPhiTopologyFromOwners(
                 }
                 if block == join_block { join_phi_count = join_phi_count + 1; }
             }
-            local = local + 1;
+            local_binding = local_binding + 1;
         }
         block = block + 1;
     }
@@ -107,7 +107,7 @@ func DirectMirScalarCfgArrayIntReadOnlyPhiTopologyFromOwners(
     if !initial_position.valid || !init_position.valid ||
         initial_position.block != range.init_block ||
         init_position.block != range.init_block ||
-        initial_position.local >= init_position.local ||
+        initial_position.local_binding >= init_position.local_binding ||
         !condition_position.valid ||
         condition_position.block != source.condition_block ||
         !update_position.valid || update_position.block != source.update_block ||
@@ -119,11 +119,11 @@ func DirectMirScalarCfgArrayIntReadOnlyPhiTopologyFromOwners(
         index.block_succ_true[join_block] != range.header_block ||
         index.block_succ_false[join_block] >= 0 ||
         !MirRoutineDefinitionDominatesInstruction(
-            index, definition, initial_position.block, initial_position.local
+            index, definition, initial_position.block, initial_position.local_binding
         ) || !MirRoutineDefinitionDominatesInstruction(
-            index, definition, condition_position.block, condition_position.local
+            index, definition, condition_position.block, condition_position.local_binding
         ) || !MirRoutineDefinitionDominatesInstruction(
-            index, definition, update_position.block, update_position.local
+            index, definition, update_position.block, update_position.local_binding
         ) { return invalid; }
     return DirectMirScalarCfgArrayIntReadOnlyPhiTopologyFact(true, joined_id);
 }

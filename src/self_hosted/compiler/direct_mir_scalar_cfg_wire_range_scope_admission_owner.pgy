@@ -73,13 +73,13 @@ func DirectMirScalarCfgWireRangeScopesReady(
         let block: Int = DirectMirScalarCfgInstructionBlock(
             index, instruction
         );
-        let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
             admitted.routines.source_json,
             admitted.routines.instruction_starts[global],
             admitted.routines.instruction_ends[global]
         );
         let sequence: MirExpressionGraphSequence =
-            DirectMirScalarCfgExpressionSequence(object);
+            DirectMirScalarCfgExpressionSequence(object_table);
         let matching_nodes: Int = 0;
         let direct_nodes: Int = 0;
         if sequence.ok {
@@ -117,10 +117,10 @@ func DirectMirScalarCfgWireRangeScopesReady(
             }
         } else if wire.expr0_counts[instruction] != 0 { return false; }
         let matching_uses: Int = 0;
-        let use: Int = 0;
-        while use < MirRoutineInstructionUseCountAtGlobal(use_facts, global) {
+        let use_entry: Int = 0;
+        while use_entry < MirRoutineInstructionUseCountAtGlobal(use_facts, global) {
             let use_opt: Option<String> = MirRoutineInstructionUseAtGlobal(
-                use_facts, global, use
+                use_facts, global, use_entry
             );
             if IsSome(use_opt) {
                 let fact_row: Int = 0;
@@ -141,7 +141,7 @@ func DirectMirScalarCfgWireRangeScopesReady(
                 }
                 if matched { matching_uses = matching_uses + 1; }
             }
-            use = use + 1;
+            use_entry = use_entry + 1;
         }
         if matching_nodes != direct_nodes + matching_uses { return false; }
         instruction = instruction + 1;

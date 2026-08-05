@@ -7,11 +7,11 @@ import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_mutation_graph_readiness_owner.pgy";
 
 func DirectMirScalarCfgStringArrayOperandCount(
-    value: Int, local: Int, literal: String
+    value: Int, local_binding: Int, literal: String
 ) -> Int {
     let count: Int = 0;
     if value >= 0 { count = count + 1; }
-    if local >= 0 { count = count + 1; }
+    if local_binding >= 0 { count = count + 1; }
     if literal != "" { count = count + 1; }
     return count;
 }

@@ -29,13 +29,13 @@ func DirectMirScalarCfgArrayIntReverseFromOwners(
     let instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
-        let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
             admitted.routines.source_json,
             admitted.routines.instruction_starts[global],
             admitted.routines.instruction_ends[global]
         );
         let graph: MirExpressionGraphSequence =
-            DirectMirScalarCfgInstructionGraphAt(object, "expr0_graph");
+            DirectMirScalarCfgInstructionGraphAt(object_table, "expr0_graph");
         let capture: MirRoutineInstructionScalarCapture =
             MirRoutineInstructionFactBundleAtGlobal(
                 index.instruction_facts, global
@@ -143,7 +143,7 @@ func DirectMirScalarCfgArrayIntReverseFromOwners(
             result, collection
         ) || !MirRoutineDefinitionDominatesInstruction(
             index, source_definition,
-            reverse_position.block, reverse_position.local
+            reverse_position.block, reverse_position.local_binding
         ) { return invalid; }
     let operation_rows: Array<Int> = [];
     log_row = 0;

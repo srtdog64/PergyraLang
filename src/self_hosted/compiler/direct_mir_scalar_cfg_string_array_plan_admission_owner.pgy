@@ -65,10 +65,10 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
     let claimed_collection_use_count: Int = 0;
     let block: Int = 0;
     while block < ArrayLength(index.block_starts) {
-        let local: Int = 0;
-        while local < index.block_instruction_counts[block] {
+        let local_binding: Int = 0;
+        while local_binding < index.block_instruction_counts[block] {
             let local_instruction: Int =
-                index.block_instruction_starts[block] + local;
+                index.block_instruction_starts[block] + local_binding;
             let global: Int = index.instruction_facts.global_start +
                 local_instruction;
             let use_count: Int = MirRoutineInstructionUseCountAtGlobal(
@@ -88,13 +88,13 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
                 MirRoutineInstructionFactBundleAtGlobal(
                     index.instruction_facts, global
                 );
-            let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
                 admitted.routines.source_json,
                 admitted.routines.instruction_starts[global],
                 admitted.routines.instruction_ends[global]
             );
             let graph: MirExpressionGraphSequence =
-                DirectMirScalarCfgStringArrayGraphAt(object, "expr0_graph");
+                DirectMirScalarCfgStringArrayGraphAt(object_table, "expr0_graph");
             let range: DirectMirScalarCfgRangeIterationFact =
                 DirectMirScalarCfgRangeFactAtBranchGlobalRow(ranges, global);
             if kind == "branch" && range.valid && range.stop_value_id != "" {
@@ -368,7 +368,7 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
                         use_facts, source, global, 0
                     );
                 let index_graph: MirExpressionGraphSequence =
-                    DirectMirScalarCfgStringArrayGraphAt(object, "expr1_graph");
+                    DirectMirScalarCfgStringArrayGraphAt(object_table, "expr1_graph");
                 let value_opt: Option<String> =
                     DirectMirScalarCfgStringArraySingleLiteral(
                         graph, AstExpressionNodeStringLiteral()
@@ -396,7 +396,7 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
                 ));
                 claimed_collection_use_count = claimed_collection_use_count + 1;
             }
-            local = local + 1;
+            local_binding = local_binding + 1;
         }
         block = block + 1;
     }

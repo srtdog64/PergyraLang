@@ -31,13 +31,13 @@ func DirectMirScalarSingleStringProgramRouteClaimed(
     if !index.valid || ArrayLength(index.source_local_types) < 1 {
         return false;
     }
-    let local: Int = 0;
-    while local < ArrayLength(index.source_local_types) {
-        if index.source_local_types[local] !=
+    let local_binding: Int = 0;
+    while local_binding < ArrayLength(index.source_local_types) {
+        if index.source_local_types[local_binding] !=
                 CompilerAbiLayoutStringTypeName() {
             return false;
         }
-        local = local + 1;
+        local_binding = local_binding + 1;
     }
     let branch_seen: Bool = false;
     let row: Int = 0;

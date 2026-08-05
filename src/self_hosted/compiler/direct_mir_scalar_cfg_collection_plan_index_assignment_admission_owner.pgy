@@ -126,13 +126,13 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
         let kind: String = admitted.routines.instruction_kinds[global];
         let source_type: String =
             admitted.routines.instruction_source_types[global];
-        let object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
             admitted.routines.source_json,
             admitted.routines.instruction_starts[global],
             admitted.routines.instruction_ends[global]
         );
         let graph: MirExpressionGraphSequence =
-            DirectMirScalarCfgInstructionGraphAt(object, "expr0_graph");
+            DirectMirScalarCfgInstructionGraphAt(object_table, "expr0_graph");
         if kind == "def" && source_type == "AST_ASSIGNMENT" &&
             DirectMirScalarCfgCollectionTypeSupported(capture.abi_type_name) {
             let type_row: Int = -1;
@@ -141,7 +141,7 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
             } else if capture.abi_type_name ==
                     CompilerAbiLayoutArrayStringTypeName() { type_row = 1; }
             let target_graph: MirExpressionGraphSequence =
-                DirectMirScalarCfgInstructionGraphAt(object, "expr1_graph");
+                DirectMirScalarCfgInstructionGraphAt(object_table, "expr1_graph");
             let target: DirectMirScalarCfgStringArrayIndexGraphFact =
                 DirectMirScalarCfgStringArrayIndexGraphFactFrom(target_graph);
             let source_use: Option<String> =

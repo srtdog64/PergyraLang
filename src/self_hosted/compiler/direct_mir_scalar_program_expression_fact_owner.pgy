@@ -146,14 +146,14 @@ func DirectMirScalarProgramExpressionSetShapeReady(
         let kind: Int = facts.node_kinds[node];
         let left: Int = facts.node_lefts[node];
         let right: Int = facts.node_rights[node];
-        let local: Int = facts.node_local_rows[node];
+        let local_binding: Int = facts.node_local_rows[node];
         let param: Int = facts.node_parameter_ordinals[node];
         let literal: String = facts.node_literals[node];
         let callable: Int = facts.node_callable_rows[node];
         if kind < DirectMirScalarProgramExprLocal() ||
             kind > DirectMirScalarProgramExpressionKindLast() ||
             facts.node_types[node] == "" || left >= node || right >= node ||
-            left < -1 || right < -1 || local < -1 || param < -1 ||
+            left < -1 || right < -1 || local_binding < -1 || param < -1 ||
             callable < -1 || !DirectMirScalarProgramLiteralEmbeddable(literal) {
             return false;
         }
