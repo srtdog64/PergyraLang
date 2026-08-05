@@ -114,7 +114,11 @@ pgy_selfhost_compile_test_harness_manifest() {
     mkdir -p "$build_dir"
 
     compile_log="$build_dir/test_harness_manifest_$$.compile.log"
-    if ! (cd "$ROOT_DIR" && "$PGY" "$manifest_source_rel" \
+    # Native pipeline: this manifest is harness scaffolding that the parity
+    # gates read to decide what to check. Building it through the installed
+    # self-host driver would make the checker depend on the artifact under
+    # test, and would deadlock the bootstrap that has yet to produce it.
+    if ! (cd "$ROOT_DIR" && "$PGY" "$manifest_source_rel" --native-pipeline \
         --backend=c -o "$(pgy_path_for_compiler "$PGY" "$manifest_bin")" \
         >"$compile_log" 2>&1); then
         echo "[$label] test harness manifest failed to build" >&2
@@ -203,7 +207,9 @@ pgy_selfhost_compile_backend_output_comparator() {
     mkdir -p "$build_dir"
 
     compile_log="$build_dir/backend_output_comparator_$$.compile.log"
-    if ! (cd "$ROOT_DIR" && "$PGY" "$comparator_source_rel" \
+    # Native pipeline: the comparator is the judge of backend output drift, so
+    # it must not itself be produced by the compiler path it is judging.
+    if ! (cd "$ROOT_DIR" && "$PGY" "$comparator_source_rel" --native-pipeline \
         --backend=c -o "$(pgy_path_for_compiler "$PGY" "$comparator_bin")" \
         >"$compile_log" 2>&1); then
         echo "[$label] backend output comparator failed to build" >&2

@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # Fingerprinted parser-tool build owner shared by parser parity and bootstrap.
 
-PARSER_TOOL_CACHE_SCHEMA="pgy.selfhost.parser-tool-build.v1"
+# v2: the parser tool is now built through --native-pipeline. It is bootstrap
+# scaffolding -- codegen_bootstrap.sh uses it to produce the AST that seeds
+# gen0 -- so it has to exist before the self-host driver does. The schema bump
+# invalidates caches from the delegated build so the two never mix.
+PARSER_TOOL_CACHE_SCHEMA="pgy.selfhost.parser-tool-build.v2-native"
 
 parser_tool_sha256_file() {
     sha256sum "$1" | cut -d' ' -f1
@@ -60,6 +64,7 @@ pgy_selfhost_compile_parser_tool() {
 
     if ! (cd "$ROOT_DIR" && "$compiler_exec" \
         "$source_rel" \
+        --native-pipeline \
         --backend="$backend" \
         -o "$(pgy_path_for_compiler "$PGY" "$shared_bin")" \
         >"$compile_log" 2>&1); then

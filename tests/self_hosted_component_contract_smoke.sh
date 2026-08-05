@@ -1224,7 +1224,11 @@ require_text "tests/self_hosted/parity/parser_parity.sh" "pgy_selfhost_compile_p
 require_file "tests/self_hosted/parity/parser_tool_build_leg.sh"
 require_max_lines "tests/self_hosted/parity/parser_tool_build_leg.sh" 200
 require_text "tests/self_hosted/parity/parser_tool_build_leg.sh" \
-    'PARSER_TOOL_CACHE_SCHEMA="pgy.selfhost.parser-tool-build.v1"'
+    'PARSER_TOOL_CACHE_SCHEMA="pgy.selfhost.parser-tool-build.v2-native"'
+# The parser tool is bootstrap scaffolding, so it must build before the
+# self-host driver exists. Pinned so the native request cannot be dropped
+# without this gate saying so.
+require_text "tests/self_hosted/parity/parser_tool_build_leg.sh" '--native-pipeline'
 require_text "tests/self_hosted/parity/parser_tool_build_leg.sh" \
     'compiler-executable=$(parser_tool_sha256_file "$PGY")'
 require_text "tests/self_hosted/parity/parser_tool_build_leg.sh" \
@@ -5880,6 +5884,12 @@ require_text tests/self_hosted/parity/emitted_c_runtime_header_owner.sh -fno-str
 require_text tests/self_hosted/parity/driver_bootstrap.sh pgy_selfhost_select_emitted_c_compile_profile
 require_text tests/self_hosted/parity/self_host_compiler_build.sh pgy_selfhost_select_emitted_c_compile_profile
 require_text tests/self_hosted/parity/codegen_bootstrap_compile_leg.sh pgy_selfhost_select_emitted_c_compile_profile
+# The gen0 oracle and the harness/comparator scaffolding must be built by the
+# native pipeline: they exist before the self-host driver does, and an oracle
+# built by the compiler it judges is not an oracle. Pinned because dropping the
+# request fails only much later, as a bootstrap deadlock on a clean checkout.
+require_text tests/self_hosted/parity/codegen_bootstrap.sh "--native-pipeline"
+require_text tests/self_hosted/parity/llvm_leg_helpers.sh "--native-pipeline"
 require_text tests/self_hosted/parity/codegen_bootstrap.sh emitted_c_runtime_header_owner.sh
 require_file "tests/self_hosted/parity/driver_rung2_pipeline_step_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_pipeline_step_owner.sh" 120
@@ -7152,7 +7162,11 @@ reject_text "src/self_hosted/parser/stmt_match_owner.pgy" \
     "TypedAstKindMatchCaseStmtTag()"
 require_text "src/self_hosted/parser/program_parse_owner.pgy" \
     "PARSER GRAPH ERROR: "
-require_max_lines "src/compiler/self_host_driver.c" 200
+# Raised from 200 when the delegation gained two responsibilities it cannot do
+# without: authorizing the child for the absolute paths named on pgy's own
+# command line, and reporting a delegated failure that would otherwise reach
+# the user as a bare exit code. Deliberate growth, not sprawl -- keep it here.
+require_max_lines "src/compiler/self_host_driver.c" 220
 require_max_lines "src/compiler/self_host_llvm_driver.c" 120
 require_max_lines "src/compiler/driver_self_host_selection_owner.c" 100
 require_max_lines "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh" 140
