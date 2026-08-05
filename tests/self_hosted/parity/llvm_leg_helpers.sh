@@ -13,8 +13,12 @@
 pgy_selfhost_log_reports_no_llvm() {
     local log_file="$1"
     [[ -f "$log_file" ]] || return 1
+    # `not available in this build` is what src/compiler/compiler_llvm.c
+    # actually prints for an LLVM_ENABLED=0 compiler. It was missing from this
+    # alternation, so a C-only build (macOS CI) reported every LLVM leg as a
+    # failure instead of a skip.
     grep -Eiq \
-        'compiled without LLVM backend support|unknown option.*--backend=llvm|LLVM backend (is )?(not enabled|disabled|unavailable|not built)' \
+        'compiled without LLVM backend support|unknown option.*--backend=llvm|LLVM backend (is )?(not enabled|disabled|unavailable|not available|not built)' \
         "$log_file"
 }
 

@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
+# Subject of this gate:
+#   the native C backend's declared structure or end-to-end compile speed
+#   regressed.
+# That is a fact about the native pipeline, so the gate compiles
+# in-process instead of delegating to the installed self-host driver.
+# Delegated, a self-host coverage gap would read as a regression in
+# the subject above. Declared per harness because the compiler is
+# reached through make and nested scripts, and the variable is the
+# same declared opt-out as --native-pipeline -- never a fallback.
+# See docs/152_validation_isolation_policy.md.
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
 trap 'rc=$?; printf "[perf-contract] unhandled failure at line %s (rc=%s)\n" "$LINENO" "$rc" >&2' ERR
 
 case ":$PATH:" in
@@ -3098,7 +3111,9 @@ grep -Fq "transpiler_require_c_addressable_storage(ctx, map_arg" "$ROOT_DIR/src/
 grep -Fq "transpiler_require_c_addressable_storage(ctx, queue_arg" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_queue_builtin.c"
 grep -Fq "transpiler_require_c_addressable_storage(ctx, a0" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_misc_builtin.c"
 grep -Fq "transpiler_require_c_addressable_storage(ctx, arg0" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.c"
-grep -Fq "transpiler_require_c_addressable_storage(ctx, a0" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_scalar_builtin.c"
+# Moved with the string half when transpiler_expr_stdlib_scalar_builtin.c was
+# split at the production owner line cap; the guarded call is on Replace.
+grep -Fq "transpiler_require_c_addressable_storage(ctx, a0" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_scalar_string.c"
 grep -Fq "BUILTIN_RC_DROP || kind == BUILTIN_RC_GET" "$ROOT_DIR/src/codegen/transpiler_expr_core_builtins_emit.c"
 grep -Fq "BUILTIN_BOX_SET || kind == BUILTIN_BOX_DROP" "$ROOT_DIR/src/codegen/transpiler_expr_core_builtins_emit.c"
 grep -Fq "BoxSet requires exactly two arguments" "$ROOT_DIR/src/codegen/transpiler_expr_core_builtins_emit.c"
@@ -5103,6 +5118,7 @@ grep -Fq "atomic_fetch_add_explicit(&_sel_rr_" "$ROOT_DIR/src/codegen/transpiler
 grep -Fq "transpiler_channel_query_spec_compare" "$channel_builtin_owner"
 grep -Fq "emit_call_stdlib_channel_query_builtin" "$channel_builtin_owner"
 scalar_builtin_owner="$ROOT_DIR/src/codegen/transpiler_expr_stdlib_scalar_builtin.c"
+scalar_string_owner="$ROOT_DIR/src/codegen/transpiler_expr_stdlib_scalar_string.c"
 scalar_unary_owner="$ROOT_DIR/src/codegen/transpiler_expr_stdlib_scalar_unary.c"
 grep -Fq "transpiler_scalar_unary_spec_compare" "$scalar_unary_owner"
 grep -Fq "transpiler_scalar_unary_builtin_name(fn" "$scalar_builtin_owner"
@@ -5129,7 +5145,9 @@ grep -Fq "transpiler_scalar_emit_arg" "$scalar_builtin_owner"
 grep -Fq "C backend: scalar builtin %s could not lower %s argument" "$scalar_builtin_owner"
 ! grep -Fq "return pergyra_strdup(\"0\")" "$scalar_builtin_owner"
 grep -Fq "fn, \"value\"" "$scalar_builtin_owner"
-grep -Fq "fn, \"separator\"" "$scalar_builtin_owner"
+# `separator` is a StringJoin/Split role, so it moved with the string half when
+# the scalar owner was split at the production owner line cap.
+grep -Fq "fn, \"separator\"" "$scalar_string_owner"
 grep -Fq "fn, \"seed\"" "$scalar_builtin_owner"
 transpiler_scalar_names="$(
     sed -n '/static const TranspilerScalarSpec kTranspilerScalarSpecs\[\]/,/^};/p' \
