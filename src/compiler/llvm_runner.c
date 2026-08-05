@@ -272,7 +272,10 @@ llvm_runner_execute(const DriverFlags *flags,
     (void)bundle;
     (void)air;
     (void)backend_timings;
-    fprintf(stderr, "pgy: LLVM backend not available in this build\n");
+    /* One spelling for the C-only fact: the driver guard and every harness
+     * skip detection key on this phrase, and a second spelling turned a
+     * declared SKIP into a FAIL on the C-only platforms. */
+    fprintf(stderr, "pgy: this build was compiled without LLVM backend support\n");
     return 1;
 }
 

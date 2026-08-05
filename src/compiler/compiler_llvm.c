@@ -485,7 +485,7 @@ compiler_emit_llvm_ir(const CompilerIRBundle *bundle,
     (void)bundle;
     (void)air;
     (void)module_name;
-    return compiler_error("LLVM backend not available in this build");
+    return compiler_error("this build was compiled without LLVM backend support");
 }
 
 CompilerResult *
@@ -498,7 +498,7 @@ compiler_emit_llvm_ir_to_file(const CompilerIRBundle *bundle,
     (void)air;
     (void)module_name;
     (void)output_ir_path;
-    return compiler_error("LLVM backend not available in this build");
+    return compiler_error("this build was compiled without LLVM backend support");
 }
 
 CompilerResult *
@@ -515,7 +515,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     (void)output_binary_path;
     (void)verbose;
     (void)opt_profile;
-    return compiler_error("LLVM backend not available in this build");
+    return compiler_error("this build was compiled without LLVM backend support");
 }
 
 #endif
