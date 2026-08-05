@@ -30,116 +30,6 @@ target-specific `SUBSTITUTING` evidence. LLVM-enabled default builds, released
 general LLVM, package, dump/check/repl, and production-root intent remain open;
 hello-only direct LLVM reachability cannot promote those claims.
 
-Direct LLVM aggregate update (2026-08-01): the bounded Option<Int> match
-fixture now uses one routine-local typed match index, one seven-block AIR
-certificate, one reconstructible ABI receipt, and one target-capability-bound
-plan to emit exact C and textual LLVM executables. Both print `42` twice;
-seven MIR mutations plus repaired-digest certificate/ABI/target/plan negatives
-fail before artifact creation. AIR cannot reopen match JSON, and a selected ABI
-projection carries only its chosen backend mapping. This is `SUBSTITUTING`
-inside the production direct-MIR mode.
-
-Direct LLVM Array update (2026-08-01): the bounded runtime-free local
-`Array<Int>` literal/reassignment fixture now uses one typed expression-graph
-owner, one target-neutral plan, and one selected ABI projection to emit exact C
-and textual LLVM executables. Both print `3` and `10`; LLVM has no Pergyra
-runtime reference. Element kind, index kind, length target, stale SSA use, ABI
-offset, source type, and unsupported static index mutations fail before
-artifact publication. The same plan owns both backend projections; scalar or
-hello dispatch cannot be retried after Array classification.
-
-Direct LLVM multi-routine update (2026-08-01):
-`array_return_literal.pgy` now uses a strict row-order-independent program
-identity, one target-neutral call/return/use/ABI/lifetime plan, and one selected
-C or LLVM mapping. The producer fills caller-owned fixed storage and the real
-producer/caller graph prints `4` then `3`; LLVM has no Pergyra runtime
-reference. A routine permutation is artifact-equal. Thirteen mutations cover
-entrypoint/callee/signature, caller SSA, canonical ABI including repaired-ID
-field drift, straight-line CFG reachability/terminality, and forged Log scalar
-facts. Multi-routine rejection cannot retry any single-routine planner.
-
-Direct LLVM parameter update (2026-08-02):
-`array_literal_call_argument.pgy` now carries the complete `Array<Int>` ABI row
-on its formal parameter. Native and self-host producers agree on all nine
-parameter fields. One target-neutral three-routine plan preserves the real
-`Double` and `SumPair` calls, gives Main ownership of fixed backing storage,
-and passes the aggregate by value. C and LLVM both print `11`; cyclic routine
-order is artifact-equal and sixteen parameter/call/use/ABI/CFG mutations fail
-before publication. Installed public C and LLVM compile/run use this frontier.
-
-Direct LLVM nominal-struct parameter update (2026-08-02):
-`struct_literal_call_argument.pgy` now obtains `Vec2` and nested `Line` physical
-receipts from one program-owned topological layout owner. The `Line` formal
-parameter cross-seals the exact declaration receipt; native and self MIR agree
-on field order, types, layout, and parameter schema without requiring their
-producer-local syntax IDs to be numerically equal. One target-neutral
-row-order-independent plan preserves real `Twice` and `Width(Line)` calls. C
-and LLVM both print `6`; routine/declaration permutations are artifact-equal,
-and fifteen declaration/ABI/call/lifetime mutations fail before publication.
-Installed public C and LLVM compile/run use this frontier as bounded
-target-specific `SUBSTITUTING` evidence.
-
-Direct LLVM nominal-struct value-flow update (2026-08-02):
-`struct_literal_value_flow.pgy` now carries the exact program-owned `Pair`
-declaration receipt on its aggregate routine return and local definitions. One
-target-neutral row-order-independent plan preserves the real
-`BuildPair(pair.right)` call, the latest mutable value, and member reads. C and
-LLVM return the aggregate by value and both print `11`; thirteen receipt,
-declaration, call, latest-use, and member-path mutations fail before artifact
-publication. The JSON producer and both backends are negative-gated against
-type-spelling or expression-text layout recovery. Installed public C and LLVM
-compile/run use this bounded target-specific `SUBSTITUTING` frontier.
-
-Direct LLVM Option-of-nominal value-flow update (2026-08-02):
-`option_struct_value_flow.pgy` now composes the static Option tag contract with
-the exact program-owned `Pair` receipt. One target-neutral plan preserves a real
-`BuildPair(Int) -> Option<Pair>` return, Some/None/Some replacement, explicit
-unwraps, and an independent chained unwrap-member read. C and LLVM both print
-`7`, `11`, and `5`; routine permutation is artifact-equal and twenty negative
-executions reject missing/corrupt outer and inner receipts, repaired geometry,
-stale uses, unresolved calls, and flattened unwrap/member paths before output.
-The nominal classifier runs once and cannot retry the plain-struct plan after an
-Option rejection. Installed public C and LLVM use this bounded target-specific
-`SUBSTITUTING` frontier.
-
-The producer distinguishes nominal identity from physical ABI ownership.
-Declarations whose layout is not required, including a struct containing
-`String`, retain the neutral instruction receipt `(kind=0,row=-1,id=0)`; only
-`required==1` declarations may carry nominal or Option-nominal layout IDs. The
-current TestHarness manifest and bootstrap seed gate this boundary.
-
-Direct LLVM explicit-generic nominal value-flow update (2026-08-02):
-`generic_struct_field_value_flow.pgy` now carries one strict
-`Identity<T>(value:T)->T` template, four uniform `T -> Int` specialization
-receipts, the exact program-owned `Pair` ABI, and three row-order-independent
-routine identities into one target-neutral plan. C and LLVM preserve one real
-`Identity_Int` definition, four calls, one real `BuildPair` definition/call,
-and aggregate insertion/extraction; both print exact `7`. Routine and
-specialization-row permutations are artifact-equal, and twenty-nine mutations
-reject generic header/body/ABI, specialization, call, receipt, repaired-layout,
-SSA-use, and member-path drift before publication. Native MIR has no
-specialization rows and is deliberately not used as a fallback oracle.
-
-The multi-routine root now delegates all three-routine programs to one
-declaration-cardinality classifier. A rejected generic nominal plan cannot be
-retried as an Array or nested-struct program. Rebuilding also exposed and
-closed a prior scalar receipt defect: a typed `Int` return with no physical
-layout preserves `abi_type_name=Int` while requiring layout ID zero, required
-false, and null layout.
-
-Direct LLVM inferred-generic nominal value-flow update (2026-08-02):
-`generic_struct_field_inferred_value_flow.pgy` now carries a distinct two-row
-Value-lane specialization class, strict `Identity<T>(value:T)->T`, two exact
-inferred calls, one program-owned `Pair` receipt, and the latest SSA use into
-one target-neutral plan. C and LLVM preserve one real `Identity_Int`
-definition, two calls, aggregate insertion/extraction and exact output `42`.
-Routine, specialization, combined-order, and coherent opaque-owner renumber
-metamorphics are artifact-equal; thirty-two negative executions reject generic,
-specialization, graph, ABI, SSA, and member-path drift before publication. The
-two-routine root reads specialization cardinality once, so an inferred-plan
-failure cannot retry plain or Option nominal projection. Native MIR's empty
-specialization table remains common graph/ABI evidence only.
-
 Installed LLVM substitution update (2026-08-01): plain public LLVM binary
 requests use the sibling Pergyra-built driver for exactly one source-to-MIR
 production and one direct LLVM projection. `clang -x ir` is the only final host
@@ -153,39 +43,6 @@ The bounded nominal-struct and Option-of-nominal return/local value-flow slices
 are also substituting; this is not evidence for general, heap-backed,
 runtime-bearing, or arbitrary multi-routine programs. The bounded explicit and
   inferred `Identity<Int>` nominal value-flow slices are now also substituting.
-
-Direct LLVM inferred-generic scalar assignment update (2026-08-02):
-`generic_return_assignment_inferred_flow.pgy` now carries an exact mixed-lane
-two-row specialization class, a strict generic identity routine, a real wrapper
-call, initial and latest local SSA identities, and exact typed/null ABI receipts
-into one target-neutral plan. C and LLVM preserve real `Identity_Int` and
-`ReturnIdentity` definitions/calls and execute exact `41`. Five ordering/opaque-
-owner metamorphics, two independent value variants, 55 C negatives, and three
-LLVM sentinels are green. Three-routine routing is fixed by the exact
-`(declaration, specialization, generic-routine)` cardinality tuple, so removing a
-specialization cannot reroute the program through Array projection. The next
-falsifier is `generic_member_inferred_flow.pgy`: its 6,482-byte self MIR owns one
-`Box` declaration, generic value-receiver `Echo<T>`, and two Value-lane member
-specializations for the nested call. Both direct targets currently fail closed
-in the inferred-generic program envelope; the intended output is exact `41`.
-
-Direct LLVM inferred-generic member update (2026-08-02):
-`generic_member_inferred_flow.pgy` now carries an exact class declaration,
-generic value-receiver signature, two uniform Value-lane member specialization
-receipts, the two nested `Box_Echo_Int` calls, and the inner-result-to-outer-
-argument edge into one target-neutral plan. C and LLVM preserve a real
-specialized method definition, pass the same value receiver through both calls,
-and execute exact `41`; installed public C and LLVM compile/run use this
-frontier. Five order/opaque-owner metamorphics, five value/name/collision
-variants, 70 C negatives, and four LLVM sentinels are green. Exact two-routine
-classification prevents retry as plain/Option/inferred-direct nominal. `Box`
-has the explicit internal representation `internal_single_int_value_class`,
-not a physical ABI receipt. Raw arrays are exact-tail checked, and generated C
-temporaries cannot collide with legal source locals. The next falsifier is
-`generic_member_constructed_return_flow.pgy`: its 9,309-byte self MIR carries
-`Wrap<Int> -> Option<Int>` into `Echo<Option<Int>>`, followed by unwrap and
-exact output `43`. Both targets currently fail closed because no exact
-three-routine constructed-member owner exists.
 
 Constructed generic member update (2026-08-02):
 `generic_member_constructed_return_flow.pgy` is now target-specific
@@ -484,43 +341,6 @@ The five closure targets are:
 - ABI/Slot/Pin ownership freeze: Slot/Pin/Zone-bound handle, raw escape, and
   runtime-none policy must be documented, smoked, and backend-stable.
 
-MIR declaration-field inventory tightening (2026-05-31): declaration headers
-now carry validated `MIRDeclField` rows, and backend consumers are moving from
-field compatibility views to that metadata as the first source of truth. Current
-closed consumers include C nominal/member lookup, C class constructor
-  positional field emission through `TranspilerHostedFieldView`, C
-  class/generic-class field emission, C projection
-  literal source/target field iteration, C projection invalidation target-field
-  matching, C projection field-path relevance/vessel checks, C relation/effect/
-  world/zone struct shared-field declaration emission, C relation/effect/zone/
-  world constructor shared-field argument/default emission, LLVM constructor
-  class-field expected-type/channel checks through `LLVMHostedFieldView`, LLVM
-  domain struct shared-field type/layout registration, LLVM domain
-  declaration-parts cleanup, LLVM nominal struct field registration, LLVM
-projection/domain-projection source-path field iteration through
-`LLVMHostedFieldView`, C nominal zone member lookup and zone struct layer-slot
-emission through `TranspilerHostedZoneLayerSlotView`, LLVM zone struct layer-slot type
-registration, layer-slot field registration, zone bind layer-slot lookup, and
-zone-layer query lookup through
-`LLVMHostedZoneLayerSlotView`, LLVM zone frontier previous-state/reset/
-continue tracking, LLVM zone sync action-cause layer iteration, LLVM zone
-action effect-layer emission, LLVM world embedded effect sync layer iteration,
-and LLVM intent effect caused-layer emission through
-`LLVMHostedZoneLayerSlotView`, C overlay zone-field presence checks through
-`TranspilerHostedZoneLayerSlotView`, C overlay zone effect/relation bind lookup
-through the same hosted view, C/LLVM constructor
-Channel guards, and LLVM current
-field-class lookup, C overlay/world shared-field presence checks, and C
-projection literal/source-path plus overlay-projection invalidation class-field
-iteration through `TranspilerHostedFieldView`. The MIR declaration-inventory
-smoke now also globally confines direct class/shared compatibility-view calls
-to `host_decl_compat.c`, `transpiler_decl_lookup.c`, and
-`llvm_inventory_decl_lookup.c`, and confines direct
-`pgy_host_class_field_compat_find(...)` calls to `host_decl_compat.c`, so new
-backend consumers must use hosted field views instead of reopening
-compatibility views. Remaining declaration-side work is broader declaration/
-projection emitter coverage, not metadata creation.
-
 Current DAG intent-zone owner tightening (2026-05-25): intent step `where`,
 derived `using`, participant transfer-source checks, and transfer `from`/`to`
 zone declaration recovery now consume the intent type owner seam instead of
@@ -816,66 +636,6 @@ instead of the declaration-only private API, so it compiles as a normal codegen
 translation unit with complete `ASTNode`, `LLVMGenCtx`, and LLVM-C types.
 Gate: `LLVM_ENABLED=1 pgy`.
 
-Current MIR declaration inventory tightening (2026-05-16): role hosted-method
-metadata no longer has a method-count validation exception.
-`ast_role_impl_method_total_count(...)` is the shared parser-owned count seam
-for role impl-ability methods, and the MIR declaration-header validator plus
-C/LLVM hosted-method views consume that same accessor. Role `method_count` and
-`method_metadata_count` must match the AST compatibility count, so missing role
-declaration metadata fails as a MIR-inventory error instead of silently yielding
-an empty role method view. Gates: `test-mir`,
-`mir-declaration-inventory-test-smoke`, `perf-contract-test-smoke`, and
-`LLVM_ENABLED=1 pgy`.
-
-Current MIR declaration-field inventory tightening (2026-05-31):
-`MIRDeclHeader` now records validated `MIRDeclField` metadata for class fields,
-domain shared fields, party role slots, roster slots, world roster/zone slots,
-domain slots, and zone layer slots. This closes the metadata-creation slice of
-the dedicated declaration IR row. Current consumers include C nominal/current
-member type lookup, C class constructor positional field emission through
-  `TranspilerHostedFieldView`, C class/generic-class field emission, C projection literal source/target field
-  iteration, C projection invalidation target-field matching, C projection
-  field-path relevance/vessel checks, C relation/effect/world/zone struct
-  shared-field declaration emission, C relation/effect/zone/world constructor
-  shared-field argument/default emission, LLVM domain struct shared-field
-  type/layout registration, LLVM domain declaration-parts cleanup, LLVM
-  projection/domain-projection
-source-path field iteration, C/LLVM constructor Channel guards, LLVM
-constructor class-field expected-type/channel checks through
-`LLVMHostedFieldView`, LLVM projection/domain-projection source-path field
-iteration through `LLVMHostedFieldView`, LLVM nominal struct field registration
-through `LLVMHostedFieldView`, LLVM constructor shared-field defaults, and
-LLVM current field-class lookup. The C constructor Channel guard, MIR SSA
-implicit zone layer/shared-field recovery, projection zone-layer lookup,
-projection sync layer iteration, intent block caused-effect layer marking, and
-zone sync/frontier layer iteration now scan layer slots through
-`TranspilerHostedZoneLayerSlotView` and shared fields through
-`TranspilerHostedSharedFieldView`; C/LLVM zone frontier pass-limit emission uses the
-counted frontier policy wrapper instead of recounting zone layer slots. LLVM constructor
-Channel/default paths scan shared fields through `LLVMHostedSharedFieldView`
-instead of reopening shared-field compatibility directly. C overlay/world
-shared-field presence checks use the same `TranspilerHostedSharedFieldView`
-path and fail closed when required MIR metadata is missing. C projection
-literal/source-path field iteration uses `TranspilerHostedFieldView` instead of
-reopening class-field compatibility locally, and overlay-projection
-invalidation now uses the same hosted field view. C class constructor
-positional field emission in `transpiler_domain_constructor_emit.c` also uses
-the hosted field view and fails closed when required MIR metadata is missing.
-Annotated let class-constructor lowering now delegates to that same constructor
-owner instead of reopening class-field compatibility locally. Broader
-declaration/projection emitters still need to migrate from `host_decl_compat.c`
-compatibility views before the row can be marked closed.
-Gates: `test-mir`, `test-transpile`, `LLVM_ENABLED=1 pgy`, and
-`mir-declaration-inventory-test-smoke`.
-
-Current MIR surface-usage tightening (2026-05-16):
-`mir_inventory_surface_usage_summary(...)` is now the single inventory summary
-seam for thread-pool and intent-observability usage. MIR lowering records both
-bits from that summary, and MIR validation recomputes the same summary once
-instead of independently walking inventory for each usage bit. Gates:
-`test-mir`, `perf-contract-test-smoke`, `parallel-core-contract-test-smoke`,
-`build-source-inventory-test-smoke`, and `source-utf8-test-smoke`.
-
 Current LLVM statement owner cleanup (2026-05-15): select statement readiness
 and round-robin lowering now lives in `src/codegen/llvm_stmt_select.c`.
 `llvm_stmt_parallel_async.c` keeps parallel and async wrapper emission, so
@@ -923,12 +683,6 @@ block/unblock/steal operations now live in
 `src/runtime/async/scheduler_fiber_ops.c`. `scheduler.c` keeps scheduler
 lifecycle, worker startup/shutdown, I/O worker bootstrap, and thread-local
 current-scheduler ownership.
-
-Current MIR statement population cleanup (2026-05-15): source statement index
-tagging and source-inventory count/items accessors now live in
-`src/compiler/mir_stmt_source_inventory.c`. `mir_stmt_population.c` keeps the
-CFG source-order reconstruction algorithm and local inventory lookup, with
-`test_mir` gating the split.
 
 Current module normalizer owner cleanup (2026-05-15): domain/world/zone/
 relation/effect reference traversal now lives in

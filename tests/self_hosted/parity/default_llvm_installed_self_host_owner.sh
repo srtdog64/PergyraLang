@@ -48,7 +48,7 @@ installed_name="pgy-self-driver"
 if [[ "$PGY" == *.exe ]]; then
     suffix=".exe"
     installed_name="pgy-self-driver.exe"
-    COUNT_FILE_FOR_DRIVER="$(cygpath -m "$COUNT_FILE")"
+    COUNT_FILE_FOR_DRIVER="$(pgy_path_for_compiler "$PGY" "$COUNT_FILE")"
 fi
 [[ "$SELF_DRIVER" == "$(dirname "$PGY")/$installed_name" ]] ||
     fail "self-host driver is not installed beside the public launcher"

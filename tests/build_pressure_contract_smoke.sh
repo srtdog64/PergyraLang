@@ -5,6 +5,10 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROBE="$ROOT_DIR/scripts/measure_build_pressure.ps1"
 DRIVER_PARITY="$ROOT_DIR/tests/self_hosted/parity/driver_rung2_body_parity.sh"
 DRIVER_MAIN="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
+# bcb1d8fa moved argv admission out of the bootstrap main into this owner, and
+# turned the guard from "reject at argv[3]" into an exact positive shape.
+DRIVER_CLI_REQUEST="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
+DRIVER_INSTALLED_CLI="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
 SOURCE_MIR_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_execution_owner.pgy"
 DRIVER_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/driver_bootstrap.sh"
 DRIVER_PRESSURE_SHARD="$ROOT_DIR/tests/self_hosted/parity/driver_full_mir_seed_pressure_shard.sh"
@@ -110,10 +114,17 @@ grep -Fq 'full pressure body requires measure_build_pressure.ps1' "$ROOT_DIR/Mak
     || { echo "[build-pressure-contract] full driver body can bypass its pressure owner" >&2; exit 1; }
 grep -Fq 'full driver MIR production requires pressure observation' "$SOURCE_MIR_EXECUTION" \
     || { echo "[build-pressure-contract] source-MIR action lacks its direct-call rejection" >&2; exit 1; }
-grep -Fq 'args[3] != "--pressure-owned-full-fixpoint"' "$DRIVER_MAIN" \
+# The full fixpoint stays reachable only through the exact pressure-owned argv
+# shape: the request owner admits it in one 5-argument form and nothing else,
+# so any other spelling falls through to the mode's Die.
+grep -Fq 'args[2] == "--pressure-owned-full-fixpoint"' "$DRIVER_CLI_REQUEST" \
     || { echo "[build-pressure-contract] full driver binary pressure token drifted" >&2; exit 1; }
-grep -Fq 'SourceMirPressureObserved' "$DRIVER_MAIN" \
-    || { echo "[build-pressure-contract] Main does not request pressure observation" >&2; exit 1; }
+grep -Fq 'DriverCliSourceMirPressureArtifact' "$DRIVER_CLI_REQUEST" \
+    || { echo "[build-pressure-contract] pressure-owned request lost its own admission" >&2; exit 1; }
+# Same move as above: the installed composition root, not the bootstrap main,
+# is what asks for pressure observation now.
+grep -Fq 'SourceMirPressureObserved' "$DRIVER_INSTALLED_CLI" \
+    || { echo "[build-pressure-contract] installed CLI does not request pressure observation" >&2; exit 1; }
 grep -Fq 'DriverSourceMirProjectionFromAdmittedRequest(' "$SOURCE_MIR_EXECUTION" \
     || { echo "[build-pressure-contract] source-MIR action lacks stage observation" >&2; exit 1; }
 grep -Fq '[driver-pressure-stage]' "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy" \

@@ -4,19 +4,6 @@
 // plan shape itself. A code table is a vocabulary fact, and it is the part
 // that grows every time an operation is added -- keeping it here is what
 // kept pushing that owner over its line cap.
-import "../air/mir_cfg_identity_owner.pgy";
-import "artifact_zone_owner.pgy";
-import "target_capability_owner.pgy";
-import "direct_mir_scalar_cfg_range_iteration_owner.pgy";
-import "direct_mir_scalar_cfg_foreach_set_owner.pgy";
-import "direct_mir_scalar_cfg_foreach_element_owner.pgy";
-import "direct_mir_scalar_cfg_hash_owner.pgy";
-import "direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy";
-import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
-import "direct_mir_scalar_cfg_collection_pop_program_fact_owner.pgy";
-import "direct_mir_scalar_cfg_collection_plan_fact_owner.pgy";
-import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
-import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 
 func DirectMirScalarCfgOpConstInt() -> Int { return 1; }
 func DirectMirScalarCfgOpCopyInt() -> Int { return 2; }

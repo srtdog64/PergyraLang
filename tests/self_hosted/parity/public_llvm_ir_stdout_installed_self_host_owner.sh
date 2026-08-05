@@ -49,8 +49,8 @@ cp "$PGY" "$WORK_DIR/counting-install/pgy$suffix"
 "$CC" -std=c11 -Wall -Wextra -Werror \
     "$ROOT_DIR/tests/self_hosted/parity/fixture/counting_self_host_llvm_driver.c" \
     -o "$WORK_DIR/counting-install/$installed_name"
-count_for_driver="$COUNT_FILE"
-[[ "$PGY" != *.exe ]] || count_for_driver="$(cygpath -m "$COUNT_FILE")"
+# The shared helper asks the binary what it expects instead of trusting .exe.
+count_for_driver="$(pgy_path_for_compiler "$PGY" "$COUNT_FILE")"
 (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN; PGY_DEBUG_PIPELINE_TIMING=1 \
     PGY_SELF_DRIVER_COUNT_FILE="$count_for_driver" \
     "$WORK_DIR/counting-install/pgy$suffix" "$SOURCE" --emit-llvm) \
