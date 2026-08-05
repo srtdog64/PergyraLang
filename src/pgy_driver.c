@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stddef.h>
 
+#include "common/env_flags.h"
 #include "compiler/driver_app.h"
 #include "compiler/repl.h"
 #include "compiler/fmt.h"
@@ -253,8 +254,21 @@ main(int argc, char *argv[])
      * driver. --native-pipeline is the one declared way to opt out, and it is
      * checked before any of them so the opt-out cannot be shadowed by a
      * narrower predicate. Bootstrap scaffolding uses it because the driver it
-     * would delegate to is the artifact being built. */
-    if (flags.native_pipeline)
+     * would delegate to is the artifact being built.
+     *
+     * PGY_NATIVE_PIPELINE is the same opt-out spelled for a whole harness. A
+     * gate whose subject is the native pipeline -- backend C/LLVM agreement,
+     * a native semantic diagnostic, a runtime panic class -- usually reaches
+     * the compiler through make and nested scripts, so a per-invocation flag
+     * would have to be threaded through every one of them. The variable is
+     * exported once, next to the comment naming that subject, and both
+     * spellings land on this single decision. It is read here rather than in
+     * parse_args so there is exactly one place where delegation is declined.
+     *
+     * This is an opt-out, never a fallback: an unsupported source still fails
+     * closed inside the delegated path. See docs/152. */
+    if (flags.native_pipeline
+        || pgy_env_value_is_truthy(getenv("PGY_NATIVE_PIPELINE")))
         return driver_run_pipeline(&flags);
     if (flags.dump_mir_json) {
         if (!driver_self_host_mir_json_request_supported(&flags)) {

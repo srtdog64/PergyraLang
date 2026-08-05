@@ -66,7 +66,10 @@ driver_print_usage(void)
 #endif
         "  pgy <source.pgy> --native-pipeline  compile in-process instead of\n"
         "                                delegating to the self-host driver\n"
-        "                                (bootstrap scaffolding only)\n"
+        "                                (bootstrap scaffolding and gates whose\n"
+        "                                subject is the native pipeline; the\n"
+        "                                same opt-out per harness is\n"
+        "                                PGY_NATIVE_PIPELINE=1)\n"
         "  pgy --repl                    interactive REPL\n"
         "  pgy --help\n");
 }

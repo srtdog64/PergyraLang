@@ -381,3 +381,55 @@ Hard self-hosting does not loosen this policy. A self-hosted rung must still
 name its owner, oracle, artifact, and narrow evidence. A parity bundle is
 load-bearing only for the rung it owns. It must not become a habit of rerunning
 unrelated compiler surfaces after every isolated SoT edit.
+
+## Gate Subject: Native Pipeline or Self-Host Driver
+
+Every gate that compiles Pergyra source has exactly one subject, and the
+subject decides which compiler it must run.
+
+On 2026-08-01 the public C compile, `--run`, and LLVM envelopes were replaced
+with the installed self-host artifact (`a02a8751`, `20229256`). Delegation is
+unconditional and fails closed, which is correct for the substitution itself.
+It is wrong for a gate whose subject is a native-pipeline fact: routed through
+a compiler that does not yet cover the corpus, such a gate reports a self-host
+coverage gap under the name of its own subject. Backend compare is the clearest
+case -- it went from 924 cases of C/LLVM agreement to roughly twenty, and the
+904 lost cases were replaced by a coverage signal `self-host-parity-linux` and
+`self-host-bootstrap-linux` already own.
+
+The classification:
+
+| Subject | Compiler | A red gate means |
+|---|---|---|
+| C and LLVM backends agree; a native semantic diagnostic; a runtime panic class; determinism of the native emitter; a declared example or stdlib surface | native pipeline | the named native fact changed |
+| The self-hosted compiler covers a surface; gen2/gen3 fixed point; a declared parity rung | installed self-host driver | real self-host coverage debt |
+
+A native-subject gate declares itself at the top of its script, right after
+`set -euo pipefail`:
+
+```sh
+# Subject of this gate:
+#   the C and LLVM backends disagree about a case.
+# ... (why it is a native-pipeline fact)
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
+```
+
+`PGY_NATIVE_PIPELINE` and `--native-pipeline` are the same declared opt-out and
+land on one decision in `src/pgy_driver.c`. The variable exists because a gate
+reaches the compiler through make and nested scripts, so the flag would have to
+be threaded through every one of them. It is an opt-out, never a fallback: an
+unsupported source inside the delegated path still fails closed, and no gate
+retries a failed delegation natively.
+
+Two rules follow.
+
+Do not silence a self-host-subject gate with this variable. `extern "C"`,
+`unsafe(raw)`, `Channel`/`parallel`, and the LLVM multi-routine projector are
+absent from the self-hosted compiler; those gates are red because the work is
+not done, and that is the signal they exist to give.
+
+Do not add the declaration to a gate that is passing. A native-subject gate
+that currently passes through delegation is proving two facts at once, but only
+its own subject is what its failure should be read as -- convert it when it is
+touched, not in a sweep.

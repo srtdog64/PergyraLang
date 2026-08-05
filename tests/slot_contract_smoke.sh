@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Subject of this gate:
+#   the slot contract changed.
+# That is a fact about the native pipeline, so the gate compiles
+# in-process instead of delegating to the installed self-host driver.
+# Delegated, a self-host coverage gap would read as a regression in
+# the subject above. Declared per harness because the compiler is
+# reached through make and nested scripts, and the variable is the
+# same declared opt-out as --native-pipeline -- never a fallback.
+# See docs/152_validation_isolation_policy.md.
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths

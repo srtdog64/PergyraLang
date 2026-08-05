@@ -46,6 +46,7 @@ run 'make CC="$CI_MACOS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_MACOS_BUILD_DIR" BIN_D
 run 'make CC="$CI_MACOS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_MACOS_BUILD_DIR" BIN_DIR="$CI_MACOS_BIN_DIR" runtime-none-contract-test-smoke'
 run 'make CC="$CI_MACOS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_MACOS_BUILD_DIR" BIN_DIR="$CI_MACOS_BIN_DIR" slot-contract-test-smoke'
 run 'make CC="$CI_MACOS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_MACOS_BUILD_DIR" BIN_DIR="$CI_MACOS_BIN_DIR" raw-escape-contract-test-smoke'
+run 'make gate-subject-declaration-test-smoke'
 # Parallel boundary evidence gates (docs/178) + ability coherence, C voice
 # only on this platform; the LLVM voice runs on ci-linux.
 run 'PGY_PARALLEL_DISJOINT_BACKENDS=c make CC="$CI_MACOS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_MACOS_BUILD_DIR" BIN_DIR="$CI_MACOS_BIN_DIR" parallel-disjoint-test-smoke'

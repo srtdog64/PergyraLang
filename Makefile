@@ -3893,6 +3893,11 @@ raw-escape-contract-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 	"$(BASH)" tests/raw_escape_contract_smoke.sh
 
+# Reads shell scripts only, so it needs no compiler and stays cheap enough to
+# run beside the other contract gates.
+gate-subject-declaration-test-smoke:
+	"$(BASH)" tests/gate_subject_declaration_smoke.sh
+
 semantic-inc-size-test-smoke:
 	"$(BASH)" tests/semantic_inc_size_smoke.sh
 
