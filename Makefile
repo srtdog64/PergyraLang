@@ -1660,6 +1660,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_validate.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_validate_cleanup.o \
                    $(BUILD_DIR)/compiler/mir_abi_layout.o \
+                   $(BUILD_DIR)/compiler/mir_nominal_abi_layout.o \
                    $(BUILD_DIR)/compiler/machine_layer_manifest.o \
                    $(BUILD_DIR)/compiler/mir_machine_layer.o \
                    $(BUILD_DIR)/compiler/mir_abi_resource_runtime.o \
@@ -1827,15 +1828,23 @@ runtime-bc:
 # Build rules
 # -----------------------------------------------------------------
 
+# MSYS rewrites POSIX paths in command-line arguments before a native Windows
+# tool sees them, but it cannot reach inside an @response file. With an absolute
+# MSYS BUILD_DIR the objects land on disk and ld.exe still reports "cannot find"
+# for every one of them. The fixup is inert without cygpath, so it is a no-op on
+# Linux, macOS, and for relative BUILD_DIRs.
+PGY_LINK_RSP_FIXUP = "$(BASH)" scripts/link_response_native_paths.sh
 ifneq ($(filter 3.%,$(MAKE_VERSION)),)
 define pgy_link
 @printf '%s\n' $^ > "$(BUILD_DIR)/$(notdir $@).rsp"
+@$(PGY_LINK_RSP_FIXUP) "$(BUILD_DIR)/$(notdir $@).rsp"
 $(CC) $(CFLAGS) -o $@ @$(BUILD_DIR)/$(notdir $@).rsp $(1)
 @rm -f "$(BUILD_DIR)/$(notdir $@).rsp"
 endef
 else
 define pgy_link
 $(file >$(BUILD_DIR)/$(notdir $@).rsp,$^)
+@$(PGY_LINK_RSP_FIXUP) "$(BUILD_DIR)/$(notdir $@).rsp"
 $(CC) $(CFLAGS) -o $@ @$(BUILD_DIR)/$(notdir $@).rsp $(1)
 @rm -f "$(BUILD_DIR)/$(notdir $@).rsp"
 endef
