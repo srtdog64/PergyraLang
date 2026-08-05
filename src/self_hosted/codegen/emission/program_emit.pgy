@@ -38,6 +38,7 @@ import "program_statement_shape_owner.pgy";
 import "intent_emit_owner.pgy";
 import "intent_execution_plan_emit_owner.pgy";
 import "../runtime_abi/spawn_runtime_owner.pgy";
+import "../runtime_abi/checked_division_runtime_owner.pgy";
 func CheckFunction(count: Int, arena: AstArena,
                    signatures: SemanticAstFunctionSignatureFacts,
                    local_bindings: SemanticAstLocalBindingFacts,
@@ -424,6 +425,9 @@ func GenerateCUnitFromReadySemanticFacts(
     }
     TextBuilderAppend(output, "\n");
     if !RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction) { TextBuilderAppend(output, CheckedArithmeticRuntimeCProgramBlock(usage.uses_checked_int_cast, usage.uses_checked_long_cast)); }
+    // Emitted unconditionally: the helpers are static inline, so a program
+    // that never divides carries no unused-function warning.
+    TextBuilderAppend(output, CheckedDivisionRuntimeCProgramBlock());
     if usage.uses_spawn { TextBuilderAppend(output, SpawnRuntimeCBlock()); }
     if uses_log {
         TextBuilderAppend(output, StringRuntimeCLogMaterializationBlock(

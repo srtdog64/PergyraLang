@@ -1,0 +1,51 @@
+// Checked integer division and modulo in emitted C.
+//
+// The emitted form was the raw operator, so `7 / z` with z == 0 ran to
+// completion while the same source through the native pipeline panicked with
+// class=divide-by-zero. Same shape as the array-accessor hole: the
+// substitution kept the arithmetic and dropped the guard.
+//
+// Signed overflow is checked too: INT64_MIN / -1 has no representable result
+// and is undefined behaviour in C, not merely a wrong answer.
+//
+// `static inline` so a program that never divides carries no unused-function
+// warning, which is why these can be emitted unconditionally instead of
+// threading another usage flag through the program emitter.
+
+func CheckedDivisionRuntimeCDivideFn() -> String {
+    return "pgy_checked_div_ll";
+}
+
+func CheckedDivisionRuntimeCModuloFn() -> String {
+    return "pgy_checked_mod_ll";
+}
+
+// Integer division and modulo route through the checked helper; float division
+// keeps the plain operator, because the helper is a long long form and would
+// truncate it. Owning the choice here keeps the expression emitter at its cap.
+func CheckedDivisionRuntimeCBinaryEmit(
+    is_modulo: Bool,
+    integral: Bool,
+    left: String,
+    right: String
+) -> String {
+    if integral {
+        let checked_fn: String = CheckedDivisionRuntimeCDivideFn();
+        if is_modulo { checked_fn = CheckedDivisionRuntimeCModuloFn(); }
+        return "${checked_fn}(${left}, ${right})";
+    }
+    if is_modulo { return "(${left} % ${right})"; }
+    return "(${left} / ${right})";
+}
+
+func CheckedDivisionRuntimeCGuard() -> String {
+    return "    if (b == 0) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO, PGY_RUNTIME_PANIC_REASON_DIVIDE_BY_ZERO); }\n    if (a == (-9223372036854775807LL - 1) && b == -1) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_ARITHMETIC_OVERFLOW, PGY_RUNTIME_PANIC_REASON_DIVISION_OVERFLOW); }\n";
+}
+
+// The block carries its own panic-contract include: a program that uses no
+// collection never triggers the shared runtime header, and these helpers are
+// emitted for every program. The header is guarded, so a second include where
+// the shared header already landed is inert.
+func CheckedDivisionRuntimeCProgramBlock() -> String {
+    return "#include \"pgy_runtime_panic_contract.h\"\n\nstatic inline long long ${CheckedDivisionRuntimeCDivideFn()}(long long a, long long b)\n{\n${CheckedDivisionRuntimeCGuard()}    return a / b;\n}\n\nstatic inline long long ${CheckedDivisionRuntimeCModuloFn()}(long long a, long long b)\n{\n${CheckedDivisionRuntimeCGuard()}    return a % b;\n}\n\n";
+}

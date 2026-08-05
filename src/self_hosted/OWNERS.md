@@ -1280,6 +1280,11 @@ inventory must not become a second fact-family owner registry.
   consumers.
 - `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` -- self-host C ABI type spelling facts, including nominal struct type and empty parameter-list spelling.
 - `src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy` -- self-host C collection runtime symbol facts.
+- `src/self_hosted/codegen/runtime_abi/checked_division_runtime_owner.pgy`
+  -- checked integer division and modulo in emitted C. The raw operator let
+  `x / 0` run to completion while the native pipeline panicked on the same
+  source; signed division overflow is checked with it. Float division keeps
+  the plain operator.
 - `src/self_hosted/codegen/runtime_abi/collection_bounds_owner.pgy` -- the
   bounds-guarded shape of an emitted element accessor. The accessors indexed
   raw, so an out-of-bounds write ran to completion in a program built by the
