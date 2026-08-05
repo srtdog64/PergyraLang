@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
+# Subject of this gate:
+#   the native C backend stopped writing its generated C where it declares.
+# That is a fact about the native pipeline, so the gate compiles
+# in-process instead of delegating to the installed self-host driver.
+# Delegated, the --verbose line names the driver's artifact instead and the
+# gate goes blind -- it reported "cannot assert the safety property" rather
+# than checking it. Declared per harness because the compiler is reached
+# through make and nested scripts, and the variable is the same declared
+# opt-out as --native-pipeline -- never a fallback.
+# See docs/152_validation_isolation_policy.md.
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
+
 # WO-SEC-1: the C backend must not write its generated source through a path
 # an attacker can predict and pre-plant.
 #

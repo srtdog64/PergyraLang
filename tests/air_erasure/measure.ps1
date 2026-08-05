@@ -21,6 +21,18 @@
 # Requires: bin/pgy.exe, mingw gcc/nm on PATH, LLVM bin on PATH.
 $ErrorActionPreference = 'Continue'
 
+# Subject of this gate:
+#   the declared AIR disposition stopped matching the physical residue of the
+#   emitted C.
+# That is a fact about the native pipeline, so the harness compiles in-process
+# instead of delegating to the installed self-host driver. Delegated, a
+# self-host coverage gap reads as a measurement error in the subject above --
+# seven fixtures failed emit-c that way. Declared per harness because the
+# compiler is reached through make and nested scripts, and the variable is the
+# same declared opt-out as --native-pipeline -- never a fallback.
+# See docs/152_validation_isolation_policy.md.
+$env:PGY_NATIVE_PIPELINE = '1'
+
 # Self-locate the repo root (this script lives at <repo>/tests/air_erasure/).
 # PowerShell's cd does not set the process working directory, so a child
 # `powershell -File` would otherwise fail to resolve .\bin\pgy.exe.

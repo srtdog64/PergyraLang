@@ -40,9 +40,14 @@ while IFS= read -r script; do
         report "$script sets PGY_NATIVE_PIPELINE without a '$SUBJECT_MARKER' comment"
         continue
     fi
-    export_line="$(first_line "$script" '^export PGY_NATIVE_PIPELINE$' || true)"
+    # PowerShell harnesses spell the same declaration as an $env: assignment.
+    case "$script" in
+        *.ps1) export_pattern='^\$env:PGY_NATIVE_PIPELINE = .1.$' ;;
+        *)     export_pattern='^export PGY_NATIVE_PIPELINE$' ;;
+    esac
+    export_line="$(first_line "$script" "$export_pattern" || true)"
     if [[ -z "$export_line" ]]; then
-        report "$script sets PGY_NATIVE_PIPELINE without a plain 'export PGY_NATIVE_PIPELINE' line"
+        report "$script sets PGY_NATIVE_PIPELINE without a plain exported declaration line"
         continue
     fi
     # The subject must precede the export, so a reader meets the reason first.
@@ -50,7 +55,9 @@ while IFS= read -r script; do
     if (( subject_line > export_line )); then
         report "$script states its subject after the export; state it first"
     fi
-done < <(grep -rl '^PGY_NATIVE_PIPELINE=' tests scripts --include='*.sh' | sort)
+done < <({ grep -rl '^PGY_NATIVE_PIPELINE=' tests scripts --include='*.sh'
+           grep -rl '^\$env:PGY_NATIVE_PIPELINE' tests scripts --include='*.ps1'
+         } | sort)
 
 # 2. A self-host-subject gate is red when the self-hosted compiler does not
 #    cover a surface. That is the signal it exists to give, so it must not opt
@@ -72,5 +79,7 @@ if (( failures > 0 )); then
     exit 1
 fi
 
-declared="$(grep -rl "^export PGY_NATIVE_PIPELINE$" tests --include='*.sh' | wc -l | tr -d ' ')"
+declared="$({ grep -rl '^PGY_NATIVE_PIPELINE=' tests scripts --include='*.sh'
+               grep -rl '^\$env:PGY_NATIVE_PIPELINE' tests scripts --include='*.ps1'
+             } | sort -u | wc -l | tr -d ' ')"
 echo "[gate-subject] ok -- $declared native-subject gates declare a subject; no self-host-subject gate opts out"
