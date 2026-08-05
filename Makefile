@@ -1532,6 +1532,15 @@ RIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/rir.o \
                    $(BUILD_DIR)/compiler/rir_builder.o \
                    $(BUILD_DIR)/compiler/rir_builder_walk.o \
                    $(BUILD_DIR)/compiler/rir_builder_intent.o
+# mir_signature_metadata.o (listed below) resolves a declared type name to its
+# ABI layout and stamps the layout id, so mir_abi_layout.o and
+# mir_nominal_abi_layout.o are part of its link closure and are listed here too.
+# They also appear in MIR_CORE_OBJECTS; $^ de-duplicates, so the binaries that
+# link both lists are unaffected. Without them pgy-lsp -- which takes
+# AIR_CORE_OBJECTS but not MIR_CORE_OBJECTS -- fails to link, while pgy itself
+# builds because it links the full COMPILER_SOURCES sweep. Keep comments OUT of
+# the list body: a `#` inside a backslash-continued assignment ends the logical
+# line and silently truncates every object after it.
 AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_drift.o \
                    $(BUILD_DIR)/compiler/io_boundary_builtin.o \
@@ -1555,6 +1564,8 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_evidence_dag.o \
                    $(BUILD_DIR)/compiler/mir_program_inventory.o \
                    $(BUILD_DIR)/compiler/mir_signature_metadata.o \
+                   $(BUILD_DIR)/compiler/mir_abi_layout.o \
+                   $(BUILD_DIR)/compiler/mir_nominal_abi_layout.o \
                    $(BUILD_DIR)/compiler/mir_source_provenance.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
                    $(BUILD_DIR)/compiler/mir_source_lifecycle_shape.o \
