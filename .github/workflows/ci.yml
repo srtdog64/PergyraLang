@@ -94,6 +94,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc make llvm-dev llvm
 
+      # self-host-preparation-exhaustive-parity-test-smoke depends on $(PGY) and
+      # $(PGY_LSP) only, but it compiles Pergyra source, which now delegates to
+      # the installed driver. The self-host-one-mir-* targets below do declare
+      # self-host-compiler, so make would build it -- but only after the first
+      # target has already run and failed.
+      - name: Build the installed self-host driver
+        run: make self-host-compiler
+
       - name: Run exhaustive self-host parity
         run: >-
           make self-host-preparation-exhaustive-parity-test-smoke

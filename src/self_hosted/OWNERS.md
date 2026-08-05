@@ -130,6 +130,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/reject_fixture/systemic_slot.pgy` -- negative parser
   fixture proving unregistered `systemic` does not become a language word.
 - `src/self_hosted/parser/function_decl_owner.pgy` -- function signatures and bodies.
+- `src/self_hosted/parser/diagnostic_owner.pgy` -- parse-stage code/reason/fix
+  table and the `pgy.selfhost.parse.v1` envelope. The parser used to reject in
+  silence; a rejection now reports its reason before the caller stops. Output
+  shape stays in `lib/diagnostic.pgy`.
 - `src/self_hosted/parser/program_parse_owner.pgy` -- program-root assembly.
 - `src/self_hosted/hir/ast_match_pattern_fact_owner.pgy` -- interprets the
   canonical typed `MatchCase` AST atom as one bounded pattern fact for semantic

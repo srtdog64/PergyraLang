@@ -64,7 +64,10 @@ if [[ -x "$PGY_BIN" ]]; then
     (cd "$ROOT_DIR" && "$PGY_BIN" \
         "$VALID_SRC_ARG" --emit-c -o "$VALID_OUT_ARG") \
         >"$BUILD_DIR/valid_all.out" 2>"$BUILD_DIR/valid_all.err"
-    while IFS='|' read -r case_name diagnostic; do
+    # The default compile path is the self-hosted driver, so these assert its
+    # stable parse code plus the name that tripped it, not the native
+    # compiler's prose. A code and the offending value pin more than a sentence.
+    while IFS='|' read -r case_name diagnostic offending; do
         CASE_SRC_ARG="$(pgy_path_for_compiler "$PGY_BIN" \
             "$ROOT_DIR/tests/cases/callable_contract_vocabulary/$case_name/main.pgy")"
         CASE_OUT_ARG="$(pgy_path_for_compiler "$PGY_BIN" \
@@ -75,17 +78,21 @@ if [[ -x "$PGY_BIN" ]]; then
             echo "[callable-contract-vocabulary] invalid source accepted: $case_name" >&2
             exit 1
         fi
-        grep -Fq "$diagnostic" \
-            "$BUILD_DIR/$case_name.out" "$BUILD_DIR/$case_name.err" || {
-            echo "[callable-contract-vocabulary] diagnostic drifted: $case_name" >&2
-            cat "$BUILD_DIR/$case_name.out" "$BUILD_DIR/$case_name.err" >&2
-            exit 1
-        }
+        for expected_term in "$diagnostic" "$offending"; do
+            # `--` matters: a fact line starts with '-', which grep would
+            # otherwise read as an option bundle.
+            grep -Fq -- "$expected_term" \
+                "$BUILD_DIR/$case_name.out" "$BUILD_DIR/$case_name.err" || {
+                echo "[callable-contract-vocabulary] diagnostic drifted: $case_name (missing '$expected_term')" >&2
+                cat "$BUILD_DIR/$case_name.out" "$BUILD_DIR/$case_name.err" >&2
+                exit 1
+            }
+        done
     done <<'CASES'
-duplicate_cap|Duplicate capability 'io_read'
-duplicate_effect|Duplicate effect 'secure'
-local_mixed_first|Effect 'local' cannot be combined with other effects
-local_mixed_last|Effect 'local' cannot be combined with other effects
+duplicate_cap|Code: callable_contract_duplicate_name|- name: io_read
+duplicate_effect|Code: callable_contract_duplicate_name|- name: secure
+local_mixed_first|Code: callable_contract_exclusive_effect|- name: local
+local_mixed_last|Code: callable_contract_exclusive_effect|- name: local
 CASES
 fi
 

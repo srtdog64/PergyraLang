@@ -1,0 +1,78 @@
+// Parse-stage diagnostics for the self-hosted parser.
+//
+// The parser rejected programs in silence: 318 bare `Exit(1)` sites against
+// five that said anything, so a refused source produced no output at all. The
+// parser knew why it refused -- duplicate name, unknown name, exclusive effect
+// -- and dropped the reason on the way out.
+//
+// The semantic stage already emits a structured envelope. This is that same
+// envelope for the parse stage, with the parser's own code/reason/fix table,
+// which is exactly the split lib/diagnostic.pgy asks for: a tool owns its
+// domain codes, the shared library owns the output shape.
+
+import "../lib/diagnostic.pgy";
+import "../lib/callable_contract_vocabulary_projection_owner.pgy";
+
+func ParseDiagnosticSchema() -> String {
+    return "pgy.selfhost.parse.v1";
+}
+
+func ParseDiagnosticReason(code: String) -> String {
+    if code == "callable_contract_duplicate_name" {
+        return "the same contract name is listed twice in one clause";
+    }
+    if code == "callable_contract_unknown_name" {
+        return "the contract name is not in the callable contract vocabulary";
+    }
+    if code == "callable_contract_exclusive_effect" {
+        return "an exclusive effect cannot be combined with other effects";
+    }
+    return "the parser rejected this source";
+}
+
+func ParseDiagnosticFix(code: String) -> String {
+    if code == "callable_contract_duplicate_name" {
+        return "remove the repeated name from the clause";
+    }
+    if code == "callable_contract_unknown_name" {
+        return "use a name declared in src/semantic/callable_contract_vocabulary.def";
+    }
+    if code == "callable_contract_exclusive_effect" {
+        return "declare the exclusive effect alone, or drop it";
+    }
+    return "check the reported source position";
+}
+
+func ParseDiagnosticAxisLabel(axis: Int) -> String {
+    if axis == CallableContractVocabularyCapabilityAxis() {
+        return "capability";
+    }
+    if axis == CallableContractVocabularyEffectAxis() {
+        return "effect";
+    }
+    return "unknown";
+}
+
+// Reports only. The caller still owns the decision to stop, so the rejection
+// stays one observable branch rather than a hidden exit inside a helper.
+func ParseDiagnosticReport2(
+    code: String,
+    k1: String, v1: String,
+    k2: String, v2: String
+) -> Void {
+    Log(SelfHostDiagnostic.RenderError(
+        ParseDiagnosticSchema(), "parse", "error",
+        code,
+        ParseDiagnosticReason(code),
+        ParseDiagnosticFix(code),
+        "none",
+        SelfHostDiagnostic.Fact2(k1, v1, k2, v2)));
+}
+
+func ParseDiagnosticReportContractName(
+    code: String, axis: Int, name: String
+) -> Void {
+    ParseDiagnosticReport2(
+        code, "axis", ParseDiagnosticAxisLabel(axis), "name", name
+    );
+}

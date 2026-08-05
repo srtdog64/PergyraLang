@@ -7,6 +7,7 @@ import "expr_owner.pgy";
 import "stmt_owner.pgy";
 import "generic_parameter_list_owner.pgy";
 import "../lib/callable_contract_vocabulary_projection_owner.pgy";
+import "diagnostic_owner.pgy";
 
 func ParserCallableContractContains(names: Array<String>, name: String) -> Bool {
     let i: Int = 0;
@@ -21,14 +22,27 @@ func ParserCallableContractAppendName(
     inout names: Array<String>, name: String, axis: Int
 ) -> Bool {
     let index: Int = CallableContractVocabularyFindIndex(axis, name);
-    if StringLength(name) == 0 ||
-        index < 0 ||
-        ParserCallableContractContains(names, name) {
+    // Each rejection reports before it returns. The three reasons used to
+    // collapse into one bare `false`, and the caller then exited without a
+    // word, so a rejected contract clause produced no output at all.
+    if StringLength(name) == 0 || index < 0 {
+        ParseDiagnosticReportContractName(
+            "callable_contract_unknown_name", axis, name
+        );
+        return false;
+    }
+    if ParserCallableContractContains(names, name) {
+        ParseDiagnosticReportContractName(
+            "callable_contract_duplicate_name", axis, name
+        );
         return false;
     }
     let zero_policy: Int = CallableContractVocabularyZeroPolicyAt(index);
     if zero_policy == CallableContractVocabularyZeroExclusive() &&
         ArrayLength(names) > 0 {
+        ParseDiagnosticReportContractName(
+            "callable_contract_exclusive_effect", axis, name
+        );
         return false;
     }
     let i: Int = 0;
@@ -38,6 +52,9 @@ func ParserCallableContractAppendName(
         );
         if existing >= 0 && CallableContractVocabularyZeroPolicyAt(existing) ==
             CallableContractVocabularyZeroExclusive() {
+            ParseDiagnosticReportContractName(
+                "callable_contract_exclusive_effect", axis, names[i]
+            );
             return false;
         }
         i = i + 1;
