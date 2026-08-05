@@ -748,6 +748,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_type_infer.c \
                    $(CODEGEN_DIR)/transpiler_expr_stdlib_misc_builtin.c \
                    $(CODEGEN_DIR)/transpiler_expr_stdlib_scalar_builtin.c \
+                   $(CODEGEN_DIR)/transpiler_expr_stdlib_scalar_string.c \
                    $(CODEGEN_DIR)/transpiler_slot_runtime_row.c \
                    $(CODEGEN_DIR)/transpiler_expr_stdlib_scalar_unary.c \
                    $(CODEGEN_DIR)/transpiler_expr_unary_emit.c \
