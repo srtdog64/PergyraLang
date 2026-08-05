@@ -9,6 +9,20 @@
 
 run 'make check-build-tools CC="$CI_LINUX_CC"'
 run 'make check-linux-toolchain'
+
+# The shipped compiler delegates every ordinary compile to the installed
+# self-host driver, so pgy alone is no longer a usable toolchain: without
+# bin/pgy-self-driver every gate that compiles Pergyra source fails with
+# "self-host driver is unavailable". bin/ is gitignored, so a fresh checkout
+# never has one -- build it once here, before the first step that compiles.
+#
+# PGY_SELF_DRIVER_BIN is exported because later steps build pgy into
+# CI_LINUX_BIN_DIR, and the driver is otherwise resolved next to the launcher.
+# Pinning it keeps those steps pointed at the one driver built here, which the
+# BIN_DIR-scoped `clean` below does not touch.
+run 'make CC="$CI_LINUX_CC" self-host-compiler'
+export PGY_SELF_DRIVER_BIN="$PWD/bin/pgy-self-driver"
+
 run 'make build-source-inventory-test-smoke'
 run 'make ci-step-runner-test-smoke'
 run 'make grammar-cheatsheet-contract-test-smoke'

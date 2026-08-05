@@ -44,7 +44,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc make
 
+      # pgy delegates ordinary compiles to the installed self-host driver, and
+      # bin/ is gitignored, so a fresh checkout has none and every compile
+      # reports "self-host driver is unavailable". PGY_SELF_DRIVER_BIN pins it
+      # because the sanitized compiler is built into bin-asan-*/, where the
+      # launcher-adjacent lookup would not find it.
+      - name: Build the installed self-host driver
+        run: make LLVM_ENABLED=0 self-host-compiler
+
       - name: Calibrate ASan and run the bounded compiler battery
+        env:
+          PGY_SELF_DRIVER_BIN: ${{ github.workspace }}/bin/pgy-self-driver
         run: make LLVM_ENABLED=0 PGY_ASAN_CASES=40 test-asan
 
       - name: Run EMITTED programs under ASan+UBSan
@@ -52,6 +62,8 @@ jobs:
         # backend_compare cannot see this surface -- it checks the C lowering
         # against the LLVM lowering, so UB present in both passes unnoticed. A
         # sanitizer is the independent judge that comparison lacks.
+        env:
+          PGY_SELF_DRIVER_BIN: ${{ github.workspace }}/bin/pgy-self-driver
         run: make LLVM_ENABLED=0 PGY_EMITTED_SAN_CASES=40 emitted-c-sanitizer-test-smoke
 
   tsan-linux:
@@ -197,6 +209,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc make llvm-dev llvm
+
+      # Each shard needs the installed self-host driver: pgy delegates both the
+      # C and the LLVM leg to it, and bin/ is gitignored so a fresh checkout has
+      # none. Building it per shard duplicates the work 20 times; the cheaper
+      # shape is one job that builds it and uploads it as an artifact the shards
+      # download. That is left as a follow-up so this change stays reviewable.
+      - name: Build the installed self-host driver
+        run: make LLVM_ENABLED=1 self-host-compiler
 
       - name: Run Linux C/LLVM backend compare shard
         run: |

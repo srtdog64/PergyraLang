@@ -3,6 +3,13 @@
 
 run 'make check-build-tools CC="$CI_MACOS_CC" LLVM_ENABLED=0'
 run 'make check-macos-toolchain'
+
+# See scripts/ci_linux_steps.sh: pgy delegates ordinary compiles to the
+# installed self-host driver, and bin/ is gitignored, so a fresh checkout has
+# no driver and every compile gate fails "self-host driver is unavailable".
+run 'make CC="$CI_MACOS_CC" LLVM_ENABLED=0 self-host-compiler'
+export PGY_SELF_DRIVER_BIN="$PWD/bin/pgy-self-driver"
+
 run 'make build-source-inventory-test-smoke'
 run 'make ci-step-runner-test-smoke'
 run 'make grammar-cheatsheet-contract-test-smoke'
