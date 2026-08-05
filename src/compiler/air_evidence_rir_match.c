@@ -173,11 +173,15 @@ air_rir_scope_provides_boundary_evidence(const RIRScope *scope,
 
     /* A local authorization may use an intent participant alias that differs
      * from the zone subject-slot name. Admit the intent scope only when its
-     * exact step owns an Authorize op for a declared boundary participant. */
+     * exact step owns an Authorize op for a declared boundary participant,
+     * and only against a zone that owns authority to grant: a zone with no
+     * `authority` declaration has nothing a step-local `authorized by:` could
+     * bind to, so such a boundary stays evidence-missing (fail closed). */
     if (scope != NULL && boundary != NULL
         && scope->kind == RIR_SCOPE_INTENT
         && boundary->kind == AIR_BOUNDARY_ZONE
         && boundary->authority_required
+        && boundary->zone_owns_rir_authority
         && air_boundary_required_ability_count(boundary) > 0
         && air_name_matches(scope->name, boundary->owner_name)) {
         for (size_t i = 0; i < rir_scope_op_count(scope); i++) {

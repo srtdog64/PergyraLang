@@ -175,6 +175,14 @@ typedef struct
        is explicit or action-inherited, never derived from local `who`. */
     bool            authority_from_zone;
     bool            authority_from_action;
+    /* True when the RIR zone scope this boundary crosses owns an AUTHORIZED
+       authority handle (an explicit `authority` declaration on the zone).
+       Set once during RIR evidence collection. An intent-local Authorize op
+       may prove this boundary's authority only when this is true: a zone
+       that declares no authority has none to grant, so a step-local
+       `authorized by:` against it stays inadmissible and the boundary fails
+       closed as evidence-missing. */
+    bool            zone_owns_rir_authority;
     const char    **authority_names;
     size_t          authority_name_count;
     /* The abilities/contracts this boundary's authority participants must hold
