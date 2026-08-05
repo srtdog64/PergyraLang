@@ -62,6 +62,7 @@ static const DriverOptionSpec k_driver_options[] = {
     { "--mir-json", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_mir_json), true },
     { "--test-native-mir-json-oracle", DRIVER_OPTION_BOOL, offsetof(DriverFlags, test_native_mir_json_oracle), true },
     { "--machine-manifest-json", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_machine_manifest_json), true },
+    { "--native-pipeline", DRIVER_OPTION_BOOL, offsetof(DriverFlags, native_pipeline), true },
     { "--opt=dev", DRIVER_OPTION_OPT_PROFILE, 0, PGY_OPT_DEV },
     { "--opt=release", DRIVER_OPTION_OPT_PROFILE, 0, PGY_OPT_RELEASE },
     { "--repl", DRIVER_OPTION_BOOL, offsetof(DriverFlags, repl), true },
@@ -248,6 +249,13 @@ main(int argc, char *argv[])
         }
         return driver_run_pipeline(&flags);
     }
+    /* Every delegation below hands the compile to the installed self-host
+     * driver. --native-pipeline is the one declared way to opt out, and it is
+     * checked before any of them so the opt-out cannot be shadowed by a
+     * narrower predicate. Bootstrap scaffolding uses it because the driver it
+     * would delegate to is the artifact being built. */
+    if (flags.native_pipeline)
+        return driver_run_pipeline(&flags);
     if (flags.dump_mir_json) {
         if (!driver_self_host_mir_json_request_supported(&flags)) {
             fprintf(stderr,

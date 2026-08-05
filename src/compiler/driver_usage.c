@@ -64,6 +64,9 @@ driver_print_usage(void)
 #ifdef PGY_LLVM_ENABLED
         "  pgy <source.pgy> --emit-llvm      emit LLVM IR text\n"
 #endif
+        "  pgy <source.pgy> --native-pipeline  compile in-process instead of\n"
+        "                                delegating to the self-host driver\n"
+        "                                (bootstrap scaffolding only)\n"
         "  pgy --repl                    interactive REPL\n"
         "  pgy --help\n");
 }
