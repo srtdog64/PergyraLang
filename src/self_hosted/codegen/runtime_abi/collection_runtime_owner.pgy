@@ -7,6 +7,7 @@ import "../type_facts/type_env.pgy";
 import "../../compiler/abi_layout_row_owner.pgy";
 import "../../compiler/abi_layout_nominal_array_owner.pgy";
 import "../../semantic/array_type_shape_owner.pgy";
+import "collection_bounds_owner.pgy";
 
 struct CollectionRuntimeFact {
     ok: Bool;
@@ -369,8 +370,8 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
     block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCPushFn(1), Concat("(", Concat(int_array_type, " *a, long long v) {\n")))));
     block = Concat(block, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (long long *)realloc(a->data, (size_t)a->cap * sizeof(long long)); }\n");
     block = Concat(block, "    a->data[a->len++] = v;\n}\n");
-    block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCGetFn(1), Concat("(", Concat(int_array_type, " a, long long i) { return a.data[i]; }\n")))));
-    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCSetFn(1), Concat("(", Concat(int_array_type, " *a, long long i, long long v) { a->data[i] = v; }\n")))));
+    block = Concat(block, CollectionRuntimeCGuardedGet("long long", CollectionRuntimeCGetFn(1), int_array_type));
+    block = Concat(block, CollectionRuntimeCGuardedSet(CollectionRuntimeCSetFn(1), int_array_type, "long long"));
     block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCLenFn(1), Concat("(", Concat(int_array_type, " a) { return a.len; }\n")))));
     block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCPopFn(1), Concat("(", Concat(int_array_type, " *a) { return a->len > 0 ? a->data[--a->len] : 0; }\n\n")))));
     if uses_array_sort {
@@ -422,8 +423,8 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
     block = Concat(block, "    if (a == NULL) { return; }\n");
     block = Concat(block, "    for (long long i = 0; i < a->len; i++) { free((void *)a->data[i]); }\n");
     block = Concat(block, "    free(a->data); a->data = NULL; a->len = 0; a->cap = 0;\n}\n");
-    block = Concat(block, Concat("static const char *", Concat(CollectionRuntimeCGetFn(2), Concat("(", Concat(string_array_type, " a, long long i) { return a.data[i]; }\n")))));
-    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCSetFn(2), Concat("(", Concat(string_array_type, " *a, long long i, const char *v) { a->data[i] = v; }\n")))));
+    block = Concat(block, CollectionRuntimeCGuardedGet("const char *", CollectionRuntimeCGetFn(2), string_array_type));
+    block = Concat(block, CollectionRuntimeCGuardedSet(CollectionRuntimeCSetFn(2), string_array_type, "const char *"));
     block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCLenFn(2), Concat("(", Concat(string_array_type, " a) { return a.len; }\n")))));
     block = Concat(block, Concat("static const char *", Concat(CollectionRuntimeCPopFn(2), Concat("(", Concat(string_array_type, " *a) { return a->len > 0 ? a->data[--a->len] : \"\"; }\n\n")))));
     block = Concat(block, Concat("typedef struct { bool *data; long long len; long long cap; } ", Concat(bool_array_type, ";\n")));
@@ -431,8 +432,8 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
     block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCPushFn(4), Concat("(", Concat(bool_array_type, " *a, bool v) {\n")))));
     block = Concat(block, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (bool *)realloc(a->data, (size_t)a->cap * sizeof(bool)); }\n");
     block = Concat(block, "    a->data[a->len++] = v;\n}\n");
-    block = Concat(block, Concat("static bool ", Concat(CollectionRuntimeCGetFn(4), Concat("(", Concat(bool_array_type, " a, long long i) { return a.data[i]; }\n")))));
-    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCSetFn(4), Concat("(", Concat(bool_array_type, " *a, long long i, bool v) { a->data[i] = v; }\n")))));
+    block = Concat(block, CollectionRuntimeCGuardedGet("bool", CollectionRuntimeCGetFn(4), bool_array_type));
+    block = Concat(block, CollectionRuntimeCGuardedSet(CollectionRuntimeCSetFn(4), bool_array_type, "bool"));
     block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCLenFn(4), Concat("(", Concat(bool_array_type, " a) { return a.len; }\n")))));
     block = Concat(block, Concat("static bool ", Concat(CollectionRuntimeCPopFn(4), Concat("(", Concat(bool_array_type, " *a) { return a->len > 0 ? a->data[--a->len] : false; }\n\n")))));
     block = Concat(block, "typedef struct { float *data; long long len; long long cap; } pgy_af;\n");
@@ -464,8 +465,8 @@ func CollectionRuntimeCodegenAstTextNodeArrayBlock() -> String {
     block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCPushFn(3), Concat("(", Concat(array_type, " *a, CodegenAstTextNode v) {\n")))));
     block = Concat(block, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (CodegenAstTextNode *)realloc(a->data, (size_t)a->cap * sizeof(CodegenAstTextNode)); }\n");
     block = Concat(block, "    a->data[a->len++] = v;\n}\n");
-    block = Concat(block, Concat("static CodegenAstTextNode ", Concat(CollectionRuntimeCGetFn(3), Concat("(", Concat(array_type, " a, long long i) { return a.data[i]; }\n")))));
-    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCSetFn(3), Concat("(", Concat(array_type, " *a, long long i, CodegenAstTextNode v) { a->data[i] = v; }\n")))));
+    block = Concat(block, CollectionRuntimeCGuardedGet("CodegenAstTextNode", CollectionRuntimeCGetFn(3), array_type));
+    block = Concat(block, CollectionRuntimeCGuardedSet(CollectionRuntimeCSetFn(3), array_type, "CodegenAstTextNode"));
     block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCLenFn(3), Concat("(", Concat(array_type, " a) { return a.len; }\n")))));
     block = Concat(block, Concat("static CodegenAstTextNode ", Concat(CollectionRuntimeCPopFn(3), Concat("(", Concat(array_type, " *a) { return a->len > 0 ? a->data[--a->len] : (CodegenAstTextNode){0, \"\", -1, 0}; }\n\n")))));
     return block;

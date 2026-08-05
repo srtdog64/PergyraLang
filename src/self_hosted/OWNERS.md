@@ -1280,6 +1280,11 @@ inventory must not become a second fact-family owner registry.
   consumers.
 - `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` -- self-host C ABI type spelling facts, including nominal struct type and empty parameter-list spelling.
 - `src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy` -- self-host C collection runtime symbol facts.
+- `src/self_hosted/codegen/runtime_abi/collection_bounds_owner.pgy` -- the
+  bounds-guarded shape of an emitted element accessor. The accessors indexed
+  raw, so an out-of-bounds write ran to completion in a program built by the
+  default path while the native pipeline panicked on the same source. The guard
+  reports through the panic contract the emitted prelude already carries.
 - `src/self_hosted/codegen/runtime_abi/list_runtime_owner.pgy` -- canonical `List<T>` runtime ABI fact, supported element ABI, specialization macro, and constructor/operation-symbol projection.
 - `src/self_hosted/codegen/runtime_abi/queue_runtime_owner.pgy` -- canonical
   `Queue<T>` runtime ABI fact, supported element ABI, and constructor/operation

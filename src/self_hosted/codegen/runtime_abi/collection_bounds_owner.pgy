@@ -1,0 +1,36 @@
+// Bounds-guarded array accessors in emitted C.
+//
+// The emitted element accessors indexed raw: `return a.data[i];` and
+// `a->data[i] = v;` with no check. An out-of-bounds write therefore ran to
+// completion in a program built by the default path, while the same source
+// built through the native pipeline panicked with class=out-of-bounds. The
+// substitution had silently dropped a memory-safety guarantee.
+//
+// The guard uses the panic contract the emitted prelude already includes and
+// already uses for allocation failure, so the class and reason match what the
+// native runtime reports for the same violation.
+//
+// Its own owner because the accessor shape is one fact repeated across every
+// element type, and collection_runtime_owner.pgy is at its line cap.
+
+func CollectionRuntimeCBoundsPanic() -> String {
+    return "PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS)";
+}
+
+// Reader: the array arrives by value, so the length is `a.len`.
+func CollectionRuntimeCGuardedGet(
+    return_type: String,
+    fn_name: String,
+    array_type: String
+) -> String {
+    return "static ${return_type} ${fn_name}(${array_type} a, long long i) {\n    if (i < 0 || i >= a.len) { ${CollectionRuntimeCBoundsPanic()}; }\n    return a.data[i];\n}\n";
+}
+
+// Writer: the array arrives by pointer, so the length is `a->len`.
+func CollectionRuntimeCGuardedSet(
+    fn_name: String,
+    array_type: String,
+    value_type: String
+) -> String {
+    return "static void ${fn_name}(${array_type} *a, long long i, ${value_type} v) {\n    if (i < 0 || i >= a->len) { ${CollectionRuntimeCBoundsPanic()}; }\n    a->data[i] = v;\n}\n";
+}
