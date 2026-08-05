@@ -1285,6 +1285,13 @@ inventory must not become a second fact-family owner registry.
   `x / 0` run to completion while the native pipeline panicked on the same
   source; signed division overflow is checked with it. Float division keeps
   the plain operator.
+- `src/self_hosted/codegen/runtime_abi/checked_builtin_runtime_owner.pgy`
+  -- the CheckedAdd and CheckedMul lowering. Neither had a lowering at all, so
+  the declared fail-closed arithmetic surface did not compile through the
+  default path. The helpers narrow to the Int32-ranged declared surface before
+  checking, matching the native `((int32_t)(a), (int32_t)(b))` call rather than
+  reporting an overflow the native oracle does not report. Distinct from the
+  checked *cast* helpers owned by `checked_arithmetic_runtime_owner.pgy`.
 - `src/self_hosted/codegen/runtime_abi/collection_bounds_owner.pgy` -- the
   bounds-guarded shape of an emitted element accessor. The accessors indexed
   raw, so an out-of-bounds write ran to completion in a program built by the
