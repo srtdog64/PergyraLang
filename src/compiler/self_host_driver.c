@@ -2,32 +2,12 @@
 
 #include "compiler_process.h"
 #include "path_utils.h"
+#include "self_host_child_io_authority.h"
 
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-/* The driver is a Pergyra program, so its IO runs through the runtime policy
- * in pgy_runtime_lib_file_path_core.h, which denies absolute paths. That
- * default targets *compiled user programs*; the delegated driver is the
- * compiler, reading and writing exactly the paths named on pgy's own command
- * line. Without this grant `pgy --emit-c /abs/path.pgy` died at exit 1 with no
- * diagnostic: the read was denied and pgy_read_file maps a denial to "".
- * An operator-declared PGY_IO_ROOT is left alone -- that sandbox must fail
- * closed, not be widened here. */
-static void
-driver_authorize_self_host_child_io(void)
-{
-    const char *root = getenv("PGY_IO_ROOT");
-    if (root != NULL && root[0] != '\0')
-        return;
-#ifdef _WIN32
-    (void)_putenv_s("PGY_IO_ALLOW_ABSOLUTE", "1");
-#else
-    (void)setenv("PGY_IO_ALLOW_ABSOLUTE", "1", 1);
-#endif
-}
 
 char *
 driver_resolve_self_host_binary(const char *launcher_path)

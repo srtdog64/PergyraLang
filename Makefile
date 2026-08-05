@@ -890,6 +890,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/driver_self_host_selection_owner.c \
                    $(COMPILER_DIR)/driver_self_host_llvm_selection_owner.c \
                    $(COMPILER_DIR)/self_host_driver.c \
+                   $(COMPILER_DIR)/self_host_child_io_authority.c \
                    $(COMPILER_DIR)/self_host_llvm_driver.c \
                    $(COMPILER_DIR)/self_host_llvm_ir_artifact_owner.c \
                    $(COMPILER_DIR)/self_host_llvm_ir_stdout_owner.c \
