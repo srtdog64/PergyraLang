@@ -34,6 +34,8 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "Log2^Float^Float",
         "Random^Int^Int",
         "SeedRandom^Void^Int",
+        "CheckedAdd^Int^Int|Int",
+        "CheckedMul^Int^Int|Int",
         "Abs^Unknown^Unknown",
         "Min^Unknown^Unknown|Unknown",
         "Max^Unknown^Unknown|Unknown",

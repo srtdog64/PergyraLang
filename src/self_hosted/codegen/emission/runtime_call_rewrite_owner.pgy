@@ -4,6 +4,7 @@
 // only recognizes source call identifiers and preserves string literals.
 
 import "../text/text_owner.pgy";
+import "../runtime_abi/checked_builtin_runtime_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/math_runtime_owner.pgy";
@@ -54,6 +55,8 @@ func RuntimeCallCName(source_name: String) -> Option<String> {
     if source_name == "Pow" { return Some(MathRuntimeCPowFn()); }
     if source_name == "Floor" { return Some(MathRuntimeCFloorFn()); }
     if source_name == "Ceil" { return Some(MathRuntimeCCeilFn()); }
+    if source_name == "CheckedAdd" { return Some(CheckedBuiltinRuntimeCAddFn()); }
+    if source_name == "CheckedMul" { return Some(CheckedBuiltinRuntimeCMulFn()); }
     if source_name == "SeedRandom" { return Some(MathRuntimeCSeedRandomFn()); }
     if source_name == "Random" { return Some(MathRuntimeCRandomFn()); }
     if source_name == "FileExists" { return Some(HostIORuntimeCFileExistsFn()); }

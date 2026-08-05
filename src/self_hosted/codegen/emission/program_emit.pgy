@@ -38,6 +38,7 @@ import "program_statement_shape_owner.pgy";
 import "intent_emit_owner.pgy";
 import "intent_execution_plan_emit_owner.pgy";
 import "../runtime_abi/spawn_runtime_owner.pgy";
+import "../runtime_abi/checked_builtin_runtime_owner.pgy";
 import "../runtime_abi/checked_division_runtime_owner.pgy";
 func CheckFunction(count: Int, arena: AstArena,
                    signatures: SemanticAstFunctionSignatureFacts,
@@ -428,6 +429,8 @@ func GenerateCUnitFromReadySemanticFacts(
     // Emitted unconditionally: the helpers are static inline, so a program
     // that never divides carries no unused-function warning.
     TextBuilderAppend(output, CheckedDivisionRuntimeCProgramBlock());
+    // Same reason for the CheckedAdd/CheckedMul lowering.
+    TextBuilderAppend(output, CheckedBuiltinRuntimeCProgramBlock());
     if usage.uses_spawn { TextBuilderAppend(output, SpawnRuntimeCBlock()); }
     if uses_log {
         TextBuilderAppend(output, StringRuntimeCLogMaterializationBlock(

@@ -1,0 +1,65 @@
+// Checked integer addition and multiplication in emitted C.
+//
+// CheckedAdd and CheckedMul are the declared fail-closed arithmetic surface.
+// The self-hosted emitter had no lowering for either, so a program using them
+// did not compile at all through the default path while the native pipeline
+// panicked with class=arithmetic-overflow. Same shape as the bounds and
+// divide-by-zero holes: the substitution had not carried a safety guarantee
+// across.
+//
+// The declared surface is Int32-ranged on both backends -- the native C
+// lowering is `pgy_checked_mul_i32_export((int32_t)(a), (int32_t)(b))` -- but
+// the emitted Int is wider than int32. The helpers therefore narrow first and
+// check the narrowed operands, which is what that call already does, rather
+// than checking at the emitted Int width and reporting an overflow the native
+// oracle does not report.
+//
+// `static inline` so a program that never calls them carries no unused-function
+// warning, which is why the block can be emitted unconditionally instead of
+// threading another usage flag through the program emitter.
+
+import "../../compiler/abi_layout_row_owner.pgy";
+
+func CheckedBuiltinRuntimeCAddFn() -> String {
+    return "pgy_checked_add_i32";
+}
+
+func CheckedBuiltinRuntimeCMulFn() -> String {
+    return "pgy_checked_mul_i32";
+}
+
+func CheckedBuiltinRuntimeCNarrowPrologue() -> String {
+    return "    int lhs = (int)lhs_in;\n    int rhs = (int)rhs_in;\n";
+}
+
+// Mirrors pgy_checked_add_i32_export in
+// src/runtime/pgy_runtime_lib_checked_arith_core.h.
+func CheckedBuiltinRuntimeCAddGuard() -> String {
+    return "    if (((rhs > 0) && (lhs > 2147483647 - rhs)) || ((rhs < 0) && (lhs < (-2147483647 - 1) - rhs))) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_ARITHMETIC_OVERFLOW, PGY_RUNTIME_PANIC_REASON_ADDITION_OVERFLOW); }\n";
+}
+
+// Mirrors pgy_checked_mul_i32_export in the same header, including its
+// division-based test, which avoids forming the overflowing product.
+func CheckedBuiltinRuntimeCMulGuard() -> String {
+    return "    int overflow = 0;\n    if (lhs > 0) {\n        if (rhs > 0) { overflow = (lhs > 2147483647 / rhs); }\n        else { overflow = (rhs < (-2147483647 - 1) / lhs); }\n    } else {\n        if (rhs > 0) { overflow = (lhs < (-2147483647 - 1) / rhs); }\n        else { overflow = (lhs != 0 && rhs < 2147483647 / lhs); }\n    }\n    if (overflow) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_ARITHMETIC_OVERFLOW, PGY_RUNTIME_PANIC_REASON_MULTIPLICATION_OVERFLOW); }\n";
+}
+
+// The block carries its own panic-contract include for the same reason the
+// checked-division block does: a program that uses no collection never
+// triggers the shared runtime header, and the header is guarded so a second
+// include where the shared one already landed is inert.
+func CheckedBuiltinRuntimeCProgramBlock() -> String {
+    let int_type: String = CompilerAbiLayoutIntCValueType();
+    let add_head: String = Concat("static inline ", Concat(int_type, Concat(" ", Concat(CheckedBuiltinRuntimeCAddFn(), Concat("(", Concat(int_type, Concat(" lhs_in, ", Concat(int_type, " rhs_in)\n{\n"))))))));
+    let mul_head: String = Concat("static inline ", Concat(int_type, Concat(" ", Concat(CheckedBuiltinRuntimeCMulFn(), Concat("(", Concat(int_type, Concat(" lhs_in, ", Concat(int_type, " rhs_in)\n{\n"))))))));
+    let block: String = "#include \"pgy_runtime_panic_contract.h\"\n\n";
+    block = Concat(block, add_head);
+    block = Concat(block, CheckedBuiltinRuntimeCNarrowPrologue());
+    block = Concat(block, CheckedBuiltinRuntimeCAddGuard());
+    block = Concat(block, Concat("    return (", Concat(int_type, ")(lhs + rhs);\n}\n\n")));
+    block = Concat(block, mul_head);
+    block = Concat(block, CheckedBuiltinRuntimeCNarrowPrologue());
+    block = Concat(block, CheckedBuiltinRuntimeCMulGuard());
+    block = Concat(block, Concat("    return (", Concat(int_type, ")(lhs * rhs);\n}\n\n")));
+    return block;
+}
