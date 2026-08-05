@@ -8,6 +8,27 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* The driver is a Pergyra program, so its IO runs through the runtime policy
+ * in pgy_runtime_lib_file_path_core.h, which denies absolute paths. That
+ * default targets *compiled user programs*; the delegated driver is the
+ * compiler, reading and writing exactly the paths named on pgy's own command
+ * line. Without this grant `pgy --emit-c /abs/path.pgy` died at exit 1 with no
+ * diagnostic: the read was denied and pgy_read_file maps a denial to "".
+ * An operator-declared PGY_IO_ROOT is left alone -- that sandbox must fail
+ * closed, not be widened here. */
+static void
+driver_authorize_self_host_child_io(void)
+{
+    const char *root = getenv("PGY_IO_ROOT");
+    if (root != NULL && root[0] != '\0')
+        return;
+#ifdef _WIN32
+    (void)_putenv_s("PGY_IO_ALLOW_ABSOLUTE", "1");
+#else
+    (void)setenv("PGY_IO_ALLOW_ABSOLUTE", "1", 1);
+#endif
+}
+
 char *
 driver_resolve_self_host_binary(const char *launcher_path)
 {
@@ -89,6 +110,7 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
     else
         child_argv[child_argc++] = "--emit-c-verified";
     child_argv[child_argc] = NULL;
+    driver_authorize_self_host_child_io();
     rc = pgy_exec_argv(child_argv, false);
     free(binary);
     return rc;
@@ -141,7 +163,15 @@ driver_materialize_self_host_c_artifact(const char *launcher_path,
     child_argv[2] = source_path;
     child_argv[3] = output_path;
     child_argv[4] = NULL;
+    driver_authorize_self_host_child_io();
     rc = pgy_exec_argv(child_argv, verbose);
+    /* The driver can fail before it has anything to say -- a denied source
+     * read, say -- so never let a delegated failure surface as a bare exit
+     * code with no observable cause. */
+    if (rc != 0)
+        fprintf(stderr,
+                "pgy: self-host driver failed (exit %d) emitting C for %s -> %s\n",
+                rc, source_path, output_path);
     if (rc == 0 && !path_file_exists(output_path)) {
         fprintf(stderr,
                 "pgy: self-host driver reported success without a C artifact\n");
