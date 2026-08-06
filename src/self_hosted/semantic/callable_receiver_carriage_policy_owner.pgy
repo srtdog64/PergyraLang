@@ -13,6 +13,7 @@ func CallableReceiverCarriageKnown(carriage: String) -> Bool {
 }
 
 func CallableReceiverNominalKindKnown(nominal_kind: String) -> Bool {
+    // extern: host-ABI prototype group; members are receiver-less callables.
     return nominal_kind == "class" || nominal_kind == "struct" ||
         nominal_kind == "subject" || nominal_kind == "object" ||
         nominal_kind == "tobject" || nominal_kind == "vessel" ||
@@ -20,7 +21,7 @@ func CallableReceiverNominalKindKnown(nominal_kind: String) -> Bool {
         nominal_kind == "party" || nominal_kind == "roster" ||
         nominal_kind == "effect" || nominal_kind == "relation" ||
         nominal_kind == "role" || nominal_kind == "ability" ||
-        nominal_kind == "enum";
+        nominal_kind == "enum" || nominal_kind == "extern";
 }
 
 func CallableReceiverNominalKindOwnsCompileTimeContractOnly(

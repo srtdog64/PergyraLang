@@ -448,6 +448,86 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(variant_counts, enum_variant_count);
         enum_i = enum_i + 1;
     }
+    let extern_node: Int = 0;
+    let arena_node_count: Int = TypedAstArenaNodeCount(artifact.arena);
+    while extern_node < arena_node_count {
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, extern_node, TypedAstKindExternBlockTag()
+        ) {
+            let abi_name: Option<String> = TypedAstArenaAtomText(
+                artifact.arena, extern_node
+            );
+            if !IsSome(abi_name) || UnwrapOption(abi_name) == "" {
+                return SelfMirDeclarationRowsEmpty();
+            }
+            ArrayPush(kinds, "extern");
+            ArrayPush(nominal_kinds, "extern");
+            ArrayPush(names, UnwrapOption(abi_name));
+            ArrayPush(source_syntax_ids, extern_node);
+            ArrayPush(target_types, "");
+            ArrayPush(
+                uses_pointer_self, SelfMirDeclarationUsesPointerSelf("extern")
+            );
+            ArrayPush(generic_starts, ArrayLength(generic_names));
+            ArrayPush(generic_counts, 0);
+            ArrayPush(field_starts, ArrayLength(field_names));
+            ArrayPush(field_counts, 0);
+            ArrayPush(role_slot_starts, ArrayLength(role_slot_names));
+            ArrayPush(role_slot_counts, 0);
+            ArrayPush(method_starts, ArrayLength(method_names));
+            let member_count: Int = 0;
+            let member_index: Int = 0;
+            let member: Option<Int> = TypedAstArenaChildAt(
+                artifact.arena, extern_node, member_index
+            );
+            while IsSome(member) {
+                let member_node: Int = UnwrapOption(member);
+                let member_signature: Option<Int> =
+                    SelfMirDeclarationSignatureIndexForNode(
+                        analysis.signatures, member_node
+                    );
+                if IsSome(member_signature) {
+                    let signature_i: Int = UnwrapOption(member_signature);
+                    ArrayPush(
+                        method_names, analysis.signatures.names[signature_i]
+                    );
+                    ArrayPush(
+                        method_returns,
+                        SelfMirDeclarationRawReturnType(artifact, member_node)
+                    );
+                    if !SelfMirDeclarationAppendMethodParams(
+                        artifact, analysis.signatures, member_node,
+                        method_param_starts, method_param_counts,
+                        method_param_names, method_param_types
+                    ) {
+                        return SelfMirDeclarationRowsEmpty();
+                    }
+                    if !SelfMirDeclarationAppendMethodContract(
+                        analysis.signatures, signature_i, method_is_actions,
+                        method_requires_starts, method_requires_counts,
+                        method_requires_names, method_within_zone_names,
+                        method_causes_names, method_authorized_by_starts,
+                        method_authorized_by_counts, method_authorized_by_names,
+                        method_caps_present, method_cap_starts,
+                        method_cap_counts, method_cap_names,
+                        method_effects_present, method_effect_starts,
+                        method_effect_counts, method_effect_names
+                    ) { return SelfMirDeclarationRowsEmpty(); }
+                    member_count = member_count + 1;
+                }
+                member_index = member_index + 1;
+                member = TypedAstArenaChildAt(
+                    artifact.arena, extern_node, member_index
+                );
+            }
+            ArrayPush(method_counts, member_count);
+            ArrayPush(role_impl_starts, ArrayLength(role_impl_ability_names));
+            ArrayPush(role_impl_counts, 0);
+            ArrayPush(variant_starts, ArrayLength(variant_names));
+            ArrayPush(variant_counts, 0);
+        }
+        extern_node = extern_node + 1;
+    }
     let zone_authorities: SelfMirDeclarationZoneAuthorityRows =
         SelfMirDeclarationZoneAuthorityRowsFromFacts(
             analysis.zone_authorities, names, nominal_kinds

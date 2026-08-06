@@ -19,7 +19,9 @@ run_case() {
     local work_rel=".tmp/self_hosted/public_scalar_cfg_llvm/$stem"
     local work_dir="$ROOT_DIR/$work_rel"
     mkdir -p "$work_dir"; rm -f "$work_dir"/*
-    (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN && "$PGY" --mir-json "$source") \
+    # The installed driver IS the public --mir-json producer (proved by the
+    # public gate's cmp); consuming it directly keeps the oracle sweep exact.
+    (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$source") \
         >"$work_dir/public.mir.json" 2>"$work_dir/mir.err" ||
         fail "$stem public source-MIR production failed"
     (cd "$ROOT_DIR" && "$DRIVER" --mir-json-backend=llvm \

@@ -120,8 +120,11 @@ require_text "$SELECTION_OWNER" 'driver_self_host_mir_json_request_supported('
 require_text "$SELECTION_OWNER" '&& !flags->test_native_mir_json_oracle'
 require_text "$SIBLING_OWNER" 'args[0] = (char *)"--emit-mir-json-verified";'
 require_text "$SIBLING_OWNER" 'return driver_run_self_host_command(launcher_path, 2, args);'
-[[ "$(grep -F -c 'return driver_run_pipeline(&flags);' "$LAUNCHER_OWNER")" -eq 2 ]] ||
-    fail "native pipeline reachability escaped test oracle plus final non-MIR dispatch"
+# Re-armed 2 -> 3: the third dispatch is the declared --native-pipeline /
+# PGY_NATIVE_PIPELINE opt-out (docs/152), the single decision point that lets
+# native-subject harnesses decline delegation. Any fourth site is a leak.
+[[ "$(grep -F -c 'return driver_run_pipeline(&flags);' "$LAUNCHER_OWNER")" -eq 3 ]] ||
+    fail "native pipeline reachability escaped test oracle, declared opt-out, and final non-MIR dispatch"
 grep -Fq 'driver_run_pipeline(' "$SIBLING_OWNER" &&
     fail "installed sibling launcher regained a native pipeline fallback"
 unseparated_oracles="$(find "$ROOT_DIR/tests" -type f -name '*.sh' \

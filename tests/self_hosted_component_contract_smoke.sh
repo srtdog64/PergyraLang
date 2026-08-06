@@ -837,7 +837,8 @@ reject_text "src/self_hosted/mir_lower/program_lower.pgy" \
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" 'return StringJoin(chunks, "");'
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'func EmitStructDecls('
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'func MirCanonicalDeclarationPhase(kind: String) -> Int'
-require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'while phase < 4'
+# Re-armed 4 -> 5: phase 4 is the extern host-ABI declaration family.
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'while phase < 5'
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'if canonical_phase == phase'
 require_text "src/self_hosted/mir/instruction_validation_owner.pgy" 'rows.source_types[i] != "AST_RETURN_VOID"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "Log(SelfMirProgramFactsValidationError(mir_facts))"

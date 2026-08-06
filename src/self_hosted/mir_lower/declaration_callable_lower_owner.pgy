@@ -223,6 +223,67 @@ func EmitAbilityMethods(
     return out;
 }
 
+func EmitExternBlockDecl(
+    json: String, decl_start: Int, decl_end: Int, abi_name: String
+) -> String {
+    let methods_bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayBoundsAtBounds(
+        json, decl_start, decl_end, "methods", methods_bounds
+    ) {
+        MirLowerFailClosed(Concat(
+            "extern declaration is missing methods fact: ", abi_name
+        ));
+    }
+    let out: String = Concat("  Extern Block (", Concat(abi_name, "):\n"));
+    let method_bounds: Array<Int> = [0, 0];
+    let cursor: Int = methods_bounds[0] + 1;
+    while JsonArrayNextObjectBounds(
+        json, cursor, methods_bounds[1], method_bounds
+    ) {
+        let mname: String = MirObjectStringFactAtBounds(
+            json, method_bounds[0], method_bounds[1], "name"
+        );
+        if StringLength(mname) == 0 {
+            MirLowerFailClosed(Concat(
+                "extern declaration has unnamed member fact: ", abi_name
+            ));
+        }
+        let contract: MirDeclarationMethodContractFact =
+            MirDeclarationMethodContractFactFromBounds(
+                json, method_bounds[0], method_bounds[1]
+            );
+        // Host-ABI members declare a signature and nothing else: any action
+        // vocabulary here means the producer classified the callable wrong.
+        if !contract.valid || contract.callable_kind != "function" ||
+            ArrayLength(contract.requires_bases) != 0 ||
+            contract.within_zone != "" || contract.causes_name != "" ||
+            ArrayLength(contract.authorized_by_names) != 0 ||
+            contract.caps_present || contract.effects_present {
+            MirLowerFailClosed(Concat(
+                "extern member contract is invalid: ",
+                Concat(abi_name, Concat(".", mname))
+            ));
+        }
+        let ret: String = MirObjectStringFactAtBounds(
+            json, method_bounds[0], method_bounds[1], "return"
+        );
+        if StringLength(ret) == 0 {
+            MirLowerFailClosed(Concat(
+                "extern member is missing return fact: ",
+                Concat(abi_name, Concat(".", mname))
+            ));
+        }
+        out = Concat(out, Concat("    Function: ", Concat(mname, "\n")));
+        out = Concat(out, "      Parameters:\n");
+        out = Concat(out, EmitAbilityMethodParams(
+            json, method_bounds[0], method_bounds[1], abi_name, mname
+        ));
+        out = Concat(out, Concat("      Returns: ", Concat(ret, "\n")));
+        cursor = method_bounds[1];
+    }
+    return out;
+}
+
 func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, decl_start: Int,
     decl_end: Int, role_name: String, for_type: String,
     inout expression_order: MirStructuredExpressionEmissionOrder,

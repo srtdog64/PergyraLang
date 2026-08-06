@@ -8,8 +8,10 @@
 #include "mir_json_dump_decl.h"
 #include "mir_json_dump_internal.h"
 #include "mir_nominal_abi_layout.h"
+#include "mir_type_helpers.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "../parser/ast_api.h"
 #include "../semantic/callable_contract_vocabulary.h"
@@ -497,10 +499,63 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
     fputc('}', out);
 }
 
+static void
+mir_json_emit_extern_block_decl(FILE *out, ASTNode *node)
+{
+    size_t member_count = 0;
+    bool first_member = true;
+
+    fputs("{\"kind\":\"extern\",\"nominal_kind\":\"extern\",\"name\":", out);
+    mir_json_emit_str_or_null(out, ast_extern_block_abi(node));
+    fprintf(out, ",\"source_syntax_id\":%u,\"fields\":[],\"methods\":[",
+            ast_node_stable_id(node));
+    (void)ast_extern_block_declarations(node, &member_count);
+    for (size_t i = 0; i < member_count; i++) {
+        ASTNode *decl = ast_extern_block_declaration(node, i);
+        if (decl == NULL || decl->type != AST_FUNC_DECL)
+            continue;
+        if (!first_member)
+            fputc(',', out);
+        first_member = false;
+        fputs("{\"name\":", out);
+        mir_json_emit_str_or_null(out, ast_declaration_name(decl));
+        char *return_type =
+            mir_capture_type_name(ast_func_return_type(decl), NULL);
+        fputs(",\"return\":", out);
+        mir_json_emit_str_or_null(out, return_type);
+        free(return_type);
+        /* Host-ABI members carry a signature and nothing else: the contract
+         * object is the canonical empty shape shared with ability members. */
+        fputs(",\"callable_kind\":\"function\",\"contract\":{"
+              "\"requires\":[],\"within\":null,\"causes\":null,"
+              "\"authorized_by\":[],\"caps_present\":false,\"caps\":[],"
+              "\"effects_present\":false,\"effects\":[]}", out);
+        fputs(",\"params\":[", out);
+        for (size_t j = 0; j < ast_func_param_count(decl); j++) {
+            FuncParam *param = ast_func_param(decl, j);
+            if (j > 0)
+                fputc(',', out);
+            fputs("{\"name\":", out);
+            mir_json_emit_str_or_null(
+                out, param != NULL ? param->name : NULL);
+            char *param_type = mir_capture_type_name(
+                param != NULL ? param->type : NULL, NULL);
+            fputs(",\"type\":", out);
+            mir_json_emit_str_or_null(out, param_type);
+            free(param_type);
+            fputc('}', out);
+        }
+        fputs("]}", out);
+    }
+    fputs("]}", out);
+}
+
 void
 mir_json_emit_decls(FILE *out, const MIRProgram *mir)
 {
     bool first_decl = true;
+    ASTNode **extern_blocks = NULL;
+    size_t extern_block_count = 0;
 
     if (mir == NULL || mir->decl_headers == NULL)
         return;
@@ -521,5 +576,17 @@ mir_json_emit_decls(FILE *out, const MIRProgram *mir)
             fputc(',', out);
         first_decl = false;
         mir_json_emit_decl(out, header);
+    }
+    /* Extern blocks live in the active-extern inventory, not the header
+     * inventory; they close the decls array so both producers keep the
+     * host-ABI rows after every nominal, role, ability, and enum row. */
+    mir_active_externs(mir, &extern_blocks, &extern_block_count);
+    for (size_t i = 0; i < extern_block_count; i++) {
+        if (extern_blocks[i] == NULL)
+            continue;
+        if (!first_decl)
+            fputc(',', out);
+        first_decl = false;
+        mir_json_emit_extern_block_decl(out, extern_blocks[i]);
     }
 }

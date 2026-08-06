@@ -4,6 +4,9 @@
 receiver_fact_owner="$ROOT_DIR/src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy"
 receiver_bridge_owner="$ROOT_DIR/src/self_hosted/compiler/codegen_callable_receiver_bridge_owner.pgy"
 receiver_function_owner="$ROOT_DIR/src/self_hosted/codegen/emission/function_emit.pgy"
+# Env construction moved up to the program emitter; function_emit stays the
+# per-function consumer that must not re-read role targets.
+receiver_env_owner="$ROOT_DIR/src/self_hosted/codegen/emission/program_emit.pgy"
 receiver_call_owner="$ROOT_DIR/src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy"
 receiver_semantic_call_owner="$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"
 
@@ -28,7 +31,7 @@ grep -Fq 'admitted.routines.receiver_carriages' "$receiver_bridge_owner" || {
     echo "[self-host-parity:driver-rung2] admitted receiver bridge drifted" >&2
     return 1 2>/dev/null || exit 1
 }
-grep -Fq 'BuildFunctionEnv(' "$receiver_function_owner" || {
+grep -Fq 'BuildFunctionEnv(' "$receiver_env_owner" || {
     echo "[self-host-parity:driver-rung2] function env lost receiver carriage" >&2
     return 1 2>/dev/null || exit 1
 }

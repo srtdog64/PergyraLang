@@ -347,6 +347,7 @@ func MirCanonicalDeclarationPhase(kind: String) -> Int {
     if kind == "role" { return 1; }
     if kind == "ability" { return 2; }
     if kind == "enum" { return 3; }
+    if kind == "extern" { return 4; }
     return -1;
 }
 
@@ -508,6 +509,9 @@ func EmitCanonicalDeclRow(
     if kind == "enum" {
         return EmitEnumDecl(json, decl_start, decl_end, name);
     }
+    if kind == "extern" {
+        return EmitExternBlockDecl(json, decl_start, decl_end, name);
+    }
     MirLowerFailClosed(Concat(
         "unsupported MIR declaration in self-host subset: ",
         Concat(kind, Concat(" ", name))
@@ -527,7 +531,7 @@ func EmitStructDecls(
         MirLowerFailClosed("MIR declaration inventory is missing");
     }
     let phase: Int = 0;
-    while phase < 4 {
+    while phase < 5 {
         let row: Int = 0;
         while row < MirProgramDeclarationIndexCount(routines.declarations) {
             let decl_start: Int = routines.declarations.starts[row];

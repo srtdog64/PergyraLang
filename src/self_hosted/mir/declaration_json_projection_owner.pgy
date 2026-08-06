@@ -279,7 +279,8 @@ func SelfMirJsonDeclaration(
             )
         ];
         if rows.kinds[declaration_index] == "ability" ||
-            rows.kinds[declaration_index] == "role" {
+            rows.kinds[declaration_index] == "role" ||
+            rows.kinds[declaration_index] == "extern" {
             ArrayPush(method, JsonEmitFieldRaw(
                 "params", SelfMirJsonDeclarationMethodParams(rows, row)
             ));
