@@ -433,3 +433,36 @@ Do not add the declaration to a gate that is passing. A native-subject gate
 that currently passes through delegation is proving two facts at once, but only
 its own subject is what its failure should be read as -- convert it when it is
 touched, not in a sweep.
+
+## Safety Properties Speak With Three Voices
+
+The 2026-08-05 substitution defects -- unguarded array accessors, unchecked
+integer division, missing CheckedAdd/CheckedMul -- shared one shape: the
+native pipeline enforced a safety class and the substituted path silently did
+not. A gate that runs one compiler can never see that shape, whichever
+compiler it runs.
+
+A load-bearing safety property therefore owes three distinct pieces of
+evidence, and a report on that property must say which of the three it is:
+
+| Voice | Question it answers | Example gate today |
+|---|---|---|
+| Native oracle | What behavior does the language contract require? | `memory-safety-failclosed` under `PGY_NATIVE_PIPELINE` |
+| Self-host implementation | Does the substituted path implement it? | the same fixtures through the installed driver |
+| Cross-pipeline parity | Do both report the same class and reason, with no partial artifact? | backend-compare for output; panic-class parity per fixture |
+
+Rules that follow:
+
+- A native-only green does not promote a self-host claim, and a self-host-only
+  fixture does not prove the language contract. Neither voice substitutes for
+  the other; a claim quoting one voice must name it.
+- A safety repair on one emission (the 2026-08-05 repairs are self-host
+  C-emission repairs) leaves the other projections unproven. The repair
+  commit must say so, and the parity voice stays open until each projection
+  can compile the fixture at all.
+- When a substituted path cannot yet compile a safety fixture, the honest
+  states are fail-closed refusal with a named reason, or coverage. Parsing a
+  surface without enforcing its guard is neither: it publishes an artifact
+  that silently dropped the guarantee, which is the exact defect class this
+  section exists to prevent. Coverage of a safety surface lands as one unit --
+  parse, facts, guard emission, panic class -- or not at all.

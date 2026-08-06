@@ -27,6 +27,9 @@ func ParseDiagnosticReason(code: String) -> String {
     if code == "callable_contract_exclusive_effect" {
         return "an exclusive effect cannot be combined with other effects";
     }
+    if code == "surface_not_covered" {
+        return "this source surface is not yet covered by the self-hosted parser";
+    }
     return "the parser rejected this source";
 }
 
@@ -39,6 +42,9 @@ func ParseDiagnosticFix(code: String) -> String {
     }
     if code == "callable_contract_exclusive_effect" {
         return "declare the exclusive effect alone, or drop it";
+    }
+    if code == "surface_not_covered" {
+        return "compile through --native-pipeline until the self-hosted compiler covers this surface";
     }
     return "check the reported source position";
 }
@@ -74,5 +80,18 @@ func ParseDiagnosticReportContractName(
 ) -> Void {
     ParseDiagnosticReport2(
         code, "axis", ParseDiagnosticAxisLabel(axis), "name", name
+    );
+}
+
+// A surface the self-hosted parser knows it does not cover yet -- lifecycle,
+// use, extern. Naming the surface keeps the refusal honest: the old path fell
+// through to statement parsing and reported "expected statement terminator",
+// which sent the reader to the wrong layer. Fail-closed is unchanged; only
+// the reason is now true.
+func ParseDiagnosticReportUncoveredSurface(surface: String) -> Void {
+    ParseDiagnosticReport2(
+        "surface_not_covered",
+        "surface", surface,
+        "position", "top_level_declaration"
     );
 }

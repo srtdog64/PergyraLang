@@ -15,6 +15,7 @@ import "decl_effect_relation_owner.pgy";
 import "decl_role_owner.pgy";
 import "decl_intent_owner.pgy";
 import "decl_nominal_owner.pgy";
+import "diagnostic_owner.pgy";
 
 // Parse zero or more top-level declarations. `name_prefix` is prepended
 // to each emitted decl name and is non-empty inside `namespace` blocks
@@ -162,6 +163,35 @@ func ParseDeclsInto(
             );
             i = cursor_out[0];
             continue;
+        }
+
+        // Surfaces the native parser accepts but this parser does not cover
+        // yet. Refusing them here with a named diagnostic keeps the failure
+        // at the layer that owns it; falling through to statement parsing
+        // reported "expected statement terminator", which reads as a syntax
+        // bug in the source rather than a coverage gap in this compiler.
+        // `use` and `extern` are reserved words, so the word alone decides.
+        // `lifecycle` is contextual, so it only counts as this surface when
+        // the declaration shape (`lifecycle NAME {`) follows -- a plain
+        // identifier spelled lifecycle still parses as a statement.
+        if MatchLanguageWord(content, i, LanguageWordId.WordUse) {
+            ParseDiagnosticReportUncoveredSurface("use");
+            Exit(1);
+        }
+        if MatchLanguageWord(content, i, LanguageWordId.WordExtern) {
+            ParseDiagnosticReportUncoveredSurface("extern");
+            Exit(1);
+        }
+        if MatchLanguageWord(content, i, LanguageWordId.WordLifecycle) {
+            let lc_probe: Int = LanguageWordEnd(i, LanguageWordId.WordLifecycle);
+            lc_probe = SkipWhitespaceAndComments(content, lc_probe);
+            let lc_cursor: Array<Int> = [lc_probe];
+            let lc_name: String = ReadIdent(content, lc_probe, lc_cursor);
+            lc_probe = SkipWhitespaceAndComments(content, lc_cursor[0]);
+            if StringLength(lc_name) > 0 && ParserCharAt(content, lc_probe) == "{" {
+                ParseDiagnosticReportUncoveredSurface("lifecycle");
+                Exit(1);
+            }
         }
 
         // Optional top-level visibility prefix on the next declaration.
