@@ -339,6 +339,17 @@ func EmitRegionWithExpressionOrder(
                     then_terminates_or_flows_to_loop_exit {
                     merge = f;
                 }
+                // A pruned constant-true loop renders as `If: true` with no
+                // false successor; unbounded, its then-region would swallow
+                // the post-loop continuation into loop-body depth. The break
+                // target is the loop exit: bound the region there.
+                if cond == "true" && StringLength(f) == 0 {
+                    let pruned_exit: String =
+                        RoutineCfgPrunedConstantTrueBreakExit(
+                            index, routines, routine_row, block_row
+                        );
+                    if StringLength(pruned_exit) > 0 { merge = pruned_exit; }
+                }
                 let hasElse: Bool = StringLength(f) > 0 && f != merge;
                 ArrayPush(chunks, Concat(indent, Concat("If: ", Concat(cond, "\n"))));
                 ArrayPush(chunks, Concat(indent, "  Then:\n"));

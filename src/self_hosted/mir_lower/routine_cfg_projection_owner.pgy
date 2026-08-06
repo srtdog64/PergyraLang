@@ -46,3 +46,39 @@ func BlockHasIncomingBackedge(
     let row: Int = RoutineCfgBlockRow(index, want);
     return row >= 0 && MirRoutineFactIndexHasIncomingBackedge(index, row);
 }
+
+// A pruned constant-true loop carries no condition-exit edge, but its
+// terminal break branches still name the loop exit. The smallest break
+// target past the header is this loop's exit, so sequential pruned loops
+// each bind their own; nested pruned constant-true loops stay outside
+// this bounded consumer (the parity gates judge that shape).
+func RoutineCfgPrunedConstantTrueBreakExit(
+    ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    header_row: Int
+) -> String {
+    let exit_row: Int = 0 - 1;
+    let block_row: Int = header_row + 1;
+    while block_row < ArrayLength(index.block_starts) {
+        let selection: MirRoutineInstructionSelection =
+            MirRoutineFactIndexBranchAtBlock(
+                index, routines, routine_row, block_row
+            );
+        if selection.valid && selection.found &&
+            selection.instruction.source_type == "AST_BREAK" {
+            let target_row: Int = RoutineCfgBlockRow(
+                index, MirRoutineFactIndexBlockSuccessor(
+                    index, block_row, false
+                )
+            );
+            if target_row > header_row &&
+                (exit_row < 0 || target_row < exit_row) {
+                exit_row = target_row;
+            }
+        }
+        block_row = block_row + 1;
+    }
+    if exit_row < 0 { return ""; }
+    return ToString(exit_row);
+}
