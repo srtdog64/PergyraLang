@@ -152,12 +152,23 @@ func SemanticAstAnalysisResolveRoleOperatorTargetsFromAdmittedBody(
                                     if carried_kind != SemanticCallTargetNone() ||
                                         carried_name != "" ||
                                         carried_result != "" {
+                                        // Carried kind/name must match exactly.
+                                        // The result row is derived here and
+                                        // only here, so pre-carried targets
+                                        // (initial capture, persisted MIR)
+                                        // legitimately arrive with an empty
+                                        // result: fill it once; reject only a
+                                        // conflicting non-empty carriage.
                                         if carried_kind !=
                                                 SemanticCallTargetRoleOperator() ||
                                             carried_name != resolved.target_name ||
-                                            carried_result !=
-                                                resolved.result_type_name {
+                                            (carried_result != "" &&
+                                                carried_result !=
+                                                    resolved.result_type_name) {
                                             valid = false;
+                                        } else if carried_result == "" {
+                                            graph.arena.call_return_type_names[node_id] =
+                                                resolved.result_type_name;
                                         }
                                     } else {
                                         graph.arena.call_target_kinds[node_id] =

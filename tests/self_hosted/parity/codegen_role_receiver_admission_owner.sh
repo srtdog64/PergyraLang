@@ -54,7 +54,8 @@ run_role_case() {
         || fail "$label invented a foreign role operator adapter"
     ! grep -Fq 'long long *self = ' "$c_file" \
         || fail "$label treated scalar target as mutable nominal identity"
-    "$CC_BIN" -std=c11 "$c_file" -o "$exe" 2>"$BUILD_DIR/$label.cc.err" \
+    "$CC_BIN" -std=c11 -I"$ROOT_DIR/src/runtime" "$c_file" -o "$exe" \
+        2>"$BUILD_DIR/$label.cc.err" \
         || { cat "$BUILD_DIR/$label.cc.err" >&2; fail "$label emitted C compile failed"; }
     "$exe" >"$raw" 2>"$BUILD_DIR/$label.run.err" \
         || { cat "$BUILD_DIR/$label.run.err" >&2; fail "$label executable failed"; }
