@@ -211,7 +211,6 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "tests/cases/backend_compare/bool_short_circuit_method/main.pgy",
         "tests/cases/backend_compare/bool_state_toggle/main.pgy",
         "tests/cases/backend_compare/bool_to_string_concat/main.pgy",
-        "tests/cases/backend_compare/break_continue/main.pgy",
         "tests/cases/backend_compare/bubble_sort_inline/main.pgy",
         "tests/cases/backend_compare/branch_defer_scope/main.pgy",
         "tests/cases/backend_compare/branch_defer_skipped/main.pgy",
@@ -294,8 +293,12 @@ func DriverRung2MirFixtureRows() -> Array<String> {
     ];
 }
 
+// 285 -> 284: dropped backend_compare/break_continue, whose harness base
+// collides with examples/break_continue.pgy and let the two fixtures
+// overwrite each other's oracle artifacts. The backend-compare harness
+// still runs that fixture under its own identity.
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 285;
+    return 284;
 }
 
 func EmitDriverRung2MirFixtureManifest() -> Void {

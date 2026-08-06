@@ -9,6 +9,26 @@ namespace SelfHostPath {
         return Substring(path, index, 1);
     }
 
+    // Canonical separator is "/": every path fact below assumes it. Windows
+    // callers hand the driver backslash spellings; admission boundaries call
+    // this once so Dirname/joins/seen-set dedup never meet a "\\".
+    export func NormalizeSeparators(path: String) -> String {
+        let result_allocator: Allocator = AllocatorResult();
+        let output: TextBuilder = TextBuilderNew(StringLength(path) + 1);
+        let i: Int = 0;
+        while i < StringLength(path) {
+            let c: String = PathCharAt(path, i);
+            if c == "\\" {
+                TextBuilderAppend(output, "/");
+            } else {
+                TextBuilderAppend(output, c);
+            }
+            i = i + 1;
+        }
+        let normalized: String = TextBuilderFinish(output, result_allocator);
+        return normalized;
+    }
+
     export func Dirname(path: String) -> String {
         let last_slash: Int = -1;
         let i: Int = 0;

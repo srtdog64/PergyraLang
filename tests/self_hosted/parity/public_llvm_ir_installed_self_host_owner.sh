@@ -126,8 +126,6 @@ set -e
 [[ "$same_rc" -ne 0 ]] && cmp -s "$WORK_DIR/same-source.before" \
     "$WORK_DIR/same-source.pgy" || fail "source/output identity destroyed its source"
 
-# Re-pointed: the c3e026a5 delegation restructure nested the output-path
-# branch under one emit_llvm_ir gate so C-only builds share the same entry.
 require_text "$ROOT_DIR/src/pgy_driver.c" 'if (flags.emit_llvm_ir) {'
 require_text "$ROOT_DIR/src/pgy_driver.c" 'if (flags.output_path != NULL) {'
 require_text "$ROOT_DIR/src/pgy_driver.c" 'return driver_publish_self_host_llvm_ir_file('

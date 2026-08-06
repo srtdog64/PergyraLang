@@ -12,6 +12,7 @@ func ParserDefaultSourcePath(args: Array<String>) -> String {
 
 func ParserReadImportedSource(import_path: String) -> String {
     if !FileExists(import_path) {
+        Log(Concat("PARSE ERROR: imported source is missing: ", import_path));
         Exit(1);
     }
     return Concat(ReadFile(import_path), "\n// __imported__\n");

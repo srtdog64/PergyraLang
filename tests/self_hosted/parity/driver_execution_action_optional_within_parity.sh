@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# Subject of this gate: the native C and LLVM backends' optional-within
+# action contract (stage 1 greps and diagnostics target the native codegen
+# owners). Stage 2 exercises the installed self-host driver separately, on
+# its own MIR-production surface. Delegated, stage 1 would judge the
+# self-host driver against native-owned pins.
+# See docs/152_validation_isolation_policy.md.
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

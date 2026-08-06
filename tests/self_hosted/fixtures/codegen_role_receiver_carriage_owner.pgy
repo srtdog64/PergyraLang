@@ -2,7 +2,9 @@ import "../../../src/self_hosted/codegen/emission/member_call_receiver_carriage_
 import "../../../src/self_hosted/codegen/emission/role_receiver_binding_owner.pgy";
 
 func RoleReceiverEnv(carriage: String) -> CodegenTypeEnv {
-    return CodegenTypeEnv(
+    // The sealing constructor owns the global row index; raw construction
+    // would hand the lookup path an unindexed env and die as stale.
+    return CodegenTypeEnvFromRows(
         Concat(
             "|Player=s:struct||Player=nk:subject||PlayerDamageable_TakeDamage=rc:",
             Concat(carriage, "||PlayerDamageable_TakeDamage=rce:1|")

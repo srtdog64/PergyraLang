@@ -73,11 +73,15 @@ pgy_selfhost_verify_driver_rung2_action_contract() {
         "unknown-within" '"within":"BattleZone"' \
         '"within":"MissingActionContractZone"' \
         "action contract references an unknown zone"
+    # An object decl demands machine-layer projection facts the subject-
+    # authored wire never carried, so admission fail-closes before decl
+    # lowering can name the action-owner rule. Either way the mutation
+    # cannot smuggle an action onto a non-subject.
     pgy_selfhost_driver_rung2_action_contract_reject \
         "$backend" "$base" "$self_mir_json" "$driver_bin" \
         "non-subject-owner" '"kind":"subject","nominal_kind":"subject"' \
         '"kind":"object","nominal_kind":"object"' \
-        "action method requires a subject owner"
+        "MIR machine-layer facts are missing or invalid"
     pgy_selfhost_driver_rung2_action_contract_reject \
         "$backend" "$base" "$self_mir_json" "$driver_bin" \
         "action-as-function" '"callable_kind":"action"' \

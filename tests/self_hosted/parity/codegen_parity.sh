@@ -24,6 +24,15 @@
 # self-host legs. Keep the executable as element 0 of the array; this avoids
 # empty-argument expansion differences across bash versions under nounset.
 
+# Subject of this gate: the native C codegen oracle (and its reject
+# diagnostics) versus the Pergyra-origin codegen tool. The oracle legs must
+# compile in-process; delegated, the oracle would judge the self-host
+# emitter against itself and reject fixtures would surface the driver's
+# spelling instead of the pinned native diagnostics.
+# See docs/152_validation_isolation_policy.md.
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
+
 set -euo pipefail
 
 if ! command -v dirname >/dev/null 2>&1 \

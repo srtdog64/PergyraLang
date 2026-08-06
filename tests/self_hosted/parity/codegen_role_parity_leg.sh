@@ -44,7 +44,8 @@ run_role_operator_parity() {
     fi
 
     local exe="$ABS_BUILD/${base}_${backend}.exe"
-    if ! "$CC" "$c_file" -o "$exe" 2>"$ABS_BUILD/${base}_${backend}_cc.err"; then
+    if ! "$CC" "$c_file" -I"$ROOT_DIR/src/runtime" -o "$exe" \
+        2>"$ABS_BUILD/${base}_${backend}_cc.err"; then
         echo "[self-host-parity:codegen] backend=$backend role emitted C failed" >&2
         cat "$ABS_BUILD/${base}_${backend}_cc.err" >&2
         exit 1

@@ -201,7 +201,8 @@ PY
         echo "[self-host-parity:driver-rung2] mutable role target value fallback returned" >&2
         return 1
     }
-    "$CC" -std=c11 -Wall -Wextra -fsyntax-only "$role_c" \
+    "$CC" -std=c11 -Wall -Wextra -fsyntax-only \
+        -I"$ROOT_DIR/src/runtime" "$role_c" \
         >"$role_cc_err" 2>&1 || {
         echo "[self-host-parity:driver-rung2] generated role receiver C syntax failed" >&2
         cat "$role_cc_err" >&2

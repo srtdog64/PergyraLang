@@ -3,6 +3,8 @@
 // This owner is intentionally pure: it assigns one meaning to each exact argv
 // shape before either composition root reads source/MIR or publishes output.
 
+import "../lib/path.pgy";
+
 enum DriverRung2CliRequest {
     DriverCliSourceCStdout(String),
     DriverCliSourceCManifestStdout(String, String),
@@ -32,7 +34,9 @@ func DriverRung2CliPathOperandOrDie(
     if path == "" || StartsWith(path, "-") {
         Die(Concat(purpose, " must be a non-option path"));
     }
-    return path;
+    // Windows callers spell paths with backslashes; every downstream path
+    // fact (Dirname, import joins, seen-set dedup) assumes "/".
+    return SelfHostPath.NormalizeSeparators(path);
 }
 
 func DriverRung2CliArtifactPathsOrDie(

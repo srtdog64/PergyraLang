@@ -82,21 +82,24 @@ PY
         "effect-as-class" "$effect_prefix" \
         '"kind":"class","nominal_kind":"effect","name":"Damage"' \
         "nominal declaration identity drifted: Damage"
+    # Machine-layer admission now vets effect identity and participant
+    # shape before decl lowering; these mutations still fail closed, one
+    # stage earlier.
     pgy_selfhost_driver_rung2_effect_declaration_reject \
         "$backend" "$base" "$self_mir_json" "$driver_bin" \
         "effect-kind-drift" "$effect_prefix" \
         '"kind":"effect","nominal_kind":"class","name":"Damage"' \
-        "nominal declaration identity drifted: Damage"
+        "MIR machine-layer facts are missing or invalid"
     pgy_selfhost_driver_rung2_effect_declaration_reject \
         "$backend" "$base" "$self_mir_json" "$driver_bin" \
         "effect-as-generic-class" "$effect_prefix" \
         '"kind":"class","nominal_kind":"class","name":"Damage"' \
-        "action contract references an unknown effect: Damage"
+        "MIR machine-layer facts are missing or invalid"
     pgy_selfhost_driver_rung2_effect_declaration_reject \
         "$backend" "$base" "$self_mir_json" "$driver_bin" \
         "effect-subject-slot-flattened" "$effect_field" \
         '"name":"bearer","type":"Hero","field_kind":"field"' \
-        "nominal declaration participant shape is invalid: Damage"
+        "MIR machine-layer facts are missing or invalid"
     pgy_selfhost_driver_rung2_effect_declaration_reject \
         "$backend" "$base" "$self_mir_json" "$driver_bin" \
         "effect-field-kind-missing" "$effect_field" \
@@ -110,5 +113,5 @@ PY
     pgy_selfhost_driver_rung2_effect_declaration_reject \
         "$backend" "$base" "$self_mir_json" "$driver_bin" \
         "missing-effect" "$effect_row," "" \
-        "action contract references an unknown effect: Damage"
+        "MIR machine-layer facts are missing or invalid"
 }

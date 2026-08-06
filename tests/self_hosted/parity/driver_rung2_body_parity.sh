@@ -174,8 +174,8 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && mir_fixture_rows+=("$line")
 done <"$MIR_FIXTURE_ROWS"
-if [[ "${#mir_fixture_rows[@]}" -ne 285 ]]; then
-    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 285" >&2
+if [[ "${#mir_fixture_rows[@]}" -ne 284 ]]; then
+    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 284" >&2
     exit 1
 fi
 if [[ -n "$MIR_FIXTURE_FILTER" ]]; then
@@ -230,6 +230,7 @@ BACKENDS="${PGY_SELFHOST_DRIVER_BACKENDS:-c llvm}"
 ran=0
 for backend in $BACKENDS; do
     DRIVER_BIN="$BUILD_DIR/driver_${backend}.exe"
+    [[ "$backend" == "c" ]] && DRIVER_BIN="$C_DRIVER"
     if [[ "$backend" == "hard" ]]; then
         if [[ -z "$PREBUILT_DRIVER" ]]; then
             echo "[self-host-parity:driver-rung2] hard lane has no Pergyra-built driver" >&2

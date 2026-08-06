@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# Subject of this gate: the native C and LLVM backends' zone-authority
+# instrumentation (the expected stdout carries native authority telemetry
+# and the greps pin native codegen owners). Delegated, the self-host
+# driver's standalone emission would be judged against native-owned pins.
+# See docs/152_validation_isolation_policy.md.
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

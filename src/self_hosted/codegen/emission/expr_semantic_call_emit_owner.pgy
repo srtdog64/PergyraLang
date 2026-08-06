@@ -53,9 +53,9 @@ func RewriteSemanticStructCall(
         ));
         i = i + 1;
     }
-    if CsvAt(fields, ArrayLength(view.argument_nodes)) != "" {
-        Die(Concat("struct call argument fact is missing: ", type_name));
-    }
+    // Prefix construction is the admitted arity (semantic: at_most_N; native
+    // emits the same shape): supplied arguments bind leading constructor
+    // fields, every unmentioned field is C zero-initialized.
     let initializer_count: Int = ArrayLength(view.argument_nodes);
     let all_fields: String = LookupKindType(env, type_name, "fields");
     let field_index: Int = 0;

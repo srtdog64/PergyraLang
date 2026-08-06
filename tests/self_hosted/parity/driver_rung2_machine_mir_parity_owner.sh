@@ -96,8 +96,10 @@ pgy_selfhost_verify_driver_rung2_machine_claim_type_owner() {
             return 1
         fi
     done
+    # Re-pointed: 1068f93d moved the let-decl layout key onto the carried
+    # abi_type_names row; AST_CALL remains the one source-type exception.
     for layout_fact in \
-        'rows.source_types[instruction_index] == "AST_LET_DECL"' \
+        'rows.abi_type_names[instruction_index] != ""' \
         'rows.source_types[instruction_index] == "AST_CALL"'; do
         grep -Fq "$layout_fact" "$layout_owner" || {
             echo "[self-host-parity:driver-rung2] ABI layout projection owner missing: $layout_fact" >&2

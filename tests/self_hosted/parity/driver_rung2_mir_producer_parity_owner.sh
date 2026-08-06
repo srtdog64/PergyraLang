@@ -20,7 +20,7 @@ pgy_selfhost_prepare_driver_rung2_mir_oracles() {
         }
         if ! (cd "$ROOT_DIR" && "$PGY" \
             "$(pgy_path_for_compiler "$PGY" "$fixture_abs")" --backend=c \
-            -o "$(pgy_path_for_compiler "$PGY" "$oracle_bin")" \
+            --native-pipeline -o "$(pgy_path_for_compiler "$PGY" "$oracle_bin")" \
             >"$BUILD_DIR/${base}.oracle.compile.log" 2>&1); then
             echo "[self-host-parity:driver-rung2] C oracle compile failed: $fixture_rel" >&2
             cat "$BUILD_DIR/${base}.oracle.compile.log" >&2
