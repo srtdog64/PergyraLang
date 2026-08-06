@@ -1302,8 +1302,9 @@ for array_mir_fixture in \
     bool_short_circuit_method \
     bool_state_toggle \
     bool_to_string_concat \
-    break_continue \
     bubble_sort_inline; do
+    # break_continue left the manifest (4c23cd06): its harness base collides
+    # with examples/break_continue and its own harness still covers it.
     require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
         "\"tests/cases/backend_compare/$array_mir_fixture/main.pgy\""
 done

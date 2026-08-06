@@ -113,6 +113,24 @@ func SemanticExpressionGraphArenaFromTopology(
     );
 }
 
+func SemanticExpressionGraphArenaFromTopologyWithIdentities(
+    topology: AstExpressionArena,
+    node_texts: Array<String>,
+    call_target_kinds: Array<Int>,
+    call_target_names: Array<String>,
+    call_return_type_names: Array<String>,
+    identities: SemanticExpressionIdentityRows,
+    place_kinds: Array<Int>
+) -> SemanticExpressionGraphArena {
+    // Callers that already carry admitted identity rows must not pay for an
+    // Unknown(node_count) row set they would discard unread: per-occurrence
+    // appends over a whole-program surface made that allocation quadratic.
+    return SemanticExpressionGraphArena(
+        topology, node_texts, call_target_kinds, call_target_names,
+        call_return_type_names, identities, place_kinds
+    );
+}
+
 func SemanticExpressionGraphArenaFromRows(
     node_kinds: Array<Int>,
     node_texts: Array<String>,

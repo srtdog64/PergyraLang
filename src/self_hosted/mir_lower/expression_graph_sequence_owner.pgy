@@ -250,16 +250,16 @@ func MirExpressionGraphSequenceAppend(
     let roots: Array<Int> = sequence.roots;
     ArrayPush(roots, offset + local_root);
     let arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArenaFromTopology(
+        SemanticExpressionGraphArenaFromTopologyWithIdentities(
             AstExpressionArena(
                 kinds, texts, left_children, right_children
             ),
             texts, call_target_kinds, call_target_names,
-            call_return_type_names, place_kinds
+            call_return_type_names,
+            SemanticExpressionIdentityRows(
+                call_target_syntax_ids, binding_kinds, binding_ordinals
+            ), place_kinds
         );
-    arena.identities = SemanticExpressionIdentityRows(
-        call_target_syntax_ids, binding_kinds, binding_ordinals
-    );
     if !MirExpressionGraphRangeReachable(
             arena, offset, count, offset + local_root
         ) {

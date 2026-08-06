@@ -507,7 +507,9 @@ require_max_lines \
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_callable_receiver_carriage_owner.sh"'
 require_text "tests/self_hosted/parity/driver_rung2_callable_receiver_carriage_owner.sh" \
-    '"$CC" -std=c11 -Wall -Wextra -fsyntax-only "$role_c"'
+    '"$CC" -std=c11 -Wall -Wextra -fsyntax-only \'
+require_text "tests/self_hosted/parity/driver_rung2_callable_receiver_carriage_owner.sh" \
+    '-I"$ROOT_DIR/src/runtime" "$role_c"'
 require_file "src/self_hosted/lib/json.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lib/json.pgy"
 require_max_lines "src/self_hosted/lib/json.pgy" 600
@@ -5446,7 +5448,7 @@ require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "func MirExpressionGraphRangeReachable("
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
-    "SemanticExpressionGraphArenaFromTopology("
+    "SemanticExpressionGraphArenaFromTopologyWithIdentities("
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "call_return_type_names"
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
