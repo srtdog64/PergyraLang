@@ -14,7 +14,7 @@ while IFS='|' read -r owner cap; do
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
 done <<'EOF'
 src/self_hosted/semantic/ast_expression_identity_fact_owner.pgy|80
-src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy|190
+src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy|210
 src/self_hosted/mir/expression_identity_json_projection_owner.pgy|70
 src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy|450
 src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy|300

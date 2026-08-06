@@ -157,6 +157,9 @@ func SelfMirPrepareIterationCollection(
     build = SelfMirRoutineAttachLastPrimaryLocalRef(
         build, UnwrapOption(synthetic_local)
     );
+    build = SelfMirRoutineAttachLastAbiTypeName(
+        build, fact.iterable_type_name
+    );
     return SelfMirRoutineAttachLastExpressionGraph(
         build, source_graph, declaration
     );

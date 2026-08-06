@@ -170,7 +170,32 @@ func SemanticAstAnalysisResolveExpressionIdentities(
         root_slot = root_slot + 1;
     }
     SemanticAstExpressionEnvironmentClear(names, types, modes);
-    if last_root + 1 != count ||
+    // Hoisted foreach collections extend the arena past the last surface
+    // root with synthetic binding roots that carry no call identity. Admit
+    // exactly the attached synthetic ids and pin their identity rows;
+    // any other uncovered node stays a hard failure.
+    let tail: Int = last_root + 1;
+    while valid && tail < count {
+        let synthetic_found: Bool = false;
+        let iteration_row: Int = 0;
+        while iteration_row < SemanticAstIterationTypeCount(iteration_types) {
+            if iteration_types.synthetic_graph_root_ids[iteration_row] ==
+                tail {
+                synthetic_found = true;
+            }
+            iteration_row = iteration_row + 1;
+        }
+        if !synthetic_found {
+            valid = false;
+        } else {
+            graph.arena.identities.call_target_syntax_ids[tail] = 0;
+            graph.arena.identities.binding_kinds[tail] =
+                SemanticExpressionBindingNone();
+            graph.arena.identities.binding_ordinals[tail] = -1;
+            tail = tail + 1;
+        }
+    }
+    if tail != count ||
         !SemanticExpressionIdentityRowsReady(graph.arena.identities, count) {
         valid = false;
     }

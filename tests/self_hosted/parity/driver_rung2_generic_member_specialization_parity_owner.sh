@@ -224,15 +224,19 @@ pgy_selfhost_verify_driver_rung2_generic_member_specialization_emitted_c() {
     local constructed=0
     local array_constructed=0
     local record_array_constructed=0
+    local vessel=0
 
     if [[ "$base" == "generic_member_inferred_flow" ]]; then
         owner="Box"
         receiver="box"
         expected="41"
     elif [[ "$base" == "generic_vessel_member_inferred_flow" ]]; then
+        # Vessels are mutable-identity receivers: pointer-self ABI with a
+        # stable address at the call site (receiver carriage).
         owner="Cell"
         receiver="cell"
         expected="42"
+        vessel=1
     elif [[ "$base" == "generic_member_constructed_return_flow" ]]; then
         owner="Wrapper"
         receiver="wrapper"
@@ -326,12 +330,18 @@ pgy_selfhost_verify_driver_rung2_generic_member_specialization_emitted_c() {
         return 0
     fi
 
-    grep -Eq "long long ${specialized}\\(${owner} [A-Za-z_][A-Za-z0-9_]*, long long [A-Za-z_][A-Za-z0-9_]*\\)" \
+    local owner_param="${owner} [A-Za-z_][A-Za-z0-9_]*"
+    local receiver_expr="$receiver"
+    if [[ "$vessel" -eq 1 ]]; then
+        owner_param="${owner} \\*[A-Za-z_][A-Za-z0-9_]*"
+        receiver_expr="&($receiver)"
+    fi
+    grep -Eq "long long ${specialized}\\(${owner_param}, long long [A-Za-z_][A-Za-z0-9_]*\\)" \
         "$emitted_c" || {
         echo "[self-host-parity:driver-rung2] $backend generic member body was not specialized" >&2
         exit 1
     }
-    grep -Fq "$specialized($receiver, $specialized($receiver, $expected))" "$emitted_c" || {
+    grep -Fq "$specialized($receiver_expr, $specialized($receiver_expr, $expected))" "$emitted_c" || {
         echo "[self-host-parity:driver-rung2] $backend generic member call was not specialized" >&2
         exit 1
     }
