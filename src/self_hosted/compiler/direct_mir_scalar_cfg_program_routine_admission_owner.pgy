@@ -8,6 +8,7 @@ import "direct_mir_scalar_cfg_phi_operation_admission_owner.pgy";
 import "direct_mir_scalar_cfg_program_arithmetic_admission_owner.pgy";
 import "direct_mir_scalar_cfg_program_parameter_identity_owner.pgy";
 import "direct_mir_scalar_cfg_program_expression_diagnostic_owner.pgy";
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 
 struct DirectMirScalarCfgProgramRoutineAdmission {
     let valid: Bool;

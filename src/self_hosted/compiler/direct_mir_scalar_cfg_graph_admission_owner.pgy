@@ -16,6 +16,7 @@ import "direct_mir_scalar_cfg_branch_admission_owner.pgy";
 import "direct_mir_scalar_cfg_collection_plan_expression_owner.pgy";
 import "direct_mir_scalar_cfg_collection_plan_binding_owner.pgy";
 import "direct_mir_scalar_cfg_phi_operation_admission_owner.pgy";
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 func DirectMirScalarCfgGraphPlanFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     routine_row: Int,

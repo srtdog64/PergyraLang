@@ -1,6 +1,5 @@
 // Shared expression-graph evidence used by scalar CFG expression admission.
 
-import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_graph_admission_owner.pgy";
 import "../mir_lower/expression_graph_sequence_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
@@ -51,4 +50,21 @@ func DirectMirScalarCfgUseValueRow(
     return DirectMirScalarCfgGraphValueRow(
         value_names, UnwrapOption(use_opt)
     );
+}
+
+// Unique-name row lookup for the scalar-CFG owners. In the graph-fact
+// aggregator it closed five base->aggregator import cycles native rejects.
+func DirectMirScalarCfgGraphValueRow(
+    names: Array<String>, wanted: String
+) -> Int {
+    let found: Int = 0 - 1;
+    let row: Int = 0;
+    while row < ArrayLength(names) {
+        if names[row] == wanted {
+            if found >= 0 { return 0 - 1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
 }

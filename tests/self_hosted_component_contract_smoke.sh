@@ -13771,7 +13771,10 @@ reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'FUZZ_SOURCE="$ROOT_
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'csrc="$ROOT_DIR/src/self_hosted/$comp/main.pgy"'
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'tsrc="$ROOT_DIR/src/self_hosted/tools/$name/main.pgy"'
 require_file "tests/self_hosted/parity/driver_bootstrap.sh"
-require_max_lines "tests/self_hosted/parity/driver_bootstrap.sh" 300
+# Re-armed +5 for the oracle compile's --native-pipeline declaration: the
+# oracle is the native reference, and undeclared it delegated to the very
+# driver being bootstrapped.
+require_max_lines "tests/self_hosted/parity/driver_bootstrap.sh" 305
 require_text "Makefile" "self-host-driver-bootstrap-test-smoke"
 require_text "Makefile" "self-host-driver-bootstrap-test-smoke: self-host-codegen-bootstrap-seed-test-smoke"
 require_text "Makefile" "self-host-driver-bootstrap-full-test-smoke: self-host-codegen-bootstrap-seed-test-smoke"

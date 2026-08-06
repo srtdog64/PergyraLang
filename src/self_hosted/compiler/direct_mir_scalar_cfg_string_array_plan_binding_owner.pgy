@@ -4,6 +4,7 @@ import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_append_owner.pgy";
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 
 func DirectMirScalarCfgStringArrayBoundIndex(
     fact: DirectMirScalarCfgStringArrayIndexFact,

@@ -197,7 +197,10 @@ fi
 compile_c "driver_seed" "$BUILD_DIR/driver_seed.c" "$BUILD_DIR/driver_seed.exe"
 
 echo "[self-host-driver-bootstrap] compiling oracle driver"
+# --native-pipeline: the oracle must be native; undeclared, this delegates
+# to the very driver being bootstrapped (fails driverless; not an oracle).
 if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$DRIVER_SOURCE")" \
+    --native-pipeline \
     --backend=c -o "$(pgy_path_for_compiler "$PGY" "$BUILD_DIR/driver_oracle.exe")" \
     >"$BUILD_DIR/driver_oracle.compile.log" 2>&1); then
     echo "[self-host-driver-bootstrap] oracle driver compile failed" >&2
