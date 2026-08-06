@@ -37,7 +37,7 @@ pgy_selfhost_verify_driver_rung2_canonical_declaration_order() {
                 exit 1
                 ;;
         esac
-        grep -Eq '"name":"Add","kind":"method","source_syntax_id":[1-9][0-9]*,"owner":"IntMath"' \
+        grep -Eq '"name":"Add","kind":"method","source_syntax_id":[1-9][0-9]*,("receiver_carriage":"[a-z-]+",)?"owner":"IntMath"' \
             "$artifact" || {
             echo "[self-host-parity:driver-rung2] $backend canonical role routine identity missing: $artifact" >&2
             exit 1
