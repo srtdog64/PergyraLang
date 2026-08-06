@@ -178,9 +178,55 @@ func ParseDeclsInto(
             ParseDiagnosticReportUncoveredSurface("use");
             Exit(1);
         }
+
+        // `extern "ABI" { func NAME(params) -> Type; ... }` declares host
+        // functions with no Pergyra body. The native printer emits the block
+        // header with the ABI name and nests each signature one level deeper
+        // than a top-level func, so members parse at base_indent=4 with
+        // is_signature=true -- the same proven shape ability members use.
         if MatchLanguageWord(content, i, LanguageWordId.WordExtern) {
-            ParseDiagnosticReportUncoveredSurface("extern");
-            Exit(1);
+            i = LanguageWordEnd(i, LanguageWordId.WordExtern);
+            i = SkipWhitespaceAndComments(content, i);
+            if ParserCharAt(content, i) != "\"" {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            let raw_abi: String = ReadString(content, i, cursor_out);
+            i = cursor_out[0];
+            let abi_len: Int = StringLength(raw_abi);
+            if abi_len < 2 {
+                Exit(1);
+            }
+            let abi_name: String = Substring(raw_abi, 1, abi_len - 2);
+            i = Expect(content, i, "{");
+            if i < 0 {
+                Exit(1);
+            }
+            let extern_out: String = Concat("  Extern Block (", Concat(abi_name, "):"));
+            while true {
+                i = SkipWhitespaceAndComments(content, i);
+                if i >= n {
+                    Exit(1);
+                }
+                if ParserCharAt(content, i) == "}" {
+                    i = i + 1;
+                    break;
+                }
+                if !MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
+                    Exit(1);
+                }
+                ArraySet(cursor_out, 0, i);
+                // ABI names are never namespaced: the member's C symbol is
+                // the declared name itself, so no decl prefix applies.
+                let extern_sig: String = ParseFunction(
+                    content, i, cursor_out, "", false, 4,
+                    "func", "Function: ", true, "", expression_graphs
+                );
+                i = cursor_out[0];
+                extern_out = AppendLine(extern_out, extern_sig);
+            }
+            ArrayPush(out_blocks, extern_out);
+            continue;
         }
         if MatchLanguageWord(content, i, LanguageWordId.WordLifecycle) {
             let lc_probe: Int = LanguageWordEnd(i, LanguageWordId.WordLifecycle);

@@ -88,6 +88,14 @@ func SemanticAstFunctionOwnerFactFromArena(
                 UnwrapOption(ability_name), false
             ));
         }
+        if TypedAstArenaNodeKindIs(
+            arena, parent_id, TypedAstKindExternBlockTag()
+        ) {
+            // Host-ABI members: callable under their bare name like a free
+            // function (owner ""), but signature-only like an ability member
+            // -- the body lives on the host side of the ABI.
+            return Some(SemanticAstFunctionOwnerFact("", false));
+        }
         parent = TypedAstArenaParentId(arena, parent_id);
         remaining = remaining - 1;
     }

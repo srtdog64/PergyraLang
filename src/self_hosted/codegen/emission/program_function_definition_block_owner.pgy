@@ -40,6 +40,8 @@ func CodegenProgramFunctionDefinitionBlock(
         let cur_indent: Int = CodegenAstArenaIndentOrDie(arena, cur_node);
         if CodegenSemanticKindIs(
             kind_surfaces, cur[0], TypedAstKindAbilityDeclTag()
+        ) || CodegenSemanticKindIs(
+            kind_surfaces, cur[0], TypedAstKindExternBlockTag()
         ) {
             let decl_node: Int = cur_node;
             ArraySet(cur, 0, cur[0] + 1);

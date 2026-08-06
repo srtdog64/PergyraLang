@@ -87,6 +87,9 @@ func TypedAstKindIntentStepSuccessTag() -> Int { return 83; }
 func TypedAstKindIntentStepFailureTag() -> Int { return 84; }
 func TypedAstKindIntentTerminalSuccessTag() -> Int { return 85; }
 func TypedAstKindIntentTerminalFailureTag() -> Int { return 86; }
+// Host-ABI declaration container: `extern "ABI" { func SIG; ... }`. Members
+// are body-less Function nodes, the shape ability members already carry.
+func TypedAstKindExternBlockTag() -> Int { return 87; }
 
 func TypedAstKindIsIntentRow(kind: Int) -> Bool {
     return kind >= TypedAstKindIntentModeTag() &&
@@ -105,7 +108,7 @@ func TypedAstKindIsCallableDecl(kind: Int) -> Bool {
 
 func TypedAstKindKnown(kind: Int) -> Bool {
     return kind >= TypedAstKindUnknownTag() &&
-        kind <= TypedAstKindIntentTerminalFailureTag();
+        kind <= TypedAstKindExternBlockTag();
 }
 
 func TypedAstCallStatementKindForCallee(callee: String) -> Int {
@@ -194,14 +197,15 @@ func TypedAstKindTags() -> Array<Int> {
         TypedAstKindIntentStepSuccessTag(),
         TypedAstKindIntentStepFailureTag(),
         TypedAstKindIntentTerminalSuccessTag(),
-        TypedAstKindIntentTerminalFailureTag()
+        TypedAstKindIntentTerminalFailureTag(),
+        TypedAstKindExternBlockTag()
     ];
     return tags;
 }
 
 func TypedAstKindOwnerReady() -> Bool {
     let tags: Array<Int> = TypedAstKindTags();
-    if ArrayLength(tags) != 86 {
+    if ArrayLength(tags) != 87 {
         return false;
     }
     let i: Int = 0;
@@ -255,7 +259,9 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstKindIsCallableDecl(TypedAstKindActionDeclTag()) &&
         !TypedAstKindIsCallableDecl(TypedAstKindActionRequiresTag()) &&
         !TypedAstKindKnown(TypedAstKindUnknownTag() - 1) &&
-        !TypedAstKindKnown(TypedAstKindIntentTerminalFailureTag() + 1) &&
+        !TypedAstKindKnown(TypedAstKindExternBlockTag() + 1) &&
+        TypedAstKindKnown(TypedAstKindExternBlockTag()) &&
+        !TypedAstKindIsCallableDecl(TypedAstKindExternBlockTag()) &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindStruct()) ==
             "struct" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) == "class" &&

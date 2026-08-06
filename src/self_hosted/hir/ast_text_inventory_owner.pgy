@@ -202,6 +202,9 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Ability:") {
         return TypedAstKindAbilityDeclTag();
     }
+    if StartsWith(text, "Extern Block (") {
+        return TypedAstKindExternBlockTag();
+    }
     if text == "Return" {
         return TypedAstKindBareReturnStmtTag();
     }
@@ -378,6 +381,15 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
     }
     if kind == TypedAstKindAbilityDeclTag() {
         return Substring(text, 9, StringLength(text) - 9);
+    }
+    if kind == TypedAstKindExternBlockTag() {
+        // `Extern Block (ABI):` -- the payload is the ABI name alone.
+        let open: Int = StringIndexOf(text, "(");
+        let close: Int = StringIndexOf(text, ")");
+        if open >= 0 && close > open + 1 {
+            return Substring(text, open + 1, close - open - 1);
+        }
+        return "";
     }
     if kind == TypedAstKindNominalDeclTag() {
         if StartsWith(text, "Struct: ") {

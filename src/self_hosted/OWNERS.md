@@ -1417,6 +1417,12 @@ inventory must not become a second fact-family owner registry.
   It consumes symbol and ABI owners directly; recursive parameter-prefix
   concatenation and construction of unused function binding-environment rows
   are forbidden.
+- `src/self_hosted/codegen/emission/extern_prototype_block_owner.pgy` --
+  host-ABI prototypes for extern "C" members: bare non-static declarations
+  under the declared name, definition left to the linker. Distinct from the
+  function prototype block because those symbols the unit defines and these
+  it imports. Rows are recognized as signature-only with no owner name;
+  ability members stay excluded by their ability owner.
 - `src/self_hosted/codegen/emission/function_global_env_owner.pgy` -- one-pass
   serialization of admitted builtin, runtime, source, specialization, and
   callable-receiver and intent rows into the immutable global codegen

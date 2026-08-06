@@ -1,0 +1,72 @@
+// Host-ABI prototype block for extern "C" members.
+//
+// An extern member's C symbol is host-provided: the emitted unit declares a
+// bare (non-static) prototype under the declared name and leaves the
+// definition to the linker. Its own owner because the fact is distinct from
+// program-function forward declarations -- those name symbols this unit
+// defines; these name symbols it imports.
+//
+// The rows are recognized without arena access: a signature that is not
+// runtime-callable and carries no owner name is an extern member (ability
+// members are signature-only too, but always owned by their ability).
+
+import "../text/text_owner.pgy";
+import "../input/semantic_signature_codegen_view_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+
+func CodegenExternPrototypeBlock(
+    signatures: SemanticAstFunctionSignatureFacts,
+    struct_env: CodegenTypeEnv
+) -> String {
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(256);
+    let i: Int = 0;
+    while i < SemanticAstFunctionSignatureCount(signatures) {
+        if CodegenSemanticFunctionRuntimeCallableOrDie(signatures, i) ||
+            CodegenSemanticFunctionOwnerOrDie(signatures, i) != "" {
+            i = i + 1;
+            continue;
+        }
+        TextBuilderAppend(output, AbiLayoutCReturnType(
+            CodegenSemanticFunctionReturnTypeOrDie(signatures, i),
+            struct_env
+        ));
+        TextBuilderAppend(output, " ");
+        TextBuilderAppend(
+            output, CodegenSemanticFunctionNameOrDie(signatures, i)
+        );
+        TextBuilderAppend(output, "(");
+        let param_count: Int = CodegenSemanticFunctionParamCountOrDie(
+            signatures, i
+        );
+        let pn: Int = 0;
+        while pn < param_count {
+            if CodegenSemanticFunctionParamModeOrDie(
+                signatures, i, pn
+            ) != 0 {
+                Die("extern member parameter mode is unsupported");
+            }
+            if pn > 0 { TextBuilderAppend(output, ", "); }
+            TextBuilderAppend(output, AbiLayoutCParamType(
+                CodegenSemanticFunctionParamTypeOrDie(signatures, i, pn),
+                struct_env
+            ));
+            TextBuilderAppend(output, " ");
+            TextBuilderAppend(
+                output,
+                CompilerSymbolCBindingName(
+                    CodegenSemanticFunctionParamNameOrDie(signatures, i, pn)
+                )
+            );
+            pn = pn + 1;
+        }
+        if param_count == 0 {
+            TextBuilderAppend(output, AbiLayoutCEmptyParameterList());
+        }
+        TextBuilderAppend(output, ");\n");
+        i = i + 1;
+    }
+    let block: String = TextBuilderFinish(output, output_allocator);
+    return block;
+}

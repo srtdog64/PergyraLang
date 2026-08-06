@@ -186,7 +186,9 @@ require_text "src/compiler/mir_json_expression_graph_materialize.c" \
     'graph, "type_name", target_text'
 require_text "src/compiler/mir_json_expression_graph_materialize.c" \
     'kind = "cast";'
-require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+# Repointed: the kind-code table moved out of the sequence owner when it was
+# split at the line cap (expression_graph_kind_code_owner now holds it).
+require_text "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
     'if kind == "float_literal" {'
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" \
     'func CodegenExpressionGraphUsagePresenceFromSemantic('
