@@ -75,21 +75,28 @@ grep -Fq 'analysis.function_tables' "$BODY_OWNER" ||
     fail "body owner does not consume the artifact-owned callable-table fact"
 grep -Fq 'function_tables: SemanticAstExpressionFunctionTableFacts' "$CAPTURE_OWNER" ||
     fail "call-target capture does not consume the shared callable-table fact"
+# Repointed: the body owner now routes through the admission-first spellings;
+# the shared callable-table subject still rides the WithFunctionTables suffix.
 for consumer in \
-    'SemanticAstInitializerTypeFactsFromArtifactObservedWithFunctionTables(' \
-    'SemanticAstIterationTypeFactsFromArtifactWithFunctionTables(' \
-    'SemanticAstInitializerTypeFactsRefinedByIterationsWithFunctionTables('; do
+    'SemanticAstInitializerTypeFactsFromAdmittedArtifactObservedWithFunctionTables(' \
+    'SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(' \
+    'SemanticAstInitializerTypeFactsRefinedByIterationsFromAdmittedFactsWithFunctionTables('; do
     grep -Fq "$consumer" "$BODY_OWNER" ||
         fail "body owner does not route shared fact to: $consumer"
 done
 
-grep -Fq 'SemanticAstAnalysisResolveCallTargetsFromBody(' "$BODY_OWNER" ||
+grep -Fq 'SemanticAstAnalysisResolveCallTargetsFromAdmittedBody(' "$BODY_OWNER" ||
     fail "body owner does not route shared fact to call-target resolver"
 grep -Fq 'iteration_types, function_tables' "$BODY_OWNER" ||
     fail "call-target resolver does not receive shared callable-table fact"
-grep -Fq 'analysis.assignments, analysis.enums, function_tables' "$BODY_OWNER" ||
+# Repointed: the admitted assignment/statement resolvers gained
+# function_scopes and their argument lists wrap, so the pins read the fact
+# inside each resolver's own call window instead of one spliced line.
+grep -A 8 -F 'SemanticAstAssignmentTypeFactsFromAdmittedArtifact(' \
+    "$BODY_OWNER" | grep -Fq 'function_tables' ||
     fail "assignment resolver does not receive shared callable-table fact"
-grep -Fq 'analysis.statements, function_tables' "$BODY_OWNER" ||
+grep -A 8 -F 'SemanticAstStatementTypeFactsFromAdmittedArtifact(' \
+    "$BODY_OWNER" | grep -Fq 'function_tables' ||
     fail "statement resolver does not receive shared callable-table fact"
 grep -Fq 'analysis.expression_surfaces, function_tables' "$BODY_OWNER" ||
     fail "generic resolver does not receive shared callable-table fact"
