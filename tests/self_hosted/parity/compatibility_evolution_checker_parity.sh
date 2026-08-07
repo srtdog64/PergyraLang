@@ -240,7 +240,7 @@ LLVM_INVALID_OBSOLETE_MIGRATION_OUT="$BUILD_DIR/compatibility_corpus_llvm_invali
 LLVM_INVALID_OBSOLETE_MIGRATION_ERR="$BUILD_DIR/compatibility_corpus_llvm_invalid_obsolete_migration.err"
 LLVM_MISSING_SURFACE_OUT="$BUILD_DIR/compatibility_corpus_llvm_missing_surface.out"
 LLVM_MISSING_SURFACE_ERR="$BUILD_DIR/compatibility_corpus_llvm_missing_surface.err"
-if ! (cd "$ROOT_DIR" && "$PGY" "$TOOL_ARG" --backend=llvm \
+if ! (cd "$ROOT_DIR" && "$PGY" "$TOOL_ARG" --native-pipeline --backend=llvm \
     -o "$(pgy_path_for_compiler "$PGY" "$LLVM_NEG_BIN")" >"$LLVM_NEG_COMPILE_LOG" 2>&1); then
     if pgy_selfhost_log_reports_no_llvm "$LLVM_NEG_COMPILE_LOG"; then
         echo "[self-host-parity:compatibility-corpus] malformed-row llvm-leg skipped (compiler built without LLVM backend support)"

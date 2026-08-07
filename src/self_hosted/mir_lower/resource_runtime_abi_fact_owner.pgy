@@ -7,6 +7,22 @@ import "machine_layer_fact_owner.pgy";
 import "routine_instruction_view_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 import "../compiler/runtime_call_abi_structured_fact_owner.pgy";
+import "../codegen/runtime_abi/text_builder_runtime_owner.pgy";
+
+// The native producer's own-dialect rows name resource families outside the
+// slot/pin registry; this map answers only for those, one symbol per
+// (owner, operation), and stays empty for anything unrecognized.
+func MirNativeResourceDialectSymbol(
+    owner: String, operation: String
+) -> String {
+    if owner == "TextBuilder" {
+        if operation == "New" { return TextBuilderRuntimeCNewFn(); }
+        if operation == "Append" { return TextBuilderRuntimeCAppendFn(); }
+        if operation == "Finish" { return TextBuilderRuntimeCFinishFn(); }
+        if operation == "Drop" { return TextBuilderRuntimeCDropFn(); }
+    }
+    return "";
+}
 
 func MirResourceRuntimeRowRequired(operation: String) -> Bool {
     return operation == "Claim" || operation == "Read" ||
@@ -103,6 +119,47 @@ func MirResourceRuntimeRowFactReady(
     let aux_bounds: Array<Int> = [0, 0];
     let has_aux: Bool = MirObjectFieldValueBoundsAtBounds(
         json, inst_start, inst_end, "runtime_call_abi_aux", aux_bounds);
+    if has_row && row_bounds[0] < row_bounds[1] &&
+        JsonCharCodeAt(json, row_bounds[1], row_bounds[0]) ==
+            JsonAsciiCode("{") {
+        // The native producer spells the same fact as
+        // {"owner":<resource type>,"source":...,"c_symbol":...} attached to
+        // its def/stmt rows (operations outside the required set included).
+        // Admit it as evidence when its symbol matches the canonical
+        // registry row for that type and operation; re-emission derives the
+        // canonical spelling itself, so recognition is enough.
+        let dialect_row: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            json, row_bounds[0], row_bounds[1]);
+        if JsonObjectFactTableReady(dialect_row) {
+            let native_symbol_opt: Option<String> =
+                JsonObjectFactStringFieldOpt(dialect_row, "c_symbol");
+            if IsSome(native_symbol_opt) {
+                let native_owner_opt: Option<String> =
+                    JsonObjectFactStringFieldOpt(dialect_row, "owner");
+                let native_operation_opt: Option<String> =
+                    JsonObjectFactStringFieldOpt(dialect_row, "operation");
+                if !IsSome(native_owner_opt) ||
+                    !IsSome(native_operation_opt) || has_aux {
+                    return false;
+                }
+                let native_expected: CompilerRuntimeCallAbiFact =
+                    CompilerRuntimeCallAbiFactForNativeResource(
+                        UnwrapOption(native_owner_opt),
+                        UnwrapOption(native_operation_opt));
+                let native_expected_symbol: String = "";
+                if native_expected.ok {
+                    native_expected_symbol = native_expected.symbol;
+                } else {
+                    native_expected_symbol = MirNativeResourceDialectSymbol(
+                        UnwrapOption(native_owner_opt),
+                        UnwrapOption(native_operation_opt));
+                }
+                return native_expected_symbol != "" &&
+                    UnwrapOption(native_symbol_opt) ==
+                        native_expected_symbol;
+            }
+        }
+    }
     if !MirResourceRuntimeRowRequired(expected_operation) {
         return !required && !has_row && !has_aux;
     }

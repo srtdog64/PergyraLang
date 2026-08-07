@@ -55,7 +55,7 @@ for required in \
     'timeout-minutes: 40' \
     'timeout-minutes: 60' \
     'timeout-minutes: 30' \
-    'run: make self-host-preparation-exhaustive-parity-test-smoke' \
+    'make self-host-preparation-exhaustive-parity-test-smoke' \
     'run: make self-host-codegen-bootstrap-test-smoke' \
     'make self-host-driver-bootstrap-full-test-smoke' \
     'bash tests/selfhost_bootstrap_policy_corpus_smoke.sh' \

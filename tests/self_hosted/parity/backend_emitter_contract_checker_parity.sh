@@ -148,7 +148,7 @@ LLVM_MISSING_INPUT_OUT="$BUILD_DIR/backend_emitter_contract_llvm_missing_input.o
 LLVM_MISSING_INPUT_ERR="$BUILD_DIR/backend_emitter_contract_llvm_missing_input.err"
 LLVM_FORBIDDEN_OUT="$BUILD_DIR/backend_emitter_contract_llvm_forbidden.out"
 LLVM_FORBIDDEN_ERR="$BUILD_DIR/backend_emitter_contract_llvm_forbidden.err"
-if ! (cd "$ROOT_DIR" && "$PGY" "$TOOL_ARG" --backend=llvm \
+if ! (cd "$ROOT_DIR" && "$PGY" "$TOOL_ARG" --native-pipeline --backend=llvm \
     -o "$(pgy_path_for_compiler "$PGY" "$LLVM_NEG_BIN")" >"$LLVM_NEG_COMPILE_LOG" 2>&1); then
     if pgy_selfhost_log_reports_no_llvm "$LLVM_NEG_COMPILE_LOG"; then
         echo "[self-host-parity:backend-emitter-contract] negative llvm-leg skipped (compiler built without LLVM backend support)"
