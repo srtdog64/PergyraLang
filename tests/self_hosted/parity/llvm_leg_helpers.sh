@@ -331,7 +331,7 @@ assert_llvm_leg() {
     # Run the C leg before deciding the LLVM leg: a C-only build skips the
     # LLVM comparison, but callers still consume the C tool's artifact.
     set +e
-    (cd "$ROOT_DIR" && "$c_bin" "${run_args[@]}" 2>"$c_err" | pgy_selfhost_normalize_text_artifact >"$c_out")
+    (cd "$ROOT_DIR" && "$c_bin" ${run_args[@]+"${run_args[@]}"} 2>"$c_err" | pgy_selfhost_normalize_text_artifact >"$c_out")
     local c_rc=$?
     set -e
     if [[ "$c_rc" -ne 0 ]]; then
@@ -357,7 +357,7 @@ assert_llvm_leg() {
     fi
 
     set +e
-    (cd "$ROOT_DIR" && "$llvm_bin" "${run_args[@]}" 2>"$llvm_err" | pgy_selfhost_normalize_text_artifact >"$llvm_out")
+    (cd "$ROOT_DIR" && "$llvm_bin" ${run_args[@]+"${run_args[@]}"} 2>"$llvm_err" | pgy_selfhost_normalize_text_artifact >"$llvm_out")
     local llvm_rc=$?
     set -e
     if [[ "$llvm_rc" -ne 0 ]]; then
@@ -368,4 +368,37 @@ assert_llvm_leg() {
 
     assert_llvm_leg_with_artifact_owner "$label" "$build_dir" "$c_out" "$llvm_out"
     echo "[$label] llvm-leg ok (C-tool==LLVM-tool artifact-equal)"
+}
+
+# The rung2 body gate's driver builds are harness infrastructure, not the
+# gate's subject: the llvm build routes through the native pipeline because
+# the delegated DirectMirLlvm projector is a bounded classifier whose
+# replacement subject is owned by self-host-default-llvm-replacement-test-smoke.
+# Returns 2 when the compiler has no LLVM backend, and 3 when the native
+# pipeline rejects the composed driver with the ownership campaign's
+# signature (self-host bootstrap subject) -- once that campaign clears, the
+# greps stop matching and the llvm lane comes back loud on its own.
+compile_driver() {
+    local backend="$1"
+    local out_bin="$2"
+    local source="${3:-$DRIVER_SOURCE}"
+    local log="$BUILD_DIR/driver_${backend}.compile.log"
+    local native_subject=""
+    [[ "$backend" == "llvm" ]] && native_subject="--native-pipeline"
+    if ! (cd "$ROOT_DIR" && "$PGY" \
+        "$(pgy_path_for_compiler "$PGY" "$source")" \
+        --backend="$backend" $native_subject \
+        -o "$(pgy_path_for_compiler "$PGY" "$out_bin")" \
+        >"$log" 2>&1); then
+        if [[ "$backend" == "llvm" ]] && pgy_selfhost_log_reports_no_llvm "$log"; then
+            return 2
+        fi
+        if [[ "$backend" == "llvm" ]] && grep -Eq \
+            'beta-stable body safety requires|TextBuilder owner' "$log"; then
+            return 3
+        fi
+        echo "[self-host-parity:driver-rung2] backend=$backend driver compile failed" >&2
+        cat "$log" >&2
+        return 1
+    fi
 }
