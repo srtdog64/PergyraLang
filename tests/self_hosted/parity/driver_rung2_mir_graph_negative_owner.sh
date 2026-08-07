@@ -15,7 +15,7 @@ pgy_selfhost_verify_driver_rung2_mir_graph_negatives() {
     consumer_command=("$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$missing_graph")")
     if [[ -n "$machine_declaration" ]]; then
-        consumer_command+=("$machine_declaration")
+        consumer_command+=(--machine-manifest-json "$machine_declaration")
     fi
     if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
         >"$missing_graph.out" 2>"$missing_graph.err"); then
@@ -52,7 +52,7 @@ pgy_selfhost_verify_driver_rung2_mir_graph_negatives() {
     consumer_command=("$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$invalid_graph")")
     if [[ -n "$machine_declaration" ]]; then
-        consumer_command+=("$machine_declaration")
+        consumer_command+=(--machine-manifest-json "$machine_declaration")
     fi
     if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
         >"$invalid_graph.out" 2>"$invalid_graph.err"); then

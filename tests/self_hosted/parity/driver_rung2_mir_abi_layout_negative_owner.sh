@@ -77,7 +77,8 @@ pgy_selfhost_verify_driver_rung2_abi_layout_negative() {
     consumer_command=("$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$missing_row")")
     if [[ -n "$machine_declaration" ]]; then
-        consumer_command+=("$machine_declaration")
+        # The CLI admits the manifest only through its named option.
+        consumer_command+=(--machine-manifest-json "$machine_declaration")
     fi
     if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
         >"$missing_row.out" 2>"$missing_row.err"); then
@@ -109,7 +110,7 @@ pgy_selfhost_verify_driver_rung2_abi_layout_negative() {
     consumer_command=("$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$identity_row")")
     if [[ -n "$machine_declaration" ]]; then
-        consumer_command+=("$machine_declaration")
+        consumer_command+=(--machine-manifest-json "$machine_declaration")
     fi
     if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
         >"$identity_row.out" 2>"$identity_row.err"); then

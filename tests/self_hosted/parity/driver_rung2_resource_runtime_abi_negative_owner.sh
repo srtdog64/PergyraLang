@@ -24,7 +24,7 @@ pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative() {
     consumer_command=("$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$missing_row")")
     if [[ "$machine_fixture" -eq 1 ]]; then
-        consumer_command+=("$machine_declaration")
+        consumer_command+=(--machine-manifest-json "$machine_declaration")
     fi
     if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
         >"$missing_row.out" 2>"$missing_row.err"); then
@@ -51,7 +51,7 @@ pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative() {
     consumer_command=("$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$identity_row")")
     if [[ "$machine_fixture" -eq 1 ]]; then
-        consumer_command+=("$machine_declaration")
+        consumer_command+=(--machine-manifest-json "$machine_declaration")
     fi
     if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
         >"$identity_row.out" 2>"$identity_row.err"); then
@@ -78,7 +78,7 @@ pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative() {
     consumer_command=("$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$payload_row")")
     if [[ "$machine_fixture" -eq 1 ]]; then
-        consumer_command+=("$machine_declaration")
+        consumer_command+=(--machine-manifest-json "$machine_declaration")
     fi
     if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
         >"$payload_row.out" 2>"$payload_row.err"); then
@@ -107,7 +107,7 @@ pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative() {
     consumer_command=("$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$stray_row")")
     if [[ "$machine_fixture" -eq 1 ]]; then
-        consumer_command+=("$machine_declaration")
+        consumer_command+=(--machine-manifest-json "$machine_declaration")
     fi
     if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
         >"$stray_row.out" 2>"$stray_row.err"); then
@@ -138,7 +138,7 @@ pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative() {
         consumer_command=("$driver_bin" --mir-json \
             "$(pgy_selfhost_path_relative_to_root "$aux_injected_row")")
         if [[ "$machine_fixture" -eq 1 ]]; then
-            consumer_command+=("$machine_declaration")
+            consumer_command+=(--machine-manifest-json "$machine_declaration")
         fi
         if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
             >"$aux_injected_row.out" 2>"$aux_injected_row.err"); then
@@ -171,7 +171,7 @@ pgy_selfhost_verify_driver_rung2_resource_runtime_abi_negative() {
         consumer_command=("$driver_bin" --mir-json \
             "$(pgy_selfhost_path_relative_to_root "$aux_identity_row")")
         if [[ "$machine_fixture" -eq 1 ]]; then
-            consumer_command+=("$machine_declaration")
+            consumer_command+=(--machine-manifest-json "$machine_declaration")
         fi
         if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
             >"$aux_identity_row.out" 2>"$aux_identity_row.err"); then
