@@ -108,7 +108,9 @@ LLVM_NEG_BIN="$BUILD_DIR/sandbox_capability_llvm_negative.exe"
 LLVM_NEG_COMPILE_LOG="$BUILD_DIR/sandbox_capability_llvm_negative.compile.log"
 LLVM_NEG_OUT="$BUILD_DIR/sandbox_capability_llvm_negative.out"
 LLVM_NEG_ERR="$BUILD_DIR/sandbox_capability_llvm_negative.err"
-if ! (cd "$ROOT_DIR" && "$PGY" "$TOOL_ARG" --backend=llvm \
+# Native pipeline: harness tool build, same subject reasoning as
+# assert_llvm_leg (the delegated projector rejects its multi-routine shape).
+if ! (cd "$ROOT_DIR" && "$PGY" "$TOOL_ARG" --native-pipeline --backend=llvm \
     -o "$(pgy_path_for_compiler "$PGY" "$LLVM_NEG_BIN")" >"$LLVM_NEG_COMPILE_LOG" 2>&1); then
     if pgy_selfhost_log_reports_no_llvm "$LLVM_NEG_COMPILE_LOG"; then
         echo "[self-host-parity:sandbox-capability] missing-budget llvm-leg skipped (compiler built without LLVM backend support)"

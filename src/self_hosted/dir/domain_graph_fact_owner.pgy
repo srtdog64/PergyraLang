@@ -339,9 +339,27 @@ func SelfDirDomainGraphFactsFromArtifact(
                 edge_count = edge_count + 1;
                 field_i = field_i + 1;
             }
-        } else if rows.nominal_kinds[i] == "party" || rows.kinds[i] == "event" {
+        } else if rows.nominal_kinds[i] == "party" {
+            // Mirrors the native DIR party collection: each role slot owns a
+            // qualified slot node, a party-has-slot edge, and a
+            // party-to-ability plus slot-to-ability edge for the slot's
+            // declared ability.
+            let field_i: Int = 0;
+            while field_i < rows.field_counts[i] {
+                let field_row: Int = rows.field_starts[i] + field_i;
+                if rows.field_kinds[field_row] == NominalFieldKindRoleSlot() {
+                    node_count = node_count + 1;
+                    edge_count = edge_count + 3;
+                } else {
+                    return SelfDirDomainGraphFactsError(
+                        "self-host DIR bounded party field kind is unsupported"
+                    );
+                }
+                field_i = field_i + 1;
+            }
+        } else if rows.kinds[i] == "event" {
             return SelfDirDomainGraphFactsError(
-                "self-host DIR party/event production is not implemented"
+                "self-host DIR event production is not implemented"
             );
         }
         i = i + 1;

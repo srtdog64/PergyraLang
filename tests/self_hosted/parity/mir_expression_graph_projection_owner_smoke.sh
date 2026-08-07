@@ -93,7 +93,8 @@ for migrated_consumer in \
     'src/self_hosted/mir/program_verify_owner.pgy|facts.expression_graph' \
     'src/self_hosted/tools/initializer_projection_probe/main.pgy|facts.expression_graph' \
     'src/self_hosted/tools/machine_layer_mir_projection_probe/main.pgy|MachineProbeProgramExpressionGraph()' \
-    'src/self_hosted/tools/machine_layer_mir_projection_probe/main.pgy|routines, cfg5, program_graph.graph'; do
+    'src/self_hosted/tools/machine_layer_mir_projection_probe/main.pgy|routines, cfg5, SelfMirInstructionAbiReceiptRowsAppend(' \
+    'src/self_hosted/tools/machine_layer_mir_projection_probe/main.pgy|), program_graph.graph'; do
     rel="${migrated_consumer%%|*}"
     term="${migrated_consumer#*|}"
     grep -Fq "$term" "$ROOT_DIR/$rel" || {
