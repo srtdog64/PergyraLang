@@ -307,40 +307,22 @@ func EmitEnumDecl(json: String, decl_start: Int, decl_end: Int, enum_name: Strin
 }
 
 func NominalAstLabel(nominal_kind: String) -> String {
-    if nominal_kind == "subject" {
-        return "Subject";
-    }
-    if nominal_kind == "vessel" {
-        return "Vessel";
-    }
-    if nominal_kind == "object" {
-        return "Object";
-    }
-    if nominal_kind == "tobject" {
-        return "TObject";
-    }
-    if nominal_kind == "zone" {
-        return "Zone";
-    }
-    if nominal_kind == "world" {
-        return "World";
-    }
-    if nominal_kind == "party" {
-        return "Party";
-    }
-    if nominal_kind == "effect" {
-        return "Effect";
-    }
-    if nominal_kind == "relation" {
-        return "Relation";
-    }
+    if nominal_kind == "subject" { return "Subject"; }
+    if nominal_kind == "vessel" { return "Vessel"; }
+    if nominal_kind == "object" { return "Object"; }
+    if nominal_kind == "tobject" { return "TObject"; }
+    if nominal_kind == "zone" { return "Zone"; }
+    if nominal_kind == "world" { return "World"; }
+    if nominal_kind == "party" { return "Party"; }
+    if nominal_kind == "effect" { return "Effect"; }
+    if nominal_kind == "relation" { return "Relation"; }
     return "Class";
 }
 
 func MirCanonicalDeclarationPhase(kind: String) -> Int {
     if kind == "struct" || kind == "class" || kind == "subject" ||
         kind == "object" || kind == "tobject" || kind == "vessel" ||
-        kind == "zone" || kind == "world" || kind == "party" ||
+        kind == "zone" || kind == "world" ||
         kind == "effect" || kind == "relation" {
         return 0;
     }
@@ -348,6 +330,10 @@ func MirCanonicalDeclarationPhase(kind: String) -> Int {
     if kind == "ability" { return 2; }
     if kind == "enum" { return 3; }
     if kind == "extern" { return 4; }
+    // Parties project last: the two producers order party against zone
+    // differently within the nominal family, and input order is
+    // provenance, not canonical authority.
+    if kind == "party" { return 5; }
     return -1;
 }
 
@@ -485,7 +471,7 @@ func EmitCanonicalDeclRow(
     inout abi_validation: MirAbiLayoutValidationSession
 ) -> String {
     let json: String = routines.source_json;
-    if MirCanonicalDeclarationPhase(kind) == 0 {
+    if MirCanonicalDeclarationPhase(kind) == 0 || kind == "party" {
         return EmitCanonicalNominalDecl(
             declarations, routines, decl_start, decl_end, kind, name,
             observe_pressure, expression_order, abi_validation
@@ -531,7 +517,7 @@ func EmitStructDecls(
         MirLowerFailClosed("MIR declaration inventory is missing");
     }
     let phase: Int = 0;
-    while phase < 5 {
+    while phase < 6 {
         let row: Int = 0;
         while row < MirProgramDeclarationIndexCount(routines.declarations) {
             let decl_start: Int = routines.declarations.starts[row];
@@ -554,7 +540,16 @@ func EmitStructDecls(
                     Concat(display_kind, Concat(" ", name))
                 ));
             }
-            let canonical_phase: Int = MirCanonicalDeclarationPhase(kind);
+            // The native wire spells every nominal as kind "class" and
+            // refines it with nominal_kind; classify the phase by the
+            // refined identity so both dialects project one order.
+            let phase_kind: String = kind;
+            let refined_kind: String =
+                routines.declarations.nominal_kinds[row];
+            if StringLength(refined_kind) > 0 {
+                phase_kind = refined_kind;
+            }
+            let canonical_phase: Int = MirCanonicalDeclarationPhase(phase_kind);
             if canonical_phase < 0 {
                 MirLowerFailClosed(Concat(
                     "unsupported MIR declaration in self-host subset: ", kind

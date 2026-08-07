@@ -11,8 +11,8 @@ pgy_selfhost_verify_driver_rung2_ability_bind_dispatch() {
     for fact in \
         '"kind":"ability","nominal_kind":"ability","name":"Bufferable"' \
         '"generic_params":[{"name":"T","constraint":null,"default_type":"Int"}]' \
-        '"kind":"party","nominal_kind":"party","name":"StorageParty","fields":[],"methods":[],"role_slots":[{"name":"buffer","dynamic":true,"abilities":[{"base":"Bufferable","actuals":[]}]' \
-        '"name":"Put","kind":"method","owner":"IntBuffer"' \
+        '"kind":"party","nominal_kind":"party","name":"StorageParty","source_syntax_id":20,"fields":[],"methods":[],"role_slots":[{"name":"buffer","dynamic":true,"abilities":[{"base":"Bufferable","actuals":[]}]' \
+        '"name":"Put","kind":"method","source_syntax_id":12,"receiver_carriage":"mutable-identity","owner":"IntBuffer"' \
         '"slot_anchor":"buffer"' \
         '"source_type":"AST_BIND_STMT"' \
         '"call_target_kind":"member","call_target_name":"Bufferable_Put"'; do

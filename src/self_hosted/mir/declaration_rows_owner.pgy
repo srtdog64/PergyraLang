@@ -2,6 +2,7 @@
 import "program_fact_owner.pgy";
 import "../semantic/ast_artifact_verdict_owner.pgy";
 import "declaration_callable_rows_owner.pgy";
+import "declaration_generic_rows_owner.pgy";
 func SelfMirDeclarationsFromAnalysis(
     artifact: AstTreeArtifact, analysis: SemanticAstArtifactAnalysis,
     enum_facts: SemanticAstEnumFacts
@@ -85,7 +86,15 @@ func SelfMirDeclarationsFromAnalysis(
             )
         );
         ArrayPush(generic_starts, ArrayLength(generic_names));
-        ArrayPush(generic_counts, 0);
+        let nominal_generic_count: Option<Int> =
+            SelfMirDeclarationAppendNominalGenericRows(
+                artifact, analysis.constructors.node_ids[i],
+                generic_names, generic_constraints, generic_defaults
+            );
+        if !IsSome(nominal_generic_count) {
+            return SelfMirDeclarationRowsEmpty();
+        }
+        ArrayPush(generic_counts, UnwrapOption(nominal_generic_count));
         ArrayPush(field_starts, ArrayLength(field_names));
         ArrayPush(field_counts, analysis.constructors.param_counts[i]);
         let field_i: Int = 0;
@@ -113,7 +122,20 @@ func SelfMirDeclarationsFromAnalysis(
             }
             ArrayPush(field_names, UnwrapOption(field_name));
             ArrayPush(field_kinds, UnwrapOption(field_kind));
-            ArrayPush(field_types, UnwrapOption(field_type));
+            // Prefer the declared spelling so a generic field stays "T" on
+            // the wire, matching the native row; the semantic (default-
+            // substituted) type remains the analysis-side fact.
+            let declared_type_opt: Option<String> = TypedAstArenaTypeName(
+                artifact.arena, UnwrapOption(field_source_id)
+            );
+            if IsSome(declared_type_opt) &&
+                StringLength(UnwrapOption(declared_type_opt)) > 0 {
+                ArrayPush(field_types, SemanticCanonicalTypeName(
+                    UnwrapOption(declared_type_opt)
+                ));
+            } else {
+                ArrayPush(field_types, UnwrapOption(field_type));
+            }
             ArrayPush(field_source_syntax_ids, UnwrapOption(field_source_id));
             field_i = field_i + 1;
         }

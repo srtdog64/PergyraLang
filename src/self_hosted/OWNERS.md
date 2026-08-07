@@ -660,6 +660,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir/declaration_callable_rows_owner.pgy` -- callable
   parameter, return, and action-contract declaration row projection. It owns
   no nominal or zone policy.
+- `src/self_hosted/mir/declaration_generic_rows_owner.pgy` -- unerased
+  nominal generic-parameter row projection from the typed AST node; default
+  substitution stays a semantic consumer concern.
 - `src/self_hosted/mir/declaration_zone_authority_rows_owner.pgy` -- aligns the
   semantic owner's explicit zone subject-slot and required-ability facts with
   one MIR declaration inventory; it never infers authority from actions.

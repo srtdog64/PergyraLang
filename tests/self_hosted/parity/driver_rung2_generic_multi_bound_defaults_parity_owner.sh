@@ -10,9 +10,9 @@ pgy_selfhost_verify_driver_rung2_generic_multi_bound_defaults() {
     [[ "$base" == "generic_multi_bound_defaults" ]] || return 0
 
     for fact in \
-        '"name":"Packable","fields":[],"methods":[{"name":"Accept","return":"Void","params":[{"name":"value","type":"T"}]}],"generic_params":[{"name":"T","constraint":"Comparable + Cloneable","default_type":"Item"}]' \
-        '"name":"ItemComparable","fields":[],"methods":[],"for_type":"Item","impls":[{"ability":{"base":"Comparable","actuals":[]},"method_start":0,"method_count":0}]' \
-        '"name":"ItemCloneable","fields":[],"methods":[],"for_type":"Item","impls":[{"ability":{"base":"Cloneable","actuals":[]},"method_start":0,"method_count":0}]'; do
+        '"name":"Packable","source_syntax_id":10,"fields":[],"methods":[{"name":"Accept","return":"Void","callable_kind":"function","contract":{"requires":[],"within":null,"causes":null,"authorized_by":[],"caps_present":false,"caps":[],"effects_present":false,"effects":[]},"params":[{"name":"value","type":"T"}]}],"generic_params":[{"name":"T","constraint":"Comparable + Cloneable","default_type":"Item"}]' \
+        '"name":"ItemComparable","source_syntax_id":6,"fields":[],"methods":[],"for_type":"Item","impls":[{"ability":{"base":"Comparable","actuals":[]},"method_start":0,"method_count":0}]' \
+        '"name":"ItemCloneable","source_syntax_id":8,"fields":[],"methods":[],"for_type":"Item","impls":[{"ability":{"base":"Cloneable","actuals":[]},"method_start":0,"method_count":0}]'; do
         grep -Fq "$fact" "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend generic multi-bound fact drifted: $fact" >&2
             exit 1

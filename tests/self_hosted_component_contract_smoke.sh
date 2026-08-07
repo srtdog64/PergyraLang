@@ -840,7 +840,7 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" 'return StringJoin(ch
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'func EmitStructDecls('
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'func MirCanonicalDeclarationPhase(kind: String) -> Int'
 # Re-armed 4 -> 5: phase 4 is the extern host-ABI declaration family.
-require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'while phase < 5'
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'while phase < 6'
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'if canonical_phase == phase'
 require_text "src/self_hosted/mir/instruction_validation_owner.pgy" 'rows.source_types[i] != "AST_RETURN_VOID"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "Log(SelfMirProgramFactsValidationError(mir_facts))"
@@ -12760,6 +12760,12 @@ require_file "src/self_hosted/mir_lower/program_enum_variant_index_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/program_enum_variant_index_owner.pgy" 240
 require_file "src/self_hosted/mir/declaration_callable_rows_owner.pgy"
 require_max_lines "src/self_hosted/mir/declaration_callable_rows_owner.pgy" 200
+require_file "src/self_hosted/mir/declaration_generic_rows_owner.pgy"
+require_max_lines "src/self_hosted/mir/declaration_generic_rows_owner.pgy" 80
+require_text "src/self_hosted/mir/declaration_rows_owner.pgy" \
+    'SelfMirDeclarationAppendNominalGenericRows('
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/mir/declaration_generic_rows_owner.pgy'
 require_max_lines "src/self_hosted/mir/declaration_rows_owner.pgy" 600
 require_file "src/self_hosted/mir/declaration_zone_authority_rows_owner.pgy"
 require_max_lines "src/self_hosted/mir/declaration_zone_authority_rows_owner.pgy" 180

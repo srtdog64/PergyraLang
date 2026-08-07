@@ -1,0 +1,48 @@
+// Nominal generic-parameter rows for MIR declarations.
+//
+// Nominal generic parameters ride the wire unerased: each row carries
+// name/constraint/default straight from the typed AST node, and
+// substitution stays a semantic consumer concern.
+
+import "../semantic/ast_artifact_verdict_owner.pgy";
+import "../semantic/ast_generic_parameter_fact_owner.pgy";
+
+func SelfMirDeclarationAppendNominalGenericRows(
+    artifact: AstTreeArtifact, decl_node_id: Int,
+    inout generic_names: Array<String>,
+    inout generic_constraints: Array<String>,
+    inout generic_defaults: Array<String>
+) -> Option<Int> {
+    let appended: Int = 0;
+    let child_index: Int = 0;
+    let child_opt: Option<Int> = TypedAstArenaChildAt(
+        artifact.arena, decl_node_id, child_index
+    );
+    while IsSome(child_opt) {
+        let child: Int = UnwrapOption(child_opt);
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, child, TypedAstKindGenericParamsTag()
+        ) {
+            let names: Array<String> = [];
+            let defaults: Array<String> = [];
+            if !SemanticAstGenericParameterDefaultRowsFromNode(
+                artifact.arena, child, names, defaults
+            ) {
+                return None;
+            }
+            let row: Int = 0;
+            while row < ArrayLength(names) {
+                ArrayPush(generic_names, names[row]);
+                ArrayPush(generic_constraints, "");
+                ArrayPush(generic_defaults, defaults[row]);
+                row = row + 1;
+            }
+            appended = appended + ArrayLength(names);
+        }
+        child_index = child_index + 1;
+        child_opt = TypedAstArenaChildAt(
+            artifact.arena, decl_node_id, child_index
+        );
+    }
+    return Some(appended);
+}
