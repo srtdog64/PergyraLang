@@ -26,7 +26,7 @@ pgy_selfhost_verify_driver_rung2_collection_enum_match_loop() {
 
     for fact in \
         '"kind":"enum","nominal_kind":"enum","name":"Action"' \
-        '"variants":[{"name":"Buy","param_count":0},{"name":"Sell","param_count":0},{"name":"Hold","param_count":0}]' \
+        '"variants":[{"name":"Buy","param_count":0,"param_types":[]},{"name":"Sell","param_count":0,"param_types":[]},{"name":"Hold","param_count":0,"param_types":[]}' \
         '"name":"DecideOf","kind":"function"' '"return":"Action"' \
         '"name":"prices","type":"Array<Int>","carriage":"value"' \
         '"kind":"index","text":"prices[i]"' \
@@ -65,7 +65,7 @@ pgy_selfhost_verify_driver_rung2_collection_enum_match_loop() {
         index-kind '"kind":"index","text":"prices[i]"' '"kind":"leaf","text":"prices[i]"' \
         "MIR instruction expression graph is missing or invalid"
     pgy_selfhost_collection_enum_reject_mutation "$backend" "$base" "$self_mir_json" "$driver_bin" \
-        match-variant '"name":"Hold","param_count":0}' '"name":"RemovedHold","param_count":0}' \
+        match-variant '"name":"Hold","param_count":0,"param_types":[]}' '"name":"RemovedHold","param_count":0,"param_types":[]}' \
         "match enum variant declaration fact is missing"
     pgy_selfhost_collection_enum_reject_mutation "$backend" "$base" "$self_mir_json" "$driver_bin" \
         loop-phi '"uses":["cash.1","cash.23"]' '"uses":["cash.1"]' \
