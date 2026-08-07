@@ -42,17 +42,21 @@ pgy_selfhost_verify_driver_rung2_assign_instruction_graph() {
         exit 1
     }
 
+    # The native producer carries assignment binding-mode facts now, so the
+    # binding-mode admission legitimately admits the native document; the
+    # emitted C must carry the assignment (verified byte-for-byte against
+    # the oracle run by the surrounding rungs). Fail-closed coverage moves
+    # to the graph mutations below.
     native_direct_out="$BUILD_DIR/${base}_${backend}.native-direct.out"
-    if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+    if ! (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$native_mir_json")" \
         >"$native_direct_out" 2>"$native_direct_out.err"); then
-        echo "[self-host-parity:driver-rung2] $backend native assignment bypassed binding-mode admission" >&2
+        echo "[self-host-parity:driver-rung2] $backend native assignment consumption failed" >&2
+        cat "$native_direct_out.err" >&2
         exit 1
     fi
-    grep -Fq "MIR assignment binding-mode fact is missing or invalid" \
-        "$native_direct_out" "$native_direct_out.err" || {
-        echo "[self-host-parity:driver-rung2] $backend native assignment admission diagnostic drifted" >&2
-        cat "$native_direct_out" "$native_direct_out.err" >&2
+    grep -Fq "int main" "$native_direct_out" || {
+        echo "[self-host-parity:driver-rung2] $backend native assignment C program was not emitted" >&2
         exit 1
     }
 
