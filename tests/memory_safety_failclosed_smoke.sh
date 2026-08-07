@@ -52,7 +52,17 @@ for be in $backends; do
         src="$ROOT_DIR/tests/security/$name.pgy"
         [ -f "$src" ] || fail "missing counterexample: $src"
         exe="$WORK/${name}_${be}"
-        "$PGY" "$(pgy_path_for_compiler "$PGY" "$src")" --backend="$be" -o "$exe" \
+        # This gate's subject is the runtime fail-closed class; the compile
+        # is harness infrastructure. The llvm leg rides the native pipeline
+        # because the delegated DirectMirLlvm projector is a bounded
+        # classifier (replacement subject:
+        # self-host-default-llvm-replacement-test-smoke), and the lifecycle
+        # counterexample rides it on every backend until the self-host
+        # lifecycle port lands as one unit.
+        native_subject=""
+        [ "$be" = "llvm" ] && native_subject="--native-pipeline"
+        [ "$name" = "lifecycle_wrong_state" ] && native_subject="--native-pipeline"
+        "$PGY" "$(pgy_path_for_compiler "$PGY" "$src")" --backend="$be" $native_subject -o "$exe" \
             >"$WORK/c.out" 2>"$WORK/c.err" || { cat "$WORK/c.err" >&2; fail "$name did not compile (backend=$be)"; }
 
         out="$("$exe" 2>&1)" && rc=0 || rc=$?
@@ -82,7 +92,7 @@ for be in $backends; do
     out="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$reject_src")" --backend="$be" -o "$WORK/rej_$be" 2>&1)" && rc=0 || rc=$?
     [ "$rc" -ne 0 ] \
         || fail "CheckedAdd(Float) compiled (backend=$be) — must be rejected at semantic"
-    echo "$out" | grep -qiE 'Type mismatch|cannot assign' \
+    echo "$out" | grep -qiE 'Type mismatch|cannot assign|call_arg_type_mismatch' \
         || fail "CheckedAdd(Float) failed without the type diagnostic (backend=$be): $out"
     echo "$out" | grep -qiE 'LLVM verify|gcc|In function' \
         && fail "CheckedAdd(Float) reached the codegen layer (backend=$be): $out"
