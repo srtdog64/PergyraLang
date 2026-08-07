@@ -121,7 +121,11 @@ fi
 
 LLVM_BACKEND_LABEL="llvm"
 LLVM_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/main_llvm.compile.log"
-if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_INPUT" --backend=llvm \
+# Native pipeline: the delegated LLVM path projects through the driver's
+# bounded DirectMirLlvm classifier, which does not accept the comparator's
+# multi-routine shape; the tool build is harness scaffolding, not the
+# replacement subject (see llvm_leg_helpers.sh).
+if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_INPUT" --native-pipeline --backend=llvm \
     -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main_llvm.exe")" \
     >"$LLVM_COMPILE_LOG" 2>&1); then
     if pgy_selfhost_log_reports_no_llvm "$LLVM_COMPILE_LOG"; then

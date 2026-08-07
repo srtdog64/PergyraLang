@@ -232,21 +232,10 @@ pgy_selfhost_verify_driver_rung2_match() {
             echo "[self-host-parity:driver-rung2] $backend match phi inputs drifted" >&2
             exit 1
         }
-        missing_phi_input="$BUILD_DIR/${base}_${backend}.missing-phi-input.mir.json"
-        sed 's/"uses":\["value.3","value.5","value.7","value.8"\]/"uses":["value.3","value.5","value.7"]/' \
-            "$self_mir_json" >"$missing_phi_input"
-        if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
-            "$(pgy_selfhost_path_relative_to_root "$missing_phi_input")" \
-            >"$missing_phi_input.out" 2>"$missing_phi_input.err"); then
-            echo "[self-host-parity:driver-rung2] $backend missing match phi input was accepted" >&2
-            exit 1
-        fi
-        grep -Fq "MIR phi facts are missing or inconsistent" \
-            "$missing_phi_input.err" "$missing_phi_input.out" || {
-            echo "[self-host-parity:driver-rung2] $backend missing match phi diagnostic drifted" >&2
-            cat "$missing_phi_input.out" "$missing_phi_input.err" >&2
-            exit 1
-        }
+        # A phi may carry fewer uses than predecessors since the
+        # predecessor-resolved phi plan (92c38472) admits deduplicated
+        # inputs, so a dropped-input mutation is no longer rejectable;
+        # the unknown-input mutation below keeps the fail-closed proof.
         unknown_phi_input="$BUILD_DIR/${base}_${backend}.unknown-phi-input.mir.json"
         sed 's/"uses":\["value.3","value.5","value.7","value.8"\]/"uses":["value.3","value.5","value.7","value.999"]/' \
             "$self_mir_json" >"$unknown_phi_input"

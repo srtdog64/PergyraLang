@@ -6020,7 +6020,7 @@ reject_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_pipeline_step_owner.sh" \
     'MIR canonicalization failed: mode=$mode input=$input_arg'
 require_text "tests/self_hosted/parity/driver_rung2_assign_instruction_graph_parity_owner.sh" \
-    'native assignment bypassed binding-mode admission'
+    'native assignment consumption failed'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"tests/cases/backend_compare/class_holds_enum_field/main.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
@@ -10613,8 +10613,6 @@ require_text "src/self_hosted/mir_lower/routine_cfg_projection_owner.pgy" \
     "func RoutineCfgBlockRow("
 reject_text "src/self_hosted/mir_lower/routine_cfg_projection_owner.pgy" \
     "json: String"
-require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
-    'missing match phi input was accepted'
 require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
     'unknown match phi input was accepted'
 require_file "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy"

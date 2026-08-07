@@ -327,6 +327,19 @@ assert_llvm_leg() {
         cat "$c_compile_log" >&2
         exit 1
     fi
+
+    # Run the C leg before deciding the LLVM leg: a C-only build skips the
+    # LLVM comparison, but callers still consume the C tool's artifact.
+    set +e
+    (cd "$ROOT_DIR" && "$c_bin" "${run_args[@]}" 2>"$c_err" | pgy_selfhost_normalize_text_artifact >"$c_out")
+    local c_rc=$?
+    set -e
+    if [[ "$c_rc" -ne 0 ]]; then
+        echo "[$label] C-compiled tool run failed" >&2
+        cat "$c_out" "$c_err" >&2
+        exit 1
+    fi
+
     # Native pipeline: the delegated LLVM path projects through the driver's
     # bounded DirectMirLlvm classifier, which does not accept general
     # multi-routine tools yet. The replacement acceptance on supported shapes
@@ -340,16 +353,6 @@ assert_llvm_leg() {
         fi
         echo "[$label] LLVM leg compile failed" >&2
         cat "$llvm_compile_log" >&2
-        exit 1
-    fi
-
-    set +e
-    (cd "$ROOT_DIR" && "$c_bin" "${run_args[@]}" 2>"$c_err" | pgy_selfhost_normalize_text_artifact >"$c_out")
-    local c_rc=$?
-    set -e
-    if [[ "$c_rc" -ne 0 ]]; then
-        echo "[$label] C-compiled tool run failed" >&2
-        cat "$c_out" "$c_err" >&2
         exit 1
     fi
 

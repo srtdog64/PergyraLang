@@ -16,9 +16,13 @@ pgy_selfhost_verify_driver_rung2_owner_field() {
         field_name="val"
         field_row='"name":"val","type":"Int"'
         missing_row='"name":"missing_val","type":"Int"'
+        # Decl fields carry field_kind and sealed source ids now; pin the
+        # identity columns, not the whole row spelling.
         grep -Eq '"name":"Inc","kind":"method","source_syntax_id":[1-9][0-9]*,"receiver_carriage":"value","owner":"Builder"' \
             "$self_mir_json" && grep -Fq \
-            '"fields":[{"name":"val","type":"Int"},{"name":"limit","type":"Int"}]' \
+            '"name":"val","type":"Int","field_kind":"field"' \
+            "$self_mir_json" && grep -Fq \
+            '"name":"limit","type":"Int","field_kind":"field"' \
             "$self_mir_json" && grep -Fq 'self.val' "$emitted_c" && \
             grep -Fq 'self.limit' "$emitted_c" || {
             echo "[self-host-parity:driver-rung2] $backend owner field facts drifted" >&2

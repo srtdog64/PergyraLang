@@ -46,11 +46,15 @@ pgy_selfhost_verify_driver_rung2_assignment_binding_mode() {
             exit 1
         fi
     done
-    [[ "$(grep -Fc 'MirAssignmentBindingModesMatchSemanticFacts(' "$driver_owner")" == "2" ]] || {
+    # The canonicalize flow moved to its own owner; the admission is one
+    # call per composition root.
+    local canonical_owner="$ROOT_DIR/src/self_hosted/compiler/canonical_mir_execution_owner.pgy"
+    [[ "$(grep -Fc 'MirAssignmentBindingModesMatchSemanticFacts(' "$driver_owner")" == "1" &&
+       "$(grep -Fc 'MirAssignmentBindingModesMatchSemanticFacts(' "$canonical_owner")" == "1" ]] || {
         echo "[self-host-parity:driver-rung2] assignment occurrence verifier call count drifted" >&2
         exit 1
     }
-    grep -Fq 'routines, emission.expression_order,' "$driver_owner" &&
+    grep -Fq 'routines, emission.expression_order,' "$canonical_owner" &&
         grep -Fq 'admitted.routines, tree_emission.expression_order,' "$driver_owner" || {
         echo "[self-host-parity:driver-rung2] driver stopped forwarding prebuilt occurrence owners" >&2
         exit 1

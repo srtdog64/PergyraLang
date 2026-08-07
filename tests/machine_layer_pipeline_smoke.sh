@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Subject of this gate: the native machine-layer C pipeline. The delegated
+# self-host driver takes no machine declaration on the emit-C argv, so the
+# default C replacement cannot carry these fixtures; judge the native
+# backend directly.
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
