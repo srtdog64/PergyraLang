@@ -21,6 +21,7 @@ ASSIGNMENT_OWNER="src/self_hosted/semantic/ast_assignment_fact_owner.pgy"
 ENUM_OWNER="src/self_hosted/semantic/ast_enum_fact_owner.pgy"
 NOMINAL_OWNER="src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy"
 ROLE_OWNER="src/self_hosted/semantic/ast_role_fact_owner.pgy"
+ROLE_MATCH_OWNER="src/self_hosted/semantic/ast_role_artifact_match_owner.pgy"
 EXPRESSION_SURFACE_OWNER="src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy"
 EXPRESSION_SURFACE_QUERY_OWNER="src/self_hosted/semantic/ast_expression_surface_query_owner.pgy"
 TYPE_SURFACE_OWNER="src/self_hosted/semantic/ast_type_surface_fact_owner.pgy"
@@ -180,8 +181,7 @@ check_role_owner_copy() {
         grep -Eq -- '^    method_node_ids: Array<Int>;$' "$path" &&
         grep -Fq -- "func SemanticAstRoleIndexForNode(" "$path" &&
         grep -Fq -- "func SemanticAstRoleAncestorNodeId(" "$path" &&
-        grep -Fq -- "func SemanticAstRoleMethodNodeAt(" "$path" &&
-        grep -Fq -- "func SemanticAstRoleFactsMatchArtifact(" "$path"
+        grep -Fq -- "func SemanticAstRoleMethodNodeAt(" "$path"
 }
 
 check_expression_surface_owner_copy() {
@@ -367,6 +367,8 @@ check_nominal_owner_copy "$ROOT_DIR/$NOMINAL_OWNER" ||
     fail "live semantic nominal owner does not provide declaration rows"
 check_role_owner_copy "$ROOT_DIR/$ROLE_OWNER" ||
     fail "live semantic role owner does not provide declaration rows"
+require_file "$ROLE_MATCH_OWNER"
+require_text "$ROLE_MATCH_OWNER" "func SemanticAstRoleFactsMatchArtifact("
 check_expression_surface_owner_copy "$ROOT_DIR/$EXPRESSION_SURFACE_OWNER" ||
     fail "live semantic expression-surface owner does not provide usage rows"
 check_expression_surface_query_owner \
