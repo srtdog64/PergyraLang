@@ -122,39 +122,6 @@ for path in "$DRIVER_SOURCE" "$FIXTURE_DIR" "$EXPECTED_DIR"; do
     }
 done
 
-compile_driver() {
-    local backend="$1"
-    local out_bin="$2"
-    local source="${3:-$DRIVER_SOURCE}"
-    local log="$BUILD_DIR/driver_${backend}.compile.log"
-    # The llvm-built driver is harness infrastructure, not this gate's
-    # subject: route it through the native pipeline because the delegated
-    # DirectMirLlvm projector is a bounded classifier whose replacement
-    # subject is owned by self-host-default-llvm-replacement-test-smoke.
-    local native_subject=""
-    [[ "$backend" == "llvm" ]] && native_subject="--native-pipeline"
-    if ! (cd "$ROOT_DIR" && "$PGY" \
-        "$(pgy_path_for_compiler "$PGY" "$source")" \
-        --backend="$backend" $native_subject \
-        -o "$(pgy_path_for_compiler "$PGY" "$out_bin")" \
-        >"$log" 2>&1); then
-        if [[ "$backend" == "llvm" ]] && pgy_selfhost_log_reports_no_llvm "$log"; then
-            return 2
-        fi
-        # The driver-source ownership campaign (self-host bootstrap subject)
-        # still rejects the composed driver in the native llvm pipeline.
-        # Skip declaredly on exactly that signature: once the campaign
-        # clears, the greps stop matching and this lane comes back loud.
-        if [[ "$backend" == "llvm" ]] && grep -Eq \
-            'beta-stable body safety requires|TextBuilder owner' "$log"; then
-            return 3
-        fi
-        echo "[self-host-parity:driver-rung2] backend=$backend driver compile failed" >&2
-        cat "$log" >&2
-        return 1
-    fi
-}
-
 C_DRIVER="$BUILD_DIR/driver_c.exe"
 MANIFEST_DRIVER="$C_DRIVER"
 if [[ -n "$PREBUILT_DRIVER" ]]; then
