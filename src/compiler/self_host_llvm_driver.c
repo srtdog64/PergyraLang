@@ -2,6 +2,7 @@
 
 #include "compiler_process.h"
 #include "path_utils.h"
+#include "self_host_child_io_authority.h"
 #include "self_host_driver.h"
 
 #include <stdio.h>
@@ -43,6 +44,11 @@ driver_materialize_self_host_llvm_artifacts(
     producer_argv[3] = "-o";
     producer_argv[4] = mir_output_path;
     producer_argv[5] = NULL;
+    /* Same grant the C materialization makes: the delegated driver reads the
+     * source path the user named on pgy's own command line, and the runtime
+     * IO policy denies absolute paths without it -- the denial surfaced as a
+     * bare exit 1 with no diagnostic at all. */
+    driver_authorize_self_host_child_io();
     rc = pgy_exec_argv(producer_argv, verbose);
     if (rc != 0) {
         fprintf(stderr,

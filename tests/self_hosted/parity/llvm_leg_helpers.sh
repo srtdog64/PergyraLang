@@ -327,7 +327,12 @@ assert_llvm_leg() {
         cat "$c_compile_log" >&2
         exit 1
     fi
-    if ! (cd "$ROOT_DIR" && "$PGY" "$tool_arg" --backend=llvm \
+    # Native pipeline: the delegated LLVM path projects through the driver's
+    # bounded DirectMirLlvm classifier, which does not accept general
+    # multi-routine tools yet. The replacement acceptance on supported shapes
+    # is owned by self-host-default-llvm-replacement-test-smoke; this leg
+    # only needs a working LLVM-compiled tool to compare against the C tool.
+    if ! (cd "$ROOT_DIR" && "$PGY" "$tool_arg" --native-pipeline --backend=llvm \
         -o "$(pgy_path_for_compiler "$PGY" "$llvm_bin")" >"$llvm_compile_log" 2>&1); then
         if pgy_selfhost_log_reports_no_llvm "$llvm_compile_log"; then
             echo "[$label] llvm-leg skipped (compiler built without LLVM backend support)"
