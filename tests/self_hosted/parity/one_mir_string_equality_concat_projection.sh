@@ -24,6 +24,7 @@ command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 
 while IFS='|' read -r owner cap; do
+    cap="${cap%$'\r'}"
     [[ -z "$owner" || "$owner" == \#* ]] && continue
     [[ -f "$ROOT_DIR/$owner" ]] || fail "missing owner: $owner"
     lines="$(wc -l <"$ROOT_DIR/$owner")"

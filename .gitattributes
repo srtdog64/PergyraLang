@@ -33,6 +33,9 @@ bin/**    linguist-generated=true
 *.sh  text eol=lf
 *.json text eol=lf
 *.txt text eol=lf
+# Gate-read data rows (e.g. the scalar-program cap SoT): an autocrlf=true
+# checkout must not smuggle a CR into the last parsed field.
+*.tsv text eol=lf
 Makefile text eol=lf
 .gitattributes text eol=lf
 .gitignore text eol=lf

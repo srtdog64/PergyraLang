@@ -12054,8 +12054,8 @@ require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_compar
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'assert_llvm_leg_with_artifact_owner "$label" "$build_dir" "$c_out" "$llvm_out"'
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'local run_args=("$@")'
-require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" '"$c_bin" "${run_args[@]}"'
-require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" '"$llvm_bin" "${run_args[@]}"'
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" '"$c_bin" ${run_args[@]+"${run_args[@]}"}'
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" '"$llvm_bin" ${run_args[@]+"${run_args[@]}"}'
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" '"$comparator_bin" "$c_rel" "$llvm_rel" 0 1'
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "artifact-equal"
 reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" ".tmp/self_hosted/shared"
@@ -14205,6 +14205,7 @@ require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_PARAM_GATE)'
 require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-array-param-projection-test-smoke"
 while IFS='|' read -r scalar_program_owner scalar_program_cap; do
+    scalar_program_cap="${scalar_program_cap%$'\r'}"
     [[ -z "$scalar_program_owner" || "$scalar_program_owner" == \#* ]] && continue
     require_file "$scalar_program_owner"
     require_max_lines "$scalar_program_owner" "$scalar_program_cap"
