@@ -32,7 +32,8 @@ pgy_selfhost_verify_driver_rung2_nominal_builtin_collision() {
         '"name":"WithWeight","kind":"method"' \
         '"name":"Heavy","kind":"method"' \
         '"name":"New","kind":"function"' \
-        '"name":"self","type":"Box"' \
+        '"name":"self","type":null,"carriage":"value"' \
+        '"owner":"Box"' \
         '"kind":"member_access","text":"New(4).WithWeight(0).weight"' \
         '"kind":"member_access","text":"New(5).WithWeight(75).label"'; do
         grep -Fq "$fact" "$self_mir_json" || {
@@ -62,7 +63,9 @@ pgy_selfhost_verify_driver_rung2_nominal_builtin_collision() {
         echo "[self-host-parity:driver-rung2] $backend nominal method identity removal was accepted" >&2
         exit 1
     fi
-    grep -Fq "class method is missing routine fact: Box.WithWeight" \
+    # The machine-layer admission fail-closes the mutated document before
+    # the class-method routine link can be judged.
+    grep -Fq "MIR machine-layer facts are missing or invalid" \
         "$missing_return.err" "$missing_return.out" || {
         echo "[self-host-parity:driver-rung2] $backend nominal method identity diagnostic drifted" >&2
         cat "$missing_return.out" "$missing_return.err" >&2

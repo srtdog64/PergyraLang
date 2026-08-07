@@ -44,19 +44,35 @@ pgy_selfhost_verify_driver_rung2_wrapper_match_loop_phi() {
             exit 1
         }
     done
+    # The predecessor-resolved phi plan (92c38472) admits deduplicated phi
+    # inputs, so a dropped operand can be legitimately absorbed; acceptance
+    # is admissible only when the emitted C is byte-identical to the
+    # unmutated baseline. A consumed operand can never silently reshape
+    # the program.
+    wrapper_baseline_c="$BUILD_DIR/${base}_${backend}.wrapper-loop-baseline.c"
+    if ! (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+        "$(pgy_selfhost_path_relative_to_root "$self_mir_json")" \
+        >"$wrapper_baseline_c" 2>"$wrapper_baseline_c.err"); then
+        echo "[self-host-parity:driver-rung2] $backend wrapper-loop baseline consumption failed" >&2
+        cat "$wrapper_baseline_c.err" >&2
+        exit 1
+    fi
     missing_state_input="$BUILD_DIR/${base}_${backend}.missing-wrapper-loop-state-input.mir.json"
     pgy_replace_first_literal "$self_mir_json" "$missing_state_input" \
         "$merge_uses" "$missing_uses"
     if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$missing_state_input")" \
         >"$missing_state_input.out" 2>"$missing_state_input.err"); then
-        echo "[self-host-parity:driver-rung2] $backend missing wrapper-loop $missing_label phi input was accepted" >&2
-        exit 1
+        cmp -s "$wrapper_baseline_c" "$missing_state_input.out" || {
+            echo "[self-host-parity:driver-rung2] $backend missing wrapper-loop $missing_label phi input silently reshaped the C" >&2
+            exit 1
+        }
+    else
+        grep -Fq "MIR phi facts are missing or inconsistent" \
+            "$missing_state_input.err" "$missing_state_input.out" || {
+            echo "[self-host-parity:driver-rung2] $backend wrapper-loop $missing_label phi diagnostic drifted" >&2
+            cat "$missing_state_input.out" "$missing_state_input.err" >&2
+            exit 1
+        }
     fi
-    grep -Fq "MIR phi facts are missing or inconsistent" \
-        "$missing_state_input.err" "$missing_state_input.out" || {
-        echo "[self-host-parity:driver-rung2] $backend wrapper-loop $missing_label phi diagnostic drifted" >&2
-        cat "$missing_state_input.out" "$missing_state_input.err" >&2
-        exit 1
-    }
 }

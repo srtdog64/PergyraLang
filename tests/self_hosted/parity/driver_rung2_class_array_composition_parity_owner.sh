@@ -48,7 +48,7 @@ pgy_selfhost_verify_driver_rung2_class_array_composition() {
             ;;
         class_param_method_arr)
             facts=(
-                '"name":"Worth","kind":"method","owner":"Bag2"'
+                '"name":"Worth","kind":"method","source_syntax_id":5,"receiver_carriage":"value","owner":"Bag2"'
                 '"name":"rate","type":"Int","carriage":"value"'
                 '"name":"rates","type":"Array<Int>","carriage":"value"'
                 '"kind":"phi","name":"total","result":"total.4"' '"uses":["total.1","total.7"]'

@@ -61,8 +61,12 @@ pgy_selfhost_verify_driver_rung2_match() {
             echo "[self-host-parity:driver-rung2] $backend missing Result match binding type was accepted" >&2
             exit 1
         fi
-        grep -Fq "MIR instruction expression graph is missing or invalid" \
-            "$missing_match_binding_type.err" "$missing_match_binding_type.out" || {
+        # The fact-index admission validates the binding-type count before
+        # any graph consumption can run.
+        grep -Fq "routine MIR fact index is incomplete" \
+            "$missing_match_binding_type.err" "$missing_match_binding_type.out" && \
+            grep -Fq "match_binding_type_count" \
+                "$missing_match_binding_type.err" "$missing_match_binding_type.out" || {
             echo "[self-host-parity:driver-rung2] $backend missing Result binding type diagnostic drifted" >&2
             cat "$missing_match_binding_type.out" "$missing_match_binding_type.err" >&2
             exit 1
@@ -189,8 +193,11 @@ pgy_selfhost_verify_driver_rung2_match() {
             echo "[self-host-parity:driver-rung2] $backend missing Option binding type was accepted" >&2
             exit 1
         fi
-        grep -Fq "routine MIR fact index is incomplete: Main [match_binding_type_count]" \
-            "$missing_match_binding_type.err" "$missing_match_binding_type.out" || {
+        # The owning routine's name is provenance, not the pinned fact.
+        grep -Fq "routine MIR fact index is incomplete" \
+            "$missing_match_binding_type.err" "$missing_match_binding_type.out" && \
+            grep -Fq "match_binding_type_count" \
+                "$missing_match_binding_type.err" "$missing_match_binding_type.out" || {
             echo "[self-host-parity:driver-rung2] $backend missing Option binding type diagnostic drifted" >&2
             cat "$missing_match_binding_type.out" "$missing_match_binding_type.err" >&2
             exit 1

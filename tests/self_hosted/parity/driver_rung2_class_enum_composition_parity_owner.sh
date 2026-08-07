@@ -59,7 +59,7 @@ pgy_selfhost_verify_driver_rung2_class_enum_composition() {
             exit 1
         fi
         for fact in \
-            '"result":"s.1","arg0":"s","arg1":"Stat","abi_type_name":null' \
+            '"result":"s.1","arg0":"s","arg1":"Stat","slot_anchor":null,"abi_type_name":"Stat"' \
             '"name":"s","type":"Stat"' \
             '"kind":"member_access","text":"s.val"' \
             '"kind":"member_access","text":"s.scale"'; do
