@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Installed composition-root proof for one exact argv request owner. Read-only
 # stdout and explicit artifact effects must not share a positional shape.
+# Registry forbidden-fallback inventory exercised below: raw_argv_reparse,
+# optional_third_position_guess, same_argv_different_effect,
+# implicit_default_source, artifact_without_explicit_output_token,
+# unknown_option_as_path, test_fixture_manifest_in_production_root.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

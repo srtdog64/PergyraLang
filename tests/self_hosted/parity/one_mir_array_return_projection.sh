@@ -2,6 +2,11 @@
 # One source-produced two-routine MIR graph drives runtime-free C and LLVM.
 # The caller owns returned Array<Int> backing storage, and routine order is not
 # semantic authority.
+# Registry forbidden-fallback inventory exercised below:
+# first_routine_entrypoint, row_order_authority, backend_mir_read, name_only_callee_without_signature,
+# missing_return_void_default, call_target_text_fallback, native_codegen_fallback, callee_stack_pointer_return,
+# flattened_call_graph, stale_caller_ssa_use, nonterminal_or_unreachable_straight_line, forged_log_scalar_fact,
+# backend_specific_return_plan, unbound_target_fingerprint, single_routine_retry, post_issue_plan_mutation.
 set -euo pipefail
 
 if ! command -v dirname >/dev/null 2>&1 ||

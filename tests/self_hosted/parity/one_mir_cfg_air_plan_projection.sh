@@ -65,7 +65,7 @@ assert_shared_plan_ratchet() {
     # certificate_fallback_or_drift, raw_phi_use_reparse,
     # phi_predecessor_order_assumption, post_issue_identity_mutation,
     # backend_mir_or_air_read, backend_specific_cfg_plan, full_certificate_plan_retention,
-    # second_shape_plan, unbound_target_fingerprint, post_verification_plan_mutation.
+    # second_shape_plan, unbound_target_fingerprint, post_verification_plan_mutation, topology_specific_break_plan.
     require_file "$DIRECT_OWNER"; require_file "$EMISSION_OWNER"
     require_file "$CFG_OWNER"; require_file "$PLAN_VALUE_OWNER"; require_file "$PLAN_MUTATION_OWNER"; require_file "$AIR_OWNER"; require_file "$AIR_READY_OWNER"
     require_file "$AIR_MUTATION_OWNER"; require_file "$SHAPE_OWNER"

@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 # One admitted Option<Int> match CFG drives direct C and textual LLVM.
+# Registry forbidden-fallback inventory exercised below:
+# raw_match_text_recovery, certificate_raw_json_reopen,
+# raw_use_array_backend_read, backend_specific_option_certificate,
+# unbound_abi_layout, successor_default, pattern_or_binding_fallback,
+# post_issue_certificate_mutation, backend_mir_or_air_read,
+# backend_specific_option_plan, unbound_target_fingerprint,
+# unverified_abi_projection, both_backend_mappings_in_one_receipt,
+# runtime_symbol_guess, native_codegen_fallback, post_issue_plan_mutation,
+# backend_local_option_layout, layout_id_without_reconstructible_row,
+# tag_or_offset_guess, duplicate_layout_parse,
+# post_issue_layout_identity_mutation.
 set -euo pipefail
 
 if ! command -v dirname >/dev/null 2>&1 ||

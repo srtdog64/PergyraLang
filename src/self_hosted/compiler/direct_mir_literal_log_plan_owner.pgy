@@ -1,7 +1,7 @@
 // Target-neutral one-instruction literal Log plan.
 //
-// The graph is semantic authority. expr0 remains a display envelope and is
-// never reparsed. A compile-time declaration receipt may differ while the
+// The graph is semantic authority. The display envelope column is never
+// reparsed. A compile-time declaration receipt may differ while the
 // emitted runtime artifact remains identical.
 
 import "direct_mir_compile_time_declaration_erasure_owner.pgy";

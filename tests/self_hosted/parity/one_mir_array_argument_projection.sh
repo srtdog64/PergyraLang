@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 # One source-produced three-routine MIR graph drives runtime-free C and LLVM.
 # The caller owns Array<Int> backing storage and passes the aggregate by value.
+# Registry forbidden-fallback inventory exercised below:
+# first_routine_entrypoint, row_order_authority,
+# name_only_callee_without_signature, missing_param_abi,
+# parameter_ssa_invention, call_target_text_fallback, two_routine_retry,
+# native_codegen_fallback.
+# Registry forbidden-fallback inventory exercised below: backend_mir_read,
+# flattened_call_graph, raw_pointer_array_carriage,
+# callee_owned_argument_storage, instruction_abi_fallback,
+# stale_or_invented_ssa_use, backend_specific_parameter_plan,
+# unbound_target_fingerprint, post_issue_plan_mutation.
 set -euo pipefail
 
 if ! command -v dirname >/dev/null 2>&1 ||

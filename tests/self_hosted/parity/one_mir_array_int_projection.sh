@@ -2,6 +2,18 @@
 # One admitted local Array<Int> graph drives runtime-free C and LLVM exactly
 # once per target. This is a sealed literal/reassignment slice, not general
 # runtime-bearing Array support.
+# Registry forbidden-fallback inventory exercised below:
+# scalar_retry_after_array_classification, array_source_text_recovery,
+# backend_specific_array_plan, repeated_expression_graph_index, stale_ssa_use,
+# unbound_target_fingerprint, unchecked_static_index, native_codegen_fallback,
+# post_issue_plan_mutation.
+# Registry forbidden-fallback inventory exercised below:
+# backend_local_array_layout, layout_id_without_row_admission,
+# array_runtime_symbol_guess, both_backend_mappings_in_one_receipt,
+# llvm_text_runtime_scan, implicit_runtime_link,
+# missing_formal_parameter_receipt, post_issue_layout_mutation.
+# Registry forbidden-fallback inventory (abi.mir_array_int_layout_projection):
+# callee_stack_pointer_return.
 set -euo pipefail
 
 if ! command -v dirname >/dev/null 2>&1 ||

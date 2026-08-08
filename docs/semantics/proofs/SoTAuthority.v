@@ -1036,10 +1036,27 @@ Inductive SpineFact : Type :=
   | SFMirGenericSpecialization
   | SFAirEvidenceGraph
   | SFDirectMirCfgCertificate
+  | SFDirectMirOptionMatchCfgCertificate
   | SFDirectMirCfgProjectionPlan
+  | SFDirectMirOptionMatchCfgPlan
+  | SFDirectMirArrayIntCfgPlan
+  | SFDirectMirScalarCfgGraphPlan
+  | SFDirectMirStringArrayPushPlan
+  | SFDirectMirCollectionPopEffect
+  | SFDirectMirArrayIntProgram
+  | SFDirectMirCallReturnGraph
+  | SFDirectMirArrayReturnProgramIdentity
+  | SFDirectMirCallParameterGraph
+  | SFDirectMirArrayArgumentProgramIdentity
+  | SFDirectMirCollectionProgramPlan
+  | SFDirectMirScalarCfgForEachFact
+  | SFDirectMirScalarCfgProgramExtension
   | SFDirectMirCompileTimeDeclarationErasure
   | SFDirectMirLiteralLogPlan
   | SFAbiLayoutRows
+  | SFAbiOptionMatchLayoutAdmission
+  | SFAbiArrayIntLayoutProjection
+  | SFAbiArrayStringLayoutProjection
   | SFAbiRuntimeCallRows
   | SFIntentObservabilityAbiRows
   | SFRegionAllocationPlan
@@ -1164,10 +1181,27 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFMirGenericSpecialization => SOMir
   | SFAirEvidenceGraph => SOAir
   | SFDirectMirCfgCertificate => SOAir
+  | SFDirectMirOptionMatchCfgCertificate => SOAir
   | SFDirectMirCfgProjectionPlan => SOProjectionPlanner
+  | SFDirectMirOptionMatchCfgPlan => SOProjectionPlanner
+  | SFDirectMirArrayIntCfgPlan => SOProjectionPlanner
+  | SFDirectMirScalarCfgGraphPlan => SOProjectionPlanner
+  | SFDirectMirStringArrayPushPlan => SOProjectionPlanner
+  | SFDirectMirCollectionPopEffect => SOProjectionPlanner
+  | SFDirectMirArrayIntProgram => SOProjectionPlanner
+  | SFDirectMirCallReturnGraph => SOProjectionPlanner
+  | SFDirectMirArrayReturnProgramIdentity => SOProjectionPlanner
+  | SFDirectMirCallParameterGraph => SOProjectionPlanner
+  | SFDirectMirArrayArgumentProgramIdentity => SOProjectionPlanner
+  | SFDirectMirCollectionProgramPlan => SOProjectionPlanner
+  | SFDirectMirScalarCfgForEachFact => SOProjectionPlanner
+  | SFDirectMirScalarCfgProgramExtension => SOProjectionPlanner
   | SFDirectMirCompileTimeDeclarationErasure => SOProjectionPlanner
   | SFDirectMirLiteralLogPlan => SOProjectionPlanner
   | SFAbiLayoutRows => SOMirAbi
+  | SFAbiOptionMatchLayoutAdmission => SOMirAbi
+  | SFAbiArrayIntLayoutProjection => SOMirAbi
+  | SFAbiArrayStringLayoutProjection => SOMirAbi
   | SFAbiRuntimeCallRows => SOMirAbi
   | SFIntentObservabilityAbiRows => SOIntentObservabilityAbi
   | SFRegionAllocationPlan => SORegionPlan

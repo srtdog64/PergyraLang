@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 # One admitted scalar CFG graph drives both backends without a topology case table.
+# Registry forbidden-fallback inventory exercised below: fixture_name_route, block_count_route, raw_expr0_semantics,
+# phi_use_order_as_predecessor, merely_dominating_stale_value, unvalidated_assignment_target, break_backedge,
+# backend_invented_exit_phi, reused_phi_incoming_slot, missing_latest_local_incoming, source_local_row_identity,
+# name_first_local_binding, last_name_local_binding, backend_lexical_scope_recovery, missing_local_ref_success,
+# orphan_local_ref_success, local_ref_grammar_reimplementation, range_owner_raw_local_ref_second_read, singular_range_receipt,
+# receipt_array_position_identity, nested_continue_outer_header, nested_fallthrough_outer_header, outer_valueid_shadow_fallback,
+# range_stop_expr0_fallback, branch_range_use_from_start_graph, array_capacity_as_length, backend_index_reconstruction,
+# native_codegen_fallback, claimed_invalid_legacy_retry, indexed_string_legacy_retry, unsigned_index_without_nonnegative_proof, guard_true_edge_bypass, stale_index_row_read, generic_array_set_claim.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
