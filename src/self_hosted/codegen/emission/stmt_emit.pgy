@@ -34,6 +34,7 @@ import "box_array_let_emit_owner.pgy";
 import "result_let_emit_owner.pgy";
 import "tagged_enum_match_owner.pgy";
 import "option_match_owner.pgy";
+import "../../semantic/ast_expression_graph_node_view_owner.pgy";
 func EmitLet(
     local_bindings: SemanticAstLocalBindingFacts,
     arena: AstArena,

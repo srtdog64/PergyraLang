@@ -1,5 +1,7 @@
 // Stable failure context for typed routine-expression admission.
 
+import "../codegen/text/text_owner.pgy";
+
 func DirectMirScalarCfgProgramExpressionAdmissionFailed(
     global_row: Int, source: String
 ) -> Void {

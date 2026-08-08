@@ -5,6 +5,7 @@ import "direct_mir_scalar_cfg_array_int_pop_foreach_owner.pgy";
 import "direct_mir_scalar_cfg_array_length_log_graph_owner.pgy";
 import "direct_mir_scalar_cfg_instruction_graph_owner.pgy";
 import "direct_mir_scalar_cfg_instruction_position_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
 
 func DirectMirScalarCfgArrayIntForEachPopFromOwners(
     ref admitted: MirMachineLayerAdmittedJsonInput,

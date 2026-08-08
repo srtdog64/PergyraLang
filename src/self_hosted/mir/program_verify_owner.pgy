@@ -7,6 +7,7 @@ import "instruction_abi_receipt_verify_owner.pgy";
 import "enum_declaration_verify_owner.pgy";
 import "routine_receiver_carriage_owner.pgy";
 import "../semantic/assignment_binding_mode_owner.pgy";
+import "../semantic/ast_expression_graph_node_view_owner.pgy";
 func SelfMirParallelCount(count: Int, rows: Array<Int>) -> Bool {
     return ArrayLength(rows) == count;
 }
@@ -38,8 +39,7 @@ func SelfMirAssignmentTargetGraphBaseText(
 ) -> Option<String> {
     let cursor: Int = root;
     let traversed: Int = 0;
-    while cursor >= 0 &&
-        cursor < SelfMirExpressionGraphNodeCount(graph) &&
+    while cursor >= 0 && cursor < SelfMirExpressionGraphNodeCount(graph) &&
         traversed < SelfMirExpressionGraphNodeCount(graph) {
         let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
             graph, cursor

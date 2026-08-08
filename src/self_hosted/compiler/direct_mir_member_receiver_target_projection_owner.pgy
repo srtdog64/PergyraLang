@@ -1,6 +1,7 @@
 // Target ABI shape selected from the admitted host/carriage pair.
 
 import "direct_mir_inferred_generic_member_host_kind_fact_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 
 struct DirectMirMemberReceiverTargetProjection {
     let valid: Bool;

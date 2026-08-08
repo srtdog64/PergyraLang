@@ -11,6 +11,7 @@ import "builtin_signature_owner.pgy";
 import "expr_type_owner.pgy";
 import "env_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 
 func SemanticExpressionGraphLeafScalarTypeName(
     text: String,

@@ -22,6 +22,7 @@ import "expr_semantic_machine_call_emit_owner.pgy";
 import "expr_semantic_domain_query_emit_owner.pgy";
 import "function_binding_env_owner.pgy";
 import "member_call_receiver_carriage_owner.pgy";
+import "../../semantic/ast_expression_graph_node_view_owner.pgy";
 func RewriteSemanticStructCall(
     graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,

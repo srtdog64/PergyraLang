@@ -1,6 +1,7 @@
 // Immutable scalar-CFG plan construction and final verification handoff.
 import "direct_mir_scalar_cfg_graph_plan_verification_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
+import "direct_mir_scalar_cfg_string_expression_owner.pgy";
 func DirectMirScalarCfgSealGraphPlan(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref routine_partition: DirectMirScalarCfgRoutinePartitionFact,
@@ -40,8 +41,7 @@ func DirectMirScalarCfgSealGraphPlan(
                 program.runtime_abi.string_concat_id {
             Die("direct MIR scalar CFG String concat ABI owners disagree");
         }
-        string_concat_runtime_call_abi_id =
-            program.runtime_abi.string_concat_id;
+        string_concat_runtime_call_abi_id = program.runtime_abi.string_concat_id;
     }
     let plan: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgGraphPlan(
         true, DirectMirScalarCfgGraphPlanSchema(),

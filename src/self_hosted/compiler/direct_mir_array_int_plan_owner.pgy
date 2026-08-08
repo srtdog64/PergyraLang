@@ -12,6 +12,7 @@ import "../mir_lower/program_instruction_expression_index_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
 import "../mir_lower/ssa_identity_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
 
 struct DirectMirArrayIntPlan {
     let valid: Bool;

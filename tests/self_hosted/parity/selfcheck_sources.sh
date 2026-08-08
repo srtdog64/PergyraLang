@@ -88,8 +88,14 @@ for backend in $BACKENDS; do
     compile_log="$BUILD_DIR/main_selfcheck_${backend}_${RUN_ID}.compile.log"
     echo "[self-host-selfcheck] compiling checker backend=$backend..."
     rm -f "$TOOL_BIN"
+    # Native pipeline for the llvm-built checker: the delegated DirectMirLlvm
+    # projector is a bounded classifier (replacement subject:
+    # self-host-default-llvm-replacement-test-smoke).
+    native_subject=""
+    [[ "$backend" == "llvm" ]] && native_subject="--native-pipeline"
     if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$TOOL_SOURCE")" \
-        --backend="$backend" -o "$(pgy_path_for_compiler "$PGY" "$TOOL_BIN")" \
+        --backend="$backend" $native_subject \
+        -o "$(pgy_path_for_compiler "$PGY" "$TOOL_BIN")" \
         >"$compile_log" 2>&1); then
         echo "[self-host-selfcheck] backend=$backend checker compile failed" >&2
         cat "$compile_log" >&2

@@ -9,6 +9,7 @@ import "../mir_lower/expression_graph_sequence_owner.pgy";
 import "../mir_lower/match_json_fact_owner.pgy";
 import "../mir_lower/program_enum_variant_index_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+import "direct_mir_cfg_entry_fact_owner.pgy";
 
 struct DirectMirEnumSelectionGraphFact {
     let valid: Bool;

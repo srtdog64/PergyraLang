@@ -8,7 +8,6 @@ import "expression_normalization_owner.pgy";
 import "role_operator_vocabulary_owner.pgy";
 import "ast_expression_identity_fact_owner.pgy";
 import "../hir/ast_expression_graph_owner.pgy";
-import "ast_expression_graph_node_view_owner.pgy";
 import "ast_expression_place_kind_owner.pgy";
 
 struct SemanticExpressionGraphArena {
@@ -44,6 +43,19 @@ struct SemanticExpressionGraphView {
     ok: Bool;
     root_id: Int;
     graph: SemanticExpressionGraphFacts;
+}
+
+// The node-kind read lives with the facts it indexes; the node-view owner
+// keeps the view-shaped readers and imports this owner for the types.
+func SemanticExpressionGraphNodeKind(
+    ref facts: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Option<Int> {
+    if !facts.ok || node_id < 0 ||
+        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
+        return None;
+    }
+    return Some(facts.arena.topology.node_kinds[node_id]);
 }
 
 func SemanticExpressionGraphArenaEmpty() -> SemanticExpressionGraphArena {

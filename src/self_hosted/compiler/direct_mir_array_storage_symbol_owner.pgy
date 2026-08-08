@@ -2,6 +2,7 @@
 // The name is emitted only at block or parameter scope, never file scope.
 
 import "symbol_table_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 
 struct DirectMirArrayStorageSymbolFact {
     let valid: Bool;

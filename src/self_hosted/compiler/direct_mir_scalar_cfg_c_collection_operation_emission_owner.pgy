@@ -30,8 +30,8 @@ func DirectMirScalarCfgEmitCCollectionOperation(
             return DirectMirScalarCfgArrayIntPopCOperation(
                 plan, operation, formatted_print, int_line_format, int_c_type);
         }
-        if operation == plan.array_int_program.consumer.
-                length_log_operation_row {
+        if operation ==
+            plan.array_int_program.consumer.length_log_operation_row {
             return DirectMirScalarCfgCCollectionOperationEmission(
                 true, DirectMirScalarCfgArrayIntCLengthLog(
                     plan, operation, formatted_print,

@@ -2,6 +2,7 @@
 // reconstructible Option-match ABI receipt.
 
 import "direct_mir_option_match_abi_fact_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 
 func DirectMirOptionMatchAbiFactFromCapture(
     own row: MirAbiLayoutRowCapture

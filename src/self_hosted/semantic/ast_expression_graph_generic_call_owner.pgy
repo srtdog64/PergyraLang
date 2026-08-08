@@ -8,6 +8,7 @@ import "callable_resolution_owner.pgy";
 import "diagnostic_owner.pgy";
 import "expr_type_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 
 struct SemanticExpressionGraphGenericCallFact {
     applies: Bool;

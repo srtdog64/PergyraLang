@@ -6,6 +6,7 @@
 // helper MirExpressionGraphIndexWithin stays with the header owner.
 
 import "../lib/json_fact_table.pgy";
+import "expression_graph_persisted_read_owner.pgy";
 
 struct MirExpressionGraphNodeCapture {
     let valid: Bool;

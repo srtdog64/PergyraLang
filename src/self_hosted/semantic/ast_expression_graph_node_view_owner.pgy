@@ -5,6 +5,7 @@
 // is a separate responsibility from proving the arena well-formed.
 
 import "../hir/ast_expression_graph_owner.pgy";
+import "ast_expression_graph_fact_owner.pgy";
 import "expression_normalization_owner.pgy";
 import "role_operator_vocabulary_owner.pgy";
 import "ast_expression_identity_fact_owner.pgy";
@@ -37,16 +38,6 @@ func SemanticExpressionGraphNodeText(
     return Some(facts.arena.node_texts[node_id]);
 }
 
-func SemanticExpressionGraphNodeKind(
-    ref facts: SemanticExpressionGraphFacts,
-    node_id: Int
-) -> Option<Int> {
-    if !facts.ok || node_id < 0 ||
-        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
-        return None;
-    }
-    return Some(facts.arena.topology.node_kinds[node_id]);
-}
 
 func SemanticExpressionGraphCallReturnTypeName(
     ref facts: SemanticExpressionGraphFacts,

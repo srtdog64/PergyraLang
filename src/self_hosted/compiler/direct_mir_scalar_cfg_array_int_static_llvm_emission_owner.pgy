@@ -1,5 +1,7 @@
 // LLVM set and post-set indexed Log from the sealed static Array<Int> receipt.
 
+import "../codegen/text/text_owner.pgy";
+
 func DirectMirScalarCfgArrayIntLlvmSet(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int
 ) -> String {

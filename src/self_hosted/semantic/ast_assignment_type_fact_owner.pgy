@@ -18,6 +18,7 @@ import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_graph_scalar_type_owner.pgy";
 import "ast_expression_graph_array_literal_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 struct SemanticAstAssignmentTypeFacts {
     ok: Bool;
     diagnostic_code: String;

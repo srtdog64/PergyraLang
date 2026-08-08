@@ -6,6 +6,7 @@
 
 import "ast_body_type_bundle_owner.pgy";
 import "ast_body_analysis_admission_contract_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 
 func SemanticAstBodyTypeBundleContractError() -> String {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(

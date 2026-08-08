@@ -5,7 +5,6 @@
 // their fields in one pass, instead of rescanning every object once per field.
 
 import "../lib/json_fact_table.pgy";
-import "expression_graph_persisted_node_read_owner.pgy";
 
 func MirExpressionGraphIndexWithin(
     json: String, start: Int, end: Int

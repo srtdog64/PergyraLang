@@ -8,6 +8,7 @@ import "array_type_shape_owner.pgy";
 import "callable_resolution_owner.pgy";
 import "env_owner.pgy";
 import "wrapper_type_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 
 func SemanticExpressionGraphReceiverTypeName(
     ref graph: SemanticExpressionGraphFacts,

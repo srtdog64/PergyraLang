@@ -5,6 +5,7 @@ import "instruction_scalar_mutation_owner.pgy";
 import "cfg_instruction_mutation_owner.pgy";
 import "expression_fact_owner.pgy";
 import "expression_runtime_abi_owner.pgy";
+import "../semantic/ast_expression_graph_node_view_owner.pgy";
 
 struct SelfMirRoutineBuild {
     ok: Bool;

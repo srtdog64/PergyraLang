@@ -1,6 +1,7 @@
 // Empty local Array<Int> definition and canonical public ABI receipt.
 
 import "direct_mir_array_int_abi_fact_owner.pgy";
+import "direct_mir_array_storage_layout_contract_owner.pgy";
 
 struct DirectMirScalarCfgArrayIntCollectionFact {
     let valid: Bool;

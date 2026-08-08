@@ -2,6 +2,7 @@
 
 import "ast_expression_graph_fact_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 
 struct SemanticStructLiteralView {
     ok: Bool;

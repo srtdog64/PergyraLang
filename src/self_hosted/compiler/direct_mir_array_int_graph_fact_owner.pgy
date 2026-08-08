@@ -5,6 +5,7 @@
 import "../mir_lower/expression_graph_sequence_owner.pgy";
 import "../mir_lower/program_instruction_expression_index_owner.pgy";
 import "direct_mir_array_literal_spine_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 
 func DirectMirArrayIntGraphFromExpressionFact(
     json: String, ref fact: MirProgramInstructionExpressionFact,

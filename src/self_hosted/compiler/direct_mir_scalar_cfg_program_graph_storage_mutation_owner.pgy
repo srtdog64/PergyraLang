@@ -1,6 +1,7 @@
 // Persistent mutations for the typed program storage layers.
 
 import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+import "direct_mir_scalar_cfg_op_code_owner.pgy";
 
 func DirectMirScalarCfgProgramOperationsAppendExpression(
     storage: DirectMirScalarCfgProgramOperationStorage,

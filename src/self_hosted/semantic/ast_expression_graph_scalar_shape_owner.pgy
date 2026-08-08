@@ -3,6 +3,7 @@
 import "ast_expression_graph_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "env_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 
 func SemanticExpressionGraphScalarOperatorKind(kind: Int) -> Bool {
     return kind == AstExpressionNodeLogicalOr() ||

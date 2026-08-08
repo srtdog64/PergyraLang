@@ -3,6 +3,7 @@
 
 import "../air/mir_cfg_identity_owner.pgy";
 import "../mir_lower/routine_inventory_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 
 struct DirectMirCollectionProgramRouteFact {
     let valid: Bool;

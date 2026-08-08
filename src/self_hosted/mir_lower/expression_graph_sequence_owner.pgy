@@ -5,6 +5,7 @@ import "../semantic/ast_expression_surface_fact_owner.pgy";
 import "../semantic/role_operator_vocabulary_owner.pgy";
 import "expression_graph_persisted_shape_owner.pgy";
 import "expression_graph_persisted_read_owner.pgy";
+import "expression_graph_persisted_node_read_owner.pgy";
 import "expression_graph_kind_code_owner.pgy";
 struct MirExpressionGraphSequence {
     ok: Bool;

@@ -4,6 +4,7 @@ import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_operation_plan_owner.pgy";
 import "../mir_lower/phi_predecessor_binding_fact_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_scalar_cfg_string_expression_owner.pgy";
 
 struct DirectMirScalarCfgPhiOperationAdmission {
     let valid: Bool;

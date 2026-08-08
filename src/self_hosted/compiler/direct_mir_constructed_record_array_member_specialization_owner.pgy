@@ -1,6 +1,7 @@
 // Exact Array<Record> specialization pair for the mixed declaration rung.
 
 import "direct_mir_constructed_member_specialization_pair_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 
 struct DirectMirConstructedRecordArrayMemberSpecializationFact {
     let valid: Bool;

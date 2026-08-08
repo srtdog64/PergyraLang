@@ -6,6 +6,7 @@ import "ast_expression_graph_type_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "expr_type_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 
 struct SemanticArrayLiteralView {
     ok: Bool;

@@ -1,5 +1,6 @@
 // One sealed routing claim for the value/identity nominal literal frontier.
 import "direct_mir_nominal_literal_declaration_fact_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 struct DirectMirNominalLiteralRouteFact {
     let valid: Bool;
     let digest: Int;

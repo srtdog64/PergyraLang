@@ -1,6 +1,7 @@
 // Exact predecessor/value joins for the read-only maximum phis.
 
 import "direct_mir_scalar_cfg_operation_position_owner.pgy";
+import "direct_mir_scalar_cfg_while_induction_owner.pgy";
 
 func DirectMirScalarCfgArrayIntPhiHasIncoming(
     ref plan: DirectMirScalarCfgGraphPlan,

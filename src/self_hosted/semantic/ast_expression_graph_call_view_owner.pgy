@@ -1,5 +1,6 @@
 // Ordered call-spine view over parser-owned semantic expression graphs.
 import "ast_expression_graph_fact_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 
 struct SemanticCallSpineView {
     ok: Bool;
@@ -65,8 +66,7 @@ func SemanticCallSpineViewFromGraph(
         let actual_name: Option<String> = SemanticExpressionGraphNodeText(
             graph, UnwrapOption(actual_node)
         );
-        if !IsSome(actual_kind) ||
-            UnwrapOption(actual_kind) !=
+        if !IsSome(actual_kind) || UnwrapOption(actual_kind) !=
                 AstExpressionNodeGenericTypeActual() ||
             !IsSome(actual_name) || UnwrapOption(actual_name) == "" {
             return SemanticCallSpineView(

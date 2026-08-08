@@ -6,6 +6,7 @@
 import "ast_enum_fact_owner.pgy";
 import "ast_expression_graph_member_view_owner.pgy";
 import "ast_expression_graph_receiver_type_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 
 func SemanticExpressionGraphEnumPayloadTypeName(
     ref graph: SemanticExpressionGraphFacts,

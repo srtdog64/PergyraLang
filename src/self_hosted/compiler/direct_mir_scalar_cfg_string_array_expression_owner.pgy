@@ -2,6 +2,7 @@
 import "direct_mir_scalar_cfg_leaf_operand_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_scalar_cfg_expression_owner.pgy";
 
 func DirectMirScalarCfgStringArrayConcatExpressionFact(
     ref plan: DirectMirScalarCfgStringArrayPlan,

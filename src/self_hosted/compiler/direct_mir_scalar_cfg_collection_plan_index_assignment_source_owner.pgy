@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_cfg_collection_plan_fact_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_collection_admission_owner.pgy";
+import "direct_mir_scalar_cfg_array_string_collection_owner.pgy";
 
 struct DirectMirScalarCfgIndexAssignmentSourceSet {
     valid: Bool,

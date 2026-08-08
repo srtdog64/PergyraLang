@@ -6,6 +6,7 @@
 
 import "ast_iteration_type_fact_owner.pgy";
 import "ast_artifact_verdict_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 
 func SemanticAstIterationNodeDescendsFrom(
     arena: AstArena, node_id: Int, ancestor_id: Int

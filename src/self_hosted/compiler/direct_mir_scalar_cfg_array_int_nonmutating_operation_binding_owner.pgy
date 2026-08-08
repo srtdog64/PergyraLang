@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_cfg_array_int_read_only_operation_binding_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_reverse_binding_owner.pgy";
+import "direct_mir_scalar_cfg_array_int_program_fact_owner.pgy";
 
 func DirectMirScalarCfgArrayIntNonmutatingAtOperation(
     fact: DirectMirScalarCfgArrayIntProgramFact,

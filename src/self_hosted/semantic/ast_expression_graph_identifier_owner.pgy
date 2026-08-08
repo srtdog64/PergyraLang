@@ -5,6 +5,7 @@ import "env_owner.pgy";
 import "callable_resolution_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
 import "../parser/expr_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 
 struct SemanticExpressionGraphIdentifierFact {
     ok: Bool;

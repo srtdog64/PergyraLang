@@ -4,6 +4,7 @@
 
 import "direct_mir_array_int_graph_fact_owner.pgy";
 import "../air/mir_cfg_identity_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 
 struct DirectMirArrayArgumentMainGraphFact {
     let valid: Bool;
@@ -16,8 +17,7 @@ struct DirectMirArrayArgumentMainGraphFact {
 }
 
 func DirectMirArrayArgumentMainGraphFactDigest(
-    ref fact: DirectMirArrayArgumentMainGraphFact
-) -> Int {
+    ref fact: DirectMirArrayArgumentMainGraphFact) -> Int {
     if !fact.valid { return 0; }
     let hash: Long = DirectMirCfgHashString(113L, fact.array_callee_name);
     hash = DirectMirCfgHashString(hash, fact.nested_callee_name);

@@ -22,6 +22,7 @@ import "instruction_abi_receipt_json_projection_owner.pgy";
 import "expression_identity_json_projection_owner.pgy";
 import "domain_runtime_assignment_json_owner.pgy";
 import "local_ref_json_projection_owner.pgy";
+import "../semantic/ast_expression_graph_node_view_owner.pgy";
 
 func SelfMirJsonExpressionGraph(rows: SelfMirExpressionGraphRows, ref graph: SemanticExpressionGraphFacts,
     instruction_index: Int

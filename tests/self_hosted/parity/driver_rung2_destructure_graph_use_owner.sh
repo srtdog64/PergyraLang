@@ -34,9 +34,12 @@ require_text "build, initializer_graph"
 reject_text "SelfMirExpressionUses("
 reject_text "SelfMirTextContainsIdentifier("
 
-graph_line="$(grep -Fn 'let initializer_graph: SemanticExpressionGraphView' "$OWNER" | cut -d: -f1)"
-uses_line="$(grep -Fn 'let uses: Array<String> = SelfMirExpressionGraphUses(' "$OWNER" | cut -d: -f1)"
-binding_line="$(grep -Fn 'build = SelfMirRoutineAddLocal(build, binding' "$OWNER" | cut -d: -f1)"
+# Repointed: the AddLocal call wraps its arguments now, and an empty grep in
+# a command substitution dies silently under set -e -- anchor on the stable
+# call head and tolerate the miss loudly through the [[ -z ]] check below.
+graph_line="$(grep -Fn 'let initializer_graph: SemanticExpressionGraphView' "$OWNER" | cut -d: -f1 || true)"
+uses_line="$(grep -Fn 'let uses: Array<String> = SelfMirExpressionGraphUses(' "$OWNER" | cut -d: -f1 || true)"
+binding_line="$(grep -Fn 'build = SelfMirRoutineAddLocal(' "$OWNER" | cut -d: -f1 | head -1 || true)"
 if [[ -z "$graph_line" || -z "$uses_line" || -z "$binding_line" ||
     "$graph_line" -ge "$uses_line" || "$uses_line" -ge "$binding_line" ]]; then
     echo "[self-host-parity:destructure-graph-use] graph uses are not resolved before binding mutation" >&2

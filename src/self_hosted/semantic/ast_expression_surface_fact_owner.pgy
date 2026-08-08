@@ -7,6 +7,7 @@ import "expression_operator_fact_owner.pgy";
 import "ast_expression_graph_build_owner.pgy";
 import "ast_expression_graph_lane_policy_owner.pgy";
 import "ast_function_scope_fact_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 
 struct SemanticAstExpressionShapeFact {
     ok: Bool;

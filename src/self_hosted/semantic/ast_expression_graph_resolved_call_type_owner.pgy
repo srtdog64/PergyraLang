@@ -11,6 +11,7 @@ import "expr_type_owner.pgy";
 import "diagnostic_owner.pgy";
 import "ast_expression_graph_queue_call_owner.pgy";
 import "ast_expression_graph_set_call_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 
 struct SemanticExpressionGraphListCallFact {
     applies: Bool;

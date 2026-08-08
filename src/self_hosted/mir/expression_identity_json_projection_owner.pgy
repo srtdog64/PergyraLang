@@ -3,6 +3,7 @@
 import "../semantic/ast_expression_graph_fact_owner.pgy";
 import "../compiler/artifact_zone_owner.pgy";
 import "../lib/json_emit.pgy";
+import "../semantic/ast_expression_graph_node_view_owner.pgy";
 
 func SelfMirJsonExpressionIdentityFields(
     ref graph: SemanticExpressionGraphFacts, node: Int

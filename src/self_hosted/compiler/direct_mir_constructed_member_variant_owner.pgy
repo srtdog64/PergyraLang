@@ -1,6 +1,7 @@
 // Exclusive Option/Array decision derived from one admitted specialization fact.
 
 import "direct_mir_constructed_member_specialization_pair_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 
 struct DirectMirConstructedMemberVariantFact {
     let valid: Bool;

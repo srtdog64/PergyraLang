@@ -1,6 +1,7 @@
 // Shared evidence that the typed nominal result has no physical MIR layout.
 import "direct_mir_instruction_abi_absence_owner.pgy";
 import "../air/mir_cfg_identity_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 
 struct DirectMirNominalLiteralAbiAbsenceFact {
     let valid: Bool;

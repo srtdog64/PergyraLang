@@ -4,6 +4,7 @@ import "direct_mir_exact_json_array_cardinality_owner.pgy";
 import "direct_mir_scalar_graph_admission_owner.pgy";
 import "../mir_lower/declaration_method_contract_fact_owner.pgy";
 import "../semantic/role_operator_vocabulary_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
 
 struct DirectMirRoleOperatorMethodDeclarationFact {
     let valid: Bool;

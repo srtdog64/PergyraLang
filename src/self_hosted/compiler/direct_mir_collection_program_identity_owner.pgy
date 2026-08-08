@@ -2,6 +2,7 @@
 
 import "direct_mir_collection_program_route_fact_owner.pgy";
 import "direct_mir_routine_signature_fact_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 
 struct DirectMirCollectionProgramIdentity {
     let valid: Bool;

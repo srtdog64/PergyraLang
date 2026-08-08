@@ -14,6 +14,7 @@ import "ast_expression_graph_view_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 
 struct SemanticAstIterationTypeFacts {
     ok: Bool;

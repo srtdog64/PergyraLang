@@ -1,6 +1,7 @@
 // Structural generic-routine cardinality for the three-routine classifier.
 
 import "../mir_lower/program_routine_index_owner.pgy";
+import "../mir_lower/routine_inventory_owner.pgy";
 
 func DirectMirThreeRoutineGenericRoutineCount(
     ref routines: MirProgramRoutineIndex

@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_cfg_collection_plan_fact_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_scalar_cfg_expression_owner.pgy";
 
 func DirectMirScalarCfgCollectionPlanExpressionFact(
     ref plan: DirectMirScalarCfgCollectionPlan, global: Int

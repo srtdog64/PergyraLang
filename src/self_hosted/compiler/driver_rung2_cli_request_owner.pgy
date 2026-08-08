@@ -4,6 +4,7 @@
 // shape before either composition root reads source/MIR or publishes output.
 
 import "../lib/path.pgy";
+import "../codegen/text/text_owner.pgy";
 
 enum DriverRung2CliRequest {
     DriverCliSourceCStdout(String),

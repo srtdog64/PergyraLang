@@ -6,6 +6,7 @@ import "ast_expression_graph_scalar_verdict_owner.pgy";
 import "delimited_range_fact_owner.pgy";
 import "diagnostic_owner.pgy";
 import "expr_type_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 
 func SemanticExpressionGraphConcreteScalarValueOwned(
     ref graph: SemanticExpressionGraphFacts,

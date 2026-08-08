@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_cfg_program_routine_identity_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 
 func DirectMirScalarCfgProgramRoutineStarts(
     counts: Array<Int>

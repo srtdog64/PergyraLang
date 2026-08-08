@@ -6,6 +6,7 @@ import "ast_signature_fact_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
 import "ast_expression_environment_owner.pgy";
 import "role_operator_vocabulary_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 
 func SemanticExpressionCallTargetExpected(
     ref graph: SemanticExpressionGraphFacts,
