@@ -176,8 +176,11 @@ check_c_oracle() {
     local rc
 
     set +e
+    # The oracle leg's subject is the NATIVE semantic verdict; without the
+    # explicit native pipeline the default path delegates to the self-host
+    # driver and the oracle would grade itself.
     (cd "$ROOT_DIR" && "$PGY" "$(semantic_compiler_path "$source")" \
-        --backend=c --error-format=json \
+        --native-pipeline --backend=c --error-format=json \
         -o "$(semantic_compiler_path "$exe")" >"$output_file" 2>&1)
     rc=$?
     set -e
@@ -208,10 +211,15 @@ compile_semantic_backend() {
     local backend="$1"
     local tool_bin="$2"
 
+    # Native pipeline for the llvm-built tool: the delegated DirectMirLlvm
+    # projector is a bounded classifier (replacement subject:
+    # self-host-default-llvm-replacement-test-smoke).
+    local native_subject=""
+    [[ "$backend" == "llvm" ]] && native_subject="--native-pipeline"
     echo "[self-host-parity:semantic] compiling semantic backend=$backend..."
     (cd "$ROOT_DIR" && "$PGY" \
         "$PERGYRA_TOOL_ARG" \
-        --backend="$backend" \
+        --backend="$backend" $native_subject \
         -o "$(semantic_compiler_path "$tool_bin")" >/dev/null)
 }
 

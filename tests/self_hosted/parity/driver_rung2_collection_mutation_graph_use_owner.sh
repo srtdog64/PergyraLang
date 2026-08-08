@@ -73,9 +73,11 @@ reject_text "$MIR_SLOT_POLICY" 'UnwrapOption(arg0) == "ArrayPop"'
 require_text "$MIR_LOWER" "MirExpressionGraphSequenceAppendParserBridge("
 require_text "$PARSER_BRIDGE" "SemanticExpressionGraphBuildCompactBridgeFromText("
 require_text "$OCCURRENCE_OWNER" "MirExpressionGraphProducerOnlyOccurrenceAllowed("
-require_text "$OCCURRENCE_OWNER" 'operation == "ArrayPop"'
-require_text "$OCCURRENCE_OWNER" 'operation == "ArrayPush"'
-require_text "$OCCURRENCE_OWNER" 'operation == "ArraySet"'
+# Repointed: the occurrence owner reads the operation through the carried
+# expression routing fact instead of a rebound operation string.
+require_text "$OCCURRENCE_OWNER" 'json, expression, 1, "ArrayPop"'
+require_text "$OCCURRENCE_OWNER" 'json, expression, 1, "ArrayPush"'
+require_text "$OCCURRENCE_OWNER" 'json, expression, 1, "ArraySet"'
 require_text "$ORDER_OWNER" "global_instruction_rows: Array<Int>"
 reject_text "$MIR_LOWER" "MirExpressionGraphSequenceAppendView("
 reject_text "$MIR_LOWER" "persisted_sequence"
