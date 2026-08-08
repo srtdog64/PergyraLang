@@ -106,7 +106,7 @@ grep -Eq 'if[[:space:]]+\(!\([[:space:]]*IntentRunAccepted\([[:space:]]*outcome[
     -o "$(pgy_path_for_compiler "$PGY" "$NATIVE_EMITTED_C")" \
     >"$BUILD_DIR/native.c.emit.log" 2>&1) \
     || { cat "$BUILD_DIR/native.c.emit.log" >&2; fail "native C emission failed"; }
-(cd "$ROOT_DIR" && "$PGY" "$FIXTURE_REL" --backend=llvm -o "$NATIVE_LLVM_EXE" \
+(cd "$ROOT_DIR" && "$PGY" "$FIXTURE_REL" --native-pipeline --backend=llvm -o "$NATIVE_LLVM_EXE" \
     >"$BUILD_DIR/native.llvm.compile.log" 2>&1) \
     || { cat "$BUILD_DIR/native.llvm.compile.log" >&2; fail "native LLVM compile failed"; }
 

@@ -16947,6 +16947,13 @@ require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "EmitDriverParityFi
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" '"--emit-c-verified"'
 require_file "tests/self_hosted/parity/driver_rung2_body_parity.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_body_parity.sh" 310
+# The llvm lane's declared campaign skip is a monitored ratchet: the budget
+# file is the checked-in ceiling and the gate must enforce it.
+require_file "tests/self_hosted/parity/ownership_campaign_budget.txt"
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'ownership_campaign_budget.txt'
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'ownership campaign regressed'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" '"driver-rung2-paths"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" '"semantic-parity-paths"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"

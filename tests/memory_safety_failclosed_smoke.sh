@@ -73,7 +73,9 @@ for be in $backends; do
             || fail "$name exited $rc but without a PGY PANIC (backend=$be): $out"
         echo "$out" | grep -qi "class=$want_class" \
             || fail "$name panicked but not class=$want_class (backend=$be): $out"
-        echo "[mem-safety-failclosed] backend=$be $name -> fail-closed (class=$want_class)"
+        pipeline="delegated"
+        [ -n "$native_subject" ] && pipeline="native"
+        echo "[mem-safety-failclosed] backend=$be $name -> fail-closed (class=$want_class; pipeline=$pipeline)"
     done
 done
 
@@ -96,7 +98,7 @@ for be in $backends; do
         || fail "CheckedAdd(Float) failed without the type diagnostic (backend=$be): $out"
     echo "$out" | grep -qiE 'LLVM verify|gcc|In function' \
         && fail "CheckedAdd(Float) reached the codegen layer (backend=$be): $out"
-    echo "[mem-safety-failclosed] backend=$be checked_arith_float_arg -> clean semantic reject"
+    echo "[mem-safety-failclosed] backend=$be checked_arith_float_arg -> clean semantic reject (pipeline=delegated)"
 done
 
 echo "[mem-safety-failclosed] PASS — no raw pointers, every violation fail-closed"

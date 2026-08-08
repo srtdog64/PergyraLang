@@ -35,7 +35,9 @@ reject_text() {
 
 require_text "$OWNER" "if !source_graph.ok"
 require_text "$OWNER" "SelfMirExpressionGraphUses("
-require_text "$OWNER" "branch_graph: SemanticExpressionGraphView"
+# Repointed: the branch-graph selection moved into the for owner; the
+# iteration owner keeps the view-typed source-graph consumption.
+require_text "$OWNER" "source_graph: SemanticExpressionGraphView"
 require_text "$OWNER" "SelfMirIterationSyntheticGraphView("
 require_text "$OWNER" "expression_surfaces.expression_graph"
 reject_text "$OWNER" "SelfMirExpressionUses("
@@ -44,9 +46,12 @@ reject_text "$OWNER" "SelfMirSyntheticLocalExpressionGraph("
 require_text "$FOR_OWNER" "let source_graph: SemanticExpressionGraphView"
 require_text "$FOR_OWNER" "if !source_graph.ok"
 require_text "$FOR_OWNER" "let branch_graph: SemanticExpressionGraphView"
-require_text "$FOR_OWNER" "if iteration.is_foreach && !branch_graph.ok"
-require_text "$FOR_OWNER" "SelfMirIterationBranchUses(build, iteration, branch_graph)"
-require_text "$FOR_OWNER" "input.analysis.expression_surfaces, iteration"
+# Repointed: the foreach lane now seeds branch_graph from the carried
+# iteration graph and only re-selects for counted loops; the branch uses
+# ride the shared graph-uses reader.
+require_text "$FOR_OWNER" "if !branch_graph.ok"
+require_text "$FOR_OWNER" "SelfMirExpressionGraphUses(build, branch_graph)"
+require_text "$FOR_OWNER" "input.analysis.expression_surfaces,"
 reject_text "$FOR_OWNER" "SelfMirSyntheticLocalExpressionGraph("
 require_text "$SEMANTIC_OWNER" "SemanticAstIterationSyntheticGraphRootsAttach("
 require_text "$PROGRAM_OWNER" "ProgramExpressionGraphAppendIsolatedNode("

@@ -68,7 +68,13 @@ run_linter_backend() {
     local out_arg
     source_arg="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
     out_arg="$(pgy_path_for_compiler "$PGY" "$out_bin")"
-    if ! (cd "$ROOT_DIR" && "$PGY" "$source_arg" --backend="$backend" -o "$out_arg" \
+    # Native pipeline for the llvm-built tool: the delegated DirectMirLlvm
+    # projector is a bounded classifier (replacement subject:
+    # self-host-default-llvm-replacement-test-smoke).
+    local native_subject=""
+    [[ "$backend" == "llvm" ]] && native_subject="--native-pipeline"
+    if ! (cd "$ROOT_DIR" && "$PGY" "$source_arg" --backend="$backend" \
+        $native_subject -o "$out_arg" \
         >"$compile_log" 2>&1); then
         cat "$compile_log"
         return 1

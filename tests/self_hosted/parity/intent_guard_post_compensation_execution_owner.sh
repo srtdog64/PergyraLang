@@ -88,7 +88,7 @@ PY
 (cd "$ROOT_DIR" && "$PGY" "$FIXTURE_REL" --backend=c -o "$NATIVE_C_EXE" \
     >"$BUILD_DIR/native.c.compile.log" 2>&1) \
     || { cat "$BUILD_DIR/native.c.compile.log" >&2; fail "native C compile failed"; }
-(cd "$ROOT_DIR" && "$PGY" "$FIXTURE_REL" --backend=llvm -o "$NATIVE_LLVM_EXE" \
+(cd "$ROOT_DIR" && "$PGY" "$FIXTURE_REL" --native-pipeline --backend=llvm -o "$NATIVE_LLVM_EXE" \
     >"$BUILD_DIR/native.llvm.compile.log" 2>&1) \
     || { cat "$BUILD_DIR/native.llvm.compile.log" >&2; fail "native LLVM compile failed"; }
 
