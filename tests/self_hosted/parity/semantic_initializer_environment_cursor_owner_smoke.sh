@@ -25,9 +25,11 @@ function_body() {
     sed -n "/func ${function_name}(/,/^}/p" "$path"
 }
 
+# Repointed: the admitted spelling is the production route; the un-admitted
+# name is now a delegating bridge without the cursor walk.
 initializer_body="$(function_body \
     "$INITIALIZER" \
-    'SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFunctionTables')"
+    'SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObservedWithFunctionTables')"
 [[ -n "$initializer_body" ]] || fail "initializer production body is missing"
 
 for required in \

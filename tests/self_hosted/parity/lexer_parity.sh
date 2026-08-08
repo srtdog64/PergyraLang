@@ -142,7 +142,10 @@ if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" \
     exit 1
 fi
 
-if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" \
+# Native pipeline: the llvm-built lexer is harness infrastructure and the
+# delegated DirectMirLlvm projector is a bounded classifier (replacement
+# subject: self-host-default-llvm-replacement-test-smoke).
+if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --native-pipeline \
     --backend=llvm -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main_llvm.exe")" \
     >"$LLVM_COMPILE_LOG" 2>&1); then
     if pgy_selfhost_log_reports_no_llvm "$LLVM_COMPILE_LOG"; then
