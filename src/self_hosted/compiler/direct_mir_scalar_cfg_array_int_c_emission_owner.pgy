@@ -70,10 +70,9 @@ func DirectMirScalarCfgArrayIntCPush(
 }
 
 func DirectMirScalarCfgArrayIntCRead(
-    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref fact: DirectMirScalarCfgArrayIntProgramFact, operation: Int
 ) -> String {
-    let fact: DirectMirScalarCfgArrayIntProgramFact =
-        plan.array_int_program;
     if !fact.valid || operation != fact.consumer.read_operation_row {
         Die("direct MIR scalar CFG Array<Int> C read is invalid");
     }

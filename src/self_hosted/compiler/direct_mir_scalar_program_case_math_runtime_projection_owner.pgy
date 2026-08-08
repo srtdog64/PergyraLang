@@ -31,21 +31,22 @@ func DirectMirScalarProgramCaseMathRuntimeProjectionReady(
 ) -> Bool {
     if !projection.valid ||
         !DirectMirScalarProgramCaseMathRuntimeIdsReady(ids) { return false; }
-    let facts: Array<CompilerRuntimeCallAbiFact> = [
-        projection.replace, projection.abs, projection.min, projection.max];
-    let expected_ids: Array<Int> = [
-        ids.replace_id, ids.abs_id, ids.min_id, ids.max_id];
-    let row: Int = 0;
-    while row < 4 {
-        if expected_ids[row] != 0 &&
-            (!facts[row].ok || facts[row].runtime_call_abi_id !=
-                expected_ids[row] || facts[row].materialization !=
-                CompilerRuntimeCallAbiMaterialGeneratedHelper()) {
-            return false;
-        }
-        row = row + 1;
-    }
-    return true;
+    return DirectMirScalarProgramCaseMathRuntimeFactReady(
+            projection.replace, ids.replace_id) &&
+        DirectMirScalarProgramCaseMathRuntimeFactReady(
+            projection.abs, ids.abs_id) &&
+        DirectMirScalarProgramCaseMathRuntimeFactReady(
+            projection.min, ids.min_id) &&
+        DirectMirScalarProgramCaseMathRuntimeFactReady(
+            projection.max, ids.max_id);
+}
+
+func DirectMirScalarProgramCaseMathRuntimeFactReady(
+    fact: CompilerRuntimeCallAbiFact, expected_id: Int
+) -> Bool {
+    return expected_id == 0 || (fact.ok &&
+        fact.runtime_call_abi_id == expected_id && fact.materialization ==
+            CompilerRuntimeCallAbiMaterialGeneratedHelper());
 }
 
 func DirectMirScalarProgramCaseMathRuntimeRequired(

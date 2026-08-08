@@ -81,7 +81,7 @@ func DirectMirStructArgumentPlanReady(
 }
 
 func DirectMirStructArgumentPlanMutationRejected(
-    ref plan: DirectMirStructArgumentPlan
+    own plan: DirectMirStructArgumentPlan
 ) -> Bool {
     if !DirectMirStructArgumentPlanReady(plan) { return false; }
     let bad_carriage: DirectMirStructArgumentPlan =
@@ -202,8 +202,9 @@ func DirectMirStructArgumentPlanFromAdmitted(
         DirectMirStructArgumentPlanWithDigest(
             plan, DirectMirStructArgumentPlanDigest(plan)
         );
+    let negative: DirectMirStructArgumentPlan = verified;
     if !DirectMirStructArgumentPlanReady(verified) ||
-        !DirectMirStructArgumentPlanMutationRejected(verified) {
+        !DirectMirStructArgumentPlanMutationRejected(negative) {
         Die("direct MIR struct argument plan identity is invalid");
     }
     return verified;

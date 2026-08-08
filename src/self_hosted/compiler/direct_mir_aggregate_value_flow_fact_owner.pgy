@@ -137,7 +137,7 @@ func DirectMirAggregateValueRepresentationFromSealedIdentity(
 }
 
 func DirectMirAggregateValueFlowFactSeal(
-    ref representation: DirectMirInferredGenericMemberRepresentationFact,
+    own representation: DirectMirInferredGenericMemberRepresentationFact,
     wrapper_type: String, wrapper_field: String, wrapper_field_type: String,
     element_type: String, array_type: String, abi_provenance: String,
     array_layout_admission: String, abi_evidence_id: Int
@@ -175,7 +175,7 @@ func DirectMirAggregateValueFlowFactSeal(
 }
 
 func DirectMirAggregateValueFlowFactFromCapturedArrayAbi(
-    ref representation: DirectMirInferredGenericMemberRepresentationFact,
+    own representation: DirectMirInferredGenericMemberRepresentationFact,
     wrapper_type: String, wrapper_field: String, wrapper_field_type: String,
     element_type: String, array_type: String, abi_evidence_id: Int
 ) -> DirectMirAggregateValueFlowFact {
@@ -188,7 +188,7 @@ func DirectMirAggregateValueFlowFactFromCapturedArrayAbi(
 }
 
 func DirectMirAggregateValueFlowFactFromTypedArrayAbsence(
-    ref representation: DirectMirInferredGenericMemberRepresentationFact,
+    own representation: DirectMirInferredGenericMemberRepresentationFact,
     wrapper_type: String, wrapper_field: String, wrapper_field_type: String,
     element_type: String, array_type: String, abi_evidence_id: Int
 ) -> DirectMirAggregateValueFlowFact {

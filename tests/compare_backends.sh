@@ -905,6 +905,7 @@ main() {
         "tests/cases/backend_compare/string_starts_ends_predicate"
         "tests/cases/backend_compare/multi_types"
         "tests/cases/backend_compare/module_namespace"
+        "tests/cases/backend_compare/namespace_direct_return"
         "tests/cases/backend_compare/namespace_export_import"
         "tests/cases/backend_compare/top_level_visibility_decl"
         "tests/cases/backend_compare/pipeline_composition"

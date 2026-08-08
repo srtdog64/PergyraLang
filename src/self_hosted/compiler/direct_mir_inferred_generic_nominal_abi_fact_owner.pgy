@@ -7,7 +7,8 @@ import "../mir_lower/abi_layout_admission_fact_owner.pgy";
 struct DirectMirInferredGenericNominalAbiFact {
     let valid: Bool;
     let digest: Int;
-    let declaration: DirectMirNominalDeclarationAbiFact;
+    let declaration_digest: Int;
+    let declaration_layout_id: Int;
     let initial_layout_id: Int;
 }
 
@@ -15,7 +16,8 @@ func DirectMirInferredGenericNominalAbiFactDigest(
     ref fact: DirectMirInferredGenericNominalAbiFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(251L, fact.declaration.digest);
+    let hash: Long = DirectMirCfgHashInt(251L, fact.declaration_digest);
+    hash = DirectMirCfgHashInt(hash, fact.declaration_layout_id);
     hash = DirectMirCfgHashInt(hash, fact.initial_layout_id);
     return DirectMirCfgBoundedDigest(hash);
 }
@@ -25,8 +27,8 @@ func DirectMirInferredGenericNominalAbiFactReady(
 ) -> Bool {
     return fact.valid && fact.digest != 0 && fact.digest ==
         DirectMirInferredGenericNominalAbiFactDigest(fact) &&
-        DirectMirNominalDeclarationAbiFactReady(fact.declaration) &&
-        fact.initial_layout_id == fact.declaration.abi_layout_id;
+        fact.declaration_digest != 0 && fact.declaration_layout_id != 0 &&
+        fact.initial_layout_id == fact.declaration_layout_id;
 }
 
 func DirectMirInferredGenericNominalAbiFactFromInstructions(
@@ -56,14 +58,16 @@ func DirectMirInferredGenericNominalAbiFactFromInstructions(
     ) { Die("direct MIR inferred generic ABI receipt disagrees"); }
     let fact: DirectMirInferredGenericNominalAbiFact =
         DirectMirInferredGenericNominalAbiFact(
-            true, 0, identity.declaration,
+            true, 0, identity.declaration.digest,
+            identity.declaration.abi_layout_id,
             MirAbiLayoutIdFromCapture(captured_row)
         );
     let verified: DirectMirInferredGenericNominalAbiFact =
         DirectMirInferredGenericNominalAbiFact(
             fact.valid,
             DirectMirInferredGenericNominalAbiFactDigest(fact),
-            fact.declaration, fact.initial_layout_id
+            fact.declaration_digest, fact.declaration_layout_id,
+            fact.initial_layout_id
         );
     if !DirectMirInferredGenericNominalAbiFactReady(verified) {
         Die("direct MIR inferred generic ABI fact is invalid");

@@ -1,0 +1,9 @@
+import "math.pgy";
+
+func AddOne(value: Int) -> Int {
+    return Math.Add(value, 1);
+}
+
+func Main() -> Void {
+    Log(AddOne(7));
+}

@@ -55,6 +55,7 @@ func DirectMirGenericStructValueFlowPlanReady(
             CompilerTargetCapabilityFingerprint() &&
         DirectMirGenericStructValueFlowProgramIdentityReady(plan.identity) &&
         DirectMirGenericStructValueFlowAbiFactReady(plan.abi) &&
+        plan.abi.declaration_digest == plan.identity.declaration.digest &&
         MirSsaNameMatches(
             plan.source_value, plan.identity.graph.source_local_name, false
         ) && MirSsaNameMatches(

@@ -7,7 +7,8 @@ import "../mir_lower/abi_layout_admission_fact_owner.pgy";
 struct DirectMirGenericStructValueFlowAbiFact {
     let valid: Bool;
     let digest: Int;
-    let declaration: DirectMirNominalDeclarationAbiFact;
+    let declaration_digest: Int;
+    let declaration_layout_id: Int;
     let layout_ids: Array<Int>;
 }
 
@@ -34,7 +35,8 @@ func DirectMirGenericStructValueFlowAbiFactDigest(
     ref fact: DirectMirGenericStructValueFlowAbiFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(223L, fact.declaration.digest);
+    let hash: Long = DirectMirCfgHashInt(223L, fact.declaration_digest);
+    hash = DirectMirCfgHashInt(hash, fact.declaration_layout_id);
     let row: Int = 0;
     while row < ArrayLength(fact.layout_ids) {
         hash = DirectMirCfgHashInt(hash, fact.layout_ids[row]);
@@ -48,13 +50,13 @@ func DirectMirGenericStructValueFlowAbiFactReady(
 ) -> Bool {
     if !fact.valid || fact.digest == 0 || fact.digest !=
         DirectMirGenericStructValueFlowAbiFactDigest(fact) ||
-        !DirectMirNominalDeclarationAbiFactReady(fact.declaration) ||
+        fact.declaration_digest == 0 || fact.declaration_layout_id == 0 ||
         ArrayLength(fact.layout_ids) != 3 {
         return false;
     }
     let row: Int = 0;
     while row < 3 {
-        if fact.layout_ids[row] != fact.declaration.abi_layout_id {
+        if fact.layout_ids[row] != fact.declaration_layout_id {
             return false;
         }
         row = row + 1;
@@ -80,7 +82,8 @@ func DirectMirGenericStructValueFlowAbiFactFromInstructions(
     }
     let fact: DirectMirGenericStructValueFlowAbiFact =
         DirectMirGenericStructValueFlowAbiFact(
-            true, 0, identity.declaration, [
+            true, 0, identity.declaration.digest,
+            identity.declaration.abi_layout_id, [
                 MirAbiLayoutIdFromCapture(returned),
                 MirAbiLayoutIdFromCapture(initial),
                 MirAbiLayoutIdFromCapture(result)
@@ -89,7 +92,8 @@ func DirectMirGenericStructValueFlowAbiFactFromInstructions(
     let verified: DirectMirGenericStructValueFlowAbiFact =
         DirectMirGenericStructValueFlowAbiFact(
             fact.valid, DirectMirGenericStructValueFlowAbiFactDigest(fact),
-            fact.declaration, fact.layout_ids
+            fact.declaration_digest, fact.declaration_layout_id,
+            fact.layout_ids
         );
     if !DirectMirGenericStructValueFlowAbiFactReady(verified) {
         Die("direct MIR generic nominal ABI fact is invalid");

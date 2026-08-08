@@ -32,7 +32,7 @@ semantic_report_named_boundary_argument_required(ASTNode *site,
     (void)value_label_cap;
 
     semantic_emit_payload(ctx, &payload,
-        "%s boundary arguments must use a named variable%s%s%s.\n"
+        "%s boundary arguments in '%s' must use a named variable%s%s%s.\n"
         "Reason:\n"
         "- own/ref %s boundaries need one stable source binding for moved-here / borrowed-here provenance\n"
         "- unnamed %s expressions would make later ownership diagnostics ambiguous\n"
@@ -40,6 +40,7 @@ semantic_report_named_boundary_argument_required(ASTNode *site,
         "- %s\n"
         "- then pass that named variable through the boundary",
         value_label_cap != NULL ? value_label_cap : "Value",
+        semantic_current_consumer_name(ctx),
         source_path != NULL ? " instead of '" : "",
         source_path != NULL ? source_path : "",
         source_path != NULL ? "'" : "",

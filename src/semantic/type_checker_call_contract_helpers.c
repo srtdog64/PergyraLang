@@ -166,6 +166,9 @@ semantic_lookup_function_param_contract(SemanticContext *ctx,
                                         size_t arg_index,
                                         ParamMode *mode_out)
 {
+    Symbol *symbol;
+    Type *function_type = NULL;
+
     if (mode_out != NULL)
         *mode_out = PARAM_MODE_DEFAULT;
 
@@ -173,8 +176,25 @@ semantic_lookup_function_param_contract(SemanticContext *ctx,
         return NULL;
 
     ASTNode *stmt = semantic_find_function_decl_by_name(ctx, display_name);
-    Type *function_type = semantic_callable_decl_function_type(ctx, stmt);
-    if (stmt == NULL || function_type == NULL
+    if (stmt == NULL)
+        return NULL;
+
+    /* The resolved scope symbol owns the callable boundary contract.  The
+     * host-declaration index is an AST lookup aid and may not carry the same
+     * imported declaration identity while an import-composed program is
+     * being checked.  Requiring pointer identity there silently downgraded
+     * declared `ref` parameters to PARAM_MODE_DEFAULT in large self-host
+     * roots, so safe read-only forwarding was diagnosed as a value escape. */
+    symbol = scope_lookup(ctx->scope, display_name);
+    if (symbol != NULL && symbol->kind == SYMBOL_FUNCTION
+        && symbol->type != NULL
+        && symbol->type->kind == TYPE_KIND_FUNCTION) {
+        function_type = symbol->type;
+    }
+    if (function_type == NULL)
+        function_type = semantic_callable_decl_function_type(ctx, stmt);
+
+    if (function_type == NULL
         || arg_index >= type_function_param_count(function_type))
         return NULL;
 

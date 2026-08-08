@@ -87,7 +87,7 @@ func DirectMirOptionStructValueFlowInstructionGraph(
 
 func DirectMirOptionStructValueFlowProgramIdentityFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref classification: DirectMirTwoRoutineNominalClassificationFact
+    own classification: DirectMirTwoRoutineNominalClassificationFact
 ) -> DirectMirOptionStructValueFlowProgramIdentity {
     if !DirectMirOptionStructValueFlowProgramEnvelopeReady(
         admitted, classification

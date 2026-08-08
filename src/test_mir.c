@@ -889,12 +889,14 @@ test_mir_carries_region_escape_facts(void)
 #include "tests/mir/test_mir_lowering_part_h_2.cases.h"
 #include "tests/mir/test_mir_lowering_part_i.cases.h"
 #include "tests/mir/test_mir_runtime_call_abi.cases.h"
+#include "tests/mir/test_mir_inventory_identity.cases.h"
 
 static void
 test_mir_lowering(void)
 {
     test_mir_carries_function_param_flow_summary();
     test_mir_carries_region_escape_facts();
+    test_mir_inventory_source_identity_lookup();
     test_mir_carries_dir_domain_topology();
     test_mir_lowering_part_a();
     test_mir_lowering_part_b();

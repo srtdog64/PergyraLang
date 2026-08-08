@@ -6,8 +6,8 @@ import "../mir_lower/routine_fact_index_owner.pgy";
 
 func DirectMirScalarCfgValueUseDominates(
     ref index: MirRoutineFactIndex,
-    value_names: Array<String>,
-    value_local_rows: Array<Int>,
+    ref value_names: Array<String>,
+    ref value_local_rows: Array<Int>,
     value_row: Int,
     use_block: Int,
     use_instruction_row: Int

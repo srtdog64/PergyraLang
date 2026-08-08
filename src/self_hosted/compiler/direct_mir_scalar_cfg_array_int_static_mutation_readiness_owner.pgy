@@ -5,11 +5,10 @@ import "direct_mir_scalar_cfg_array_sealed_guard_owner.pgy";
 import "direct_mir_scalar_cfg_operation_position_owner.pgy";
 
 func DirectMirScalarCfgArrayIntStaticMutationReady(
-    ref plan: DirectMirScalarCfgGraphPlan
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref c: DirectMirScalarCfgArrayIntConsumerFact,
+    ref mutation: DirectMirScalarCfgArrayIntStaticMutationFact
 ) -> Bool {
-    let c: DirectMirScalarCfgArrayIntConsumerFact = plan.array_int_program.consumer;
-    let mutation: DirectMirScalarCfgArrayIntStaticMutationFact =
-        plan.array_int_program.static_mutation;
     let values: Int = ArrayLength(plan.value_names);
     let operations: Int = ArrayLength(plan.operation_kinds);
     let length: Int = ArrayLength(plan.array_int_program.collection.elements);

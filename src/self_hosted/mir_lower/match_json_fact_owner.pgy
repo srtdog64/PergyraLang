@@ -3,7 +3,7 @@
 import "../lib/json_fact_table.pgy";
 
 func MirMatchPatternCount(
-    instruction: JsonObjectFactTable
+    ref instruction: JsonObjectFactTable
 ) -> Option<Int> {
     let bounds: Array<Int> = [0, 0];
     if !JsonObjectFactArrayBounds(instruction, "match_patterns", bounds) {
@@ -15,7 +15,7 @@ func MirMatchPatternCount(
 }
 
 func MirMatchPatternAt(
-    instruction: JsonObjectFactTable,
+    ref instruction: JsonObjectFactTable,
     index: Int
 ) -> Option<String> {
     let count: Option<Int> = MirMatchPatternCount(instruction);
@@ -34,13 +34,13 @@ func MirMatchPatternAt(
 }
 
 func MirMatchVariant(
-    instruction: JsonObjectFactTable
+    ref instruction: JsonObjectFactTable
 ) -> Option<String> {
     return JsonObjectFactStringFieldOpt(instruction, "match_variant");
 }
 
 func MirMatchBindingCount(
-    instruction: JsonObjectFactTable
+    ref instruction: JsonObjectFactTable
 ) -> Option<Int> {
     let bounds: Array<Int> = [0, 0];
     if !JsonObjectFactArrayBounds(instruction, "match_bindings", bounds) {
@@ -52,7 +52,7 @@ func MirMatchBindingCount(
 }
 
 func MirMatchBindingAt(
-    instruction: JsonObjectFactTable,
+    ref instruction: JsonObjectFactTable,
     index: Int
 ) -> Option<String> {
     let count: Option<Int> = MirMatchBindingCount(instruction);
@@ -71,7 +71,7 @@ func MirMatchBindingAt(
 }
 
 func MirMatchBindingTypeCount(
-    instruction: JsonObjectFactTable
+    ref instruction: JsonObjectFactTable
 ) -> Option<Int> {
     let bounds: Array<Int> = [0, 0];
     if !JsonObjectFactArrayBounds(
@@ -85,7 +85,7 @@ func MirMatchBindingTypeCount(
 }
 
 func MirMatchBindingTypeAt(
-    instruction: JsonObjectFactTable,
+    ref instruction: JsonObjectFactTable,
     index: Int
 ) -> Option<String> {
     let count: Option<Int> = MirMatchBindingTypeCount(instruction);

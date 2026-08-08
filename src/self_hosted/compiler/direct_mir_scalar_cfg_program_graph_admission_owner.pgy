@@ -67,10 +67,6 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
             storage.routines.operation_counts,
             storage.routines.phi_counts
         );
-    let locals: DirectMirScalarCfgLocalRefPlan =
-        DirectMirScalarCfgProgramLocalRefPlan(storage);
-    let types: DirectMirScalarCfgValueTypePlan =
-        DirectMirScalarCfgProgramValueTypePlan(storage);
     let program: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFromOwners(
             admitted, route, storage, expressions,
@@ -78,8 +74,14 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
             storage.operations.expression_rows,
             storage.blocks.return_expression_rows
         );
+    let value_storage: DirectMirScalarCfgProgramValueStorage = storage.values;
+    let value_plans: DirectMirScalarCfgProgramValuePlans =
+        DirectMirScalarCfgProgramValuePlansFromStorage(value_storage);
+    let locals: DirectMirScalarCfgLocalRefPlan = value_plans.locals;
+    let types: DirectMirScalarCfgValueTypePlan = value_plans.types;
+    let partition_digest: Int = partition.digest;
     return DirectMirScalarCfgSealGraphPlan(
-        admitted, partition, partition.digest, locals, types,
+        admitted, partition, partition_digest, locals, types,
         storage.blocks.succ_true, storage.blocks.succ_false,
         storage.blocks.operation_starts, storage.blocks.operation_counts,
         storage.blocks.condition_kinds,

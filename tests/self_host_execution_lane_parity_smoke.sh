@@ -121,7 +121,7 @@ for be in $backends; do
             echo "[sea-self-host-lane] LLVM unavailable; skipping llvm backend"
             continue
         fi
-        cat "$WORK/compile_$be.err" >&2
+        cat "$WORK/compile_$be.out" "$WORK/compile_$be.err" >&2
         fail "compile failed (backend=$be)"
     fi
     "$exe" 2>/dev/null | tr -d '\r' > "$WORK/got_$be.txt" || fail "run failed (backend=$be)"

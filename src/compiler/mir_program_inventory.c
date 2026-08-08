@@ -44,6 +44,33 @@ mir_routine_inventory_get(const MIRRoutineInventory *inventory, size_t index)
     return &inventory->routines[index];
 }
 
+MIRRoutineSourceLookup
+mir_routine_inventory_find_unique_by_source_syntax_id(
+    const MIRRoutineInventory *inventory,
+    uint32_t source_syntax_id)
+{
+    MIRRoutineSourceLookup result;
+
+    result.status = MIR_ROUTINE_SOURCE_LOOKUP_INVALID;
+    result.routine = NULL;
+    if (inventory == NULL || source_syntax_id == 0)
+        return result;
+    result.status = MIR_ROUTINE_SOURCE_LOOKUP_MISSING;
+    for (size_t i = 0; i < inventory->count; i++) {
+        const MIRRoutine *routine = mir_routine_inventory_get(inventory, i);
+        if (mir_routine_source_syntax_id(routine) != source_syntax_id)
+            continue;
+        if (result.routine != NULL) {
+            result.status = MIR_ROUTINE_SOURCE_LOOKUP_DUPLICATE;
+            result.routine = NULL;
+            return result;
+        }
+        result.status = MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE;
+        result.routine = routine;
+    }
+    return result;
+}
+
 void
 mir_decl_header_inventory_from_program(const MIRProgram *mir,
                                        MIRDeclHeaderInventory *inventory)
@@ -93,6 +120,12 @@ MIRScopeKind
 mir_routine_kind(const MIRRoutine *routine)
 {
     return routine != NULL ? routine->kind : MIR_SCOPE_FUNCTION;
+}
+
+uint32_t
+mir_routine_source_syntax_id(const MIRRoutine *routine)
+{
+    return routine != NULL ? routine->source_syntax_id : 0;
 }
 
 const char *

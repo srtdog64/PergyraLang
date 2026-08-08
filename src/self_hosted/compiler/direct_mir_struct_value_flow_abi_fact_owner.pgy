@@ -7,7 +7,8 @@ import "../mir_lower/abi_layout_admission_fact_owner.pgy";
 struct DirectMirStructValueFlowAbiFact {
     let valid: Bool;
     let digest: Int;
-    let declaration: DirectMirNominalDeclarationAbiFact;
+    let declaration_digest: Int;
+    let declaration_layout_id: Int;
     let return_layout_id: Int;
     let initial_layout_id: Int;
     let assignment_layout_id: Int;
@@ -41,7 +42,8 @@ func DirectMirStructValueFlowAbiFactDigest(
     ref fact: DirectMirStructValueFlowAbiFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(167L, fact.declaration.digest);
+    let hash: Long = DirectMirCfgHashInt(167L, fact.declaration_digest);
+    hash = DirectMirCfgHashInt(hash, fact.declaration_layout_id);
     hash = DirectMirCfgHashInt(hash, fact.return_layout_id);
     hash = DirectMirCfgHashInt(hash, fact.initial_layout_id);
     hash = DirectMirCfgHashInt(hash, fact.assignment_layout_id);
@@ -54,16 +56,15 @@ func DirectMirStructValueFlowAbiFactReady(
 ) -> Bool {
     if !fact.valid || fact.digest == 0 ||
         fact.digest != DirectMirStructValueFlowAbiFactDigest(fact) ||
-        !DirectMirNominalDeclarationAbiFactReady(fact.declaration) {
+        fact.declaration_digest == 0 || fact.declaration_layout_id == 0 {
         return false;
     }
-    let id: Int = fact.declaration.abi_layout_id;
+    let id: Int = fact.declaration_layout_id;
     return fact.return_layout_id == id && fact.initial_layout_id == id &&
         fact.assignment_layout_id == id && fact.result_layout_id == id &&
-        DirectMirStructAbiRowsEqual(fact.returned, fact.declaration.abi) &&
-        DirectMirStructAbiRowsEqual(fact.initial, fact.declaration.abi) &&
-        DirectMirStructAbiRowsEqual(fact.assignment, fact.declaration.abi) &&
-        DirectMirStructAbiRowsEqual(fact.result, fact.declaration.abi);
+        DirectMirStructAbiRowsEqual(fact.returned, fact.initial) &&
+        DirectMirStructAbiRowsEqual(fact.returned, fact.assignment) &&
+        DirectMirStructAbiRowsEqual(fact.returned, fact.result);
 }
 
 func DirectMirStructValueFlowAbiFactFromCaptures(
@@ -82,9 +83,17 @@ func DirectMirStructValueFlowAbiFactFromCaptures(
         DirectMirStructValueFlowCapturedAbi(json, assignment);
     let result_abi: MirAbiLayoutRowCapture =
         DirectMirStructValueFlowCapturedAbi(json, result);
+    if !DirectMirStructAbiRowsEqual(return_abi, identity.declaration.abi) ||
+        !DirectMirStructAbiRowsEqual(initial_abi, identity.declaration.abi) ||
+        !DirectMirStructAbiRowsEqual(
+            assignment_abi, identity.declaration.abi) ||
+        !DirectMirStructAbiRowsEqual(result_abi, identity.declaration.abi) {
+        Die("direct MIR struct value-flow ABI receipts disagree");
+    }
     let fact: DirectMirStructValueFlowAbiFact =
         DirectMirStructValueFlowAbiFact(
-            true, 0, identity.declaration,
+            true, 0, identity.declaration.digest,
+            identity.declaration.abi_layout_id,
             MirAbiLayoutIdFromCapture(return_abi),
             MirAbiLayoutIdFromCapture(initial_abi),
             MirAbiLayoutIdFromCapture(assignment_abi),
@@ -94,7 +103,8 @@ func DirectMirStructValueFlowAbiFactFromCaptures(
     let verified: DirectMirStructValueFlowAbiFact =
         DirectMirStructValueFlowAbiFact(
             fact.valid, DirectMirStructValueFlowAbiFactDigest(fact),
-            fact.declaration, fact.return_layout_id, fact.initial_layout_id,
+            fact.declaration_digest, fact.declaration_layout_id,
+            fact.return_layout_id, fact.initial_layout_id,
             fact.assignment_layout_id, fact.result_layout_id, fact.returned,
             fact.initial, fact.assignment, fact.result
         );

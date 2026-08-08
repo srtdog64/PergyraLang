@@ -10,7 +10,7 @@ func DirectMirScalarCfgCollectionDefinitionExpressionFact(
     ref array_int: DirectMirScalarCfgArrayIntProgramFact,
     scalar_type: String, ref instruction: JsonObjectFactTable,
     ref uses: MirRoutineInstructionUseFacts, global_row: Int,
-    instruction_row: Int, value_names: Array<String>,
+    instruction_row: Int, ref value_names: Array<String>,
     ref local_refs: DirectMirScalarCfgLocalRefPlan,
     ref wire: DirectMirScalarCfgWireLocalRefs
 ) -> DirectMirScalarCfgExpressionFact {
@@ -39,7 +39,7 @@ func DirectMirScalarCfgCollectionStatementExpressionFact(
     scalar: MirRoutineInstructionScalarCapture,
     ref instruction: JsonObjectFactTable,
     ref uses: MirRoutineInstructionUseFacts, global_row: Int,
-    instruction_row: Int, value_names: Array<String>,
+    instruction_row: Int, ref value_names: Array<String>,
     ref local_refs: DirectMirScalarCfgLocalRefPlan,
     ref wire: DirectMirScalarCfgWireLocalRefs,
     ref type_plan: DirectMirScalarCfgValueTypePlan
@@ -65,7 +65,7 @@ func DirectMirScalarCfgCollectionConditionExpressionFact(
     ref array_int: DirectMirScalarCfgArrayIntProgramFact,
     ref instruction: JsonObjectFactTable,
     ref uses: MirRoutineInstructionUseFacts, global_row: Int,
-    instruction_row: Int, value_names: Array<String>,
+    instruction_row: Int, ref value_names: Array<String>,
     ref local_refs: DirectMirScalarCfgLocalRefPlan,
     ref wire: DirectMirScalarCfgWireLocalRefs
 ) -> DirectMirScalarCfgExpressionFact {

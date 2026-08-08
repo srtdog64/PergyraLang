@@ -325,7 +325,9 @@ intent TransferFunds(from: Account, to: Account)
 
 ```
 질문: 이 intent의 각 step을 누가 승인하는가?
-검사: authorized by가 없는 step이 있으면 권한 모델이 불명확.
+검사: step의 유효 권한은 직접 `authorized by`/`requires`를 선언하거나 호출하는
+action 계약에서 유일하게 상속되어야 한다. 동일한 action 계약을 orchestration step이
+다시 적으면 이중 권위이므로 경고하고 제거한다.
 ```
 
 ```pergyra
@@ -520,7 +522,7 @@ Intent를 선언한 후 다음을 점검하라:
 | **목적이 명확한가?** | "성공하면 무엇이 달라지는가?" 한 문장 답 | "데이터를 처리한다"류의 모호한 답 |
 | **경계가 적당한가?** | 한 현실 목적과 fact 귀속이 한 binder로 닫히는지 확인 | step 수만으로 intent 여부나 분할을 결정 |
 | **실패 지점이 보이는가?** | full rollback의 effectful step마다 compensate 또는 irreversible 확인 | 되돌릴 수 없는 효과를 암묵적으로 숨김 |
-| **권한이 명확한가?** | 모든 step에 authorized by 또는 requires | 권한 주체 불명확 |
+| **권한이 명확한가?** | 모든 step에 직접 또는 호출 action이 소유한 authorized by/requires | 권한 주체 불명확 또는 계약 중복 |
 | **Subject가 유도되는가?** | intent에서 등장하는 who/involves로 subject 목록 작성 | intent와 무관한 subject 존재 |
 | **Zone이 유도되는가?** | where로 참조하는 zone이 실제로 존재 | zone이 namespace 정도로 전락 |
 | **Ability가 유도되는가?** | requires로 참조하는 ability가 실제로 구현됨 | ability가 interface 정도로 전락 |

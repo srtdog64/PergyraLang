@@ -26,7 +26,7 @@ func DirectMirScalarCfgValueExpressionFact(
     ref use_facts: MirRoutineInstructionUseFacts,
     global_row: Int,
     instruction_row: Int,
-    value_names: Array<String>,
+    ref value_names: Array<String>,
     ref local_refs: DirectMirScalarCfgLocalRefPlan,
     ref wire: DirectMirScalarCfgWireLocalRefs
 ) -> DirectMirScalarCfgExpressionFact {
@@ -124,7 +124,7 @@ func DirectMirScalarCfgConditionExpressionFact(
     ref use_facts: MirRoutineInstructionUseFacts,
     global_row: Int,
     instruction_row: Int,
-    value_names: Array<String>,
+    ref value_names: Array<String>,
     ref local_refs: DirectMirScalarCfgLocalRefPlan,
     ref wire: DirectMirScalarCfgWireLocalRefs
 ) -> DirectMirScalarCfgExpressionFact {
@@ -215,7 +215,7 @@ func DirectMirScalarCfgLogExpressionFact(
     ref use_facts: MirRoutineInstructionUseFacts,
     global_row: Int,
     instruction_row: Int,
-    value_names: Array<String>,
+    ref value_names: Array<String>,
     ref local_refs: DirectMirScalarCfgLocalRefPlan,
     ref wire: DirectMirScalarCfgWireLocalRefs
 ) -> DirectMirScalarCfgExpressionFact {

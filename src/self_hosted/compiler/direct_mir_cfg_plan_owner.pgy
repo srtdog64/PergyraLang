@@ -15,7 +15,7 @@ import "../mir_lower/routine_instruction_use_fact_owner.pgy";
 
 func DirectMirCfgPlanFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref enum_route: DirectMirEnumValueMatchRouteFact
+    own enum_route: DirectMirEnumValueMatchRouteFact
 ) -> DirectMirCfgPlan {
     let block_count: Int = admitted.routines.routine_block_counts[0];
     let standard_envelope: Bool = DirectMirCfgProgramEnvelopeReady(admitted);
@@ -96,8 +96,12 @@ func DirectMirCfgPlanFromAdmitted(
         if !enum_route.claimed {
             Die("direct MIR identity-match CFG lacks its enum route claim");
         }
+        let enum_identity_match: DirectMirIdentityMatchCfgCertificateFact =
+            certificate.identity_match;
+        let enum_certificate_digest: Int = certificate.certificate_digest;
         enum_plan = DirectMirEnumValueMatchPlanFactFromOwners(
-            admitted, enum_route, certificate, use_facts
+            admitted, enum_route, enum_identity_match,
+            enum_certificate_digest, use_facts
         );
     } else if enum_route.claimed {
         Die("direct MIR enum route cannot retry a legacy CFG shape");

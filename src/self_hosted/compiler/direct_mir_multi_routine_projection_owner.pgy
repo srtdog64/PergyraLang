@@ -27,8 +27,8 @@ func CompileAdmittedDirectMirMultiRoutineForTarget(
     let line_format: String = StringRuntimeCIntLineFormat();
     if DirectMirRoleOperatorProgramCandidate(admitted) { return CompileAdmittedDirectMirRoleOperatorForTarget(
         admitted, target_projection, is_llvm, formatted_print, line_format); }
-    if DirectMirReturnedArrayForEachProgramCandidate(admitted) { return
-        CompileAdmittedDirectMirReturnedArrayForEachForTarget(
+    if DirectMirReturnedArrayForEachProgramCandidate(admitted) {
+        return CompileAdmittedDirectMirReturnedArrayForEachForTarget(
             admitted, target_projection); }
     if DirectMirArrayReturnProgramCandidate(admitted) {
         let return_plan: DirectMirArrayReturnPlan = DirectMirArrayReturnPlanFromAdmitted(admitted);

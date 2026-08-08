@@ -79,7 +79,7 @@ func DirectMirConstructedArrayMemberPlanReady(
 func DirectMirConstructedArrayMemberPlanFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref classification: DirectMirThreeRoutineClassificationFact,
-    ref specialization: DirectMirConstructedArrayMemberSpecializationFact
+    own specialization: DirectMirConstructedArrayMemberSpecializationFact
 ) -> DirectMirConstructedArrayMemberPlan {
     let identity: DirectMirConstructedArrayMemberProgramIdentity =
         DirectMirConstructedArrayMemberProgramIdentityFromAdmitted(

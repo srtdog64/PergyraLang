@@ -370,38 +370,13 @@ assert_llvm_leg() {
     echo "[$label] llvm-leg ok (C-tool==LLVM-tool artifact-equal)"
 }
 
-# Ownership-campaign ratchet shared by the body gate's llvm lane and the
-# bootstrap gate's native oracle: body safety runs before either backend, so
-# both lanes measure the same wall against one checked-in budget. The
-# declared skip is a monitored ratchet, not a hiding place: the count must
-# never grow past ownership_campaign_budget.txt, and every campaign round
-# lowers the budget with its commit. Returns 0 within budget (caller skips
-# declaredly), 1 when the log is not the campaign's, 2 past budget (loud).
-ownership_campaign_within_budget() {
-    local log="$1"
-    local label="$2"
-    local count budget
-    grep -Eq 'Borrowed ref boundary value|beta-stable body safety requires|TextBuilder owner' \
-        "$log" || return 1
-    count="$(grep -c 'ERROR' "$log")"
-    budget="$(tr -d ' \r\n' \
-        <"$ROOT_DIR/tests/self_hosted/parity/ownership_campaign_budget.txt")"
-    if [[ "$count" -gt "$budget" ]]; then
-        echo "[$label] ownership campaign regressed: $count error(s) exceed the checked-in budget $budget" >&2
-        return 2
-    fi
-    echo "[$label] blocked by the ownership campaign: $count error(s) within budget $budget (self-host bootstrap subject); skipping declaredly"
-    return 0
-}
-
 # The rung2 body gate's driver builds are harness infrastructure, not the
 # gate's subject: the llvm build routes through the native pipeline because
 # the delegated DirectMirLlvm projector is a bounded classifier whose
 # replacement subject is owned by self-host-default-llvm-replacement-test-smoke.
-# Returns 2 when the compiler has no LLVM backend, and 3 when the native
-# pipeline rejects the composed driver with the ownership campaign's
-# signature (self-host bootstrap subject) -- once that campaign clears, the
-# greps stop matching and the llvm lane comes back loud on its own.
+# Returns 2 only when the compiler has no LLVM backend. Every other compile
+# failure is printed and remains red; a cleared campaign must not leave a
+# content-matched skip path behind.
 compile_driver() {
     local backend="$1"
     local out_bin="$2"
@@ -416,10 +391,6 @@ compile_driver() {
         >"$log" 2>&1); then
         if [[ "$backend" == "llvm" ]] && pgy_selfhost_log_reports_no_llvm "$log"; then
             return 2
-        fi
-        if [[ "$backend" == "llvm" ]] && grep -Eq \
-            'beta-stable body safety requires|TextBuilder owner' "$log"; then
-            return 3
         fi
         echo "[self-host-parity:driver-rung2] backend=$backend driver compile failed" >&2
         cat "$log" >&2

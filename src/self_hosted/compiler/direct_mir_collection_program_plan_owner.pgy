@@ -108,7 +108,7 @@ func DirectMirCollectionProgramPlanReady(
 }
 
 func DirectMirCollectionProgramPlanMutationRejected(
-    ref plan: DirectMirCollectionProgramPlan
+    own plan: DirectMirCollectionProgramPlan
 ) -> Bool {
     if !DirectMirCollectionProgramPlanReady(plan) { return false; }
     let bad_target: DirectMirCollectionProgramPlan =

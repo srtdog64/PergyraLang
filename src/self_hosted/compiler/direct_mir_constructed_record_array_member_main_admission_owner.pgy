@@ -179,8 +179,9 @@ func DirectMirConstructedRecordArrayMemberMainAdmissionFromProgram(
     let names: Array<String> = [
         wrapper.result, point.result, result.result, first.result
     ];
-    if !DirectMirConstructedRecordArrayUsesReady(uses, globals[0], []) ||
-        !DirectMirConstructedRecordArrayUsesReady(uses, globals[1], []) ||
+    let no_uses: Array<String> = [];
+    if !DirectMirConstructedRecordArrayUsesReady(uses, globals[0], no_uses) ||
+        !DirectMirConstructedRecordArrayUsesReady(uses, globals[1], no_uses) ||
         !DirectMirConstructedRecordArrayUsesReady(
             uses, globals[2], [wrapper.result, point.result]
         ) || !DirectMirConstructedRecordArrayUsesReady(

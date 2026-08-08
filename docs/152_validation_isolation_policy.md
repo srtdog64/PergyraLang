@@ -466,3 +466,24 @@ Rules that follow:
   that silently dropped the guarantee, which is the exact defect class this
   section exists to prevent. Coverage of a safety surface lands as one unit --
   parse, facts, guard emission, panic class -- or not at all.
+
+## Chronic Red Is Navigation, Not Permission
+
+A chronically red aggregate workflow is useful history, but it is not an
+acceptance oracle. Classify its child failures and repair the reached owner;
+do not use the existing red baseline to weaken a child gate, skip an oracle,
+raise a debt ceiling to the current count, or extend a timeout.
+
+The gate keeps its original claim while repair is in progress:
+
+```text
+known debt count <= growth budget     (may prevent regression)
+readiness debt <= readiness threshold (still blocks promotion)
+oracle artifact == candidate artifact (still mandatory)
+semantic target <= time budget        (still mandatory)
+```
+
+The four rows are separate evidence. A growth budget does not satisfy
+readiness, and a wrapper timeout does not establish that repeated semantic work
+was removed. CI summaries are navigation evidence only until the exact child
+gate runs at the current revision and its result is observed.

@@ -17,11 +17,10 @@ func DirectMirScalarCfgArrayIntReadOnlyValueReady(
 }
 
 func DirectMirScalarCfgArrayIntReadOnlyReady(
-    ref plan: DirectMirScalarCfgGraphPlan
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref program: DirectMirScalarCfgArrayIntProgramFact,
+    ref fact: DirectMirScalarCfgArrayIntReadOnlyRangeFact
 ) -> Bool {
-    let program: DirectMirScalarCfgArrayIntProgramFact =
-        plan.array_int_program;
-    let fact: DirectMirScalarCfgArrayIntReadOnlyRangeFact = program.read_only;
     let range: DirectMirScalarCfgRangeIterationFact =
         DirectMirScalarCfgArrayIntReadOnlyRangeAtPlan(plan);
     if !program.valid || program.mode !=

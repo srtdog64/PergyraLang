@@ -61,6 +61,7 @@ func DirectMirStructValueFlowPlanReady(
             CompilerTargetCapabilityFingerprint() &&
         DirectMirStructValueFlowProgramIdentityReady(plan.identity) &&
         DirectMirStructValueFlowAbiFactReady(plan.abi) &&
+        plan.abi.declaration_digest == plan.identity.declaration.digest &&
         plan.source_local_name == plan.identity.graph.source_local_name &&
         plan.result_local_name == plan.identity.graph.result_local_name &&
         MirSsaNameMatches(plan.initial_result, plan.source_local_name, false) &&
@@ -72,7 +73,7 @@ func DirectMirStructValueFlowPlanReady(
 
 func DirectMirStructValueFlowPlanFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref classification: DirectMirTwoRoutineNominalClassificationFact
+    own classification: DirectMirTwoRoutineNominalClassificationFact
 ) -> DirectMirStructValueFlowPlan {
     let identity: DirectMirStructValueFlowProgramIdentity =
         DirectMirStructValueFlowProgramIdentityFromAdmitted(

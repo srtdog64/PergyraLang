@@ -55,6 +55,12 @@ if grep -Fq 'Trim(' "$ASSIGN_FACT_OWNER"; then
     echo "[$LABEL] assignment fact owner retains allocation-returning trim" >&2
     exit 1
 fi
+if grep -Fq 'SemanticExpressionGraphArenaUnclassified(' "$PROBE_SOURCE" \
+    || ! grep -Fq 'SemanticExpressionPlaceBinding()' "$PROBE_SOURCE" \
+    || ! grep -Fq 'SemanticExpressionPlaceValue()' "$PROBE_SOURCE"; then
+    echo "[$LABEL] probe stopped carrying semantic-owned place facts" >&2
+    exit 1
+fi
 if grep -Fq 'target_texts: Array<String>;' "$ASSIGN_TYPE_FACT_OWNER" ||
     grep -Fq 'ArrayPush(target_texts' "$ASSIGN_TYPE_FACT_OWNER" ||
     grep -Fq 'ArrayLength(facts.target_texts)' "$ROOT_DIR/src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy" ||
@@ -194,6 +200,10 @@ run_backend() {
         "semantic direct-call target fact is missing"
     run_missing_fact_negative "$backend" "missing-c-binding" \
         "assignment target C binding fact is missing"
+    run_missing_fact_negative "$backend" "missing-place-kind" \
+        "semantic leaf place-kind fact is missing"
+    run_missing_fact_negative "$backend" "missing-leaf-c-binding" \
+        "semantic leaf binding fact is missing"
     run_missing_fact_negative "$backend" "collection-cref-only" \
         "collection target C binding fact is missing"
 }
@@ -216,6 +226,10 @@ if [[ " $BACKENDS " == *" llvm "* ]]; then
             "semantic direct-call target fact is missing"
         run_missing_fact_negative llvm "missing-c-binding" \
             "assignment target C binding fact is missing"
+        run_missing_fact_negative llvm "missing-place-kind" \
+            "semantic leaf place-kind fact is missing"
+        run_missing_fact_negative llvm "missing-leaf-c-binding" \
+            "semantic leaf binding fact is missing"
         assert_llvm_leg_with_artifact_owner \
             "$LABEL" "$BUILD_DIR" \
             "$BUILD_DIR/probe_c.out" "$BUILD_DIR/probe_llvm.out"

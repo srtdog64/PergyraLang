@@ -168,21 +168,23 @@ func DirectMirStructArgumentProgramIdentityFromAdmitted(
         DirectMirRoutineSignatureFactAt(admitted.routines, outer_row, 1);
     let nested_callee: DirectMirRoutineSignatureFact =
         DirectMirRoutineSignatureFactAt(admitted.routines, nested_row, 1);
-    let declarations: MirProgramDeclarationIndex =
-        admitted.domain_runtime_admission.declarations;
     let outer_decl_row: Int = DirectMirStructArgumentUniqueDeclarationRow(
-        declarations, main_graph.outer_type_name
+        admitted.domain_runtime_admission.declarations,
+        main_graph.outer_type_name
     );
     let nested_decl_row: Int = DirectMirStructArgumentUniqueDeclarationRow(
-        declarations, main_graph.nested_type_name
+        admitted.domain_runtime_admission.declarations,
+        main_graph.nested_type_name
     );
     let outer_declaration: DirectMirNominalDeclarationAbiFact =
         DirectMirNominalDeclarationAbiFactFromDocument(
-            admitted.document.root.json, declarations, outer_decl_row
+            admitted.document.root.json,
+            admitted.domain_runtime_admission.declarations, outer_decl_row
         );
     let nested_declaration: DirectMirNominalDeclarationAbiFact =
         DirectMirNominalDeclarationAbiFactFromDocument(
-            admitted.document.root.json, declarations, nested_decl_row
+            admitted.document.root.json,
+            admitted.domain_runtime_admission.declarations, nested_decl_row
         );
     let identity: DirectMirStructArgumentProgramIdentity =
         DirectMirStructArgumentProgramIdentity(

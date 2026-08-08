@@ -17,10 +17,11 @@ func DirectMirOptionStructValueFlowEmitLlvm(
         formatted_print.symbol == "" || line_format == "" {
         Die("direct MIR Option nominal LLVM projection facts are invalid");
     }
-    let graph: DirectMirOptionStructValueFlowGraphFact = plan.identity.graph;
-    let inner_name: String = CompilerSymbolCIdentifier(graph.type_name);
+    let inner_name: String = CompilerSymbolCIdentifier(
+        plan.identity.graph.type_name);
     let option_name: String = Concat("Option_", inner_name);
-    let producer: String = CompilerSymbolCIdentifier(graph.producer_name);
+    let producer: String = CompilerSymbolCIdentifier(
+        plan.identity.graph.producer_name);
     if inner_name == "" || option_name == "" || producer == "" {
         Die("direct MIR Option nominal LLVM symbols are invalid");
     }
@@ -45,9 +46,11 @@ func DirectMirOptionStructValueFlowEmitLlvm(
     output = Concat(output, " @");
     output = Concat(output, producer);
     output = Concat(output, "(i32 %base) {\nentry:\n  %pgy.return.left = add i32 %base, ");
-    output = Concat(output, ToString(graph.producer_first_delta));
+    output = Concat(output, ToString(
+        plan.identity.graph.producer_first_delta));
     output = Concat(output, "\n  %pgy.return.right = add i32 %base, ");
-    output = Concat(output, ToString(graph.producer_second_delta));
+    output = Concat(output, ToString(
+        plan.identity.graph.producer_second_delta));
     output = Concat(output, "\n  %pgy.return.pair.0 = insertvalue %");
     output = Concat(output, inner_name);
     output = Concat(output, " poison, i32 %pgy.return.left, 0\n  %pgy.return.pair.1 = insertvalue %");
@@ -65,11 +68,11 @@ func DirectMirOptionStructValueFlowEmitLlvm(
     output = Concat(output, " %pgy.return.option.1\n}\n\ndefine i32 @main() {\nentry:\n  %pgy.initial.pair.0 = insertvalue %");
     output = Concat(output, inner_name);
     output = Concat(output, " poison, i32 ");
-    output = Concat(output, ToString(graph.initial_first));
+    output = Concat(output, ToString(plan.identity.graph.initial_first));
     output = Concat(output, ", 0\n  %pgy.initial.pair.1 = insertvalue %");
     output = Concat(output, inner_name);
     output = Concat(output, " %pgy.initial.pair.0, i32 ");
-    output = Concat(output, ToString(graph.initial_second));
+    output = Concat(output, ToString(plan.identity.graph.initial_second));
     output = Concat(output, ", 1\n  %pgy.initial.option.0 = insertvalue %");
     output = Concat(output, option_name);
     output = Concat(output, " poison, i32 ");
@@ -85,11 +88,11 @@ func DirectMirOptionStructValueFlowEmitLlvm(
     output = Concat(output, ", 0\n  %pgy.latest.pair.0 = insertvalue %");
     output = Concat(output, inner_name);
     output = Concat(output, " poison, i32 ");
-    output = Concat(output, ToString(graph.latest_first));
+    output = Concat(output, ToString(plan.identity.graph.latest_first));
     output = Concat(output, ", 0\n  %pgy.latest.pair.1 = insertvalue %");
     output = Concat(output, inner_name);
     output = Concat(output, " %pgy.latest.pair.0, i32 ");
-    output = Concat(output, ToString(graph.latest_second));
+    output = Concat(output, ToString(plan.identity.graph.latest_second));
     output = Concat(output, ", 1\n  %pgy.latest.option.0 = insertvalue %");
     output = Concat(output, option_name);
     output = Concat(output, " poison, i32 ");
@@ -111,7 +114,7 @@ func DirectMirOptionStructValueFlowEmitLlvm(
     output = Concat(output, " @");
     output = Concat(output, producer);
     output = Concat(output, "(i32 ");
-    output = Concat(output, ToString(graph.producer_argument));
+    output = Concat(output, ToString(plan.identity.graph.producer_argument));
     output = Concat(output, ")\n  %pgy.unwrapped = extractvalue %");
     output = Concat(output, option_name);
     output = Concat(output, " %pgy.built, 1\n  %pgy.unwrapped.left = extractvalue %");

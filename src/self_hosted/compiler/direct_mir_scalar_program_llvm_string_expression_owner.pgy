@@ -60,24 +60,27 @@ func DirectMirScalarProgramLlvmStringExpressionAt(
         return DirectMirScalarProgramLlvmStringExpression(
             true, true, output, result);
     }
-    let builtin: CompilerRuntimeCallAbiFact = runtime.string_to_string;
+    let builtin_symbol: String = runtime.string_to_string.symbol;
     let argument_type: String = "i64";
     let ready: Bool = false;
     if kind == DirectMirScalarProgramExprToStringInt() {
-        ready = CompilerRuntimeCallAbiStringToStringFactReady(builtin);
+        ready = CompilerRuntimeCallAbiStringToStringFactReady(
+            runtime.string_to_string);
     } else if kind == DirectMirScalarProgramExprToUpperString() {
-        builtin = runtime.string_to_upper; argument_type = "ptr";
-        ready = CompilerRuntimeCallAbiStringToUpperFactReady(builtin);
+        builtin_symbol = runtime.string_to_upper.symbol; argument_type = "ptr";
+        ready = CompilerRuntimeCallAbiStringToUpperFactReady(
+            runtime.string_to_upper);
     } else if kind == DirectMirScalarProgramExprToLowerString() {
-        builtin = runtime.string_to_lower; argument_type = "ptr";
-        ready = CompilerRuntimeCallAbiStringToLowerFactReady(builtin);
+        builtin_symbol = runtime.string_to_lower.symbol; argument_type = "ptr";
+        ready = CompilerRuntimeCallAbiStringToLowerFactReady(
+            runtime.string_to_lower);
     } else { return DirectMirScalarProgramLlvmStringExpressionMissing(); }
     if !ready {
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
     }
     let output: String = Concat("  ", Concat(result,
-        Concat(" = call ptr @", Concat(builtin.symbol, Concat("(", Concat(
+        Concat(" = call ptr @", Concat(builtin_symbol, Concat("(", Concat(
             argument_type, Concat(" ", Concat(left, ")\n"))))))));
     return DirectMirScalarProgramLlvmStringExpression(
         true, true, output, result);

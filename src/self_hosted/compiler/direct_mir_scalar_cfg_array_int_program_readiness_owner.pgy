@@ -42,18 +42,21 @@ func DirectMirScalarCfgArrayIntProducerOrderReady(
 }
 
 func DirectMirScalarCfgArrayIntProgramReady(
-    ref plan: DirectMirScalarCfgGraphPlan
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref fact: DirectMirScalarCfgArrayIntProgramFact,
+    ref p: DirectMirScalarCfgArrayIntProducerFact,
+    ref c: DirectMirScalarCfgArrayIntConsumerFact
 ) -> Bool {
-    let fact: DirectMirScalarCfgArrayIntProgramFact =
-        plan.array_int_program;
     if DirectMirScalarCfgArrayIntProgramAbsent(fact) {
         return DirectMirScalarCfgArrayIntOwnedOperationsAbsent(plan);
     }
     if fact.mode == DirectMirScalarCfgArrayIntStaticSetMode() {
-        return DirectMirScalarCfgArrayIntStaticMutationReady(plan);
+        return DirectMirScalarCfgArrayIntStaticMutationReady(
+            plan, fact.consumer, fact.static_mutation);
     }
     if fact.mode == DirectMirScalarCfgArrayIntReadOnlyInitializedMode() {
-        return DirectMirScalarCfgArrayIntReadOnlyReady(plan);
+        return DirectMirScalarCfgArrayIntReadOnlyReady(
+            plan, fact, fact.read_only);
     }
     if fact.mode == DirectMirScalarCfgArrayIntFreshReverseMode() {
         return DirectMirScalarCfgArrayIntReverseReady(plan);
@@ -61,8 +64,6 @@ func DirectMirScalarCfgArrayIntProgramReady(
     if fact.mode == DirectMirScalarCfgArrayIntForEachPrefixPopMode() {
         return DirectMirScalarCfgArrayIntPopReady(plan);
     }
-    let p: DirectMirScalarCfgArrayIntProducerFact = fact.producer;
-    let c: DirectMirScalarCfgArrayIntConsumerFact = fact.consumer;
     let values: Int = ArrayLength(plan.value_names);
     let operations: Int = ArrayLength(plan.operation_kinds);
     if !fact.valid || fact.mode !=

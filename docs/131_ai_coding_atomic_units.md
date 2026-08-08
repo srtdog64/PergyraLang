@@ -666,3 +666,35 @@ alias invalidation, reallocation, cleanup, and failure policy have not migrated
 to the plan. A review can change the architecture objective when its falsifier
 survives current evidence, but its old HEAD, queue, and completion claims
 cannot replace the active handoff or executable gates.
+
+## 9. Evidence Non-Equivalence Laws
+
+An agent must not make a red gate green by replacing its evidence with a
+cheaper, broader, or more available signal. The following pairs are explicitly
+not equivalent:
+
+| Required evidence | Non-equivalent substitute |
+|---|---|
+| native oracle artifact equals the self-host artifact | the native oracle did not build, so seed-only execution passed |
+| readiness debt is at or below the declared target | the current debt was measured and pinned as a larger ceiling |
+| the semantic execution target completes inside its budget | the workflow timeout was increased until the same repeated work fit |
+| one failing owner gate is repaired | an aggregate CI wrapper was already chronically red |
+| native oracle, gen2, and gen3 agree | gen2 and gen3 agree with each other |
+| a production entrypoint reaches a Pergyra owner | a source inventory, parser probe, or generated file contains that owner |
+
+These distinctions are part of the claim, not reporting style. An unavailable
+oracle yields `BLOCKED`, not parity. A debt census can be a shrink-only growth
+ratchet, but it cannot replace a separately named readiness threshold. A
+timeout change is a policy change and needs evidence that the semantic work
+unit is already irreducible; it is never a performance fix by itself.
+
+When implementation and gates are changed in the same patch, review the gate
+as an independent artifact. The patch must name the previous falsifying case,
+show that it now passes through the intended owner, and add a negative check
+that rejects the exact evidence substitution that would have hidden it.
+
+The same diagnostic text is not proof of the same missing fact. A synthetic
+probe must either enter the production admission boundary or construct every
+owned prerequisite explicitly. If two prerequisites can fail independently,
+their negative cases and diagnostics remain distinct; otherwise an earlier
+missing fact can make the intended negative pass without ever exercising it.

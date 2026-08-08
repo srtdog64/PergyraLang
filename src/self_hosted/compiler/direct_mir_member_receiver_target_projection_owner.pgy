@@ -7,7 +7,8 @@ struct DirectMirMemberReceiverTargetProjection {
     let valid: Bool;
     let digest: Int;
     let is_llvm: Bool;
-    let host: DirectMirInferredGenericMemberHostKindFact;
+    let host_digest: Int;
+    let host_kind: String;
     let carriage: String;
     let formal_shape: String;
     let local_shape: String;
@@ -18,7 +19,8 @@ func DirectMirMemberReceiverTargetProjectionDigest(
     ref fact: DirectMirMemberReceiverTargetProjection
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(521L, fact.host.digest);
+    let hash: Long = DirectMirCfgHashInt(521L, fact.host_digest);
+    hash = DirectMirCfgHashString(hash, fact.host_kind);
     hash = DirectMirCfgHashString(hash, fact.carriage);
     hash = DirectMirCfgHashString(hash, fact.formal_shape);
     hash = DirectMirCfgHashString(hash, fact.local_shape);
@@ -33,9 +35,12 @@ func DirectMirMemberReceiverTargetProjectionReady(
 ) -> Bool {
     if !fact.valid || fact.digest == 0 || fact.digest !=
         DirectMirMemberReceiverTargetProjectionDigest(fact) ||
-        !DirectMirInferredGenericMemberHostCarriageReady(
-            fact.host, fact.carriage
-        ) {
+        fact.host_digest == 0 ||
+        !DirectMirInferredGenericMemberHostKindKnown(fact.host_kind) ||
+        !((CallableReceiverNominalKindUsesValue(fact.host_kind) &&
+            fact.carriage == CallableReceiverCarriageValue()) ||
+          (CallableReceiverNominalKindUsesMutableIdentity(fact.host_kind) &&
+            fact.carriage == CallableReceiverCarriageMutableIdentity())) {
         return false;
     }
     if fact.carriage == CallableReceiverCarriageValue() {
@@ -68,13 +73,14 @@ func DirectMirMemberReceiverTargetProjectionFromFacts(
     }
     let fact: DirectMirMemberReceiverTargetProjection =
         DirectMirMemberReceiverTargetProjection(
-            true, 0, is_llvm, host, carriage,
+            true, 0, is_llvm, host.digest, host.kind, carriage,
             formal_shape, local_shape, call_shape
         );
     let verified: DirectMirMemberReceiverTargetProjection =
         DirectMirMemberReceiverTargetProjection(
             fact.valid, DirectMirMemberReceiverTargetProjectionDigest(fact),
-            fact.is_llvm, fact.host, fact.carriage, fact.formal_shape,
+            fact.is_llvm, fact.host_digest, fact.host_kind, fact.carriage,
+            fact.formal_shape,
             fact.local_shape, fact.call_shape
         );
     if !DirectMirMemberReceiverTargetProjectionReady(verified) {

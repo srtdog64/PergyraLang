@@ -48,8 +48,9 @@ func DirectMirOptionMatchCfgPlanFromAdmitted(
     if !IsSome(admitted_abi) {
         Die("direct MIR Option match ABI admission is invalid");
     }
+    let abi_capture: MirAbiLayoutRowCapture = UnwrapOption(admitted_abi);
     let abi: DirectMirOptionMatchAbiFact =
-        DirectMirOptionMatchAbiFactFromCapture(UnwrapOption(admitted_abi));
+        DirectMirOptionMatchAbiFactFromCapture(abi_capture);
     let certificate: DirectMirOptionMatchCfgCertificateFact =
         DirectMirOptionMatchCfgCertificateFactFromOwners(
             admitted, index, uses, matches, abi.layout_id

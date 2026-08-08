@@ -60,7 +60,6 @@ func DirectMirOptionStructValueFlowPlanDigest(
 func DirectMirOptionStructValueFlowPlanReady(
     ref plan: DirectMirOptionStructValueFlowPlan
 ) -> Bool {
-    let graph: DirectMirOptionStructValueFlowGraphFact = plan.identity.graph;
     return plan.valid &&
         plan.schema == DirectMirOptionStructValueFlowPlanSchema() &&
         plan.revision == CompilerArtifactPlanRevision() && plan.digest != 0 &&
@@ -70,15 +69,22 @@ func DirectMirOptionStructValueFlowPlanReady(
             CompilerTargetCapabilityFingerprint() &&
         DirectMirOptionStructValueFlowProgramIdentityReady(plan.identity) &&
         DirectMirOptionStructValueFlowAbiFactReady(plan.abi) &&
-        MirSsaNameMatches(plan.initial_result, graph.option_local_name, false) &&
-        MirSsaNameMatches(plan.none_result, graph.option_local_name, false) &&
-        MirSsaNameMatches(plan.latest_result, graph.option_local_name, false) &&
+        plan.abi.declaration_digest == plan.identity.declaration.digest &&
+        MirSsaNameMatches(
+            plan.initial_result, plan.identity.graph.option_local_name, false) &&
+        MirSsaNameMatches(
+            plan.none_result, plan.identity.graph.option_local_name, false) &&
+        MirSsaNameMatches(
+            plan.latest_result, plan.identity.graph.option_local_name, false) &&
         plan.initial_result != plan.none_result &&
         plan.none_result != plan.latest_result &&
-        MirSsaNameMatches(plan.pair_result, graph.pair_local_name, false) &&
-        MirSsaNameMatches(plan.built_result, graph.built_local_name, false) &&
         MirSsaNameMatches(
-            plan.unwrapped_result, graph.unwrapped_local_name, false
+            plan.pair_result, plan.identity.graph.pair_local_name, false) &&
+        MirSsaNameMatches(
+            plan.built_result, plan.identity.graph.built_local_name, false) &&
+        MirSsaNameMatches(
+            plan.unwrapped_result,
+            plan.identity.graph.unwrapped_local_name, false
         ) && plan.value_carriage ==
             DirectMirOptionStructValueFlowCarriage() &&
         plan.unwrap_policy == DirectMirOptionStructValueFlowUnwrapPolicy();
@@ -86,7 +92,7 @@ func DirectMirOptionStructValueFlowPlanReady(
 
 func DirectMirOptionStructValueFlowPlanFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref classification: DirectMirTwoRoutineNominalClassificationFact
+    own classification: DirectMirTwoRoutineNominalClassificationFact
 ) -> DirectMirOptionStructValueFlowPlan {
     let identity: DirectMirOptionStructValueFlowProgramIdentity =
         DirectMirOptionStructValueFlowProgramIdentityFromAdmitted(

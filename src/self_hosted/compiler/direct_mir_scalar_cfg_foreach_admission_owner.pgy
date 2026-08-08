@@ -119,9 +119,9 @@ func DirectMirScalarCfgForEachFactsFromOwners(
             while local_binding < index.block_instruction_counts[block] {
                 let instruction: Int = index.block_instruction_starts[block] + local_binding;
                 let global: Int = index.instruction_facts.global_start + instruction;
-                let matches: Bool = expected == 1 || (wire.required &&
-                    wire.primary_refs[instruction] == expected_ref);
-                if matches && admitted.routines.instruction_source_types[global] ==
+                if ((expected == 1) || (wire.required &&
+                        wire.primary_refs[instruction] == expected_ref)) &&
+                    admitted.routines.instruction_source_types[global] ==
                         "AST_FOR_LOOP" {
                     if admitted.routines.instruction_kinds[global] == "loop-init" {
                         if init_global >= 0 { return invalid; }
@@ -175,7 +175,7 @@ func DirectMirScalarCfgForEachFactsFromOwners(
                 collection_value, init.expr0,
                 index.iteration_type_facts.binding_types[type_row],
                 index.iteration_type_facts.iterable_types[type_row],
-                index.iteration_type_facts.collection_hoists[type_row],
+                index.iteration_type_facts.collection_hoists[type_row] == 1,
                 producer
             );
         if !collection.valid ||
@@ -219,7 +219,8 @@ func DirectMirScalarCfgForEachFactsFromOwners(
         }
         let receipt_elements: Array<Int> = collection.fact.elements;
         if collection.element_type == CompilerAbiLayoutStringTypeName() {
-            receipt_elements = [];
+            let string_receipt_elements: Array<Int> = [];
+            receipt_elements = string_receipt_elements;
             let string_start: Int =
                 ArrayLength(elements.string_elements);
             let string_row: Int = 0;

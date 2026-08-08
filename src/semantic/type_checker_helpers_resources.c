@@ -93,8 +93,14 @@ semantic_require_no_live_text_builder(Scope *scope, ASTNode *site,
                                       SemanticContext *ctx,
                                       const char *boundary)
 {
+    const char *consumer_name;
+
     if (scope == NULL || ctx == NULL)
         return true;
+    consumer_name = ctx->current_function_decl != NULL
+        && ast_declaration_name(ctx->current_function_decl) != NULL
+        ? ast_declaration_name(ctx->current_function_decl)
+        : "<anonymous>";
     for (Scope *current = scope; current != NULL; current = current->parent) {
         for (size_t i = 0; i < current->symbol_count; i++) {
             Symbol *symbol = current->symbols[i];
@@ -106,7 +112,7 @@ semantic_require_no_live_text_builder(Scope *scope, ASTNode *site,
                 PGY_CAUSE_OWNER_NOT_CONSUMED,
                 PGY_FIX_CONSUME_OWNER_BEFORE_EXIT,
                 site,
-                "TextBuilder owner '%s' is still live at %s.\n"
+                "TextBuilder owner '%s' is still live at %s in '%s'.\n"
                 "Reason:\n"
                 "- the bounded TextBuilder rung requires exactly one Finish or Drop in its declaration scope\n"
                 "- implicit cleanup is not yet a MIR-owned fact\n"
@@ -115,6 +121,7 @@ semantic_require_no_live_text_builder(Scope *scope, ASTNode *site,
                 "- or call TextBuilderDrop(%s) before %s",
                 symbol->name != NULL ? symbol->name : "<builder>",
                 boundary != NULL ? boundary : "scope exit",
+                consumer_name,
                 symbol->name != NULL ? symbol->name : "builder",
                 boundary != NULL ? boundary : "scope exit",
                 symbol->name != NULL ? symbol->name : "builder",

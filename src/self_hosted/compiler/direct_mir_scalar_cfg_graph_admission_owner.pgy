@@ -169,11 +169,9 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                 if !expression.valid {
                     Die("direct MIR indexed Array assignment is invalid");
                 }
-                collections =
-                    DirectMirScalarCfgCollectionPlanAtGraphOperation(
-                        collections, global_row,
-                        ArrayLength(operation_kinds)
-                    );
+                DirectMirScalarCfgCollectionPlanAtGraphOperation(
+                    collections, global_row, ArrayLength(operation_kinds)
+                );
                 if !collections.valid {
                     Die("direct MIR indexed Array operation binding is invalid");
                 }
@@ -230,7 +228,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                     Die("direct MIR scalar CFG definition fact is invalid");
                 }
                 if string_access >= 0 {
-                    string_arrays = DirectMirScalarCfgStringArrayPlanAtOperation(
+                    DirectMirScalarCfgStringArrayPlanAtOperation(
                         string_arrays, global_row, ArrayLength(operation_kinds)
                     );
                 }
@@ -298,11 +296,9 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                 if !expression.valid {
                     Die("direct MIR indexed Array observation is invalid");
                 }
-                collections =
-                    DirectMirScalarCfgCollectionPlanAtGraphOperation(
-                        collections, global_row,
-                        ArrayLength(operation_kinds)
-                    );
+                DirectMirScalarCfgCollectionPlanAtGraphOperation(
+                    collections, global_row, ArrayLength(operation_kinds)
+                );
                 if !collections.valid {
                     Die("direct MIR indexed Array operation binding is invalid");
                 }
@@ -346,7 +342,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                     Die("direct MIR scalar CFG Log fact is invalid");
                 }
                 if string_access >= 0 {
-                    string_arrays = DirectMirScalarCfgStringArrayPlanAtOperation(
+                    DirectMirScalarCfgStringArrayPlanAtOperation(
                         string_arrays, global_row, ArrayLength(operation_kinds)
                     );
                 }

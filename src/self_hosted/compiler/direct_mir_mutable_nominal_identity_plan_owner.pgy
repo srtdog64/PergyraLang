@@ -91,7 +91,7 @@ func DirectMirMutableNominalIdentityPlanReady(
 }
 
 func DirectMirMutableNominalIdentityPlanFromAdmission(
-    ref admission: DirectMirNominalLiteralProgramAdmission
+    own admission: DirectMirNominalLiteralProgramAdmission
 ) -> DirectMirMutableNominalIdentityPlan {
     if !DirectMirNominalLiteralProgramAdmissionReady(admission) ||
         admission.program.declaration.receiver_carriage !=

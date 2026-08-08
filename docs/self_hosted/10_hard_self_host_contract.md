@@ -294,3 +294,35 @@ Hard self-host validation also follows the repository validation isolation
 policy in `../152_validation_isolation_policy.md`. A self-hosted rung may run
 only the contract/parity evidence for the owner it substitutes unless a broader
 compiler-world owner changed or the user explicitly asks for broad parity.
+
+## Bootstrap Evidence Is Conjunctive
+
+The integrated driver bootstrap has three independent claims:
+
+1. the native compiler can build the oracle driver;
+2. the Pergyra-built seed and native oracle emit equal owned artifacts;
+3. gen2 and gen3 reproduce the same complete-source artifact.
+
+All three are required for bootstrap parity. `gen2 == gen3` proves a fixed
+point, not correctness against the native oracle. A runnable seed proves that
+the bounded producer exists, not that the oracle comparison happened. If the
+native oracle cannot be built, the bootstrap gate fails closed; it must not
+skip oracle comparisons and report seed-only success.
+
+The ownership rules at this boundary are:
+
+- a pure read query keeps `ref` end to end;
+- a value stored in a longer-lived plan is transferred with `own` or reduced
+  to a typed scalar receipt owned by that plan;
+- repeated plan updates use `inout` until consume-and-rebind is proven to
+  reinitialize the binding in the language semantics;
+- a borrowed aggregate is not copied into a second authority; retain the
+  original owner and store only the digest, layout identity, or other typed
+  receipt the consumer actually needs;
+- a whole graph storage value is consumed once at its last split; blanket
+  cloning is not an ownership repair.
+
+`tests/self_hosted/parity/direct_mir_mutation_ownership_contract.sh` is the
+focused positive/negative falsifier for these rules. The integrated bootstrap
+remains the acceptance gate because it proves the production import-composed
+driver, not only the small ownership fixture.

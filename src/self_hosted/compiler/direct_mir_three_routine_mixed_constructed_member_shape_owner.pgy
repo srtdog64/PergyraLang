@@ -43,25 +43,29 @@ func DirectMirThreeRoutineMixedConstructedMemberShapeFactReady(
 func DirectMirThreeRoutineMixedConstructedMemberShapeFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> DirectMirThreeRoutineMixedConstructedMemberShapeFact {
-    let declarations: MirProgramDeclarationIndex =
-        admitted.domain_runtime_admission.declarations;
     if MirProgramRoutineIndexCount(admitted.routines) != 3 ||
         !MirProgramRoutineIndexStructureReady(admitted.routines) ||
-        !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 2 {
+        !admitted.domain_runtime_admission.declarations.valid ||
+        MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations) != 2 {
         return InvalidDirectMirThreeRoutineMixedConstructedMemberShapeFact();
     }
     let record_name: String = "";
     let class_name: String = "";
     let row: Int = 0;
     while row < 2 {
-        if declarations.kinds[row] == "struct" &&
-            declarations.nominal_kinds[row] == "struct" &&
+        if admitted.domain_runtime_admission.declarations.kinds[row] ==
+                "struct" && admitted.domain_runtime_admission.declarations
+                .nominal_kinds[row] == "struct" &&
             record_name == "" {
-            record_name = declarations.names[row];
-        } else if declarations.kinds[row] == "class" &&
-            declarations.nominal_kinds[row] == "class" &&
+            record_name =
+                admitted.domain_runtime_admission.declarations.names[row];
+        } else if admitted.domain_runtime_admission.declarations.kinds[row] ==
+                "class" && admitted.domain_runtime_admission.declarations
+                .nominal_kinds[row] == "class" &&
             class_name == "" {
-            class_name = declarations.names[row];
+            class_name =
+                admitted.domain_runtime_admission.declarations.names[row];
         } else {
             return InvalidDirectMirThreeRoutineMixedConstructedMemberShapeFact();
         }

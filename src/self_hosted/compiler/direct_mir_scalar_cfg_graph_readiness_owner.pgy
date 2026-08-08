@@ -230,7 +230,10 @@ func DirectMirScalarCfgGraphPlanReady(
     if !DirectMirScalarCfgRangeGraphReady(plan) ||
         !DirectMirScalarCfgForEachGraphReady(plan) ||
         !DirectMirScalarCfgStringArrayGraphReady(plan) ||
-        !DirectMirScalarCfgArrayIntProgramReady(plan) ||
+        !DirectMirScalarCfgArrayIntProgramReady(
+            plan, plan.array_int_program,
+            plan.array_int_program.producer,
+            plan.array_int_program.consumer) ||
         !DirectMirScalarCfgCollectionPopProgramReady(plan) ||
         !DirectMirScalarCfgCollectionPlanReady(plan) ||
         !DirectMirScalarCfgTypedPlanReady(plan) ||

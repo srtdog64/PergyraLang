@@ -18,6 +18,7 @@ import "../runtime_abi/checked_division_runtime_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
 
 struct CodegenSemanticLeafBindingProjection {
+    place_ready: Bool;
     applies: Bool;
     ok: Bool;
     c_name: String;
@@ -33,17 +34,15 @@ func CodegenSemanticLeafBindingProjectionFromGraph(
         graph, node_id
     );
     if !IsSome(place_kind) {
-        return CodegenSemanticLeafBindingProjection(true, false, "");
+        return CodegenSemanticLeafBindingProjection(false, false, false, "");
     }
     if !SemanticExpressionPlaceKindDirectBinding(
         UnwrapOption(place_kind)
     ) {
-        return CodegenSemanticLeafBindingProjection(false, true, "");
+        return CodegenSemanticLeafBindingProjection(true, false, true, "");
     }
     let c_name: String = LookupKindType(env, text, "cbind");
-    return CodegenSemanticLeafBindingProjection(
-        true, c_name != "", c_name
-    );
+    return CodegenSemanticLeafBindingProjection(true, true, c_name != "", c_name);
 }
 
 func RewriteSemanticLeaf(
@@ -57,6 +56,9 @@ func RewriteSemanticLeaf(
             CodegenSemanticLeafBindingProjectionFromGraph(
                 graph, node_id, text, env
             );
+        if !binding.place_ready {
+            Die(Concat("semantic leaf place-kind fact is missing: ", text));
+        }
         if !binding.ok {
             Die(Concat("semantic leaf binding fact is missing: ", text));
         }

@@ -7,8 +7,6 @@ func DirectMirInferredGenericNominalProgramEnvelopeReady(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref classification: DirectMirTwoRoutineClassificationFact
 ) -> Bool {
-    let declarations: MirProgramDeclarationIndex =
-        admitted.domain_runtime_admission.declarations;
     let specializations: JsonArrayObjectFactTable =
         JsonObjectFactArrayObjectTable(
             admitted.document.root, "generic_method_specializations"
@@ -20,7 +18,9 @@ func DirectMirInferredGenericNominalProgramEnvelopeReady(
         admitted.document.routines.json != admitted.routines.source_json ||
         JsonObjectFactCount(admitted.document.root) != 5 ||
         !DirectMirTwoRoutineNominalProgramCandidate(admitted) ||
-        !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 ||
+        !admitted.domain_runtime_admission.declarations.valid ||
+        MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations) != 1 ||
         !JsonArrayObjectFactTableReady(specializations) ||
         JsonArrayObjectFactCount(specializations) != 2 ||
         !JsonArrayObjectFactTableReady(

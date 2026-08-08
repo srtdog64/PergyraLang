@@ -27,7 +27,11 @@ require_assignable(Type *from, Type *to, const ASTNode *site,
         PGY_CAUSE_ASSIGNABILITY_CHECK,
         PGY_FIX_ANNOTATE_OR_CONVERT,
         site,
-        "Type mismatch: cannot assign '%s' to '%s'",
+        "Type mismatch in '%s': cannot assign '%s' to '%s'",
+        ctx != NULL && ctx->current_function_decl != NULL
+            && ast_declaration_name(ctx->current_function_decl) != NULL
+            ? ast_declaration_name(ctx->current_function_decl)
+            : "<anonymous>",
         from->name, to->name);
     return false;
 }

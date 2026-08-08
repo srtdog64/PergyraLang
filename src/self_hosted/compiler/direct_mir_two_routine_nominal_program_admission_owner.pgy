@@ -19,15 +19,16 @@ func DirectMirTwoRoutineNominalProgramEnvelopeReady(
         JsonObjectFactArrayObjectTable(
             admitted.document.root, "generic_method_specializations"
         );
-    let declarations: MirProgramDeclarationIndex =
-        admitted.domain_runtime_admission.declarations;
     if !admitted.document.valid || admitted.domain_topology_plan.present ||
         admitted.document.routines.json != admitted.routines.source_json ||
         JsonObjectFactCount(admitted.document.root) != 5 ||
         !DirectMirTwoRoutineNominalProgramCandidate(admitted) ||
         !DirectMirTwoRoutineNominalClassificationReady(classification) ||
-        !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 ||
-        classification.declaration_name != declarations.names[0] ||
+        !admitted.domain_runtime_admission.declarations.valid ||
+        MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations) != 1 ||
+        classification.declaration_name !=
+            admitted.domain_runtime_admission.declarations.names[0] ||
         classification.entrypoint.row < 0 ||
         classification.entrypoint.row >= 2 ||
         classification.producer.row < 0 || classification.producer.row >= 2 ||

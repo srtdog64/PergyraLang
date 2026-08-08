@@ -38,7 +38,7 @@ func DirectMirScalarCfgUseValueRow(
     global_row: Int,
     use_row: Int,
     node_text: String,
-    value_names: Array<String>
+    ref value_names: Array<String>
 ) -> Int {
     let use_opt: Option<String> = MirRoutineInstructionUseAtGlobal(
         use_facts, global_row, use_row
@@ -55,7 +55,7 @@ func DirectMirScalarCfgUseValueRow(
 // Unique-name row lookup for the scalar-CFG owners. In the graph-fact
 // aggregator it closed five base->aggregator import cycles native rejects.
 func DirectMirScalarCfgGraphValueRow(
-    names: Array<String>, wanted: String
+    ref names: Array<String>, wanted: String
 ) -> Int {
     let found: Int = 0 - 1;
     let row: Int = 0;

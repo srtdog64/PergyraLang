@@ -23,8 +23,9 @@ func DirectMirConstructedGenericMemberOptionAbiFromResult(
     if !IsSome(admitted) {
         Die("direct MIR constructed member Option ABI receipt is missing");
     }
+    let capture: MirAbiLayoutRowCapture = UnwrapOption(admitted);
     let fact: DirectMirOptionMatchAbiFact =
-        DirectMirOptionMatchAbiFactFromCapture(UnwrapOption(admitted));
+        DirectMirOptionMatchAbiFactFromCapture(capture);
     if !DirectMirOptionMatchAbiFactReady(fact) {
         Die("direct MIR constructed member Option ABI identity is invalid");
     }

@@ -37,6 +37,31 @@ for required in \
     fi
 done
 
+require_job_timeout() {
+    local job="$1"
+    local expected="$2"
+    local actual
+    actual="$(awk -v job="$job" '
+        $0 == "  " job ":" { in_job = 1; next }
+        in_job && /^  [A-Za-z0-9_-]+:/ { exit }
+        in_job && /timeout-minutes:/ {
+            sub(/^[[:space:]]*timeout-minutes:[[:space:]]*/, "")
+            sub(/[[:space:]]*#.*/, "")
+            print
+            exit
+        }
+    ' "$WORKFLOW")"
+    if [[ "$actual" != "$expected" ]]; then
+        echo "[self-host-ci-profile] $job timeout drifted: expected $expected, got ${actual:-missing}" >&2
+        exit 1
+    fi
+}
+
+require_job_timeout "self-host-parity-linux" 40
+require_job_timeout "self-host-bootstrap-linux" 60
+require_job_timeout "self-host-codegen-bootstrap-linux" 30
+require_job_timeout "build-windows" 45
+
 for steps in "$LINUX_STEPS" "$MACOS_STEPS" "$WINDOWS_STEPS"; do
     if ! grep -Fq 'self-host-preparation-platform-test-smoke' "$steps"; then
         echo "[self-host-ci-profile] platform profile missing from $steps" >&2

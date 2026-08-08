@@ -9,7 +9,9 @@ func DirectMirScalarCfgGraphPlanMutationRejected(
 ) -> Bool {
     let mutated: DirectMirScalarCfgGraphPlan =
         DirectMirScalarCfgGraphPlanWithDigest(plan, plan.digest + 1);
+    let routine_partition: DirectMirScalarCfgRoutinePartitionFact =
+        plan.routines;
     return !DirectMirScalarCfgGraphPlanReady(mutated) &&
         DirectMirScalarCfgProgramExtensionMutationRejected() &&
-        DirectMirScalarCfgRoutinePartitionMutationRejected(plan.routines);
+        DirectMirScalarCfgRoutinePartitionMutationRejected(routine_partition);
 }

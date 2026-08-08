@@ -157,6 +157,21 @@ void        mir_routine_inventory_from_program(
 const MIRRoutine *mir_routine_inventory_get(
                 const MIRRoutineInventory *inventory,
                 size_t index);
+typedef enum
+{
+    MIR_ROUTINE_SOURCE_LOOKUP_INVALID = 0,
+    MIR_ROUTINE_SOURCE_LOOKUP_MISSING,
+    MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE,
+    MIR_ROUTINE_SOURCE_LOOKUP_DUPLICATE
+} MIRRoutineSourceLookupStatus;
+typedef struct
+{
+    MIRRoutineSourceLookupStatus status;
+    const MIRRoutine            *routine;
+} MIRRoutineSourceLookup;
+MIRRoutineSourceLookup mir_routine_inventory_find_unique_by_source_syntax_id(
+                const MIRRoutineInventory *inventory,
+                uint32_t source_syntax_id);
 void        mir_decl_header_inventory_from_program(
                 const MIRProgram *mir,
                 MIRDeclHeaderInventory *inventory);
@@ -168,6 +183,7 @@ ASTNode    *mir_routine_source_decl_of_type(const MIRRoutine *routine,
                                             MIRScopeKind expected_kind,
                                             ASTNodeType expected_ast_type);
 MIRScopeKind mir_routine_kind(const MIRRoutine *routine);
+uint32_t    mir_routine_source_syntax_id(const MIRRoutine *routine);
 const char *mir_routine_name(const MIRRoutine *routine);
 const char *mir_routine_owner_name(const MIRRoutine *routine);
 ASTNodeType mir_routine_owner_ast_type(const MIRRoutine *routine);

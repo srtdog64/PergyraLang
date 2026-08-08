@@ -3,12 +3,11 @@
 import "direct_mir_scalar_cfg_c_collection_operation_fact_owner.pgy";
 
 func DirectMirScalarCfgArrayIntReverseCOperation(
-    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref fact: DirectMirScalarCfgArrayIntReverseFact, operation: Int,
     formatted_print: CompilerRuntimeCallAbiFact,
     int_line_format: String, int_c_type: String
 ) -> DirectMirScalarCfgCCollectionOperationEmission {
-    let fact: DirectMirScalarCfgArrayIntReverseFact =
-        plan.array_int_program.reverse;
     if plan.array_int_program.mode !=
             DirectMirScalarCfgArrayIntFreshReverseMode() || !fact.valid {
         return DirectMirScalarCfgCCollectionOperationEmission(false, "");

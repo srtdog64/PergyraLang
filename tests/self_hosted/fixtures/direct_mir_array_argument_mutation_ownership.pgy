@@ -1,0 +1,10 @@
+import "../../../src/self_hosted/compiler/direct_mir_array_argument_plan_owner.pgy";
+import "../../../src/self_hosted/mir_lower/match_json_fact_owner.pgy";
+struct OwnershipPlanRows { let rows: Array<Int>; }
+struct OwnershipGraphPlan { let routine: OwnershipPlanRows; let locals: OwnershipPlanRows; let types: OwnershipPlanRows; }
+func OwnershipPlanUpdate(inout source: OwnershipPlanRows) -> Void { let rows: Array<Int> = source.rows; ArrayPush(rows, 1); source = OwnershipPlanRows(rows); }
+func OwnershipGraphSeal(own routine: OwnershipPlanRows, own locals: OwnershipPlanRows, own types: OwnershipPlanRows) -> OwnershipGraphPlan { return OwnershipGraphPlan(routine, locals, types); }
+
+func DirectMirArrayArgumentMutationOwnershipProbe(own plan: DirectMirArrayArgumentPlan) -> Bool { return DirectMirArrayArgumentPlanMutationRejected(plan); }
+func OwnershipPlanInoutUpdate() -> OwnershipPlanRows { let current: OwnershipPlanRows = OwnershipPlanRows([0]); OwnershipPlanUpdate(current); return current; }
+func Main() -> Void { Log(DirectMirArrayArgumentPlanSchema()); }

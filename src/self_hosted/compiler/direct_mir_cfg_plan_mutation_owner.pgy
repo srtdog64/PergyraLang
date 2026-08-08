@@ -60,8 +60,9 @@ func DirectMirCfgPlanMutationRejected(own plan: DirectMirCfgPlan) -> Bool {
         bad_loop_plan = DirectMirCfgPlanWithDigest(
             bad_loop_plan, DirectMirCfgPlanIdentityDigest(bad_loop_plan)
         );
+        let loop_fact: DirectMirLoopCfgPlanFact = plan.loop_fact;
         bad_loop_rejected = !DirectMirCfgPlanReady(bad_loop_plan) &&
-            DirectMirLoopCfgPlanFactMutationRejected(plan.loop_fact);
+            DirectMirLoopCfgPlanFactMutationRejected(loop_fact);
     }
     let bad_enum_rejected: Bool = true;
     if DirectMirEnumValueMatchPlanFactReady(plan.enum_match) {

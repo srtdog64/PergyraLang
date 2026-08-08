@@ -3,7 +3,7 @@
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 
 func DirectMirScalarCfgRoutinePartitionMutationRejected(
-    ref fact: DirectMirScalarCfgRoutinePartitionFact
+    own fact: DirectMirScalarCfgRoutinePartitionFact
 ) -> Bool {
     if !fact.valid || ArrayLength(fact.block_starts) < 1 { return false; }
     let bad_block_starts: Array<Int> = [];

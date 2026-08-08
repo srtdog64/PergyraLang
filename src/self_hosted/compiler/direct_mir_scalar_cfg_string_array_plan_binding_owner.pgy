@@ -50,7 +50,7 @@ func DirectMirScalarCfgStringArrayBoundIndex(
 }
 
 func DirectMirScalarCfgStringArrayPlanAtLocalRows(
-    ref source: DirectMirScalarCfgStringArrayPlan,
+    own source: DirectMirScalarCfgStringArrayPlan,
     ref local_refs: DirectMirScalarCfgLocalRefPlan
 ) -> DirectMirScalarCfgStringArrayPlan {
     if DirectMirScalarCfgStringArrayPlanAbsent(source) { return source; }
@@ -94,14 +94,14 @@ func DirectMirScalarCfgStringArrayPlanAtLocalRows(
 }
 
 func DirectMirScalarCfgStringArrayPlanAtOperation(
-    ref source: DirectMirScalarCfgStringArrayPlan,
+    inout source: DirectMirScalarCfgStringArrayPlan,
     global_row: Int, operation_row: Int
-) -> DirectMirScalarCfgStringArrayPlan {
+) -> Void {
     let access_row: Int = DirectMirScalarCfgStringArrayAccessRowAtGlobal(
         source, global_row
     );
     if access_row < 0 || source.accesses.operation_rows[access_row] >= 0 {
-        return source;
+        return;
     }
     let operation_rows: Array<Int> = source.accesses.operation_rows;
     ArraySet(operation_rows, access_row, operation_row);
@@ -118,7 +118,7 @@ func DirectMirScalarCfgStringArrayPlanAtOperation(
         DirectMirScalarCfgStringArrayPlan(
             true, 0, source.collections, source.lengths, accesses
         );
-    return DirectMirScalarCfgStringArrayPlanWithDigest(
+    source = DirectMirScalarCfgStringArrayPlanWithDigest(
         plan, DirectMirScalarCfgStringArrayPlanDigest(plan)
     );
 }

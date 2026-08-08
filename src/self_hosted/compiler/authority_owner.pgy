@@ -2,9 +2,11 @@
 //
 // Declares WHO may act at the compiler world's sensitive boundaries, as
 // declared abilities satisfied through roles. world.pgy consumes these via
-// zone `authority <slot> requires <Ability>` annotations and intent step
-// `requires:` / `authorized by:` clauses. Every executable intent step names
-// an authority carrier. The abilities below make that carrier a checked
+// zone `authority <slot> requires <Ability>` annotations and action contracts.
+// An intent step names an authority carrier directly when it owns the effect;
+// a nested orchestration step consumes the matching action contract without
+// restating identical `requires:` / `authorized by:` clauses. The abilities
+// below make that carrier a checked
 // compiler responsibility rather than an untyped alias: roles satisfy the
 // capability and zones admit the matching subject slot. The marker funcs
 // become load-bearing as stage actors publish provenance rows.

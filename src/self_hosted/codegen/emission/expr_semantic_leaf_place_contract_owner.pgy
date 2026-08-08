@@ -24,7 +24,18 @@ func CodegenSemanticLeafPlaceContractReady() -> Bool {
         CodegenSemanticLeafBindingProjectionFromGraph(
             graph, 0, "missing", env
         );
-    if !missing.applies || missing.ok { return false; }
+    if !missing.place_ready || !missing.applies || missing.ok {
+        return false;
+    }
+    graph.arena.place_kinds[0] = SemanticExpressionPlaceUnknown();
+    let missing_place: CodegenSemanticLeafBindingProjection =
+        CodegenSemanticLeafBindingProjectionFromGraph(
+            graph, 0, "shadow", env
+        );
+    if missing_place.place_ready || missing_place.applies ||
+        missing_place.ok {
+        return false;
+    }
     graph.arena.place_kinds[0] = SemanticExpressionPlaceValue();
     return RewriteSemanticLeaf(graph, 0, "Choice", env) == "7" &&
         RewriteSemanticLeaf(graph, 0, "CallMe", env) ==

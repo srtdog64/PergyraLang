@@ -40,10 +40,10 @@ func DirectMirTwoRoutineShapeFactReady(
 func DirectMirTwoRoutineShapeFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> DirectMirTwoRoutineShapeFact {
-    let declarations: MirProgramDeclarationIndex =
-        admitted.domain_runtime_admission.declarations;
     if !DirectMirTwoRoutineNominalProgramCandidate(admitted) ||
-        !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 ||
+        !admitted.domain_runtime_admission.declarations.valid ||
+        MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations) != 1 ||
         !MirProgramRoutineIndexStructureReady(admitted.routines) {
         return DirectMirTwoRoutineShapeFact(false, 0, "", "", 0, 0);
     }
@@ -64,7 +64,8 @@ func DirectMirTwoRoutineShapeFactFromAdmitted(
         row = row + 1;
     }
     let fact: DirectMirTwoRoutineShapeFact = DirectMirTwoRoutineShapeFact(
-        true, 0, declarations.kinds[0], declarations.nominal_kinds[0],
+        true, 0, admitted.domain_runtime_admission.declarations.kinds[0],
+        admitted.domain_runtime_admission.declarations.nominal_kinds[0],
         generic_count, method_count
     );
     let verified: DirectMirTwoRoutineShapeFact = DirectMirTwoRoutineShapeFact(

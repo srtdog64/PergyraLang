@@ -1,0 +1,19 @@
+struct BorrowedMutationPlan {
+    let rows: Array<Int>;
+}
+
+struct BorrowedMutationEnvelope {
+    let plan: BorrowedMutationPlan;
+}
+
+func BorrowedMutationConstructorStoreRejected(
+    ref plan: BorrowedMutationPlan
+) -> Bool {
+    let envelope: BorrowedMutationEnvelope =
+        BorrowedMutationEnvelope(plan);
+    return ArrayLength(envelope.plan.rows) == 0;
+}
+
+func Main() -> Void {
+    Log("borrowed-ref-constructor-store-negative");
+}

@@ -1,0 +1,5 @@
+namespace Math {
+    export func Add(a: Int, b: Int) -> Int {
+        return a + b;
+    }
+}

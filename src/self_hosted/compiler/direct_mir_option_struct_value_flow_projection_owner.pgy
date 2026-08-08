@@ -5,7 +5,7 @@ import "direct_mir_option_struct_value_flow_llvm_emission_owner.pgy";
 
 func CompileAdmittedDirectMirOptionStructValueFlow(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref classification: DirectMirTwoRoutineNominalClassificationFact,
+    own classification: DirectMirTwoRoutineNominalClassificationFact,
     is_llvm: Bool,
     formatted_print: CompilerRuntimeCallAbiFact,
     line_format: String

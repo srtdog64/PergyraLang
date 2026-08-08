@@ -6,7 +6,8 @@ import "direct_mir_nominal_abi_row_equality_owner.pgy";
 struct DirectMirConstructedRecordArrayMemberPointAbiFact {
     let valid: Bool;
     let digest: Int;
-    let declaration: DirectMirNominalDeclarationAbiFact;
+    let declaration_digest: Int;
+    let declaration_layout_id: Int;
     let point_layout_id: Int;
     let first_layout_id: Int;
 }
@@ -15,7 +16,8 @@ func DirectMirConstructedRecordArrayMemberPointAbiDigest(
     ref fact: DirectMirConstructedRecordArrayMemberPointAbiFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(461L, fact.declaration.digest);
+    let hash: Long = DirectMirCfgHashInt(461L, fact.declaration_digest);
+    hash = DirectMirCfgHashInt(hash, fact.declaration_layout_id);
     hash = DirectMirCfgHashInt(hash, fact.point_layout_id);
     hash = DirectMirCfgHashInt(hash, fact.first_layout_id);
     return DirectMirCfgBoundedDigest(hash);
@@ -45,9 +47,9 @@ func DirectMirConstructedRecordArrayMemberPointAbiFactReady(
 ) -> Bool {
     return fact.valid && fact.digest != 0 && fact.digest ==
         DirectMirConstructedRecordArrayMemberPointAbiDigest(fact) &&
-        DirectMirConstructedRecordArrayPointLayoutReady(fact.declaration) &&
-        fact.point_layout_id == fact.declaration.abi_layout_id &&
-        fact.first_layout_id == fact.declaration.abi_layout_id;
+        fact.declaration_digest != 0 && fact.declaration_layout_id != 0 &&
+        fact.point_layout_id == fact.declaration_layout_id &&
+        fact.first_layout_id == fact.declaration_layout_id;
 }
 
 func DirectMirConstructedRecordArrayCapturedPointAbi(
@@ -77,20 +79,23 @@ func DirectMirConstructedRecordArrayMemberPointAbiFromMain(
         DirectMirConstructedRecordArrayCapturedPointAbi(json, main.point);
     let first: MirAbiLayoutRowCapture =
         DirectMirConstructedRecordArrayCapturedPointAbi(json, main.first);
-    if !DirectMirStructAbiRowsEqual(point, identity.record.abi) ||
+    if !DirectMirConstructedRecordArrayPointLayoutReady(identity.record) ||
+        !DirectMirStructAbiRowsEqual(point, identity.record.abi) ||
         !DirectMirStructAbiRowsEqual(first, identity.record.abi) {
         Die("direct MIR constructed record Array Point ABI receipts disagree");
     }
     let fact: DirectMirConstructedRecordArrayMemberPointAbiFact =
         DirectMirConstructedRecordArrayMemberPointAbiFact(
-            true, 0, identity.record, MirAbiLayoutIdFromCapture(point),
+            true, 0, identity.record.digest,
+            identity.record.abi_layout_id, MirAbiLayoutIdFromCapture(point),
             MirAbiLayoutIdFromCapture(first)
         );
     let verified: DirectMirConstructedRecordArrayMemberPointAbiFact =
         DirectMirConstructedRecordArrayMemberPointAbiFact(
             fact.valid,
             DirectMirConstructedRecordArrayMemberPointAbiDigest(fact),
-            fact.declaration, fact.point_layout_id, fact.first_layout_id
+            fact.declaration_digest, fact.declaration_layout_id,
+            fact.point_layout_id, fact.first_layout_id
         );
     if !DirectMirConstructedRecordArrayMemberPointAbiFactReady(verified) {
         Die("direct MIR constructed record Array Point ABI fact is invalid");

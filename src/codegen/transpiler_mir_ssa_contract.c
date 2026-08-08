@@ -17,6 +17,33 @@
 #include "codegen_type_mapping.h"
 #include "../parser/ast_api.h"
 
+/* Imported namespace calls retain a member-access callee in the carried AST.
+ * The namespace name is not an SSA receiver. Skip it only when the semantic
+ * callee identity joins uniquely to a MIR function routine. */
+static bool
+transpiler_call_targets_static_function(
+    const TranspilerCtx *ctx,
+    const ASTNode *call)
+{
+    const ASTNode *callee;
+    MIRRoutineSourceLookup lookup;
+    uint32_t callee_decl_id;
+
+    if (ctx == NULL || call == NULL || call->type != AST_CALL)
+        return false;
+    callee = ast_call_callee(call);
+    if (callee == NULL || callee->type != AST_MEMBER_ACCESS)
+        return false;
+    callee_decl_id = ast_call_semantic_callee_decl_id(call);
+    if (callee_decl_id == 0)
+        return false;
+    lookup = transpiler_active_routine_lookup_by_source_syntax_id(
+        ctx, callee_decl_id);
+    return lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE
+        && lookup.routine != NULL
+        && transpiler_mir_routine_kind(lookup.routine) == MIR_SCOPE_FUNCTION;
+}
+
 bool
 transpiler_seed_expr_identifier_mappings(const MIRBasicBlock *block,
                                          size_t inst_index,
@@ -188,7 +215,8 @@ transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
                 return true;
             }
             if (callee != NULL
-                && callee->type != AST_IDENTIFIER) {
+                && callee->type != AST_IDENTIFIER
+                && !transpiler_call_targets_static_function(ctx, expr)) {
                 if (!transpiler_expr_identifiers_mapped(ctx, callee, ssa_map,
                                                        routine_name, reason, reason_cap))
                     return false;

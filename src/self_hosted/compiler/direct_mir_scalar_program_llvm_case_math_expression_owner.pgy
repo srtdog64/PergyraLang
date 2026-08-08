@@ -9,33 +9,39 @@ func DirectMirScalarProgramLlvmCaseMathExpressionAt(
     arguments: Array<String>,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> DirectMirScalarProgramLlvmStringExpression {
-    let fact: CompilerRuntimeCallAbiFact = runtime.case_math.abs;
+    let symbol: String = "";
+    let ready: Bool = false;
     let return_type: String = "i64";
     let argument_type: String = "i64";
     let values: Array<String> = [];
     if kind == DirectMirScalarProgramExprStringReplace() {
-        fact = runtime.case_math.replace; return_type = "ptr";
+        symbol = runtime.case_math.replace.symbol;
+        ready = runtime.case_math.replace.ok; return_type = "ptr";
         argument_type = "ptr";
         let ordinal: Int = 0;
         while ordinal < ArrayLength(arguments) {
             ArrayPush(values, arguments[ordinal]); ordinal = ordinal + 1;
         }
     } else if kind == DirectMirScalarProgramExprAbsInt() {
+        symbol = runtime.case_math.abs.symbol;
+        ready = runtime.case_math.abs.ok;
         ArrayPush(values, left);
     } else if kind == DirectMirScalarProgramExprMinInt() {
-        fact = runtime.case_math.min;
+        symbol = runtime.case_math.min.symbol;
+        ready = runtime.case_math.min.ok;
         ArrayPush(values, left); ArrayPush(values, right);
     } else if kind == DirectMirScalarProgramExprMaxInt() {
-        fact = runtime.case_math.max;
+        symbol = runtime.case_math.max.symbol;
+        ready = runtime.case_math.max.ok;
         ArrayPush(values, left); ArrayPush(values, right);
     } else { return DirectMirScalarProgramLlvmStringExpressionMissing(); }
-    if !fact.ok || ArrayLength(values) < 1 {
+    if !ready || ArrayLength(values) < 1 {
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
     }
     let output: String = Concat("  ", Concat(result, Concat(
         " = call ", Concat(return_type, Concat(" @", Concat(
-        fact.symbol, "("))))));
+        symbol, "("))))));
     let ordinal: Int = 0;
     while ordinal < ArrayLength(values) {
         if ordinal > 0 { output = Concat(output, ", "); }

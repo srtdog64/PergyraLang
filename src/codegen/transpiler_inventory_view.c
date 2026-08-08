@@ -49,10 +49,37 @@ transpiler_routine_inventory_get(
     return &inventory->routines[index];
 }
 
+MIRRoutineSourceLookup
+transpiler_active_routine_lookup_by_source_syntax_id(
+    const TranspilerCtx *ctx,
+    uint32_t source_syntax_id)
+{
+    TranspilerMIRRoutineInventory inventory;
+    MIRRoutineInventory core_inventory;
+    MIRRoutineSourceLookup invalid;
+
+    if (ctx == NULL || source_syntax_id == 0) {
+        invalid.status = MIR_ROUTINE_SOURCE_LOOKUP_INVALID;
+        invalid.routine = NULL;
+        return invalid;
+    }
+    transpiler_active_routine_inventory(ctx, &inventory);
+    core_inventory.routines = inventory.routines;
+    core_inventory.count = inventory.count;
+    return mir_routine_inventory_find_unique_by_source_syntax_id(
+        &core_inventory, source_syntax_id);
+}
+
 MIRScopeKind
 transpiler_mir_routine_kind(const MIRRoutine *routine)
 {
     return mir_routine_kind(routine);
+}
+
+uint32_t
+transpiler_mir_routine_source_syntax_id(const MIRRoutine *routine)
+{
+    return mir_routine_source_syntax_id(routine);
 }
 
 const char *

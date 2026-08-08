@@ -3,6 +3,7 @@
 import "../../codegen/emission/assign_emit_owner.pgy";
 import "../../codegen/emission/function_binding_env_owner.pgy";
 import "../../semantic/ast_expression_call_target_capture_owner.pgy";
+import "../../semantic/ast_expression_place_fact_owner.pgy";
 
 func ProbeAssignmentFacts(
     target: String,
@@ -20,7 +21,9 @@ func ProbeAssignmentFacts(
 
 func ProbeExpressionGraph(
     expression: String,
-    carry_call_targets: Bool
+    carry_call_targets: Bool,
+    binding_name: String,
+    carry_binding_place_fact: Bool
 ) -> SemanticExpressionGraphView {
     let node_kinds: Array<Int> = [];
     let node_texts: Array<String> = [];
@@ -34,10 +37,26 @@ func ProbeExpressionGraph(
             call_target_kinds, call_target_names, expression
         );
     if !built.ok { Die("assignment projection probe graph build failed"); }
+    let place_kinds: Array<Int> = [];
+    let node_index: Int = 0;
+    while node_index < ArrayLength(node_kinds) {
+        let place_kind: Int = SemanticExpressionPlaceValue();
+        if binding_name != "" &&
+            node_kinds[node_index] == AstExpressionNodeLeaf() &&
+            node_texts[node_index] == binding_name {
+            if carry_binding_place_fact {
+                place_kind = SemanticExpressionPlaceBinding();
+            } else {
+                place_kind = SemanticExpressionPlaceUnknown();
+            }
+        }
+        ArrayPush(place_kinds, place_kind);
+        node_index = node_index + 1;
+    }
     let arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArenaUnclassified(
+        SemanticExpressionGraphArenaFromRows(
         node_kinds, node_texts, left_children, right_children,
-        call_target_kinds, call_target_names
+        call_target_kinds, call_target_names, place_kinds
     );
     let source: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
         true, [built.root_id], [true], arena
@@ -62,6 +81,10 @@ func ProbeExpressionGraph(
             Die("assignment projection probe call-target capture failed");
         }
     }
+    if carry_binding_place_fact &&
+        !SemanticExpressionGraphPlaceKindsReady(facts) {
+        Die("assignment projection probe place facts are incomplete");
+    }
     return SemanticExpressionGraphView(true, built.root_id, facts);
 }
 
@@ -71,16 +94,17 @@ func ProbeOptionAssignment(
     binding_type: String,
     expected_type: String,
     carry_call_targets: Bool,
-    carry_c_binding: Bool
+    carry_c_binding: Bool,
+    carry_place_facts: Bool
 ) -> String {
     let assignments: SemanticAstAssignmentFacts = ProbeAssignmentFacts(
         name, name, 0, "", expression
     );
     let graph: SemanticExpressionGraphView = ProbeExpressionGraph(
-        expression, carry_call_targets
+        expression, carry_call_targets, "", true
     );
     let target_graph: SemanticExpressionGraphView = ProbeExpressionGraph(
-        name, true
+        name, true, name, carry_place_facts
     );
     let base_env: CodegenTypeEnv = CodegenTypeEnvFromRows("|", "");
     let local_rows: String = "|";
@@ -99,17 +123,27 @@ func ProbeOptionAssignment(
     );
 }
 
-func ProbeIndexedAssignment(target_type: String) -> String {
+func ProbeIndexedAssignment(
+    target_type: String,
+    carry_place_facts: Bool,
+    carry_c_binding: Bool
+) -> String {
     let assignments: SemanticAstAssignmentFacts = ProbeAssignmentFacts(
         "nums[1]", "nums", 1, "1", "9"
     );
     let value_graph: SemanticExpressionGraphView = ProbeExpressionGraph(
-        "9", true
+        "9", true, "", true
     );
     let target_graph: SemanticExpressionGraphView =
-        ProbeExpressionGraph("nums[1]", true);
+        ProbeExpressionGraph(
+            "nums[1]", true, "nums", carry_place_facts
+        );
+    let local_rows: String = "|nums=v:ArrayInt|";
+    if carry_c_binding {
+        local_rows = Concat(local_rows, "nums=cbind:nums|");
+    }
     let env_state: Array<String> = [
-        "|", "|nums=v:ArrayInt|nums=cbind:nums|"
+        "|", local_rows
     ];
     let env: CodegenTypeEnv = CodegenTypeEnvFromRows(
         env_state[0], env_state[1]
@@ -131,24 +165,34 @@ func Main() -> Void {
     let args: Array<String> = Args();
     if ArrayLength(args) > 0 && args[0] == "--missing-expected-type" {
         Log(ProbeOptionAssignment(
-            "a", "Some(7)", "Option<Int>", "", true, true
+            "a", "Some(7)", "Option<Int>", "", true, true, true
         ));
         return;
     }
     if ArrayLength(args) > 0 && args[0] == "--missing-call-target" {
         Log(ProbeOptionAssignment(
-            "a", "Some(7)", "Option<Int>", "Option<Int>", false, true
+            "a", "Some(7)", "Option<Int>", "Option<Int>",
+            false, true, true
         ));
         return;
     }
     if ArrayLength(args) > 0 && args[0] == "--missing-c-binding" {
         Log(ProbeOptionAssignment(
-            "a", "Some(7)", "Option<Int>", "Option<Int>", true, false
+            "a", "Some(7)", "Option<Int>", "Option<Int>",
+            true, false, true
         ));
         return;
     }
+    if ArrayLength(args) > 0 && args[0] == "--missing-place-kind" {
+        Log(ProbeIndexedAssignment("Array<Int>", false, true));
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == "--missing-leaf-c-binding" {
+        Log(ProbeIndexedAssignment("Array<Int>", true, false));
+        return;
+    }
     if ArrayLength(args) > 0 && args[0] == "--missing-target-type" {
-        Log(ProbeIndexedAssignment(""));
+        Log(ProbeIndexedAssignment("", true, true));
         return;
     }
     if ArrayLength(args) > 0 && args[0] == "--collection-cref-only" {
@@ -156,17 +200,18 @@ func Main() -> Void {
         return;
     }
     Log(ProbeOptionAssignment(
-        "a", "Some(7)", "Option<Int>", "Option<Int>", true, true
+        "a", "Some(7)", "Option<Int>", "Option<Int>", true, true, true
     ));
     Log(ProbeOptionAssignment(
-        "a", "None()", "Option<Int>", "Option<Int>", true, true
+        "a", "None()", "Option<Int>", "Option<Int>", true, true, true
     ));
     Log(ProbeOptionAssignment(
         "s", "Some(\"ok\")", "Option<String>", "Option<String>",
-        true, true
+        true, true, true
     ));
     Log(ProbeOptionAssignment(
-        "s", "None", "Option<String>", "Option<String>", true, true
+        "s", "None", "Option<String>", "Option<String>",
+        true, true, true
     ));
-    Log(ProbeIndexedAssignment("Array<Int>"));
+    Log(ProbeIndexedAssignment("Array<Int>", true, true));
 }

@@ -4,8 +4,8 @@ import "routine_definition_dominance_fact_owner.pgy";
 
 func MirRoutineLatestDominatingLocalValueMatches(
     ref index: MirRoutineFactIndex,
-    value_names: Array<String>,
-    value_local_rows: Array<Int>,
+    ref value_names: Array<String>,
+    ref value_local_rows: Array<Int>,
     selected_value_row: Int,
     use_block: Int,
     use_instruction_row: Int

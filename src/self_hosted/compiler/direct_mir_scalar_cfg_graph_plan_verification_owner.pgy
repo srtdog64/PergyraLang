@@ -5,7 +5,7 @@ import "direct_mir_scalar_cfg_graph_mutation_owner.pgy";
 import "direct_mir_scalar_cfg_graph_identity_owner.pgy";
 
 func DirectMirScalarCfgGraphPlanVerified(
-    ref plan: DirectMirScalarCfgGraphPlan
+    own plan: DirectMirScalarCfgGraphPlan
 ) -> DirectMirScalarCfgGraphPlan {
     let verified: DirectMirScalarCfgGraphPlan =
         DirectMirScalarCfgGraphPlanWithDigest(

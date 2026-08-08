@@ -3619,6 +3619,8 @@ for term in \
     "mir_routine_owner_ast_type(const MIRRoutine *routine)" \
     "mir_routine_source_decl(const MIRRoutine *routine)" \
     "mir_routine_source_decl_of_type(const MIRRoutine *routine" \
+    "mir_routine_source_syntax_id(const MIRRoutine *routine)" \
+    "mir_routine_inventory_find_unique_by_source_syntax_id(" \
     "mir_routine_has_signature(const MIRRoutine *routine)" \
     "mir_routine_generic_param_count(const MIRRoutine *routine)" \
     "mir_routine_param_count(const MIRRoutine *routine)" \
@@ -3631,6 +3633,15 @@ for term in \
     "mir_decl_header_inventory_get("; do
     require_term "src/compiler/mir.h" "$term"
     require_term "src/compiler/mir_program_inventory.c" "$term"
+done
+for lookup_status in \
+    MIR_ROUTINE_SOURCE_LOOKUP_INVALID \
+    MIR_ROUTINE_SOURCE_LOOKUP_MISSING \
+    MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE \
+    MIR_ROUTINE_SOURCE_LOOKUP_DUPLICATE; do
+    require_term "src/compiler/mir.h" "$lookup_status"
+    require_term "src/tests/mir/test_mir_inventory_identity.cases.h" \
+        "$lookup_status"
 done
 for term in \
     "MIRDeclHeaderInventory" \
@@ -3710,6 +3721,8 @@ for term in \
     "transpiler_mir_routine_name" \
     "transpiler_mir_routine_owner_name" \
     "transpiler_mir_routine_owner_ast_type" \
+    "transpiler_mir_routine_source_syntax_id" \
+    "transpiler_active_routine_lookup_by_source_syntax_id" \
     "transpiler_mir_routine_has_signature" \
     "transpiler_mir_routine_generic_param_count" \
     "transpiler_mir_routine_param_count" \

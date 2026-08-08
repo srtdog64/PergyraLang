@@ -5847,3 +5847,164 @@ Focused 회귀는 다음 gate가 소유한다.
 이 gate는 C/LLVM 실행, semantic output mutation, 잘못된 result ABI, 최종/중간
 argument edge, argument type과 미등록 target의 artifact 없는 거부, 그리고 legacy
 route로의 재시도 금지를 검증한다.
+
+## Native oracle이 256 ownership 오류로 막히는데 fixed point는 통과하는 경우
+
+2026-08-09 integrated driver에서 다음 상태가 동시에 관찰됐다.
+
+```text
+gen2 == gen3
+native oracle compile: 256 error(s), 4 warning(s)
+```
+
+이는 모순이 아니다. `gen2 == gen3`는 두 self-host 세대가 같은 출력을 재생산했다는
+고정점 증거다. 그 출력이 native oracle과 같다는 증거는 아니다. Oracle compile이
+실패하면 seed-only 실행이나 네 개의 oracle 비교 skip을 성공으로 계산하지 않는다.
+
+256개 중 243개는 독립 결함이 아니라 하나의 ownership-mode 불일치였다. `ref`로 받은
+persistent plan aggregate를 생성자, helper, 새 local, assignment, return으로 넘기며
+borrow를 연장했다. 수정 순서는 다음과 같다.
+
+1. pure query는 `ref`를 end-to-end로 유지한다.
+2. plan이 보관하는 값은 `own`으로 넘기거나 필요한 digest/layout receipt로 평탄화한다.
+3. 반복 갱신은 현재 consume-and-rebind가 binding 재초기화를 증명하지 못하므로
+   `inout -> Void`를 사용한다.
+4. graph storage는 마지막 split에서 한 번만 consume한다. 전체 clone이나 analyzer
+   완화로 통과시키지 않는다.
+5. 작은 positive ownership fixture와 borrowed-ref constructor-store negative를 먼저
+   통과시킨 뒤 integrated native oracle을 다시 실행한다.
+
+이 교정으로 semantic oracle은 `256 -> 206 -> 153 -> 14 -> 0 error(s)`로 줄었다.
+`TextBuilder owner` 오류는 앞선 타입 오류가 builtin consume 처리를 막아 생긴 cascade일
+수 있으므로 consumer 이름이 포함된 진단으로 선행 오류를 먼저 닫는다.
+
+마지막 `0 error(s), 3 warning(s)` 뒤 native pipeline이 304초 focused budget을
+넘겼다면 semantic 성공과 executable artifact 성공을 분리해 기록한다. `gcc`/`clang`
+child가 아직 관찰되지 않았다면 이를 host C compile 시간으로 부르지 않는다. Pergyra의
+post-semantic projection/materialization 구간일 수 있다. Timeout을 늘려 focused gate를
+green으로 만들지 말고, integrated build 경계에서 별도 30분 예산으로 측정한다. Peak RSS도
+그 최종 경계에서 한 번 기록하며, 매 focused gate에 memory sampler를 붙이지 않는다.
+
+외부 command timeout은 Git Bash 손자 프로세스를 항상 회수하지 않는다. Timeout 뒤 같은
+측정을 다시 시작하기 전에 exact command line의 기존 `pgy` descendant가 살아 있는지
+확인한다. 살아 있다면 새 표본을 겹쳐 실행하지 않는다. 다른 Codex 작업이나 출처가 다른
+프로세스를 종료하지 말고, 현재 gate가 만든 PID/command identity와 사용자 지시가 모두
+확정된 경우에만 정리한다. 겹친 표본의 wall time과 tree RSS는 성능 근거로 사용하지 않는다.
+
+이 사건에서 겹쳐 실행된 두 `pgy` 프로세스는 각각 약 1.145 GiB peak working set과
+약 1.30 GiB peak paged memory를 보였고, 30분 안에 artifact를 만들지 못했다. 이는
+20 GiB 재발 증거가 아니라 약 1.2--1.3 GiB의 장시간 CPU-bound post-semantic 표본이다.
+동시 실행 때문에 wall time은 무효이며, executable artifact 성공도 아직 미증명이다.
+
+재발 방지 래칫은 다음을 유지한다.
+
+- ownership campaign budget/skip 파일은 제거한다. `0` budget 뒤에도 남은
+  content-matched skip은 다른 compile failure를 성공으로 오분류할 수 있다.
+- `driver_bootstrap.sh`에는 `ORACLE_AVAILABLE` 또는 oracle-skip 분기가 없다.
+- 현재 sentinel census를 readiness cap으로 재정의하지 않는다.
+- parity/Windows workflow timeout을 성능 수리 없이 늘리지 않는다.
+- LLVM self-host compile 실패 시 stdout과 stderr를 함께 출력한다. 현재 `Die` 진단은
+  stdout에 기록될 수 있기 때문이다.
+
+`sentinel` 값 `291`은 sentinel owner 수가 아니라 comment를 제거한 corpus에서
+`return -1`, `== -1`, `!= -1`만 센 좁은 lexical signal이다. 다른 initializer와
+`< 0` 소비는 놓치고 `length - 1` 같은 정상 산술까지 넓게 세면 의미가 섞인다. 따라서
+전역 수치는 탐색용 hard blocker로 유지하되, 실제 치환은 owner API와 소비자를 하나씩
+`Option`/`Result`로 닫고 그 함수의 `return -1` 재도입을 별도 negative로 막는다.
+첫 폐쇄는 nominal-constructor argument-count owner와 유일한 graph consumer를
+`Option<Int>`로 바꾸어 좁은 지표를 `291 -> 290`으로 내렸다. 전역 readiness cap은
+여전히 `22`이며 현재 gate가 빨간 상태가 정상이다.
+
+`result_use`도 의미 사실의 개수가 아니라 `Option`/`Result` 철자의 lexical signal이다.
+조회 API가 `Option<Int>`를 유지하더라도 그 결과를 사용하지 않는 materialized fact
+필드까지 `Option<Int>`로 저장하면 수치만 오르고, 현재 direct-MIR self-host backend의
+구조체 필드 지원 범위를 넘어 compiler probe 자체가 컴파일되지 않을 수 있다. 그런
+필드는 ready/value pair로 저장할 실제 consumer가 없으면 제거한다. live query와
+missing-fact negative가 남아 있는지 확인한 뒤 lexical minimum을 다시 측정한다.
+
+또한 likeness gate는 첫 위반에서 즉시 종료하면 장기간 red인 sentinel 뒤의 pin drift를
+숨긴다. 모든 metric을 이미 계산했다면 위반을 누적해 한 번에 보고하고 마지막에 nonzero로
+종료한다. 이 변경은 gate를 완화하지 않으며, 독립 위반을 서로의 그림자에서 꺼내는
+관측성 교정이다.
+
+### `0 error(s)` 뒤 namespace 이름이 SSA local이 아니라고 실패하는 경우
+
+Integrated driver oracle은 semantic `0 error(s)`를 출력한 뒤에도 source-to-MIR와
+MIR-only backend 계약을 통과해야 한다. 2026-08-09 표본은 약 85분 뒤 다음 실제
+실패로 종료됐다.
+
+```text
+MIR contract breach in DriverRung2CliPathOperandOrDie:
+unresolved identifier `SelfHostPath` (expected SSA-mapped local)
+```
+
+Imported namespace call의 carried AST callee는 `SelfHostPath.NormalizeSeparators`
+member-access 형태를 유지한다. MIR C SSA contract가 모든 member receiver를 local
+value로 가정해 namespace 이름까지 SSA mapping을 요구한 것이 원인이다. 이를 호출부에서
+임시 local로 감추거나 이름 모양으로 보정하지 않는다. Contract는 call AST의
+`semantic_callee_decl_id`를 active MIR routine의 `source_syntax_id`와 유일하게 결합한다.
+그 exact routine kind가 `MIR_SCOPE_FUNCTION`일 때만 namespace/static call로 인정하고
+receiver traversal을 생략한다. ID가 0이거나, routine이 없거나, 중복되거나,
+`MIR_SCOPE_METHOD`이면 면제하지 않고 기존 SSA receiver 검증에서 fail closed한다.
+
+대문자, 점, local binding 부재, 우연히 같은 flat C 이름이 존재한다는 사실은 namespace
+identity의 근거가 아니다. 이 부재 기반 추론은 missing SSA fact와 local/namespace 이름
+충돌을 정당한 static call로 오인할 수 있다.
+
+`tests/cases/backend_compare/namespace_direct_return`은 namespace call을 return
+expression에서 직접 사용해 이 경계를 falsify한다. 기존
+`fieldless_class_method`도 함께 실행해 local receiver method가 static call로
+오분류되지 않음을 유지한다.
+
+## Completeness ledger가 1353/1353 뒤 5380 cache miss로 timeout되는 경우
+
+`SOURCE_SET_FINGERPRINT`는 row마다 1353개 파일을 다시 hash하지 않는다. 한 번 계산한
+전역 fingerprint를 tool, semantic, codegen key에 모두 넣기 때문에 source 하나가 바뀌어도
+모든 pass artifact가 무효화된다. 현재 owner mapping의 중복 16개만 접히므로 cold run의
+`1353 + 1353 + 1337 + 1337 = 5380` misses와 32 reuses는 카운터 오류가 아니라 coarse
+invalidation 정책의 정확한 결과다. Ledger 직전 selfcheck는 backend별 source target을 다시
+실행하므로 실제 semantic 작업은 이 수보다 더 많다.
+
+다음 수정은 timeout, shard, worker, global cache부터 추가하는 것이 아니다.
+`program_parse_owner.pgy`가 이미 계산하는 import membership을 typed program-composition
+fact로 보존하고 stage owner가 한 program execution에서 member별 verdict를 내야 한다.
+그 뒤에만 root execution 결과를 inventory row에 귀속한다. Shell import scan이나 69개
+root 성공을 모든 imported body 성공으로 간주하면 새 SoT 또는 false green이 된다.
+
+필수 negative evidence는 다음과 같다.
+
+- imported dependency body mutation이 program semantic verdict를 깨뜨린다.
+- leaf 하나를 바꾸면 affected closure만 miss하고 unaffected closure는 hit한다.
+- import edge 변경은 closure fingerprint를 무효화한다.
+- clean과 incremental ledger artifact가 같다.
+- 1353 source identity와 full-pipeline intersection ratchet은 줄지 않는다.
+
+이 typed membership/result가 없으면 해당 최적화는 `BLOCKED`다. Workflow timeout을 40분
+이상으로 늘리는 것은 진행으로 계산하지 않는다.
+
+## Assignment probe가 C binding이 있는데도 leaf binding 누락으로 실패하는 경우
+
+2026-08-09 최신 parity에서 indexed assignment positive가 다음 진단으로 실패했다.
+
+```text
+semantic leaf binding fact is missing: nums
+```
+
+`nums=cbind:nums` row는 실제로 존재했다. 원인은 synthetic probe가 expression graph를
+`SemanticExpressionGraphArenaUnclassified`로 만들어 모든 place kind를 `Unknown`으로
+남긴 뒤 production body-type admission을 우회해 `EmitAssign`을 직접 호출한 것이었다.
+Emitter는 place-kind 부재와 known binding의 C-name 부재를 같은 진단으로 출력했고,
+기존 `missing-c-binding` negative도 place-kind 부재에서 먼저 실패해 거짓으로 통과했다.
+
+교정 규칙은 다음과 같다.
+
+- production은 admitted body owner가 완성한 place rows와 readiness를 계속 소비한다.
+- synthetic probe는 binding/value place row를 명시적으로 발행하고 readiness를 확인한다.
+- `Unknown place + cbind 있음`과 `Binding place + cbind 없음`을 서로 다른 negative와
+  진단으로 고정한다.
+- codegen이 `cbind` 존재, source text, AST kind로 missing place를 역추론하지 않는다.
+- positive output 전체를 비교해 indexed assignment가 실제 binding fact를 소비했는지
+  확인한다.
+
+즉 동일한 오류 문구는 동일한 소유 사실을 검증했다는 증거가 아니다. Negative gate는
+의도한 전제까지 도달했음을 독립적으로 증명해야 한다.

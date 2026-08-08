@@ -142,7 +142,7 @@ func DirectMirArrayIntPlanMutation(
 }
 
 func DirectMirArrayIntPlanMutationRejected(
-    ref plan: DirectMirArrayIntPlan
+    own plan: DirectMirArrayIntPlan
 ) -> Bool {
     if !DirectMirArrayIntPlanReady(plan) { return false; }
     let bad_target: DirectMirArrayIntPlan = DirectMirArrayIntPlanMutation(

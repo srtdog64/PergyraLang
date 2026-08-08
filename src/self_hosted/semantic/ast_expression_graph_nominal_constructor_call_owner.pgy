@@ -17,26 +17,24 @@ struct SemanticExpressionGraphNominalConstructorCallFact {
     diagnostic_code: String;
     diagnostic_message: String;
     return_type_name: String;
-    maximum_argument_count: Int;
     actual_argument_count: Int;
 }
 
 func SemanticExpressionGraphNominalConstructorCallNotApplicable(
 ) -> SemanticExpressionGraphNominalConstructorCallFact {
     return SemanticExpressionGraphNominalConstructorCallFact(
-        false, true, "", "", "", 0, 0
+        false, true, "", "", "", 0
     );
 }
 
 func SemanticExpressionGraphNominalConstructorCallError(
     code: String,
     message: String,
-    maximum_argument_count: Int,
     actual_argument_count: Int
 ) -> SemanticExpressionGraphNominalConstructorCallFact {
     return SemanticExpressionGraphNominalConstructorCallFact(
         true, false, code, message, "",
-        maximum_argument_count, actual_argument_count
+        actual_argument_count
     );
 }
 
@@ -69,18 +67,20 @@ func SemanticExpressionGraphNominalConstructorCallFactFromGraph(
         return SemanticExpressionGraphNominalConstructorCallNotApplicable();
     }
     let index: Int = UnwrapOption(constructor_index);
-    let maximum: Int = SemanticAstNominalConstructorArgumentCountAt(
+    let maximum_opt: Option<Int> =
+        SemanticAstNominalConstructorArgumentCountAt(
         constructors, index
     );
     let actual_count: Int = ArrayLength(call.argument_nodes);
-    if maximum < 0 {
+    if !IsSome(maximum_opt) {
         return SemanticExpressionGraphNominalConstructorCallError(
             "ast_artifact_invalid",
             SemanticError1(
                 "ast_artifact_invalid", "owner", "nominal_constructor_policy"
-            ), maximum, actual_count
+            ), actual_count
         );
     }
+    let maximum: Int = UnwrapOption(maximum_opt);
     if actual_count > maximum {
         return SemanticExpressionGraphNominalConstructorCallError(
             "call_arity_mismatch",
@@ -88,7 +88,7 @@ func SemanticExpressionGraphNominalConstructorCallFactFromGraph(
                 "call_arity_mismatch", "func", target.name,
                 "expected", Concat("at_most_", ToString(maximum)),
                 "actual", ToString(actual_count)
-            ), maximum, actual_count
+            ), actual_count
         );
     }
     let i: Int = 0;
@@ -109,7 +109,7 @@ func SemanticExpressionGraphNominalConstructorCallFactFromGraph(
                     "owner", "nominal_constructor_argument_type",
                     "constructor", target.name,
                     "argument_index", ToString(i)
-                ), maximum, actual_count
+                ), actual_count
             );
         }
         if !SemanticExpressionGraphFieldValueAssignableTo(
@@ -122,13 +122,13 @@ func SemanticExpressionGraphNominalConstructorCallFactFromGraph(
                     "call_arg_type_mismatch", "func", target.name,
                     "expected", UnwrapOption(expected),
                     "actual", UnwrapOption(actual)
-                ), maximum, actual_count
+                ), actual_count
             );
         }
         i = i + 1;
     }
     return SemanticExpressionGraphNominalConstructorCallFact(
         true, true, "", "", constructors.return_type_names[index],
-        maximum, actual_count
+        actual_count
     );
 }

@@ -3949,6 +3949,8 @@ require_text "tests/self_host_execution_lane_parity_smoke.sh" 'EXEC_LLVM_MISSING
 require_text "tests/self_host_execution_lane_parity_smoke.sh" "lane executor missing-term LLVM self-test should fail closed"
 require_text "tests/self_host_execution_lane_parity_smoke.sh" "assert_llvm_leg"
 require_text "tests/self_host_execution_lane_parity_smoke.sh" "35/35"
+require_text "tests/self_host_execution_lane_parity_smoke.sh" \
+    'cat "$WORK/compile_$be.out" "$WORK/compile_$be.err" >&2'
 reject_text "tests/self_host_execution_lane_parity_smoke.sh" 'SRC="$ROOT_DIR/src/self_hosted/sea/execution_lane.pgy"'
 reject_text "tests/self_host_execution_lane_parity_smoke.sh" 'GOLDEN="$ROOT_DIR/src/self_hosted/sea/expected_lanes.txt"'
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "func CodegenAstTextIndentOf"
@@ -6285,6 +6287,22 @@ require_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner
     "func SemanticAstNominalConstructorFieldIsArgument("
 require_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
     "func SemanticAstNominalConstructorArgumentCountAt("
+require_function_text \
+    "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
+    "func SemanticAstNominalConstructorArgumentCountAt(" \
+    ") -> Option<Int> {"
+require_function_text \
+    "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
+    "func SemanticAstNominalConstructorArgumentCountAt(" \
+    "return None;"
+require_function_text \
+    "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
+    "func SemanticAstNominalConstructorArgumentCountAt(" \
+    "return Some(count);"
+reject_function_text \
+    "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
+    "func SemanticAstNominalConstructorArgumentCountAt(" \
+    "return -1;"
 require_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
     "func SemanticAstNominalConstructorArgumentTypeAt("
 reject_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
@@ -6299,6 +6317,36 @@ require_file "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy" 160
 require_text "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy" \
     "func SemanticExpressionGraphNominalConstructorCallFactFromGraph("
+reject_text "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy" \
+    "maximum_argument_count:"
+require_function_text \
+    "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy" \
+    "func SemanticExpressionGraphNominalConstructorCallFactFromGraph(" \
+    "let maximum_opt: Option<Int> ="
+require_function_text \
+    "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy" \
+    "func SemanticExpressionGraphNominalConstructorCallFactFromGraph(" \
+    "if !IsSome(maximum_opt)"
+require_text "src/codegen/transpiler_mir_ssa_contract.c" \
+    "ast_call_semantic_callee_decl_id(call)"
+require_text "src/codegen/transpiler_mir_ssa_contract.c" \
+    "transpiler_active_routine_lookup_by_source_syntax_id("
+require_text "src/codegen/transpiler_mir_ssa_contract.c" \
+    "lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE"
+require_text "src/codegen/transpiler_mir_ssa_contract.c" \
+    "transpiler_mir_routine_kind(lookup.routine) == MIR_SCOPE_FUNCTION"
+for retired_namespace_guess in \
+    "pergyra_strdup_printf" \
+    "receiver_name" \
+    "lookup_typed_var" \
+    "is_slot_var" \
+    "transpiler_function_decl_exists_local"; do
+    reject_function_text "src/codegen/transpiler_mir_ssa_contract.c" \
+        "transpiler_call_targets_static_function(" \
+        "$retired_namespace_guess"
+done
+reject_text "src/codegen/transpiler_inventory_view.c" \
+    "routine->source_syntax_id"
 require_file "src/self_hosted/semantic/ast_domain_query_protocol_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_domain_query_protocol_owner.pgy" 80
 require_text "src/self_hosted/semantic/ast_domain_query_protocol_owner.pgy" \
@@ -9197,6 +9245,9 @@ require_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit
 require_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "func CodegenSemanticLeafBindingProjectionFromGraph(" \
     'LookupKindType(env, text, "cbind")'
+require_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func RewriteSemanticLeaf(" \
+    'semantic leaf place-kind fact is missing:'
 for retired_leaf_binding_probe in '"e"' '"eval"' '"etag"' '"call"' '"f"'; do
     reject_function_text \
         "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
@@ -13637,11 +13688,13 @@ require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
 require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
     'import "../../semantic/ast_expression_call_target_capture_owner.pgy";'
 require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
+    'import "../../semantic/ast_expression_place_fact_owner.pgy";'
+require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
     'SemanticExpressionGraphCallTargetsFromSignatures('
 require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
     'args[0] == "--missing-call-target"'
 require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
-    'ProbeIndexedAssignment("Array<Int>")'
+    'ProbeIndexedAssignment("Array<Int>", true, true)'
 require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
     'args[0] == "--missing-target-type"'
 require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
@@ -13658,6 +13711,10 @@ require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     'run_missing_fact_negative "$backend" "missing-call-target"'
 require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     'run_missing_fact_negative "$backend" "missing-c-binding"'
+require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
+    'run_missing_fact_negative "$backend" "missing-place-kind"'
+require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
+    'run_missing_fact_negative "$backend" "missing-leaf-c-binding"'
 reject_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
     'import "../../compiler/symbol_table_owner.pgy";'
 reject_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
@@ -13781,11 +13838,26 @@ require_file "tests/self_hosted/parity/driver_bootstrap.sh"
 # Re-armed +5 for the oracle compile's --native-pipeline declaration: the
 # oracle is the native reference, and undeclared it delegated to the very
 # driver being bootstrapped.
-# Re-armed 305 -> 330 (2026-08-09): the oracle legs became campaign-aware --
-# the shared ownership ratchet classifies the native compile's failure, and
-# within budget the four oracle-vs-seed comparisons skip declaredly while
-# every seed-only leg still runs.
-require_max_lines "tests/self_hosted/parity/driver_bootstrap.sh" 330
+require_max_lines "tests/self_hosted/parity/driver_bootstrap.sh" 305
+require_text "docs/131_ai_coding_atomic_units.md" \
+    'Evidence Non-Equivalence Laws'
+require_text "docs/self_hosted/10_hard_self_host_contract.md" \
+    'Bootstrap Evidence Is Conjunctive'
+require_text "docs/152_validation_isolation_policy.md" \
+    'Chronic Red Is Navigation, Not Permission'
+require_text "docs/91_build_troubleshooting.md" \
+    'Native oracle이 256 ownership 오류로 막히는데 fixed point는 통과하는 경우'
+require_text "docs/91_build_troubleshooting.md" \
+    'Completeness ledger가 1353/1353 뒤 5380 cache miss로 timeout되는 경우'
+require_text "docs/91_build_troubleshooting.md" \
+    'Assignment probe가 C binding이 있는데도 leaf binding 누락으로 실패하는 경우'
+require_text "docs/91_build_troubleshooting.md" \
+    '`0 error(s)` 뒤 namespace 이름이 SSA local이 아니라고 실패하는 경우'
+reject_text "tests/self_hosted/parity/driver_bootstrap.sh" 'ORACLE_AVAILABLE'
+reject_text "tests/self_hosted/parity/driver_bootstrap.sh" \
+    'ownership_campaign_within_budget'
+reject_text "tests/self_hosted/parity/driver_bootstrap.sh" \
+    'skipping declaredly'
 require_text "Makefile" "self-host-driver-bootstrap-test-smoke"
 require_text "Makefile" "self-host-driver-bootstrap-test-smoke: self-host-codegen-bootstrap-seed-test-smoke"
 require_text "Makefile" "self-host-driver-bootstrap-full-test-smoke: self-host-codegen-bootstrap-seed-test-smoke"
@@ -14103,6 +14175,22 @@ require_max_lines \
 require_file "tests/self_hosted/parity/one_mir_array_argument_projection.sh"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_array_argument_projection.sh" 220
+require_file \
+    "tests/self_hosted/parity/direct_mir_mutation_ownership_contract.sh"
+require_max_lines \
+    "tests/self_hosted/parity/direct_mir_mutation_ownership_contract.sh" 75
+require_file \
+    "tests/self_hosted/parity/direct_mir_mutation_ownership_signature_contract.sh"
+require_max_lines \
+    "tests/self_hosted/parity/direct_mir_mutation_ownership_signature_contract.sh" 75
+require_file \
+    "tests/self_hosted/fixtures/direct_mir_array_argument_mutation_ownership.pgy"
+require_max_lines \
+    "tests/self_hosted/fixtures/direct_mir_array_argument_mutation_ownership.pgy" 15
+require_file \
+    "tests/self_hosted/fixtures/borrowed_ref_constructor_store_reject.pgy"
+require_max_lines \
+    "tests/self_hosted/fixtures/borrowed_ref_constructor_store_reject.pgy" 25
 require_file "tests/self_hosted/parity/one_mir_array_argument_mutations.py"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_array_argument_mutations.py" 130
@@ -14154,6 +14242,8 @@ require_text "tests/self_hosted/parity/one_mir_array_argument_projection.sh" \
     "gate must produce source MIR exactly once"
 require_text "tests/self_hosted/parity/one_mir_array_argument_projection.sh" \
     "native/self formal parameter ABI receipt parity drifted"
+require_text "Makefile" \
+    "tests/self_hosted/parity/direct_mir_mutation_ownership_contract.sh"
 require_text "Makefile" "SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE)'
 require_text ".github/workflows/ci.yml" \
@@ -16951,18 +17041,11 @@ require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "EmitDriverParityFi
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" '"--emit-c-verified"'
 require_file "tests/self_hosted/parity/driver_rung2_body_parity.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_body_parity.sh" 310
-# The declared campaign skip is a monitored ratchet: the budget file is the
-# checked-in ceiling, the shared helper enforces it, and both lanes that
-# measure the wall (body gate llvm lane, bootstrap native oracle) consume it.
-require_file "tests/self_hosted/parity/ownership_campaign_budget.txt"
-require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" \
-    'ownership_campaign_budget.txt'
-require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" \
-    'ownership campaign regressed'
-require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'ownership_campaign_within_budget'
-require_text "tests/self_hosted/parity/driver_bootstrap.sh" \
-    'ownership_campaign_within_budget'
+reject_file "tests/self_hosted/parity/ownership_campaign_budget.txt"
+reject_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'skipping declaredly'
+reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" \
+    'beta-stable body safety requires|TextBuilder owner'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" '"driver-rung2-paths"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" '"semantic-parity-paths"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"

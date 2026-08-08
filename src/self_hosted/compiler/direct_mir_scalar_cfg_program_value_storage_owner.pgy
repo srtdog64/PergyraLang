@@ -4,6 +4,11 @@ import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_value_type_owner.pgy";
 
+struct DirectMirScalarCfgProgramValuePlans {
+    let locals: DirectMirScalarCfgLocalRefPlan;
+    let types: DirectMirScalarCfgValueTypePlan;
+}
+
 func DirectMirScalarCfgProgramValuesAppendRoutine(
     storage: DirectMirScalarCfgProgramValueStorage,
     ref locals: DirectMirScalarCfgLocalRefPlan,
@@ -56,21 +61,17 @@ func DirectMirScalarCfgProgramValuesAppendRoutine(
         value_types, value_local_rows, value_definition_blocks);
 }
 
-func DirectMirScalarCfgProgramLocalRefPlan(
-    ref storage: DirectMirScalarCfgProgramGraphStorage
-) -> DirectMirScalarCfgLocalRefPlan {
-    return DirectMirScalarCfgLocalRefPlan(
-        storage.values.valid, storage.values.local_names,
-        storage.values.local_ref_kinds, storage.values.local_ref_value_ids,
-        storage.values.local_ref_syntax_ids, storage.values.value_names,
-        storage.values.value_local_rows,
-        storage.values.value_definition_blocks);
-}
-
-func DirectMirScalarCfgProgramValueTypePlan(
-    ref storage: DirectMirScalarCfgProgramGraphStorage
-) -> DirectMirScalarCfgValueTypePlan {
-    return DirectMirScalarCfgValueTypePlan(
-        storage.values.valid, storage.values.local_types,
-        storage.values.value_types);
+func DirectMirScalarCfgProgramValuePlansFromStorage(
+    own storage: DirectMirScalarCfgProgramValueStorage
+) -> DirectMirScalarCfgProgramValuePlans {
+    let locals: DirectMirScalarCfgLocalRefPlan =
+        DirectMirScalarCfgLocalRefPlan(
+            storage.valid, storage.local_names, storage.local_ref_kinds,
+            storage.local_ref_value_ids, storage.local_ref_syntax_ids,
+            storage.value_names, storage.value_local_rows,
+            storage.value_definition_blocks);
+    let types: DirectMirScalarCfgValueTypePlan =
+        DirectMirScalarCfgValueTypePlan(
+            storage.valid, storage.local_types, storage.value_types);
+    return DirectMirScalarCfgProgramValuePlans(locals, types);
 }

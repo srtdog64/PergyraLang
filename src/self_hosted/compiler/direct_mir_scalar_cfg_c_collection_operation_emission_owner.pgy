@@ -17,7 +17,8 @@ func DirectMirScalarCfgEmitCCollectionOperation(
     if mutation.valid { return mutation; }
     if kind == DirectMirScalarCfgOpAddArrayReadInt() {
         return DirectMirScalarCfgCCollectionOperationEmission(
-            true, DirectMirScalarCfgArrayIntCRead(plan, operation)
+            true, DirectMirScalarCfgArrayIntCRead(
+                plan, plan.array_int_program, operation)
         );
     }
     let array_int: DirectMirScalarCfgCCollectionOperationEmission =

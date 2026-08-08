@@ -68,7 +68,7 @@ func DirectMirConstructedRecordArrayMemberPlanReady(
             "typed_array_physical_abi_absent" &&
         plan.aggregate_flow.abi_evidence_id ==
             plan.main.typed_array_abi_absence.digest &&
-        plan.point_abi.declaration.digest == plan.identity.record.digest &&
+        plan.point_abi.declaration_digest == plan.identity.record.digest &&
         plan.aggregate_flow.selected_index ==
             plan.identity.main_graph.selected_index &&
         plan.identity.method_graph.element_count ==

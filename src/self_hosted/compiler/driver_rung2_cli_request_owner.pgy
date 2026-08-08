@@ -228,4 +228,7 @@ func DriverRung2CliRequestFromArgsOrDie(
         );
     }
     Die("source C mode requires --emit-c-verified or --machine-manifest-json PATH");
+    // Die exits the process; this return only satisfies the current non-Never
+    // control-flow contract and is not an executable fallback.
+    return DriverCliSourceCStdout(source_path);
 }

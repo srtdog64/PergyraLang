@@ -21,7 +21,12 @@ transpiler_routine_inventory_get(
     const TranspilerMIRRoutineInventory *inventory,
     size_t index);
 
+MIRRoutineSourceLookup transpiler_active_routine_lookup_by_source_syntax_id(
+    const TranspilerCtx *ctx,
+    uint32_t source_syntax_id);
+
 MIRScopeKind transpiler_mir_routine_kind(const MIRRoutine *routine);
+uint32_t transpiler_mir_routine_source_syntax_id(const MIRRoutine *routine);
 
 const char *transpiler_mir_routine_name(const MIRRoutine *routine);
 

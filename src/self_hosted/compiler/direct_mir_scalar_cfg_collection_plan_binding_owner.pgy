@@ -3,9 +3,9 @@
 import "direct_mir_scalar_cfg_collection_plan_identity_owner.pgy";
 
 func DirectMirScalarCfgCollectionPlanAtGraphOperation(
-    ref source: DirectMirScalarCfgCollectionPlan,
+    inout source: DirectMirScalarCfgCollectionPlan,
     global: Int, graph_operation: Int
-) -> DirectMirScalarCfgCollectionPlan {
+) -> Void {
     let operation_rows: Array<Int> = source.operations.graph_operation_rows;
     let observation_rows: Array<Int> =
         source.observations.graph_operation_rows;
@@ -15,7 +15,10 @@ func DirectMirScalarCfgCollectionPlanAtGraphOperation(
         if source.operations.global_rows[row] == global &&
             source.operations.kinds[row] !=
                 DirectMirScalarCfgCollectionOpInitialize() {
-            if operation_rows[row] >= 0 { return DirectMirScalarCfgCollectionPlanEmpty(); }
+            if operation_rows[row] >= 0 {
+                source = DirectMirScalarCfgCollectionPlanEmpty();
+                return;
+            }
             ArraySet(operation_rows, row, graph_operation); matched = true;
         }
         row = row + 1;
@@ -24,13 +27,17 @@ func DirectMirScalarCfgCollectionPlanAtGraphOperation(
     while row < ArrayLength(source.observations.global_rows) {
         if source.observations.global_rows[row] == global {
             if observation_rows[row] >= 0 {
-                return DirectMirScalarCfgCollectionPlanEmpty();
+                source = DirectMirScalarCfgCollectionPlanEmpty();
+                return;
             }
             ArraySet(observation_rows, row, graph_operation); matched = true;
         }
         row = row + 1;
     }
-    if !matched { return DirectMirScalarCfgCollectionPlanEmpty(); }
+    if !matched {
+        source = DirectMirScalarCfgCollectionPlanEmpty();
+        return;
+    }
     let operations: DirectMirScalarCfgCollectionOperationSet =
         DirectMirScalarCfgCollectionOperationSet(
             source.operations.valid, source.operations.dynamic_inputs,
@@ -53,7 +60,7 @@ func DirectMirScalarCfgCollectionPlanAtGraphOperation(
         DirectMirScalarCfgCollectionPlan(
             true, 0, source.values, operations, observations
         );
-    return DirectMirScalarCfgCollectionPlanWithDigest(
+    source = DirectMirScalarCfgCollectionPlanWithDigest(
         plan, DirectMirScalarCfgCollectionPlanDigest(plan)
     );
 }

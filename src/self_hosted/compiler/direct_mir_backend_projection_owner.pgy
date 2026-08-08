@@ -27,7 +27,7 @@ import "../mir_lower/mir_json_input_owner.pgy";
 
 func CompileAdmittedDirectMirCfgPayloadForTarget(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref enum_route: DirectMirEnumValueMatchRouteFact,
+    own enum_route: DirectMirEnumValueMatchRouteFact,
     target_projection: CompilerTargetProjectionFact
 ) -> String {
     let is_c: Bool = CompilerTargetProjectionFactReadyFor(

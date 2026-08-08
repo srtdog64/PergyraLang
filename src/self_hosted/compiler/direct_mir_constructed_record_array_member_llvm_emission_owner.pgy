@@ -49,8 +49,6 @@ func DirectMirConstructedRecordArrayMemberEmitLlvm(
         receiver == outer_value || abi.llvm_element_type != Concat("%", record) {
         Die("direct MIR constructed record Array LLVM symbols are invalid");
     }
-    let graph: DirectMirConstructedRecordArrayMemberMainGraphFact =
-        plan.identity.main_graph;
     let aggregate: String = abi.llvm_aggregate_type;
     let payload: String = DirectMirScalarLlvmFormatPayload(line_format);
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
@@ -83,7 +81,7 @@ func DirectMirConstructedRecordArrayMemberEmitLlvm(
     output = Concat(output, " %");
     output = Concat(output, inner_value);
     output = Concat(output, ", ptr %pgy.array.storage, align ");
-    output = Concat(output, plan.point_abi.declaration.abi.align_text);
+    output = Concat(output, plan.identity.record.abi.align_text);
     output = Concat(output, "\n  %array.0 = insertvalue ");
     output = Concat(output, aggregate);
     output = Concat(output, " poison, ptr %pgy.array.storage, ");
@@ -129,17 +127,17 @@ func DirectMirConstructedRecordArrayMemberEmitLlvm(
     output = Concat(output, "\n}\n\ndefine i32 @main() {\nentry:\n  %receiver = insertvalue %");
     output = Concat(output, wrapper);
     output = Concat(output, " poison, i32 ");
-    output = Concat(output, ToString(graph.marker_value));
+    output = Concat(output, ToString(plan.identity.main_graph.marker_value));
     output = Concat(output, ", 0\n  %point = insertvalue %");
     output = Concat(output, record);
     output = Concat(output, " poison, i32 ");
-    output = Concat(output, ToString(graph.field_value));
+    output = Concat(output, ToString(plan.identity.main_graph.field_value));
     output = Concat(output, ", 0\n  %array.storage = alloca [");
     output = Concat(output, ToString(flow_target.storage_count));
     output = Concat(output, " x %");
     output = Concat(output, record);
     output = Concat(output, "], align ");
-    output = Concat(output, plan.point_abi.declaration.abi.align_text);
+    output = Concat(output, plan.identity.record.abi.align_text);
     output = Concat(output, "\n  %array.data = getelementptr inbounds [");
     output = Concat(output, ToString(flow_target.storage_count));
     output = Concat(output, " x %");
@@ -173,7 +171,7 @@ func DirectMirConstructedRecordArrayMemberEmitLlvm(
     output = Concat(output, "\n  %first = load %");
     output = Concat(output, record);
     output = Concat(output, ", ptr %first.ptr, align ");
-    output = Concat(output, plan.point_abi.declaration.abi.align_text);
+    output = Concat(output, plan.identity.record.abi.align_text);
     output = Concat(output, "\n  %field = extractvalue %");
     output = Concat(output, record);
     output = Concat(output, " %first, 0\n  %print = sext i32 %field to i64\n  %logged = call i32 (ptr, ...) @");

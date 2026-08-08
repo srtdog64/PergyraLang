@@ -4,10 +4,10 @@ import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_string_expression_owner.pgy";
 func DirectMirScalarCfgSealGraphPlan(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref routine_partition: DirectMirScalarCfgRoutinePartitionFact,
+    own routine_partition: DirectMirScalarCfgRoutinePartitionFact,
     cfg_digest: Int,
-    ref locals: DirectMirScalarCfgLocalRefPlan,
-    ref types: DirectMirScalarCfgValueTypePlan,
+    own locals: DirectMirScalarCfgLocalRefPlan,
+    own types: DirectMirScalarCfgValueTypePlan,
     block_succ_true: Array<Int>, block_succ_false: Array<Int>,
     block_operation_starts: Array<Int>, block_operation_counts: Array<Int>,
     block_condition_kinds: Array<Int>,

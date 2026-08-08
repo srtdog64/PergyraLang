@@ -7,7 +7,11 @@ import "../mir_lower/abi_layout_admission_fact_owner.pgy";
 struct DirectMirOptionStructValueFlowAbiFact {
     let valid: Bool;
     let digest: Int;
-    let declaration: DirectMirNominalDeclarationAbiFact;
+    let declaration_digest: Int;
+    let declaration_layout_id: Int;
+    let declaration_name: String;
+    let declaration_size_text: String;
+    let declaration_align_text: String;
     let option_type_name: String;
     let option_layout_id: Int;
     let option_abi: MirAbiLayoutRowCapture;
@@ -36,13 +40,14 @@ func DirectMirOptionStructCapturedAbi(
 
 func DirectMirOptionStructOuterAbiReady(
     ref option_abi: MirAbiLayoutRowCapture,
-    ref declaration: DirectMirNominalDeclarationAbiFact
+    declaration_name: String, declaration_size_text: String,
+    declaration_align_text: String
 ) -> Bool {
     return option_abi.valid &&
         option_abi.type_name == Concat(
-            "Option<", Concat(declaration.name, ">")
+            "Option<", Concat(declaration_name, ">")
         ) && option_abi.size_text == "12" &&
-        option_abi.align_text == declaration.abi.align_text &&
+        option_abi.align_text == declaration_align_text &&
         ArrayLength(option_abi.field_names) == 2 &&
         option_abi.field_names[0] == "tag" &&
         option_abi.field_offsets[0] == "0" &&
@@ -50,8 +55,8 @@ func DirectMirOptionStructOuterAbiReady(
         option_abi.field_aligns[0] == "4" &&
         option_abi.field_names[1] == "value" &&
         option_abi.field_offsets[1] == "4" &&
-        option_abi.field_sizes[1] == declaration.abi.size_text &&
-        option_abi.field_aligns[1] == declaration.abi.align_text &&
+        option_abi.field_sizes[1] == declaration_size_text &&
+        option_abi.field_aligns[1] == declaration_align_text &&
         option_abi.runtime_fn == "" && option_abi.inner_c_type == "" &&
         option_abi.representation_text == "1" &&
         option_abi.discriminant == option_abi.field_names[0] &&
@@ -65,7 +70,8 @@ func DirectMirOptionStructValueFlowAbiFactDigest(
     ref fact: DirectMirOptionStructValueFlowAbiFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(193L, fact.declaration.digest);
+    let hash: Long = DirectMirCfgHashInt(193L, fact.declaration_digest);
+    hash = DirectMirCfgHashInt(hash, fact.declaration_layout_id);
     hash = DirectMirCfgHashString(hash, fact.option_type_name);
     hash = DirectMirCfgHashInt(hash, fact.option_layout_id);
     let row: Int = 0;
@@ -86,9 +92,12 @@ func DirectMirOptionStructValueFlowAbiFactReady(
 ) -> Bool {
     if !fact.valid || fact.digest == 0 || fact.digest !=
         DirectMirOptionStructValueFlowAbiFactDigest(fact) ||
-        !DirectMirNominalDeclarationAbiFactReady(fact.declaration) ||
+        fact.declaration_digest == 0 || fact.declaration_layout_id == 0 ||
+        fact.declaration_name == "" || fact.declaration_size_text == "" ||
+        fact.declaration_align_text == "" ||
         !DirectMirOptionStructOuterAbiReady(
-            fact.option_abi, fact.declaration
+            fact.option_abi, fact.declaration_name,
+            fact.declaration_size_text, fact.declaration_align_text
         ) || fact.option_type_name != fact.option_abi.type_name ||
         fact.option_layout_id != MirAbiLayoutIdFromCapture(fact.option_abi) ||
         ArrayLength(fact.outer_layout_ids) != 5 ||
@@ -104,7 +113,7 @@ func DirectMirOptionStructValueFlowAbiFactReady(
     }
     row = 0;
     while row < 2 {
-        if fact.inner_layout_ids[row] != fact.declaration.abi_layout_id {
+        if fact.inner_layout_ids[row] != fact.declaration_layout_id {
             return false;
         }
         row = row + 1;
@@ -155,20 +164,28 @@ func DirectMirOptionStructValueFlowAbiFactFromInstructions(
         MirAbiLayoutIdFromCapture(unwrapped_abi)
     ];
     if !DirectMirOptionStructOuterAbiReady(
-        returned_abi, identity.declaration
+        returned_abi, identity.declaration.name,
+        identity.declaration.abi.size_text,
+        identity.declaration.abi.align_text
     ) {
         Die("direct MIR Option nominal outer ABI is unsupported");
     }
     let fact: DirectMirOptionStructValueFlowAbiFact =
         DirectMirOptionStructValueFlowAbiFact(
-            true, 0, identity.declaration, returned_abi.type_name,
+            true, 0, identity.declaration.digest,
+            identity.declaration.abi_layout_id, identity.declaration.name,
+            identity.declaration.abi.size_text,
+            identity.declaration.abi.align_text, returned_abi.type_name,
             MirAbiLayoutIdFromCapture(returned_abi), returned_abi,
             outer_ids, inner_ids
         );
     let verified: DirectMirOptionStructValueFlowAbiFact =
         DirectMirOptionStructValueFlowAbiFact(
             fact.valid, DirectMirOptionStructValueFlowAbiFactDigest(fact),
-            fact.declaration, fact.option_type_name, fact.option_layout_id,
+            fact.declaration_digest, fact.declaration_layout_id,
+            fact.declaration_name, fact.declaration_size_text,
+            fact.declaration_align_text, fact.option_type_name,
+            fact.option_layout_id,
             fact.option_abi, fact.outer_layout_ids, fact.inner_layout_ids
         );
     if !DirectMirOptionStructValueFlowAbiFactReady(verified) {

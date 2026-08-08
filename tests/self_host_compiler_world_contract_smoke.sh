@@ -175,7 +175,10 @@ require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileS
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "ParseRootProgramArtifact(source_path)"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileAstArtifactToC"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstArtifactAnalyzeCompactBridge(artifact, true)"
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "GenerateCUnitFromReadySemanticFacts("
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
+    "GenerateCUnitFromAdmittedSemanticArtifact("
+forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
+    "GenerateCUnitFromReadySemanticFacts("
 forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "GenerateCFromVerifiedSemanticArtifact("
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToCArtifact"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "CompileSourceToAstArtifact(source_path)"
@@ -239,8 +242,9 @@ require_text "src/self_hosted/compiler/driver_rung1_main.pgy" "func Main()"
 require_text "src/self_hosted/compiler/driver_rung1_main.pgy" "Args()"
 require_text "src/self_hosted/compiler/driver_rung1_main.pgy" "RunDriverRung1FromArgs(run_args)"
 
-# Authority locks: the action contract owns requires/within/authorized-by;
-# intents consume that contract instead of restating it as a second authority.
+# Authority locks: each declared ability has one role and one world action
+# contract. Intents consume that contract instead of restating it as a second
+# authority.
 require_text "src/self_hosted/compiler/world.pgy" 'import "authority_owner.pgy";'
 require_text "src/self_hosted/compiler/world.pgy" "authority checker requires FactProving"
 require_text "src/self_hosted/compiler/world.pgy" "authority emitter requires ArtifactEmission"
@@ -257,8 +261,16 @@ require_text "src/self_hosted/compiler/world.pgy" "within SubprocessRunnerZone"
 require_text "src/self_hosted/compiler/world.pgy" "requires ParityJudging"
 require_text "src/self_hosted/compiler/world.pgy" "within ParityZone"
 require_text "src/self_hosted/compiler/world.pgy" "authorized by: oracle;"
-if [[ "$(grep -F -c -- 'authorized by self' "$ROOT_DIR/src/self_hosted/compiler/world.pgy")" -ne 4 ]]; then
-    fail "compiler world authority must be owned by exactly four sensitive actions"
+authority_ability_count="$(grep -E -c '^ability[[:space:]]+' \
+    "$ROOT_DIR/src/self_hosted/compiler/authority_owner.pgy")"
+authority_role_count="$(grep -E -c '^role[[:space:]]+' \
+    "$ROOT_DIR/src/self_hosted/compiler/authority_owner.pgy")"
+world_action_contract_count="$(grep -F -c -- 'authorized by self' \
+    "$ROOT_DIR/src/self_hosted/compiler/world.pgy")"
+if [[ "$authority_ability_count" -eq 0 \
+    || "$authority_ability_count" -ne "$authority_role_count" \
+    || "$authority_ability_count" -ne "$world_action_contract_count" ]]; then
+    fail "compiler world ability/role/action authority counts drifted"
 fi
 require_text "src/self_hosted/compiler/authority_owner.pgy" "ability FactProving"
 require_text "src/self_hosted/compiler/authority_owner.pgy" "ability ArtifactEmission"
@@ -1004,6 +1016,22 @@ for term in \
     "target_planner: TargetProjectionPlanner" \
     "ProveSelfHostedParity(parity_zone, oracle)"; do
     require_text "src/self_hosted/compiler/stage_intents.pgy" "$term"
+done
+
+for action_owned_step in Check Lower Emit; do
+    step_contract="$(awk -v step="$action_owned_step" '
+        $0 ~ "^[[:space:]]*step[[:space:]]+" step "[[:space:]]*\\{" {
+            inside = 1
+        }
+        inside { print }
+        inside && /^[[:space:]]*on:/ { exit }
+    ' "$ROOT_DIR/src/self_hosted/compiler/stage_intents.pgy")"
+    [ -n "$step_contract" ] ||
+        fail "stage_intents missing action-owned step $action_owned_step"
+    if printf '%s\n' "$step_contract" |
+        grep -Eq '^[[:space:]]*(requires:|authorized by:)'; then
+        fail "stage_intents $action_owned_step restates its action-owned authority contract"
+    fi
 done
 
 for term in \

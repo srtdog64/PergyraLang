@@ -227,14 +227,6 @@ for backend in $BACKENDS; do
             echo "[self-host-parity:driver-rung2] LLVM unavailable; skipping llvm-built driver"
             continue
         fi
-        if [[ "$compile_rc" -eq 3 ]]; then
-            # Shared monitored ratchet -- see ownership_campaign_within_budget
-            # in llvm_leg_helpers.sh; a count past the budget exits loud here.
-            ownership_campaign_within_budget \
-                "$BUILD_DIR/driver_${backend}.compile.log" \
-                "self-host-parity:driver-rung2 llvm lane" || exit 1
-            continue
-        fi
         [[ "$compile_rc" -eq 0 ]] || exit "$compile_rc"
     fi
 

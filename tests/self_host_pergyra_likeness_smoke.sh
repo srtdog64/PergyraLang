@@ -102,15 +102,7 @@ AST_STRING_SURFACE_MAX=0
 # still omitted eleven already-landed registry-projection and semantic sites.
 # The source-to-MIR action adds none. Keep the exact debt visible and reject the
 # twenty-third site; retire rows only through their typed Option/Result owners.
-# 22 -> 291 (2026-08-09): this gate sat shadowed behind earlier contract-battery
-# dominos for weeks while the DirectMir projection-owner family landed with
-# '-1' row-absence sentinels (the top two owners alone carry 77 sites; census:
-# build a per-file count of 'return -1|== -1|!= -1' over the tracked corpus).
-# Declared campaign debt, same mechanism as the ownership budget ratchet: the
-# cap holds the measured total so any NEW site fails loudly, and each
-# Option<Int>-row conversion round lowers it. Not a loosening of the rule --
-# a refusal to hide the backlog behind a red gate nobody can act on.
-SENTINEL_MAX=291
+SENTINEL_MAX=22
 # 249 -> 246 (2026-07-03): first '?'-adoption wave (3 sites) converted 4-line
 # IsSome/UnwrapOption rituals to try-propagation; pattern gained `\)\?` in the
 # same commit. Re-base per the result_use comment below -- not a loosening.
@@ -309,7 +301,12 @@ SENTINEL_MAX=291
 # import-closure campaigns all carry absence as Option and try-propagation.
 # Locks the errors-as-data gains in so a future refactor cannot shed them
 # silently.
-RESULT_USE_MIN=3737
+# 3737 -> 3741 (2026-08-09): ownership query modes and the live nominal-
+# constructor argument-count query preserve absence through typed Option facts.
+# Do not count an unused materialized Option field: the current direct-MIR
+# self-host backend cannot store Option<Int> in a struct, and retaining such a
+# field would make the compiler probe itself uncompilable.
+RESULT_USE_MIN=3741
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=20
 # The import closure declares 20 resource-zone types, but the runtime world
@@ -343,10 +340,11 @@ TEXT_DOMAIN_EXCLUDE_RE='^src/self_hosted/lib/(json(_emit)?|diagnostic)\.pgy$'
 CORE_STRING_MUNGE_EXCLUDE_RE='^src/self_hosted/(tools|lsp|fuzz)/|^src/self_hosted/lib/(json(_emit)?|diagnostic|path|nominal_field_kind_owner|mir_decl_field_kind_vocabulary_projection_owner)\.pgy$|^src/self_hosted/codegen/abi_layout/|^src/self_hosted/codegen/emission/literal_rewrite\.pgy$|/(fixture_manifest|source_path)_owner\.pgy$|^src/self_hosted/compiler/(test_harness.*|path_manifest_owner|driver_cli_owner|symbol_table_owner|compatibility_evolution_owner|abi_layout_row_owner|runtime_call_abi_row_owner|machine_layer_.*)\.pgy$|^src/self_hosted/mir_lower/json_fact_read\.pgy$|^src/self_hosted/sea/lane_executor_contract_owner\.pgy$|^src/self_hosted/(lexer|parser|semantic|codegen)/.*run_owner\.pgy$|^src/self_hosted/lexer/source_input_owner\.pgy$|^src/self_hosted/codegen/input/ast_input_owner\.pgy$'
 SENTINEL_EXCLUDE_RE='^src/self_hosted/codegen/emission/program_emit\.pgy$|^src/self_hosted/codegen/runtime_abi/'
 
+FAILURE_COUNT=0
+
 fail() {
-    echo "[self-host-likeness] FAIL" >&2
     echo "  - $*" >&2
-    exit 1
+    FAILURE_COUNT=$((FAILURE_COUNT + 1))
 }
 
 self_host_source_files() {
@@ -366,14 +364,22 @@ self_host_source_files() {
 LIKELINESS_TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pgy-likeness.XXXXXX")"
 trap 'rm -rf "$LIKELINESS_TMP_DIR"' EXIT
 SELF_HOST_SOURCE_CORPUS="$LIKELINESS_TMP_DIR/source-corpus.tsv"
+SELF_HOST_SOURCE_LIST="$LIKELINESS_TMP_DIR/source-files.nul"
 self_host_source_files \
     | grep '\.pgy$' \
     | grep -Ev '/fixture(s)?/' \
     | while IFS= read -r rel; do
         [ -f "$ROOT_DIR/$rel" ] || continue
-        sed 's://.*$::' "$ROOT_DIR/$rel" \
-            | awk -v rel="$rel" '{ print rel "\t" $0 }'
-    done > "$SELF_HOST_SOURCE_CORPUS"
+        printf '%s\0' "$rel"
+    done > "$SELF_HOST_SOURCE_LIST"
+(cd "$ROOT_DIR" && xargs -0 -r awk '
+    FNR == 1 { rel = FILENAME }
+    {
+        line = $0
+        sub(/\/\/.*/, "", line)
+        print rel "\t" line
+    }
+' < "$SELF_HOST_SOURCE_LIST") > "$SELF_HOST_SOURCE_CORPUS"
 
 count() {
     # count(pattern) -> matches across the pending self-host implementation tree.
@@ -658,6 +664,11 @@ if [ "$core_string_munge_sig" -lt "$CORE_STRING_MUNGE_SIG_MAX" ] \
     || [ "$compiler_stage_envelope_only" -lt "$COMPILER_STAGE_ENVELOPE_ONLY_MAX" ] \
     || [ "$typed_ast_contract" -gt "$TYPED_AST_CONTRACT_MIN" ]; then
     echo "[self-host-likeness] NOTE: a metric improved past its baseline; tighten the baselines in $0 in this commit so the ratchet stays strict."
+fi
+
+if [ "$FAILURE_COUNT" -gt 0 ]; then
+    echo "[self-host-likeness] FAIL ($FAILURE_COUNT breach(es))" >&2
+    exit 1
 fi
 
 echo "[self-host-likeness] PASS"

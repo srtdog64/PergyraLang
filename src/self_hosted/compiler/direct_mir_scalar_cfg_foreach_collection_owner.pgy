@@ -92,9 +92,15 @@ func DirectMirScalarCfgForEachCollectionFromOwners(
                 producer.routine_name {
             return invalid;
         }
+        let elements: Array<Int> = [];
+        let element_row: Int = 0;
+        while element_row < ArrayLength(producer.elements) {
+            ArrayPush(elements, producer.elements[element_row]);
+            element_row = element_row + 1;
+        }
         let returned: DirectMirScalarCfgForEachCollectionFact =
             DirectMirScalarCfgForEachCollectionFact(
-                true, producer.storage_identity, producer.elements,
+                true, producer.storage_identity, elements,
                 producer.abi_layout_id, producer.abi_size,
                 producer.abi_align, producer.data_offset,
                 producer.length_offset, producer.capacity_offset,

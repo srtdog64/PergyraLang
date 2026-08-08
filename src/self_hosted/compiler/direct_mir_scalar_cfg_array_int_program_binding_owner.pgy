@@ -7,7 +7,7 @@ import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 
 func DirectMirScalarCfgArrayIntProgramAtValueRows(
     fact: DirectMirScalarCfgArrayIntProgramFact,
-    value_names: Array<String>,
+    ref value_names: Array<String>,
     ref ranges: DirectMirScalarCfgRangeFactSet
 ) -> DirectMirScalarCfgArrayIntProgramFact {
     if !fact.valid || fact.mode == DirectMirScalarCfgArrayIntForEachPrefixPopMode() || fact.mode == DirectMirScalarCfgArrayIntFreshReverseMode() { return fact; }

@@ -69,14 +69,15 @@ func DirectMirTwoRoutineNominalClassificationReady(
 func DirectMirTwoRoutineNominalClassificationFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> DirectMirTwoRoutineNominalClassificationFact {
-    let declarations: MirProgramDeclarationIndex =
-        admitted.domain_runtime_admission.declarations;
     if MirProgramRoutineIndexCount(admitted.routines) != 2 ||
         !MirProgramRoutineIndexStructureReady(admitted.routines) ||
-        !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 ||
-        declarations.kinds[0] != "struct" ||
-        declarations.nominal_kinds[0] != "struct" ||
-        declarations.names[0] == "" {
+        !admitted.domain_runtime_admission.declarations.valid ||
+        MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations) != 1 ||
+        admitted.domain_runtime_admission.declarations.kinds[0] != "struct" ||
+        admitted.domain_runtime_admission.declarations.nominal_kinds[0] !=
+            "struct" ||
+        admitted.domain_runtime_admission.declarations.names[0] == "" {
         return InvalidDirectMirTwoRoutineNominalClassificationFact();
     }
     let main_row: Int = 0 - 1;
@@ -113,16 +114,20 @@ func DirectMirTwoRoutineNominalClassificationFromAdmitted(
         return InvalidDirectMirTwoRoutineNominalClassificationFact();
     }
     let kind: Int = DirectMirTwoRoutineNominalUnsupported();
-    if producer.return_type == declarations.names[0] {
+    if producer.return_type ==
+            admitted.domain_runtime_admission.declarations.names[0] {
         kind = DirectMirTwoRoutineNominalPlain();
     } else if producer.return_type == Concat(
-        "Option<", Concat(declarations.names[0], ">")
+        "Option<", Concat(
+            admitted.domain_runtime_admission.declarations.names[0], ">")
     ) {
         kind = DirectMirTwoRoutineNominalOption();
     }
     let fact: DirectMirTwoRoutineNominalClassificationFact =
         DirectMirTwoRoutineNominalClassificationFact(
-            true, 0, kind, declarations.names[0], entrypoint, producer
+            true, 0, kind,
+            admitted.domain_runtime_admission.declarations.names[0],
+            entrypoint, producer
         );
     let verified: DirectMirTwoRoutineNominalClassificationFact =
         DirectMirTwoRoutineNominalClassificationFact(

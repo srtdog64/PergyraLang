@@ -7,10 +7,16 @@ func DirectMirScalarCfgArrayIntCollectionFromForEach(
     ref fact: DirectMirScalarCfgForEachFact
 ) -> DirectMirScalarCfgArrayIntCollectionFact {
     if !fact.valid { return DirectMirScalarCfgArrayIntCollectionFactEmpty(); }
+    let elements: Array<Int> = [];
+    let row: Int = 0;
+    while row < ArrayLength(fact.elements) {
+        ArrayPush(elements, fact.elements[row]);
+        row = row + 1;
+    }
     let view: DirectMirScalarCfgArrayIntCollectionFact =
         DirectMirScalarCfgArrayIntCollectionFact(
             true, fact.definition_global_row, fact.collection_value_id,
-            fact.collection_name, fact.storage_identity, fact.elements,
+            fact.collection_name, fact.storage_identity, elements,
             fact.abi_layout_id, fact.abi_size, fact.abi_align,
             fact.data_offset, fact.length_offset, fact.capacity_offset,
             fact.allocator_offset

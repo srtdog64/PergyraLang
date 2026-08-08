@@ -14,7 +14,7 @@ func DirectMirScalarCfgLeafOperandFromOwners(
     instruction_row: Int,
     node: Int,
     node_text: String,
-    value_names: Array<String>,
+    ref value_names: Array<String>,
     ref local_refs: DirectMirScalarCfgLocalRefPlan,
     ref wire: DirectMirScalarCfgWireLocalRefs
 ) -> DirectMirScalarCfgLeafOperand {

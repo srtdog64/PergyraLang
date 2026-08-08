@@ -42,19 +42,22 @@ func DirectMirEnumValueMatchRouteFactReady(
 func DirectMirEnumValueMatchRouteFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> DirectMirEnumValueMatchRouteFact {
-    let declarations: MirProgramDeclarationIndex =
-        admitted.domain_runtime_admission.declarations;
-    let declaration_count: Int = ArrayLength(declarations.starts);
+    let declaration_count: Int = ArrayLength(
+        admitted.domain_runtime_admission.declarations.starts
+    );
     let enum_marked_count: Int = 0;
     let row: Int = 0;
     while row < declaration_count {
         let marked: Bool = false;
-        if row < ArrayLength(declarations.kinds) &&
-            declarations.kinds[row] == "enum" {
+        if row < ArrayLength(
+                admitted.domain_runtime_admission.declarations.kinds) &&
+            admitted.domain_runtime_admission.declarations.kinds[row] ==
+                "enum" {
             marked = true;
         }
-        if row < ArrayLength(declarations.nominal_kinds) &&
-            declarations.nominal_kinds[row] == "enum" {
+        if row < ArrayLength(admitted.domain_runtime_admission
+                .declarations.nominal_kinds) && admitted.domain_runtime_admission
+                .declarations.nominal_kinds[row] == "enum" {
             marked = true;
         }
         if marked { enum_marked_count = enum_marked_count + 1; }

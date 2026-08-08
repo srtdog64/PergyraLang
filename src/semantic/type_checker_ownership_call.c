@@ -393,13 +393,15 @@ semantic_check_function_call_ownership_argument(ASTNode *arg_expr,
                 PGY_CAUSE_TYPE_BOUNDARY_ARG_MISMATCH,
                 PGY_FIX_ALIGN_BOUNDARY_ARG_TYPE,
                 arg_expr,
-                "Boundary value argument type mismatch: expected '%s', got '%s'.\n"
+                "Boundary value argument type mismatch in '%s' calling '%s': expected '%s', got '%s'.\n"
                 "Reason:\n"
                 "- own/ref value boundaries require the caller value and callee contract to agree on the same boundary value type\n"
                 "- provenance cannot be preserved across mismatched boundary value types\n"
                 "Fix:\n"
                 "- pass a value of type '%s'\n"
                 "- or change the callee contract to accept '%s'",
+                semantic_current_consumer_name(ctx),
+                display_name != NULL ? display_name : "<callee>",
                 type_name_or_unknown(param_type),
                 type_name_or_unknown(arg_type),
                 type_name_or_unknown(param_type),

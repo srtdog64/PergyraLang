@@ -131,7 +131,7 @@ func DirectMirArrayReturnPlanMutation(
 }
 
 func DirectMirArrayReturnPlanMutationRejected(
-    ref plan: DirectMirArrayReturnPlan
+    own plan: DirectMirArrayReturnPlan
 ) -> Bool {
     if !DirectMirArrayReturnPlanReady(plan) { return false; }
     let bad_use: DirectMirArrayReturnPlan = DirectMirArrayReturnPlanMutation(

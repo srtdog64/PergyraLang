@@ -18,14 +18,13 @@ func DirectMirStructArgumentProgramEnvelopeReady(
         JsonObjectFactArrayObjectTable(
             admitted.document.root, "generic_method_specializations"
         );
-    let declarations: MirProgramDeclarationIndex =
-        admitted.domain_runtime_admission.declarations;
     if !admitted.document.valid || admitted.domain_topology_plan.present ||
         admitted.document.routines.json != admitted.routines.source_json ||
         JsonObjectFactCount(admitted.document.root) != 5 ||
         !DirectMirStructArgumentProgramCandidate(admitted) ||
-        !declarations.valid ||
-        MirProgramDeclarationIndexCount(declarations) != 2 ||
+        !admitted.domain_runtime_admission.declarations.valid ||
+        MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations) != 2 ||
         !JsonArrayObjectFactTableReady(
             admitted.document.parallel_capture_boundaries
         ) || JsonArrayObjectFactCount(

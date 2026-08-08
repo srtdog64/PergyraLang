@@ -60,6 +60,22 @@ require_text "src/compiler/hir_callgraph.c" \
     "HIR direct-call identity facts are incomplete"
 require_text "src/compiler/hir_callgraph.c" \
     "HIR internal call target has no RoutineId"
+require_text "src/compiler/mir.h" "mir_routine_source_syntax_id"
+require_text "src/compiler/mir_program_inventory.c" \
+    "mir_routine_source_syntax_id(const MIRRoutine *routine)"
+require_text "src/codegen/transpiler_inventory_view.h" \
+    "transpiler_active_routine_lookup_by_source_syntax_id"
+require_text "src/codegen/transpiler_inventory_view.c" \
+    "mir_routine_inventory_find_unique_by_source_syntax_id("
+require_text "src/codegen/transpiler_mir_ssa_contract.c" \
+    "lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE"
+require_text "src/tests/mir/test_mir_inventory_identity.cases.h" \
+    "MIR_ROUTINE_SOURCE_LOOKUP_DUPLICATE"
+reject_text "src/codegen/transpiler_inventory_view.c" \
+    "routine->source_syntax_id"
+reject_text "src/codegen/transpiler_mir_ssa_contract.c" \
+    "transpiler_call_callee_is_static_function"
+reject_text "src/codegen/transpiler_mir_ssa_contract.c" "flat_name"
 require_text "src/compiler/rir.h" "uint32_t      source_syntax_id;"
 require_text "src/compiler/rir_flow.c" \
     "Source-backed HIR routines must not fall back to a name join"

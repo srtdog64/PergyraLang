@@ -128,7 +128,7 @@ func DirectMirConstructedArrayMemberProgramIdentityReady(
 func DirectMirConstructedArrayMemberProgramIdentityFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref classification: DirectMirThreeRoutineClassificationFact,
-    ref specialization: DirectMirConstructedArrayMemberSpecializationFact
+    own specialization: DirectMirConstructedArrayMemberSpecializationFact
 ) -> DirectMirConstructedArrayMemberProgramIdentity {
     if !DirectMirConstructedGenericMemberProgramEnvelopeReady(
         admitted, classification

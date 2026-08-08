@@ -7,7 +7,7 @@ import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 
 func DirectMirScalarCfgArrayIntReadOnlyAtValueRows(
     fact: DirectMirScalarCfgArrayIntReadOnlyRangeFact,
-    value_names: Array<String>,
+    ref value_names: Array<String>,
     ref ranges: DirectMirScalarCfgRangeFactSet
 ) -> DirectMirScalarCfgArrayIntReadOnlyRangeFact {
     if !fact.valid { return fact; }

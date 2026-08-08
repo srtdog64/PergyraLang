@@ -3218,6 +3218,7 @@ self-host-one-mir-array-return-projection-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_array_return_projection.sh
 
 self-host-one-mir-array-argument-projection-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/direct_mir_mutation_ownership_contract.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_array_argument_projection.sh
 
 self-host-one-mir-array-param-projection-test-smoke: self-host-compiler

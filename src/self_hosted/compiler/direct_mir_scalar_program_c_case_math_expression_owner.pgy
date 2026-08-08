@@ -7,25 +7,31 @@ func DirectMirScalarProgramCCaseMathExpression(
     kind: Int, left: String, right: String, arguments: Array<String>,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> Option<String> {
-    let fact: CompilerRuntimeCallAbiFact = runtime.case_math.abs;
+    let symbol: String = "";
+    let ready: Bool = false;
     let values: Array<String> = [];
     if kind == DirectMirScalarProgramExprStringReplace() {
-        fact = runtime.case_math.replace;
+        symbol = runtime.case_math.replace.symbol;
+        ready = runtime.case_math.replace.ok;
         let ordinal: Int = 0;
         while ordinal < ArrayLength(arguments) {
             ArrayPush(values, arguments[ordinal]); ordinal = ordinal + 1;
         }
     } else if kind == DirectMirScalarProgramExprAbsInt() {
+        symbol = runtime.case_math.abs.symbol;
+        ready = runtime.case_math.abs.ok;
         ArrayPush(values, left);
     } else if kind == DirectMirScalarProgramExprMinInt() {
-        fact = runtime.case_math.min;
+        symbol = runtime.case_math.min.symbol;
+        ready = runtime.case_math.min.ok;
         ArrayPush(values, left); ArrayPush(values, right);
     } else if kind == DirectMirScalarProgramExprMaxInt() {
-        fact = runtime.case_math.max;
+        symbol = runtime.case_math.max.symbol;
+        ready = runtime.case_math.max.ok;
         ArrayPush(values, left); ArrayPush(values, right);
     } else { return None; }
-    if !fact.ok || ArrayLength(values) < 1 { return None; }
-    let output: String = Concat(fact.symbol, "(");
+    if !ready || ArrayLength(values) < 1 { return None; }
+    let output: String = Concat(symbol, "(");
     let ordinal: Int = 0;
     while ordinal < ArrayLength(values) {
         if ordinal > 0 { output = Concat(output, ", "); }

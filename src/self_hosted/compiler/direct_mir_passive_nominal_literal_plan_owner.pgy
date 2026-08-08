@@ -68,7 +68,7 @@ func DirectMirPassiveNominalLiteralPlanReady(
 }
 
 func DirectMirPassiveNominalLiteralPlanFromAdmission(
-    ref admission: DirectMirNominalLiteralProgramAdmission
+    own admission: DirectMirNominalLiteralProgramAdmission
 ) -> DirectMirPassiveNominalLiteralPlan {
     if !DirectMirNominalLiteralProgramAdmissionReady(admission) ||
         admission.program.declaration.receiver_carriage !=

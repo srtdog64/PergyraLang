@@ -126,7 +126,7 @@ func DirectMirArrayArgumentPlanMutation(
 }
 
 func DirectMirArrayArgumentPlanMutationRejected(
-    ref plan: DirectMirArrayArgumentPlan
+    own plan: DirectMirArrayArgumentPlan
 ) -> Bool {
     if !DirectMirArrayArgumentPlanReady(plan) { return false; }
     let bad_carriage: DirectMirArrayArgumentPlan =

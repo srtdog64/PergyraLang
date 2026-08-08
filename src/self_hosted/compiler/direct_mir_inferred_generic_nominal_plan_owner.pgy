@@ -53,6 +53,7 @@ func DirectMirInferredGenericNominalPlanReady(
             CompilerTargetCapabilityFingerprint() &&
         DirectMirInferredGenericNominalProgramIdentityReady(plan.identity) &&
         DirectMirInferredGenericNominalAbiFactReady(plan.abi) &&
+        plan.abi.declaration_digest == plan.identity.declaration.digest &&
         MirSsaNameMatches(
             plan.result_value, plan.identity.graph.source_local_name, false
         ) && plan.value_carriage ==

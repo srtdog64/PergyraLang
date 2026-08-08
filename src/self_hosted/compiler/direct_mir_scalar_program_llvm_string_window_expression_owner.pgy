@@ -21,13 +21,13 @@ func DirectMirScalarProgramLlvmStringWindowExpressionAt(
         return DirectMirScalarProgramLlvmStringExpression(
             true, true, length_output, result);
     }
-    let fact: CompilerRuntimeCallAbiFact = runtime.string_substring;
+    let fact_symbol: String = runtime.string_substring.symbol;
     let operation: String = "substring";
     let symbol: String = StringRuntimeCSubstringFn();
     let shape: String = "string_int_int_to_string";
     let expected: Int = 3;
     if kind == DirectMirScalarProgramExprSubstringWithLen() {
-        fact = runtime.string_substring_with_len;
+        fact_symbol = runtime.string_substring_with_len.symbol;
         operation = "substring-with-len";
         symbol = StringRuntimeCSubstringWithLenFn();
         shape = "string_int_int_int_to_string"; expected = 4;
@@ -35,13 +35,18 @@ func DirectMirScalarProgramLlvmStringWindowExpressionAt(
         return DirectMirScalarProgramLlvmStringExpressionMissing();
     }
     if ArrayLength(arguments) != expected ||
-        !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
-            fact, operation, symbol, shape) {
+        (kind == DirectMirScalarProgramExprSubstring() &&
+            !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+                runtime.string_substring, operation, symbol, shape)) ||
+        (kind == DirectMirScalarProgramExprSubstringWithLen() &&
+            !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+                runtime.string_substring_with_len,
+                operation, symbol, shape)) {
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
     }
     let output: String = Concat("  ", Concat(result,
-        Concat(" = call ptr @", Concat(fact.symbol, "("))));
+        Concat(" = call ptr @", Concat(fact_symbol, "("))));
     let i: Int = 0;
     while i < expected {
         if i > 0 { output = Concat(output, ", "); }

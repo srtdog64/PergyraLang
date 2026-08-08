@@ -52,7 +52,7 @@ func CompilerTargetProjectionFactFromOwner(
 }
 
 func CompilerTargetProjectionFactReadyFor(
-    fact: CompilerTargetProjectionFact,
+    ref fact: CompilerTargetProjectionFact,
     expected_projection: String
 ) -> Bool {
     if !fact.ok || !CompilerTargetCapabilityEnvelopeReady() ||

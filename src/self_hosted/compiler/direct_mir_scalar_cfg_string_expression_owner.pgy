@@ -8,7 +8,7 @@ func DirectMirScalarCfgStringValueExpressionFact(
     ref instruction: JsonObjectFactTable,
     ref use_facts: MirRoutineInstructionUseFacts,
     global_row: Int, instruction_row: Int,
-    value_names: Array<String>,
+    ref value_names: Array<String>,
     ref local_refs: DirectMirScalarCfgLocalRefPlan,
     ref wire: DirectMirScalarCfgWireLocalRefs
 ) -> DirectMirScalarCfgExpressionFact {
@@ -91,7 +91,7 @@ func DirectMirScalarCfgTypedValueExpressionFact(
     type_name: String, ref instruction: JsonObjectFactTable,
     ref use_facts: MirRoutineInstructionUseFacts,
     global_row: Int, instruction_row: Int,
-    value_names: Array<String>,
+    ref value_names: Array<String>,
     ref local_refs: DirectMirScalarCfgLocalRefPlan,
     ref wire: DirectMirScalarCfgWireLocalRefs
 ) -> DirectMirScalarCfgExpressionFact {
@@ -124,7 +124,7 @@ func DirectMirScalarCfgTypedLogExpressionFact(
     ref instruction: JsonObjectFactTable,
     ref use_facts: MirRoutineInstructionUseFacts,
     global_row: Int, instruction_row: Int,
-    value_names: Array<String>,
+    ref value_names: Array<String>,
     ref local_refs: DirectMirScalarCfgLocalRefPlan,
     ref wire: DirectMirScalarCfgWireLocalRefs,
     ref types: DirectMirScalarCfgValueTypePlan

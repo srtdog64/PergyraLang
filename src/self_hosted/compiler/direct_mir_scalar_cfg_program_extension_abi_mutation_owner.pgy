@@ -1,7 +1,7 @@
 import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
 import "direct_mir_scalar_cfg_program_extension_fact_readiness_owner.pgy";
 func DirectMirScalarCfgProgramExtensionAbiMutationRejected(
-    ref empty: DirectMirScalarCfgProgramExtensionFact,
+    own empty: DirectMirScalarCfgProgramExtensionFact,
     empty_ints: Array<Int>) -> Bool {
     let runtime_mutation: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(

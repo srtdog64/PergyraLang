@@ -198,15 +198,15 @@ func DirectMirEnumLiteralLogAt(
 
 func DirectMirEnumValueMatchPlanFactFromOwners(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref route: DirectMirEnumValueMatchRouteFact,
-    ref certificate: DirectMirCfgCertificate,
+    own route: DirectMirEnumValueMatchRouteFact,
+    own identity_match: DirectMirIdentityMatchCfgCertificateFact,
+    certificate_digest: Int,
     ref uses: MirRoutineInstructionUseFacts
 ) -> DirectMirEnumValueMatchPlanFact {
     if !DirectMirEnumValueMatchRouteFactReady(route) || !route.claimed ||
         route.declaration_count != 1 || route.enum_marked_count != 1 ||
-        !DirectMirCfgCertificateReady(certificate) ||
         !DirectMirIdentityMatchCfgCertificateFactReady(
-            certificate.identity_match
+            identity_match
         ) || !admitted.domain_runtime_admission.declarations.valid ||
         MirProgramDeclarationIndexCount(
             admitted.domain_runtime_admission.declarations) != 1 ||
@@ -280,14 +280,14 @@ func DirectMirEnumValueMatchPlanFactFromOwners(
     let definition: JsonObjectFactTable = JsonObjectFactTableFromBounds(
         admitted.routines.source_json,
         admitted.routines.instruction_starts[
-            certificate.identity_match.definition_global_row
+            identity_match.definition_global_row
         ], admitted.routines.instruction_ends[
-            certificate.identity_match.definition_global_row
+            identity_match.definition_global_row
         ]
     );
     if !DirectMirEnumDefinitionEnvelopeReady(
-        definition, certificate.identity_match.local_name,
-        certificate.identity_match.result_name
+        definition, identity_match.local_name,
+        identity_match.result_name
     ) {
         Die("direct MIR enum value definition envelope is invalid");
     }
@@ -314,9 +314,9 @@ func DirectMirEnumValueMatchPlanFactFromOwners(
     let entry_log: JsonObjectFactTable = JsonObjectFactTableFromBounds(
         admitted.routines.source_json,
         admitted.routines.instruction_starts[
-            certificate.identity_match.entry_log_global_row
+            identity_match.entry_log_global_row
         ], admitted.routines.instruction_ends[
-            certificate.identity_match.entry_log_global_row
+            identity_match.entry_log_global_row
         ]
     );
     let entry_id: String = DirectMirCfgCanonicalInstructionId(entry_log);
@@ -325,18 +325,18 @@ func DirectMirEnumValueMatchPlanFactFromOwners(
     );
     if entry_id == "" ||
         !DirectMirLogInstructionEnvelopeReady(entry_log, entry_id) ||
-        entry_local != certificate.identity_match.local_name ||
+        entry_local != identity_match.local_name ||
         MirRoutineInstructionUseCountAtGlobal(
-            uses, certificate.identity_match.entry_log_global_row
+            uses, identity_match.entry_log_global_row
         ) != 1 {
         Die("direct MIR enum entry Log graph or use is invalid");
     }
     let branch: JsonObjectFactTable = JsonObjectFactTableFromBounds(
         admitted.routines.source_json,
         admitted.routines.instruction_starts[
-            certificate.identity_match.branch_global_row
+            identity_match.branch_global_row
         ], admitted.routines.instruction_ends[
-            certificate.identity_match.branch_global_row
+            identity_match.branch_global_row
         ]
     );
     let branch_local: String = DirectMirEnumSingleNodeGraphText(
@@ -345,25 +345,25 @@ func DirectMirEnumValueMatchPlanFactFromOwners(
     let match_fact: MirMatchInstructionCapture =
         MirMatchInstructionCaptureFromTable(branch);
     if !DirectMirEnumBranchEnvelopeReady(branch) ||
-        branch_local != certificate.identity_match.local_name ||
+        branch_local != identity_match.local_name ||
         !match_fact.valid ||
         ToString(ToInt(match_fact.pattern)) != match_fact.pattern ||
         MirRoutineInstructionUseCountAtGlobal(
-            uses, certificate.identity_match.branch_global_row
+            uses, identity_match.branch_global_row
         ) != 1 {
         Die("direct MIR enum match pattern, graph, or use is invalid");
     }
     let true_literal: String = DirectMirEnumLiteralLogAt(
-        admitted, certificate.identity_match.true_log_global_row
+        admitted, identity_match.true_log_global_row
     );
     let false_literal: String = DirectMirEnumLiteralLogAt(
-        admitted, certificate.identity_match.false_log_global_row
+        admitted, identity_match.false_log_global_row
     );
     if true_literal == "" || false_literal == "" ||
         MirRoutineInstructionUseCountAtGlobal(
-            uses, certificate.identity_match.true_log_global_row
+            uses, identity_match.true_log_global_row
         ) != 0 || MirRoutineInstructionUseCountAtGlobal(
-            uses, certificate.identity_match.false_log_global_row
+            uses, identity_match.false_log_global_row
         ) != 0 {
         Die("direct MIR enum match arm Log fact is invalid");
     }
@@ -373,12 +373,11 @@ func DirectMirEnumValueMatchPlanFactFromOwners(
         );
     let raw: DirectMirEnumValueMatchPlanFact =
         DirectMirEnumValueMatchPlanFact(
-            true, 0, route, certificate.certificate_digest,
-            certificate.identity_match,
+            true, 0, route, certificate_digest, identity_match,
             DirectMirCfgBoundedDigest(declaration_hash),
             selection.declaration_name, selection.variant_name,
-            certificate.identity_match.local_name,
-            certificate.identity_match.result_name, selected_ordinal,
+            identity_match.local_name, identity_match.result_name,
+            selected_ordinal,
             match_fact.pattern, true_literal, false_literal, abi
         );
     let plan: DirectMirEnumValueMatchPlanFact =
