@@ -1,12 +1,88 @@
 # Current Work Handoff
 
-Updated: 2026-08-05 (Asia/Seoul)
+Updated: 2026-08-09 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - Array<String> call/index boundary closed
+## Active self-host context - ownership oracle semantic wall closed; integrated artifact recheck next
+
+- Executable checkpoint: `1c3912042ea41892ab87ec908332e4866ec896fd`
+  on `main`, with this handoff as its intended docs-only descendant.
+- Intended post-handoff dirty state contains only user-owned stdlib work:
+  modified `docs/138_standard_library_scope.md` and
+  `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
+  `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`.
+  Do not stage or rewrite those files from the compiler rung.
+- Active executable rung: compile
+  `src/self_hosted/compiler/driver_rung2_main.pgy` through the native oracle
+  (`--native-pipeline --backend=c`) and require an exit-zero executable
+  artifact. The previous integrated run reached `0 error(s), 3 warning(s)`
+  after reducing the ownership wall `256 -> 206 -> 153 -> 14 -> 0`, but then
+  failed in the MIR-only C contract on namespace receiver `SelfHostPath`.
+  Semantic zero is therefore not yet an executable-oracle success claim.
+- The reached namespace seam is now closed locally. A call's
+  `semantic_callee_decl_id` joins uniquely to MIR `source_syntax_id`; receiver
+  traversal is skipped only for a unique `MIR_SCOPE_FUNCTION`. Invalid,
+  missing, duplicate, method, and intent identities remain fail-closed. Name
+  casing, local absence, and flattened C names are forbidden substitutes.
+- The MIR identity unit covers forged invalid/missing/duplicate/method rows.
+  The exact namespace direct-return and instance-method controls pass C/LLVM
+  parity `2/2` on the installed `bin/pgy.exe`.
+- The ownership repair uses `ref` for pure queries, `own` for persisted
+  one-shot assembly, and `inout -> Void` for repeated mutation because the
+  current analyzer does not treat consume-and-rebind as binding
+  reinitialization. No clone, analyzer relaxation, or borrowed-value store was
+  introduced. The ownership budget and content-matched skip path were deleted;
+  bootstrap and driver-body compile failures are red unless LLVM is actually
+  unavailable.
+- Function-scoped signature ratchets and executable gates cover the reached
+  enum and aggregate seams. Final observed evidence on this checkpoint:
+  native build `151.6s` exit 0; semantic unit `2823/2823`; MIR unit `159/159`;
+  assignment projection `159.9s` PASS; mutation ownership `23.4s` PASS; enum
+  value-match `42.1s` PASS (`2+300`, five metamorphic cases, 34 negatives);
+  constructed-array aggregate `33.4s` PASS (C/LLVM exact, 27 C negatives and
+  seven LLVM sentinels).
+- The assignment probe now emits explicit place rows. `Unknown place + cbind`
+  and `Binding place + missing cbind` reach the same indexed receiver leaf and
+  produce distinct diagnostics. The unused materialized
+  `maximum_argument_count` field was removed instead of storing unsupported
+  `Option<Int>` in a self-host struct; the live count query remains
+  `Option<Int>` and its `return -1` path is negatively pinned.
+- The likeness gate now completes in about 14 seconds and reports all breaches
+  rather than exiting after the first. It is intentionally red on exactly one
+  current hard breach: sentinel lexical slice `290 > 22`. `result_use` is
+  aligned at `3741 == 3741`; the cap was not raised and the sentinel failure
+  was not skipped.
+- Full component and MIR-inventory structural batteries did not complete
+  inside the 60-second static budget and are not claimed green. The compiler
+  world battery also did not complete in budget. Full bootstrap, gen2/gen3,
+  installed-driver oracle parity, and the post-commit GitHub matrix have not
+  run. Existing full CI was chronically red before this checkpoint; do not
+  describe it as a regression introduced by this commit without new evidence.
+- Next falsifying case: rerun the exact integrated native-oracle compile with
+  no overlapping `pgy` process. If it exits zero, record artifact hash/size and
+  proceed immediately to bounded bootstrap oracle-vs-seed parity. If it fails,
+  the first post-namespace MIR diagnostic becomes the only active seam.
+- Next objective card: production entry is the native compile of
+  `driver_rung2_main.pgy`; fact owner is the semantic-call-to-MIR-routine
+  identity join plus the reached Pergyra owner named by the next diagnostic;
+  last consumer is the MIR-only C emission contract; forbidden fallbacks are
+  namespace spelling guesses, native/oracle skip, campaign budget, timeout
+  increase, fixture routing, clone, or alternate C path. Acceptance is an
+  exit-zero oracle artifact followed by the existing bounded bootstrap gate.
+- After the integrated oracle artifact exists, the next independent CI
+  executable blocker is the general multi-routine call graph: the current
+  terminal owners admit exact three-routine families, while
+  `execution_lane.pgy` has ten routines plus enum/struct declarations. Start
+  with `tests/cases/backend_compare/int_helpers_basic/main.pgy` as the
+  declaration-free four-routine falsifier; do not wire the existing exact-three
+  terminal directly as an arbitrary-N fallback.
+
+## Historical checkpoint archive - inactive navigation evidence
+
+### Previous Array<String> call/index boundary closure
 
 - Executable checkpoint: `52715894` on `main`, with this handoff as its
   intended docs-only descendant. The final current-source Pergyra-built driver
@@ -90,8 +166,6 @@ owner, and the named executable gate.
   first-local type inference, flattened Array values, backend-only builtin
   reconstruction, a second graph/emitter, count routing, claimant retry, or
   native C fallback.
-
-## Historical checkpoint archive - inactive navigation evidence
 
 ### Previous StringIndexOf window program closure
 
