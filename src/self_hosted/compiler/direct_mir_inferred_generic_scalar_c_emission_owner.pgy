@@ -15,18 +15,17 @@ func DirectMirInferredGenericScalarEmitC(
         formatted_print.symbol == "" || line_format == "" {
         Die("direct MIR inferred scalar C projection facts are invalid");
     }
-    let graph: DirectMirInferredGenericScalarGraphFact = plan.identity.graph;
     let specialized: String = CompilerSymbolCIdentifier(
         plan.identity.specialization.specialized_symbol
     );
     let generic_parameter: String = CompilerSymbolCIdentifier(
-        graph.generic_parameter_name
+        plan.identity.graph.generic_parameter_name
     );
-    let wrapper: String = CompilerSymbolCIdentifier(graph.wrapper_name);
+    let wrapper: String = CompilerSymbolCIdentifier(plan.identity.graph.wrapper_name);
     let wrapper_parameter: String = CompilerSymbolCIdentifier(
-        graph.wrapper_parameter_name
+        plan.identity.graph.wrapper_parameter_name
     );
-    let local_binding: String = CompilerSymbolCIdentifier(graph.local_name);
+    let local_binding: String = CompilerSymbolCIdentifier(plan.identity.graph.local_name);
     if specialized == "" || generic_parameter == "" || wrapper == "" ||
         wrapper_parameter == "" || local_binding == "" || specialized == wrapper {
         Die("direct MIR inferred scalar C symbols are invalid");

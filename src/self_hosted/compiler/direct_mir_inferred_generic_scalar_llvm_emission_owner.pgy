@@ -16,11 +16,10 @@ func DirectMirInferredGenericScalarEmitLlvm(
         formatted_print.symbol == "" || line_format == "" {
         Die("direct MIR inferred scalar LLVM projection facts are invalid");
     }
-    let graph: DirectMirInferredGenericScalarGraphFact = plan.identity.graph;
     let specialized: String = CompilerSymbolCIdentifier(
         plan.identity.specialization.specialized_symbol
     );
-    let wrapper: String = CompilerSymbolCIdentifier(graph.wrapper_name);
+    let wrapper: String = CompilerSymbolCIdentifier(plan.identity.graph.wrapper_name);
     if specialized == "" || wrapper == "" || specialized == wrapper {
         Die("direct MIR inferred scalar LLVM symbols are invalid");
     }

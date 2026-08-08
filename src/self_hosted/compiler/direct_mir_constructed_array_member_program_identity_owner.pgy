@@ -80,45 +80,49 @@ func DirectMirConstructedArrayMemberProgramIdentityReady(
         ) || !DirectMirConstructedArrayMemberSourceIdentitiesReady(identity) {
         return false;
     }
-    let constructed: DirectMirConstructedArrayMemberSignatureFact =
-        identity.constructed_method;
-    let value_identity: DirectMirConstructedArrayMemberSignatureFact =
-        identity.identity_method;
-    let spec: DirectMirConstructedArrayMemberSpecializationFact =
-        identity.specialization;
-    let declaration: DirectMirConstructedGenericMemberDeclarationFact =
-        identity.declaration;
-    let graph: DirectMirConstructedArrayMemberMainGraphFact =
-        identity.main_graph;
     return identity.entrypoint.name == "Main" &&
         identity.entrypoint.return_type == "Void" &&
-        identity.entrypoint.param_count == 0 && constructed.returns_array &&
-        !value_identity.returns_array &&
-        DirectMirConstructedArrayMemberSubstitutionReady(spec) &&
-        constructed.owner == declaration.name &&
-        value_identity.owner == declaration.name &&
-        constructed.name == spec.inner_callable &&
-        value_identity.name == spec.outer_callable &&
-        constructed.generic_name == spec.inner_generic_param &&
-        value_identity.generic_name == spec.outer_generic_param &&
+        identity.entrypoint.param_count == 0 &&
+        identity.constructed_method.returns_array &&
+        !identity.identity_method.returns_array &&
+        DirectMirConstructedArrayMemberSubstitutionReady(
+            identity.specialization
+        ) &&
+        identity.constructed_method.owner == identity.declaration.name &&
+        identity.identity_method.owner == identity.declaration.name &&
+        identity.constructed_method.name ==
+            identity.specialization.inner_callable &&
+        identity.identity_method.name ==
+            identity.specialization.outer_callable &&
+        identity.constructed_method.generic_name ==
+            identity.specialization.inner_generic_param &&
+        identity.identity_method.generic_name ==
+            identity.specialization.outer_generic_param &&
         DirectMirConstructedGenericMemberDeclarationHasMethod(
-            declaration, constructed.name, constructed.return_type
+            identity.declaration, identity.constructed_method.name,
+            identity.constructed_method.return_type
         ) && DirectMirConstructedGenericMemberDeclarationHasMethod(
-            declaration, value_identity.name, value_identity.return_type
+            identity.declaration, identity.identity_method.name,
+            identity.identity_method.return_type
         ) && identity.method_graph.constructed_value_parameter ==
-            constructed.value_param.name &&
+            identity.constructed_method.value_param.name &&
         identity.method_graph.identity_value_parameter ==
-            value_identity.value_param.name && spec.owner == declaration.name &&
-        graph.owner == declaration.name &&
-        graph.inner_method == constructed.name &&
-        graph.outer_method == value_identity.name &&
-        graph.inner_target == CompilerSymbolCQualifiedName(
-            declaration.name, constructed.name
-        ) && graph.outer_target == CompilerSymbolCQualifiedName(
-            declaration.name, value_identity.name
-        ) && constructed.row != value_identity.row &&
-        identity.entrypoint.row != constructed.row &&
-        identity.entrypoint.row != value_identity.row;
+            identity.identity_method.value_param.name &&
+        identity.specialization.owner == identity.declaration.name &&
+        identity.main_graph.owner == identity.declaration.name &&
+        identity.main_graph.inner_method ==
+            identity.constructed_method.name &&
+        identity.main_graph.outer_method ==
+            identity.identity_method.name &&
+        identity.main_graph.inner_target == CompilerSymbolCQualifiedName(
+            identity.declaration.name, identity.constructed_method.name
+        ) && identity.main_graph.outer_target ==
+            CompilerSymbolCQualifiedName(
+                identity.declaration.name, identity.identity_method.name
+            ) && identity.constructed_method.row !=
+            identity.identity_method.row &&
+        identity.entrypoint.row != identity.constructed_method.row &&
+        identity.entrypoint.row != identity.identity_method.row;
 }
 
 func DirectMirConstructedArrayMemberProgramIdentityFromAdmitted(

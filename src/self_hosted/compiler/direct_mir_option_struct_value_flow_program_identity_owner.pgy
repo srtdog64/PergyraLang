@@ -36,31 +36,31 @@ func DirectMirOptionStructValueFlowProgramIdentityReady(
         !DirectMirOptionStructValueFlowGraphFactReady(identity.graph) {
         return false;
     }
-    let declaration: DirectMirNominalDeclarationAbiFact =
-        identity.declaration;
-    let graph: DirectMirOptionStructValueFlowGraphFact = identity.graph;
     let option_name: String = Concat(
-        "Option<", Concat(declaration.name, ">")
+        "Option<", Concat(identity.declaration.name, ">")
     );
     return identity.entrypoint.name == "Main" &&
         identity.entrypoint.return_type == "Void" &&
         identity.entrypoint.param_count == 0 &&
-        identity.producer.name == graph.producer_name &&
+        identity.producer.name == identity.graph.producer_name &&
         identity.producer.return_type == option_name &&
         identity.producer.param_count == 1 &&
-        identity.producer.param.name == graph.parameter_name &&
+        identity.producer.param.name == identity.graph.parameter_name &&
         identity.producer.param.type_name == CompilerAbiLayoutIntTypeName() &&
         identity.producer.param.carriage == "value" &&
         identity.producer.param.resource == "none" &&
         identity.producer.param.pass_shape == "direct" &&
         !identity.producer.param.abi_required &&
-        declaration.name == graph.type_name &&
-        ArrayLength(declaration.field_names) == 2 &&
-        declaration.field_names[0] == graph.first_field &&
-        declaration.field_names[1] == graph.second_field &&
-        declaration.field_types[0] == CompilerAbiLayoutIntTypeName() &&
-        declaration.field_types[1] == CompilerAbiLayoutIntTypeName() &&
-        DirectMirTwoIntNominalPhysicalRowReady(declaration) &&
+        identity.declaration.name == identity.graph.type_name &&
+        ArrayLength(identity.declaration.field_names) == 2 &&
+        identity.declaration.field_names[0] == identity.graph.first_field &&
+        identity.declaration.field_names[1] ==
+            identity.graph.second_field &&
+        identity.declaration.field_types[0] ==
+            CompilerAbiLayoutIntTypeName() &&
+        identity.declaration.field_types[1] ==
+            CompilerAbiLayoutIntTypeName() &&
+        DirectMirTwoIntNominalPhysicalRowReady(identity.declaration) &&
         identity.entrypoint.row != identity.producer.row &&
         identity.entrypoint.source_syntax_id !=
             identity.producer.source_syntax_id;

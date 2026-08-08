@@ -16,13 +16,12 @@ func DirectMirOptionStructValueFlowEmitC(
         formatted_print.symbol == "" || line_format == "" {
         Die("direct MIR Option nominal C projection facts are invalid");
     }
-    let graph: DirectMirOptionStructValueFlowGraphFact = plan.identity.graph;
-    let type_name: String = CompilerSymbolCIdentifier(graph.type_name);
+    let type_name: String = CompilerSymbolCIdentifier(plan.identity.graph.type_name);
     let option_name: String = Concat("Option_", type_name);
-    let first: String = CompilerSymbolCIdentifier(graph.first_field);
-    let second: String = CompilerSymbolCIdentifier(graph.second_field);
-    let producer: String = CompilerSymbolCIdentifier(graph.producer_name);
-    let parameter: String = CompilerSymbolCIdentifier(graph.parameter_name);
+    let first: String = CompilerSymbolCIdentifier(plan.identity.graph.first_field);
+    let second: String = CompilerSymbolCIdentifier(plan.identity.graph.second_field);
+    let producer: String = CompilerSymbolCIdentifier(plan.identity.graph.producer_name);
+    let parameter: String = CompilerSymbolCIdentifier(plan.identity.graph.parameter_name);
     if type_name == "" || option_name == "" || first == "" ||
         second == "" || first == second || producer == "" || parameter == "" {
         Die("direct MIR Option nominal C symbols are invalid");
@@ -112,27 +111,27 @@ func DirectMirOptionStructValueFlowEmitC(
     output = Concat(output, " = ");
     output = Concat(output, parameter);
     output = Concat(output, " + ");
-    output = Concat(output, ToString(graph.producer_first_delta));
+    output = Concat(output, ToString(plan.identity.graph.producer_first_delta));
     output = Concat(output, ", .");
     output = Concat(output, second);
     output = Concat(output, " = ");
     output = Concat(output, parameter);
     output = Concat(output, " + ");
-    output = Concat(output, ToString(graph.producer_second_delta));
+    output = Concat(output, ToString(plan.identity.graph.producer_second_delta));
     output = Concat(output, " } };\n    return pgy_returned;\n}\n\nint main(void) {\n    ");
     output = Concat(output, option_name);
     output = Concat(output, " pgy_picked = { .tag = PGY_OPTION_SOME_TAG, .value = { ");
-    output = Concat(output, ToString(graph.initial_first));
+    output = Concat(output, ToString(plan.identity.graph.initial_first));
     output = Concat(output, ", ");
-    output = Concat(output, ToString(graph.initial_second));
+    output = Concat(output, ToString(plan.identity.graph.initial_second));
     output = Concat(output, " } };\n    pgy_picked = (");
     output = Concat(output, option_name);
     output = Concat(output, "){ .tag = PGY_OPTION_NONE_TAG };\n    pgy_picked = (");
     output = Concat(output, option_name);
     output = Concat(output, "){ .tag = PGY_OPTION_SOME_TAG, .value = { ");
-    output = Concat(output, ToString(graph.latest_first));
+    output = Concat(output, ToString(plan.identity.graph.latest_first));
     output = Concat(output, ", ");
-    output = Concat(output, ToString(graph.latest_second));
+    output = Concat(output, ToString(plan.identity.graph.latest_second));
     output = Concat(output, " } };\n    ");
     output = Concat(output, type_name);
     output = Concat(output, " pgy_pair = pgy_picked.value;\n    ");
@@ -148,7 +147,7 @@ func DirectMirOptionStructValueFlowEmitC(
     output = Concat(output, " pgy_built = ");
     output = Concat(output, producer);
     output = Concat(output, "(");
-    output = Concat(output, ToString(graph.producer_argument));
+    output = Concat(output, ToString(plan.identity.graph.producer_argument));
     output = Concat(output, ");\n    ");
     output = Concat(output, type_name);
     output = Concat(output, " pgy_unwrapped = pgy_built.value;\n    ");

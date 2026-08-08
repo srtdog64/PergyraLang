@@ -8,8 +8,6 @@ func DirectMirConstructedRecordArrayMemberProgramEnvelopeReady(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref classification: DirectMirThreeRoutineClassificationFact
 ) -> Bool {
-    let declarations: MirProgramDeclarationIndex =
-        admitted.domain_runtime_admission.declarations;
     let specializations: JsonArrayObjectFactTable =
         JsonObjectFactArrayObjectTable(
             admitted.document.root, "generic_method_specializations"
@@ -25,7 +23,10 @@ func DirectMirConstructedRecordArrayMemberProgramEnvelopeReady(
         ) || !admitted.document.valid || admitted.domain_topology_plan.present ||
         admitted.document.routines.json != admitted.routines.source_json ||
         JsonObjectFactCount(admitted.document.root) != 5 ||
-        !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 2 ||
+        !admitted.domain_runtime_admission.declarations.valid ||
+        MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations
+        ) != 2 ||
         !JsonArrayObjectFactTableReady(specializations) ||
         !DirectMirExactObjectArrayCount(
             specializations, 2

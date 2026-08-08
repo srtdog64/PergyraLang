@@ -16,8 +16,7 @@ func DirectMirInferredGenericNominalEmitLlvm(
         formatted_print.symbol == "" || line_format == "" {
         Die("direct MIR inferred generic LLVM projection facts are invalid");
     }
-    let graph: DirectMirInferredGenericNominalGraphFact = plan.identity.graph;
-    let type_name: String = CompilerSymbolCIdentifier(graph.type_name);
+    let type_name: String = CompilerSymbolCIdentifier(plan.identity.graph.type_name);
     let specialized: String = CompilerSymbolCIdentifier(
         plan.identity.specialization.specialized_symbol
     );
@@ -39,11 +38,11 @@ func DirectMirInferredGenericNominalEmitLlvm(
     output = Concat(output, "(i32 %value) {\nentry:\n  ret i32 %value\n}\n\ndefine i32 @main() {\nentry:\n  %pgy.left = call i32 @");
     output = Concat(output, specialized);
     output = Concat(output, "(i32 ");
-    output = Concat(output, ToString(graph.first_value));
+    output = Concat(output, ToString(plan.identity.graph.first_value));
     output = Concat(output, ")\n  %pgy.right = call i32 @");
     output = Concat(output, specialized);
     output = Concat(output, "(i32 ");
-    output = Concat(output, ToString(graph.second_value));
+    output = Concat(output, ToString(plan.identity.graph.second_value));
     output = Concat(output, ")\n  %pgy.pair.0 = insertvalue %");
     output = Concat(output, type_name);
     output = Concat(output, " poison, i32 %pgy.left, 0\n  %pgy.pair.1 = insertvalue %");

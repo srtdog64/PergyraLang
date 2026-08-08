@@ -14,13 +14,15 @@ func DirectMirScalarCfgArrayIntCPreamble(
     if DirectMirScalarCfgArrayIntProgramAbsent(
         plan.array_int_program
     ) { return ""; }
-    let fact: DirectMirScalarCfgArrayIntCollectionFact =
-        plan.array_int_program.collection;
     let abi: DirectMirArrayIntAbiProjection =
         DirectMirArrayIntAbiProjectionFromCanonicalLayout(
-            target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
-            fact.data_offset, fact.length_offset, fact.capacity_offset,
-            fact.allocator_offset
+            target, plan.array_int_program.collection.abi_layout_id,
+            plan.array_int_program.collection.abi_size,
+            plan.array_int_program.collection.abi_align,
+            plan.array_int_program.collection.data_offset,
+            plan.array_int_program.collection.length_offset,
+            plan.array_int_program.collection.capacity_offset,
+            plan.array_int_program.collection.allocator_offset
         );
     return Concat(
         "#include <stdint.h>\n#include <stddef.h>\n",
@@ -49,16 +51,15 @@ func DirectMirScalarCfgArrayIntCCondition(
 func DirectMirScalarCfgArrayIntCPush(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int
 ) -> String {
-    let fact: DirectMirScalarCfgArrayIntProgramFact =
-        plan.array_int_program;
-    if !fact.valid || operation != fact.producer.push_operation_row {
+    if !plan.array_int_program.valid ||
+        operation != plan.array_int_program.producer.push_operation_row {
         Die("direct MIR scalar CFG Array<Int> C push is invalid");
     }
     let value: String = DirectMirScalarCfgCOperand(
-        plan, fact.producer.induction_value_row, -1, ""
+        plan, plan.array_int_program.producer.induction_value_row, -1, ""
     );
     let operator: String = " * ";
-    if fact.producer.push_value_kind ==
+    if plan.array_int_program.producer.push_value_kind ==
             DirectMirScalarCfgArrayIntPushValueAdd() { operator = " + "; }
     let output: String =
         "    pgy_array_int_collection.data[pgy_array_int_collection.length] = (int32_t)(";

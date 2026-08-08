@@ -81,10 +81,6 @@ func DirectMirConstructedGenericMemberProgramIdentityReady(
         ) || !DirectMirConstructedGenericMemberSourceIdentitiesReady(identity) {
         return false;
     }
-    let declaration: DirectMirConstructedGenericMemberDeclarationFact =
-        identity.declaration;
-    let graph: DirectMirConstructedGenericMemberMainGraphFact =
-        identity.main_graph;
     return identity.entrypoint.name == "Main" &&
         identity.entrypoint.return_type == "Void" &&
         identity.entrypoint.param_count == 0 &&
@@ -93,8 +89,8 @@ func DirectMirConstructedGenericMemberProgramIdentityReady(
         DirectMirConstructedGenericMemberSubstitutionReady(
             identity.specialization
         ) &&
-        identity.constructed_method.owner == declaration.name &&
-        identity.identity_method.owner == declaration.name &&
+        identity.constructed_method.owner == identity.declaration.name &&
+        identity.identity_method.owner == identity.declaration.name &&
         identity.constructed_method.name ==
             identity.specialization.inner_callable &&
         identity.identity_method.name ==
@@ -104,24 +100,27 @@ func DirectMirConstructedGenericMemberProgramIdentityReady(
         identity.identity_method.generic_name ==
             identity.specialization.outer_generic_param &&
         DirectMirConstructedGenericMemberDeclarationHasMethod(
-            declaration, identity.constructed_method.name,
+            identity.declaration, identity.constructed_method.name,
             identity.constructed_method.return_type
         ) && DirectMirConstructedGenericMemberDeclarationHasMethod(
-            declaration, identity.identity_method.name,
+            identity.declaration, identity.identity_method.name,
             identity.identity_method.return_type
         ) && identity.method_graph.constructed_value_parameter ==
             identity.constructed_method.value_param.name &&
         identity.method_graph.identity_value_parameter ==
             identity.identity_method.value_param.name &&
-        identity.specialization.owner == declaration.name &&
-        graph.owner == declaration.name &&
-        graph.inner_method == identity.constructed_method.name &&
-        graph.outer_method == identity.identity_method.name &&
-        graph.inner_target == CompilerSymbolCQualifiedName(
-            declaration.name, identity.constructed_method.name
-        ) && graph.outer_target == CompilerSymbolCQualifiedName(
-            declaration.name, identity.identity_method.name
-        ) && identity.constructed_method.row !=
+        identity.specialization.owner == identity.declaration.name &&
+        identity.main_graph.owner == identity.declaration.name &&
+        identity.main_graph.inner_method ==
+            identity.constructed_method.name &&
+        identity.main_graph.outer_method ==
+            identity.identity_method.name &&
+        identity.main_graph.inner_target == CompilerSymbolCQualifiedName(
+            identity.declaration.name, identity.constructed_method.name
+        ) && identity.main_graph.outer_target ==
+            CompilerSymbolCQualifiedName(
+                identity.declaration.name, identity.identity_method.name
+            ) && identity.constructed_method.row !=
             identity.identity_method.row &&
         identity.entrypoint.row != identity.constructed_method.row &&
         identity.entrypoint.row != identity.identity_method.row;

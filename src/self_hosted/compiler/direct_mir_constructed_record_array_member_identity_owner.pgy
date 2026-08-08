@@ -62,55 +62,55 @@ func DirectMirConstructedRecordArrayMemberIdentityReady(
         ) {
         return false;
     }
-    let constructed: DirectMirConstructedArrayMemberSignatureFact =
-        identity.constructed_method;
-    let echoed: DirectMirConstructedArrayMemberSignatureFact =
-        identity.identity_method;
-    let pair: DirectMirConstructedMemberSpecializationPairFact =
-        identity.specialization.pair;
-    let graph: DirectMirConstructedRecordArrayMemberMainGraphFact =
-        identity.main_graph;
     let source_syntax_ids: Array<Int> = [
         identity.entrypoint.source_syntax_id,
-        constructed.source_syntax_id, echoed.source_syntax_id,
+        identity.constructed_method.source_syntax_id,
+        identity.identity_method.source_syntax_id,
         identity.record.source_syntax_id,
         identity.record.field_source_syntax_ids[0],
         identity.wrapper.source_syntax_id,
         identity.wrapper.field_source_syntax_id,
-        pair.source_owner_syntax_id
+        identity.specialization.pair.source_owner_syntax_id
     ];
     return identity.entrypoint.name == "Main" &&
         identity.entrypoint.return_type == "Void" &&
-        identity.entrypoint.param_count == 0 && constructed.returns_array &&
-        !echoed.returns_array && identity.record.name ==
-            identity.specialization.record_type &&
+        identity.entrypoint.param_count == 0 &&
+        identity.constructed_method.returns_array &&
+        !identity.identity_method.returns_array &&
+        identity.record.name == identity.specialization.record_type &&
         ArrayLength(identity.record.field_names) == 1 &&
         identity.record.field_types[0] == CompilerAbiLayoutIntTypeName() &&
         DirectMirConstructedRecordArraySourceIdentitiesReady(
             source_syntax_ids
-        ) &&
-        identity.wrapper.name == pair.owner &&
-        constructed.owner == identity.wrapper.name &&
-        echoed.owner == identity.wrapper.name &&
-        constructed.name == pair.inner_callable &&
-        echoed.name == pair.outer_callable &&
-        constructed.generic_name == pair.inner_generic_param &&
-        echoed.generic_name == pair.outer_generic_param &&
+        ) && identity.wrapper.name == identity.specialization.pair.owner &&
+        identity.constructed_method.owner == identity.wrapper.name &&
+        identity.identity_method.owner == identity.wrapper.name &&
+        identity.constructed_method.name ==
+            identity.specialization.pair.inner_callable &&
+        identity.identity_method.name ==
+            identity.specialization.pair.outer_callable &&
+        identity.constructed_method.generic_name ==
+            identity.specialization.pair.inner_generic_param &&
+        identity.identity_method.generic_name ==
+            identity.specialization.pair.outer_generic_param &&
         DirectMirConstructedGenericMemberDeclarationHasMethod(
-            identity.wrapper, constructed.name, constructed.return_type
+            identity.wrapper, identity.constructed_method.name,
+            identity.constructed_method.return_type
         ) && DirectMirConstructedGenericMemberDeclarationHasMethod(
-            identity.wrapper, echoed.name, echoed.return_type
+            identity.wrapper, identity.identity_method.name,
+            identity.identity_method.return_type
         ) && identity.method_graph.constructed_value_parameter ==
-            constructed.value_param.name &&
+            identity.constructed_method.value_param.name &&
         identity.method_graph.identity_value_parameter ==
-            echoed.value_param.name && graph.owner == identity.wrapper.name &&
-        graph.record_type == identity.record.name &&
-        graph.record_field == identity.record.field_names[0] &&
-        graph.inner_method == constructed.name &&
-        graph.outer_method == echoed.name &&
-        constructed.row != echoed.row &&
-        identity.entrypoint.row != constructed.row &&
-        identity.entrypoint.row != echoed.row &&
+            identity.identity_method.value_param.name &&
+        identity.main_graph.owner == identity.wrapper.name &&
+        identity.main_graph.record_type == identity.record.name &&
+        identity.main_graph.record_field == identity.record.field_names[0] &&
+        identity.main_graph.inner_method == identity.constructed_method.name &&
+        identity.main_graph.outer_method == identity.identity_method.name &&
+        identity.constructed_method.row != identity.identity_method.row &&
+        identity.entrypoint.row != identity.constructed_method.row &&
+        identity.entrypoint.row != identity.identity_method.row &&
         identity.record.row != identity.wrapper.row;
 }
 
@@ -123,11 +123,11 @@ func DirectMirConstructedRecordArrayMemberIdentityFromAdmitted(
     ) {
         Die("direct MIR constructed record Array envelope is invalid");
     }
-    let shape: DirectMirThreeRoutineMixedConstructedMemberShapeFact =
-        classification.mixed_constructed_member_shape;
     let specialization: DirectMirConstructedRecordArrayMemberSpecializationFact =
         DirectMirConstructedRecordArrayMemberSpecializationFromDocument(
-            admitted.document.root, shape.record_name, shape.class_name
+            admitted.document.root,
+            classification.mixed_constructed_member_shape.record_name,
+            classification.mixed_constructed_member_shape.class_name
         );
     let main_row: Int = DirectMirInferredGenericMemberUniqueRoutineRow(
         admitted.routines, "Main"
@@ -145,8 +145,8 @@ func DirectMirConstructedRecordArrayMemberIdentityFromAdmitted(
         let name: String = admitted.domain_runtime_admission.declarations.names[
             declaration_row
         ];
-        if name == shape.record_name { record_row = declaration_row; }
-        if name == shape.class_name { wrapper_row = declaration_row; }
+        if name == classification.mixed_constructed_member_shape.record_name { record_row = declaration_row; }
+        if name == classification.mixed_constructed_member_shape.class_name { wrapper_row = declaration_row; }
         declaration_row = declaration_row + 1;
     }
     if main_row < 0 || constructed_row < 0 || identity_row < 0 ||

@@ -7,18 +7,17 @@ func DirectMirScalarProgramLlvmStringWindowMaterialization(
     ref plan: DirectMirScalarCfgGraphPlan,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> String {
-    let abi: DirectMirScalarProgramRuntimeAbiFact = plan.program.runtime_abi;
     let out: String = "";
-    if abi.string_length_id != 0 {
+    if plan.program.runtime_abi.string_length_id != 0 {
         out = Concat(out, Concat("define internal i64 @",
             Concat(runtime.string_length.symbol,
             "(ptr %source) {\nentry:\n  %value = call i64 @strlen(ptr %source)\n  %too.large = icmp uge i64 %value, 9223372036854775807\n  br i1 %too.large, label %overflow, label %valid\n\noverflow:\n  call void @abort()\n  unreachable\n\nvalid:\n  ret i64 %value\n}\n\n")));
     }
-    if abi.string_substring_id != 0 {
+    if plan.program.runtime_abi.string_substring_id != 0 {
         out = Concat(out, DirectMirScalarProgramLlvmSubstringMaterialization(
             runtime.string_substring));
     }
-    if abi.string_substring_with_len_id != 0 {
+    if plan.program.runtime_abi.string_substring_with_len_id != 0 {
         out = Concat(out,
             DirectMirScalarProgramLlvmBoundedSubstringMaterialization(
                 runtime.string_substring_with_len));

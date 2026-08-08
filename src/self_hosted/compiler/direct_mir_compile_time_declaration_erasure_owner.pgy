@@ -63,8 +63,7 @@ func DirectMirCompileTimeDeclarationErasureFactReady(
     }
     return fact.declaration_count == 1 && fact.claimed &&
         CallableReceiverNominalKindOwnsCompileTimeContractOnly(fact.kind) &&
-        fact.name != "" && fact.source_syntax_id > 0 &&
-        fact.method_count == 1;
+        fact.name != "" && fact.source_syntax_id > 0 && fact.method_count == 1;
 }
 
 func DirectMirCompileTimeDeclarationErasureSeal(
@@ -86,18 +85,20 @@ func DirectMirCompileTimeDeclarationErasureRouteClaimed(
         JsonObjectFactCount(admitted.document.root) != 5 {
         return false;
     }
-    let declarations: MirProgramDeclarationIndex =
-        admitted.domain_runtime_admission.declarations;
     let row: Int = 0;
-    while row < ArrayLength(declarations.starts) {
-        if (row < ArrayLength(declarations.kinds) &&
-                CallableReceiverNominalKindOwnsCompileTimeContractOnly(
-                    declarations.kinds[row]
-                )) ||
-            (row < ArrayLength(declarations.nominal_kinds) &&
-                CallableReceiverNominalKindOwnsCompileTimeContractOnly(
-                    declarations.nominal_kinds[row]
-                )) {
+    while row < ArrayLength(
+        admitted.domain_runtime_admission.declarations.starts
+    ) {
+        if (row < ArrayLength(
+                admitted.domain_runtime_admission.declarations.kinds
+            ) && CallableReceiverNominalKindOwnsCompileTimeContractOnly(
+                admitted.domain_runtime_admission.declarations.kinds[row]
+            )) ||
+            (row < ArrayLength(
+                admitted.domain_runtime_admission.declarations.nominal_kinds
+            ) && CallableReceiverNominalKindOwnsCompileTimeContractOnly(
+                admitted.domain_runtime_admission.declarations.nominal_kinds[row]
+            )) {
             return true;
         }
         row = row + 1;
@@ -130,12 +131,13 @@ func DirectMirCompileTimeDeclarationErasureFactFromAdmitted(
     if DirectMirExactObjectArrayCount(admitted.document.declarations, 0) {
         return DirectMirCompileTimeDeclarationErasureEmpty();
     }
-    let declarations: MirProgramDeclarationIndex =
-        admitted.domain_runtime_admission.declarations;
     if admitted.domain_topology_plan.present ||
         JsonObjectFactCount(admitted.document.root) != 5 ||
         !DirectMirExactObjectArrayCount(admitted.document.declarations, 1) ||
-        !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 {
+        !admitted.domain_runtime_admission.declarations.valid ||
+        MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations
+        ) != 1 {
         Die("direct MIR compile-time declaration erasure requires exactly one declaration");
     }
     let declaration: JsonObjectFactTable = JsonArrayObjectFactAt(
@@ -169,10 +171,12 @@ func DirectMirCompileTimeDeclarationErasureFactFromAdmitted(
         ) || UnwrapOption(name) == "" || UnwrapOption(syntax) == "" ||
         ToString(ToInt(UnwrapOption(syntax))) != UnwrapOption(syntax) ||
         ToInt(UnwrapOption(syntax)) <= 0 ||
-        declarations.kinds[0] != UnwrapOption(kind) ||
-        declarations.nominal_kinds[0] != UnwrapOption(nominal_kind) ||
-        declarations.names[0] != UnwrapOption(name) ||
-        MirObjectFieldOccurrenceCountAtBounds(
+        admitted.domain_runtime_admission.declarations.kinds[0] !=
+            UnwrapOption(kind) ||
+        admitted.domain_runtime_admission.declarations.nominal_kinds[0] !=
+            UnwrapOption(nominal_kind) ||
+        admitted.domain_runtime_admission.declarations.names[0] !=
+            UnwrapOption(name) || MirObjectFieldOccurrenceCountAtBounds(
             declaration.json, declaration.start, declaration.end, "fields"
         ) != 1 || MirObjectFieldOccurrenceCountAtBounds(
             declaration.json, declaration.start, declaration.end, "methods"
