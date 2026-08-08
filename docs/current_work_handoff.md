@@ -6,94 +6,60 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - ownership wall closed; integrated oracle performance is RED
+## Active self-host context - native oracle is RED at DIR validation
 
-- Executable checkpoint: `1c3912042ea41892ab87ec908332e4866ec896fd`
-  on `main`, with this handoff as its intended docs-only descendant.
-- Intended post-handoff dirty state contains only user-owned stdlib work:
-  modified `docs/138_standard_library_scope.md` and
-  `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
-  `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`.
-  Do not stage or rewrite those files from the compiler rung.
-- Active executable rung: make the native-oracle compile of
+- Verified checkpoint: `7946cbc3731bc91005f99cd059cffa7fc0e97060`
+  on `main`. The compiler rung is dirty with the bounded DIR/HIR change named
+  below. Preserve the separate user-owned stdlib work: modified
+  `docs/138_standard_library_scope.md` and `docs/148_stdlib_architecture.md`;
+  untracked `stdlib/math.pgy`, `stdlib/pgy_math_registry.pgy`, and
+  `tests/cases/stdlib_math_matrix/`.
+- Active executable rung: make the native compile of
   `src/self_hosted/compiler/driver_rung2_main.pgy`
-  (`--native-pipeline --backend=c`) finish within the fixed 30-minute
-  integration budget and produce an exit-zero executable artifact. Ownership
-  errors fell `256 -> 206 -> 153 -> 14 -> 0`; the namespace receiver
-  `SelfHostPath` failure was closed by exact semantic/MIR identity. The fresh
-  post-fix run nevertheless timed out after 1,804 seconds with no artifact, so
-  semantic zero is not an executable-oracle or performance success claim.
-- The reached namespace seam is now closed locally. A call's
-  `semantic_callee_decl_id` joins uniquely to MIR `source_syntax_id`; receiver
-  traversal is skipped only for a unique `MIR_SCOPE_FUNCTION`. Invalid,
-  missing, duplicate, method, and intent identities remain fail-closed. Name
-  casing, local absence, and flattened C names are forbidden substitutes.
-- The fresh integrated run had one `pgy` compiler, no `gcc`/`clang`/`cc1`
-  child, zero stdout, and only the three known intent-clause warnings plus
-  `0 error(s)` on stderr. At timeout its peak working set was 1,229,676,544
-  bytes (about 1.145 GiB), peak paged memory 1,395,331,072 bytes (about
-  1.300 GiB), and CPU time about 1,810 seconds. This does not reproduce the
-  historical 20 GiB defect; it is a long CPU-bound post-semantic
-  projection/materialization failure. The timeout wrapper did not reap PID
-  46580. Do not overlap another oracle sample or terminate an unrelated
-  process; first observe that exact process's natural exit and artifact state.
-- The MIR identity unit covers forged invalid/missing/duplicate/method rows.
-  The exact namespace direct-return and instance-method controls pass C/LLVM
-  parity `2/2` on the installed `bin/pgy.exe`.
-- The ownership repair uses `ref` for pure queries, `own` for persisted
-  one-shot assembly, and `inout -> Void` for repeated mutation because the
-  current analyzer does not treat consume-and-rebind as binding
-  reinitialization. No clone, analyzer relaxation, or borrowed-value store was
-  introduced. The ownership budget and content-matched skip path were deleted;
-  bootstrap and driver-body compile failures are red unless LLVM is actually
-  unavailable.
-- Function-scoped signature ratchets and executable gates cover the reached
-  enum and aggregate seams. Final observed evidence on this checkpoint:
-  native build `151.6s` exit 0; semantic unit `2823/2823`; MIR unit `159/159`;
-  assignment projection `159.9s` PASS; mutation ownership `23.4s` PASS; enum
-  value-match `42.1s` PASS (`2+300`, five metamorphic cases, 34 negatives);
-  constructed-array aggregate `33.4s` PASS (C/LLVM exact, 27 C negatives and
-  seven LLVM sentinels).
-- The assignment probe now emits explicit place rows. `Unknown place + cbind`
-  and `Binding place + missing cbind` reach the same indexed receiver leaf and
-  produce distinct diagnostics. The unused materialized
-  `maximum_argument_count` field was removed instead of storing unsupported
-  `Option<Int>` in a self-host struct; the live count query remains
-  `Option<Int>` and its `return -1` path is negatively pinned.
-- The likeness gate now completes in about 14 seconds and reports all breaches
-  rather than exiting after the first. It is intentionally red on exactly one
-  current hard breach: sentinel lexical slice `290 > 22`. `result_use` is
-  aligned at `3741 == 3741`; the cap was not raised and the sentinel failure
-  was not skipped.
-- Full component and MIR-inventory structural batteries did not complete
-  inside the 60-second static budget and are not claimed green. The compiler
-  world battery also did not complete in budget. Full bootstrap, gen2/gen3,
-  installed-driver oracle parity, and the post-commit GitHub matrix have not
-  run. Existing full CI was chronically red before this checkpoint; do not
-  describe it as a regression introduced by this commit without new evidence.
-- Next falsifying case: after PID 46580 exits naturally, record whether an
-  artifact appeared and its hash/size. If none exists, add bounded stage
-  receipts at the reached Pergyra owner boundary to count program-graph
-  admission/readiness and identify the first materialization stage. Do not
-  launch a second full sample before that evidence exists. If the existing
-  process exits zero with an artifact, proceed immediately to bounded
-  bootstrap oracle-vs-seed parity.
-- Next objective card: production entry is the native compile of
-  `driver_rung2_main.pgy`; the exact repeated fact owner is currently Unknown
-  and must be identified between semantic admission and MIR-only C artifact
-  materialization; last consumer is the MIR-only C emission contract;
-  forbidden fallbacks are namespace spelling guesses, native/oracle skip,
-  campaign budget, timeout increase, cache/shard/worker speculation, fixture
-  routing, clone, or alternate C path. Acceptance is one program-graph
-  validation per owning boundary, an exit-zero oracle artifact inside 30
-  minutes, then the existing bounded bootstrap gate.
-- After the integrated oracle artifact exists, the next independent CI
-  executable blocker is the general multi-routine call graph: the current
-  terminal owners admit exact three-routine families, while
-  `execution_lane.pgy` has ten routines plus enum/struct declarations. Start
-  with `tests/cases/backend_compare/int_helpers_basic/main.pgy` as the
-  declaration-free four-routine falsifier; do not wire the existing exact-three
-  terminal directly as an arbitrary-N fallback.
+  (`--native-pipeline --backend=c`) pass the fixed 30-minute integration
+  budget and publish an exit-zero executable. Ownership errors remain closed
+  at `256 -> 206 -> 153 -> 14 -> 0`; `0 error(s)` is only the semantic-stage
+  receipt, not an executable-oracle success.
+- Existing opt-in `PGY_DEBUG_PIPELINE_STAGE=1` receipts narrowed the first open
+  phase from the whole post-semantic pipeline to exactly `dir_validate`:
+  `module_load -> semantic -> hir_lower -> dir_lower -> dir_validate`, with no
+  later `rir_lower` receipt. The old `bin/pgy.exe` process is PID `7892`. Its
+  wrapper recorded `timeout=1800000; child_not_terminated=true`; at that
+  boundary it still used one CPU core, 1.13 GB (about 1.06 GiB) working set and
+  1.29 GB (about 1.20 GiB) private memory, had emitted no artifact, and remained
+  alive. Do not overlap a
+  second oracle sample or terminate it; first observe its natural exit.
+- The reached structural candidate was a forbidden duplicate fact path.
+  Semantic `ResourceFlowUniverse` rows were attached and validated as
+  routine-local HIR facts, then flattened, deep-copied into DIR, and globally
+  revalidated even though DIR had no semantic consumer. The dirty change
+  removes that DIR snapshot and its legacy lowering entrypoint. HIR remains
+  the validated adapter; RIR/MIR consume the routine-local rows. No qsort,
+  cache, timeout increase, count cap, or second fact owner was added.
+- Current focused evidence on the dirty tree is green: isolated native
+  compiler build `121.2s`; DIR `15/15`; RIR/domain identity `26/26`; MIR
+  `159/159`; C transpiler `923/923`; the HIR-only ResourceFlow negative gate
+  passes. These prove API/consumer closure and missing/duplicate fail-closed
+  behavior, but do not yet prove that the production-sized oracle leaves
+  `dir_validate`.
+- Next falsifying case: after PID `7892` exits naturally, run the isolated
+  `.tmp/bin-dir-sot/pgy.exe` on the same source and options with
+  `PGY_DEBUG_PIPELINE_STAGE=1`, bounded to 240 seconds. The present seam is
+  causally closed only if `rir_lower` appears after `dir_validate`. If it does
+  not, instrument only the remaining DIR node/topology/runtime/intent
+  validator reached by that run; do not optimize all validators together.
+- Objective card: production entry is the native compile above; fact owner is
+  HIR routine-local `resource_flow_symbols`; last legitimate consumers are
+  RIR/MIR; forbidden fallback is any DIR/global reserialization, repeated
+  whole-program validation, cache/shard/worker, timeout increase, or oracle
+  skip. Acceptance is HIR duplicate/missing negatives plus production
+  `rir_lower` reachability, followed by an exit-zero artifact inside 30 minutes.
+- Latest observed GitHub run `31280970113` is still a chronically-red baseline,
+  not a new green claim. Fixed-point codegen, sanitizers, TSan, Rocq, and all
+  completed backend-compare shards are green. macOS independently reports
+  `language-word implementation inventory drifted` and
+  `MIR intent step semantic carriers are incomplete`; keep those as the next
+  executable CI blockers after this one active performance rung closes.
 
 ## Historical checkpoint archive - inactive navigation evidence
 

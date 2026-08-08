@@ -443,10 +443,8 @@ out_of_memory:
 }
 
 static DIRProgram *
-dir_lower_with_resource_flow_facts_internal(
+dir_lower_internal(
     ASTNode *annotated_ast,
-    const PgyResourceFlowFact *facts,
-    size_t fact_count,
     const HIRProgram *hir,
     char **error_message)
 {
@@ -459,13 +457,6 @@ dir_lower_with_resource_flow_facts_internal(
             *error_message = pergyra_strdup("DIR lowering requires AST_PROGRAM root");
         return NULL;
     }
-    if (fact_count != 0 && facts == NULL) {
-        if (error_message != NULL)
-            *error_message = pergyra_strdup(
-                "DIR lowering requires a ResourceFlowUniverse fact array when fact_count is nonzero");
-        return NULL;
-    }
-
     dir = calloc(1, sizeof(DIRProgram));
     if (dir == NULL) {
         if (error_message != NULL)
@@ -492,33 +483,6 @@ dir_lower_with_resource_flow_facts_internal(
         && !dir_copy_hir_domain_runtime_facts(dir, hir, error_message)) {
         dir_destroy(dir);
         return NULL;
-    }
-
-    dir->has_resource_flow_facts = facts != NULL || fact_count != 0;
-    if (fact_count != 0) {
-        dir->resource_flow_facts = calloc(
-            fact_count, sizeof(*dir->resource_flow_facts));
-        if (dir->resource_flow_facts == NULL) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup("Out of memory");
-            dir_destroy(dir);
-            return NULL;
-        }
-        dir->resource_flow_fact_count = fact_count;
-        for (size_t i = 0; i < fact_count; i++) {
-            dir->resource_flow_facts[i] = facts[i];
-            dir->resource_flow_facts[i].name = NULL;
-            if (facts[i].name != NULL) {
-                dir->resource_flow_facts[i].name =
-                    pergyra_strdup(facts[i].name);
-                if (dir->resource_flow_facts[i].name == NULL) {
-                    if (error_message != NULL)
-                        *error_message = pergyra_strdup("Out of memory");
-                    dir_destroy(dir);
-                    return NULL;
-                }
-            }
-        }
     }
 
     bool collected = hir != NULL
@@ -549,75 +513,25 @@ dir_lower_with_resource_flow_facts_internal(
 }
 
 DIRProgram *
-dir_lower_with_resource_flow_facts(ASTNode *annotated_ast,
-                                   const PgyResourceFlowFact *facts,
-                                   size_t fact_count,
-                                   char **error_message)
+dir_lower_with_hir_facts(ASTNode *annotated_ast,
+                         const HIRProgram *hir,
+                         char **error_message)
 {
-    return dir_lower_with_resource_flow_facts_internal(
-        annotated_ast, facts, fact_count, NULL, error_message);
-}
-
-DIRProgram *
-dir_lower_with_hir_resource_flow_facts(ASTNode *annotated_ast,
-                                       const HIRProgram *hir,
-                                       char **error_message)
-{
-    PgyResourceFlowFact *facts = NULL;
-    size_t fact_count = 0;
-    size_t fact_index = 0;
-    DIRProgram *dir;
-
     if (error_message != NULL)
         *error_message = NULL;
     if (hir == NULL) {
         if (error_message != NULL)
             *error_message = pergyra_strdup(
-                "DIR lowering requires the HIR-owned ResourceFlowUniverse snapshot");
+                "DIR lowering requires HIR-owned domain facts");
         return NULL;
     }
-    for (size_t i = 0; i < hir->routine_count; i++)
-        fact_count += hir->routines[i].resource_flow_symbol_count;
-    if (fact_count != 0) {
-        facts = calloc(fact_count, sizeof(*facts));
-        if (facts == NULL) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup("Out of memory");
-            return NULL;
-        }
-        for (size_t i = 0; i < hir->routine_count; i++) {
-            const HIRRoutine *routine = &hir->routines[i];
-            for (size_t j = 0;
-                 j < routine->resource_flow_symbol_count;
-                 j++) {
-                const HIRResourceFlowSymbol *symbol =
-                    &routine->resource_flow_symbols[j];
-                facts[fact_index].function_syntax_id =
-                    routine->source_syntax_id;
-                facts[fact_index].stable_index = symbol->stable_index;
-                facts[fact_index].declaration_syntax_id =
-                    symbol->declaration_syntax_id;
-                facts[fact_index].line = symbol->line;
-                facts[fact_index].column = symbol->column;
-                facts[fact_index].symbol_kind = symbol->symbol_kind;
-                facts[fact_index].is_parameter = symbol->is_parameter;
-                facts[fact_index].parameter_index = symbol->parameter_index;
-                facts[fact_index].name = (char *)symbol->name;
-                fact_index++;
-            }
-        }
-    }
-    dir = dir_lower_with_resource_flow_facts_internal(
-        annotated_ast, facts, fact_count, hir, error_message);
-    free(facts);
-    return dir;
+    return dir_lower_internal(annotated_ast, hir, error_message);
 }
 
 DIRProgram *
 dir_lower(ASTNode *annotated_ast, char **error_message)
 {
-    return dir_lower_with_resource_flow_facts(
-        annotated_ast, NULL, 0, error_message);
+    return dir_lower_internal(annotated_ast, NULL, error_message);
 }
 
 void
@@ -645,8 +559,6 @@ dir_destroy(DIRProgram *dir)
     free(dir->edges);
     free(dir->domain_topology_rows);
     free(dir->intents);
-    pgy_resource_flow_facts_destroy(
-        dir->resource_flow_facts, dir->resource_flow_fact_count);
     pgy_domain_participant_role_facts_destroy(
         dir->domain_participant_role_facts,
         dir->domain_participant_role_fact_count);

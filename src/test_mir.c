@@ -54,7 +54,7 @@ lower_mir_from_source(const char *source, HIRProgram **hir_out, RIRProgram **rir
     if (!parser_has_error(parser) && sem != NULL && sem->success) {
         *hir_out = hir_lower_with_semantic_facts(sem, NULL, &hir_error);
         if (*hir_out != NULL) {
-            dir = dir_lower_with_hir_resource_flow_facts(
+            dir = dir_lower_with_hir_facts(
                 sem->annotated_ast, *hir_out, &dir_error);
         }
         *rir_out = rir_lower(sem->annotated_ast, &rir_error);
@@ -158,7 +158,7 @@ test_mir_carries_dir_domain_topology(void)
                 free(mir_error);
                 mir_error = NULL;
 
-                wrong_dir = dir_lower_with_hir_resource_flow_facts(
+                wrong_dir = dir_lower_with_hir_facts(
                     sem->annotated_ast, unbound_hir, &dir_error);
                 if (wrong_dir != NULL && dir_validate(wrong_dir, &dir_error)) {
                     MIRLowerRequest wrong_request;

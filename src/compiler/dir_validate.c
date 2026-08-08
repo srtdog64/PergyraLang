@@ -123,42 +123,6 @@ dir_validate(const DIRProgram *dir, char **error_message)
         return false;
     }
 
-    if ((dir->resource_flow_fact_count != 0
-         && dir->resource_flow_facts == NULL)
-        || (dir->has_resource_flow_facts
-            && dir->resource_flow_fact_count == 0)) {
-        if (error_message != NULL)
-            *error_message = pergyra_strdup(
-                "DIR ResourceFlowUniverse snapshot is incomplete");
-        return false;
-    }
-    for (size_t i = 0; i < dir->resource_flow_fact_count; i++) {
-        const PgyResourceFlowFact *fact = &dir->resource_flow_facts[i];
-        if (fact->function_syntax_id == 0
-            || fact->stable_index == SIZE_MAX
-            || fact->name == NULL
-            || fact->name[0] == '\0') {
-            if (error_message != NULL)
-                *error_message = dir_validate_strdup_fmt(
-                    "DIR ResourceFlowUniverse fact[%llu] has incomplete stable identity",
-                    (unsigned long long)i);
-            return false;
-        }
-        for (size_t j = i + 1; j < dir->resource_flow_fact_count; j++) {
-            const PgyResourceFlowFact *other =
-                &dir->resource_flow_facts[j];
-            if (fact->function_syntax_id == other->function_syntax_id
-                && fact->stable_index == other->stable_index) {
-                if (error_message != NULL)
-                    *error_message = dir_validate_strdup_fmt(
-                        "DIR ResourceFlowUniverse facts duplicate function %u stable index %llu",
-                        (unsigned)fact->function_syntax_id,
-                        (unsigned long long)fact->stable_index);
-                return false;
-            }
-        }
-    }
-
     for (size_t i = 0; i < dir->node_count; i++) {
         const DIRNode *node = &dir->nodes[i];
         const bool is_domain_owner =
@@ -258,7 +222,6 @@ dir_dump(const DIRProgram *dir, FILE *out)
 
     fprintf(out, "DIR Program\n  nodes: %zu\n  edges: %zu\n  intents: %zu\n",
             dir->node_count, dir->edge_count, dir->intent_count);
-    fprintf(out, "  resource_flow_facts: %zu\n", dir->resource_flow_fact_count);
     fprintf(out, "  domain_participant_role_facts: %zu\n",
             dir->domain_participant_role_fact_count);
     fprintf(out, "  domain_projection_member_assignment_facts: %zu\n",

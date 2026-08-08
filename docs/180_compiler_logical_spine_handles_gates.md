@@ -80,10 +80,12 @@ source bytes
 This fan-out is current reality: DIR and initial RIR lowering still collect
 their domain/state shape from the annotated AST, but the semantic
 `ResourceFlowUniverse` has one native adapter consumer. HIR receives the
-`SemanticResult` rows once, then DIR receives a copied HIR-derived snapshot
-through `dir_lower_with_hir_resource_flow_facts`; RIR joins source-backed
+`SemanticResult` rows once and validates routine source identity plus
+routine-local stable indexes. DIR does not consume this fact family and no
+longer flattens, deep-copies, or revalidates it. RIR joins source-backed
 routines by HIR source identity and consumes HIR-owned stable rows during flow
-enrichment. The qualified DIR slot nodes carry declaration and owner
+enrichment; MIR receives the same routine-local projection. The qualified DIR
+slot nodes carry declaration and owner
 `SyntaxNodeId` values. RIR validation joins exact owner IDs and fails closed
 when they are absent. The demanded function-parameter flow summary is likewise
 snapshotted by semantic analysis and attached to HIR routines by stable

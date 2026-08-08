@@ -348,7 +348,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     }
     driver_debug_stage("dir_lower");
     phase_start = driver_now_seconds();
-    dir = dir_lower_with_hir_resource_flow_facts(
+    dir = dir_lower_with_hir_facts(
         sem->annotated_ast, hir, &hir_error);
     if (timings != NULL)
         timings->dir_lower = driver_now_seconds() - phase_start;

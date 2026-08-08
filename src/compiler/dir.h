@@ -7,7 +7,6 @@
 
 #include "../parser/ast.h"
 #include "../semantic/domain_runtime_fact.h"
-#include "../semantic/resource_flow_fact.h"
 
 typedef struct DIRProgram DIRProgram;
 typedef struct HIRProgram HIRProgram;
@@ -234,10 +233,6 @@ struct DIRProgram
     DIRIntentInfo *intents;
     size_t         intent_count;
     size_t         intent_capacity;
-    /* Owned semantic ResourceFlowUniverse snapshot. */
-    PgyResourceFlowFact *resource_flow_facts;
-    size_t               resource_flow_fact_count;
-    bool                 has_resource_flow_facts;
     /* Owned copy of the HIR-admitted domain-runtime semantic snapshot. */
     bool                 has_domain_runtime_facts;
     PgyDomainParticipantRoleFact *domain_participant_role_facts;
@@ -253,15 +248,11 @@ struct DIRProgram
 };
 
 DIRProgram *dir_lower(ASTNode *annotated_ast, char **error_message);
-DIRProgram *dir_lower_with_resource_flow_facts(
-        ASTNode *annotated_ast,
-        const PgyResourceFlowFact *facts,
-        size_t fact_count,
-        char **error_message);
-/* Production lowering consumes the HIR-owned snapshot.  The legacy fact
- * entry point remains available for isolated DIR fixtures, but the compiler
- * driver must not read SemanticResult resource rows a second time. */
-DIRProgram *dir_lower_with_hir_resource_flow_facts(
+/* Production lowering consumes HIR-owned domain facts and declaration
+ * identity. ResourceFlowUniverse rows stay routine-local in HIR/RIR/MIR;
+ * DIR has no semantic consumer for them and must not flatten or revalidate
+ * that program-global fact family. */
+DIRProgram *dir_lower_with_hir_facts(
         ASTNode *annotated_ast,
         const HIRProgram *hir,
         char **error_message);

@@ -5908,6 +5908,48 @@ green으로 만들지 말고, integrated build 경계에서 별도 30분 예산�
 상시 memory sampling이 아니라, 이 한 실행에서 program graph admission/readiness가 owner
 경계별로 몇 번 수행되는지와 최초 artifact materialization stage를 식별해야 한다.
 
+### `0 error(s)` 뒤 `dir_validate`에서 한 코어를 계속 사용하는 경우
+
+2026-08-09의 다음 단일 표본은 기존 default-off
+`PGY_DEBUG_PIPELINE_STAGE=1`만 켜서 의미나 backend 선택을 바꾸지 않고 다음 순서를
+관찰했다.
+
+```text
+module_load
+semantic
+0 error(s), 3 warning(s)
+hir_lower
+dir_lower
+dir_validate
+```
+
+30분 동안 `rir_lower`가 나오지 않았고 executable artifact와 host C compiler child도
+없었다. 따라서 이 표본을 `C backend`, `C materialization`, `link`, 또는 단순
+`post-semantic` 병목으로 부르면 범위가 너무 넓다. 최초 열린 phase는 정확히
+`dir_validate`다. 외부 timeout wrapper는
+`timeout=1800000; child_not_terminated=true`를 기록했으므로 timeout 판정과 실제 child
+수명도 별도 사실로 다룬다.
+
+이 경계에서 발견된 첫 중복 SoT는 `ResourceFlowUniverse`였다. Semantic rows는 이미 HIR
+routine-local 배열에 붙고 HIR validator가 routine source identity와 routine 내부 stable
+index를 fail-closed 검증한다. 기존 DIR lowering은 같은 rows를 다시 program-global 배열로
+평탄화·deep-copy했고, DIR validator는 복합 identity를 다시 전역 검증했다. DIR dump와
+validator 외 의미 소비자가 없고 RIR/MIR는 HIR rows를 직접 소비하므로, 정합한 수정은
+quadratic loop를 정렬이나 cache로 가속하는 것이 아니라 DIR snapshot 자체를 제거하는
+것이다.
+
+재발 방지 계약은 다음과 같다.
+
+- HIR가 `ResourceFlowUniverse`의 validated routine-local adapter다.
+- DIR header/lowering/validator에는 `resource_flow_facts`와 count가 없어야 한다.
+- missing storage와 duplicate stable index는 HIR 경계에서 실패한다.
+- RIR/MIR은 HIR routine-local rows를 소비하며 DIR을 두 번째 owner로 만들지 않는다.
+- 생산 규모의 인과 판정은 새 바이너리가 같은 입력에서 `dir_validate` 다음
+  `rir_lower`에 도달하는지로 한다. 작은 합성 row 수나 byte-equal artifact만으로 성능
+  원인을 확정하지 않는다.
+- 새 표본은 이전 exact PID가 자연 종료한 뒤에만 실행한다. timeout, cache, shard,
+  worker, cap 상향은 반복 owner를 찾는 대신 사용할 수 없다.
+
 재발 방지 래칫은 다음을 유지한다.
 
 - ownership campaign budget/skip 파일은 제거한다. `0` budget 뒤에도 남은

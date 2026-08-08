@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Pergyra Language Project
  * DIR lowering test suite
  */
@@ -8,9 +8,11 @@
 #include <string.h>
 
 #include "lexer/lexer.h"
+#include "parser/ast_api.h"
 #include "parser/parser.h"
 #include "semantic/semantic.h"
 #include "compiler/dir.h"
+#include "compiler/hir.h"
 
 static int g_pass = 0;
 static int g_fail = 0;
@@ -108,9 +110,9 @@ test_dir_resource_flow_universe_carriage(void)
     Lexer *lexer = lexer_create(source);
     Parser *parser = parser_create(lexer);
     ASTNode *ast = parser_parse_program(parser);
+    ASTNode *function = ast_program_statement(ast, 0);
     PgyResourceFlowFact facts[2] = {
         {
-            .function_syntax_id = 42,
             .stable_index = 0,
             .declaration_syntax_id = 100,
             .line = 1,
@@ -121,7 +123,6 @@ test_dir_resource_flow_universe_carriage(void)
             .name = (char *)"slot",
         },
         {
-            .function_syntax_id = 42,
             .stable_index = 1,
             .declaration_syntax_id = 101,
             .line = 1,
@@ -134,46 +135,53 @@ test_dir_resource_flow_universe_carriage(void)
     };
     char *error = NULL;
     DIRProgram *dir = NULL;
+    HIRProgram *hir = NULL;
 
-    TEST("DIR carries semantic ResourceFlowUniverse rows by stable identity");
-    if (!parser_has_error(parser)) {
-        dir = dir_lower_with_resource_flow_facts(
-            ast, facts, 2, &error);
+    if (function != NULL) {
+        facts[0].function_syntax_id = ast_node_stable_id(function);
+        facts[1].function_syntax_id = ast_node_stable_id(function);
     }
-    EXPECT(dir != NULL
-           && dir->has_resource_flow_facts
-           && dir->resource_flow_fact_count == 2
-           && dir_validate(dir, &error));
-    EXPECT(dir != NULL
-           && dir->resource_flow_facts[0].name != facts[0].name
-           && strcmp(dir->resource_flow_facts[0].name, "slot") == 0
-           && dir->resource_flow_facts[0].stable_index == 0
-           && dir->resource_flow_facts[1].stable_index == 1);
+    TEST("HIR owns semantic ResourceFlowUniverse rows by stable identity");
+    if (!parser_has_error(parser) && function != NULL) {
+        hir = hir_lower_with_resource_flow_facts(ast, facts, 2, &error);
+        if (hir != NULL && hir_validate(hir, &error))
+            dir = dir_lower_with_hir_facts(ast, hir, &error);
+    }
+    EXPECT(hir != NULL && dir != NULL && dir_validate(dir, &error));
+    EXPECT(hir != NULL && hir->routine_count == 1
+           && hir->routines[0].resource_flow_symbol_count == 2
+           && hir->routines[0].resource_flow_symbols[0].name != facts[0].name
+           && strcmp(hir->routines[0].resource_flow_symbols[0].name,
+                     "slot") == 0
+           && hir->routines[0].resource_flow_symbols[0].stable_index == 0
+           && hir->routines[0].resource_flow_symbols[1].stable_index == 1);
     dir_destroy(dir);
     dir = NULL;
+    hir_destroy(hir);
+    hir = NULL;
     free(error);
     error = NULL;
 
-    TEST("DIR rejects a missing ResourceFlowUniverse fact array");
-    dir = dir_lower_with_resource_flow_facts(ast, NULL, 1, &error);
-    EXPECT(dir == NULL
+    TEST("HIR rejects a missing ResourceFlowUniverse fact array");
+    hir = hir_lower_with_resource_flow_facts(ast, NULL, 1, &error);
+    EXPECT(hir == NULL
            && error != NULL
            && strstr(error, "ResourceFlowUniverse") != NULL);
-    dir_destroy(dir);
+    hir_destroy(hir);
     free(error);
     error = NULL;
 
-    TEST("DIR rejects duplicate function/stable resource identities");
+    TEST("HIR rejects duplicate routine-local resource identities");
     facts[1].stable_index = facts[0].stable_index;
-    dir = dir_lower_with_resource_flow_facts(ast, facts, 2, &error);
-    EXPECT(dir != NULL && !dir_validate(dir, &error));
-    dir_destroy(dir);
+    hir = hir_lower_with_resource_flow_facts(ast, facts, 2, &error);
+    EXPECT(hir != NULL && !hir_validate(hir, &error));
+    hir_destroy(hir);
     free(error);
     ast_destroy(ast);
     parser_destroy(parser);
     lexer_destroy(lexer);
 
-    printf("[dir-resource-flow] semantic ResourceFlowUniverse rows are copied, validated, and fail closed\n");
+    printf("[dir-resource-flow] HIR owns validated routine-local rows; DIR carries no duplicate snapshot\n");
 }
 
 static void

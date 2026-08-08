@@ -119,8 +119,14 @@ hir_attach_resource_flow_facts(HIRProgram *hir,
                                size_t fact_count,
                                char **error_message)
 {
-    if (hir == NULL || (facts == NULL && fact_count != 0))
+    if (hir == NULL)
         return false;
+    if (facts == NULL && fact_count != 0) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "HIR ResourceFlowUniverse fact storage is missing");
+        return false;
+    }
     for (size_t i = 0; i < fact_count; i++) {
         bool matched = false;
         for (size_t r = 0; r < hir->routine_count; r++) {

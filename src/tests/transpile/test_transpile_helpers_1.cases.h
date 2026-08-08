@@ -283,7 +283,7 @@ lower_program_to_mir_ex(ASTNode *program,
             *hir_out = hir_lower_with_semantic_facts(
                 sem, NULL, &hir_error);
         if (hir_out != NULL && *hir_out != NULL) {
-            dir = dir_lower_with_hir_resource_flow_facts(
+            dir = dir_lower_with_hir_facts(
                 sem->annotated_ast, *hir_out, &dir_error);
         }
         if (rir_out != NULL)

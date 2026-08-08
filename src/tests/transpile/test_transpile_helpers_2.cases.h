@@ -25,7 +25,7 @@ lower_pipeline_from_source_ex(const char *source,
     if (!parser_has_error(parser) && sem != NULL && sem->success) {
         *hir_out = hir_lower_with_semantic_facts(sem, NULL, &hir_error);
         if (*hir_out != NULL) {
-            dir = dir_lower_with_hir_resource_flow_facts(
+            dir = dir_lower_with_hir_facts(
                 sem->annotated_ast, *hir_out, &dir_error);
         }
         *rir_out = rir_lower(sem->annotated_ast, &rir_error);

@@ -30,7 +30,7 @@ require_text "src/compiler/dir.h" "domain_graph_id"
 require_text "src/compiler/dir_storage.c" "ast_node_stable_id(ast)"
 require_text "src/compiler/dir_collect.c" "dir_collect_nodes_from_hir"
 require_text "src/compiler/dir_collect.c" "dir_collect_edges_and_intents_from_hir"
-require_text "src/compiler/dir.c" "dir_lower_with_hir_resource_flow_facts"
+require_text "src/compiler/dir.c" "dir_lower_with_hir_facts"
 require_text "src/compiler/dir.c" "dir_domain_graph_anchor"
 require_text "src/compiler/dir_validate.c" \
     "DIR domain graph is missing its anchored source identity"
