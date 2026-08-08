@@ -68,9 +68,6 @@ func DirectMirConstructedRecordArrayMemberEmitC(
     ) {
         Die("direct MIR constructed record Array storage symbol is invalid");
     }
-    let graph: DirectMirConstructedRecordArrayMemberMainGraphFact =
-        plan.identity.main_graph;
-    let point_abi: MirAbiLayoutRowCapture = plan.point_abi.declaration.abi;
     let output: String =
         "#include <stdint.h>\n#include <stddef.h>\n#include <stdio.h>\n\n";
     output = Concat(output, "typedef struct {\n    int32_t ");
@@ -80,17 +77,17 @@ func DirectMirConstructedRecordArrayMemberEmitC(
     output = Concat(output, ";\n\n_Static_assert(sizeof(");
     output = Concat(output, record);
     output = Concat(output, ") == ");
-    output = Concat(output, point_abi.size_text);
+    output = Concat(output, plan.point_abi.declaration.abi.size_text);
     output = Concat(output, ", \"record size receipt\");\n_Static_assert(_Alignof(");
     output = Concat(output, record);
     output = Concat(output, ") == ");
-    output = Concat(output, point_abi.align_text);
+    output = Concat(output, plan.point_abi.declaration.abi.align_text);
     output = Concat(output, ", \"record align receipt\");\n_Static_assert(offsetof(");
     output = Concat(output, record);
     output = Concat(output, ", ");
     output = Concat(output, field);
     output = Concat(output, ") == ");
-    output = Concat(output, point_abi.field_offsets[0]);
+    output = Concat(output, plan.point_abi.declaration.abi.field_offsets[0]);
     output = Concat(output, ", \"record field receipt\");\n\ntypedef struct {\n    int32_t ");
     output = Concat(output, marker);
     output = Concat(output, ";\n} ");
@@ -163,11 +160,11 @@ func DirectMirConstructedRecordArrayMemberEmitC(
     output = Concat(output, ";\n}\n\nint main(void) {\n    ");
     output = Concat(output, wrapper);
     output = Concat(output, " pgy_receiver = {");
-    output = Concat(output, ToString(graph.marker_value));
+    output = Concat(output, ToString(plan.identity.main_graph.marker_value));
     output = Concat(output, "};\n    ");
     output = Concat(output, record);
     output = Concat(output, " pgy_point = {");
-    output = Concat(output, ToString(graph.field_value));
+    output = Concat(output, ToString(plan.identity.main_graph.field_value));
     output = Concat(output, "};\n    ");
     output = Concat(output, record);
     output = Concat(output, " ");

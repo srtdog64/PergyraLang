@@ -16,12 +16,13 @@ func DirectMirGenericStructValueFlowEmitLlvm(
         formatted_print.symbol == "" || line_format == "" {
         Die("direct MIR generic nominal LLVM projection facts are invalid");
     }
-    let graph: DirectMirGenericStructValueFlowGraphFact = plan.identity.graph;
-    let type_name: String = CompilerSymbolCIdentifier(graph.type_name);
+    let type_name: String =
+        CompilerSymbolCIdentifier(plan.identity.graph.type_name);
     let specialized: String = CompilerSymbolCIdentifier(
         plan.identity.specialization.specialized_symbol
     );
-    let producer: String = CompilerSymbolCIdentifier(graph.producer_name);
+    let producer: String =
+        CompilerSymbolCIdentifier(plan.identity.graph.producer_name);
     if type_name == "" || specialized == "" || producer == "" ||
         specialized == producer {
         Die("direct MIR generic nominal LLVM symbols are invalid");
@@ -43,11 +44,12 @@ func DirectMirGenericStructValueFlowEmitLlvm(
     output = Concat(output, " @");
     output = Concat(output, producer);
     output = Concat(output, "(i32 %base) {\nentry:\n  %pgy.left.raw = add i32 %base, ");
-    output = Concat(output, ToString(graph.producer_first_delta));
+    output = Concat(output, ToString(plan.identity.graph.producer_first_delta));
     output = Concat(output, "\n  %pgy.left = call i32 @");
     output = Concat(output, specialized);
     output = Concat(output, "(i32 %pgy.left.raw)\n  %pgy.right.raw = add i32 %base, ");
-    output = Concat(output, ToString(graph.producer_second_delta));
+    output = Concat(output,
+        ToString(plan.identity.graph.producer_second_delta));
     output = Concat(output, "\n  %pgy.right = call i32 @");
     output = Concat(output, specialized);
     output = Concat(output, "(i32 %pgy.right.raw)\n  %pgy.return.0 = insertvalue %");
@@ -59,11 +61,11 @@ func DirectMirGenericStructValueFlowEmitLlvm(
     output = Concat(output, " %pgy.return.1\n}\n\ndefine i32 @main() {\nentry:\n  %pgy.initial.left = call i32 @");
     output = Concat(output, specialized);
     output = Concat(output, "(i32 ");
-    output = Concat(output, ToString(graph.initial_first));
+    output = Concat(output, ToString(plan.identity.graph.initial_first));
     output = Concat(output, ")\n  %pgy.initial.right = call i32 @");
     output = Concat(output, specialized);
     output = Concat(output, "(i32 ");
-    output = Concat(output, ToString(graph.initial_second));
+    output = Concat(output, ToString(plan.identity.graph.initial_second));
     output = Concat(output, ")\n  %pgy.initial.0 = insertvalue %");
     output = Concat(output, type_name);
     output = Concat(output, " poison, i32 %pgy.initial.left, 0\n  %pgy.initial.1 = insertvalue %");

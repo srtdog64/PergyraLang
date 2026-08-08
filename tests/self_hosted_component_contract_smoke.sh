@@ -16316,7 +16316,7 @@ require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_c_emission_owner.pgy" 130
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_c_storage_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_c_storage_owner.pgy" 50
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_c_storage_owner.pgy" 53
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_c_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_c_emission_owner.pgy" 45
@@ -16361,7 +16361,7 @@ require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_collection_operation_fact_owner.pgy" 10
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_llvm_storage_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_llvm_storage_owner.pgy" 70
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_llvm_storage_owner.pgy" 73
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_llvm_initialization_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_llvm_initialization_owner.pgy" 30

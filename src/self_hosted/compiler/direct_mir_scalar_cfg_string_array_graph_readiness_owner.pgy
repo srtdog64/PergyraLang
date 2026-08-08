@@ -19,15 +19,14 @@ func DirectMirScalarCfgStringArrayOperandCount(
 func DirectMirScalarCfgStringArrayGraphReady(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
-    let arrays: DirectMirScalarCfgStringArrayPlan = plan.string_arrays;
-    if DirectMirScalarCfgStringArrayPlanAbsent(arrays) { return true; }
-    if !DirectMirScalarCfgStringArrayPlanShapeReady(arrays, true) {
+    if DirectMirScalarCfgStringArrayPlanAbsent(plan.string_arrays) { return true; }
+    if !DirectMirScalarCfgStringArrayPlanShapeReady(plan.string_arrays, true) {
         return false;
     }
     let collection: Int = 0;
-    while collection < DirectMirScalarCfgStringArrayCollectionCount(arrays) {
+    while collection < DirectMirScalarCfgStringArrayCollectionCount(plan.string_arrays) {
         let fact: DirectMirScalarCfgArrayStringCollectionFact =
-            DirectMirScalarCfgStringArrayCollectionAt(arrays, collection);
+            DirectMirScalarCfgStringArrayCollectionAt(plan.string_arrays, collection);
         if fact.length_offset == fact.capacity_offset { return false; }
         let value: Int = 0;
         while value < ArrayLength(plan.value_names) {
@@ -39,9 +38,9 @@ func DirectMirScalarCfgStringArrayGraphReady(
         collection = collection + 1;
     }
     let row: Int = 0;
-    while row < DirectMirScalarCfgStringArrayLengthCount(arrays) {
+    while row < DirectMirScalarCfgStringArrayLengthCount(plan.string_arrays) {
         let fact: DirectMirScalarCfgStringArrayLengthFact =
-            DirectMirScalarCfgStringArrayLengthAt(arrays, row);
+            DirectMirScalarCfgStringArrayLengthAt(plan.string_arrays, row);
         let index: DirectMirScalarCfgStringArrayIndexFact = fact.index;
         if fact.block >= ArrayLength(plan.block_succ_true) ||
             plan.block_succ_true[fact.block] < 0 ||
@@ -70,7 +69,7 @@ func DirectMirScalarCfgStringArrayGraphReady(
                 );
             if !range.valid || fact.control_loop_syntax_id !=
                     index.iteration_syntax_id || range.header_block != fact.block ||
-                range.stop_value_id != arrays.collections.value_ids[
+                range.stop_value_id != plan.string_arrays.collections.value_ids[
                     fact.collection_row
                 ] || range.local_row != index.local_row {
                 return false;
@@ -79,9 +78,9 @@ func DirectMirScalarCfgStringArrayGraphReady(
         row = row + 1;
     }
     row = 0;
-    while row < DirectMirScalarCfgStringArrayAccessCount(arrays) {
+    while row < DirectMirScalarCfgStringArrayAccessCount(plan.string_arrays) {
         let fact: DirectMirScalarCfgStringArrayAccessFact =
-            DirectMirScalarCfgStringArrayAccessAt(arrays, row);
+            DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, row);
         let operation: Int = fact.operation_row;
         if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
             (fact.index.value_row >= 0 &&

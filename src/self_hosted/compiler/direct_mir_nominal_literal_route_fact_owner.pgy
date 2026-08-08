@@ -44,13 +44,14 @@ func DirectMirNominalLiteralRouteUsesMutableIdentity(
 func DirectMirNominalLiteralRouteFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> DirectMirNominalLiteralRouteFact {
-    let rows: JsonArrayObjectFactTable = admitted.document.declarations;
     let kind: String = "";
     let nominal_kind: String = "";
     let name: String = "";
-    if JsonArrayObjectFactTableReady(rows) &&
-        JsonArrayObjectFactCount(rows) == 1 {
-        let declaration: JsonObjectFactTable = JsonArrayObjectFactAt(rows, 0);
+    if JsonArrayObjectFactTableReady(admitted.document.declarations) &&
+        JsonArrayObjectFactCount(admitted.document.declarations) == 1 {
+        let declaration: JsonObjectFactTable = JsonArrayObjectFactAt(
+            admitted.document.declarations, 0
+        );
         let kind_fact: Option<String> = MirObjectUniqueStringFactAtBounds(
             declaration.json, declaration.start, declaration.end, "kind");
         let nominal_fact: Option<String> = MirObjectUniqueStringFactAtBounds(

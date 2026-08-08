@@ -95,19 +95,18 @@ func DirectMirScalarCfgProgramAppendRoutine(
         Die("direct MIR scalar program routine input has an external collection plan");
         return invalid;
     }
-    let index: MirRoutineFactIndex = input.index;
     let locals: DirectMirScalarCfgLocalRefPlan =
         DirectMirScalarCfgLocalRefPlanFromOwners(
-            admitted, index, input.use_facts, input.wire, input.ranges,
+            admitted, input.index, input.use_facts, input.wire, input.ranges,
             input.foreach_facts, input.string_arrays,
             input.array_int_program, input.collections);
     let types: DirectMirScalarCfgValueTypePlan =
         DirectMirScalarCfgValueTypePlanFromOwners(
-            index, locals, input.foreach_elements);
+            input.index, locals, input.foreach_elements);
     let signature: DirectMirRoutineSignatureFact =
         DirectMirRoutineSignatureFactAt(
             admitted.routines, routine_row,
-            index.block_instruction_counts[0]);
+            input.index.block_instruction_counts[0]);
     if !DirectMirRoutineSignatureFactReady(signature) ||
         (routine_ordinal == 0 && (signature.name != "Main" ||
          signature.return_type != "Void" || signature.param_count != 0)) ||
@@ -136,17 +135,17 @@ func DirectMirScalarCfgProgramAppendRoutine(
     if !DirectMirScalarCfgProgramAppendParameterTypes(
             parameter_types, signature) { return invalid; }
     let block: Int = 0;
-    while block < ArrayLength(index.block_starts) {
-        if !index.block_reachable[block] { return invalid; }
+    while block < ArrayLength(input.index.block_starts) {
+        if !input.index.block_reachable[block] { return invalid; }
         let operation_start: Int = ArrayLength(operations.kinds);
         let condition_row: Int = -1;
         let return_row: Int = -1;
         let instruction_row: Int = 0;
-        while instruction_row < index.block_instruction_counts[block] {
+        while instruction_row < input.index.block_instruction_counts[block] {
             let local_instruction: Int =
-                index.block_instruction_starts[block] + instruction_row;
+                input.index.block_instruction_starts[block] + instruction_row;
             let global_row: Int =
-                index.instruction_facts.global_start + local_instruction;
+                input.index.instruction_facts.global_start + local_instruction;
             let kind: String = admitted.routines.instruction_kinds[global_row];
             let source: String =
                 admitted.routines.instruction_source_types[global_row];
@@ -156,7 +155,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
                 admitted.routines.instruction_ends[global_row]);
             let capture: MirRoutineInstructionScalarCapture =
                 MirRoutineInstructionFactBundleAtGlobal(
-                    index.instruction_facts, global_row);
+                    input.index.instruction_facts, global_row);
             if !capture.valid { return invalid; }
             if kind == "def" {
                 let result: Int = DirectMirScalarCfgGraphValueRow(
@@ -173,7 +172,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
                 let expression_row: Int = UnwrapOption(expression_row_opt);
                 if !DirectMirScalarCfgProgramArithmeticReady(
                         expressions, blocks.condition_expression_rows, operations,
-                        values, index, block, operation_start, expression_row) { return invalid; }
+                        values, input.index, block, operation_start, expression_row) { return invalid; }
                 operations =
                     DirectMirScalarCfgProgramOperationsAppendExpression(
                         operations,
@@ -196,15 +195,15 @@ func DirectMirScalarCfgProgramAppendRoutine(
                         -1, expression_row);
             } else if kind == "phi" {
                 operations = DirectMirScalarCfgProgramOperationsAppendPhi(
-                    operations, index, admitted, input.use_facts, routine_row,
+                    operations, input.index, admitted, input.use_facts, routine_row,
                     block, instruction_row, locals, types, value_offset,
                     block_offset);
                 if !operations.valid { return invalid; }
             } else if kind == "branch" {
                 if instruction_row + 1 !=
-                        index.block_instruction_counts[block] ||
-                    index.block_succ_true[block] < 0 ||
-                    index.block_succ_false[block] < 0 { return invalid; }
+                        input.index.block_instruction_counts[block] ||
+                    input.index.block_succ_true[block] < 0 ||
+                    input.index.block_succ_false[block] < 0 { return invalid; }
                 let condition_row_opt: Option<Int> =
                     DirectMirScalarCfgProgramAppendTypedExpression(
                     expressions, instruction, input.use_facts, global_row,
@@ -215,12 +214,12 @@ func DirectMirScalarCfgProgramAppendRoutine(
                 condition_row = UnwrapOption(condition_row_opt);
                 if !DirectMirScalarCfgProgramArithmeticReady(
                         expressions, blocks.condition_expression_rows, operations,
-                        values, index, block, operation_start, condition_row) { return invalid; }
+                        values, input.index, block, operation_start, condition_row) { return invalid; }
             } else if kind == "return" {
                 if routine_ordinal == 0 || instruction_row + 1 !=
-                        index.block_instruction_counts[block] ||
-                    index.block_succ_true[block] >= 0 ||
-                    index.block_succ_false[block] >= 0 ||
+                        input.index.block_instruction_counts[block] ||
+                    input.index.block_succ_true[block] >= 0 ||
+                    input.index.block_succ_false[block] >= 0 ||
                     capture.name != "return" || capture.result != "" ||
                     capture.arg0 != "" || capture.arg1 != "" ||
                     capture.abi_type_name != signature.return_type {
@@ -237,8 +236,8 @@ func DirectMirScalarCfgProgramAppendRoutine(
             } else { return invalid; }
             instruction_row = instruction_row + 1;
         }
-        let true_target: Int = index.block_succ_true[block];
-        let false_target: Int = index.block_succ_false[block];
+        let true_target: Int = input.index.block_succ_true[block];
+        let false_target: Int = input.index.block_succ_false[block];
         if true_target >= 0 { true_target = true_target + block_offset; }
         if false_target >= 0 { false_target = false_target + block_offset; }
         blocks = DirectMirScalarCfgProgramBlocksAppend(

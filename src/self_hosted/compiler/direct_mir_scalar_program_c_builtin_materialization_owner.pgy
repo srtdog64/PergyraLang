@@ -8,22 +8,23 @@ func DirectMirScalarProgramCBuiltinMaterialization(
     ref plan: DirectMirScalarCfgGraphPlan,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> String {
-    let abi: DirectMirScalarProgramRuntimeAbiFact = plan.program.runtime_abi;
-    if !DirectMirScalarProgramRuntimeRequiresMaterialization(abi) { return ""; }
-    if !DirectMirScalarProgramRuntimeAbiProjectionReady(runtime, abi) {
+    if !DirectMirScalarProgramRuntimeRequiresMaterialization(
+            plan.program.runtime_abi) { return ""; }
+    if !DirectMirScalarProgramRuntimeAbiProjectionReady(
+            runtime, plan.program.runtime_abi) {
         Die("direct MIR scalar program C builtin ABI is invalid");
     }
     let output: String = "";
     if plan.string_concat_runtime_call_abi_id == 0 {
         output = "#include <stdlib.h>\n#include <string.h>\n\n";
     }
-    if abi.string_to_string_id != 0 {
+    if plan.program.runtime_abi.string_to_string_id != 0 {
         output = Concat(output, StringRuntimeCToStringBlock());
     }
-    if abi.string_to_upper_id != 0 {
+    if plan.program.runtime_abi.string_to_upper_id != 0 {
         output = Concat(output, StringRuntimeCToUpperBlock());
     }
-    if abi.string_to_lower_id != 0 {
+    if plan.program.runtime_abi.string_to_lower_id != 0 {
         output = Concat(output, StringRuntimeCToLowerBlock());
     }
     output = Concat(output,

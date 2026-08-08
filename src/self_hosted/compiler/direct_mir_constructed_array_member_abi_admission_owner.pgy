@@ -10,15 +10,14 @@ func DirectMirConstructedArrayMemberAbiFromResult(
     if !DirectMirConstructedArrayMemberMainInstructionsReady(main) {
         Die("direct MIR constructed Array member ABI input is invalid");
     }
-    let capture: MirRoutineInstructionScalarCapture = main.result;
     let admitted: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            json, capture.abi_type_name, capture.abi_type_value_ready,
-            capture.abi_type_start, capture.abi_type_end,
-            capture.abi_layout_id_start, capture.abi_layout_id_end,
-            capture.abi_layout_required_start,
-            capture.abi_layout_required_end, capture.abi_layout_start,
-            capture.abi_layout_end
+            json, main.result.abi_type_name, main.result.abi_type_value_ready,
+            main.result.abi_type_start, main.result.abi_type_end,
+            main.result.abi_layout_id_start, main.result.abi_layout_id_end,
+            main.result.abi_layout_required_start,
+            main.result.abi_layout_required_end,
+            main.result.abi_layout_start, main.result.abi_layout_end
         );
     if !IsSome(admitted) {
         Die("direct MIR constructed Array member ABI receipt is missing");

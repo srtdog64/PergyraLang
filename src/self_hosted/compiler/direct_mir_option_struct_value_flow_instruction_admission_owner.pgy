@@ -77,7 +77,6 @@ func DirectMirOptionStructValueFlowInstructionAdmissionFromProgram(
         BuildMirRoutineInstructionUseFacts(admitted.routines, main_row);
     let producer_uses: MirRoutineInstructionUseFacts =
         BuildMirRoutineInstructionUseFacts(admitted.routines, producer_row);
-    let graph: DirectMirOptionStructValueFlowGraphFact = identity.graph;
     let option_name: String = Concat(
         "Option<", Concat(identity.declaration.name, ">")
     );
@@ -91,10 +90,11 @@ func DirectMirOptionStructValueFlowInstructionAdmissionFromProgram(
         producer_index.block_has_conditional_branch[0] != 0 ||
         ArrayLength(main_index.source_local_names) != 4 ||
         ArrayLength(main_index.source_local_types) != 4 ||
-        main_index.source_local_names[0] != graph.option_local_name ||
-        main_index.source_local_names[1] != graph.pair_local_name ||
-        main_index.source_local_names[2] != graph.built_local_name ||
-        main_index.source_local_names[3] != graph.unwrapped_local_name ||
+        main_index.source_local_names[0] != identity.graph.option_local_name ||
+        main_index.source_local_names[1] != identity.graph.pair_local_name ||
+        main_index.source_local_names[2] != identity.graph.built_local_name ||
+        main_index.source_local_names[3] !=
+            identity.graph.unwrapped_local_name ||
         main_index.source_local_types[0] != option_name ||
         main_index.source_local_types[1] != identity.declaration.name ||
         main_index.source_local_types[2] != option_name ||
@@ -153,14 +153,18 @@ func DirectMirOptionStructValueFlowInstructionAdmissionFromProgram(
         captures[5].name != "ssa-def" ||
         captures[6].name != "ssa-def" || captures[7].name != "stmt" ||
         captures[8].name != "stmt" ||
-        captures[0].arg0 != graph.option_local_name || captures[0].arg1 != "" ||
-        captures[1].arg0 != graph.option_local_name || captures[1].arg1 != "local" ||
-        captures[2].arg0 != graph.option_local_name || captures[2].arg1 != "local" ||
-        captures[3].arg0 != graph.pair_local_name ||
+        captures[0].arg0 != identity.graph.option_local_name ||
+        captures[0].arg1 != "" ||
+        captures[1].arg0 != identity.graph.option_local_name ||
+        captures[1].arg1 != "local" ||
+        captures[2].arg0 != identity.graph.option_local_name ||
+        captures[2].arg1 != "local" ||
+        captures[3].arg0 != identity.graph.pair_local_name ||
         captures[3].arg1 != identity.declaration.name ||
         captures[4].arg0 != "Log" || captures[4].arg1 != "" ||
-        captures[5].arg0 != graph.built_local_name || captures[5].arg1 != "" ||
-        captures[6].arg0 != graph.unwrapped_local_name ||
+        captures[5].arg0 != identity.graph.built_local_name ||
+        captures[5].arg1 != "" ||
+        captures[6].arg0 != identity.graph.unwrapped_local_name ||
         captures[6].arg1 != identity.declaration.name ||
         captures[7].arg0 != "Log" || captures[7].arg1 != "" ||
         captures[8].arg0 != "Log" || captures[8].arg1 != "" ||

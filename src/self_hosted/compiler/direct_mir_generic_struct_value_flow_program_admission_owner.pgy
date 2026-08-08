@@ -7,16 +7,15 @@ func DirectMirGenericStructValueFlowProgramEnvelopeReady(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref classification: DirectMirThreeRoutineClassificationFact
 ) -> Bool {
-    let declarations: MirProgramDeclarationIndex =
-        admitted.domain_runtime_admission.declarations;
     if !DirectMirThreeRoutineClassificationFactReady(classification) ||
         classification.kind != DirectMirThreeRoutineGenericNominal() ||
         classification.specialization_count != 4 ||
         !admitted.document.valid || admitted.domain_topology_plan.present ||
         admitted.document.routines.json != admitted.routines.source_json ||
         JsonObjectFactCount(admitted.document.root) != 5 ||
-        !declarations.valid ||
-        MirProgramDeclarationIndexCount(declarations) != 1 ||
+        !admitted.domain_runtime_admission.declarations.valid ||
+        MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations) != 1 ||
         !JsonArrayObjectFactTableReady(
             admitted.document.parallel_capture_boundaries
         ) || JsonArrayObjectFactCount(

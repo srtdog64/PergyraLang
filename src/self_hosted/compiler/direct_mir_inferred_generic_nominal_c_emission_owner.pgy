@@ -15,16 +15,14 @@ func DirectMirInferredGenericNominalEmitC(
         formatted_print.symbol == "" || line_format == "" {
         Die("direct MIR inferred generic C projection facts are invalid");
     }
-    let graph: DirectMirInferredGenericNominalGraphFact = plan.identity.graph;
-    let abi: MirAbiLayoutRowCapture = plan.identity.declaration.abi;
-    let type_name: String = CompilerSymbolCIdentifier(graph.type_name);
-    let first: String = CompilerSymbolCIdentifier(graph.first_field);
-    let second: String = CompilerSymbolCIdentifier(graph.second_field);
+    let type_name: String = CompilerSymbolCIdentifier(plan.identity.graph.type_name);
+    let first: String = CompilerSymbolCIdentifier(plan.identity.graph.first_field);
+    let second: String = CompilerSymbolCIdentifier(plan.identity.graph.second_field);
     let specialized: String = CompilerSymbolCIdentifier(
         plan.identity.specialization.specialized_symbol
     );
     let parameter: String = CompilerSymbolCIdentifier(
-        graph.generic_parameter_name
+        plan.identity.graph.generic_parameter_name
     );
     if type_name == "" || first == "" || second == "" || first == second ||
         specialized == "" || parameter == "" {
@@ -41,17 +39,17 @@ func DirectMirInferredGenericNominalEmitC(
     output = Concat(output, ";\n\n_Static_assert(sizeof(");
     output = Concat(output, type_name);
     output = Concat(output, ") == ");
-    output = Concat(output, abi.size_text);
+    output = Concat(output, plan.identity.declaration.abi.size_text);
     output = Concat(output, ", \"nominal size receipt\");\n_Static_assert(_Alignof(");
     output = Concat(output, type_name);
     output = Concat(output, ") == ");
-    output = Concat(output, abi.align_text);
+    output = Concat(output, plan.identity.declaration.abi.align_text);
     output = Concat(output, ", \"nominal align receipt\");\n_Static_assert(offsetof(");
     output = Concat(output, type_name);
     output = Concat(output, ", ");
     output = Concat(output, second);
     output = Concat(output, ") == ");
-    output = Concat(output, abi.field_offsets[1]);
+    output = Concat(output, plan.identity.declaration.abi.field_offsets[1]);
     output = Concat(output, ", \"nominal field receipt\");\n\nstatic int32_t ");
     output = Concat(output, specialized);
     output = Concat(output, "(int32_t ");
@@ -63,11 +61,11 @@ func DirectMirInferredGenericNominalEmitC(
     output = Concat(output, " pgy_pair = {");
     output = Concat(output, specialized);
     output = Concat(output, "(");
-    output = Concat(output, ToString(graph.first_value));
+    output = Concat(output, ToString(plan.identity.graph.first_value));
     output = Concat(output, "), ");
     output = Concat(output, specialized);
     output = Concat(output, "(");
-    output = Concat(output, ToString(graph.second_value));
+    output = Concat(output, ToString(plan.identity.graph.second_value));
     output = Concat(output, ")};\n    int32_t pgy_sum = pgy_pair.");
     output = Concat(output, first);
     output = Concat(output, " + pgy_pair.");

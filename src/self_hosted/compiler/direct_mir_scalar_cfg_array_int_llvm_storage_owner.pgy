@@ -10,13 +10,15 @@ func DirectMirScalarCfgArrayIntLlvmDeclarations(
     if DirectMirScalarCfgArrayIntProgramAbsent(plan.array_int_program) ||
         plan.array_int_program.mode ==
             DirectMirScalarCfgArrayIntForEachPrefixPopMode() { return ""; }
-    let fact: DirectMirScalarCfgArrayIntCollectionFact =
-        plan.array_int_program.collection;
     let abi: DirectMirArrayIntAbiProjection =
         DirectMirArrayIntAbiProjectionFromCanonicalLayout(
-            target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
-            fact.data_offset, fact.length_offset, fact.capacity_offset,
-            fact.allocator_offset
+            target, plan.array_int_program.collection.abi_layout_id,
+            plan.array_int_program.collection.abi_size,
+            plan.array_int_program.collection.abi_align,
+            plan.array_int_program.collection.data_offset,
+            plan.array_int_program.collection.length_offset,
+            plan.array_int_program.collection.capacity_offset,
+            plan.array_int_program.collection.allocator_offset
         );
     let capacity: String = ToString(
         DirectMirScalarCfgArrayIntCapacity(plan.array_int_program)
@@ -34,7 +36,8 @@ func DirectMirScalarCfgArrayIntLlvmDeclarations(
     output = Concat(output,
         " x i32], ptr %pgy.array.int.storage, i64 0, i64 0\n");
     output = Concat(output,
-        DirectMirScalarCfgArrayIntLlvmInitialElements(fact));
+        DirectMirScalarCfgArrayIntLlvmInitialElements(
+            plan.array_int_program.collection));
     output = Concat(output, Concat(
         "  %pgy.array.int.object = alloca ", abi.llvm_aggregate_type
     ));

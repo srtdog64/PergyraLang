@@ -7,20 +7,23 @@ import "direct_mir_scalar_cfg_operation_position_owner.pgy";
 func DirectMirScalarCfgArrayIntStaticMutationReady(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
-    let fact: DirectMirScalarCfgArrayIntProgramFact =
-        plan.array_int_program;
-    let c: DirectMirScalarCfgArrayIntConsumerFact = fact.consumer;
+    let c: DirectMirScalarCfgArrayIntConsumerFact = plan.array_int_program.consumer;
     let mutation: DirectMirScalarCfgArrayIntStaticMutationFact =
-        fact.static_mutation;
+        plan.array_int_program.static_mutation;
     let values: Int = ArrayLength(plan.value_names);
     let operations: Int = ArrayLength(plan.operation_kinds);
-    let length: Int = ArrayLength(fact.collection.elements);
-    if !fact.valid || fact.mode !=
+    let length: Int = ArrayLength(plan.array_int_program.collection.elements);
+    if !plan.array_int_program.valid || plan.array_int_program.mode !=
             DirectMirScalarCfgArrayIntStaticSetMode() ||
-        !DirectMirScalarCfgArrayIntCollectionFactReady(fact.collection) ||
-        length < 1 || fact.producer.valid || !c.valid || !mutation.valid ||
-        !DirectMirScalarCfgArrayIntReadOnlyAbsent(fact.read_only) ||
-        !DirectMirScalarCfgArrayIntReverseAbsent(fact.reverse) ||
+        !DirectMirScalarCfgArrayIntCollectionFactReady(
+            plan.array_int_program.collection
+        ) || length < 1 || plan.array_int_program.producer.valid ||
+        !c.valid || !mutation.valid ||
+        !DirectMirScalarCfgArrayIntReadOnlyAbsent(
+            plan.array_int_program.read_only
+        ) || !DirectMirScalarCfgArrayIntReverseAbsent(
+            plan.array_int_program.reverse
+        ) ||
         c.index_value_row < 0 || c.index_value_row >= values ||
         c.sum_left_value_row < 0 || c.sum_left_value_row >= values ||
         c.read_result_value_row < 0 || c.read_result_value_row >= values ||
@@ -93,5 +96,5 @@ func DirectMirScalarCfgArrayIntStaticMutationReady(
             c.length_log_operation_row { return false; }
     return DirectMirScalarCfgWhileInductionZeroUnitReady(
         plan, c.index_value_row
-    ) && DirectMirScalarCfgArrayIntSumPhiReady(plan, fact);
+    ) && DirectMirScalarCfgArrayIntSumPhiReady(plan, plan.array_int_program);
 }

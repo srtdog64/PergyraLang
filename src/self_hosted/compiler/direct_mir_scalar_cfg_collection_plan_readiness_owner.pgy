@@ -8,7 +8,6 @@ import "direct_mir_scalar_cfg_array_int_program_absence_owner.pgy";
 func DirectMirScalarCfgCollectionPlanReady(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
-    let collections: DirectMirScalarCfgCollectionPlan = plan.collections;
     let observed: Int = 0;
     let graph_operation: Int = 0;
     while graph_operation < ArrayLength(plan.operation_kinds) {
@@ -20,24 +19,25 @@ func DirectMirScalarCfgCollectionPlanReady(
         }
         graph_operation = graph_operation + 1;
     }
-    if observed == 0 { return DirectMirScalarCfgCollectionPlanAbsent(collections); }
-    if !collections.valid || collections.digest == 0 ||
-        collections.digest != DirectMirScalarCfgCollectionPlanDigest(
-            collections
-        ) || observed != ArrayLength(collections.observations.kinds) ||
-        !DirectMirScalarCfgCollectionValuesReady(collections.values) ||
-        !DirectMirScalarCfgCollectionOperationsReady(collections) ||
-        !DirectMirScalarCfgCollectionObservationsReady(collections) ||
+    if observed == 0 { return DirectMirScalarCfgCollectionPlanAbsent(
+        plan.collections); }
+    if !plan.collections.valid || plan.collections.digest == 0 ||
+        plan.collections.digest != DirectMirScalarCfgCollectionPlanDigest(
+            plan.collections
+        ) || observed != ArrayLength(plan.collections.observations.kinds) ||
+        !DirectMirScalarCfgCollectionValuesReady(plan.collections.values) ||
+        !DirectMirScalarCfgCollectionOperationsReady(plan.collections) ||
+        !DirectMirScalarCfgCollectionObservationsReady(plan.collections) ||
         !DirectMirScalarCfgStringArrayPlanAbsent(plan.string_arrays) ||
         !DirectMirScalarCfgArrayIntProgramAbsent(plan.array_int_program) ||
         !DirectMirScalarCfgCollectionPopProgramAbsent(plan.collection_pops) ||
         ArrayLength(plan.local_names) != 0 ||
         ArrayLength(plan.value_names) != 0 { return false; }
     let expected_graph_operations: Int =
-        ArrayLength(collections.observations.kinds);
+        ArrayLength(plan.collections.observations.kinds);
     let row: Int = 0;
-    while row < ArrayLength(collections.operations.kinds) {
-        if collections.operations.kinds[row] ==
+    while row < ArrayLength(plan.collections.operations.kinds) {
+        if plan.collections.operations.kinds[row] ==
             DirectMirScalarCfgCollectionOpSet() {
             expected_graph_operations = expected_graph_operations + 1;
         }
@@ -53,13 +53,15 @@ func DirectMirScalarCfgCollectionPlanReady(
         graph_row = graph_row + 1;
     }
     row = 0;
-    while row < ArrayLength(collections.operations.kinds) {
-        let kind: Int = collections.operations.kinds[row];
-        let operation: Int = collections.operations.graph_operation_rows[row];
+    while row < ArrayLength(plan.collections.operations.kinds) {
+        let kind: Int = plan.collections.operations.kinds[row];
+        let operation: Int =
+            plan.collections.operations.graph_operation_rows[row];
         if kind == DirectMirScalarCfgCollectionOpSet() {
-            let result: Int = collections.operations.result_value_rows[row];
+            let result: Int =
+                plan.collections.operations.result_value_rows[row];
             let expected: Int = DirectMirScalarCfgOpArraySetInt();
-            if collections.values.element_types[result] == "String" {
+            if plan.collections.values.element_types[result] == "String" {
                 expected = DirectMirScalarCfgOpArraySetString();
             }
             if operation < 0 || operation >=
@@ -70,11 +72,11 @@ func DirectMirScalarCfgCollectionPlanReady(
         row = row + 1;
     }
     row = 0;
-    while row < ArrayLength(collections.observations.kinds) {
+    while row < ArrayLength(plan.collections.observations.kinds) {
         let operation: Int =
-            collections.observations.graph_operation_rows[row];
+            plan.collections.observations.graph_operation_rows[row];
         let expected: Int = DirectMirScalarCfgOpLogArrayIndexSumInt();
-        if collections.observations.kinds[row] ==
+        if plan.collections.observations.kinds[row] ==
                 DirectMirScalarCfgCollectionObservationConcatString() {
             expected = DirectMirScalarCfgOpLogArrayIndexConcatString();
         }

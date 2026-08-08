@@ -9,12 +9,13 @@ func DirectMirScalarCfgArrayIntPopCOperation(
     formatted_print: CompilerRuntimeCallAbiFact,
     int_line_format: String, int_c_type: String
 ) -> DirectMirScalarCfgCCollectionOperationEmission {
-    let fact: DirectMirScalarCfgArrayIntProgramFact = plan.array_int_program;
-    if fact.mode != DirectMirScalarCfgArrayIntForEachPrefixPopMode() {
+    if plan.array_int_program.mode !=
+            DirectMirScalarCfgArrayIntForEachPrefixPopMode() {
         return DirectMirScalarCfgCCollectionOperationEmission(false, "");
     }
     let foreach_row: Int = DirectMirScalarCfgArrayIntPopForEachRowAtLoop(
-        plan.foreach_iterations, fact.pop.foreach_loop_syntax_id
+        plan.foreach_iterations,
+        plan.array_int_program.pop.foreach_loop_syntax_id
     );
     let storage_row: Int = DirectMirScalarCfgForEachStorageRow(
         plan.foreach_iterations, foreach_row
@@ -25,13 +26,14 @@ func DirectMirScalarCfgArrayIntPopCOperation(
     let name: String = Concat(
         "pgy_foreach_collection_", ToString(storage_row)
     );
-    if DirectMirScalarCfgArrayIntPopOperationRow(fact.pop, operation) >= 0 {
+    if DirectMirScalarCfgArrayIntPopOperationRow(plan.array_int_program.pop,
+            operation) >= 0 {
         let output: String = Concat("    ", Concat(name, ".length = "));
         return DirectMirScalarCfgCCollectionOperationEmission(
             true, Concat(output, Concat(name, ".length - 1;\n"))
         );
     }
-    if operation == fact.pop.length_log_operation_row {
+    if operation == plan.array_int_program.pop.length_log_operation_row {
         let output: String = Concat("    ", formatted_print.symbol);
         output = Concat(output, Concat("(\"", int_line_format));
         output = Concat(output, Concat("\", (", int_c_type));

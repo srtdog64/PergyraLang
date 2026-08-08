@@ -19,17 +19,16 @@ func DirectMirScalarCfgStringArrayEmptyOperationReady(
 func DirectMirScalarCfgStringArrayPushGraphReady(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
-    let arrays: DirectMirScalarCfgStringArrayPlan = plan.string_arrays;
     let collection: Int = 0;
-    while collection < DirectMirScalarCfgStringArrayCollectionCount(arrays) {
+    while collection < DirectMirScalarCfgStringArrayCollectionCount(plan.string_arrays) {
         let fact: DirectMirScalarCfgArrayStringCollectionFact =
-            DirectMirScalarCfgStringArrayCollectionAt(arrays, collection);
+            DirectMirScalarCfgStringArrayCollectionAt(plan.string_arrays, collection);
         let expected: Int = ArrayLength(fact.elements);
         let prior_operation: Int = -1;
         let row: Int = 0;
-        while row < DirectMirScalarCfgStringArrayAccessCount(arrays) {
+        while row < DirectMirScalarCfgStringArrayAccessCount(plan.string_arrays) {
             let access: DirectMirScalarCfgStringArrayAccessFact =
-                DirectMirScalarCfgStringArrayAccessAt(arrays, row);
+                DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, row);
             if access.collection_row == collection && access.kind ==
                     DirectMirScalarCfgStringArrayAccessPushKind() {
                 if !DirectMirScalarCfgStringArrayEmptyOperationReady(
@@ -39,7 +38,7 @@ func DirectMirScalarCfgStringArrayPushGraphReady(
                     access.expected_length_before != expected ||
                     access.expected_length_before >=
                         DirectMirScalarCfgStringArrayStaticCapacity(
-                            arrays, collection
+                            plan.string_arrays, collection
                         ) || access.operation_row <= prior_operation {
                     return false;
                 }
@@ -59,9 +58,9 @@ func DirectMirScalarCfgStringArrayPushGraphReady(
             row = row + 1;
         }
         if expected != DirectMirScalarCfgStringArrayFinalLength(
-                arrays, collection
+                plan.string_arrays, collection
             ) || DirectMirScalarCfgStringArrayStaticCapacity(
-                arrays, collection
+                plan.string_arrays, collection
             ) != expected { return false; }
         collection = collection + 1;
     }

@@ -19,18 +19,20 @@ func DirectMirScalarCfgStringArrayVoidOperationReady(
 func DirectMirScalarCfgStringArrayMutationGraphReady(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
-    let arrays: DirectMirScalarCfgStringArrayPlan = plan.string_arrays;
     let collection: Int = 0;
-    while collection < DirectMirScalarCfgStringArrayCollectionCount(arrays) {
+    while collection < DirectMirScalarCfgStringArrayCollectionCount(
+            plan.string_arrays) {
         let fact: DirectMirScalarCfgArrayStringCollectionFact =
-            DirectMirScalarCfgStringArrayCollectionAt(arrays, collection);
+            DirectMirScalarCfgStringArrayCollectionAt(
+                plan.string_arrays, collection);
         let expected: Int = ArrayLength(fact.elements);
         let prior_operation: Int = -1;
         let observation_seen: Bool = false;
         let row: Int = 0;
-        while row < DirectMirScalarCfgStringArrayAccessCount(arrays) {
+        while row < DirectMirScalarCfgStringArrayAccessCount(
+                plan.string_arrays) {
             let access: DirectMirScalarCfgStringArrayAccessFact =
-                DirectMirScalarCfgStringArrayAccessAt(arrays, row);
+                DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, row);
             if access.collection_row == collection && access.kind ==
                     DirectMirScalarCfgStringArrayAccessPushKind() {
                 if !DirectMirScalarCfgStringArrayVoidOperationReady(
@@ -39,7 +41,7 @@ func DirectMirScalarCfgStringArrayMutationGraphReady(
                         DirectMirScalarCfgOpArrayPushString() ||
                     access.expected_length_before != expected ||
                     expected >= DirectMirScalarCfgStringArrayStaticCapacity(
-                        arrays, collection
+                        plan.string_arrays, collection
                     ) || access.operation_row <= prior_operation ||
                     observation_seen {
                     return false;
@@ -79,9 +81,9 @@ func DirectMirScalarCfgStringArrayMutationGraphReady(
             row = row + 1;
         }
         if expected != DirectMirScalarCfgStringArrayFinalLength(
-                arrays, collection
+                plan.string_arrays, collection
             ) || DirectMirScalarCfgStringArrayStaticCapacity(
-                arrays, collection
+                plan.string_arrays, collection
             ) < expected { return false; }
         collection = collection + 1;
     }

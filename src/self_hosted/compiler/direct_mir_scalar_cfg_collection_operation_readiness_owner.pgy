@@ -5,18 +5,21 @@ import "direct_mir_scalar_cfg_collection_value_readiness_owner.pgy";
 func DirectMirScalarCfgCollectionOperationsReady(
     ref plan: DirectMirScalarCfgCollectionPlan
 ) -> Bool {
-    let ops: DirectMirScalarCfgCollectionOperationSet = plan.operations;
-    let count: Int = ArrayLength(ops.kinds);
-    if !ops.valid || count < 1 || count != ArrayLength(ops.global_rows) ||
-        !DirectMirCollectionDynamicInputsReady(ops.dynamic_inputs, count) ||
-        count != ArrayLength(ops.source_ordinals) ||
-        count != ArrayLength(ops.receiver_value_rows) ||
-        count != ArrayLength(ops.result_value_rows) ||
-        count != ArrayLength(ops.indices) ||
-        count != ArrayLength(ops.input_types) ||
-        count != ArrayLength(ops.input_ints) ||
-        count != ArrayLength(ops.input_strings) ||
-        count != ArrayLength(ops.graph_operation_rows) { return false; }
+    let count: Int = ArrayLength(plan.operations.kinds);
+    if !plan.operations.valid || count < 1 ||
+        count != ArrayLength(plan.operations.global_rows) ||
+        !DirectMirCollectionDynamicInputsReady(
+            plan.operations.dynamic_inputs, count
+        ) || count != ArrayLength(plan.operations.source_ordinals) ||
+        count != ArrayLength(plan.operations.receiver_value_rows) ||
+        count != ArrayLength(plan.operations.result_value_rows) ||
+        count != ArrayLength(plan.operations.indices) ||
+        count != ArrayLength(plan.operations.input_types) ||
+        count != ArrayLength(plan.operations.input_ints) ||
+        count != ArrayLength(plan.operations.input_strings) ||
+        count != ArrayLength(plan.operations.graph_operation_rows) {
+        return false;
+    }
     let values: Int = ArrayLength(plan.values.value_ids);
     let result_claims: Array<Int> = [];
     let value: Int = 0;
@@ -25,56 +28,61 @@ func DirectMirScalarCfgCollectionOperationsReady(
     let prior_global: Int = -1;
     let prior_ordinal: Int = -1;
     while row < count {
-        let kind: Int = ops.kinds[row];
-        let receiver: Int = ops.receiver_value_rows[row];
-        let result: Int = ops.result_value_rows[row];
-        let index: Int = ops.indices[row];
-        if ops.global_rows[row] < 0 || ops.source_ordinals[row] < 0 ||
-            ops.global_rows[row] < prior_global ||
-            (ops.global_rows[row] == prior_global &&
-             ops.source_ordinals[row] <= prior_ordinal) ||
+        let kind: Int = plan.operations.kinds[row];
+        let receiver: Int = plan.operations.receiver_value_rows[row];
+        let result: Int = plan.operations.result_value_rows[row];
+        let index: Int = plan.operations.indices[row];
+        if plan.operations.global_rows[row] < 0 ||
+            plan.operations.source_ordinals[row] < 0 ||
+            plan.operations.global_rows[row] < prior_global ||
+            (plan.operations.global_rows[row] == prior_global &&
+             plan.operations.source_ordinals[row] <= prior_ordinal) ||
             kind < DirectMirScalarCfgCollectionOpInitialize() ||
             kind > DirectMirScalarCfgCollectionOpSet() || receiver < -1 ||
             result < -1 || receiver >= values || result >= values {
             return false;
         }
-        if ops.dynamic_inputs.index_value_ids[row] != "" ||
-            ops.dynamic_inputs.input_value_ids[row] != "" { return false; }
+        if plan.operations.dynamic_inputs.index_value_ids[row] != "" ||
+            plan.operations.dynamic_inputs.input_value_ids[row] != "" {
+            return false;
+        }
         if kind == DirectMirScalarCfgCollectionOpInitialize() {
             if receiver != -1 || result < 0 || index != -1 ||
                 plan.values.predecessor_value_rows[result] >= 0 ||
-                ops.global_rows[row] !=
+                plan.operations.global_rows[row] !=
                     plan.values.definition_global_rows[result] ||
-                ops.input_types[row] != "" || ops.input_ints[row] != 0 ||
-                ops.input_strings[row] != "" ||
-                ops.graph_operation_rows[row] != -1 {
+                plan.operations.input_types[row] != "" ||
+                plan.operations.input_ints[row] != 0 ||
+                plan.operations.input_strings[row] != "" ||
+                plan.operations.graph_operation_rows[row] != -1 {
                 return false;
             }
         } else if kind == DirectMirScalarCfgCollectionOpSet() {
             if receiver < 0 || result < 0 ||
                 plan.values.predecessor_value_rows[result] != receiver ||
-                ops.global_rows[row] !=
+                plan.operations.global_rows[row] !=
                     plan.values.definition_global_rows[result] || index < 0 ||
                 index >= DirectMirScalarCfgCollectionValueLength(
                     plan.values, receiver
-                ) || ops.input_types[row] !=
+                ) || plan.operations.input_types[row] !=
                     plan.values.element_types[receiver] ||
-                (ops.input_types[row] == "Int" &&
-                    ops.input_strings[row] != "") ||
-                (ops.input_types[row] == "String" &&
-                    ops.input_strings[row] == "") ||
-                ops.graph_operation_rows[row] < 0 { return false; }
+                (plan.operations.input_types[row] == "Int" &&
+                    plan.operations.input_strings[row] != "") ||
+                (plan.operations.input_types[row] == "String" &&
+                    plan.operations.input_strings[row] == "") ||
+                plan.operations.graph_operation_rows[row] < 0 { return false; }
         } else if receiver < 0 || result != -1 || index < 0 ||
             index >= DirectMirScalarCfgCollectionValueLength(
                 plan.values, receiver
-            ) || ops.input_types[row] != "" || ops.input_ints[row] != 0 ||
-            ops.input_strings[row] != "" ||
-            ops.graph_operation_rows[row] < 0 { return false; }
+            ) || plan.operations.input_types[row] != "" ||
+            plan.operations.input_ints[row] != 0 ||
+            plan.operations.input_strings[row] != "" ||
+            plan.operations.graph_operation_rows[row] < 0 { return false; }
         if result >= 0 {
             ArraySet(result_claims, result, result_claims[result] + 1);
         }
-        prior_global = ops.global_rows[row];
-        prior_ordinal = ops.source_ordinals[row]; row = row + 1;
+        prior_global = plan.operations.global_rows[row];
+        prior_ordinal = plan.operations.source_ordinals[row]; row = row + 1;
     }
     value = 0;
     while value < values {

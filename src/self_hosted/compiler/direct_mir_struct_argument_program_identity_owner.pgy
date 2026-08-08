@@ -69,27 +69,25 @@ func DirectMirStructArgumentProgramIdentityReady(
         ) || !DirectMirStructArgumentGraphFactReady(identity.main_graph) {
         return false;
     }
-    let graph: DirectMirStructArgumentGraphFact = identity.main_graph;
-    let outer: DirectMirNominalDeclarationAbiFact =
-        identity.outer_declaration;
-    let nested: DirectMirNominalDeclarationAbiFact =
-        identity.nested_declaration;
     return identity.entrypoint.name == "Main" &&
         identity.entrypoint.return_type == "Void" &&
         identity.entrypoint.param_count == 0 &&
-        identity.outer_callee.name == graph.outer_callee_name &&
+        identity.outer_callee.name == identity.main_graph.outer_callee_name &&
         identity.outer_callee.return_type == CompilerAbiLayoutIntTypeName() &&
         identity.outer_callee.param_count == 1 &&
         identity.outer_callee.param.name != "" &&
-        identity.outer_callee.param.type_name == graph.outer_type_name &&
+        identity.outer_callee.param.type_name ==
+            identity.main_graph.outer_type_name &&
         identity.outer_callee.param.carriage == "value" &&
         identity.outer_callee.param.resource == "none" &&
         identity.outer_callee.param.pass_shape == "direct" &&
         identity.outer_callee.param.abi_required &&
-        identity.outer_callee.param.abi_layout_id == outer.abi_layout_id &&
+        identity.outer_callee.param.abi_layout_id ==
+            identity.outer_declaration.abi_layout_id &&
         DirectMirStructAbiRowsEqual(
-            identity.outer_callee.param.abi, outer.abi
-        ) && identity.nested_callee.name == graph.nested_callee_name &&
+            identity.outer_callee.param.abi, identity.outer_declaration.abi
+        ) && identity.nested_callee.name ==
+            identity.main_graph.nested_callee_name &&
         identity.nested_callee.return_type == CompilerAbiLayoutIntTypeName() &&
         identity.nested_callee.param_count == 1 &&
         identity.nested_callee.param.type_name == CompilerAbiLayoutIntTypeName() &&
@@ -97,24 +95,35 @@ func DirectMirStructArgumentProgramIdentityReady(
         identity.nested_callee.param.resource == "none" &&
         identity.nested_callee.param.pass_shape == "direct" &&
         !identity.nested_callee.param.abi_required &&
-        outer.name == graph.outer_type_name &&
-        nested.name == graph.nested_type_name &&
-        ArrayLength(outer.field_names) == 2 &&
-        outer.field_names[0] == graph.outer_first_field &&
-        outer.field_names[1] == graph.outer_second_field &&
-        outer.field_types[0] == nested.name &&
-        outer.field_types[1] == nested.name &&
-        ArrayLength(nested.field_names) == 2 &&
-        nested.field_names[0] == graph.nested_first_field &&
-        nested.field_names[1] == graph.nested_second_field &&
-        nested.field_types[0] == CompilerAbiLayoutIntTypeName() &&
-        nested.field_types[1] == CompilerAbiLayoutIntTypeName() &&
-        DirectMirStructArgumentPhysicalRowsReady(outer, nested) &&
-        identity.entrypoint.row != identity.outer_callee.row &&
+        identity.outer_declaration.name == identity.main_graph.outer_type_name &&
+        identity.nested_declaration.name ==
+            identity.main_graph.nested_type_name &&
+        ArrayLength(identity.outer_declaration.field_names) == 2 &&
+        identity.outer_declaration.field_names[0] ==
+            identity.main_graph.outer_first_field &&
+        identity.outer_declaration.field_names[1] ==
+            identity.main_graph.outer_second_field &&
+        identity.outer_declaration.field_types[0] ==
+            identity.nested_declaration.name &&
+        identity.outer_declaration.field_types[1] ==
+            identity.nested_declaration.name &&
+        ArrayLength(identity.nested_declaration.field_names) == 2 &&
+        identity.nested_declaration.field_names[0] ==
+            identity.main_graph.nested_first_field &&
+        identity.nested_declaration.field_names[1] ==
+            identity.main_graph.nested_second_field &&
+        identity.nested_declaration.field_types[0] ==
+            CompilerAbiLayoutIntTypeName() &&
+        identity.nested_declaration.field_types[1] ==
+            CompilerAbiLayoutIntTypeName() &&
+        DirectMirStructArgumentPhysicalRowsReady(
+            identity.outer_declaration, identity.nested_declaration
+        ) && identity.entrypoint.row != identity.outer_callee.row &&
         identity.entrypoint.row != identity.nested_callee.row &&
         identity.outer_callee.row != identity.nested_callee.row &&
-        outer.row != nested.row &&
-        outer.source_syntax_id != nested.source_syntax_id;
+        identity.outer_declaration.row != identity.nested_declaration.row &&
+        identity.outer_declaration.source_syntax_id !=
+            identity.nested_declaration.source_syntax_id;
 }
 
 func DirectMirStructArgumentProgramIdentityFromAdmitted(

@@ -7,15 +7,15 @@ func DirectMirScalarProgramLlvmCaseMathMaterialization(
     ref plan: DirectMirScalarCfgGraphPlan,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> String {
-    let ids: DirectMirScalarProgramCaseMathRuntimeIds =
-        plan.program.runtime_abi.case_math;
-    if !DirectMirScalarProgramCaseMathRuntimeRequired(ids) { return ""; }
+    if !DirectMirScalarProgramCaseMathRuntimeRequired(
+            plan.program.runtime_abi.case_math) { return ""; }
     if !DirectMirScalarProgramCaseMathRuntimeProjectionReady(
-            runtime.case_math, ids) { return ""; }
+            runtime.case_math, plan.program.runtime_abi.case_math
+    ) { return ""; }
     let output: String =
         DirectMirScalarProgramLlvmStringReplaceMaterialization(
-            runtime.case_math, ids);
+            runtime.case_math, plan.program.runtime_abi.case_math);
     return Concat(output,
         DirectMirScalarProgramLlvmIntMathMaterialization(
-            runtime.case_math, ids));
+            runtime.case_math, plan.program.runtime_abi.case_math));
 }

@@ -29,7 +29,6 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
         DirectMirScalarCfgGraphInputFromAdmitted(
             admitted, routine_row, producer
         );
-    let index: MirRoutineFactIndex = input.index;
     let use_facts: MirRoutineInstructionUseFacts = input.use_facts;
     let wire: DirectMirScalarCfgWireLocalRefs = input.wire;
     let range_sources: DirectMirScalarCfgRangeFactSet = input.ranges;
@@ -43,13 +42,14 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
         input.collections;
     let local_refs: DirectMirScalarCfgLocalRefPlan =
         DirectMirScalarCfgLocalRefPlanFromOwners(
-            admitted, index, use_facts, wire, range_sources, foreach_sources,
+            admitted, input.index, use_facts, wire, range_sources,
+            foreach_sources,
             string_array_source, array_int_source, collection_source
         );
     if !local_refs.valid { Die("direct MIR scalar CFG LocalRef plan is invalid"); }
     let type_plan: DirectMirScalarCfgValueTypePlan =
         DirectMirScalarCfgValueTypePlanFromOwners(
-            index, local_refs, foreach_elements
+            input.index, local_refs, foreach_elements
         );
     if !type_plan.valid { Die("direct MIR scalar CFG value type plan is invalid"); }
     let string_arrays: DirectMirScalarCfgStringArrayPlan =
@@ -75,7 +75,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
         Die("direct MIR scalar CFG foreach local binding is invalid");
     }
     if !DirectMirScalarCfgLoopFlowFactsReady(
-        index, admitted.routines, routine_row,
+        input.index, admitted.routines, routine_row,
         range_iterations, foreach_iterations
     ) {
         Die("direct MIR scalar CFG loop facts are invalid");
@@ -92,8 +92,8 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
     if array_int_source.valid && !array_int_program.valid {
         Die("direct MIR scalar CFG Array<Int> value binding is invalid");
     }
-    let block_succ_true: Array<Int> = index.block_succ_true;
-    let block_succ_false: Array<Int> = index.block_succ_false;
+    let block_succ_true: Array<Int> = input.index.block_succ_true;
+    let block_succ_false: Array<Int> = input.index.block_succ_false;
     let block_operation_starts: Array<Int> = []; let block_operation_counts: Array<Int> = [];
     let block_condition_kinds: Array<Int> = []; let block_condition_left_values: Array<Int> = [];
     let block_condition_right_values: Array<Int> = []; let block_condition_left_locals: Array<Int> = [];
@@ -107,8 +107,8 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
     let phi_incoming_values: Array<Int> = [];
 
     let block: Int = 0;
-    while block < ArrayLength(index.block_starts) {
-        if !index.block_reachable[block] {
+    while block < ArrayLength(input.index.block_starts) {
+        if !input.index.block_reachable[block] {
             Die("direct MIR scalar CFG contains an unreachable block");
         }
         let operation_start: Int = ArrayLength(operation_kinds);
@@ -131,11 +131,11 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                 -1, -1, "", ""
             );
         let instruction_row: Int = 0;
-        while instruction_row < index.block_instruction_counts[block] {
+        while instruction_row < input.index.block_instruction_counts[block] {
             let local_instruction: Int =
-                index.block_instruction_starts[block] + instruction_row;
+                input.index.block_instruction_starts[block] + instruction_row;
             let global_row: Int =
-                index.instruction_facts.global_start + local_instruction;
+                input.index.instruction_facts.global_start + local_instruction;
             let kind: String = admitted.routines.instruction_kinds[global_row];
             let source: String =
                 admitted.routines.instruction_source_types[global_row];
@@ -189,7 +189,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
             } else if kind == "def" {
                 let scalar: MirRoutineInstructionScalarCapture =
                     MirRoutineInstructionFactBundleAtGlobal(
-                        index.instruction_facts, global_row
+                        input.index.instruction_facts, global_row
                     );
                 let result_value: Int =
                     DirectMirScalarCfgGraphValueRow(
@@ -217,13 +217,13 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                         )) ||
                     (expression.left_value >= 0 &&
                         !DirectMirScalarCfgValueUseDominates(
-                            index, value_names, value_local_rows,
+                            input.index, value_names, value_local_rows,
                             expression.left_value,
                             block, instruction_row
                         )) ||
                     (expression.right_value >= 0 &&
                         !DirectMirScalarCfgValueUseDominates(
-                            index, value_names, value_local_rows,
+                            input.index, value_names, value_local_rows,
                             expression.right_value,
                             block, instruction_row
                         )) {
@@ -251,7 +251,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
             } else if kind == "phi" {
                 let phi: DirectMirScalarCfgPhiOperationAdmission =
                     DirectMirScalarCfgPhiOperationFromOwners(
-                        index, admitted, use_facts, routine_row,
+                        input.index, admitted, use_facts, routine_row,
                         block, instruction_row, local_refs, type_plan,
                         phi_predecessor_blocks, phi_incoming_values
                     );
@@ -280,10 +280,10 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                     );
                 if range.valid == foreach.valid || (range.valid &&
                     (!DirectMirScalarCfgRangeIterationFactReady(
-                        range, ArrayLength(index.block_starts)
+                        range, ArrayLength(input.index.block_starts)
                     ) || block != range.init_block)) || (foreach.valid &&
                     (!DirectMirScalarCfgForEachFactReady(
-                        foreach, ArrayLength(index.block_starts)
+                        foreach, ArrayLength(input.index.block_starts)
                     ) || block != foreach.init_block)) {
                     Die("direct MIR scalar CFG range initializer is invalid");
                 }
@@ -318,7 +318,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
             } else if kind == "stmt" {
                 let scalar: MirRoutineInstructionScalarCapture =
                     MirRoutineInstructionFactBundleAtGlobal(
-                        index.instruction_facts, global_row
+                        input.index.instruction_facts, global_row
                     );
                 let string_access: Int = DirectMirScalarCfgStringArrayAccessRowAtGlobal(
                     string_arrays, global_row
@@ -339,7 +339,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                     scalar.result != "" || !expression.valid ||
                     (expression.left_value >= 0 &&
                         !DirectMirScalarCfgValueUseDominates(
-                            index, value_names, value_local_rows,
+                            input.index, value_names, value_local_rows,
                             expression.left_value,
                             block, instruction_row
                         )) {
@@ -366,10 +366,11 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                 );
             } else if kind == "branch" {
                 condition = DirectMirScalarCfgBranchConditionFromOwners(
-                    index, use_facts, range_iterations, foreach_iterations,
-                    string_arrays, array_int_program, instruction, source,
-                    global_row, local_instruction, block, instruction_row,
-                    value_names, value_local_rows, local_refs, wire
+                    input.index, use_facts, range_iterations,
+                    foreach_iterations, string_arrays, array_int_program,
+                    instruction, source, global_row, local_instruction,
+                    block, instruction_row, value_names, value_local_rows,
+                    local_refs, wire
                 );
             }
             instruction_row = instruction_row + 1;
@@ -389,14 +390,14 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
     }
     let routine_partition: DirectMirScalarCfgRoutinePartitionFact =
         DirectMirScalarCfgSingleRoutinePartitionFromOwners(
-            admitted.routines, index, routine_row,
+            admitted.routines, input.index, routine_row,
             ArrayLength(local_refs.local_names),
             ArrayLength(local_refs.value_names),
             ArrayLength(block_succ_true), ArrayLength(operation_kinds),
             ArrayLength(phi_predecessor_blocks)
         );
     return DirectMirScalarCfgSealGraphPlan(
-        admitted, routine_partition, DirectMirCfgDigestFromIndex(index),
+        admitted, routine_partition, DirectMirCfgDigestFromIndex(input.index),
         local_refs, type_plan,
         block_succ_true, block_succ_false,
         block_operation_starts, block_operation_counts,

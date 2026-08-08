@@ -42,39 +42,42 @@ func DirectMirInferredGenericMemberProgramIdentityReady(
         ) || !DirectMirInferredGenericMemberGraphFactReady(identity.graph) {
         return false;
     }
-    let method: DirectMirGenericMemberSignatureFact =
-        identity.generic_method;
-    let specialization: DirectMirInferredGenericMemberSpecializationFact =
-        identity.specialization;
-    let declaration: DirectMirInferredGenericMemberDeclarationFact =
-        identity.declaration;
-    let graph: DirectMirInferredGenericMemberGraphFact = identity.graph;
     return identity.entrypoint.name == "Main" &&
         identity.entrypoint.return_type == "Void" &&
         identity.entrypoint.param_count == 0 &&
-        method.owner == declaration.name &&
-        method.name == declaration.method_name &&
-        method.return_type == declaration.method_return_type &&
+        identity.generic_method.owner == identity.declaration.name &&
+        identity.generic_method.name == identity.declaration.method_name &&
+        identity.generic_method.return_type ==
+            identity.declaration.method_return_type &&
         DirectMirInferredGenericMemberHostCarriageReady(
-            declaration.host, method.receiver_carriage
+            identity.declaration.host,
+            identity.generic_method.receiver_carriage
         ) &&
-        method.generic_name == specialization.generic_param &&
-        method.value_param.name == graph.value_parameter_name &&
-        specialization.owner == declaration.name &&
-        specialization.callable == method.name &&
-        specialization.generic_actual == CompilerAbiLayoutIntTypeName() &&
-        graph.owner == declaration.name && graph.method == method.name &&
-        graph.member_target == CompilerSymbolCQualifiedName(
-            declaration.name, method.name
-        ) && graph.receiver_parameter_name == method.receiver_name &&
-        identity.entrypoint.row != method.row &&
-        identity.entrypoint.source_syntax_id != method.source_syntax_id &&
+        identity.generic_method.generic_name ==
+            identity.specialization.generic_param &&
+        identity.generic_method.value_param.name ==
+            identity.graph.value_parameter_name &&
+        identity.specialization.owner == identity.declaration.name &&
+        identity.specialization.callable == identity.generic_method.name &&
+        identity.specialization.generic_actual ==
+            CompilerAbiLayoutIntTypeName() &&
+        identity.graph.owner == identity.declaration.name &&
+        identity.graph.method == identity.generic_method.name &&
+        identity.graph.member_target == CompilerSymbolCQualifiedName(
+            identity.declaration.name, identity.generic_method.name
+        ) && identity.graph.receiver_parameter_name ==
+            identity.generic_method.receiver_name &&
+        identity.entrypoint.row != identity.generic_method.row &&
         identity.entrypoint.source_syntax_id !=
-            declaration.source_syntax_id &&
+            identity.generic_method.source_syntax_id &&
         identity.entrypoint.source_syntax_id !=
-            declaration.field_source_syntax_id &&
-        declaration.source_syntax_id != method.source_syntax_id &&
-        declaration.field_source_syntax_id != method.source_syntax_id;
+            identity.declaration.source_syntax_id &&
+        identity.entrypoint.source_syntax_id !=
+            identity.declaration.field_source_syntax_id &&
+        identity.declaration.source_syntax_id !=
+            identity.generic_method.source_syntax_id &&
+        identity.declaration.field_source_syntax_id !=
+            identity.generic_method.source_syntax_id;
 }
 func DirectMirInferredGenericMemberInstructionGraph(
     ref admitted: MirMachineLayerAdmittedJsonInput,

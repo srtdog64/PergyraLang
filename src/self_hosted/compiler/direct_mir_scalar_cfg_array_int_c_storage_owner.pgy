@@ -11,13 +11,15 @@ func DirectMirScalarCfgArrayIntCDeclarations(
     if DirectMirScalarCfgArrayIntProgramAbsent(plan.array_int_program) ||
         plan.array_int_program.mode ==
             DirectMirScalarCfgArrayIntForEachPrefixPopMode() { return ""; }
-    let fact: DirectMirScalarCfgArrayIntCollectionFact =
-        plan.array_int_program.collection;
     let abi: DirectMirArrayIntAbiProjection =
         DirectMirArrayIntAbiProjectionFromCanonicalLayout(
-            target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
-            fact.data_offset, fact.length_offset, fact.capacity_offset,
-            fact.allocator_offset
+            target, plan.array_int_program.collection.abi_layout_id,
+            plan.array_int_program.collection.abi_size,
+            plan.array_int_program.collection.abi_align,
+            plan.array_int_program.collection.data_offset,
+            plan.array_int_program.collection.length_offset,
+            plan.array_int_program.collection.capacity_offset,
+            plan.array_int_program.collection.allocator_offset
         );
     let capacity: String = ToString(
         DirectMirScalarCfgArrayIntCapacity(plan.array_int_program)
@@ -26,11 +28,13 @@ func DirectMirScalarCfgArrayIntCDeclarations(
         DirectMirScalarCfgArrayIntInitialLength(plan.array_int_program)
     );
     let initializer: String = "0";
-    if ArrayLength(fact.elements) > 0 {
+    if ArrayLength(plan.array_int_program.collection.elements) > 0 {
         initializer = ""; let element: Int = 0;
-        while element < ArrayLength(fact.elements) {
+        while element < ArrayLength(
+                plan.array_int_program.collection.elements) {
             if element > 0 { initializer = Concat(initializer, ", "); }
-            initializer = Concat(initializer, ToString(fact.elements[element]));
+            initializer = Concat(initializer,
+                ToString(plan.array_int_program.collection.elements[element]));
             element = element + 1;
         }
     }

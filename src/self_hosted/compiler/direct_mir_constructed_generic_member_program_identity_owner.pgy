@@ -81,12 +81,6 @@ func DirectMirConstructedGenericMemberProgramIdentityReady(
         ) || !DirectMirConstructedGenericMemberSourceIdentitiesReady(identity) {
         return false;
     }
-    let constructed: DirectMirConstructedGenericMemberSignatureFact =
-        identity.constructed_method;
-    let value_identity: DirectMirConstructedGenericMemberSignatureFact =
-        identity.identity_method;
-    let spec: DirectMirConstructedGenericMemberSpecializationFact =
-        identity.specialization;
     let declaration: DirectMirConstructedGenericMemberDeclarationFact =
         identity.declaration;
     let graph: DirectMirConstructedGenericMemberMainGraphFact =
@@ -94,34 +88,43 @@ func DirectMirConstructedGenericMemberProgramIdentityReady(
     return identity.entrypoint.name == "Main" &&
         identity.entrypoint.return_type == "Void" &&
         identity.entrypoint.param_count == 0 &&
-        constructed.returns_option && !value_identity.returns_option &&
+        identity.constructed_method.returns_option &&
+        !identity.identity_method.returns_option &&
         DirectMirConstructedGenericMemberSubstitutionReady(
             identity.specialization
         ) &&
-        constructed.owner == declaration.name &&
-        value_identity.owner == declaration.name &&
-        constructed.name == spec.inner_callable &&
-        value_identity.name == spec.outer_callable &&
-        constructed.generic_name == spec.inner_generic_param &&
-        value_identity.generic_name == spec.outer_generic_param &&
+        identity.constructed_method.owner == declaration.name &&
+        identity.identity_method.owner == declaration.name &&
+        identity.constructed_method.name ==
+            identity.specialization.inner_callable &&
+        identity.identity_method.name ==
+            identity.specialization.outer_callable &&
+        identity.constructed_method.generic_name ==
+            identity.specialization.inner_generic_param &&
+        identity.identity_method.generic_name ==
+            identity.specialization.outer_generic_param &&
         DirectMirConstructedGenericMemberDeclarationHasMethod(
-            declaration, constructed.name, constructed.return_type
+            declaration, identity.constructed_method.name,
+            identity.constructed_method.return_type
         ) && DirectMirConstructedGenericMemberDeclarationHasMethod(
-            declaration, value_identity.name, value_identity.return_type
+            declaration, identity.identity_method.name,
+            identity.identity_method.return_type
         ) && identity.method_graph.constructed_value_parameter ==
-            constructed.value_param.name &&
+            identity.constructed_method.value_param.name &&
         identity.method_graph.identity_value_parameter ==
-            value_identity.value_param.name && spec.owner == declaration.name &&
+            identity.identity_method.value_param.name &&
+        identity.specialization.owner == declaration.name &&
         graph.owner == declaration.name &&
-        graph.inner_method == constructed.name &&
-        graph.outer_method == value_identity.name &&
+        graph.inner_method == identity.constructed_method.name &&
+        graph.outer_method == identity.identity_method.name &&
         graph.inner_target == CompilerSymbolCQualifiedName(
-            declaration.name, constructed.name
+            declaration.name, identity.constructed_method.name
         ) && graph.outer_target == CompilerSymbolCQualifiedName(
-            declaration.name, value_identity.name
-        ) && constructed.row != value_identity.row &&
-        identity.entrypoint.row != constructed.row &&
-        identity.entrypoint.row != value_identity.row;
+            declaration.name, identity.identity_method.name
+        ) && identity.constructed_method.row !=
+            identity.identity_method.row &&
+        identity.entrypoint.row != identity.constructed_method.row &&
+        identity.entrypoint.row != identity.identity_method.row;
 }
 
 func DirectMirConstructedGenericMemberProgramIdentityFromAdmitted(

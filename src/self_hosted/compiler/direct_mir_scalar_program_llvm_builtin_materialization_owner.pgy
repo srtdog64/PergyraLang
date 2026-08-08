@@ -37,13 +37,16 @@ func DirectMirScalarProgramLlvmBuiltinMaterialization(
     ref plan: DirectMirScalarCfgGraphPlan,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> String {
-    let abi: DirectMirScalarProgramRuntimeAbiFact = plan.program.runtime_abi;
-    if !DirectMirScalarProgramRuntimeRequiresMaterialization(abi) { return ""; }
-    if !DirectMirScalarProgramRuntimeAbiProjectionReady(runtime, abi) {
+    if !DirectMirScalarProgramRuntimeRequiresMaterialization(
+        plan.program.runtime_abi
+    ) { return ""; }
+    if !DirectMirScalarProgramRuntimeAbiProjectionReady(
+        runtime, plan.program.runtime_abi
+    ) {
         Die("direct MIR scalar program LLVM builtin ABI is invalid");
     }
     let output: String = "";
-    if abi.string_to_string_id != 0 {
+    if plan.program.runtime_abi.string_to_string_id != 0 {
         output = Concat(output,
             "@.pgy.scalar.tostr.format = private unnamed_addr constant [5 x i8] c\"%lld\\00\", align 1\n");
         output = Concat(output,
@@ -57,12 +60,12 @@ func DirectMirScalarProgramLlvmBuiltinMaterialization(
             "  %written = call i32 (ptr, i64, ptr, ...) @snprintf(ptr %result, i64 24, ptr getelementptr inbounds ([5 x i8], ptr @.pgy.scalar.tostr.format, i64 0, i64 0), i64 %value)\n");
         output = Concat(output, "  ret ptr %result\n}\n\n");
     }
-    if abi.string_to_upper_id != 0 {
+    if plan.program.runtime_abi.string_to_upper_id != 0 {
         output = Concat(output,
             DirectMirScalarProgramLlvmAsciiCaseMaterialization(
                 runtime.string_to_upper, 97, 122, -32));
     }
-    if abi.string_to_lower_id != 0 {
+    if plan.program.runtime_abi.string_to_lower_id != 0 {
         output = Concat(output,
             DirectMirScalarProgramLlvmAsciiCaseMaterialization(
                 runtime.string_to_lower, 65, 90, 32));

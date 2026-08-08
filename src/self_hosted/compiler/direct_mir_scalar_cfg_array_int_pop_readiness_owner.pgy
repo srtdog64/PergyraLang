@@ -36,38 +36,36 @@ func DirectMirScalarCfgArrayIntPopCollectionMatchesForEach(
 func DirectMirScalarCfgArrayIntPopReady(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
-    let fact: DirectMirScalarCfgArrayIntProgramFact = plan.array_int_program;
-    let pop: DirectMirScalarCfgArrayIntPopFact = fact.pop;
     let foreach: DirectMirScalarCfgForEachFact =
         DirectMirScalarCfgForEachFactAtLoopSyntaxId(
-            plan.foreach_iterations, pop.foreach_loop_syntax_id
+            plan.foreach_iterations, plan.array_int_program.pop.foreach_loop_syntax_id
         );
-    let count: Int = ArrayLength(pop.global_rows);
-    if !fact.valid || fact.mode !=
+    let count: Int = ArrayLength(plan.array_int_program.pop.global_rows);
+    if !plan.array_int_program.valid || plan.array_int_program.mode !=
             DirectMirScalarCfgArrayIntForEachPrefixPopMode() ||
-        !DirectMirScalarCfgArrayIntCollectionFactReady(fact.collection) ||
-        fact.producer.valid || fact.consumer.valid || fact.static_mutation.valid ||
-        !DirectMirScalarCfgArrayIntReadOnlyAbsent(fact.read_only) ||
-        !DirectMirScalarCfgArrayIntReverseAbsent(fact.reverse) ||
-        !pop.valid || count < 1 ||
-        count != ArrayLength(pop.operation_rows) ||
-        count != ArrayLength(pop.expected_lengths_before) ||
-        count > ArrayLength(fact.collection.elements) ||
-        pop.length_log_global_row < 0 ||
-        pop.length_log_operation_row < 0 ||
+        !DirectMirScalarCfgArrayIntCollectionFactReady(plan.array_int_program.collection) ||
+        plan.array_int_program.producer.valid || plan.array_int_program.consumer.valid || plan.array_int_program.static_mutation.valid ||
+        !DirectMirScalarCfgArrayIntReadOnlyAbsent(plan.array_int_program.read_only) ||
+        !DirectMirScalarCfgArrayIntReverseAbsent(plan.array_int_program.reverse) ||
+        !plan.array_int_program.pop.valid || count < 1 ||
+        count != ArrayLength(plan.array_int_program.pop.operation_rows) ||
+        count != ArrayLength(plan.array_int_program.pop.expected_lengths_before) ||
+        count > ArrayLength(plan.array_int_program.collection.elements) ||
+        plan.array_int_program.pop.length_log_global_row < 0 ||
+        plan.array_int_program.pop.length_log_operation_row < 0 ||
         !DirectMirScalarCfgArrayIntPopCollectionMatchesForEach(
-            fact.collection, foreach
-        ) || foreach.loop_syntax_id != pop.foreach_loop_syntax_id {
+            plan.array_int_program.collection, foreach
+        ) || foreach.loop_syntax_id != plan.array_int_program.pop.foreach_loop_syntax_id {
         return false;
     }
     let prior_operation: Int = -1;
     let row: Int = 0;
     while row < count {
-        let operation: Int = pop.operation_rows[row];
-        if pop.global_rows[row] < 0 ||
-            pop.global_rows[row] >= foreach.init_global_row ||
-            pop.expected_lengths_before[row] !=
-                ArrayLength(fact.collection.elements) - row ||
+        let operation: Int = plan.array_int_program.pop.operation_rows[row];
+        if plan.array_int_program.pop.global_rows[row] < 0 ||
+            plan.array_int_program.pop.global_rows[row] >= foreach.init_global_row ||
+            plan.array_int_program.pop.expected_lengths_before[row] !=
+                ArrayLength(plan.array_int_program.collection.elements) - row ||
             operation <= prior_operation || operation < 0 ||
             operation >= ArrayLength(plan.operation_kinds) ||
             plan.operation_kinds[operation] !=
@@ -85,26 +83,27 @@ func DirectMirScalarCfgArrayIntPopReady(
         }
         let prior: Int = 0;
         while prior < row {
-            if pop.global_rows[prior] == pop.global_rows[row] { return false; }
+            if plan.array_int_program.pop.global_rows[prior] == plan.array_int_program.pop.global_rows[row] { return false; }
             prior = prior + 1;
         }
         prior_operation = operation;
         row = row + 1;
     }
-    if pop.length_log_global_row <= foreach.branch_global_row ||
-        pop.length_log_operation_row <= prior_operation ||
-        pop.length_log_operation_row >= ArrayLength(plan.operation_kinds) ||
-        plan.operation_kinds[pop.length_log_operation_row] !=
+    if plan.array_int_program.pop.length_log_global_row <= foreach.branch_global_row ||
+        plan.array_int_program.pop.length_log_operation_row <= prior_operation ||
+        plan.array_int_program.pop.length_log_operation_row >= ArrayLength(plan.operation_kinds) ||
+        plan.operation_kinds[plan.array_int_program.pop.length_log_operation_row] !=
             DirectMirScalarCfgOpLogArrayLength() ||
-        plan.operation_result_values[pop.length_log_operation_row] != -1 ||
+        plan.operation_result_values[plan.array_int_program.pop.length_log_operation_row] != -1 ||
         DirectMirScalarCfgOperationBlock(
-            plan, pop.length_log_operation_row
+            plan, plan.array_int_program.pop.length_log_operation_row
         ) != foreach.exit_block { return false; }
     let owned_pop_count: Int = 0;
     row = 0;
     while row < ArrayLength(plan.operation_kinds) {
         if plan.operation_kinds[row] == DirectMirScalarCfgOpArrayPopInt() {
-            if DirectMirScalarCfgArrayIntPopOperationRow(pop, row) < 0 {
+            if DirectMirScalarCfgArrayIntPopOperationRow(
+                plan.array_int_program.pop, row) < 0 {
                 return false;
             }
             owned_pop_count = owned_pop_count + 1;

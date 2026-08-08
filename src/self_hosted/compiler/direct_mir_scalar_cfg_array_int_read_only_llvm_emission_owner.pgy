@@ -6,10 +6,10 @@ import "direct_mir_scalar_cfg_llvm_operand_owner.pgy";
 func DirectMirScalarCfgArrayIntReadOnlyLlvmRead(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int
 ) -> String {
-    let fact: DirectMirScalarCfgArrayIntReadOnlyRangeFact =
-        plan.array_int_program.read_only;
-    if !fact.valid || (operation != fact.initial_read.operation_row &&
-        operation != fact.update_read.operation_row) {
+    if !plan.array_int_program.read_only.valid || (operation !=
+        plan.array_int_program.read_only.initial_read.operation_row &&
+        operation !=
+            plan.array_int_program.read_only.update_read.operation_row) {
         Die("direct MIR scalar CFG read-only Array<Int> LLVM read is invalid");
     }
     let stem: String = Concat("%pgy.op.", ToString(operation));

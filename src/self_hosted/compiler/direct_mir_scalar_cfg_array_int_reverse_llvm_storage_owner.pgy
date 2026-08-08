@@ -7,18 +7,20 @@ func DirectMirScalarCfgArrayIntReverseLlvmDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan,
     target: CompilerTargetProjectionFact
 ) -> String {
-    let fact: DirectMirScalarCfgArrayIntReverseFact =
-        plan.array_int_program.reverse;
     if plan.array_int_program.mode !=
-            DirectMirScalarCfgArrayIntFreshReverseMode() || !fact.valid {
+            DirectMirScalarCfgArrayIntFreshReverseMode() ||
+        !plan.array_int_program.reverse.valid {
         return "";
     }
     let abi: DirectMirArrayIntAbiProjection =
         DirectMirArrayIntAbiProjectionFromCanonicalLayout(
-            target, fact.result.abi_layout_id, fact.result.abi_size,
-            fact.result.abi_align, fact.result.data_offset,
-            fact.result.length_offset, fact.result.capacity_offset,
-            fact.result.allocator_offset
+            target, plan.array_int_program.reverse.result.abi_layout_id,
+            plan.array_int_program.reverse.result.abi_size,
+            plan.array_int_program.reverse.result.abi_align,
+            plan.array_int_program.reverse.result.data_offset,
+            plan.array_int_program.reverse.result.length_offset,
+            plan.array_int_program.reverse.result.capacity_offset,
+            plan.array_int_program.reverse.result.allocator_offset
         );
     let output: String =
         "  %pgy.array.int.reverse.storage = alloca [3 x i32], align 4\n";

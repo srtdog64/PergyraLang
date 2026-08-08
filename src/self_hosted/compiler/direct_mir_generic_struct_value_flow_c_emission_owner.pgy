@@ -15,22 +15,26 @@ func DirectMirGenericStructValueFlowEmitC(
         formatted_print.symbol == "" || line_format == "" {
         Die("direct MIR generic nominal C projection facts are invalid");
     }
-    let graph: DirectMirGenericStructValueFlowGraphFact = plan.identity.graph;
-    let receipt: DirectMirGenericSpecializationFact =
-        plan.identity.specialization;
-    let abi: MirAbiLayoutRowCapture = plan.identity.declaration.abi;
-    let type_name: String = CompilerSymbolCIdentifier(graph.type_name);
-    let first: String = CompilerSymbolCIdentifier(graph.first_field);
-    let second: String = CompilerSymbolCIdentifier(graph.second_field);
+    let type_name: String = CompilerSymbolCIdentifier(
+        plan.identity.graph.type_name
+    );
+    let first: String = CompilerSymbolCIdentifier(
+        plan.identity.graph.first_field
+    );
+    let second: String = CompilerSymbolCIdentifier(
+        plan.identity.graph.second_field
+    );
     let specialized: String = CompilerSymbolCIdentifier(
-        receipt.specialized_symbol
+        plan.identity.specialization.specialized_symbol
     );
     let generic_param: String = CompilerSymbolCIdentifier(
-        graph.generic_parameter_name
+        plan.identity.graph.generic_parameter_name
     );
-    let producer: String = CompilerSymbolCIdentifier(graph.producer_name);
+    let producer: String = CompilerSymbolCIdentifier(
+        plan.identity.graph.producer_name
+    );
     let producer_param: String = CompilerSymbolCIdentifier(
-        graph.parameter_name
+        plan.identity.graph.parameter_name
     );
     if type_name == "" || first == "" || second == "" || first == second ||
         specialized == "" || generic_param == "" || producer == "" ||
@@ -48,17 +52,17 @@ func DirectMirGenericStructValueFlowEmitC(
     output = Concat(output, ";\n\n_Static_assert(sizeof(");
     output = Concat(output, type_name);
     output = Concat(output, ") == ");
-    output = Concat(output, abi.size_text);
+    output = Concat(output, plan.identity.declaration.abi.size_text);
     output = Concat(output, ", \"nominal size receipt\");\n_Static_assert(_Alignof(");
     output = Concat(output, type_name);
     output = Concat(output, ") == ");
-    output = Concat(output, abi.align_text);
+    output = Concat(output, plan.identity.declaration.abi.align_text);
     output = Concat(output, ", \"nominal align receipt\");\n_Static_assert(offsetof(");
     output = Concat(output, type_name);
     output = Concat(output, ", ");
     output = Concat(output, second);
     output = Concat(output, ") == ");
-    output = Concat(output, abi.field_offsets[1]);
+    output = Concat(output, plan.identity.declaration.abi.field_offsets[1]);
     output = Concat(output, ", \"nominal field receipt\");\n\nstatic int32_t ");
     output = Concat(output, specialized);
     output = Concat(output, "(int32_t ");
@@ -78,23 +82,23 @@ func DirectMirGenericStructValueFlowEmitC(
     output = Concat(output, "(");
     output = Concat(output, producer_param);
     output = Concat(output, " + ");
-    output = Concat(output, ToString(graph.producer_first_delta));
+    output = Concat(output, ToString(plan.identity.graph.producer_first_delta));
     output = Concat(output, "), ");
     output = Concat(output, specialized);
     output = Concat(output, "(");
     output = Concat(output, producer_param);
     output = Concat(output, " + ");
-    output = Concat(output, ToString(graph.producer_second_delta));
+    output = Concat(output, ToString(plan.identity.graph.producer_second_delta));
     output = Concat(output, ")};\n    return pgy_returned;\n}\n\nint main(void) {\n    ");
     output = Concat(output, type_name);
     output = Concat(output, " pgy_initial = {");
     output = Concat(output, specialized);
     output = Concat(output, "(");
-    output = Concat(output, ToString(graph.initial_first));
+    output = Concat(output, ToString(plan.identity.graph.initial_first));
     output = Concat(output, "), ");
     output = Concat(output, specialized);
     output = Concat(output, "(");
-    output = Concat(output, ToString(graph.initial_second));
+    output = Concat(output, ToString(plan.identity.graph.initial_second));
     output = Concat(output, ")};\n    ");
     output = Concat(output, type_name);
     output = Concat(output, " pgy_built = ");

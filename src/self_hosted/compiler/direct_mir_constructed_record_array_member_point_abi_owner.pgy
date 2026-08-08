@@ -24,21 +24,20 @@ func DirectMirConstructedRecordArrayMemberPointAbiDigest(
 func DirectMirConstructedRecordArrayPointLayoutReady(
     ref declaration: DirectMirNominalDeclarationAbiFact
 ) -> Bool {
-    let abi: MirAbiLayoutRowCapture = declaration.abi;
     return DirectMirNominalDeclarationAbiFactReady(declaration) &&
         ArrayLength(declaration.field_names) == 1 &&
         declaration.field_types[0] == CompilerAbiLayoutIntTypeName() &&
-        abi.size_text == "4" && abi.align_text == "4" &&
-        ArrayLength(abi.field_names) == 1 &&
-        ArrayLength(abi.field_offsets) == 1 &&
-        ArrayLength(abi.field_sizes) == 1 &&
-        ArrayLength(abi.field_aligns) == 1 &&
-        abi.field_names[0] == declaration.field_names[0] &&
-        abi.field_offsets[0] == "0" && abi.field_sizes[0] == "4" &&
-        abi.field_aligns[0] == "4" && abi.runtime_fn == "" &&
-        abi.inner_c_type == "" && abi.representation_text == "0" &&
-        abi.discriminant == "" && abi.primary_tag_text == "0" &&
-        abi.secondary_tag_text == "0" && abi.niche_none_pattern == "";
+        declaration.abi.size_text == "4" && declaration.abi.align_text == "4" &&
+        ArrayLength(declaration.abi.field_names) == 1 &&
+        ArrayLength(declaration.abi.field_offsets) == 1 &&
+        ArrayLength(declaration.abi.field_sizes) == 1 &&
+        ArrayLength(declaration.abi.field_aligns) == 1 &&
+        declaration.abi.field_names[0] == declaration.field_names[0] &&
+        declaration.abi.field_offsets[0] == "0" && declaration.abi.field_sizes[0] == "4" &&
+        declaration.abi.field_aligns[0] == "4" && declaration.abi.runtime_fn == "" &&
+        declaration.abi.inner_c_type == "" && declaration.abi.representation_text == "0" &&
+        declaration.abi.discriminant == "" && declaration.abi.primary_tag_text == "0" &&
+        declaration.abi.secondary_tag_text == "0" && declaration.abi.niche_none_pattern == "";
 }
 
 func DirectMirConstructedRecordArrayMemberPointAbiFactReady(

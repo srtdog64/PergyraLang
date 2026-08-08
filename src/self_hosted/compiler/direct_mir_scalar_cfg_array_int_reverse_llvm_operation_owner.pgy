@@ -6,14 +6,13 @@ func DirectMirScalarCfgArrayIntReverseLlvmOperation(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
     formatted_print: CompilerRuntimeCallAbiFact
 ) -> DirectMirScalarCfgLlvmCollectionOperationEmission {
-    let fact: DirectMirScalarCfgArrayIntReverseFact =
-        plan.array_int_program.reverse;
     if plan.array_int_program.mode !=
-            DirectMirScalarCfgArrayIntFreshReverseMode() || !fact.valid {
+            DirectMirScalarCfgArrayIntFreshReverseMode() ||
+        !plan.array_int_program.reverse.valid {
         return DirectMirScalarCfgLlvmCollectionOperationEmission(false, "");
     }
     let stem: String = Concat("%pgy.op.", ToString(operation));
-    if operation == fact.reverse_operation_row {
+    if operation == plan.array_int_program.reverse.reverse_operation_row {
         let output: String = "";
         let target_index: Int = 0;
         while target_index < 3 {
@@ -44,11 +43,11 @@ func DirectMirScalarCfgArrayIntReverseLlvmOperation(
         return DirectMirScalarCfgLlvmCollectionOperationEmission(true, output);
     }
     let row: Int = 0;
-    while row < ArrayLength(fact.log_operation_rows) {
-        if fact.log_operation_rows[row] == operation {
+    while row < ArrayLength(plan.array_int_program.reverse.log_operation_rows) {
+        if plan.array_int_program.reverse.log_operation_rows[row] == operation {
             let output: String = "";
             let value: String = "";
-            if fact.log_kinds[row] ==
+            if plan.array_int_program.reverse.log_kinds[row] ==
                     DirectMirScalarCfgArrayIntReverseLengthLog() {
                 output = Concat("  ", Concat(stem,
                     ".length = load i64, ptr %pgy.array.int.reverse.length.field, align 8\n"));
@@ -56,9 +55,9 @@ func DirectMirScalarCfgArrayIntReverseLlvmOperation(
             } else {
                 output = Concat("  ", Concat(stem,
                     ".read.ptr = getelementptr inbounds i32, ptr %pgy.array.int.reverse.data, i64 "));
-                output = Concat(output, Concat(
-                    ToString(fact.log_indices[row]), "\n  "
-                ));
+                output = Concat(output, Concat(ToString(
+                    plan.array_int_program.reverse.log_indices[row]
+                ), "\n  "));
                 output = Concat(output, Concat(stem,
                     ".read.i32 = load i32, ptr "));
                 output = Concat(output, Concat(stem,

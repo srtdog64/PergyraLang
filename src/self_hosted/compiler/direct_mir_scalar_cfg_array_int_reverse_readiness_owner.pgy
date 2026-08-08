@@ -6,22 +6,24 @@ import "direct_mir_scalar_cfg_operation_position_owner.pgy";
 func DirectMirScalarCfgArrayIntReverseReady(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
-    let program: DirectMirScalarCfgArrayIntProgramFact =
-        plan.array_int_program;
-    let fact: DirectMirScalarCfgArrayIntReverseFact = program.reverse;
-    if !program.valid || program.mode !=
-            DirectMirScalarCfgArrayIntFreshReverseMode() || !fact.valid ||
-        !DirectMirScalarCfgArrayIntCollectionFactReady(program.collection) ||
-        ArrayLength(program.collection.elements) != 3 ||
+    if !plan.array_int_program.valid || plan.array_int_program.mode !=
+            DirectMirScalarCfgArrayIntFreshReverseMode() || !plan.array_int_program.reverse.valid ||
+        !DirectMirScalarCfgArrayIntCollectionFactReady(
+            plan.array_int_program.collection
+        ) || ArrayLength(plan.array_int_program.collection.elements) != 3 ||
         !DirectMirScalarCfgArrayIntDerivedCollectionReady(
-            fact.result, program.collection
-        ) || fact.source_value_id != program.collection.collection_value_id ||
-        !DirectMirScalarCfgArrayIntProducerAbsent(program.producer) ||
-        !DirectMirScalarCfgArrayIntConsumerAbsent(program.consumer) ||
-        !DirectMirScalarCfgArrayIntStaticMutationAbsent(
-            program.static_mutation
-        ) || !DirectMirScalarCfgArrayIntReadOnlyAbsent(program.read_only) ||
-        ArrayLength(plan.local_names) != 0 ||
+            plan.array_int_program.reverse.result, plan.array_int_program.collection
+        ) || plan.array_int_program.reverse.source_value_id !=
+            plan.array_int_program.collection.collection_value_id ||
+        !DirectMirScalarCfgArrayIntProducerAbsent(
+            plan.array_int_program.producer
+        ) || !DirectMirScalarCfgArrayIntConsumerAbsent(
+            plan.array_int_program.consumer
+        ) || !DirectMirScalarCfgArrayIntStaticMutationAbsent(
+            plan.array_int_program.static_mutation
+        ) || !DirectMirScalarCfgArrayIntReadOnlyAbsent(
+            plan.array_int_program.read_only
+        ) || ArrayLength(plan.local_names) != 0 ||
         ArrayLength(plan.value_names) != 0 ||
         ArrayLength(plan.block_succ_true) != 1 ||
         plan.block_succ_true[0] != -1 || plan.block_succ_false[0] != -1 ||
@@ -29,13 +31,13 @@ func DirectMirScalarCfgArrayIntReverseReady(
         plan.block_operation_counts[0] != 5 ||
         plan.block_condition_kinds[0] != DirectMirScalarCfgConditionNone() ||
         ArrayLength(plan.operation_kinds) != 5 ||
-        fact.reverse_operation_row != 0 ||
+        plan.array_int_program.reverse.reverse_operation_row != 0 ||
         plan.operation_kinds[0] != DirectMirScalarCfgOpArrayReverseInt() ||
         DirectMirScalarCfgOperationBlock(plan, 0) != 0 ||
-        ArrayLength(fact.log_global_rows) != 4 ||
-        ArrayLength(fact.log_kinds) != 4 ||
-        ArrayLength(fact.log_indices) != 4 ||
-        ArrayLength(fact.log_operation_rows) != 4 {
+        ArrayLength(plan.array_int_program.reverse.log_global_rows) != 4 ||
+        ArrayLength(plan.array_int_program.reverse.log_kinds) != 4 ||
+        ArrayLength(plan.array_int_program.reverse.log_indices) != 4 ||
+        ArrayLength(plan.array_int_program.reverse.log_operation_rows) != 4 {
         return false;
     }
     let row: Int = 0;
@@ -48,10 +50,10 @@ func DirectMirScalarCfgArrayIntReverseReady(
             expected_kind = DirectMirScalarCfgArrayIntReverseLengthLog();
             expected_operation_kind = DirectMirScalarCfgOpLogArrayLength();
         }
-        if fact.log_global_rows[row] <= fact.reverse_global_row ||
-            fact.log_kinds[row] != expected_kind ||
-            fact.log_indices[row] != expected_index ||
-            fact.log_operation_rows[row] != row + 1 ||
+        if plan.array_int_program.reverse.log_global_rows[row] <= plan.array_int_program.reverse.reverse_global_row ||
+            plan.array_int_program.reverse.log_kinds[row] != expected_kind ||
+            plan.array_int_program.reverse.log_indices[row] != expected_index ||
+            plan.array_int_program.reverse.log_operation_rows[row] != row + 1 ||
             plan.operation_kinds[row + 1] != expected_operation_kind ||
             DirectMirScalarCfgOperationBlock(plan, row + 1) != 0 {
             return false;

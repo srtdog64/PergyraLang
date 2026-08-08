@@ -42,8 +42,6 @@ func DirectMirConstructedRecordArrayMemberPlanDigest(
 func DirectMirConstructedRecordArrayMemberPlanReady(
     ref plan: DirectMirConstructedRecordArrayMemberPlan
 ) -> Bool {
-    let graph: DirectMirConstructedRecordArrayMemberMainGraphFact =
-        plan.identity.main_graph;
     return plan.valid &&
         plan.schema == DirectMirConstructedRecordArrayMemberPlanSchema() &&
         plan.revision == CompilerArtifactPlanRevision() && plan.digest != 0 &&
@@ -71,17 +69,22 @@ func DirectMirConstructedRecordArrayMemberPlanReady(
         plan.aggregate_flow.abi_evidence_id ==
             plan.main.typed_array_abi_absence.digest &&
         plan.point_abi.declaration.digest == plan.identity.record.digest &&
-        plan.aggregate_flow.selected_index == graph.selected_index &&
+        plan.aggregate_flow.selected_index ==
+            plan.identity.main_graph.selected_index &&
         plan.identity.method_graph.element_count ==
             plan.aggregate_flow.storage_count &&
         plan.identity.method_graph.construction_policy ==
             plan.aggregate_flow.construction_policy &&
         plan.identity.method_graph.identity_policy ==
             plan.aggregate_flow.identity_policy &&
-        MirSsaNameMatches(plan.main.wrapper.result, graph.receiver_local, false) &&
-        MirSsaNameMatches(plan.main.point.result, graph.point_local, false) &&
-        MirSsaNameMatches(plan.main.result.result, graph.result_local, false) &&
-        MirSsaNameMatches(plan.main.first.result, graph.first_local, false);
+        MirSsaNameMatches(plan.main.wrapper.result,
+            plan.identity.main_graph.receiver_local, false) &&
+        MirSsaNameMatches(plan.main.point.result,
+            plan.identity.main_graph.point_local, false) &&
+        MirSsaNameMatches(plan.main.result.result,
+            plan.identity.main_graph.result_local, false) &&
+        MirSsaNameMatches(plan.main.first.result,
+            plan.identity.main_graph.first_local, false);
 }
 
 func DirectMirConstructedRecordArrayMemberPlanFromAdmitted(

@@ -52,10 +52,6 @@ func DirectMirStructArgumentEmitC(
         nested_first == "" || nested_second == "" {
         Die("direct MIR struct argument C symbols are invalid");
     }
-    let nested_abi: MirAbiLayoutRowCapture =
-        plan.program.nested_declaration.abi;
-    let outer_abi: MirAbiLayoutRowCapture =
-        plan.program.outer_declaration.abi;
     let output: String =
         "#include <stdint.h>\n#include <stddef.h>\n#include <stdio.h>\n\n";
     output = Concat(output, "typedef struct {\n    int32_t ");
@@ -77,31 +73,31 @@ func DirectMirStructArgumentEmitC(
     output = Concat(output, ";\n\n_Static_assert(sizeof(");
     output = Concat(output, nested_type);
     output = Concat(output, ") == ");
-    output = Concat(output, nested_abi.size_text);
+    output = Concat(output, plan.program.nested_declaration.abi.size_text);
     output = Concat(output, ", \"nested size receipt\");\n_Static_assert(_Alignof(");
     output = Concat(output, nested_type);
     output = Concat(output, ") == ");
-    output = Concat(output, nested_abi.align_text);
+    output = Concat(output, plan.program.nested_declaration.abi.align_text);
     output = Concat(output, ", \"nested align receipt\");\n_Static_assert(offsetof(");
     output = Concat(output, nested_type);
     output = Concat(output, ", ");
     output = Concat(output, nested_second);
     output = Concat(output, ") == ");
-    output = Concat(output, nested_abi.field_offsets[1]);
+    output = Concat(output, plan.program.nested_declaration.abi.field_offsets[1]);
     output = Concat(output, ", \"nested field receipt\");\n_Static_assert(sizeof(");
     output = Concat(output, outer_type);
     output = Concat(output, ") == ");
-    output = Concat(output, outer_abi.size_text);
+    output = Concat(output, plan.program.outer_declaration.abi.size_text);
     output = Concat(output, ", \"outer size receipt\");\n_Static_assert(_Alignof(");
     output = Concat(output, outer_type);
     output = Concat(output, ") == ");
-    output = Concat(output, outer_abi.align_text);
+    output = Concat(output, plan.program.outer_declaration.abi.align_text);
     output = Concat(output, ", \"outer align receipt\");\n_Static_assert(offsetof(");
     output = Concat(output, outer_type);
     output = Concat(output, ", ");
     output = Concat(output, outer_second);
     output = Concat(output, ") == ");
-    output = Concat(output, outer_abi.field_offsets[1]);
+    output = Concat(output, plan.program.outer_declaration.abi.field_offsets[1]);
     output = Concat(output, ", \"outer field receipt\");\n\nstatic int32_t ");
     output = Concat(output, nested_symbol);
     output = Concat(output, "(int32_t ");

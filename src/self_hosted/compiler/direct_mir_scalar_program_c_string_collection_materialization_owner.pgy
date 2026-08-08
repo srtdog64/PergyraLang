@@ -45,12 +45,14 @@ func DirectMirScalarProgramCStringCollectionMaterialization(
     ref plan: DirectMirScalarCfgGraphPlan,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> String {
-    let abi: DirectMirScalarProgramRuntimeAbiFact = plan.program.runtime_abi;
-    let any: Bool = abi.string_contains_id != 0 || abi.string_split_id != 0 ||
-        abi.string_to_int_id != 0 || abi.array_string_length_id != 0 ||
-        abi.array_string_get_id != 0;
+    let any: Bool = plan.program.runtime_abi.string_contains_id != 0 ||
+        plan.program.runtime_abi.string_split_id != 0 ||
+        plan.program.runtime_abi.string_to_int_id != 0 ||
+        plan.program.runtime_abi.array_string_length_id != 0 ||
+        plan.program.runtime_abi.array_string_get_id != 0;
     if !any { return ""; }
-    if !DirectMirScalarProgramRuntimeAbiProjectionReady(runtime, abi) ||
+    if !DirectMirScalarProgramRuntimeAbiProjectionReady(
+            runtime, plan.program.runtime_abi) ||
         !DirectMirScalarProgramArrayStringAbiReadyForExpressions(
             plan.program.array_string_abi, plan.program.expressions) {
         Die("direct MIR scalar program C String collection ABI is invalid");
@@ -60,13 +62,13 @@ func DirectMirScalarProgramCStringCollectionMaterialization(
         output = Concat(output, DirectMirScalarProgramCStringArrayStorageBlock(
             plan.program.array_string_abi));
     }
-    if abi.string_contains_id != 0 {
+    if plan.program.runtime_abi.string_contains_id != 0 {
         output = Concat(output, StringRuntimeCStringContainsBlock());
     }
-    if abi.string_to_int_id != 0 {
+    if plan.program.runtime_abi.string_to_int_id != 0 {
         output = Concat(output, StringRuntimeCToIntBlock());
     }
-    if abi.string_split_id != 0 {
+    if plan.program.runtime_abi.string_split_id != 0 {
         output = Concat(output, StringRuntimeCSplitBlock());
     }
     return output;

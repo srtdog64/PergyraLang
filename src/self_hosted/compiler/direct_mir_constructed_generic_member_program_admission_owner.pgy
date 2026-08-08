@@ -8,8 +8,6 @@ func DirectMirConstructedGenericMemberProgramEnvelopeReady(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref classification: DirectMirThreeRoutineClassificationFact
 ) -> Bool {
-    let declarations: MirProgramDeclarationIndex =
-        admitted.domain_runtime_admission.declarations;
     let specializations: JsonArrayObjectFactTable =
         JsonObjectFactArrayObjectTable(
             admitted.document.root, "generic_method_specializations"
@@ -23,9 +21,13 @@ func DirectMirConstructedGenericMemberProgramEnvelopeReady(
         !admitted.document.valid || admitted.domain_topology_plan.present ||
         admitted.document.routines.json != admitted.routines.source_json ||
         JsonObjectFactCount(admitted.document.root) != 5 ||
-        !declarations.valid || MirProgramDeclarationIndexCount(declarations) != 1 ||
-        declarations.kinds[0] != "class" ||
-        declarations.nominal_kinds[0] != "class" ||
+        !admitted.domain_runtime_admission.declarations.valid ||
+        MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations
+        ) != 1 ||
+        admitted.domain_runtime_admission.declarations.kinds[0] != "class" ||
+        admitted.domain_runtime_admission.declarations.nominal_kinds[0] !=
+            "class" ||
         !JsonArrayObjectFactTableReady(specializations) ||
         !DirectMirExactObjectArrayCount(
             specializations, 2
@@ -52,7 +54,8 @@ func DirectMirConstructedGenericMemberProgramEnvelopeReady(
             admitted.routines.owners[row] == "" {
             function_count = function_count + 1;
         } else if admitted.routines.kinds[row] == "method" &&
-            admitted.routines.owners[row] == declarations.names[0] {
+            admitted.routines.owners[row] ==
+                admitted.domain_runtime_admission.declarations.names[0] {
             method_count = method_count + 1;
         } else {
             return false;

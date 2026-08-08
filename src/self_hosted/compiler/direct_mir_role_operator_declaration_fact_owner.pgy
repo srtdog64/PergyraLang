@@ -137,10 +137,8 @@ func DirectMirRoleOperatorDeclarationFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     target: SemanticRoleOperatorTargetIdentity
 ) -> DirectMirRoleOperatorDeclarationFact {
-    let declarations: MirProgramDeclarationIndex =
-        admitted.routines.declarations;
-    if !target.ok || !declarations.valid ||
-        MirProgramDeclarationIndexCount(declarations) != 3 ||
+    if !target.ok || !admitted.routines.declarations.valid ||
+        MirProgramDeclarationIndexCount(admitted.routines.declarations) != 3 ||
         !DirectMirExactObjectArrayCount(admitted.document.declarations, 3) {
         Die("direct MIR role operator declaration inventory is invalid");
     }
@@ -149,22 +147,24 @@ func DirectMirRoleOperatorDeclarationFactFromAdmitted(
     let erased_row: Int = -1;
     let row: Int = 0;
     while row < 3 {
-        if declarations.kinds[row] == "role" &&
-            declarations.nominal_kinds[row] == "role" &&
-            declarations.names[row] == target.role_name {
+        if admitted.routines.declarations.kinds[row] == "role" &&
+            admitted.routines.declarations.nominal_kinds[row] == "role" &&
+            admitted.routines.declarations.names[row] == target.role_name {
             if role_row >= 0 { Die("direct MIR role operator role is duplicated"); }
             role_row = row;
-        } else if declarations.kinds[row] == "ability" &&
-            declarations.nominal_kinds[row] == "ability" &&
-            declarations.names[row] == target.ability_name {
+        } else if admitted.routines.declarations.kinds[row] == "ability" &&
+            admitted.routines.declarations.nominal_kinds[row] == "ability" &&
+            admitted.routines.declarations.names[row] == target.ability_name {
             if ability_row >= 0 {
                 Die("direct MIR role operator ability is duplicated");
             }
             ability_row = row;
         } else {
-            if erased_row >= 0 || declarations.kinds[row] != "subject" ||
-                declarations.nominal_kinds[row] != "subject" ||
-                declarations.names[row] == "" {
+            if erased_row >= 0 ||
+                admitted.routines.declarations.kinds[row] != "subject" ||
+                admitted.routines.declarations.nominal_kinds[row] !=
+                    "subject" ||
+                admitted.routines.declarations.names[row] == "" {
                 Die("direct MIR role operator erased declaration is invalid");
             }
             erased_row = row;

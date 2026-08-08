@@ -16,7 +16,6 @@ func DirectMirInferredGenericMemberEmitC(
         formatted_print.symbol == "" || line_format == "" {
         Die("direct MIR inferred member C projection facts are invalid");
     }
-    let graph: DirectMirInferredGenericMemberGraphFact = plan.identity.graph;
     let type_name: String = CompilerSymbolCIdentifier(
         plan.representation.type_name
     );
@@ -27,10 +26,10 @@ func DirectMirInferredGenericMemberEmitC(
         plan.identity.specialization.specialized_symbol
     );
     let receiver_parameter: String = CompilerSymbolCIdentifier(
-        graph.receiver_parameter_name
+        plan.identity.graph.receiver_parameter_name
     );
     let value_parameter: String = CompilerSymbolCIdentifier(
-        graph.value_parameter_name
+        plan.identity.graph.value_parameter_name
     );
     if type_name == "" || field_name == "" || method_symbol == "" ||
         receiver_parameter == "" || value_parameter == "" ||
@@ -69,13 +68,13 @@ func DirectMirInferredGenericMemberEmitC(
     output = Concat(output, " ");
     output = Concat(output, "_pgy_receiver_0");
     output = Concat(output, " = {");
-    output = Concat(output, ToString(graph.marker_value));
+    output = Concat(output, ToString(plan.identity.graph.marker_value));
     output = Concat(output, "};\n    int32_t _pgy_inner_0 = ");
     output = Concat(output, method_symbol);
     output = Concat(output, "(");
     output = Concat(output, receiver_operand);
     output = Concat(output, ", ");
-    output = Concat(output, ToString(graph.argument_value));
+    output = Concat(output, ToString(plan.identity.graph.argument_value));
     output = Concat(output, ");\n    int32_t ");
     output = Concat(output, "_pgy_result_0");
     output = Concat(output, " = ");

@@ -26,13 +26,15 @@ func DirectMirScalarCfgArrayIntPopLlvmOperation(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
     formatted_print: CompilerRuntimeCallAbiFact
 ) -> DirectMirScalarCfgLlvmCollectionOperationEmission {
-    let fact: DirectMirScalarCfgArrayIntProgramFact = plan.array_int_program;
-    if fact.mode != DirectMirScalarCfgArrayIntForEachPrefixPopMode() {
+    if plan.array_int_program.mode !=
+            DirectMirScalarCfgArrayIntForEachPrefixPopMode() {
         return DirectMirScalarCfgLlvmCollectionOperationEmission(false, "");
     }
     let field: String = DirectMirScalarCfgArrayIntPopLlvmLengthField(plan);
     let stem: String = Concat("%pgy.op.", ToString(operation));
-    if DirectMirScalarCfgArrayIntPopOperationRow(fact.pop, operation) >= 0 {
+    if DirectMirScalarCfgArrayIntPopOperationRow(
+        plan.array_int_program.pop, operation
+    ) >= 0 {
         let output: String = Concat("  ", Concat(
             stem, Concat(".pop.length = load i64, ptr ", field)
         ));
@@ -47,7 +49,7 @@ func DirectMirScalarCfgArrayIntPopLlvmOperation(
             true, Concat(output, Concat(field, ", align 8\n"))
         );
     }
-    if operation == fact.pop.length_log_operation_row {
+    if operation == plan.array_int_program.pop.length_log_operation_row {
         let output: String = Concat("  ", Concat(
             stem, Concat(".length = load i64, ptr ", field)
         ));

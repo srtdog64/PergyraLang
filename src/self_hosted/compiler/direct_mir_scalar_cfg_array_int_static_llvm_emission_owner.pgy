@@ -3,18 +3,19 @@
 func DirectMirScalarCfgArrayIntLlvmSet(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int
 ) -> String {
-    let mutation: DirectMirScalarCfgArrayIntStaticMutationFact =
-        plan.array_int_program.static_mutation;
-    if !mutation.valid || operation != mutation.set_operation_row {
+    if !plan.array_int_program.static_mutation.valid ||
+        operation != plan.array_int_program.static_mutation.set_operation_row {
         Die("direct MIR scalar CFG Array<Int> LLVM set is invalid");
     }
     let stem: String = Concat("%pgy.op.", ToString(operation));
     let output: String = Concat("  ", stem);
     output = Concat(output,
         ".set.ptr = getelementptr inbounds i32, ptr %pgy.array.int.data, i64 ");
-    output = Concat(output, Concat(ToString(mutation.set_index), "\n"));
+    output = Concat(output, Concat(
+        ToString(plan.array_int_program.static_mutation.set_index), "\n"
+    ));
     output = Concat(output, Concat("  store i32 ",
-        ToString(mutation.set_value)));
+        ToString(plan.array_int_program.static_mutation.set_value)));
     return Concat(output, Concat(", ptr ", Concat(
         stem, ".set.ptr, align 4\n"
     )));
@@ -24,10 +25,8 @@ func DirectMirScalarCfgArrayIntLlvmIndexedLog(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
     formatted_print: CompilerRuntimeCallAbiFact
 ) -> String {
-    let mutation: DirectMirScalarCfgArrayIntStaticMutationFact =
-        plan.array_int_program.static_mutation;
-    if !mutation.valid || operation !=
-            mutation.indexed_log_operation_row {
+    if !plan.array_int_program.static_mutation.valid || operation !=
+        plan.array_int_program.static_mutation.indexed_log_operation_row {
         Die("direct MIR scalar CFG Array<Int> LLVM indexed Log is invalid");
     }
     let stem: String = Concat("%pgy.op.", ToString(operation));
@@ -35,7 +34,8 @@ func DirectMirScalarCfgArrayIntLlvmIndexedLog(
     output = Concat(output,
         ".read.ptr = getelementptr inbounds i32, ptr %pgy.array.int.data, i64 ");
     output = Concat(output, Concat(
-        ToString(mutation.indexed_log_index), "\n  "
+        ToString(plan.array_int_program.static_mutation.indexed_log_index),
+        "\n  "
     ));
     output = Concat(output, Concat(stem,
         ".read.i32 = load i32, ptr "));

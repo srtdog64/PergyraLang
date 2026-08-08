@@ -3,15 +3,15 @@ import "direct_mir_scalar_cfg_collection_operation_readiness_owner.pgy";
 func DirectMirScalarCfgCollectionObservationsReady(
     ref plan: DirectMirScalarCfgCollectionPlan
 ) -> Bool {
-    let facts: DirectMirScalarCfgCollectionObservationSet =
-        plan.observations;
-    let count: Int = ArrayLength(facts.kinds);
-    if !facts.valid || count < 1 ||
-        count != ArrayLength(facts.global_rows) ||
-        count != ArrayLength(facts.receiver_value_rows) ||
-        count != ArrayLength(facts.get_operation_starts) ||
-        count != ArrayLength(facts.get_operation_counts) ||
-        count != ArrayLength(facts.graph_operation_rows) { return false; }
+    let count: Int = ArrayLength(plan.observations.kinds);
+    if !plan.observations.valid || count < 1 ||
+        count != ArrayLength(plan.observations.global_rows) ||
+        count != ArrayLength(plan.observations.receiver_value_rows) ||
+        count != ArrayLength(plan.observations.get_operation_starts) ||
+        count != ArrayLength(plan.observations.get_operation_counts) ||
+        count != ArrayLength(plan.observations.graph_operation_rows) {
+        return false;
+    }
     let get_claims: Array<Int> = [];
     let operation: Int = 0;
     while operation < ArrayLength(plan.operations.kinds) {
@@ -21,15 +21,15 @@ func DirectMirScalarCfgCollectionObservationsReady(
     let row: Int = 0;
     let prior_global: Int = -1;
     while row < count {
-        let receiver: Int = facts.receiver_value_rows[row];
-        let start: Int = facts.get_operation_starts[row];
-        let items: Int = facts.get_operation_counts[row];
-        let kind: Int = facts.kinds[row];
-        if facts.global_rows[row] <= prior_global || receiver < 0 ||
-            receiver >= ArrayLength(plan.values.value_ids) || start < 0 ||
-            items < 1 || start + items >
-                ArrayLength(plan.operations.kinds) ||
-            facts.graph_operation_rows[row] < 0 ||
+        let receiver: Int = plan.observations.receiver_value_rows[row];
+        let start: Int = plan.observations.get_operation_starts[row];
+        let items: Int = plan.observations.get_operation_counts[row];
+        let kind: Int = plan.observations.kinds[row];
+        if plan.observations.global_rows[row] <= prior_global ||
+            receiver < 0 || receiver >= ArrayLength(plan.values.value_ids) ||
+            start < 0 || items < 1 ||
+            start + items > ArrayLength(plan.operations.kinds) ||
+            plan.observations.graph_operation_rows[row] < 0 ||
             (kind == DirectMirScalarCfgCollectionObservationSumInt() &&
                 plan.values.element_types[receiver] != "Int") ||
             (kind == DirectMirScalarCfgCollectionObservationConcatString() &&
@@ -45,17 +45,17 @@ func DirectMirScalarCfgCollectionObservationsReady(
             if plan.operations.kinds[operation_row] !=
                     DirectMirScalarCfgCollectionOpGet() ||
                 plan.operations.global_rows[operation_row] !=
-                    facts.global_rows[row] ||
+                    plan.observations.global_rows[row] ||
                 plan.operations.source_ordinals[operation_row] != item ||
                 plan.operations.receiver_value_rows[operation_row] != receiver ||
                 plan.operations.graph_operation_rows[operation_row] !=
-                    facts.graph_operation_rows[row] { return false; }
+                    plan.observations.graph_operation_rows[row] { return false; }
             ArraySet(
                 get_claims, operation_row, get_claims[operation_row] + 1
             );
             item = item + 1;
         }
-        prior_global = facts.global_rows[row]; row = row + 1;
+        prior_global = plan.observations.global_rows[row]; row = row + 1;
     }
     operation = 0;
     while operation < ArrayLength(plan.operations.kinds) {

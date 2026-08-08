@@ -44,10 +44,6 @@ func DirectMirConstructedRecordArrayProgramJoinDiagnostic(
     }
     let graph: DirectMirConstructedRecordArrayMemberMainGraphFact =
         identity.main_graph;
-    let constructed: DirectMirConstructedArrayMemberSignatureFact =
-        identity.constructed_method;
-    let echoed: DirectMirConstructedArrayMemberSignatureFact =
-        identity.identity_method;
     let expected_point: String = Concat(
         identity.record.name, Concat(" { ", Concat(
             identity.record.field_names[0], Concat(": ", Concat(
@@ -59,12 +55,15 @@ func DirectMirConstructedRecordArrayProgramJoinDiagnostic(
                     graph.inner_method, Concat("(", Concat(
                         graph.point_local, "))")))))))));
     if methods.constructed_return.expr0 != Concat(
-            "[", Concat(constructed.value_param.name, "]")) ||
-        methods.constructed_return.abi_type_name != constructed.return_type {
+            "[", Concat(identity.constructed_method.value_param.name, "]")) ||
+        methods.constructed_return.abi_type_name !=
+            identity.constructed_method.return_type {
         return "constructed_return";
     }
-    if methods.identity_return.expr0 != echoed.value_param.name ||
-        methods.identity_return.abi_type_name != echoed.return_type {
+    if methods.identity_return.expr0 !=
+            identity.identity_method.value_param.name ||
+        methods.identity_return.abi_type_name !=
+            identity.identity_method.return_type {
         return "identity_return";
     }
     if main.wrapper.expr0 != Concat(identity.wrapper.name, Concat(

@@ -17,7 +17,6 @@ func DirectMirInferredGenericMemberEmitLlvm(
         formatted_print.symbol == "" || line_format == "" {
         Die("direct MIR inferred member LLVM projection facts are invalid");
     }
-    let graph: DirectMirInferredGenericMemberGraphFact = plan.identity.graph;
     let type_name: String = CompilerSymbolCIdentifier(
         plan.representation.type_name
     );
@@ -25,10 +24,10 @@ func DirectMirInferredGenericMemberEmitLlvm(
         plan.identity.specialization.specialized_symbol
     );
     let receiver_parameter: String = CompilerSymbolCIdentifier(
-        graph.receiver_parameter_name
+        plan.identity.graph.receiver_parameter_name
     );
     let value_parameter: String = CompilerSymbolCIdentifier(
-        graph.value_parameter_name
+        plan.identity.graph.value_parameter_name
     );
     if type_name == "" || method_symbol == "" ||
         receiver_parameter == "" || value_parameter == "" ||
@@ -45,7 +44,8 @@ func DirectMirInferredGenericMemberEmitLlvm(
     );
     let receiver_local: String = Concat(
         "%box = insertvalue %", Concat(type_name, Concat(
-            " poison, i32 ", Concat(ToString(graph.marker_value), ", 0")
+            " poison, i32 ",
+            Concat(ToString(plan.identity.graph.marker_value), ", 0")
         ))
     );
     let receiver_operand: String = Concat("%", Concat(type_name, " %box"));
@@ -55,7 +55,7 @@ func DirectMirInferredGenericMemberEmitLlvm(
             ", align 4\n  %box.field.0 = getelementptr inbounds %",
             Concat(type_name, Concat(
                 ", ptr %box, i32 0, i32 0\n  store i32 ", Concat(
-                    ToString(graph.marker_value),
+                    ToString(plan.identity.graph.marker_value),
                     ", ptr %box.field.0, align 4"
                 )
             ))
@@ -87,7 +87,7 @@ func DirectMirInferredGenericMemberEmitLlvm(
     output = Concat(output, "(");
     output = Concat(output, receiver_operand);
     output = Concat(output, ", i32 ");
-    output = Concat(output, ToString(graph.argument_value));
+    output = Concat(output, ToString(plan.identity.graph.argument_value));
     output = Concat(output, ")\n  %result = call i32 @");
     output = Concat(output, method_symbol);
     output = Concat(output, "(");

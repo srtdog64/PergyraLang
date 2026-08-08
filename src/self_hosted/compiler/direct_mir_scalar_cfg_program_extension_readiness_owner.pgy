@@ -35,20 +35,21 @@ func DirectMirScalarCfgProgramExpressionRowReady(
     ref plan: DirectMirScalarCfgGraphPlan,
     expression_row: Int, expected_type: String, routine: Int
 ) -> Bool {
-    let facts: DirectMirScalarProgramExpressionSet = plan.program.expressions;
     if routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
         expression_row < 0 ||
-        expression_row >= ArrayLength(facts.graph_roots) {
+        expression_row >= ArrayLength(plan.program.expressions.graph_roots) {
         return false;
     }
-    let start: Int = facts.graph_starts[expression_row];
-    let count: Int = facts.graph_counts[expression_row];
-    let root: Int = facts.graph_roots[expression_row];
-    if facts.node_types[root] != expected_type { return false; }
+    let start: Int = plan.program.expressions.graph_starts[expression_row];
+    let count: Int = plan.program.expressions.graph_counts[expression_row];
+    let root: Int = plan.program.expressions.graph_roots[expression_row];
+    if plan.program.expressions.node_types[root] !=
+            expected_type { return false; }
     let node: Int = start;
     while node < start + count {
         if !DirectMirScalarCfgProgramExpressionIdentityReady(
-                plan, facts, node, routine, start) { return false; }
+                plan, plan.program.expressions, node, routine, start
+        ) { return false; }
         node = node + 1;
     }
     return true;
@@ -100,35 +101,38 @@ func DirectMirScalarCfgProgramRoutineEdgesReady(
 func DirectMirScalarCfgProgramExtensionReadinessCode(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Int {
-    let fact: DirectMirScalarCfgProgramExtensionFact = plan.program;
-    if !DirectMirScalarCfgProgramExtensionFactReady(fact) { return 1; }
-    if !fact.valid { return 0; }
+    if !DirectMirScalarCfgProgramExtensionFactReady(plan.program) { return 1; }
+    if !plan.program.valid { return 0; }
     let block_count: Int = ArrayLength(plan.block_succ_true);
     let operation_count: Int = ArrayLength(plan.operation_kinds);
     let routine_count: Int = ArrayLength(plan.routines.roles);
-    let callable: Int = fact.callable.routine_ordinal;
+    let callable: Int = plan.program.callable.routine_ordinal;
     if routine_count < 1 || routine_count > 2 ||
-        ArrayLength(fact.block_condition_expression_rows) != block_count ||
-        ArrayLength(fact.block_return_expression_rows) != block_count ||
-        ArrayLength(fact.operation_expression_rows) != operation_count ||
+        ArrayLength(plan.program.block_condition_expression_rows) !=
+            block_count ||
+        ArrayLength(plan.program.block_return_expression_rows) !=
+            block_count ||
+        ArrayLength(plan.program.operation_expression_rows) !=
+            operation_count ||
         !DirectMirScalarCfgProgramRoutineEdgesReady(plan) { return 2; }
     if routine_count == 1 {
         if !DirectMirScalarCfgProgramCallableFactCanonicalEmpty(
-                fact.callable) ||
+                plan.program.callable) ||
             !DirectMirClosedModuleCallAbiFactCanonicalEmpty(
-                fact.closed_call_abi) { return 12; }
+                plan.program.closed_call_abi) { return 12; }
     } else if callable != 1 ||
-        fact.callable.signature.digest !=
+        plan.program.callable.signature.digest !=
             plan.routines.signature_digests[callable] ||
-        fact.callable.signature.source_syntax_id !=
+        plan.program.callable.signature.source_syntax_id !=
             plan.routines.source_syntax_ids[callable] {
         return 13;
     }
     let block: Int = 0;
     while block < block_count {
         let routine: Int = DirectMirScalarCfgProgramRoutineForBlock(plan, block);
-        let condition_row: Int = fact.block_condition_expression_rows[block];
-        let return_row: Int = fact.block_return_expression_rows[block];
+        let condition_row: Int =
+            plan.program.block_condition_expression_rows[block];
+        let return_row: Int = plan.program.block_return_expression_rows[block];
         if plan.block_condition_kinds[block] ==
                 DirectMirScalarCfgConditionExpression() {
             if !DirectMirScalarCfgProgramExpressionRowReady(
@@ -150,7 +154,8 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
     let operation: Int = 0;
     while operation < operation_count {
         let kind: Int = plan.operation_kinds[operation];
-        let expression_row: Int = fact.operation_expression_rows[operation];
+        let expression_row: Int =
+            plan.program.operation_expression_rows[operation];
         let routine: Int =
             DirectMirScalarCfgProgramRoutineForOperation(plan, operation);
         if kind == DirectMirScalarCfgOpExpressionDefinition() {
@@ -167,7 +172,7 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
         operation = operation + 1;
     }
     let expression_row: Int = 0;
-    while expression_row < ArrayLength(fact.expressions.graph_starts) {
+    while expression_row < ArrayLength(plan.program.expressions.graph_starts) {
         if DirectMirScalarCfgProgramExpressionUseCount(
                 plan, expression_row) != 1 { return 11; }
         expression_row = expression_row + 1;

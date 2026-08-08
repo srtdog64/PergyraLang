@@ -39,17 +39,16 @@ func DirectMirRoleOperatorPlanSchema() -> String {
 func DirectMirRoleOperatorProgramCandidate(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> Bool {
-    let declarations: MirProgramDeclarationIndex =
-        admitted.routines.declarations;
-    if !declarations.valid || MirProgramRoutineIndexCount(
-        admitted.routines
-    ) != 2 {
+    if !admitted.routines.declarations.valid ||
+        MirProgramRoutineIndexCount(admitted.routines) != 2 {
         return false;
     }
     let row: Int = 0;
-    while row < MirProgramDeclarationIndexCount(declarations) {
-        if declarations.kinds[row] == "role" ||
-            declarations.nominal_kinds[row] == "role" {
+    while row < MirProgramDeclarationIndexCount(
+        admitted.routines.declarations
+    ) {
+        if admitted.routines.declarations.kinds[row] == "role" ||
+            admitted.routines.declarations.nominal_kinds[row] == "role" {
             return true;
         }
         row = row + 1;

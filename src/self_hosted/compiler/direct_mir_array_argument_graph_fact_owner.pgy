@@ -75,31 +75,47 @@ func DirectMirArrayArgumentMainGraphFactFromSequence(
         ArrayLength(sequence.arena.call_target_names) != 16 {
         Die("direct MIR Array argument main graph is invalid");
     }
-    let kinds: Array<Int> = sequence.arena.topology.node_kinds;
-    let left: Array<Int> = sequence.arena.topology.left_children;
-    let right: Array<Int> = sequence.arena.topology.right_children;
-    if kinds[0] != AstExpressionNodeLeaf() ||
+    if sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
         sequence.arena.node_texts[0] != "ToString" ||
-        kinds[1] != AstExpressionNodeCall() || left[1] != 0 ||
-        kinds[2] != AstExpressionNodeLeaf() ||
-        kinds[3] != AstExpressionNodeCall() || left[3] != 2 ||
-        kinds[4] != AstExpressionNodeArrayLiteral() ||
-        kinds[5] != AstExpressionNodeIntegerLiteral() ||
-        kinds[6] != AstExpressionNodeIntegerLiteral() ||
-        kinds[7] != AstExpressionNodeAdd() || left[7] != 5 || right[7] != 6 ||
-        kinds[8] != AstExpressionNodeArrayElement() ||
-        left[8] != 4 || right[8] != 7 ||
-        kinds[9] != AstExpressionNodeLeaf() ||
-        kinds[10] != AstExpressionNodeCall() || left[10] != 9 ||
-        kinds[11] != AstExpressionNodeIntegerLiteral() ||
-        kinds[12] != AstExpressionNodeCallArgument() ||
-        left[12] != 10 || right[12] != 11 ||
-        kinds[13] != AstExpressionNodeArrayElement() ||
-        left[13] != 8 || right[13] != 12 ||
-        kinds[14] != AstExpressionNodeCallArgument() ||
-        left[14] != 3 || right[14] != 13 ||
-        kinds[15] != AstExpressionNodeCallArgument() ||
-        left[15] != 1 || right[15] != 14 {
+        sequence.arena.topology.node_kinds[1] != AstExpressionNodeCall() ||
+        sequence.arena.topology.left_children[1] != 0 ||
+        sequence.arena.topology.node_kinds[2] != AstExpressionNodeLeaf() ||
+        sequence.arena.topology.node_kinds[3] != AstExpressionNodeCall() ||
+        sequence.arena.topology.left_children[3] != 2 ||
+        sequence.arena.topology.node_kinds[4] !=
+            AstExpressionNodeArrayLiteral() ||
+        sequence.arena.topology.node_kinds[5] !=
+            AstExpressionNodeIntegerLiteral() ||
+        sequence.arena.topology.node_kinds[6] !=
+            AstExpressionNodeIntegerLiteral() ||
+        sequence.arena.topology.node_kinds[7] != AstExpressionNodeAdd() ||
+        sequence.arena.topology.left_children[7] != 5 ||
+        sequence.arena.topology.right_children[7] != 6 ||
+        sequence.arena.topology.node_kinds[8] !=
+            AstExpressionNodeArrayElement() ||
+        sequence.arena.topology.left_children[8] != 4 ||
+        sequence.arena.topology.right_children[8] != 7 ||
+        sequence.arena.topology.node_kinds[9] != AstExpressionNodeLeaf() ||
+        sequence.arena.topology.node_kinds[10] != AstExpressionNodeCall() ||
+        sequence.arena.topology.left_children[10] != 9 ||
+        sequence.arena.topology.node_kinds[11] !=
+            AstExpressionNodeIntegerLiteral() ||
+        sequence.arena.topology.node_kinds[12] !=
+            AstExpressionNodeCallArgument() ||
+        sequence.arena.topology.left_children[12] != 10 ||
+        sequence.arena.topology.right_children[12] != 11 ||
+        sequence.arena.topology.node_kinds[13] !=
+            AstExpressionNodeArrayElement() ||
+        sequence.arena.topology.left_children[13] != 8 ||
+        sequence.arena.topology.right_children[13] != 12 ||
+        sequence.arena.topology.node_kinds[14] !=
+            AstExpressionNodeCallArgument() ||
+        sequence.arena.topology.left_children[14] != 3 ||
+        sequence.arena.topology.right_children[14] != 13 ||
+        sequence.arena.topology.node_kinds[15] !=
+            AstExpressionNodeCallArgument() ||
+        sequence.arena.topology.left_children[15] != 1 ||
+        sequence.arena.topology.right_children[15] != 14 {
         Die("direct MIR Array argument main topology is invalid");
     }
     let row: Int = 0;
@@ -160,8 +176,7 @@ func DirectMirArrayArgumentScalarFactor(
     }
     let row: Int = 0;
     while row < 3 {
-        if sequence.arena.call_target_kinds[row] !=
-                SemanticCallTargetNone() ||
+        if sequence.arena.call_target_kinds[row] != SemanticCallTargetNone() ||
             sequence.arena.call_target_names[row] != "" {
             Die("direct MIR Array argument scalar graph has a call target");
         }
@@ -198,8 +213,7 @@ func DirectMirArrayArgumentConsumerIndices(
     }
     let row: Int = 0;
     while row < 7 {
-        if sequence.arena.call_target_kinds[row] !=
-                SemanticCallTargetNone() ||
+        if sequence.arena.call_target_kinds[row] != SemanticCallTargetNone() ||
             sequence.arena.call_target_names[row] != "" {
             Die("direct MIR Array argument consumer graph has a call target");
         }

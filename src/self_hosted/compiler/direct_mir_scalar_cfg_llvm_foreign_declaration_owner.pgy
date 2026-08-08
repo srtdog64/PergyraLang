@@ -5,29 +5,37 @@ import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 func DirectMirScalarCfgLlvmForeignDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> String {
-    let abi: DirectMirScalarProgramRuntimeAbiFact = plan.program.runtime_abi;
-    let collection: Bool = abi.string_contains_id != 0 ||
-        abi.string_split_id != 0 || abi.string_to_int_id != 0 ||
-        abi.array_string_length_id != 0 || abi.array_string_get_id != 0;
-    let replace: Bool = abi.case_math.replace_id != 0;
+    let collection: Bool =
+        plan.program.runtime_abi.string_contains_id != 0 ||
+        plan.program.runtime_abi.string_split_id != 0 ||
+        plan.program.runtime_abi.string_to_int_id != 0 ||
+        plan.program.runtime_abi.array_string_length_id != 0 ||
+        plan.program.runtime_abi.array_string_get_id != 0;
+    let replace: Bool = plan.program.runtime_abi.case_math.replace_id != 0;
     let needs_strlen: Bool = plan.string_concat_runtime_call_abi_id != 0 ||
-        abi.string_to_upper_id != 0 || abi.string_to_lower_id != 0 ||
-        abi.string_length_id != 0 || abi.string_substring_id != 0 ||
-        abi.string_trim.runtime_call_abi_id != 0 ||
-        abi.string_split_id != 0 || replace;
+        plan.program.runtime_abi.string_to_upper_id != 0 ||
+        plan.program.runtime_abi.string_to_lower_id != 0 ||
+        plan.program.runtime_abi.string_length_id != 0 ||
+        plan.program.runtime_abi.string_substring_id != 0 ||
+        plan.program.runtime_abi.string_trim.runtime_call_abi_id != 0 ||
+        plan.program.runtime_abi.string_split_id != 0 || replace;
     let needs_malloc: Bool = plan.string_concat_runtime_call_abi_id != 0 ||
-        abi.string_to_string_id != 0 || abi.string_to_upper_id != 0 ||
-        abi.string_to_lower_id != 0 || abi.string_substring_id != 0 ||
-        abi.string_substring_with_len_id != 0 ||
-        abi.string_trim.runtime_call_abi_id != 0 ||
-        abi.string_split_id != 0 || replace;
+        plan.program.runtime_abi.string_to_string_id != 0 ||
+        plan.program.runtime_abi.string_to_upper_id != 0 ||
+        plan.program.runtime_abi.string_to_lower_id != 0 ||
+        plan.program.runtime_abi.string_substring_id != 0 ||
+        plan.program.runtime_abi.string_substring_with_len_id != 0 ||
+        plan.program.runtime_abi.string_trim.runtime_call_abi_id != 0 ||
+        plan.program.runtime_abi.string_split_id != 0 || replace;
     let needs_memcpy: Bool = plan.string_concat_runtime_call_abi_id != 0 ||
-        abi.string_substring_id != 0 ||
-        abi.string_substring_with_len_id != 0 ||
-        abi.string_trim.runtime_call_abi_id != 0 ||
-        abi.string_split_id != 0 || replace;
-    let needs_strstr: Bool = abi.string_index.runtime_call_abi_id != 0 ||
-        abi.string_contains_id != 0 || abi.string_split_id != 0 || replace;
+        plan.program.runtime_abi.string_substring_id != 0 ||
+        plan.program.runtime_abi.string_substring_with_len_id != 0 ||
+        plan.program.runtime_abi.string_trim.runtime_call_abi_id != 0 ||
+        plan.program.runtime_abi.string_split_id != 0 || replace;
+    let needs_strstr: Bool =
+        plan.program.runtime_abi.string_index.runtime_call_abi_id != 0 ||
+        plan.program.runtime_abi.string_contains_id != 0 ||
+        plan.program.runtime_abi.string_split_id != 0 || replace;
     let output: String = "";
     if needs_strlen { output = Concat(output, "declare i64 @strlen(ptr)\n"); }
     if needs_malloc { output = Concat(output, "declare ptr @malloc(i64)\n"); }
@@ -40,10 +48,10 @@ func DirectMirScalarCfgLlvmForeignDeclarations(
     if collection {
         output = Concat(output,
             "declare ptr @realloc(ptr, i64)\ndeclare void @free(ptr)\ndeclare void @abort()\n");
-    } else if abi.string_length_id != 0 {
+    } else if plan.program.runtime_abi.string_length_id != 0 {
         output = Concat(output, "declare void @abort()\n");
     }
-    if abi.string_to_int_id != 0 {
+    if plan.program.runtime_abi.string_to_int_id != 0 {
         output = Concat(output, "declare i64 @atoll(ptr)\n");
     }
     if StringLength(output) != 0 { output = Concat(output, "\n"); }

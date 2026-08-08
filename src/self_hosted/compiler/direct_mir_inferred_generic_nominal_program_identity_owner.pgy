@@ -44,30 +44,32 @@ func DirectMirInferredGenericNominalProgramIdentityReady(
         ) || !DirectMirInferredGenericNominalGraphFactReady(identity.graph) {
         return false;
     }
-    let generic: DirectMirGenericRoutineSignatureFact =
-        identity.generic_template;
-    let specialization: DirectMirInferredGenericSpecializationFact =
-        identity.specialization;
-    let declaration: DirectMirNominalDeclarationAbiFact =
-        identity.declaration;
-    let graph: DirectMirInferredGenericNominalGraphFact = identity.graph;
     return identity.entrypoint.name == "Main" &&
         identity.entrypoint.return_type == "Void" &&
         identity.entrypoint.param_count == 0 &&
-        generic.name == graph.generic_callable &&
-        generic.param.name == graph.generic_parameter_name &&
-        generic.generic_name == specialization.generic_param &&
-        specialization.callable == graph.generic_callable &&
-        specialization.generic_actual == CompilerAbiLayoutIntTypeName() &&
-        declaration.name == graph.type_name &&
-        ArrayLength(declaration.field_names) == 2 &&
-        declaration.field_names[0] == graph.first_field &&
-        declaration.field_names[1] == graph.second_field &&
-        declaration.field_types[0] == CompilerAbiLayoutIntTypeName() &&
-        declaration.field_types[1] == CompilerAbiLayoutIntTypeName() &&
-        DirectMirTwoIntNominalPhysicalRowReady(declaration) &&
-        identity.entrypoint.row != generic.row &&
-        identity.entrypoint.source_syntax_id != generic.source_syntax_id;
+        identity.generic_template.name ==
+            identity.graph.generic_callable &&
+        identity.generic_template.param.name ==
+            identity.graph.generic_parameter_name &&
+        identity.generic_template.generic_name ==
+            identity.specialization.generic_param &&
+        identity.specialization.callable ==
+            identity.graph.generic_callable &&
+        identity.specialization.generic_actual ==
+            CompilerAbiLayoutIntTypeName() &&
+        identity.declaration.name == identity.graph.type_name &&
+        ArrayLength(identity.declaration.field_names) == 2 &&
+        identity.declaration.field_names[0] == identity.graph.first_field &&
+        identity.declaration.field_names[1] ==
+            identity.graph.second_field &&
+        identity.declaration.field_types[0] ==
+            CompilerAbiLayoutIntTypeName() &&
+        identity.declaration.field_types[1] ==
+            CompilerAbiLayoutIntTypeName() &&
+        DirectMirTwoIntNominalPhysicalRowReady(identity.declaration) &&
+        identity.entrypoint.row != identity.generic_template.row &&
+        identity.entrypoint.source_syntax_id !=
+            identity.generic_template.source_syntax_id;
 }
 
 func DirectMirInferredGenericNominalInstructionGraph(

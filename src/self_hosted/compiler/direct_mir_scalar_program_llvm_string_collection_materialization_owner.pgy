@@ -41,23 +41,25 @@ func DirectMirScalarProgramLlvmStringCollectionMaterialization(
     ref plan: DirectMirScalarCfgGraphPlan,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> String {
-    let abi: DirectMirScalarProgramRuntimeAbiFact = plan.program.runtime_abi;
-    let any: Bool = abi.string_contains_id != 0 || abi.string_split_id != 0 ||
-        abi.string_to_int_id != 0 || abi.array_string_length_id != 0 ||
-        abi.array_string_get_id != 0;
+    let any: Bool = plan.program.runtime_abi.string_contains_id != 0 ||
+        plan.program.runtime_abi.string_split_id != 0 ||
+        plan.program.runtime_abi.string_to_int_id != 0 ||
+        plan.program.runtime_abi.array_string_length_id != 0 ||
+        plan.program.runtime_abi.array_string_get_id != 0;
     if !any { return ""; }
-    if !DirectMirScalarProgramRuntimeAbiProjectionReady(runtime, abi) ||
+    if !DirectMirScalarProgramRuntimeAbiProjectionReady(
+            runtime, plan.program.runtime_abi) ||
         !DirectMirScalarProgramArrayStringAbiReadyForExpressions(
             plan.program.array_string_abi, plan.program.expressions) {
         Die("direct MIR scalar program LLVM String collection ABI is invalid");
     }
     let output: String = "%pgy.array.string = type { ptr, i64, i64, ptr }\n";
-    if abi.string_contains_id != 0 {
+    if plan.program.runtime_abi.string_contains_id != 0 {
         output = Concat(output, Concat("define internal i1 @",
             Concat(runtime.string_contains.symbol,
             "(ptr %haystack, ptr %needle) {\nentry:\n  %match = call ptr @strstr(ptr %haystack, ptr %needle)\n  %found = icmp ne ptr %match, null\n  ret i1 %found\n}\n\n")));
     }
-    if abi.string_to_int_id != 0 {
+    if plan.program.runtime_abi.string_to_int_id != 0 {
         output = Concat(output, Concat("define internal i64 @",
             Concat(runtime.string_to_int.symbol,
             "(ptr %source) {\nentry:\n  %value = call i64 @atoll(ptr %source)\n  ret i64 %value\n}\n\n")));
@@ -68,7 +70,7 @@ func DirectMirScalarProgramLlvmStringCollectionMaterialization(
         DirectMirScalarProgramLlvmStringArrayAccessBlocks(runtime));
     output = Concat(output,
         DirectMirScalarProgramLlvmStringArrayDropBlock());
-    if abi.string_split_id != 0 {
+    if plan.program.runtime_abi.string_split_id != 0 {
         output = Concat(output,
             DirectMirScalarProgramLlvmStringSplitBlock(runtime));
     }

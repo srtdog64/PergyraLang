@@ -50,8 +50,6 @@ func DirectMirConstructedArrayMemberEmitLlvm(
         receiver == outer_value {
         Die("direct MIR constructed Array member LLVM symbols are invalid");
     }
-    let graph: DirectMirConstructedArrayMemberMainGraphFact =
-        plan.identity.main_graph;
     let aggregate: String = abi.llvm_aggregate_type;
     let payload: String = DirectMirScalarLlvmFormatPayload(line_format);
     let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
@@ -126,7 +124,7 @@ func DirectMirConstructedArrayMemberEmitLlvm(
     output = Concat(output, "\n}\n\ndefine i32 @main() {\nentry:\n  %receiver = insertvalue %");
     output = Concat(output, type_name);
     output = Concat(output, " poison, i32 ");
-    output = Concat(output, ToString(graph.marker_value));
+    output = Concat(output, ToString(plan.identity.main_graph.marker_value));
     output = Concat(output, ", 0\n  %array.storage = alloca [");
     output = Concat(output, ToString(flow_target.storage_count));
     output = Concat(output, " x ");
@@ -146,7 +144,7 @@ func DirectMirConstructedArrayMemberEmitLlvm(
     output = Concat(output, " %receiver, ");
     output = Concat(output, abi.llvm_element_type);
     output = Concat(output, " ");
-    output = Concat(output, ToString(graph.argument_value));
+    output = Concat(output, ToString(plan.identity.main_graph.argument_value));
     output = Concat(output, ", ptr %array.data)\n  %result = call ");
     output = Concat(output, aggregate);
     output = Concat(output, " @");
