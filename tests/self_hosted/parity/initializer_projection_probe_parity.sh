@@ -147,7 +147,7 @@ grep -Fq 'target_fact.parameter_offset' "$CONCRETE_SCALAR_VERDICT" ||
     { echo "[$LABEL] member-call self parameter offset is ignored" >&2; exit 1; }
 grep -Fq 'SemanticCallableCanonicalDeclaredName(' "$EXPRESSION_ENV" ||
     { echo "[$LABEL] callable table discards declaration ownership" >&2; exit 1; }
-grep -Fq 'SemanticAstAnalysisResolveCallTargetsFromBody(' \
+grep -Fq 'SemanticAstAnalysisResolveCallTargetsFromAdmittedBody(' \
     "$BODY_TYPE_BUNDLE" ||
     { echo "[$LABEL] body fixpoint does not carry resolved call targets" >&2; exit 1; }
 grep -Fq 'inout analysis: SemanticAstArtifactAnalysis' \
@@ -214,9 +214,16 @@ compile_probe() {
     local backend="$1"
     local bin="$BUILD_DIR/probe_${backend}.exe"
     local log="$BUILD_DIR/probe_${backend}.compile.log"
+    # The probe binary is harness infrastructure: the llvm build rides the
+    # native pipeline because the delegated DirectMirLlvm projector is a
+    # bounded classifier (replacement subject:
+    # self-host-default-llvm-replacement-test-smoke).
+    local native_subject=""
+    [[ "$backend" == "llvm" ]] && native_subject="--native-pipeline"
     rm -f "$bin" "$BUILD_DIR/probe_${backend}.o"
     if ! (cd "$ROOT_DIR" && "$PGY" \
         "$(pgy_path_for_compiler "$PGY" "$SOURCE")" --backend="$backend" \
+        $native_subject \
         -o "$(pgy_path_for_compiler "$PGY" "$bin")" >"$log" 2>&1); then
         if [[ "$backend" == "llvm" ]] && pgy_selfhost_log_reports_no_llvm "$log"; then
             return 2
@@ -375,7 +382,7 @@ run_probe() {
                 "$mode" == "missing-carried-member-target" || \
                 "$mode" == "missing-carried-generic-member-target" || \
                 "$mode" == "missing-carried-chained-member-target" ]]; then
-            diagnostic='matching initializer and iteration type facts'
+            diagnostic='MIR producer requires matching semantic artifact facts'
         elif [[ "$mode" == "cursor-self-reference" || \
                 "$mode" == "cursor-sibling-leak" ]]; then
             diagnostic='undefined_symbol'

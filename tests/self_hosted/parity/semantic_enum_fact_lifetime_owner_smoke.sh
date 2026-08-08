@@ -62,7 +62,13 @@ if grep -Fq 'SemanticAstEnumFactsFromArtifact(artifact)' "$ASSIGNMENT_OWNER"; th
     exit 1
 fi
 
-grep -Fq 'analysis.assignments, analysis.enums, function_tables' "$BODY_OWNER" || {
+# Repointed: the admitted assignment resolver gained function_scopes and its
+# argument list wraps; read the enum carriage and the shared callable-table
+# fact inside the resolver's own call window instead of one spliced line.
+grep -A 8 -F 'SemanticAstAssignmentTypeFactsFromAdmittedArtifact(' \
+    "$BODY_OWNER" | grep -Fq 'analysis.assignments, analysis.enums,' &&
+grep -A 8 -F 'SemanticAstAssignmentTypeFactsFromAdmittedArtifact(' \
+    "$BODY_OWNER" | grep -Fq 'function_tables' || {
     echo "[self-host-parity:semantic-enum-lifetime] body bundle lost analysis enum carriage" >&2
     exit 1
 }

@@ -256,9 +256,7 @@ func ProbeMirCarriesCallTarget(
     expected_name: String
 ) -> Bool {
     let i: Int = 0;
-    while i < SelfMirExpressionGraphNodeCount(
-        facts.cfg.instructions.expr0_graphs
-    ) {
+    while i < SelfMirExpressionGraphNodeCount(facts.expression_graph) {
         let kind_opt: Option<Int> = SemanticExpressionGraphCallTargetKind(
             facts.expression_graph, i
         );
@@ -335,7 +333,9 @@ func ProbeCodegenConsumesMemberTarget(
     let function_rows: String = Concat(
         "|", Concat(expected_name, Concat(
             "=f:Int|", Concat(expected_name, Concat(
-                "=pm:default|", Concat(expected_name, "=pt:Box|")
+                "=pm:default|", Concat(expected_name, Concat(
+                    "=pt:Box|", Concat(expected_name, "=rc:value|")
+                ))
             ))
         ))
     );
