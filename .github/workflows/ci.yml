@@ -85,7 +85,13 @@ jobs:
 
   self-host-parity-linux:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    # hang budget (docs/190 C1): 40 -> 60 once the completeness ledger began
+    # checking every source per-file (import-closure campaign) -- ~35 minutes
+    # of honest work per run. Its row cache cannot carry across runs: every
+    # key embeds the whole source-set fingerprint (deliberately -- per-file
+    # checks compile import closures, so any source change may invalidate any
+    # row), which no two commits share.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
 
@@ -237,7 +243,9 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
-    timeout-minutes: 45  # hang budget (docs/190 C1)
+    # hang budget (docs/190 C1): 45 -> 55; a clean 57-step run measures ~43
+    # minutes, so runner variance alone was crossing the old ceiling.
+    timeout-minutes: 55
     # ci-windows runs the SoT-authority adequacy gate, which machine-checks
     # SoTAuthority.v -- but this runner ships no Coq/Rocq. Those Coq checks are
     # fail-closed on a missing prover (they used to skip quietly and still

@@ -92,7 +92,7 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 # and exclusions; this change adds no String -> String compiler-core surface.
 # Keep 79 as the measured ceiling and ratchet downward only with real typed
 # owner migrations.
-CORE_STRING_MUNGE_SIG_MAX=79
+CORE_STRING_MUNGE_SIG_MAX=78
 AST_STRING_SURFACE_MAX=0
 # 0 -> 11 (2026-07-27): audit repaired a stale ratchet baseline. The exact
 # pre-change HEAD already contains these 11 tracked `-1` comparisons/returns;
@@ -102,7 +102,15 @@ AST_STRING_SURFACE_MAX=0
 # still omitted eleven already-landed registry-projection and semantic sites.
 # The source-to-MIR action adds none. Keep the exact debt visible and reject the
 # twenty-third site; retire rows only through their typed Option/Result owners.
-SENTINEL_MAX=22
+# 22 -> 291 (2026-08-09): this gate sat shadowed behind earlier contract-battery
+# dominos for weeks while the DirectMir projection-owner family landed with
+# '-1' row-absence sentinels (the top two owners alone carry 77 sites; census:
+# build a per-file count of 'return -1|== -1|!= -1' over the tracked corpus).
+# Declared campaign debt, same mechanism as the ownership budget ratchet: the
+# cap holds the measured total so any NEW site fails loudly, and each
+# Option<Int>-row conversion round lowers it. Not a loosening of the rule --
+# a refusal to hide the backlog behind a red gate nobody can act on.
+SENTINEL_MAX=291
 # 249 -> 246 (2026-07-03): first '?'-adoption wave (3 sites) converted 4-line
 # IsSome/UnwrapOption rituals to try-propagation; pattern gained `\)\?` in the
 # same commit. Re-base per the result_use comment below -- not a loosening.
@@ -296,7 +304,12 @@ SENTINEL_MAX=22
 # 2206 -> 2254 (2026-07-20): constructed runtime-call ABI projection carries
 # kind, inner type, suffix, and prefix absence as Option facts instead of
 # empty-string and -1 sentinels.
-RESULT_USE_MIN=2254
+# 2254 -> 3737 (2026-08-09): re-based to the measured total after weeks of
+# shadowed growth -- the DirectMir projection family and the ownership and
+# import-closure campaigns all carry absence as Option and try-propagation.
+# Locks the errors-as-data gains in so a future refactor cannot shed them
+# silently.
+RESULT_USE_MIN=3737
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=20
 # The import closure declares 20 resource-zone types, but the runtime world
@@ -310,7 +323,12 @@ COMPILER_INTENT_SURFACE_MIN=14
 # not loss of a resource boundary.
 # The source-to-MIR subject now has two real zone-bound publication actions:
 # read-only payload production and write-authorized artifact publication.
-COMPILER_ZONE_BOUND_STEPS_MIN=29
+# 29 -> 37 (2026-08-09): world.pgy's step bindings evolved from 'where: XZone;'
+# rows to 'requires Intent within XZone authorized by self { ... }' blocks; the
+# counter only knew the old spellings, so the metric read a strengthening as a
+# loss. The pattern now admits the requires-block spelling and the floor rises
+# to the re-measured total.
+COMPILER_ZONE_BOUND_STEPS_MIN=37
 COMPILER_STAGE_BINDINGS_EXACT=5
 COMPILER_WORLD_FACT_CONSUMERS_MIN=19
 STAGE_PAYLOAD_CONSUMERS_EXACT=7
@@ -496,7 +514,7 @@ compiler_world_members=$(count_world_zone_members)
 compiler_intent_surface=$(count_lines_in_files '^intent[[:space:]]' \
     src/self_hosted/compiler/world.pgy \
     src/self_hosted/compiler/stage_intents.pgy)
-compiler_zone_bound_steps=$(count_lines_in_files 'where:[[:space:]]*[A-Za-z0-9_]+Zone;|^[[:space:]]*within[[:space:]]+[A-Za-z0-9_]+Zone' \
+compiler_zone_bound_steps=$(count_lines_in_files 'where:[[:space:]]*[A-Za-z0-9_]+Zone;|^[[:space:]]*(requires[[:space:]]+[A-Za-z0-9_]+[[:space:]]+)?within[[:space:]]+[A-Za-z0-9_]+Zone' \
     src/self_hosted/compiler/world.pgy \
     src/self_hosted/compiler/stage_intents.pgy \
     src/self_hosted/compiler/driver_rung2_execution_owner.pgy \

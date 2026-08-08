@@ -13781,7 +13781,11 @@ require_file "tests/self_hosted/parity/driver_bootstrap.sh"
 # Re-armed +5 for the oracle compile's --native-pipeline declaration: the
 # oracle is the native reference, and undeclared it delegated to the very
 # driver being bootstrapped.
-require_max_lines "tests/self_hosted/parity/driver_bootstrap.sh" 305
+# Re-armed 305 -> 330 (2026-08-09): the oracle legs became campaign-aware --
+# the shared ownership ratchet classifies the native compile's failure, and
+# within budget the four oracle-vs-seed comparisons skip declaredly while
+# every seed-only leg still runs.
+require_max_lines "tests/self_hosted/parity/driver_bootstrap.sh" 330
 require_text "Makefile" "self-host-driver-bootstrap-test-smoke"
 require_text "Makefile" "self-host-driver-bootstrap-test-smoke: self-host-codegen-bootstrap-seed-test-smoke"
 require_text "Makefile" "self-host-driver-bootstrap-full-test-smoke: self-host-codegen-bootstrap-seed-test-smoke"
@@ -16947,13 +16951,18 @@ require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "EmitDriverParityFi
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" '"--emit-c-verified"'
 require_file "tests/self_hosted/parity/driver_rung2_body_parity.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_body_parity.sh" 310
-# The llvm lane's declared campaign skip is a monitored ratchet: the budget
-# file is the checked-in ceiling and the gate must enforce it.
+# The declared campaign skip is a monitored ratchet: the budget file is the
+# checked-in ceiling, the shared helper enforces it, and both lanes that
+# measure the wall (body gate llvm lane, bootstrap native oracle) consume it.
 require_file "tests/self_hosted/parity/ownership_campaign_budget.txt"
-require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" \
     'ownership_campaign_budget.txt'
-require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" \
     'ownership campaign regressed'
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'ownership_campaign_within_budget'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" \
+    'ownership_campaign_within_budget'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" '"driver-rung2-paths"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" '"semantic-parity-paths"'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"

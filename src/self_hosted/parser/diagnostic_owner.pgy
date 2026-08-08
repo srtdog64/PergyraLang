@@ -17,36 +17,42 @@ func ParseDiagnosticSchema() -> String {
     return "pgy.selfhost.parse.v1";
 }
 
-func ParseDiagnosticReason(code: String) -> String {
-    if code == "callable_contract_duplicate_name" {
-        return "the same contract name is listed twice in one clause";
-    }
-    if code == "callable_contract_unknown_name" {
-        return "the contract name is not in the callable contract vocabulary";
-    }
-    if code == "callable_contract_exclusive_effect" {
-        return "an exclusive effect cannot be combined with other effects";
-    }
-    if code == "surface_not_covered" {
-        return "this source surface is not yet covered by the self-hosted parser";
-    }
-    return "the parser rejected this source";
+// One row per code: reason and fix travel together, so the two texts cannot
+// drift apart the way parallel per-code lookup tables can.
+struct ParseDiagnosticRow {
+    reason: String;
+    fix: String;
 }
 
-func ParseDiagnosticFix(code: String) -> String {
+func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
     if code == "callable_contract_duplicate_name" {
-        return "remove the repeated name from the clause";
+        return ParseDiagnosticRow(
+            "the same contract name is listed twice in one clause",
+            "remove the repeated name from the clause"
+        );
     }
     if code == "callable_contract_unknown_name" {
-        return "use a name declared in src/semantic/callable_contract_vocabulary.def";
+        return ParseDiagnosticRow(
+            "the contract name is not in the callable contract vocabulary",
+            "use a name declared in src/semantic/callable_contract_vocabulary.def"
+        );
     }
     if code == "callable_contract_exclusive_effect" {
-        return "declare the exclusive effect alone, or drop it";
+        return ParseDiagnosticRow(
+            "an exclusive effect cannot be combined with other effects",
+            "declare the exclusive effect alone, or drop it"
+        );
     }
     if code == "surface_not_covered" {
-        return "compile through --native-pipeline until the self-hosted compiler covers this surface";
+        return ParseDiagnosticRow(
+            "this source surface is not yet covered by the self-hosted parser",
+            "compile through --native-pipeline until the self-hosted compiler covers this surface"
+        );
     }
-    return "check the reported source position";
+    return ParseDiagnosticRow(
+        "the parser rejected this source",
+        "check the reported source position"
+    );
 }
 
 func ParseDiagnosticAxisLabel(axis: Int) -> String {
@@ -66,11 +72,12 @@ func ParseDiagnosticReport2(
     k1: String, v1: String,
     k2: String, v2: String
 ) -> Void {
+    let row: ParseDiagnosticRow = ParseDiagnosticRowForCode(code);
     Log(SelfHostDiagnostic.RenderError(
         ParseDiagnosticSchema(), "parse", "error",
         code,
-        ParseDiagnosticReason(code),
-        ParseDiagnosticFix(code),
+        row.reason,
+        row.fix,
         "none",
         SelfHostDiagnostic.Fact2(k1, v1, k2, v2)));
 }

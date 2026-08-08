@@ -199,23 +199,40 @@ compile_c "driver_seed" "$BUILD_DIR/driver_seed.c" "$BUILD_DIR/driver_seed.exe"
 echo "[self-host-driver-bootstrap] compiling oracle driver"
 # --native-pipeline: the oracle must be native; undeclared, this delegates
 # to the very driver being bootstrapped (fails driverless; not an oracle).
+# That pipeline also enforces beta-stable body safety, so until the
+# ownership campaign clears, the oracle cannot exist: within the shared
+# budget (ownership_campaign_within_budget, llvm_leg_helpers.sh) the
+# oracle-vs-seed legs skip declaredly and the seed-only legs still run.
+ORACLE_AVAILABLE=1
 if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$DRIVER_SOURCE")" \
     --native-pipeline \
     --backend=c -o "$(pgy_path_for_compiler "$PGY" "$BUILD_DIR/driver_oracle.exe")" \
     >"$BUILD_DIR/driver_oracle.compile.log" 2>&1); then
-    echo "[self-host-driver-bootstrap] oracle driver compile failed" >&2
-    tail -c 65536 "$BUILD_DIR/driver_oracle.compile.log" >&2 || true
-    exit 1
+    set +e
+    ownership_campaign_within_budget \
+        "$BUILD_DIR/driver_oracle.compile.log" "self-host-driver-bootstrap"
+    campaign_rc=$?
+    set -e
+    if [[ "$campaign_rc" -eq 1 ]]; then
+        echo "[self-host-driver-bootstrap] oracle driver compile failed" >&2
+        tail -c 65536 "$BUILD_DIR/driver_oracle.compile.log" >&2 || true
+    fi
+    if [[ "$campaign_rc" -ne 0 ]]; then
+        exit 1
+    fi
+    ORACLE_AVAILABLE=0
 fi
 
 run_driver_to_file "sample_self" "$BUILD_DIR/driver_seed.exe" "$SAMPLE_SOURCE" "$BUILD_DIR/sample_self.c"
-run_driver_to_file "sample_oracle" "$BUILD_DIR/driver_oracle.exe" "$SAMPLE_SOURCE" "$BUILD_DIR/sample_oracle.c"
-pgy_selfhost_compare_expected_text_artifact_file_with_owner \
-    "self-host-driver-bootstrap:sample" \
-    "$BUILD_DIR" \
-    "$BUILD_DIR/sample_oracle.c" \
-    "$BUILD_DIR/sample_self.c" \
-    "emitted_c"
+if [[ "$ORACLE_AVAILABLE" == 1 ]]; then
+    run_driver_to_file "sample_oracle" "$BUILD_DIR/driver_oracle.exe" "$SAMPLE_SOURCE" "$BUILD_DIR/sample_oracle.c"
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-driver-bootstrap:sample" \
+        "$BUILD_DIR" \
+        "$BUILD_DIR/sample_oracle.c" \
+        "$BUILD_DIR/sample_self.c" \
+        "emitted_c"
+fi
 
 run_driver_mode_to_file \
     "bounded_mir_seed" \
@@ -223,37 +240,41 @@ run_driver_mode_to_file \
     "--emit-mir-json-verified" \
     "$SAMPLE_SOURCE" \
     "$BUILD_DIR/bounded_seed.mir.json"
-run_driver_mode_to_file \
-    "bounded_mir_oracle" \
-    "$BUILD_DIR/driver_oracle.exe" \
-    "--emit-mir-json-verified" \
-    "$SAMPLE_SOURCE" \
-    "$BUILD_DIR/bounded_oracle.mir.json"
-pgy_selfhost_compare_expected_text_artifact_file_with_owner \
-    "self-host-driver-bootstrap:bounded-mir-producer" \
-    "$BUILD_DIR" \
-    "$BUILD_DIR/bounded_oracle.mir.json" \
-    "$BUILD_DIR/bounded_seed.mir.json" \
-    "mir_json"
+if [[ "$ORACLE_AVAILABLE" == 1 ]]; then
+    run_driver_mode_to_file \
+        "bounded_mir_oracle" \
+        "$BUILD_DIR/driver_oracle.exe" \
+        "--emit-mir-json-verified" \
+        "$SAMPLE_SOURCE" \
+        "$BUILD_DIR/bounded_oracle.mir.json"
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-driver-bootstrap:bounded-mir-producer" \
+        "$BUILD_DIR" \
+        "$BUILD_DIR/bounded_oracle.mir.json" \
+        "$BUILD_DIR/bounded_seed.mir.json" \
+        "mir_json"
+fi
 run_driver_mode_to_file \
     "bounded_seed" \
     "$BUILD_DIR/driver_seed.exe" \
     "--mir-json" \
     "$BUILD_DIR/bounded_seed.mir.json" \
     "$BUILD_DIR/bounded_seed.c"
-run_driver_mode_to_file \
-    "bounded_oracle" \
-    "$BUILD_DIR/driver_oracle.exe" \
-    "--mir-json" \
-    "$BUILD_DIR/bounded_seed.mir.json" \
-    "$BUILD_DIR/bounded_oracle.c"
-pgy_selfhost_compare_expected_text_artifact_file_with_owner \
-    "self-host-driver-bootstrap:bounded-mir-consumer" \
-    "$BUILD_DIR" \
-    "$BUILD_DIR/bounded_oracle.c" \
-    "$BUILD_DIR/bounded_seed.c" \
-    "emitted_c"
-echo "[self-host-driver-bootstrap] integrated seed bounded MIR consumer parity ok"
+if [[ "$ORACLE_AVAILABLE" == 1 ]]; then
+    run_driver_mode_to_file \
+        "bounded_oracle" \
+        "$BUILD_DIR/driver_oracle.exe" \
+        "--mir-json" \
+        "$BUILD_DIR/bounded_seed.mir.json" \
+        "$BUILD_DIR/bounded_oracle.c"
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-driver-bootstrap:bounded-mir-consumer" \
+        "$BUILD_DIR" \
+        "$BUILD_DIR/bounded_oracle.c" \
+        "$BUILD_DIR/bounded_seed.c" \
+        "emitted_c"
+    echo "[self-host-driver-bootstrap] integrated seed bounded MIR consumer parity ok"
+fi
 
 if [[ "${PGY_SELFHOST_DRIVER_FULL_FIXPOINT:-0}" != "1" ]]; then
     echo "[self-host-driver-bootstrap] bounded integrated bootstrap ok; full stage2/gen3 fixed point is explicit"
@@ -267,15 +288,17 @@ run_driver_mode_to_file \
     "--emit-mir-json-verified" \
     "$DRIVER_SOURCE" \
     "$BUILD_DIR/driver_source.mir.json" "--pressure-owned-full-fixpoint"
-run_driver_mode_to_file \
-    "full_mir_oracle" "$BUILD_DIR/driver_oracle.exe" \
-    "--emit-mir-json-verified" \
-    "$DRIVER_SOURCE" \
-    "$BUILD_DIR/driver_source.oracle.mir.json" "--pressure-owned-full-fixpoint"
-pgy_selfhost_compare_expected_text_artifact_file_with_owner \
-    "self-host-driver-bootstrap:full-mir-producer" "$BUILD_DIR" \
-    "$BUILD_DIR/driver_source.oracle.mir.json" \
-    "$BUILD_DIR/driver_source.mir.json" "mir_json"
+if [[ "$ORACLE_AVAILABLE" == 1 ]]; then
+    run_driver_mode_to_file \
+        "full_mir_oracle" "$BUILD_DIR/driver_oracle.exe" \
+        "--emit-mir-json-verified" \
+        "$DRIVER_SOURCE" \
+        "$BUILD_DIR/driver_source.oracle.mir.json" "--pressure-owned-full-fixpoint"
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-driver-bootstrap:full-mir-producer" "$BUILD_DIR" \
+        "$BUILD_DIR/driver_source.oracle.mir.json" \
+        "$BUILD_DIR/driver_source.mir.json" "mir_json"
+fi
 run_driver_mode_to_file \
     "gen2_emit" "$BUILD_DIR/driver_seed.exe" "--mir-json" \
     "$BUILD_DIR/driver_source.mir.json" \

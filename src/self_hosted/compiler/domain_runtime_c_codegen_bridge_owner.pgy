@@ -336,15 +336,6 @@ func CompilerDomainRuntimeCZoneOperationBlock(
     ));
 }
 
-func CompilerDomainRuntimeCZonePrologue(owner_name: String) -> String {
-    return Concat(
-        "    ", Concat(
-            CompilerSymbolCQualifiedName(owner_name, "sync"),
-            "(self);\n"
-        )
-    );
-}
-
 func CompilerDomainRuntimeCMethodPrologueForOwner(
     ref admitted: MirDomainRuntimeAdmittedDocument,
     owner_name: String,
@@ -353,7 +344,12 @@ func CompilerDomainRuntimeCMethodPrologueForOwner(
     if !owner_is_zone && MirDomainRuntimePlanOperationCountForOwner(
         admitted.domain_runtime_plan, owner_name
     ) <= 0 { return ""; }
-    return CompilerDomainRuntimeCZonePrologue(owner_name);
+    return Concat(
+        "    ", Concat(
+            CompilerSymbolCQualifiedName(owner_name, "sync"),
+            "(self);\n"
+        )
+    );
 }
 
 func CompilerDomainRuntimeCZoneSyncBlock(
@@ -573,7 +569,10 @@ func CodegenDomainRuntimeFactsFromZeroTopologyOrDie(
             ArrayPush(owner_is_zone, true);
             ArrayPush(
                 method_prologues,
-                CompilerDomainRuntimeCZonePrologue(owner_name)
+                Concat("    ", Concat(
+                    CompilerSymbolCQualifiedName(owner_name, "sync"),
+                    "(self);\n"
+                ))
             );
             ArrayPush(
                 sync_blocks,

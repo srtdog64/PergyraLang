@@ -228,18 +228,11 @@ for backend in $BACKENDS; do
             continue
         fi
         if [[ "$compile_rc" -eq 3 ]]; then
-            # The declared skip is a monitored ratchet, not a hiding place:
-            # the campaign's error count must never grow past the checked-in
-            # budget, and every round lowers the budget with its commit.
-            campaign_count="$(grep -c 'ERROR' \
-                "$BUILD_DIR/driver_${backend}.compile.log")"
-            campaign_budget="$(tr -d ' \r\n' \
-                <"$ROOT_DIR/tests/self_hosted/parity/ownership_campaign_budget.txt")"
-            if [[ "$campaign_count" -gt "$campaign_budget" ]]; then
-                echo "[self-host-parity:driver-rung2] ownership campaign regressed: $campaign_count error(s) exceed the checked-in budget $campaign_budget" >&2
-                exit 1
-            fi
-            echo "[self-host-parity:driver-rung2] llvm lane blocked by the ownership campaign: $campaign_count error(s) within budget $campaign_budget (self-host bootstrap subject); skipping declaredly"
+            # Shared monitored ratchet -- see ownership_campaign_within_budget
+            # in llvm_leg_helpers.sh; a count past the budget exits loud here.
+            ownership_campaign_within_budget \
+                "$BUILD_DIR/driver_${backend}.compile.log" \
+                "self-host-parity:driver-rung2 llvm lane" || exit 1
             continue
         fi
         [[ "$compile_rc" -eq 0 ]] || exit "$compile_rc"
