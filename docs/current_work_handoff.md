@@ -6,7 +6,7 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - ownership oracle semantic wall closed; integrated artifact recheck next
+## Active self-host context - ownership wall closed; integrated oracle performance is RED
 
 - Executable checkpoint: `1c3912042ea41892ab87ec908332e4866ec896fd`
   on `main`, with this handoff as its intended docs-only descendant.
@@ -15,18 +15,28 @@ owner, and the named executable gate.
   `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
   `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`.
   Do not stage or rewrite those files from the compiler rung.
-- Active executable rung: compile
-  `src/self_hosted/compiler/driver_rung2_main.pgy` through the native oracle
-  (`--native-pipeline --backend=c`) and require an exit-zero executable
-  artifact. The previous integrated run reached `0 error(s), 3 warning(s)`
-  after reducing the ownership wall `256 -> 206 -> 153 -> 14 -> 0`, but then
-  failed in the MIR-only C contract on namespace receiver `SelfHostPath`.
-  Semantic zero is therefore not yet an executable-oracle success claim.
+- Active executable rung: make the native-oracle compile of
+  `src/self_hosted/compiler/driver_rung2_main.pgy`
+  (`--native-pipeline --backend=c`) finish within the fixed 30-minute
+  integration budget and produce an exit-zero executable artifact. Ownership
+  errors fell `256 -> 206 -> 153 -> 14 -> 0`; the namespace receiver
+  `SelfHostPath` failure was closed by exact semantic/MIR identity. The fresh
+  post-fix run nevertheless timed out after 1,804 seconds with no artifact, so
+  semantic zero is not an executable-oracle or performance success claim.
 - The reached namespace seam is now closed locally. A call's
   `semantic_callee_decl_id` joins uniquely to MIR `source_syntax_id`; receiver
   traversal is skipped only for a unique `MIR_SCOPE_FUNCTION`. Invalid,
   missing, duplicate, method, and intent identities remain fail-closed. Name
   casing, local absence, and flattened C names are forbidden substitutes.
+- The fresh integrated run had one `pgy` compiler, no `gcc`/`clang`/`cc1`
+  child, zero stdout, and only the three known intent-clause warnings plus
+  `0 error(s)` on stderr. At timeout its peak working set was 1,229,676,544
+  bytes (about 1.145 GiB), peak paged memory 1,395,331,072 bytes (about
+  1.300 GiB), and CPU time about 1,810 seconds. This does not reproduce the
+  historical 20 GiB defect; it is a long CPU-bound post-semantic
+  projection/materialization failure. The timeout wrapper did not reap PID
+  46580. Do not overlap another oracle sample or terminate an unrelated
+  process; first observe that exact process's natural exit and artifact state.
 - The MIR identity unit covers forged invalid/missing/duplicate/method rows.
   The exact namespace direct-return and instance-method controls pass C/LLVM
   parity `2/2` on the installed `bin/pgy.exe`.
@@ -61,17 +71,22 @@ owner, and the named executable gate.
   installed-driver oracle parity, and the post-commit GitHub matrix have not
   run. Existing full CI was chronically red before this checkpoint; do not
   describe it as a regression introduced by this commit without new evidence.
-- Next falsifying case: rerun the exact integrated native-oracle compile with
-  no overlapping `pgy` process. If it exits zero, record artifact hash/size and
-  proceed immediately to bounded bootstrap oracle-vs-seed parity. If it fails,
-  the first post-namespace MIR diagnostic becomes the only active seam.
+- Next falsifying case: after PID 46580 exits naturally, record whether an
+  artifact appeared and its hash/size. If none exists, add bounded stage
+  receipts at the reached Pergyra owner boundary to count program-graph
+  admission/readiness and identify the first materialization stage. Do not
+  launch a second full sample before that evidence exists. If the existing
+  process exits zero with an artifact, proceed immediately to bounded
+  bootstrap oracle-vs-seed parity.
 - Next objective card: production entry is the native compile of
-  `driver_rung2_main.pgy`; fact owner is the semantic-call-to-MIR-routine
-  identity join plus the reached Pergyra owner named by the next diagnostic;
-  last consumer is the MIR-only C emission contract; forbidden fallbacks are
-  namespace spelling guesses, native/oracle skip, campaign budget, timeout
-  increase, fixture routing, clone, or alternate C path. Acceptance is an
-  exit-zero oracle artifact followed by the existing bounded bootstrap gate.
+  `driver_rung2_main.pgy`; the exact repeated fact owner is currently Unknown
+  and must be identified between semantic admission and MIR-only C artifact
+  materialization; last consumer is the MIR-only C emission contract;
+  forbidden fallbacks are namespace spelling guesses, native/oracle skip,
+  campaign budget, timeout increase, cache/shard/worker speculation, fixture
+  routing, clone, or alternate C path. Acceptance is one program-graph
+  validation per owning boundary, an exit-zero oracle artifact inside 30
+  minutes, then the existing bounded bootstrap gate.
 - After the integrated oracle artifact exists, the next independent CI
   executable blocker is the general multi-routine call graph: the current
   terminal owners admit exact three-routine families, while

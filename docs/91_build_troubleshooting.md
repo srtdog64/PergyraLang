@@ -5896,6 +5896,18 @@ green으로 만들지 말고, integrated build 경계에서 별도 30분 예산�
 20 GiB 재발 증거가 아니라 약 1.2--1.3 GiB의 장시간 CPU-bound post-semantic 표본이다.
 동시 실행 때문에 wall time은 무효이며, executable artifact 성공도 아직 미증명이다.
 
+같은 ownership/namespace 교정 checkpoint를 대상으로 2026-08-09에 실행한 fresh 단일
+표본도 1,804초 integration budget에서 timeout 124로 끝났다. Timeout 직후 compiler는
+`0 error(s), 3 warning(s)`만 기록한 채 계속 살아 있었고, stdout과 executable artifact는
+비어 있었다. 자식은 console host뿐이었으며 `gcc`, `clang`, `cc1`은 없었다. 이 시점의
+단일 `pgy` peak working set은 1,229,676,544 bytes(약 1.145 GiB), peak paged memory는
+1,395,331,072 bytes(약 1.300 GiB), CPU time은 약 1,810초였다. 따라서 이 결과는 20 GiB
+재발이나 host C compiler 지연이 아니라 **post-semantic self-host projection/materialization
+미완주**다. 외부 timeout이 PID를 회수하지 않았으므로 해당 PID가 자연 종료하고 artifact
+유무가 확정되기 전에는 같은 표본을 다시 시작하지 않는다. 다음 측정은 timeout 상향이나
+상시 memory sampling이 아니라, 이 한 실행에서 program graph admission/readiness가 owner
+경계별로 몇 번 수행되는지와 최초 artifact materialization stage를 식별해야 한다.
+
 재발 방지 래칫은 다음을 유지한다.
 
 - ownership campaign budget/skip 파일은 제거한다. `0` budget 뒤에도 남은
