@@ -6062,3 +6062,169 @@ Emitter는 place-kind 부재와 known binding의 C-name 부재를 같은 진단�
 
 즉 동일한 오류 문구는 동일한 소유 사실을 검증했다는 증거가 아니다. Negative gate는
 의도한 전제까지 도달했음을 독립적으로 증명해야 한다.
+
+## 전체 MIR oracle이 routine 1520에서 loop reachability mismatch로 멈추는 경우
+
+2026-08-09 DIR의 중복 ResourceFlow snapshot을 제거한 뒤 full native oracle은
+`dir_validate`를 통과해 MIR routine 1520
+`SkipWhitespaceAndCommentsWithin`까지 도달했고 다음 진단으로 멈췄다.
+
+```text
+MIR loop reachability fact disagrees with CFG
+```
+
+loop reachability owner의 계산은 맞았다. native C backend가 `inout` aggregate를 분기에서
+재바인딩한 뒤 merge PHI를 일반 use가 없다는 이유로 DCE하고, 함수 출구에서 원래 copy-in
+local을 caller에 다시 쓰고 있었다. 그 결과 continue/break snapshot append가 모두
+사라져 self-host loop fact와 CFG 관찰이 달라졌다.
+
+교정 경계는 loop scanner가 아니라 MIR value-result ABI다.
+
+- `MIR_PARAM_CARRIAGE_VALUE_RESULT` parameter와 같은 `slot_anchor`를 가진 merge PHI는
+  함수 출구 copy-out의 암묵적 use로 보존한다.
+- 일반 dead merge PHI는 계속 제거한다. DCE 전체 비활성화는 허용하지 않는다.
+- C backend는 현재 block의 active SSA를 copy-out한다.
+- LLVM MIR backend는 generic copy-in alloca를 다시 읽지 않고
+  `MIRBasicBlock.ssa_exit_values`의 현재 parameter version과 exact `LLVMMirVar` storage를
+  결합한다. exit row가 없으면 version zero, row가 있으면 그 row가 권위이며 storage가
+  없거나 중복되면 fail closed한다.
+- 호출자가 없어진 generic copy-in-storage writeback은 병행 보존하지 않고 제거한다.
+  Backend fail-closed gate가 그 함수와 호출의 재도입을 거부한다.
+
+`inout_branch_rebind_copyout`은 C/LLVM equality만 검사하지 않고 독립 expected stdout
+`7\n9\n`을 양 backend에 각각 적용한다. 그렇지 않으면 두 backend가 함께 `1\n2\n`을
+출력해도 거짓 green이 된다. Windows CRLF는 비교 전에 정규화한다. 이 fixture와 MIR DCE
+unit은 각각 실행 의미와 선택적 PHI 보존을 소유한다.
+
+## full MIR parity 뒤 gen2가 intent semantic carrier 누락으로 멈추는 경우
+
+같은 2026-08-09 통합 실행은 185,290,446-byte full MIR을 seed와 native oracle이 바이트
+동일하게 만든 뒤, `gen2_emit`에서 17분 후 다음 진단으로 자연 종료했다.
+
+```text
+MIR-LOWER ERROR: MIR intent step semantic carriers are incomplete
+```
+
+누락된 것은 임의의 carrier가 아니었다. `MiddleEndPipeline.Check`,
+`MiddleEndPipeline.Lower`, `BackendPipeline.Emit`은 중첩 intent가 최종 action의
+`requires/within/authorized by self` 계약을 소비하므로 orchestration step에 같은 권한을
+다시 쓰지 않는다. native MIR도 이 세 step에 `IntentAuthorizedBy`와 `Authorize` row를
+발행하지 않았다. self-host MIR-to-AST consumer만 모든 step에 직접 authority row 정확히
+하나를 요구했고, compiler-world gate는 동시에 이 세 source clause의 재도입을 금지하면서
+AST에서는 모든 step의 직접 carrier를 요구하는 상충 규칙을 갖고 있었다.
+
+교정 규칙은 다음과 같다.
+
+- 직접 authority carrier는 최대 하나이며, 있으면 `who`와 같아야 한다.
+- 직접 carrier가 없으면 `on:`의 exact direct target이 유일한 declared intent여야 한다.
+- terminal member action으로 위임하는 step은 participant alias의 declared subject type과
+  유일한 action 계약을 결합하고, 그 action이 `requires`, `within`,
+  `authorized by self`를 모두 소유해야 한다.
+- delegated nested-intent step에는 빈 `AuthorizedBy`를 합성하거나 action 계약을 복제하지
+  않는다. terminal action step의 권한은 그대로 보존한다.
+- semantic authority row와 resource `Authorize` row의 유무는 함께 검증한다.
+
+`intent_nested_direct` fixture는 outer orchestration에서 중복 authority clause를 제거한
+상태로 native MIR -> self-host MIR lower -> self-host codegen -> C 실행을 거치며, terminal
+action의 authority가 남고 outer intent에는 `AuthorizedBy`가 생기지 않는 것을 함께
+검사한다. compiler-world gate도 “직접 carrier 하나 또는 declared intent/action 계약으로
+유일 위임”을 검사해야 하며 특정 step 이름 목록이나 모든-step-exact-one 규칙으로
+되돌아가면 안 된다.
+
+교정 후 동일한 185,290,446-byte full MIR은 self-host lower에서 1,323,187 ms에 exit 0,
+stderr 0으로 끝나 8,497,137-byte UTF-8 recursive AST를 냈다. 마지막 관찰값은 약
+685 MiB working set / 718 MiB private였다. 따라서 이 carrier 결함과 앞선 DIR/loop
+결함은 program-scale 경로에서 실제로 통과했다.
+
+다음 self-host codegen은 별도 문제다. 그 8.50 MB AST를 입력했을 때 34초에 private
+약 1.38 GiB, 83초에 약 3.35 GiB, 중단 직전 118초에 약 3.42 GiB까지 증가했고 C와
+diagnostic은 모두 0 byte였다. 이 시점에는 테스트 전수 실행이나 bootstrap generation
+반복이 없으므로 “테스트가 무거워서”라는 설명은 기각된다. standalone codegen의
+program-global 분석 또는 materialization에서 artifact publication 전에 반복 소유 연산이
+발생한 것이다.
+
+이 경우 메모리 상한, timeout, worker, shard, cache를 먼저 늘리지 않는다. 3 GiB 경계를
+넘긴 task-owned codegen만 중단하고 lower artifact와 종료 receipt를 보존한다. 다음 실행은
+AST parse, semantic fact-family 구성, admitted codegen view, definition emission 사이의 기존
+owner 경계만 opt-in stage receipt로 표시하고, 마지막 완료 stage 다음의 첫 미완료 owner를
+하나만 교정한다.
+
+## MIR-to-C expression graph에서 private memory가 3 GiB로 급증하는 경우
+
+2026-08-09에는 위 standalone codegen 관찰만으로 emission/type environment를 원인으로
+지목하지 않았다. 같은 입력을 production 경계별로 분리한 결과는 다음과 같았다.
+
+| 경계 | 결과 | peak private |
+|---|---:|---:|
+| recursive AST `codegen --check` | exit 0, 3.276 s | 0.752 GiB |
+| current codegen source -> 84,972,718-byte MIR | exit 0, 22.791 s | 1.024 GiB |
+| old installed driver MIR -> C | 270.371 s에 3 GiB cap | 3.428 GiB |
+
+마지막 실행은 `mir-to-ast:done` 직후 약 1.25초 동안 private memory가 약 372 MiB에서
+3.428 GiB로 뛰었고, 마지막 receipt는
+`consumer:expression-graph:surface-row:36864`였다. 입력은 2,774 routines,
+45,071 instructions, 45,588 persisted graphs, 257,457 graph nodes를 가진다. 한 giant
+graph가 아니라 1,917개의 producer-only collection parser bridge가 누적 graph를
+반복 처리하는 구조였다.
+
+직접 원인은 `MirExpressionGraphSequenceAppendParserBridge`가 새 topology를 붙인 뒤
+`SemanticExpressionGraphArenaFromTopology`을 호출한 것이다. 이 constructor는 누적된
+전체 node count만큼 다음 identity 배열 세 개를 새로 만들었다.
+
+```text
+call_target_syntax_ids
+binding_kinds
+binding_ordinals
+```
+
+배열 capacity doubling까지 반영하면 현재 source order에서 이 경로만 약 10.014 GiB의
+capacity allocation을 요구한다. 기존 identity buffers는 다음 sequence에서 떨어지고
+self-host runtime은 이 수명의 transient allocation을 즉시 회수하지 않는다. 따라서
+3 GiB는 테스트 전수 실행, LLVM, worker 수, 또는 하나의 거대한 graph 때문이 아니었다.
+
+교정 규칙은 다음과 같다.
+
+- `MirExpressionGraphSequence`의 admitted identity prefix가 owner다.
+- parser bridge는 기존 세 배열의 길이가 topology offset과 같은지 fail-closed로 확인한다.
+- 새 parser node에만 `0 / binding-none / -1` identity를 append한다.
+- `SemanticExpressionGraphArenaFromTopologyWithIdentities`로 기존 prefix를 보존한다.
+- node를 추가하지 않는 intent target projection은 identity rows를 그대로 전달한다.
+- 두 consumer 안에서 whole-prefix Unknown constructor가 다시 나타나면 structural negative가
+  실패한다.
+- executable fixture는 nonzero call-target ID와 formal binding ordinal이 bridge/projection
+  전후 byte/value equal인지 검사한다. 단순 길이 equality만으로 승인하지 않는다.
+
+교정 후 동일한 84,972,718-byte MIR의 bounded integration은 다음과 같이 완주했다.
+
+```text
+mir-to-ast:done                              285.379 s
+expression-graph:sequence:done:valid:true   286.025 s
+expression-graph:done                       286.069 s
+c-emission:done / exit 0                    320.355 s
+peak private                                0.924 GiB
+peak working set                            0.849 GiB
+C artifact                                  3,956,147 bytes
+```
+
+5분 focused 표본도 peak private 0.682 GiB로 expression graph를 통과해
+`semantic-body-type-stage generic:start`까지 도달했다. 그 표본의 timeout은 memory failure가
+아니며, 30분 integration budget에서 exit 0을 따로 관찰했다.
+
+### bootstrap carrier에서 함께 드러난 별도 경계
+
+native source-to-executable 한 번에 seed를 만들면 native compiler가 약 1.9 GiB를 보유한
+상태에서 host `cc1`이 약 1.7 GiB를 사용해 process tree peak가 3.005 GiB가 됐다. 기존
+`--emit-c` 경계로 수명을 분리하면 Pergyra-to-C는 49.576 s / 1.901 GiB, host compile은
+92.826 s / 1.702 GiB에 각각 끝났다. 이는 cap을 올린 최적화가 아니라 두 owner artifact의
+수명을 겹치지 않은 bootstrap 절차다.
+
+또한 native-generated runtime은 `PGY_RUNTIME_MAX_FILE_BYTES=64 MiB`를 적용하지만 현재
+설치된 구 self-host driver는 위 84.9 MB MIR을 읽는다. 원인성 측정 carrier는 설치 binary의
+관찰된 입력 능력과 맞추기 위해 임시로만 96 MiB compile-time 값을 사용했다. repository의
+file cap은 바꾸지 않았고 이 carrier를 설치하지도 않는다. 최종 해결은 global cap 증가가
+아니라 large compiler artifact를 소유하는 별도 입력 protocol 또는 양 generation runtime의
+동일한 fail-closed 계약이다.
+
+이 결함에서 금지되는 대응은 memory/file cap 상향, timeout 상향, cache/query engine,
+worker/shard 추가, graph row 축소, native release fallback이다. 먼저 반복된 owner 연산을
+제거하고 같은 production-sized artifact로 peak와 exit-zero publication을 함께 증명한다.

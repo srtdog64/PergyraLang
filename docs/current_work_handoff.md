@@ -6,60 +6,178 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - native oracle is RED at DIR validation
+## Active self-host context - expression-graph memory blocker is closed; installed bootstrap is next
 
-- Verified checkpoint: `7946cbc3731bc91005f99cd059cffa7fc0e97060`
-  on `main`. The compiler rung is dirty with the bounded DIR/HIR change named
-  below. Preserve the separate user-owned stdlib work: modified
-  `docs/138_standard_library_scope.md` and `docs/148_stdlib_architecture.md`;
-  untracked `stdlib/math.pgy`, `stdlib/pgy_math_registry.pgy`, and
-  `tests/cases/stdlib_math_matrix/`.
-- Active executable rung: make the native compile of
-  `src/self_hosted/compiler/driver_rung2_main.pgy`
-  (`--native-pipeline --backend=c`) pass the fixed 30-minute integration
-  budget and publish an exit-zero executable. Ownership errors remain closed
-  at `256 -> 206 -> 153 -> 14 -> 0`; `0 error(s)` is only the semantic-stage
-  receipt, not an executable-oracle success.
-- Existing opt-in `PGY_DEBUG_PIPELINE_STAGE=1` receipts narrowed the first open
-  phase from the whole post-semantic pipeline to exactly `dir_validate`:
-  `module_load -> semantic -> hir_lower -> dir_lower -> dir_validate`, with no
-  later `rir_lower` receipt. The old `bin/pgy.exe` process is PID `7892`. Its
-  wrapper recorded `timeout=1800000; child_not_terminated=true`; at that
-  boundary it still used one CPU core, 1.13 GB (about 1.06 GiB) working set and
-  1.29 GB (about 1.20 GiB) private memory, had emitted no artifact, and remained
-  alive. Do not overlap a
-  second oracle sample or terminate it; first observe its natural exit.
-- The reached structural candidate was a forbidden duplicate fact path.
-  Semantic `ResourceFlowUniverse` rows were attached and validated as
-  routine-local HIR facts, then flattened, deep-copied into DIR, and globally
-  revalidated even though DIR had no semantic consumer. The dirty change
-  removes that DIR snapshot and its legacy lowering entrypoint. HIR remains
-  the validated adapter; RIR/MIR consume the routine-local rows. No qsort,
-  cache, timeout increase, count cap, or second fact owner was added.
-- Current focused evidence on the dirty tree is green: isolated native
-  compiler build `121.2s`; DIR `15/15`; RIR/domain identity `26/26`; MIR
-  `159/159`; C transpiler `923/923`; the HIR-only ResourceFlow negative gate
-  passes. These prove API/consumer closure and missing/duplicate fail-closed
-  behavior, but do not yet prove that the production-sized oracle leaves
-  `dir_validate`.
-- Next falsifying case: after PID `7892` exits naturally, run the isolated
-  `.tmp/bin-dir-sot/pgy.exe` on the same source and options with
-  `PGY_DEBUG_PIPELINE_STAGE=1`, bounded to 240 seconds. The present seam is
-  causally closed only if `rir_lower` appears after `dir_validate`. If it does
-  not, instrument only the remaining DIR node/topology/runtime/intent
-  validator reached by that run; do not optimize all validators together.
-- Objective card: production entry is the native compile above; fact owner is
-  HIR routine-local `resource_flow_symbols`; last legitimate consumers are
-  RIR/MIR; forbidden fallback is any DIR/global reserialization, repeated
-  whole-program validation, cache/shard/worker, timeout increase, or oracle
-  skip. Acceptance is HIR duplicate/missing negatives plus production
-  `rir_lower` reachability, followed by an exit-zero artifact inside 30 minutes.
-- Latest observed GitHub run `31280970113` is still a chronically-red baseline,
-  not a new green claim. Fixed-point codegen, sanitizers, TSan, Rocq, and all
-  completed backend-compare shards are green. macOS independently reports
-  `language-word implementation inventory drifted` and
-  `MIR intent step semantic carriers are incomplete`; keep those as the next
-  executable CI blockers after this one active performance rung closes.
+- Verified code checkpoint: `ca60298e` on `main`. The expression-graph identity
+  prefix correction is `8d3c913f`; the non-fragmenting scalar-CFG readiness and
+  stale ownership-gate repair is `ca60298e`. Preserve the
+  separate user-owned stdlib work: modified `docs/138_standard_library_scope.md`
+  and `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
+  `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`.
+- Active executable rung: rebuild the Pergyra-built codegen/driver generation
+  from current `ca60298e` (which contains `8d3c913f`), install that artifact,
+  and run the same full MIR-to-C request.
+  The native-generated measurement carrier below proves the owner correction
+  but is not `SUBSTITUTING` self-host progress and must not be installed as the
+  released driver.
+- Exact input evidence: the production MIR is 84,972,718 bytes and contains
+  2,774 routines, 45,071 instructions, 45,588 persisted expression graphs,
+  257,457 graph nodes, and 1,917 producer-only collection parser-bridge
+  occurrences (`ArrayPush` 1,448, `ArraySet` 450, `ArrayPop` 19).
+- Root cause: `MirExpressionGraphSequenceAppendParserBridge` appended topology
+  rows, then called `SemanticExpressionGraphArenaFromTopology`. That constructor
+  allocated three Unknown identity arrays for the entire cumulative graph on
+  every bridge occurrence. The same old constructor in
+  `MirIntentExecutionGraphTargetProject` also discarded admitted identity rows.
+  Source-order simulation gives about 10.014 GiB of capacity allocation for the
+  parser bridge alone; a cache, worker, shard, or larger memory limit would only
+  hide the repeated owner operation.
+- The committed correction preserves the admitted prefix identity arrays,
+  validates their lengths against the topology offset, appends `0 / none / -1`
+  only for new parser nodes, and reconstructs through
+  `SemanticExpressionGraphArenaFromTopologyWithIdentities`. Intent target
+  projection adds no nodes and therefore passes the exact existing identities.
+  Negative structural gates reject reintroduction of the whole-prefix Unknown
+  constructor in either consumer.
+- Focused evidence is green. The existing collection graph-use owner gate
+  passes, and `expression_graph_identity_prefix_owner_smoke.sh` completes in
+  54.3 seconds. Its executable falsifier starts with nonzero
+  `call_target_syntax_id=713`, formal binding kind, and ordinal 4; those values
+  must survive parser bridging and intent target projection. Installed self-host
+  C and native LLVM both print exact `expression-graph-identity-prefix-ok`.
+  Installed self-host LLVM still rejects this multi-routine import closure at
+  its known bounded terminal projector; the gate records native LLVM evidence
+  rather than silently skipping that independent blocker.
+- Before the fix, the installed driver reached `mir-to-ast:done`, then rose from
+  roughly 372 MiB private to 3.428 GiB during expression-graph surface assembly
+  and was stopped at 270.371 seconds with no artifact. With the corrected
+  measurement carrier, the same input reached `mir-to-ast:done` at 285.379
+  seconds, `expression-graph:sequence:done:valid:true` at 286.025 seconds, and
+  `expression-graph:done` at 286.069 seconds. The full integration exited 0 at
+  320.355 seconds, peaked at 0.924 GiB private / 0.849 GiB working set, reached
+  `consumer:c-emission:done`, and emitted a 3,956,147-byte C artifact.
+- The measurement carrier exposed two separate bootstrap contracts. A monolithic
+  native source-to-executable build crossed 3 GiB because the native compiler
+  retained about 1.9 GiB while `cc1` allocated about 1.7 GiB. Splitting existing
+  `--emit-c` and host compilation completed in 49.576 seconds / 1.901 GiB and
+  92.826 seconds / 1.702 GiB respectively. Also, native-generated runtime headers
+  enforce a 64 MiB file-read limit while the currently installed old self-host
+  driver reads this 84.9 MB MIR. The final measurement carrier used a temporary
+  96 MiB compile-time read limit only to match the installed binary's observed
+  input capability; no repository cap was changed. This runtime-contract drift
+  remains RED and must not be mistaken for the memory fix.
+- Structural gate maintenance found and corrected a C-function extraction bug:
+  the Pergyra `^func` scanner had read a C helper through EOF and falsely blamed
+  a later function's `lookup_typed_var`. The C helper is now scoped through its
+  column-zero closing brace. Four remaining hard-cap drifts were restored
+  without raising any cap. Value-name/local-row/definition-block readiness was
+  folded into its existing `DirectMirScalarCfgLocalRefPlan` owner instead of
+  adding another owner file. The exhaustive `require_max_lines` census now has
+  zero missing or over-cap files; current owner import closure compiles with
+  `0 error(s), 0 warning(s)`, and the scalar routine-partition plus exact C/LLVM
+  graph projection gates are green. The full component inventory still has no
+  final end-to-end green receipt because it did not complete inside the
+  60-second static-gate budget.
+- Next falsifying case: produce a current Pergyra-built codegen/driver artifact
+  without overlapping compiler and host-compiler lifetimes; install it only
+  after its bounded source smoke passes. Then require the installed driver to
+  consume the exact 84,972,718-byte MIR below 3 GiB, reach
+  `expression-graph:sequence:done`, exit 0, and emit the same C artifact class.
+  Separately reconcile the 64 MiB runtime read contract with the installed
+  driver's observed capability through an owned large-artifact input protocol;
+  do not raise the global file cap as an incidental fix.
+- Objective card: production entry is installed `pgy-self-driver --mir-json`;
+  fact owner is the `MirExpressionGraphSequence` identity prefix; last legitimate
+  consumers are parser bridge and intent target projection; forbidden fallbacks
+  are whole-prefix Unknown reconstruction, identity reset, native-driver release,
+  file/memory cap increase, cache, shard, worker, timeout increase, or skipped
+  parity. Acceptance is an installed Pergyra-built exit-zero artifact under the
+  existing 3 GiB memory boundary plus the independent runtime input-contract
+  decision.
+
+## Historical checkpoint - full MIR parity and delegated-intent closure (inactive)
+
+- Verified compiler checkpoint: `219f8568` on `main`. The DIR/HIR
+  ResourceFlow, branch-merged `inout` copy-out, and delegated intent authority
+  changes are committed locally; push remains pending with this handoff.
+  Preserve the separate user-owned stdlib
+  work: modified `docs/138_standard_library_scope.md` and
+  `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
+  `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`. The
+  remaining task-owned tracked edits are documentation only.
+- Active executable rung: make the Pergyra-built driver finish `gen2_emit`
+  after the already-green full MIR seed/oracle parity, then prove the next
+  generation rather than counting owner files or structural gates as
+  self-host progress.
+- Production evidence has moved beyond the previous DIR checkpoint. The
+  isolated full bootstrap produced a 5,119,918-byte seed driver and a
+  5,558,484-byte native oracle driver. Seed and native oracle each emitted an
+  exact 185,290,446-byte full MIR (`~81s` and `~162s`) and the comparator found
+  them byte-identical. This proves the committed DIR ResourceFlow closure and
+  passes the former routine-1520 loop reachability boundary.
+- Routine 1520 failed because branch-merged `inout` values were not considered
+  implicit MIR exit uses. DCE removed their merge PHIs, C wrote the stale
+  copy-in local, and LLVM also read its stale parameter alloca. The committed
+  change preserves only value-result parameter PHIs and makes LLVM MIR
+  copy-out consume the block's exact `ssa_exit_values`; the now-unreferenced
+  generic stale-storage writeback was deleted and negative-gated. The
+  independent runtime fixture now requires both C and LLVM to print exact `7`
+  then `9`; three adjacent inout parity cases and the selective-DCE unit are
+  green.
+- With that seam closed, `gen2_emit` ran for about 17 minutes and failed
+  naturally at `MIR intent step semantic carriers are incomplete`. Peak
+  observed memory was about 603 MB working set / 624 MB private, not the former
+  20 GB symptom. The exact missing direct carriers are
+  `MiddleEndPipeline.Check`, `MiddleEndPipeline.Lower`, and
+  `BackendPipeline.Emit`.
+- These three steps deliberately delegate to a declared nested intent/action
+  contract and must not duplicate `requires/authorized by` at the outer
+  orchestration step. The self-host MIR-to-AST consumer nevertheless required
+  one direct authority row for every step, while the compiler-world gate both
+  forbade those source clauses and required the resulting AST carrier. The
+  committed change admits either one exact direct carrier or one exact declared
+  intent/action delegation, retains terminal action authority, emits no blank
+  outer `AuthorizedBy`, and keeps missing/duplicate/mismatched facts
+  fail-closed.
+- Focused evidence is green: MIR unit `160/160`; C/LLVM inout parity `3/3`;
+  MIR declaration inventory and backend fail-closed gates; exact native MIR ->
+  updated self-host lower -> updated self-host codegen -> host C execution of
+  `intent_nested_direct` with output `nested-intent-direct-ok`; and the
+  compiler-world source/AST authority gate. The full `mir_json_parity.sh`
+  wrapper did not finish its tool rebuild inside the focused five-minute
+  budget, so its result is not claimed.
+- The program-scale self-host lower over the exact 185,290,446-byte driver MIR
+  completed naturally in 1,323,187 ms with exit code 0, zero stderr, and an
+  8,497,137-byte UTF-8 recursive AST. Last observed resource use before exit
+  was about 685 MiB working set / 718 MiB private. That executable contained
+  the delegation correction; the subsequent stricter all-`Authorize` row
+  count is separately compiled and green on the positive fixture plus the
+  undeclared-delegation negative. Do not overstate the full run as evidence
+  for that later negative-only tightening.
+- The next self-host codegen pass exposed a distinct memory blocker. Over the
+  exact 8.50 MB recursive AST it grew from about 1.38 GiB private at 34 seconds
+  to 3.35 GiB at 83 seconds and 3.42 GiB at 118 seconds, while both C output
+  and diagnostics remained empty. The task-owned process was stopped after it
+  crossed the 3 GiB observation boundary; no unrelated process was touched.
+- Next falsifier: reuse the existing codegen pressure-stage vocabulary through
+  one opt-in standalone diagnostic route, and repeat only until the first
+  incomplete owner boundary or 3 GiB. The current last completed substage is
+  `Unknown`, because the normal standalone route hardcodes pressure observation
+  off before semantic admission. Do not infer the culprit from memory growth
+  alone, and do not raise timeout/memory/count caps or introduce a cache,
+  shard, query engine, worker, or native fallback.
+- Objective card: production entry is the full bootstrap `gen2_emit`; the
+  intent fact owner and MIR-lower consumer are now green through program-scale
+  recursive AST publication. The open owner is the first incomplete
+  standalone-codegen pressure stage, not yet known. The last consumer is C
+  artifact publication. Forbidden fallbacks are all-step authority synthesis,
+  step-name allowlists, blank carriers, duplicated clauses, native C fallback,
+  skipped oracle parity, memory/timeout increases, cache, shard, or worker.
+  Acceptance is one bounded full-AST codegen artifact below the existing 3 GiB
+  observation boundary, followed by the bootstrap generation comparison.
+- Latest pushed GitHub run before this rung is `31282935770`. It is not a
+  green claim. Evaluate its failures against the exact revision and do not mix
+  them with local post-commit evidence.
 
 ## Historical checkpoint archive - inactive navigation evidence
 
