@@ -30,6 +30,8 @@ OPERATOR_FACTS="src/self_hosted/semantic/expression_operator_fact_owner.pgy"
 EXPR_TYPES="src/self_hosted/semantic/expr_type_owner.pgy"
 EXPR_VALIDATION="src/self_hosted/semantic/expr_validation_owner.pgy"
 CALLABLE_RESOLUTION="src/self_hosted/semantic/callable_resolution_owner.pgy"
+GENERIC_CALL="src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy"
+IDENTITY_RESOLUTION="src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy"
 DELIMITED_FACTS="src/self_hosted/semantic/delimited_range_fact_owner.pgy"
 CALL_CHECK="src/self_hosted/semantic/call_check_owner.pgy"
 TYPE_CANONICAL="src/self_hosted/semantic/ast_type_name_canonical_owner.pgy"
@@ -88,6 +90,32 @@ require_text "$CALLABLE_RESOLUTION" \
     "func SemanticCallableNameRangeValid"
 require_text "$CALLABLE_RESOLUTION" \
     'return StringReplace(source_name, ".", "_");'
+require_text "$CALLABLE_RESOLUTION" \
+    "func SemanticCallableCanonicalDeclaredNameEquals("
+callable_predicate_region="$(sed -n \
+    '/func SemanticCallableCanonicalDeclaredNameEquals/,/^}/p' \
+    "$CALLABLE_RESOLUTION")"
+grep -Fq "SubEqualsWithLen(" <<<"$callable_predicate_region" ||
+    fail "canonical callable comparison lost exact range ownership"
+if grep -Fq "Concat(" <<<"$callable_predicate_region"; then
+    fail "canonical callable comparison reopened owned string materialization"
+fi
+for callable_compare_owner in \
+    "$GENERIC_CALL:func SemanticGenericCallSignatureIndex" \
+    "$IDENTITY_RESOLUTION:func SemanticExpressionDirectTargetSyntaxId"
+do
+    callable_compare_path="${callable_compare_owner%%:*}"
+    callable_compare_function="${callable_compare_owner#*:}"
+    callable_compare_region="$(sed -n \
+        "/$callable_compare_function/,/^}/p" "$callable_compare_path")"
+    grep -Fq "SemanticCallableCanonicalDeclaredNameEquals(" \
+        <<<"$callable_compare_region" ||
+        fail "$callable_compare_function lost allocation-free canonical comparison"
+    if grep -Fq "SemanticCallableCanonicalDeclaredName(" \
+        <<<"$callable_compare_region"; then
+        fail "$callable_compare_function reopened canonical name materialization"
+    fi
+done
 if grep -Fq "CharAt(" "$CALLABLE_RESOLUTION"; then
     fail "callable resolution reopened allocating character reads"
 fi
@@ -148,7 +176,8 @@ require_text "$EVIDENCE" '"char_at_reduction_percent": 60.4'
 require_text "$EVIDENCE" \
     '"performance_verdict": "cpu-neutral-allocation-surface-reduction"'
 
-callable_owner_hash="$(owner_set_sha256 "$CALLABLE_RESOLUTION")"
+callable_owner_hash="$(owner_set_sha256 \
+    "$CALLABLE_RESOLUTION" "$GENERIC_CALL" "$IDENTITY_RESOLUTION")"
 require_text "$EVIDENCE" "\"owner_set_sha256\": \"$callable_owner_hash\""
 require_text "$EVIDENCE" '"char_at_calls_after": 776073'
 require_text "$EVIDENCE" '"cumulative_char_at_reduction_percent": 72.8'

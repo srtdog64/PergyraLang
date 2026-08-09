@@ -1,0 +1,5 @@
+callable-compare=exact index=0 syntax=101
+callable-compare=empty-owner index=1 syntax=202
+callable-compare=missing generic=none syntax=0
+callable-compare=collision generic=0 syntax=-1
+callable-compare=invalid-node generic=0 syntax=-1

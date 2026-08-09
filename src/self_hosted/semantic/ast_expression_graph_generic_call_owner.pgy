@@ -51,9 +51,9 @@ func SemanticGenericCallSignatureIndex(
         if !IsSome(owner) || !IsSome(name) {
             return None;
         }
-        if SemanticCallableCanonicalDeclaredName(
-            UnwrapOption(owner), UnwrapOption(name)
-        ) == callable_name {
+        if SemanticCallableCanonicalDeclaredNameEquals(
+            UnwrapOption(owner), UnwrapOption(name), callable_name
+        ) {
             return Some(i);
         }
         i = i + 1;

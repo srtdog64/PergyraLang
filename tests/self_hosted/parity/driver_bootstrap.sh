@@ -196,17 +196,19 @@ if grep -q '^CODEGEN ERROR' "$BUILD_DIR/driver_seed.c"; then
 fi
 compile_c "driver_seed" "$BUILD_DIR/driver_seed.c" "$BUILD_DIR/driver_seed.exe"
 
-echo "[self-host-driver-bootstrap] compiling oracle driver"
-# --native-pipeline: the oracle must be native; undeclared, this delegates
-# to the very driver being bootstrapped (fails driverless; not an oracle).
+echo "[self-host-driver-bootstrap] emitting native oracle C"
+# Keep native compilation and host C compilation in separate lifetimes.
+rm -f "$BUILD_DIR/driver_oracle.c"
 if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$DRIVER_SOURCE")" \
     --native-pipeline \
-    --backend=c -o "$(pgy_path_for_compiler "$PGY" "$BUILD_DIR/driver_oracle.exe")" \
-    >"$BUILD_DIR/driver_oracle.compile.log" 2>&1); then
-    echo "[self-host-driver-bootstrap] oracle driver compile failed" >&2
-    tail -c 65536 "$BUILD_DIR/driver_oracle.compile.log" >&2 || true
+    --emit-c -o "$(pgy_path_for_compiler "$PGY" "$BUILD_DIR/driver_oracle.c")" \
+    >"$BUILD_DIR/driver_oracle.emit.log" 2>&1); then
+    echo "[self-host-driver-bootstrap] oracle driver C emission failed" >&2
+    tail -c 65536 "$BUILD_DIR/driver_oracle.emit.log" >&2 || true
     exit 1
 fi
+[[ -s "$BUILD_DIR/driver_oracle.c" ]] || { echo "[self-host-driver-bootstrap] oracle emitted no C" >&2; exit 1; }
+compile_c "driver_oracle" "$BUILD_DIR/driver_oracle.c" "$BUILD_DIR/driver_oracle.exe"
 
 run_driver_to_file "sample_self" "$BUILD_DIR/driver_seed.exe" "$SAMPLE_SOURCE" "$BUILD_DIR/sample_self.c"
 run_driver_to_file "sample_oracle" "$BUILD_DIR/driver_oracle.exe" "$SAMPLE_SOURCE" "$BUILD_DIR/sample_oracle.c"

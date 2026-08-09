@@ -14,6 +14,10 @@
       "src/self_hosted/semantic/text_scan_owner.pgy"
     ]
   },
+  "current_owner_hashes": {
+    "measured_at": "2026-08-09",
+    "owner_set_sha256": "5B6DFCD460486EDB9B6AEDCCE0ACCE0F15BA73ACBD543B9EA01E1B926671AEA9"
+  },
   "current_scan_owner_closure": {
     "measured_at": "2026-07-30",
     "owner_set_sha256": "2C1267703948A3A57B05948448D65FD3E852CEFAB0C3651424F4167A985C4905",
@@ -60,6 +64,49 @@
     "char_at_reduction_percent": 31.2,
     "cumulative_char_at_reduction_percent": 72.8,
     "performance_verdict": "cpu-inconclusive-allocation-surface-reduction"
+  },
+  "semantic_callable_canonical_compare": {
+    "measured_at": "2026-08-09",
+    "source_revision": "1c24b0d5+task-owned-dirty",
+    "owner_set_sha256": "B37B4A7ED913D5BB2DAB63D63F62906401BC216E9635F9682F0A1660B936CE73",
+    "owner_files_sha256": {
+      "src/self_hosted/semantic/callable_resolution_owner.pgy": "DE376EFA2860286C2B5778526B79B92325105C744B5561BCC23428666E746AA0",
+      "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy": "6A4F529B4B2B4EBB6278CE6342EB4FCA82494EB2F7BCA18820A92421F78E8EFA",
+      "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy": "BB6CD3C2A644209D4715091BEB0095707DDE1F625B3BFF95EF39ADFC43DFB940"
+    },
+    "input": {
+      "path": ".tmp/self_hosted/driver/bootstrap/driver_bootstrap.ast.txt",
+      "bytes": 8027242,
+      "sha256": "746E94624ABA1362F183E575C0F0A6A76BF5D0EFCEB7D06097B8F4198E3EA410"
+    },
+    "previous_near_scale_run": {
+      "input_bytes": 8025579,
+      "function_definitions": 6020,
+      "elapsed_ms": 133235,
+      "peak_private_mb": 3059.2,
+      "generic_done_private_mb": 1797.0,
+      "verdict_done_private_mb": 2194.6,
+      "comparison_limit": "input hash differs; use only as near-scale retained-memory evidence"
+    },
+    "allocation_free_compare_run": {
+      "input_bytes": 8027242,
+      "function_definitions": 6022,
+      "elapsed_ms": 127451,
+      "peak_private_mb": 1992.9,
+      "generic_done_private_mb": 1229.8,
+      "verdict_done_private_mb": 1302.6,
+      "attention_required": false
+    },
+    "native_self_host_parity": {
+      "native_elapsed_ms": 199188,
+      "self_host_elapsed_ms": 127451,
+      "native_peak_private_mb": 1740.2,
+      "self_host_peak_private_mb": 1992.9,
+      "stdout_bytes": 8603212,
+      "stdout_sha256": "9A27889DF1EA983D38B00D92D7FB9F8BE7A9B77883BC0759EBD4D0A0EE0EA9BE",
+      "byte_identical": true
+    },
+    "performance_verdict": "canonical-identity-compare-removes-hot-loop-materialization"
   },
   "semantic_delimited_range_facts": {
     "source_commit": "0f4938e0",

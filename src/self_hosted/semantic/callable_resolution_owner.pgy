@@ -65,6 +65,30 @@ func SemanticCallableCanonicalDeclaredName(
     return Concat(owner_name, Concat("_", local_name));
 }
 
+func SemanticCallableCanonicalDeclaredNameEquals(
+    owner_name: String,
+    local_name: String,
+    canonical_target: String
+) -> Bool {
+    if owner_name == "" {
+        return local_name == canonical_target;
+    }
+    let owner_length: Int = StringLength(owner_name);
+    let local_length: Int = StringLength(local_name);
+    let target_length: Int = StringLength(canonical_target);
+    return target_length == owner_length + local_length + 1 &&
+        SubEqualsWithLen(
+            canonical_target, target_length, 0, owner_length, owner_name
+        ) &&
+        SubEqualsWithLen(
+            canonical_target, target_length, owner_length, 1, "_"
+        ) &&
+        SubEqualsWithLen(
+            canonical_target, target_length, owner_length + 1,
+            local_length, local_name
+        );
+}
+
 func SemanticCallableHasLocalSuffix(
     declared_name: String,
     local_name: String
@@ -140,6 +164,16 @@ func SemanticCallableResolutionContractReady() -> Bool {
     return SemanticCallableCanonicalDeclaredName("Box", "Get") ==
             "Box_Get" &&
         SemanticCallableCanonicalDeclaredName("", "Main") == "Main" &&
+        SemanticCallableCanonicalDeclaredNameEquals(
+            "Box", "Get", "Box_Get"
+        ) &&
+        SemanticCallableCanonicalDeclaredNameEquals("", "Main", "Main") &&
+        !SemanticCallableCanonicalDeclaredNameEquals(
+            "Box", "Get", "Other_Get"
+        ) &&
+        !SemanticCallableCanonicalDeclaredNameEquals(
+            "Box", "Get", "Box_GetExtra"
+        ) &&
         IsSome(exact) && UnwrapOption(exact) == 2 &&
         IsSome(local_match) && UnwrapOption(local_match) == 0 &&
         IsSome(qualified) && UnwrapOption(qualified) == 1 &&

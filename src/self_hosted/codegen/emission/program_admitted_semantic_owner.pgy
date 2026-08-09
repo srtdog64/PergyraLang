@@ -13,11 +13,12 @@ import "../../mir/declaration_rows_owner.pgy";
 import "../../dir/domain_topology_row_owner.pgy";
 import "../../dir/domain_projection_map_row_owner.pgy";
 
-func GenerateCUnitFromAdmittedSemanticArtifact(
+func GenerateCUnitFromAdmittedSemanticArtifactObserved(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
     require_entrypoint: Bool,
-    machine_declaration: SelfHostMachineLayerDeclaration
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    observe_pressure: Bool
 ) -> String {
     if !SemanticAstArtifactAdmissionReady(
         artifact, semantic_analysis, require_entrypoint
@@ -27,8 +28,8 @@ func GenerateCUnitFromAdmittedSemanticArtifact(
     let receiver_facts: CodegenCallableReceiverFacts =
         CodegenCallableReceiverFactsFromAdmittedAnalysis(semantic_analysis);
     let bundle: SemanticAstBodyTypeBundle =
-        SemanticAstBodyTypeBundleFromAdmittedAnalysis(
-            artifact, semantic_analysis
+        SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
+            artifact, semantic_analysis, observe_pressure
         );
     // The active source-to-C rung owns only zero domain topology. Prove that
     // boundary from typed DIR rows and the exact projection-map owner; do not
@@ -58,6 +59,18 @@ func GenerateCUnitFromAdmittedSemanticArtifact(
     return GenerateCUnitFromReadySemanticFacts(
         artifact, semantic_analysis, body_types, receiver_facts,
         domain_runtime, intent_execution, require_entrypoint,
+        machine_declaration, observe_pressure
+    );
+}
+
+func GenerateCUnitFromAdmittedSemanticArtifact(
+    artifact: AstTreeArtifact,
+    semantic_analysis: SemanticAstArtifactAnalysis,
+    require_entrypoint: Bool,
+    machine_declaration: SelfHostMachineLayerDeclaration
+) -> String {
+    return GenerateCUnitFromAdmittedSemanticArtifactObserved(
+        artifact, semantic_analysis, require_entrypoint,
         machine_declaration, false
     );
 }

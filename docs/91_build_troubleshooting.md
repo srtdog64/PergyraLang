@@ -6228,3 +6228,77 @@ file cap은 바꾸지 않았고 이 carrier를 설치하지도 않는다. 최종
 이 결함에서 금지되는 대응은 memory/file cap 상향, timeout 상향, cache/query engine,
 worker/shard 추가, graph row 축소, native release fallback이다. 먼저 반복된 owner 연산을
 제거하고 같은 production-sized artifact로 peak와 exit-zero publication을 함께 증명한다.
+
+## self-host codegen이 owner-qualified callable 이름 비교에서 3 GiB에 접근하는 경우
+
+expression-graph identity prefix 결함을 닫은 뒤에도 standalone self-host codegen은
+약 8.03 MB integrated driver AST를 처리할 때 peak private 2.988 GiB까지 증가했다.
+`--check`는 같은 입력을 0.75 GiB 안에서 통과했으므로 AST read와 compact semantic
+surface는 직접 원인이 아니었다. opt-in pressure receipts로 retained memory를 나누자
+다음 두 구간이 가장 크게 증가했다.
+
+```text
+statement:done   1,207.3 MB
+generic:done     1,797.0 MB
+verdict:done     2,194.6 MB
+```
+
+두 구간의 공통 hot path는 signature row마다
+`SemanticCallableCanonicalDeclaredName(owner, local)`을 호출해
+`owner + "_" + local` 문자열을 만들고 target과 비교하는 것이었다. self-host runtime에서
+이 transient `Concat` 결과는 반복 스캔 동안 즉시 회수되지 않는다. integrated driver
+signature 6,017개 중 owner-qualified row가 33개뿐이어도, 각 expression/call 판정이 전체
+signature table을 순회하면서 같은 canonical spelling을 계속 물질화했다.
+
+교정은 cache나 별도 index가 아니다. canonical callable identity owner에
+`SemanticCallableCanonicalDeclaredNameEquals`를 두고 다음 exact range predicate를
+소유하게 했다.
+
+```text
+target length == owner length + 1 + local length
+target[0..owner) == owner
+target[owner] == "_"
+target[(owner+1)..] == local
+```
+
+owner가 비어 있으면 local과 target의 exact equality만 사용한다. source order,
+duplicate ambiguity, missing row fail-closed 규칙은 그대로이며, 실제 canonical 이름을
+저장해야 하는 다른 소비자의 materializing API는 유지한다. 단, generic signature lookup과
+direct target syntax-ID lookup 안에서는 materializing API 재도입을 structural negative로
+거부한다.
+
+교정 후 최종 8,027,242-byte AST
+(`746E9462...3EA410`)의 관측 결과는 다음과 같다. 이전 열의 입력은
+8,025,579 bytes로 현재 입력과 hash가 다르므로, 동일-input benchmark가 아니라
+near-scale retained-memory 증거로만 사용한다.
+
+| receipt | 이전 comparable run | allocation-free compare |
+|---|---:|---:|
+| `statement:done` | 1,207.3 MB | 1,161.1 MB |
+| `generic:done` | 1,797.0 MB | 1,229.8 MB |
+| `verdict:done` | 2,194.6 MB | 1,302.6 MB |
+| `entry:ready` | 2,320.3 MB | 1,313.0 MB |
+| `type-declarations:done` | 2,482.3 MB | 1,454.9 MB |
+| `definitions:done` | 3,059.2 MB | 1,992.9 MB |
+| process peak private | 3,059.2 MB | 1,992.9 MB |
+
+새 self-host run은 127.451초에 exit 0, `output:finished`까지 도달했고
+peak private 1,992.9 MB로 2.4 GiB attention threshold를 넘지 않았다. 같은 exact
+input의 native-built gen0도 199.188초, 1,740.2 MB에 exit 0이다. 두 경로의
+8,603,212-byte stdout 전체는 SHA-256
+`9A27889DF1EA983D38B00D92D7FB9F8BE7A9B77883BC0759EBD4D0A0EE0EA9BE`로 byte-identical했다.
+
+실행형 callable probe는 allocation-free predicate, generic first-match, direct syntax-ID
+exact/missing/duplicate/invalid-node 의미를 C backend에서 함께 검증한다. LLVM leg가
+`direct MIR terminal multi-routine graph is unsupported`로 닫히는 것은 이 memory seam의
+skip 사유가 아니다. 일반 multi-routine legalization의 독립 RED로 유지한다.
+
+관측 route는 기본 codegen 의미를 바꾸지 않는다. `--observe-pressure`에서만
+`input:start/done`, `artifact:start/done`, `semantic:start/done`과 기존 body/emission
+receipts를 출력한다. default wrapper는 observation을 `false`로 전달한다. 이 구분이 없으면
+첫 marker 이전의 input read, AST artifact, semantic admission을 한 원인으로 잘못 묶게 된다.
+
+이 결함에서도 금지되는 대응은 memory cap/timeout 상향, cache, query engine, shard,
+worker, signature row 축소, namespace 이름 특별처리다. 먼저 반복되는 owned allocation을
+allocation-free identity predicate로 바꾸고 동일 input에서 native/self byte parity와
+stage별 retained-memory 감소를 함께 증명한다.

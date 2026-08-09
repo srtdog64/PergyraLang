@@ -11192,3 +11192,37 @@ Released/default replacement remains 0%.
   exact `13` and `zb`; fixture routing, a second collection planner, partial
   one-type success, backend MIR reads, capacity-as-length, or native/runtime
   mutation fallback remain forbidden.
+
+## 2026-08-09 - canonical callable comparison closes the integrated codegen memory seam
+
+- The active self-host codegen did not need a cache or query engine. Two hot
+  signature scans repeatedly materialized `owner + "_" + local` with nested
+  `Concat`. The callable identity owner now compares exact string ranges
+  without allocating; only the two comparison consumers were migrated, while
+  consumers that actually store canonical names retain the materializing API.
+- The structural negative rejects materialization inside generic signature
+  lookup and direct target syntax-ID lookup. The callable contract covers
+  owner-qualified equality, empty-owner equality, foreign-owner rejection,
+  wrong-length rejection, and duplicate local-name ambiguity.
+- On the final 8,027,242-byte integrated driver AST (`746E9462...3EA410`), the
+  Pergyra-built codegen exits 0 in 127.451 seconds at 1,992.9 MB peak private.
+  The previous 3,059.2 MB measurement used a nearby 8,025,579-byte input and is
+  recorded only as near-scale evidence. `generic:done` is 1,229.8 MB and
+  `verdict:done` is 1,302.6 MB. Native-built gen0 exits 0 in 199.188 seconds at
+  1,740.2 MB, and both paths produce byte-identical 8,603,212-byte observed
+  stdout (`9A27889D...0EA9BE`).
+- The focused callable probe executes exact, missing, canonical-collision, and
+  invalid-node semantics through both hot consumers on C. Its LLVM leg remains
+  RED at the existing general multi-routine terminal classifier; no skip or
+  LLVM-unavailable reclassification was added.
+- The refreshed bounded driver bootstrap exits 0 in 375.463 seconds at 2.085
+  GiB peak private. Seed/oracle sample, MIR producer, and MIR consumer parity
+  pass; native oracle C emission and host compilation have separate lifetimes.
+- The refreshed Pergyra-built driver consumes the fixed 84,972,718-byte MIR in
+  296.896 seconds at 1.083 GiB peak private, reaches C emission completion, and
+  publishes the byte-identical 3,956,147-byte artifact
+  (`C67E0B8B...04E84`). This is executable self-host evidence, not an owner-file
+  or fixture-count proxy.
+- The next sole executable falsifier is the current-source pressure-owned full
+  gen2/gen3 fixed point. Full CI, full fixed point, proof suites, and released
+  driver promotion are not claimed by this entry.

@@ -639,8 +639,8 @@ inventory must not become a second fact-family owner registry.
 
 - `src/self_hosted/tools/generic_return_probe/main.pgy` -- executable
   exact/nested and explicit generic parameter/return projection,
-  carried-target mutation, ordered-actual conflict, and structural mismatch
-  proof.
+  carried-target mutation, ordered-actual conflict, shared callable-signature
+  identity, and structural mismatch proof.
 - `src/self_hosted/tools/wrapper_policy_probe/main.pgy` -- executable
   Option/Result graph-policy projection, native C oracle parity, and missing
   carried-target rejection proof.

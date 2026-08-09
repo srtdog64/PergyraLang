@@ -25,6 +25,7 @@ pgy_reject_wsl_windows_pgy_parity_mix "$LABEL" "$PGY"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/generic_return}"
 SOURCE="$ROOT_DIR/src/self_hosted/tools/generic_return_probe/main.pgy"
 EXPECTED="$ROOT_DIR/src/self_hosted/tools/generic_return_probe/expected.txt"
+CALLABLE_EXPECTED="$ROOT_DIR/src/self_hosted/tools/generic_return_probe/callable_resolution_expected.txt"
 MISMATCH_EXPECTED="$ROOT_DIR/src/self_hosted/tools/generic_return_probe/mismatch_expected.txt"
 NESTED_MISMATCH_EXPECTED="$ROOT_DIR/src/self_hosted/tools/generic_return_probe/nested_mismatch_expected.txt"
 EXPLICIT_MISMATCH_EXPECTED="$ROOT_DIR/src/self_hosted/tools/generic_return_probe/explicit_mismatch_expected.txt"
@@ -43,7 +44,7 @@ GENERIC_CALL_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_gene
 EXPRESSION_VERDICT="$ROOT_DIR/src/self_hosted/semantic/ast_expression_verdict_owner.pgy"
 mkdir -p "$BUILD_DIR"
 
-for input in "$SOURCE" "$EXPECTED" "$MISMATCH_EXPECTED" \
+for input in "$SOURCE" "$EXPECTED" "$CALLABLE_EXPECTED" "$MISMATCH_EXPECTED" \
     "$NESTED_MISMATCH_EXPECTED" "$KIND_OWNER" \
     "$EXPLICIT_MISMATCH_EXPECTED" "$EXPLICIT_OK" "$EXPLICIT_MISMATCH" \
     "$POSTFIX_OWNER" "$CALL_VIEW_OWNER" \
@@ -131,9 +132,14 @@ run_probe() {
     local mismatch="$BUILD_DIR/probe_${backend}.mismatch.out"
     local nested_mismatch="$BUILD_DIR/probe_${backend}.nested_mismatch.out"
     local explicit_mismatch="$BUILD_DIR/probe_${backend}.explicit_mismatch.out"
+    local callable="$BUILD_DIR/probe_${backend}.callable.out"
     (cd "$ROOT_DIR" && "$bin") >"$out"
     pgy_selfhost_compare_expected_text_artifact_file_with_owner \
         "$LABEL" "$BUILD_DIR" "$EXPECTED" "$out" "run_output"
+    (cd "$ROOT_DIR" && "$bin" --callable-resolution) >"$callable"
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "$LABEL" "$BUILD_DIR" "$CALLABLE_EXPECTED" "$callable" \
+        "run_output"
     local rc=0
     (cd "$ROOT_DIR" && "$bin" --target-mismatch) >"$mismatch" || rc=$?
     [[ "$rc" -eq 1 ]] || {

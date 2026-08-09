@@ -144,6 +144,14 @@ grep -Fq '[semantic-initializer-stage]' "$ROOT_DIR/src/self_hosted/semantic/ast_
     || { echo "[build-pressure-contract] initializer pressure stages are not observable" >&2; exit 1; }
 grep -Fq '"--pressure-owned-full-fixpoint"' "$DRIVER_BOOTSTRAP" \
     || { echo "[build-pressure-contract] full driver runner lacks the pressure-owned token" >&2; exit 1; }
+grep -Fq '"$BUILD_DIR/driver_oracle.c"' "$DRIVER_BOOTSTRAP" \
+    || { echo "[build-pressure-contract] oracle C artifact boundary is absent" >&2; exit 1; }
+grep -Fq 'compile_c "driver_oracle"' "$DRIVER_BOOTSTRAP" \
+    || { echo "[build-pressure-contract] oracle host compile is not a separate lifetime" >&2; exit 1; }
+if grep -Fq -- '--backend=c' "$DRIVER_BOOTSTRAP"; then
+    echo "[build-pressure-contract] monolithic native oracle compile returned" >&2
+    exit 1
+fi
 grep -Fq 'focused output must remain under repository root' "$DRIVER_PRESSURE_SHARD" \
     || { echo "[build-pressure-contract] focused pressure output can escape the repository" >&2; exit 1; }
 grep -Fq '"$OUTPUT_REL"' "$DRIVER_PRESSURE_SHARD" \

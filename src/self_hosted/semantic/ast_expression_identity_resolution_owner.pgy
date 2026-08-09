@@ -23,9 +23,9 @@ func SemanticExpressionDirectTargetSyntaxId(
         if !IsSome(owner) || !IsSome(name) || !IsSome(node) {
             return 0 - 1;
         }
-        if SemanticCallableCanonicalDeclaredName(
-            UnwrapOption(owner), UnwrapOption(name)
-        ) == target_name {
+        if SemanticCallableCanonicalDeclaredNameEquals(
+            UnwrapOption(owner), UnwrapOption(name), target_name
+        ) {
             matches = matches + 1;
             if matches > 1 { return 0 - 1; }
             found = UnwrapOption(node);

@@ -6,7 +6,84 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - expression-graph memory blocker is closed; installed bootstrap is next
+## Active self-host context - callable identity allocation is closed; full driver fixed point is next
+
+- Verified Git checkpoint is `1c24b0d5` on `main`. The current task-owned dirty
+  change closes the canonical-callable comparison memory seam, adds opt-in
+  codegen pressure receipts, and splits native oracle C emission from host
+  compilation. Preserve the separate user-owned stdlib work: modified
+  `docs/138_standard_library_scope.md` and `docs/148_stdlib_architecture.md`;
+  untracked `stdlib/math.pgy`, `stdlib/pgy_math_registry.pgy`, and
+  `tests/cases/stdlib_math_matrix/`.
+- The August 9 external architecture review at `31499793` is now historical.
+  Its `dir_validate` localization was valid at that revision, but current
+  evidence has moved through DIR, bounded driver bootstrap, and the full
+  Pergyra-built MIR-to-C consumer. Do not reopen a general query engine,
+  FactStore, lifecycle, Zeno/Insere, or sentinel campaign from that review.
+- Closed owner seam: `SemanticCallableCanonicalDeclaredName` materialized
+  `owner + "_" + local` through nested `Concat` inside two signature-table hot
+  loops. `callable_resolution_owner.pgy` now owns an allocation-free exact range
+  predicate. `SemanticGenericCallSignatureIndex` and
+  `SemanticExpressionDirectTargetSyntaxId` consume it and are negative-gated
+  against reintroducing the materializing call. Source order, duplicate
+  ambiguity, and missing-row fail-closed behavior are unchanged.
+- On the final 8,027,242-byte integrated driver AST
+  (`746E9462...3EA410`), standalone self-host codegen exits 0 in 127.451 s at
+  1,992.9 MB peak private. The prior 3,059.2 MB run used a nearby but not
+  byte-identical 8,025,579-byte input, so it is retained only as near-scale
+  memory evidence. `generic:done` is 1,229.8 MB and `verdict:done` is
+  1,302.6 MB. The 2.4 GiB attention threshold no longer fires.
+- Native-built gen0 and Pergyra-built gen2 both exit 0 on that exact input.
+  Native takes 199.188 s at 1,740.2 MB peak private; self-host takes 127.451 s
+  at 1,992.9 MB. Their complete 8,603,212-byte observed stdout is byte-identical
+  with SHA-256
+  `9A27889DF1EA983D38B00D92D7FB9F8BE7A9B77883BC0759EBD4D0A0EE0EA9BE`.
+  The observed route is argv-only and now separates input, AST artifact, and
+  semantic admission. The normal wrapper still passes observation `false`.
+- The refreshed bounded driver bootstrap exits 0 in 375.463 s at 2.085 GiB
+  peak private. It emits an 8,465,513-byte Pergyra-built driver C seed, a
+  5,123,243-byte seed executable, a 26,071,872-byte native oracle C artifact,
+  and a 5,843,514-byte oracle executable. Sample parity, bounded MIR producer
+  parity, and bounded MIR consumer parity all pass. Native oracle generation
+  uses `--emit-c` and a separate host compile so compiler and `cc1` lifetimes do
+  not overlap. The pressure wrapper reports `output_capture_complete=false`,
+  but the child exit is 0 and the captured stdout contains both final parity
+  receipts; do not rewrite that flag as true.
+- The refreshed Pergyra-built driver consumes the exact 84,972,718-byte MIR
+  (`20ED883D...4E303`) in 296.896 s, peaks at 1.083 GiB private, reaches
+  `consumer:c-emission:done`, and publishes a 3,956,147-byte C artifact. Its
+  SHA-256 is `C67E0B8B25ED7ACE933DBB48A6B41AF324E0BBF3BCD981F801849B9323048E84`,
+  byte-identical to the independent native fixed artifact.
+- Green focused evidence: build-pressure contract, semantic-environment owned
+  lifetime gate, source-scan owner gate, callable identity C executable gate,
+  current codegen seed bootstrap,
+  native/self full observed-output parity, bounded driver bootstrap, and the
+  full Pergyra-built MIR consumer. Full CI and the current-source full
+  gen2==gen3 fixed point have not run; do not claim them green.
+- The callable identity probe's C backend passes. Its LLVM leg remains RED at
+  the existing `direct MIR terminal multi-routine graph is unsupported`
+  boundary. Do not classify that as LLVM-unavailable or skip it; it belongs to
+  the already-open general multi-routine legalization blocker.
+- The monolithic `tests/self_hosted_component_contract_smoke.sh` did not finish
+  inside the repository's 60-second static-gate budget. It is unverified, not
+  green; the narrower source-scan, pressure, semantic-lifetime, documentation,
+  JSON, and shell-syntax gates passed.
+- Active executable rung: run the existing pressure-owned full driver fixed
+  point only. It must emit current-source MIR from seed and native oracle,
+  compare those artifacts, make the Pergyra-built seed publish
+  `driver_gen2.c`, compile it, pass bounded generated-driver preflight, and make
+  gen2 publish byte-identical `driver_gen3.c`. Stop at the first reached owner
+  if it fails.
+- Objective card: production entry is `driver_bootstrap_main.pgy`; the admitted
+  complete-source MIR is the generation fact; the last legitimate consumer is
+  C publication followed by the gen2/gen3 comparator. Forbidden fallbacks are
+  native release substitution, skipped oracle parity, materialized callable
+  comparisons in the two hot loops, graph reconstruction, cache/query engine,
+  shard/worker, timeout or memory-cap increase, and fixture-specific output.
+  Acceptance is `PGY_SELFHOST_DRIVER_FULL_FIXPOINT=1` exit 0 below the existing
+  3 GiB boundary with complete gen2/gen3 byte equality.
+
+## Historical checkpoint - expression-graph memory blocker closure
 
 - Verified code checkpoint: `ca60298e` on `main`. The expression-graph identity
   prefix correction is `8d3c913f`; the non-fragmenting scalar-CFG readiness and

@@ -616,7 +616,7 @@ if [[ "$compact_analysis_count" -ne 1 ]] ||
 fi
 
 admitted_entry_body="$(function_body "$ADMITTED_ENTRY" \
-    'GenerateCUnitFromAdmittedSemanticArtifact')"
+    'GenerateCUnitFromAdmittedSemanticArtifactObserved')"
 grep -Fq 'GenerateCUnitFromReadySemanticFacts(' <<<"$admitted_entry_body" || {
     echo "[self-host-parity:semantic-environment-lifetime] admitted semantic artifact bypasses the C ready core" >&2
     exit 1
@@ -628,7 +628,7 @@ if grep -Fq 'SemanticAstArtifactAnalysisMatches(' <<<"$admitted_entry_body" ||
 fi
 admitted_receipt_line="$(grep -nF 'SemanticAstArtifactAdmissionReady(' \
     <<<"$admitted_entry_body" | head -n 1 | cut -d: -f1)"
-admitted_first_work_line="$(grep -nF 'SemanticAstBodyTypeBundleFromAdmittedAnalysis(' \
+admitted_first_work_line="$(grep -nF 'SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(' \
     <<<"$admitted_entry_body" | head -n 1 | cut -d: -f1)"
 if [[ -z "$admitted_receipt_line" || -z "$admitted_first_work_line" ||
     "$admitted_receipt_line" -ge "$admitted_first_work_line" ]]; then
@@ -647,6 +647,9 @@ assert_exact_call_files 'GenerateCUnitFromAdmittedSemanticArtifact(' \
     'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
     'src/self_hosted/codegen/emission/program_entry_owner.pgy' \
     'src/self_hosted/compiler/driver_pipeline_owner.pgy'
+assert_exact_call_files 'GenerateCUnitFromAdmittedSemanticArtifactObserved(' \
+    'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
+    'src/self_hosted/codegen/run/codegen_run_owner.pgy'
 assert_exact_call_files 'GenerateCFromVerifiedSemanticArtifact(' \
     'src/self_hosted/codegen/emission/program_entry_owner.pgy' \
     'src/self_hosted/compiler/driver_rung2_owner.pgy'
@@ -659,15 +662,15 @@ assert_exact_call_files 'SemanticAstArtifactAdmissionReady(' \
     'src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy' \
     'src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_owner.pgy'
 assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysis(' \
-    'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
     'src/self_hosted/semantic/ast_body_type_bundle_owner.pgy'
 assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(' \
+    'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
     'src/self_hosted/compiler/driver_rung2_owner.pgy' \
     'src/self_hosted/semantic/ast_body_analysis_admission_contract_owner.pgy' \
     'src/self_hosted/semantic/ast_body_type_bundle_owner.pgy'
 
 for production_body in \
-    "$ADMITTED_ENTRY|GenerateCUnitFromAdmittedSemanticArtifact|SemanticAstBodyTypeBundleFromAdmittedAnalysis(" \
+    "$ADMITTED_ENTRY|GenerateCUnitFromAdmittedSemanticArtifactObserved|SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(" \
     "$DRIVER|VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved|SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved("; do
     production_path="${production_body%%|*}"
     production_rest="${production_body#*|}"

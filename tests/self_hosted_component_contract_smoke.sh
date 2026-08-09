@@ -2193,6 +2193,26 @@ reject_regex "src/self_hosted/codegen/emission/program_emit.pgy" '#define[[:spac
 require_text "src/self_hosted/codegen/main.pgy" 'import "../compiler/symbol_table_owner.pgy";'
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" 'import "../../compiler/target_capability_owner.pgy";'
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "CompilerTargetCapabilityEnvelopeReady()"
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
+    'args[0] == "--observe-pressure"'
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
+    '"[codegen-pressure-stage] input:start"'
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
+    '"[codegen-pressure-stage] input:done"'
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
+    '"[codegen-pressure-stage] artifact:start"'
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
+    '"[codegen-pressure-stage] semantic:done"'
+require_function_text \
+    "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
+    "func RunCodegenFromArgs(" \
+    "SemanticAstArtifactAnalyzeCompactBridge(observed_artifact, true)"
+require_function_text \
+    "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
+    "func RunCodegenFromArgs(" \
+    "SelfHostMachineLayerDeclarationEmpty(), true"
+require_text "src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy" \
+    "func GenerateCUnitFromAdmittedSemanticArtifactObserved("
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetCpuCProjection"
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetCpuLlvmProjection"
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetSelfHostedProjection"
@@ -4571,11 +4591,23 @@ done
 
 require_function_text \
     "src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy" \
-    "func GenerateCUnitFromAdmittedSemanticArtifact(" \
-    "SemanticAstBodyTypeBundleFromAdmittedAnalysis("
-reject_function_terms \
+    "func GenerateCUnitFromAdmittedSemanticArtifactObserved(" \
+    "SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved("
+require_function_text \
+    "src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy" \
+    "func GenerateCUnitFromAdmittedSemanticArtifactObserved(" \
+    "observe_pressure"
+require_function_text \
     "src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy" \
     "func GenerateCUnitFromAdmittedSemanticArtifact(" \
+    "GenerateCUnitFromAdmittedSemanticArtifactObserved("
+require_function_text \
+    "src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy" \
+    "func GenerateCUnitFromAdmittedSemanticArtifact(" \
+    "machine_declaration, false"
+reject_function_terms \
+    "src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy" \
+    "func GenerateCUnitFromAdmittedSemanticArtifactObserved(" \
     "SemanticAstBodyTypeBundleFromAnalysis(" \
     "SemanticAstBodyTypeBundleFromAnalysisObserved("
 require_function_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
@@ -5222,7 +5254,22 @@ require_text "src/self_hosted/semantic/callable_resolution_owner.pgy" "suffix_co
 require_text "src/self_hosted/semantic/callable_resolution_owner.pgy" \
     "func SemanticCallableCanonicalLookupName"
 require_text "src/self_hosted/semantic/callable_resolution_owner.pgy" \
+    "func SemanticCallableCanonicalDeclaredNameEquals("
+require_text "src/self_hosted/semantic/callable_resolution_owner.pgy" \
     '"SelfHostPath.JoinRelativePath"'
+for canonical_compare_consumer in \
+    "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy|func SemanticGenericCallSignatureIndex(" \
+    "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy|func SemanticExpressionDirectTargetSyntaxId("
+do
+    canonical_compare_path="${canonical_compare_consumer%%|*}"
+    canonical_compare_function="${canonical_compare_consumer#*|}"
+    require_function_text "$canonical_compare_path" \
+        "$canonical_compare_function" \
+        "SemanticCallableCanonicalDeclaredNameEquals("
+    reject_function_text "$canonical_compare_path" \
+        "$canonical_compare_function" \
+        "SemanticCallableCanonicalDeclaredName("
+done
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
     "func SemanticAstExpressionFunctionRowIndex"
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
