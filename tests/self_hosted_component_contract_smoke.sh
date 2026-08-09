@@ -5215,6 +5215,36 @@ reject_function_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
     "BuildMirProgramRoutineIndex(json)"
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
     "let instruction_starts: Array<Int>;"
+require_file "src/self_hosted/mir_lower/program_routine_block_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/program_routine_block_fact_owner.pgy" 180
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir_lower/program_routine_block_fact_owner.pgy"
+require_function_text \
+    "src/self_hosted/mir_lower/program_routine_block_fact_owner.pgy" \
+    "func MirProgramRoutineBlockCaptureWithin(" \
+    "let is_instructions: Bool"
+require_function_text \
+    "src/self_hosted/mir_lower/program_routine_block_fact_owner.pgy" \
+    "func MirProgramRoutineBlockCaptureWithin(" \
+    "let is_succ_false: Bool"
+require_function_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "func BuildMirProgramRoutineIndexFromTable(" \
+    "MirProgramRoutineBlockCaptureWithin("
+reject_function_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "func BuildMirProgramRoutineIndexFromTable(" '"instructions"'
+reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "func BuildMirRoutineFactIndex(" '"reachable"'
+reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "func BuildMirRoutineFactIndex(" '"succ_true"'
+reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "func BuildMirRoutineFactIndex(" '"succ_false"'
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "mir-program-routine-index-owner-permuted-block-rejected"
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "mir-program-routine-index-owner-duplicate-block-key-accepted"
+require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
+    "mir-program-routine-index-owner-missing-block-comma-accepted"
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
     "let instruction_kinds: Array<String>;"
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
@@ -12953,13 +12983,17 @@ reject_function_text "src/self_hosted/lib/json.pgy" \
 reject_function_text "src/self_hosted/lib/json.pgy" \
     "func JsonArrayNextObjectBounds(" "StringLength(json)"
 require_file "src/self_hosted/lib/json_bounded_fact_read.pgy"
-require_max_lines "src/self_hosted/lib/json_bounded_fact_read.pgy" 300
+require_max_lines "src/self_hosted/lib/json_bounded_fact_read.pgy" 320
 require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectFieldValueBoundsWithin("
 require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectStringFieldOptWithin("
 require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectNumberFieldOptWithin("
+require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonIntegerValueOptWithin("
+require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonBoolValueOptWithin("
 require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectBoolFieldEqualsWithin("
 require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
@@ -12982,7 +13016,9 @@ reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectStringFieldOptWithin(" "StringLength(json)"
 require_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
-    "func JsonObjectNumberFieldOptWithin(" "SubstringWithLen("
+    "func JsonObjectNumberFieldOptWithin(" "JsonIntegerValueOptWithin("
+require_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonIntegerValueOptWithin(" "SubstringWithLen("
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectNumberFieldOptWithin(" "Substring("
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \

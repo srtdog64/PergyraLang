@@ -3,6 +3,7 @@
 
 import "json_fact_read.pgy";
 import "program_declaration_index_owner.pgy";
+import "program_routine_block_fact_owner.pgy";
 import "program_routine_receiver_identity_owner.pgy";
 import "program_instruction_expression_index_owner.pgy";
 
@@ -34,6 +35,9 @@ struct MirProgramRoutineIndex {
     let routine_block_counts: Array<Int>;
     let block_starts: Array<Int>;
     let block_ends: Array<Int>;
+    let block_reachable: Array<Bool>;
+    let block_succ_true: Array<Int>;
+    let block_succ_false: Array<Int>;
     let block_instruction_starts: Array<Int>;
     let block_instruction_counts: Array<Int>;
     let instruction_starts: Array<Int>;
@@ -65,6 +69,9 @@ func BuildMirProgramRoutineIndexFromTable(
     let routine_block_counts: Array<Int> = [];
     let block_starts: Array<Int> = [];
     let block_ends: Array<Int> = [];
+    let block_reachable: Array<Bool> = [];
+    let block_succ_true: Array<Int> = [];
+    let block_succ_false: Array<Int> = [];
     let block_instruction_starts: Array<Int> = [];
     let block_instruction_counts: Array<Int> = [];
     let instruction_starts: Array<Int> = [];
@@ -92,7 +99,8 @@ func BuildMirProgramRoutineIndexFromTable(
             source_syntax_ids, receiver_carriages, owner_nominal_kinds,
             owner_declaration_rows,
             routine_block_starts, routine_block_counts,
-            block_starts, block_ends,
+            block_starts, block_ends, block_reachable,
+            block_succ_true, block_succ_false,
             block_instruction_starts, block_instruction_counts,
             instruction_starts, instruction_ends,
             instruction_kinds, instruction_source_types,
@@ -152,26 +160,29 @@ func BuildMirProgramRoutineIndexFromTable(
             while JsonArrayNextObjectBounds(
                 json, block_cursor, blocks_bounds[1], block_bounds
             ) {
-                if MirObjectNumberFactAtBounds(
-                    json, block_bounds[0], block_bounds[1], "id"
-                ) != ToString(routine_block_count) {
+                let block_fact: MirProgramRoutineBlockCapture =
+                    MirProgramRoutineBlockCaptureWithin(
+                        json, block_bounds[0], block_bounds[1]
+                    );
+                if !block_fact.valid ||
+                    block_fact.id != ToString(routine_block_count) {
                     valid = false;
                 }
                 ArrayPush(block_starts, block_bounds[0]);
                 ArrayPush(block_ends, block_bounds[1]);
+                ArrayPush(block_reachable, block_fact.reachable);
+                ArrayPush(block_succ_true, block_fact.succ_true);
+                ArrayPush(block_succ_false, block_fact.succ_false);
                 ArrayPush(
                     block_instruction_starts, ArrayLength(instruction_starts)
                 );
                 let instruction_count: Int = 0;
-                let instructions_bounds: Array<Int> = [0, 0];
-                if MirObjectArrayBoundsAtBounds(
-                    json, block_bounds[0], block_bounds[1],
-                    "instructions", instructions_bounds
-                ) {
-                    let instruction_cursor: Int = instructions_bounds[0] + 1;
+                if block_fact.valid {
+                    let instruction_cursor: Int =
+                        block_fact.instructions_start + 1;
                     let instruction_bounds: Array<Int> = [0, 0];
                     while JsonArrayNextObjectBounds(
-                        json, instruction_cursor, instructions_bounds[1],
+                        json, instruction_cursor, block_fact.instructions_end,
                         instruction_bounds
                     ) {
                         ArrayPush(instruction_starts, instruction_bounds[0]);
@@ -211,7 +222,7 @@ func BuildMirProgramRoutineIndexFromTable(
                         instruction_cursor = instruction_bounds[1];
                     }
                     if !MirProgramRoutineArrayCursorAtEnd(
-                        json, instruction_cursor, instructions_bounds[1]
+                        json, instruction_cursor, block_fact.instructions_end
                     ) { valid = false; }
                 } else {
                     valid = false;
@@ -240,7 +251,8 @@ func BuildMirProgramRoutineIndexFromTable(
         source_syntax_ids, receiver_carriages, owner_nominal_kinds,
         owner_declaration_rows,
         routine_block_starts, routine_block_counts,
-        block_starts, block_ends,
+        block_starts, block_ends, block_reachable,
+        block_succ_true, block_succ_false,
         block_instruction_starts, block_instruction_counts,
         instruction_starts, instruction_ends,
         instruction_kinds, instruction_source_types,
@@ -384,6 +396,9 @@ func MirProgramRoutineIndexStructureReady(
         routine_count != ArrayLength(index.routine_block_starts) ||
         routine_count != ArrayLength(index.routine_block_counts) ||
         block_count != ArrayLength(index.block_ends) ||
+        block_count != ArrayLength(index.block_reachable) ||
+        block_count != ArrayLength(index.block_succ_true) ||
+        block_count != ArrayLength(index.block_succ_false) ||
         block_count != ArrayLength(index.block_instruction_starts) ||
         block_count != ArrayLength(index.block_instruction_counts) ||
         instruction_count != ArrayLength(index.instruction_ends) ||

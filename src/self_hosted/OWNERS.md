@@ -1157,6 +1157,9 @@ inventory must not become a second fact-family owner registry.
   and raw machine spans. It consumes and preserves the already-admitted
   declaration index from the same source document; it must not rebuild that
   index or retain materialized program-wide render expressions.
+- `src/self_hosted/mir_lower/program_routine_block_fact_owner.pgy` -- exact
+  one-pass block-row schema capture for block identity, reachability,
+  instruction bounds, and successor facts consumed by the program index.
 - `src/self_hosted/mir_lower/program_instruction_expression_index_owner.pgy` --
   program-lifetime aligned borrowed routing, expression, and graph spans. Long
   text and optional routing values are never materialized into program-global

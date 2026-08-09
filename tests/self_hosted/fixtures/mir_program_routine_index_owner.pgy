@@ -27,6 +27,34 @@ func MirProgramRoutineIndexJsonReady(json: String) -> Bool {
 
 func Main() -> Void {
     let failures: Int = 0;
+    let permuted_block_row: String =
+        "{\"instructions\":[],\"id\":0,\"future_fact\":true,\"reachable\":true,\"succ_false\":null,\"succ_true\":1}";
+    let permuted_block: MirProgramRoutineBlockCapture =
+        MirProgramRoutineBlockCaptureWithin(
+            permuted_block_row, 0, StringLength(permuted_block_row)
+        );
+    if !permuted_block.valid || permuted_block.id != "0" ||
+        !permuted_block.reachable || permuted_block.succ_true != 1 ||
+        permuted_block.succ_false >= 0 {
+        Log("mir-program-routine-index-owner-permuted-block-rejected");
+        failures = failures + 1;
+    }
+    let duplicate_block_row: String =
+        "{\"id\":0,\"id\":1,\"reachable\":true,\"instructions\":[]}";
+    if MirProgramRoutineBlockCaptureWithin(
+        duplicate_block_row, 0, StringLength(duplicate_block_row)
+    ).valid {
+        Log("mir-program-routine-index-owner-duplicate-block-key-accepted");
+        failures = failures + 1;
+    }
+    let missing_comma_block_row: String =
+        "{\"id\":0 \"reachable\":true,\"instructions\":[]}";
+    if MirProgramRoutineBlockCaptureWithin(
+        missing_comma_block_row, 0, StringLength(missing_comma_block_row)
+    ).valid {
+        Log("mir-program-routine-index-owner-missing-block-comma-accepted");
+        failures = failures + 1;
+    }
     let abi_validation: MirAbiLayoutValidationSession =
         NewMirAbiLayoutValidationSession();
     let first_instruction: String =
@@ -309,6 +337,8 @@ func Main() -> Void {
             index.owner_nominal_kinds, index.owner_declaration_rows,
             index.routine_block_starts, zero_block_routine_counts,
             index.block_starts, missing_parallel_block_ends,
+            index.block_reachable, index.block_succ_true,
+            index.block_succ_false,
             index.block_instruction_starts,
             index.block_instruction_counts,
             index.instruction_starts, index.instruction_ends,

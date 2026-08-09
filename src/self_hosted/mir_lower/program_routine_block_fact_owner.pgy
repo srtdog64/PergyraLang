@@ -1,0 +1,154 @@
+// One exact block-row capture for the admitted program routine index.
+//
+// Instruction storage can dominate a block object. This owner crosses that
+// storage once while capturing every block field needed by later CFG owners.
+
+import "json_fact_read.pgy";
+
+struct MirProgramRoutineBlockCapture {
+    let valid: Bool;
+    let id: String;
+    let reachable: Bool;
+    let instructions_start: Int;
+    let instructions_end: Int;
+    let succ_true: Int;
+    let succ_false: Int;
+}
+
+func InvalidMirProgramRoutineBlockCapture(
+) -> MirProgramRoutineBlockCapture {
+    return MirProgramRoutineBlockCapture(
+        false, "", false, 0 - 1, 0 - 1, 0 - 1, 0 - 1
+    );
+}
+
+func MirProgramRoutineBlockCaptureWithin(
+    json: String, start: Int, end: Int
+) -> MirProgramRoutineBlockCapture {
+    if start < 0 || end <= start ||
+        JsonCharCodeAt(json, end, start) != JsonAsciiCode("{") {
+        return InvalidMirProgramRoutineBlockCapture();
+    }
+    let id: String = "";
+    let reachable: Bool = false;
+    let instructions_start: Int = 0 - 1;
+    let instructions_end: Int = 0 - 1;
+    let succ_true: Int = 0 - 1;
+    let succ_false: Int = 0 - 1;
+    let id_seen: Bool = false;
+    let reachable_seen: Bool = false;
+    let instructions_seen: Bool = false;
+    let succ_true_seen: Bool = false;
+    let succ_false_seen: Bool = false;
+    let expect_member: Bool = true;
+    let after_comma: Bool = false;
+    let i: Int = start + 1;
+    while i < end {
+        i = JsonSkipWhitespaceWithin(json, i, end);
+        if i >= end { return InvalidMirProgramRoutineBlockCapture(); }
+        let code: Int = JsonCharCodeAt(json, end, i);
+        if code == JsonAsciiCode("}") {
+            if after_comma || !id_seen || !reachable_seen ||
+                !instructions_seen {
+                return InvalidMirProgramRoutineBlockCapture();
+            }
+            return MirProgramRoutineBlockCapture(
+                true, id, reachable, instructions_start, instructions_end,
+                succ_true, succ_false
+            );
+        }
+        if !expect_member {
+            if code != JsonAsciiCode(",") {
+                return InvalidMirProgramRoutineBlockCapture();
+            }
+            expect_member = true;
+            after_comma = true;
+            i = i + 1;
+            continue;
+        }
+        if code != JsonAsciiCode("\"") {
+            return InvalidMirProgramRoutineBlockCapture();
+        }
+        let key_end_opt: Option<Int> = JsonStringEndWithin(json, i, end);
+        if !IsSome(key_end_opt) {
+            return InvalidMirProgramRoutineBlockCapture();
+        }
+        let key_end: Int = UnwrapOption(key_end_opt);
+        let raw_key_length: Int = key_end - i - 2;
+        let is_id: Bool = raw_key_length == 2 &&
+            JsonObjectKeyEqualsWithin(json, i, key_end, "id");
+        let is_reachable: Bool = raw_key_length == 9 &&
+            JsonObjectKeyEqualsWithin(json, i, key_end, "reachable");
+        let is_instructions: Bool = raw_key_length == 12 &&
+            JsonObjectKeyEqualsWithin(json, i, key_end, "instructions");
+        let is_succ_true: Bool = raw_key_length == 9 &&
+            JsonObjectKeyEqualsWithin(json, i, key_end, "succ_true");
+        let is_succ_false: Bool = raw_key_length == 10 &&
+            JsonObjectKeyEqualsWithin(json, i, key_end, "succ_false");
+        i = JsonSkipWhitespaceWithin(json, key_end, end);
+        if i >= end || JsonCharCodeAt(json, end, i) != JsonAsciiCode(":") {
+            return InvalidMirProgramRoutineBlockCapture();
+        }
+        i = JsonSkipWhitespaceWithin(json, i + 1, end);
+        let value_end_opt: Option<Int> = JsonValueEndWithin(json, i, end);
+        if !IsSome(value_end_opt) {
+            return InvalidMirProgramRoutineBlockCapture();
+        }
+        let value_end: Int = UnwrapOption(value_end_opt);
+        if is_id {
+            if id_seen { return InvalidMirProgramRoutineBlockCapture(); }
+            let value: Option<String> = JsonIntegerValueOptWithin(
+                json, i, value_end
+            );
+            if !IsSome(value) { return InvalidMirProgramRoutineBlockCapture(); }
+            id = UnwrapOption(value);
+            id_seen = true;
+        } else if is_reachable {
+            if reachable_seen { return InvalidMirProgramRoutineBlockCapture(); }
+            let value: Option<Bool> = JsonBoolValueOptWithin(
+                json, i, value_end
+            );
+            if !IsSome(value) { return InvalidMirProgramRoutineBlockCapture(); }
+            reachable = UnwrapOption(value);
+            reachable_seen = true;
+        } else if is_instructions {
+            if instructions_seen || i >= value_end ||
+                JsonCharCodeAt(json, value_end, i) != JsonAsciiCode("[") {
+                return InvalidMirProgramRoutineBlockCapture();
+            }
+            instructions_start = i;
+            instructions_end = value_end;
+            instructions_seen = true;
+        } else if is_succ_true || is_succ_false {
+            if (is_succ_true && succ_true_seen) ||
+                (is_succ_false && succ_false_seen) {
+                return InvalidMirProgramRoutineBlockCapture();
+            }
+            let successor: Int = 0 - 1;
+            let value: Option<String> = JsonIntegerValueOptWithin(
+                json, i, value_end
+            );
+            if IsSome(value) {
+                successor = ToInt(UnwrapOption(value));
+                // -1 is reserved for an absent/null successor. Preserve the
+                // old fail-closed distinction for an explicit negative id.
+                if successor < 0 { successor = 0 - 2; }
+            } else if !(i + 4 == value_end && SubEqualsWithLen(
+                json, value_end, i, 4, "null"
+            )) {
+                return InvalidMirProgramRoutineBlockCapture();
+            }
+            if is_succ_true {
+                succ_true = successor;
+                succ_true_seen = true;
+            } else {
+                succ_false = successor;
+                succ_false_seen = true;
+            }
+        }
+        i = value_end;
+        expect_member = false;
+        after_comma = false;
+    }
+    return InvalidMirProgramRoutineBlockCapture();
+}

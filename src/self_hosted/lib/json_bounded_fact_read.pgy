@@ -189,6 +189,34 @@ func JsonObjectStringFieldOptWithin(
     return Some(value);
 }
 
+func JsonIntegerValueOptWithin(
+    json: String, start: Int, end: Int
+) -> Option<String> {
+    let i: Int = start;
+    if i < end && JsonCharCodeAt(json, end, i) == JsonAsciiCode("-") {
+        i = i + 1;
+        if i >= end { return None; }
+    }
+    while i < end {
+        if !JsonIsDigitCode(JsonCharCodeAt(json, end, i)) { return None; }
+        i = i + 1;
+    }
+    if i == start { return None; }
+    return Some(SubstringWithLen(json, end, start, end - start));
+}
+
+func JsonBoolValueOptWithin(
+    json: String, start: Int, end: Int
+) -> Option<Bool> {
+    if start + 4 == end && SubEqualsWithLen(
+        json, end, start, 4, "true"
+    ) { return Some(true); }
+    if start + 5 == end && SubEqualsWithLen(
+        json, end, start, 5, "false"
+    ) { return Some(false); }
+    return None;
+}
+
 func JsonObjectNumberFieldOptWithin(
     json: String,
     start: Int,
@@ -201,20 +229,7 @@ func JsonObjectNumberFieldOptWithin(
     ) {
         return None;
     }
-    let i: Int = bounds[0];
-    let n: Int = bounds[1];
-    if i < bounds[1] && JsonCharCodeAt(json, n, i) == JsonAsciiCode("-") {
-        i = i + 1;
-        if i >= bounds[1] { return None; }
-    }
-    while i < bounds[1] {
-        if !JsonIsDigitCode(JsonCharCodeAt(json, n, i)) { return None; }
-        i = i + 1;
-    }
-    if i == bounds[0] { return None; }
-    return Some(SubstringWithLen(
-        json, n, bounds[0], bounds[1] - bounds[0]
-    ));
+    return JsonIntegerValueOptWithin(json, bounds[0], bounds[1]);
 }
 
 func JsonObjectBoolFieldEqualsWithin(
@@ -230,12 +245,10 @@ func JsonObjectBoolFieldEqualsWithin(
     ) {
         return false;
     }
-    if expected {
-        return bounds[0] + 4 == bounds[1] &&
-            Substring(json, bounds[0], 4) == "true";
-    }
-    return bounds[0] + 5 == bounds[1] &&
-        Substring(json, bounds[0], 5) == "false";
+    let value: Option<Bool> = JsonBoolValueOptWithin(
+        json, bounds[0], bounds[1]
+    );
+    return IsSome(value) && UnwrapOption(value) == expected;
 }
 
 func JsonObjectTwoFieldValueBoundsWithin(

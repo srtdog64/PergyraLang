@@ -21,6 +21,8 @@ mkdir -p "$BUILD_DIR"
 
 DECLARATION_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/program_declaration_index_owner.pgy"
 ROUTINE_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/program_routine_index_owner.pgy"
+BLOCK_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/program_routine_block_fact_owner.pgy"
+ROUTINE_FACT_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/routine_fact_index_owner.pgy"
 INPUT_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/mir_json_input_owner.pgy"
 MACHINE_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/machine_layer_fact_owner.pgy"
 
@@ -47,7 +49,9 @@ pgy_function_body() {
 }
 
 lines_at_most "$DECLARATION_OWNER" 120
-lines_at_most "$ROUTINE_OWNER" 510
+lines_at_most "$ROUTINE_OWNER" 520
+lines_at_most "$BLOCK_OWNER" 180
+lines_at_most "$ROUTINE_FACT_OWNER" 600
 lines_at_most "$MACHINE_OWNER" 440
 
 declaration_body="$(pgy_function_body \
@@ -62,6 +66,10 @@ grep -Fq 'MirDeclArrayBounds(' <<<"$declaration_body" &&
 
 routine_body="$(pgy_function_body \
     "$ROUTINE_OWNER" 'func BuildMirProgramRoutineIndexFromTable(')"
+block_body="$(pgy_function_body \
+    "$BLOCK_OWNER" 'func MirProgramRoutineBlockCaptureWithin(')"
+routine_fact_body="$(pgy_function_body \
+    "$ROUTINE_FACT_OWNER" 'func BuildMirRoutineFactIndex(')"
 grep -Fq 'declarations.valid && declarations.field_identities.valid' \
     <<<"$routine_body" || fail "routine index ignored carried declarations"
 for forbidden in \
@@ -71,6 +79,18 @@ for forbidden in \
     'MirDeclArrayBounds('; do
     grep -Fq "$forbidden" <<<"$routine_body" &&
         fail "routine index reintroduced forbidden declaration read: $forbidden"
+done
+grep -Fq 'MirProgramRoutineBlockCaptureWithin(' <<<"$routine_body" ||
+    fail "routine index did not consume the one-pass block capture"
+grep -Fq 'let is_instructions: Bool' <<<"$block_body" ||
+    fail "block capture omitted instruction bounds"
+grep -Fq 'let is_succ_false: Bool' <<<"$block_body" ||
+    fail "block capture omitted successor facts"
+grep -Fq '"instructions"' <<<"$routine_body" &&
+    fail "routine index reopened block instruction bounds"
+for forbidden in '"reachable"' '"succ_true"' '"succ_false"'; do
+    grep -Fq "$forbidden" <<<"$routine_fact_body" &&
+        fail "routine fact index reopened block fact: $forbidden"
 done
 grep -Fq 'BuildMirProgramDeclarationIndexFromTable(document.declarations)' \
     "$INPUT_OWNER" || fail "production input did not carry declaration table"
