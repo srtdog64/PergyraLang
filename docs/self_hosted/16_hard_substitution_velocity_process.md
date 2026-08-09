@@ -29,6 +29,27 @@ blockers.
 These numbers have different meanings and must not be collapsed into one
 percentage.
 
+## 1.1 Current target-specific status (2026-08-10)
+
+The baseline above is historical. Current released/default replacement is
+reported by semantic execution target rather than one percentage:
+
+- public verified MIR, pure C emit, and runtime-free LLVM IR are bounded
+  `SUBSTITUTING`;
+- plain default C and runtime-free LLVM compile/run are bounded
+  `SUBSTITUTING`, with the host compiler/linker as the final native boundary;
+- local package compiler execution is bounded `SUBSTITUTING`: verification
+  commands consume one installed MIR artifact, while binary commands consume
+  the manifest-selected installed C or LLVM runner;
+- package manifest/lock parsing, scaffold/format commands, debug/dump modes,
+  and unsupported dependency/registry operations remain native or fail closed.
+
+The package closure documents a general recurrence rule: an early subcommand
+dispatch that returns before the ordinary source selector must delegate to the
+installed owner itself. A later default selector is not evidence that the
+earlier command inherited self-host ownership. Missing installed artifacts
+never authorize a native retry.
+
 ## 2. Decision
 
 SoT is a hard-substitution rung condition, not a separate project that must be

@@ -199,10 +199,15 @@ An integrated complete-source gen2/gen3 fixed point satisfies the bootstrap
 consumer rung. Released/default promotion is counted per semantic execution
 target: public pure-C artifact emit is now `SUBSTITUTING` because normal
 `pgy --emit-c` selects the sibling Pergyra-owned driver without an opt-in and
-fails closed instead of returning to native semantic/codegen. Plain
-compile/link, run, package, and LLVM remain `OPEN`. A promoted target must keep
-its C/LLVM oracle gates; one promoted target never implies whole-product
-self-hosting.
+fails closed instead of returning to native semantic/codegen. Plain default C
+compile/run, public runtime-free LLVM IR/compile/run, and the compiler-bearing
+package commands are also bounded `SUBSTITUTING` targets. Package
+`check`/`lint`/`prove`/`package-check` consume one installed verified MIR;
+`build`/`run`/`test` consume the manifest-selected installed C or LLVM runner.
+The package manifest/lock parser, scaffolding, formatting, debug surfaces, and
+unsupported dependency/registry commands remain native or fail-closed product
+boundaries. A promoted target must keep its C/LLVM oracle gates; one promoted
+target never implies whole-product self-hosting.
 
 ## CI Owner
 

@@ -129,6 +129,22 @@ Stable local commands:
   current package surface reaches the verifier boundary.
 - `pgy package` writes the deterministic local `pgy.lock` artifact.
 
+### Installed compiler ownership
+
+Package subcommands are dispatched before the launcher's ordinary source-file
+selector. They therefore must not assume that the later default selector will
+delegate on their behalf. `check`, `lint`, `prove`, and the verification phase
+of `package` publish one private verified MIR artifact through the installed
+`pgy-self-driver`. `build`, `run`, and `test` consume the manifest backend once
+and use the installed C or runtime-free LLVM artifact runner. A missing sibling
+driver fails closed; it never authorizes a native semantic/codegen retry.
+
+`PGY_NATIVE_PIPELINE=1` is the explicit resolver/bootstrap test opt-out. It is
+read by the launcher and passed into the package owner; the package owner does
+not reread the environment or reinterpret failure as permission to fall back.
+`init`, `new`, and `fmt` retain their existing scaffold/format responsibilities
+and are not counted as compiler substitution evidence.
+
 ## Explicitly Out Of Beta
 
 - `pgy install`.

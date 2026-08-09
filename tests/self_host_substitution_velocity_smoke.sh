@@ -28,6 +28,13 @@ require_text "$PROCESS_DOC" "nine ACTIVE blockers"
 require_text "$PROCESS_DOC" "Five are direct substitution blockers"
 require_text "$PROCESS_DOC" "Process/evidence blockers:"
 require_text "$PROCESS_DOC" "Released/default replacement is 0 percent"
+require_text "$PROCESS_DOC" "Current target-specific status (2026-08-10)"
+require_text "$PROCESS_DOC" \
+    'local package compiler execution is bounded `SUBSTITUTING`'
+require_text "$PROCESS_DOC" \
+    "dispatch that returns before the ordinary source selector"
+require_text "$PROCESS_DOC" \
+    "never authorize a native retry."
 require_text "$PROCESS_DOC" "two consecutive SoT-only commits"
 require_text "$PROCESS_DOC" "70 percent executable hard substitution"
 require_text "$PROCESS_DOC" "20 percent build and test feedback reduction"

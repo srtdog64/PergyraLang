@@ -6,9 +6,9 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - canonical installed replacement is promoted
+## Active self-host context - installed package compiler boundary is promoted
 
-- Verified repository checkpoint is `b37ab436` on `main`; the compiler-source
+- Verified repository checkpoint is `a81e5dcb` on `main`; the compiler-source
   checkpoint that produced the current fixed point is `74146fe3`. Preserve the
   separate user-owned stdlib work: modified `docs/138_standard_library_scope.md`
   and `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
@@ -63,6 +63,20 @@ owner, and the named executable gate.
   LLVM compile/run 12.4 seconds, substrate contract 0.9 seconds, and recursive
   compiler-world topology 44.1 seconds. Substitution velocity and program-graph
   unification are green.
+- Package compiler execution now consumes the same installed owners. Package
+  verification verbs publish one private verified MIR; binary verbs consume
+  the manifest-selected installed C or runtime-free LLVM runner. The focused
+  package gate exits 0 in 7.2 seconds, the native resolver package gate remains
+  green under its explicit `PGY_NATIVE_PIPELINE=1` opt-out, the default LLVM
+  installed regression exits 0 in 13.1 seconds, and the hard contract exits 0.
+  Invalid source fails at the installed MIR boundary without changing
+  `pgy.lock`; a missing sibling fails without native timing or fallback.
+- The shared file-form source-to-MIR publisher moved into
+  `src/compiler/self_host_mir_artifact_owner.c` after the component gate caught
+  `self_host_driver.c` at 245/200 lines. The final owners are 195/200 and 61/90;
+  no cap was raised. The component inventory then passed this entire section
+  and stopped at an unrelated existing expected-term drift in
+  `program_routine_index_owner.pgy`, so the full component gate remains RED.
 - `self_host_pergyra_likeness_smoke.sh` remains deliberately RED at 286
   `return -1`/`== -1`/`!= -1` sites against a maximum of 22. This is not a
   regression from the installed replacement: checkpoint `1c391204` measured
@@ -71,20 +85,17 @@ owner, and the named executable gate.
   that inventory by four. Do not raise the ceiling, exclude the direct-MIR
   family wholesale, or mix this broad campaign into a focused installed-owner
   fix without a new objective card and executable consumer.
-- Next objective card: objective = select the next installed replacement
-  falsifier without reopening already closed aggregate decisions; priority =
-  installed production reachability, first executable failure, owner closure,
-  negative ratchet, then merge-boundary breadth; fact owner =
-  `DirectMirAggregateValueFlowFact` plus
-  `DirectMirArrayStorageAbiProjection`; last legitimate consumer =
-  `DirectMirAggregateValueFlowTargetProjectionFromFacts` and the four C/LLVM
-  aggregate emitters; forbidden fallback = inventing a nested `projection.flow`
-  carrier, reopening target facts in emitters, treating the component timeout as
-  green, or expanding timeout/cap to hide a reached cost; verification = the
-  next repository-owned installed execution gate, while the component inventory
-  must either finish within its static budget or remain explicitly unverified.
-  The broad sentinel campaign is a separate declared blocker, not evidence that
-  the canonical installation or aggregate projection regressed.
+- Next objective card: objective = select the first remaining user-facing
+  request that reaches the launcher's final native `driver_run_pipeline`
+  fallback; priority = production reach, one request identity, installed fact
+  owner, no-fallback negative, then breadth; fact owner = admitted `DriverFlags`
+  plus `DriverRung2CliRequest`; last legitimate consumer = the final selector
+  in `src/pgy_driver.c`; forbidden fallback = assuming an early subcommand is
+  covered by a later selector, counting `init`/`new`/`fmt` as compiler
+  replacement, raising the broad sentinel ceiling, or native retry after a
+  missing/rejected installed artifact; verification = one named remaining mode
+  with installed success and missing-driver rejection. The component's
+  unrelated routine-index term drift remains separately RED.
 
 ## Historical checkpoint - current-source gen2/gen3 fixed point is closed
 

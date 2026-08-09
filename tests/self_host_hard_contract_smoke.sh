@@ -1047,6 +1047,12 @@ require_text "src/compiler/pkg.c" "if (native_pipeline)"
 forbid_text "src/compiler/pkg.c" 'getenv("PGY_NATIVE_PIPELINE")'
 require_text "tests/self_hosted/parity/package_commands_installed_self_host_owner.sh" \
     "package commands consume installed MIR/C/LLVM artifacts and fail closed"
+require_text "docs/109_package_module_resolver_contract.md" \
+    "Package subcommands are dispatched before the launcher's ordinary source-file"
+require_text "docs/self_hosted/10_hard_self_host_contract.md" \
+    "package commands are also bounded"
+require_text "docs/self_hosted/09_selfhost_status.md" \
+    "verification and backend artifact production"
 require_text "Makefile" \
     'ifneq ($(abspath $(PGY)),$(abspath $(REPO_BIN_DIR)/pgy$(EXEEXT)))'
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \

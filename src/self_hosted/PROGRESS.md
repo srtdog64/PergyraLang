@@ -1,6 +1,43 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-04 Bool program GraphPlan extension
+## Active self-host context - 2026-08-10 installed package compiler boundary
+
+- Executable checkpoint `a81e5dcb` removes the default package command's
+  direct `driver_run_pipeline` ownership. `check`, `lint`, `prove`, and
+  `package-check` materialize one private verified MIR through the installed
+  sibling. `build`, `run`, and `test` consume the manifest-selected installed
+  C or runtime-free LLVM runner. The native path remains only behind the
+  explicit `PGY_NATIVE_PIPELINE=1` resolver/bootstrap test opt-out.
+- `self_host_mir_artifact_owner.c` is the single file-form source-to-MIR
+  publisher shared by package verification and LLVM materialization. It owns
+  sibling resolution, one producer invocation, stale-output removal, artifact
+  existence, and explicit failure. The LLVM owner no longer reconstructs the
+  source-MIR child command.
+- The focused gate passes in 7.2 seconds. It runs real installed
+  `package/check/build/run`, counts the exact MIR/C/LLVM calls for all seven
+  compiler-bearing package verbs, proves the manifest LLVM selection, rejects
+  a missing sibling without native timing, and proves invalid source cannot
+  refresh `pgy.lock`. The existing native package resolver gate, default LLVM
+  installed gate, and hard contract also pass.
+- The monolithic component inventory passes every package/MIR owner and line
+  cap introduced here, then fails at the separate existing
+  `program_routine_index_owner.pgy` expected-term drift. It is RED at that
+  unrelated owner, not green and not evidence against this package closure.
+- Classification is bounded `SUBSTITUTING` for package compiler execution.
+  Manifest/lock parsing, `init`/`new`/`fmt`, debug/dump modes, and unsupported
+  dependency/registry operations are not promoted by this change.
+- Next objective card: objective = select the first remaining user-facing
+  request that reaches the launcher's final native pipeline fallback;
+  priority = production reach, one request identity, installed fact owner,
+  no-fallback negative, then breadth; fact owner = the admitted `DriverFlags`
+  request plus `DriverRung2CliRequest`; last legitimate consumer = the final
+  selector in `src/pgy_driver.c`; forbidden fallback = treating an earlier
+  subcommand as covered by a later selector, counting scaffold/format work as
+  compiler substitution, raising sentinel caps, or retrying native after a
+  missing/rejected installed artifact; falsifier = one named remaining mode
+  with installed success and missing-driver rejection.
+
+## Historical self-host context - 2026-08-04 Bool program GraphPlan extension
 
 - Checkpoint `0194446df85ee2601e5f083fc12dd7b9e8af4f5b` closes
   `src/self_hosted/codegen/fixture/bool_logic.pgy` through installed direct C

@@ -46,6 +46,9 @@ for required in \
     "pgy.toml stays TOML" \
     "Seashell is not a second executable" \
     "Backends consume owner facts, not raw manifest text" \
+    "Package subcommands are dispatched before the launcher's ordinary source-file" \
+    "it never authorizes a native semantic/codegen retry" \
+    "not counted as compiler substitution evidence" \
     "Unsupported TOML constructs fail closed" \
     "Non-empty" \
     "pgy.lock" \

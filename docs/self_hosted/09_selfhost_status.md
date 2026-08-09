@@ -778,23 +778,29 @@ Substrate progress.
   value-result parameters land. This is the second dogfooded motivation for that
   feature.
 
-## Not yet self-hosted
+## Current installed boundary
 
-The complete-source Pergyra MIR-producer/bootstrap fixed point and public
-pure-C artifact emit are closed. The remaining product boundary is
-target-specific: plain default compile/link, `--run`, package commands, and
-LLVM still select C-owned orchestration. The project is therefore neither 0%
-nor wholly self-hosted; only named `SUBSTITUTING` targets count.
+The complete-source Pergyra MIR-producer/bootstrap fixed point, public MIR/C/
+runtime-free LLVM artifact modes, plain default C/LLVM compile/run, and the
+compiler-bearing package commands are bounded `SUBSTITUTING` targets. Package
+manifest and lock parsing remain C-owned orchestration, but package semantic
+verification and backend artifact production no longer call the native
+compiler pipeline by default. A missing installed sibling fails before source
+processing, and failed package verification cannot publish a refreshed lock.
+
+This is still target-specific rather than whole-product self-hosting. Native
+debug/dump modes, REPL, package scaffolding/formatting, manifest/lock parsing,
+and the unsupported dependency/registry surface are not promoted by the
+installed compiler evidence above.
 
 ## Recommended next pass
 
-Keep the current gen2/gen3 fixed point and installed `--emit-c` gate green,
-then move plain default C compile behind the same self-host artifact owner.
-The existing host compiler/link owner may consume that one C artifact; native
-semantic/codegen may not produce a second artifact or act as success fallback.
-The falsifier is a runnable hello program plus missing-driver failure before
-any native semantic/codegen work. LLVM and package modes remain outside this
-rung.
+Keep the fixed point and installed package gate green, then select the first
+remaining user-facing request that reaches the launcher's final native
+`driver_run_pipeline` fallback. Name that request and its fact owner before
+editing. Do not count `init`, `new`, or `fmt` as compiler replacement merely
+because they share the package command namespace, and do not reopen the broad
+sentinel campaign by raising its ceiling.
 
 ## How to reproduce
 
