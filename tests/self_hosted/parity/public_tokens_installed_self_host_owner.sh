@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Public token dumping is owned by the installed Pergyra lexer. The native
 # lexer remains reachable only through the declared --native-pipeline oracle.
+# Registry forbidden-fallback inventory exercised below:
+# public_token_native_fallback, public_token_oracle_self_compare.
 
 set -euo pipefail
 

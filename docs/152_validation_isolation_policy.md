@@ -422,6 +422,15 @@ be threaded through every one of them. It is an opt-out, never a fallback: an
 unsupported source inside the delegated path still fails closed, and no gate
 retries a failed delegation natively.
 
+The 2026-08-10 public `pgy --tokens <source>` substitution makes this boundary
+concrete. Public token dumping now invokes the installed Pergyra lexer, while
+the native lexer is available only through the explicit opt-out. Therefore a
+lexer parity gate must use `pgy --native-pipeline --tokens` for its native
+oracle. Comparing an installed lexer candidate with public `pgy --tokens`
+would execute the candidate twice and is invalid self-confirmation. The
+component inventory pins the explicit native spelling and rejects the public
+spelling inside that oracle leg.
+
 Two rules follow.
 
 Do not silence a self-host-subject gate with this variable. `extern "C"`,

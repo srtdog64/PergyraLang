@@ -1,41 +1,45 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-10 installed package compiler boundary
+## Active self-host context - 2026-08-10 public token dump substitution
 
-- Executable checkpoint `a81e5dcb` removes the default package command's
-  direct `driver_run_pipeline` ownership. `check`, `lint`, `prove`, and
-  `package-check` materialize one private verified MIR through the installed
-  sibling. `build`, `run`, and `test` consume the manifest-selected installed
-  C or runtime-free LLVM runner. The native path remains only behind the
-  explicit `PGY_NATIVE_PIPELINE=1` resolver/bootstrap test opt-out.
-- `self_host_mir_artifact_owner.c` is the single file-form source-to-MIR
-  publisher shared by package verification and LLVM materialization. It owns
-  sibling resolution, one producer invocation, stale-output removal, artifact
-  existence, and explicit failure. The LLVM owner no longer reconstructs the
-  source-MIR child command.
-- The focused gate passes in 7.2 seconds. It runs real installed
-  `package/check/build/run`, counts the exact MIR/C/LLVM calls for all seven
-  compiler-bearing package verbs, proves the manifest LLVM selection, rejects
-  a missing sibling without native timing, and proves invalid source cannot
-  refresh `pgy.lock`. The existing native package resolver gate, default LLVM
-  installed gate, and hard contract also pass.
-- The monolithic component inventory passes every package/MIR owner and line
-  cap introduced here, then fails at the separate existing
-  `program_routine_index_owner.pgy` expected-term drift. It is RED at that
-  unrelated owner, not green and not evidence against this package closure.
-- Classification is bounded `SUBSTITUTING` for package compiler execution.
-  Manifest/lock parsing, `init`/`new`/`fmt`, debug/dump modes, and unsupported
-  dependency/registry operations are not promoted by this change.
-- Next objective card: objective = select the first remaining user-facing
+- Executable checkpoint `1cec72d7` removes the final native fallback for exact
+  public `pgy --tokens <source>`. `DriverFlags` admission selects one installed
+  sibling request, `DriverRung2CliRequestFromArgsOrDie` assigns the typed
+  `DriverCliSourceTokensStdout` identity, and the read executor consumes it
+  through `LexerReadSource` plus `LexContent`. Unsupported option mixtures and
+  a missing sibling fail without entering `driver_run_pipeline`.
+- `tests/self_hosted/parity/public_tokens_installed_self_host_owner.sh` passes
+  in 2.0 seconds. It proves direct-installed/public byte equality, exact
+  equality with the committed hello fixture and explicit native oracle, missing
+  sibling no-fallback behavior, unsupported-option rejection, and installed
+  argv arity failure.
+- `tests/self_hosted/parity/lexer_parity.sh` passes all 9 sources for C and LLVM
+  in 16.7 seconds. Its live oracle now spells
+  `--native-pipeline --tokens`; public `--tokens` is the installed candidate
+  and must not be reused as its own oracle. The component gate requires the
+  explicit native spelling and rejects that self-confirming public call.
+- The existing installed CLI mode gate passes in 2.6 seconds, preserving the
+  disjoint source-C, source-MIR, and MIR-C stdout/artifact effects after adding
+  the token variant. The full component inventory passes in 124.8 seconds.
+- The installed Pergyra-built driver used for these gates is
+  `bin/pgy-self-driver.exe`, 5,072,121 bytes, SHA-256
+  `505AAE4470D9F99041B07DCA39E392B13BA775A00669D41143BFB0B553D7D432`.
+  Public token dumping is bounded `SUBSTITUTING`; it does not claim that source
+  compilation's lexer/parser pipeline or every debug/dump mode is substituted.
+- The adjacent routine-index audit corrected a stale structural term and added
+  a nonsequential first-block-ID executable negative. The native LLVM oracle
+  prints `mir-program-routine-index-owner-ok`, while the repository's installed
+  LLVM leg remains honestly RED at the existing multi-routine projector gap.
+- Next objective card: objective = select the next remaining user-facing
   request that reaches the launcher's final native pipeline fallback;
   priority = production reach, one request identity, installed fact owner,
-  no-fallback negative, then breadth; fact owner = the admitted `DriverFlags`
-  request plus `DriverRung2CliRequest`; last legitimate consumer = the final
-  selector in `src/pgy_driver.c`; forbidden fallback = treating an earlier
-  subcommand as covered by a later selector, counting scaffold/format work as
-  compiler substitution, raising sentinel caps, or retrying native after a
-  missing/rejected installed artifact; falsifier = one named remaining mode
-  with installed success and missing-driver rejection.
+  no-fallback negative, then breadth; fact owner = admitted `DriverFlags` plus
+  the matching Pergyra request/fact owner; last legitimate consumer = the final
+  selector in `src/pgy_driver.c`; forbidden fallback = counting a nearby mode
+  as covered, comparing a public substituted path with itself as an oracle,
+  retrying native after installed failure, or widening caps/timeouts to hide a
+  missing owner; falsifier = installed success, explicit independent oracle,
+  and missing/rejected installed-artifact failure for one named mode.
 
 ## Historical self-host context - 2026-08-04 Bool program GraphPlan extension
 

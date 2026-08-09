@@ -6,96 +6,68 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - installed package compiler boundary is promoted
+## Active self-host context - public token dump is installed Pergyra
 
-- Verified repository checkpoint is `a81e5dcb` on `main`; the compiler-source
-  checkpoint that produced the current fixed point is `74146fe3`. Preserve the
-  separate user-owned stdlib work: modified `docs/138_standard_library_scope.md`
-  and `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
+- Verified executable checkpoint is `1cec72d7` on `main`. Preserve the separate
+  user-owned stdlib work: modified `docs/138_standard_library_scope.md` and
+  `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
   `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`.
-- Closed identity-lifetime seam: canonical MIR constructor identities are now
-  captured from the admitted semantic artifact before MIR projection consumes
-  and retires that artifact's arena storage. Rebinding consumes the captured
-  constructor fact directly and is negative-gated against rereading the retired
-  artifact. A sibling value that shallowly aliases a consumed aggregate is not
-  a lifetime receipt and must never be used as one.
-- The focused hard frontier `function_clause_order_minimal` passes source/MIR
-  parity in 21.3 seconds. The canonical identity epoch gate passes in 2.2
-  seconds with the exact canonical prebuilt driver and pins
-  `capture < projection < rebind`, plus stale/wrong-kind field-ID negatives.
-  Its all-in-one form timed out while rebuilding the large driver at 304
-  seconds, so that form remains unverified rather than green.
-- Current-source MIR receipt
-  `self-host-driver-canonical-identity-mir-retry-20260810` exits 0 in 71.124
-  seconds at 2.943 GiB peak private. It publishes
-  `.tmp/self_hosted/compiler/canonical-identity-fixed-point-20260810/driver_source.focused.mir.json`,
-  exactly 184,437,140 bytes with SHA-256
-  `D25824A2C270F352B1F12BCA195256F7E542DCE2895AE2B9D17A70CC7EA60B8E`.
-- Gen2 exits 0 in 260.083 seconds at 2.134 GiB and publishes 8,778,464
-  bytes with SHA-256
-  `3B0F924D34A30C71E7AA0BB646C95E802BCF8E5FB33EF06F787A19BE1C98323F`.
-  Gen3 exits 0 in 270.149 seconds at 2.135 GiB and publishes the same bytes
-  and hash. Direct byte equality is true under the unchanged 3 GiB/300-second
-  boundary.
-- The canonical release build owner installs `bin/pgy-self-driver.exe` with
-  SHA-256
-  `9D70CC1C4F8F66D60ABB26F9068433EC9A5C8C9943422304654BA28BB59A18CD`.
-  Installed CLI mode, public MIR JSON, default C emit/compile, public LLVM IR,
-  nested scalar CFG LLVM, LLVM stdout, and the 13-fixture live replacement
-  gate are green. The two C-compiling gates now consume the shared emitted-C
-  runtime-header owner instead of invoking bare `cc` without repository runtime
-  include/link policy.
-- Closed aggregate gate seam: the hard contract and component inventory both
-  required a nonexistent nested
-  `projection.flow.call_abi.target_capability_fingerprint`. The target receipt
-  is intentionally flat. Both gates now function-scope the real seal-time
-  flow/storage fingerprint join, require readiness validation of the promoted
-  receipt fingerprint, and reject `projection.flow` reconstruction.
-- Hard-contract execution exits 0 in 19.3 seconds. The direct-MIR ownership
-  signature gate exits 0 in 1.1 seconds. The constructed Array<Int> and
-  Array<Point> C/LLVM gates exit 0 in 19.9/21.7 seconds with exact 44/45 output,
-  permutation invariants, and all 27/7 plus 35/10 backend negatives. The
-  monolithic component inventory has valid shell syntax but emitted no
-  diagnostic before its 60-second budget expired, so it remains unverified.
-- The remaining installed dependency chain is also current-green without a
-  rebuild: canonical verified projection 1.5 seconds, routine-phase identity
-  2.8 seconds, generic specialization epoch 2.0 seconds, default runtime-free
-  LLVM compile/run 12.4 seconds, substrate contract 0.9 seconds, and recursive
-  compiler-world topology 44.1 seconds. Substitution velocity and program-graph
-  unification are green.
-- Package compiler execution now consumes the same installed owners. Package
-  verification verbs publish one private verified MIR; binary verbs consume
-  the manifest-selected installed C or runtime-free LLVM runner. The focused
-  package gate exits 0 in 7.2 seconds, the native resolver package gate remains
-  green under its explicit `PGY_NATIVE_PIPELINE=1` opt-out, the default LLVM
-  installed regression exits 0 in 13.1 seconds, and the hard contract exits 0.
-  Invalid source fails at the installed MIR boundary without changing
-  `pgy.lock`; a missing sibling fails without native timing or fallback.
-- The shared file-form source-to-MIR publisher moved into
-  `src/compiler/self_host_mir_artifact_owner.c` after the component gate caught
-  `self_host_driver.c` at 245/200 lines. The final owners are 195/200 and 61/90;
-  no cap was raised. The component inventory then passed this entire section
-  and stopped at an unrelated existing expected-term drift in
-  `program_routine_index_owner.pgy`, so the full component gate remains RED.
-- `self_host_pergyra_likeness_smoke.sh` remains deliberately RED at 286
-  `return -1`/`== -1`/`!= -1` sites against a maximum of 22. This is not a
-  regression from the installed replacement: checkpoint `1c391204` measured
-  290 sites and intentionally restored the previously temporary 291 ceiling to
-  22 to reopen the Option/Result migration campaign. Current source has reduced
-  that inventory by four. Do not raise the ceiling, exclude the direct-MIR
-  family wholesale, or mix this broad campaign into a focused installed-owner
-  fix without a new objective card and executable consumer.
-- Next objective card: objective = select the first remaining user-facing
-  request that reaches the launcher's final native `driver_run_pipeline`
-  fallback; priority = production reach, one request identity, installed fact
-  owner, no-fallback negative, then breadth; fact owner = admitted `DriverFlags`
-  plus `DriverRung2CliRequest`; last legitimate consumer = the final selector
-  in `src/pgy_driver.c`; forbidden fallback = assuming an early subcommand is
-  covered by a later selector, counting `init`/`new`/`fmt` as compiler
-  replacement, raising the broad sentinel ceiling, or native retry after a
-  missing/rejected installed artifact; verification = one named remaining mode
-  with installed success and missing-driver rejection. The component's
-  unrelated routine-index term drift remains separately RED.
+- Exact public `pgy --tokens <source>` no longer reaches the final native
+  `driver_run_pipeline` fallback. `driver_self_host_tokens_request_supported`
+  admits only the exact read-only request, the sibling receives `--tokens`,
+  `DriverRung2CliRequestFromArgsOrDie` assigns
+  `DriverCliSourceTokensStdout`, and `DriverRung2ExecuteReadRequest` consumes it
+  through `LexerReadSource` and `LexContent`.
+- Unsupported token option combinations fail at the launcher selector. A
+  missing installed sibling fails without native timing or retry. The installed
+  request rejects missing source arity through its existing `Die` contract.
+  No token text is reconstructed in the launcher or sibling adapter.
+- The installed Pergyra-built carrier is `bin/pgy-self-driver.exe`, 5,072,121
+  bytes, SHA-256
+  `505AAE4470D9F99041B07DCA39E392B13BA775A00669D41143BFB0B553D7D432`.
+  `tests/self_hosted/parity/public_tokens_installed_self_host_owner.sh` exits 0
+  in 2.0 seconds with direct/public bytes equal to the committed hello fixture
+  and the explicit native oracle.
+- `tests/self_hosted/parity/lexer_parity.sh` exits 0 in 16.7 seconds for all 9
+  fixtures on C and LLVM. Its oracle call is now explicitly
+  `pgy --native-pipeline --tokens`; using public `pgy --tokens` there would run
+  the installed candidate twice and create a self-confirming gate. The
+  component inventory requires the native spelling and rejects the public one
+  in that oracle leg.
+- `tests/self_hosted/parity/installed_driver_cli_mode_owner.sh` exits 0 in 2.6
+  seconds, preserving source-C/source-MIR/MIR-C effect separation after the new
+  token variant. `tests/self_hosted_component_contract_smoke.sh` exits 0 in
+  124.8 seconds, including the new selector/owner/cap ratchets.
+- Documentation quality, self-host progress metric, and substitution velocity
+  gates pass. SoT adequacy is unverified because this environment has no
+  Coq/Rocq prover; no missing-prover skip was claimed. The SoT edge gate accepts
+  the updated `selfhost.driver_cli_request` row, then stops at the unrelated
+  pre-existing `abi.intent_observability_rows` expected-text drift.
+- The adjacent routine-index audit replaced the stale component term with the
+  actual first-block identity check and added `nonsequential_block_id` as an
+  executable negative. The native LLVM oracle prints
+  `mir-program-routine-index-owner-ok`. The repository focused script remains
+  RED only at the pre-existing installed LLVM multi-routine projector gap; do
+  not relabel the native LLVM oracle as installed LLVM parity.
+- Classification is bounded `SUBSTITUTING` for public token debug output only.
+  It does not promote source compilation's lexer/parser pipeline, other dump
+  modes, or the whole compiler. Package execution and the earlier installed C,
+  MIR, and runtime-free LLVM boundaries remain closed at their recorded gates.
+- Same-mistake rule: once a public selector delegates to the installed
+  candidate, that public spelling cannot remain the independent oracle. The
+  native voice must use `--native-pipeline`, the installed voice must use the
+  direct sibling/public selector, and the cross-pipeline gate must compare the
+  two artifacts explicitly.
+- Next objective card: objective = select the next remaining user-facing
+  request that reaches the launcher's final native fallback; priority =
+  production reach, one request identity, installed fact owner, no-fallback
+  negative, then breadth; fact owner = admitted `DriverFlags` plus the matching
+  Pergyra request/fact owner; last legitimate consumer = the final selector in
+  `src/pgy_driver.c`; forbidden fallback = counting a neighboring mode as
+  covered, using the substituted public selector as its own oracle, native
+  retry after installed failure, or cap/timeout growth that hides a missing
+  owner; verification = installed success, independent explicit oracle, and
+  missing/rejected installed-artifact failure for one named request.
 
 ## Historical checkpoint - current-source gen2/gen3 fixed point is closed
 
