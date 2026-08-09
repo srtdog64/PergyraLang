@@ -107,6 +107,7 @@ func ReadJsonStringBounded(
         if c == JsonAsciiCode("\"") {
             ArraySet(end, 0, close + 1);
             if !escaped {
+                if close == open + 1 { return ""; }
                 return SubstringWithLen(json, n, open + 1, close - open - 1);
             }
             break;
@@ -522,77 +523,4 @@ func JsonArrayObjectBoolFieldEqualsCount(json: String, array_open: Int, array_en
         row = row + 1;
     }
     return count;
-}
-
-func JsonArrayStringAt(json: String, array_open: Int, array_end: Int, target_index: Int) -> String {
-    if target_index < 0 {
-        return "";
-    }
-    let row: Int = 0;
-    let i: Int = array_open + 1;
-    while i < array_end {
-        i = JsonSkipWhitespace(json, i, array_end);
-        if i >= array_end {
-            return "";
-        }
-        let c: Int = JsonCharCodeAt(json, StringLength(json), i);
-        if c == JsonAsciiCode("]") {
-            return "";
-        }
-        if c == JsonAsciiCode(",") {
-            i = i + 1;
-            continue;
-        }
-        if c != JsonAsciiCode("\"") {
-            return "";
-        }
-        let value_end: Array<Int> = [0];
-        let value: String = ReadJsonString(json, i, value_end);
-        if value_end[0] <= i {
-            return "";
-        }
-        if row == target_index {
-            return value;
-        }
-        row = row + 1;
-        i = value_end[0];
-    }
-    return "";
-}
-
-func JsonArrayStringCount(json: String, array_open: Int, array_end: Int) -> Int {
-    let count: Int = 0;
-    let i: Int = array_open + 1;
-    while i < array_end {
-        i = JsonSkipWhitespace(json, i, array_end);
-        let c: Int = JsonCharCodeAt(json, StringLength(json), i);
-        if i >= array_end || c == JsonAsciiCode("]") {
-            return count;
-        }
-        if c == JsonAsciiCode(",") {
-            i = i + 1;
-            continue;
-        }
-        if c != JsonAsciiCode("\"") {
-            return count;
-        }
-        let value_end_opt: Option<Int> = JsonStringEnd(json, i, array_end);
-        if !IsSome(value_end_opt) {
-            return count;
-        }
-        count = count + 1;
-        i = UnwrapOption(value_end_opt);
-    }
-    return count;
-}
-
-func JsonObjectArrayStringAt(json: String, start: Int, end: Int, field: String, target_index: Int) -> String {
-    let bounds: Array<Int> = [0, 0];
-    if !JsonObjectFieldValueBounds(json, start, end, field, bounds) {
-        return "";
-    }
-    if bounds[0] >= bounds[1] || JsonCharCodeAt(json, StringLength(json), bounds[0]) != JsonAsciiCode("[") {
-        return "";
-    }
-    return JsonArrayStringAt(json, bounds[0], bounds[1], target_index);
 }

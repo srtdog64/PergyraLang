@@ -131,11 +131,8 @@ func MirExpressionGraphSequenceAppendTaggedEnumMatchOccurrence(
         ArrayPush(places, SemanticExpressionPlaceUnknown());
         ArraySet(roots, ArrayLength(roots) - 1, payload_root);
     }
-    let final_arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArenaFromRows(
-            kinds, texts, left, right, target_kinds, target_names, places
-        );
-    return MirExpressionGraphSequence(
-        true, ArrayLength(kinds), roots, final_arena
+    return MirExpressionGraphSequenceFromExtendedRows(
+        appended, roots, kinds, texts, left, right,
+        target_kinds, target_names, places
     );
 }

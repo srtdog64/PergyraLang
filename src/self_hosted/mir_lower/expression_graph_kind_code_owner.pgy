@@ -1,68 +1,71 @@
-// Persisted-shape vocabulary: expression-graph node kind and call-target kind
-// names mapped to their wire codes.
-//
-// Split out of expression_graph_sequence_owner.pgy, which owns appending rows
-// to a sequence. A name-to-code table is a vocabulary fact, not sequencing
-// logic, and carrying both put that owner over its line cap.
+// Persisted-shape vocabulary: allocation-free expression node, call-target,
+// and binding-kind JSON spellings mapped to their semantic wire codes.
 
-import "../semantic/role_operator_vocabulary_owner.pgy";
-import "../lib/json_fact_table.pgy";
+import "../lib/json_bounded_fact_read.pgy";
 import "../semantic/ast_expression_surface_fact_owner.pgy";
-import "expression_graph_persisted_shape_owner.pgy";
-import "expression_graph_persisted_read_owner.pgy";
 
-func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
-    if kind == "leaf" { return Some(AstExpressionNodeLeaf()); }
-    if kind == "logical_or" { return Some(AstExpressionNodeLogicalOr()); }
-    if kind == "logical_and" { return Some(AstExpressionNodeLogicalAnd()); }
-    if kind == "equality" { return Some(AstExpressionNodeEquality()); }
-    if kind == "inequality" { return Some(AstExpressionNodeInequality()); }
-    if kind == "less" { return Some(AstExpressionNodeLess()); }
-    if kind == "less_equal" { return Some(AstExpressionNodeLessEqual()); }
-    if kind == "greater" { return Some(AstExpressionNodeGreater()); }
-    if kind == "greater_equal" { return Some(AstExpressionNodeGreaterEqual()); }
-    if kind == "add" { return Some(AstExpressionNodeAdd()); }
-    if kind == "subtract" { return Some(AstExpressionNodeSubtract()); }
-    if kind == "multiply" { return Some(AstExpressionNodeMultiply()); }
-    if kind == "divide" { return Some(AstExpressionNodeDivide()); }
-    if kind == "modulo" { return Some(AstExpressionNodeModulo()); }
-    if kind == "index" { return Some(AstExpressionNodeIndex()); }
-    if kind == "logical_not" { return Some(AstExpressionNodeLogicalNot()); }
-    if kind == "negate" { return Some(AstExpressionNodeNegate()); }
-    if kind == "float_literal" { return Some(AstExpressionNodeFloatLiteral()); }
-    if kind == "integer_literal" { return Some(AstExpressionNodeIntegerLiteral()); }
-    if kind == "long_literal" { return Some(AstExpressionNodeLongLiteral()); }
-    if kind == "bool_literal" { return Some(AstExpressionNodeBoolLiteral()); }
-    if kind == "string_literal" { return Some(AstExpressionNodeStringLiteral()); }
-    if kind == "call" { return Some(AstExpressionNodeCall()); }
-    if kind == "call_argument" { return Some(AstExpressionNodeCallArgument()); }
-    if kind == "member_access" { return Some(AstExpressionNodeMemberAccess()); }
-    if kind == "try" { return Some(AstExpressionNodeTry()); }
-    if kind == "array_literal" { return Some(AstExpressionNodeArrayLiteral()); }
-    if kind == "array_element" { return Some(AstExpressionNodeArrayElement()); }
-    if kind == "struct_literal" { return Some(AstExpressionNodeStructLiteral()); }
-    if kind == "struct_field_binding" { return Some(AstExpressionNodeStructFieldBinding()); }
-    if kind == "struct_field" { return Some(AstExpressionNodeStructField()); }
-    if kind == "struct_field_name" { return Some(AstExpressionNodeStructFieldName()); }
-    if kind == "generic_type_actual" { return Some(AstExpressionNodeGenericTypeActual()); }
-    if kind == "generic_callee" { return Some(AstExpressionNodeGenericCallee()); }
-    if kind == "type_name" { return Some(AstExpressionNodeTypeName()); }
-    if kind == "cast" { return Some(AstExpressionNodeCast()); }
-    if kind == "await" { return Some(AstExpressionNodeAwait()); }
-    if kind == "coalesce" { return Some(AstExpressionNodeCoalesce()); }
-    if kind == "spawn" { return Some(AstExpressionNodeSpawn()); }
-    if kind == "set_literal" { return Some(AstExpressionNodeSetLiteral()); }
-    if kind == "set_element" { return Some(AstExpressionNodeSetElement()); }
+func MirExpressionGraphKindCodeWithin(
+    json: String, start: Int, end: Int
+) -> Option<Int> {
+    if JsonStringValueEqualsWithin(json, start, end, "leaf") { return Some(AstExpressionNodeLeaf()); }
+    if JsonStringValueEqualsWithin(json, start, end, "logical_or") { return Some(AstExpressionNodeLogicalOr()); }
+    if JsonStringValueEqualsWithin(json, start, end, "logical_and") { return Some(AstExpressionNodeLogicalAnd()); }
+    if JsonStringValueEqualsWithin(json, start, end, "equality") { return Some(AstExpressionNodeEquality()); }
+    if JsonStringValueEqualsWithin(json, start, end, "inequality") { return Some(AstExpressionNodeInequality()); }
+    if JsonStringValueEqualsWithin(json, start, end, "less") { return Some(AstExpressionNodeLess()); }
+    if JsonStringValueEqualsWithin(json, start, end, "less_equal") { return Some(AstExpressionNodeLessEqual()); }
+    if JsonStringValueEqualsWithin(json, start, end, "greater") { return Some(AstExpressionNodeGreater()); }
+    if JsonStringValueEqualsWithin(json, start, end, "greater_equal") { return Some(AstExpressionNodeGreaterEqual()); }
+    if JsonStringValueEqualsWithin(json, start, end, "add") { return Some(AstExpressionNodeAdd()); }
+    if JsonStringValueEqualsWithin(json, start, end, "subtract") { return Some(AstExpressionNodeSubtract()); }
+    if JsonStringValueEqualsWithin(json, start, end, "multiply") { return Some(AstExpressionNodeMultiply()); }
+    if JsonStringValueEqualsWithin(json, start, end, "divide") { return Some(AstExpressionNodeDivide()); }
+    if JsonStringValueEqualsWithin(json, start, end, "modulo") { return Some(AstExpressionNodeModulo()); }
+    if JsonStringValueEqualsWithin(json, start, end, "index") { return Some(AstExpressionNodeIndex()); }
+    if JsonStringValueEqualsWithin(json, start, end, "logical_not") { return Some(AstExpressionNodeLogicalNot()); }
+    if JsonStringValueEqualsWithin(json, start, end, "negate") { return Some(AstExpressionNodeNegate()); }
+    if JsonStringValueEqualsWithin(json, start, end, "float_literal") { return Some(AstExpressionNodeFloatLiteral()); }
+    if JsonStringValueEqualsWithin(json, start, end, "integer_literal") { return Some(AstExpressionNodeIntegerLiteral()); }
+    if JsonStringValueEqualsWithin(json, start, end, "long_literal") { return Some(AstExpressionNodeLongLiteral()); }
+    if JsonStringValueEqualsWithin(json, start, end, "bool_literal") { return Some(AstExpressionNodeBoolLiteral()); }
+    if JsonStringValueEqualsWithin(json, start, end, "string_literal") { return Some(AstExpressionNodeStringLiteral()); }
+    if JsonStringValueEqualsWithin(json, start, end, "call") { return Some(AstExpressionNodeCall()); }
+    if JsonStringValueEqualsWithin(json, start, end, "call_argument") { return Some(AstExpressionNodeCallArgument()); }
+    if JsonStringValueEqualsWithin(json, start, end, "member_access") { return Some(AstExpressionNodeMemberAccess()); }
+    if JsonStringValueEqualsWithin(json, start, end, "try") { return Some(AstExpressionNodeTry()); }
+    if JsonStringValueEqualsWithin(json, start, end, "array_literal") { return Some(AstExpressionNodeArrayLiteral()); }
+    if JsonStringValueEqualsWithin(json, start, end, "array_element") { return Some(AstExpressionNodeArrayElement()); }
+    if JsonStringValueEqualsWithin(json, start, end, "struct_literal") { return Some(AstExpressionNodeStructLiteral()); }
+    if JsonStringValueEqualsWithin(json, start, end, "struct_field_binding") { return Some(AstExpressionNodeStructFieldBinding()); }
+    if JsonStringValueEqualsWithin(json, start, end, "struct_field") { return Some(AstExpressionNodeStructField()); }
+    if JsonStringValueEqualsWithin(json, start, end, "struct_field_name") { return Some(AstExpressionNodeStructFieldName()); }
+    if JsonStringValueEqualsWithin(json, start, end, "generic_type_actual") { return Some(AstExpressionNodeGenericTypeActual()); }
+    if JsonStringValueEqualsWithin(json, start, end, "generic_callee") { return Some(AstExpressionNodeGenericCallee()); }
+    if JsonStringValueEqualsWithin(json, start, end, "type_name") { return Some(AstExpressionNodeTypeName()); }
+    if JsonStringValueEqualsWithin(json, start, end, "cast") { return Some(AstExpressionNodeCast()); }
+    if JsonStringValueEqualsWithin(json, start, end, "await") { return Some(AstExpressionNodeAwait()); }
+    if JsonStringValueEqualsWithin(json, start, end, "coalesce") { return Some(AstExpressionNodeCoalesce()); }
+    if JsonStringValueEqualsWithin(json, start, end, "spawn") { return Some(AstExpressionNodeSpawn()); }
+    if JsonStringValueEqualsWithin(json, start, end, "set_literal") { return Some(AstExpressionNodeSetLiteral()); }
+    if JsonStringValueEqualsWithin(json, start, end, "set_element") { return Some(AstExpressionNodeSetElement()); }
     return None;
 }
 
-func MirExpressionCallTargetKindCode(kind: String) -> Option<Int> {
-    if kind == "none" { return Some(SemanticCallTargetNone()); }
-    if kind == "direct" { return Some(SemanticCallTargetDirect()); }
-    if kind == "namespace" {
-        return Some(SemanticCallTargetNamespace());
-    }
-    if kind == "member" { return Some(SemanticCallTargetMember()); }
-    if kind == "role_operator" { return Some(SemanticCallTargetRoleOperator()); }
+func MirExpressionCallTargetKindCodeWithin(
+    json: String, start: Int, end: Int
+) -> Option<Int> {
+    if JsonStringValueEqualsWithin(json, start, end, "none") { return Some(SemanticCallTargetNone()); }
+    if JsonStringValueEqualsWithin(json, start, end, "direct") { return Some(SemanticCallTargetDirect()); }
+    if JsonStringValueEqualsWithin(json, start, end, "namespace") { return Some(SemanticCallTargetNamespace()); }
+    if JsonStringValueEqualsWithin(json, start, end, "member") { return Some(SemanticCallTargetMember()); }
+    if JsonStringValueEqualsWithin(json, start, end, "role_operator") { return Some(SemanticCallTargetRoleOperator()); }
+    return None;
+}
+
+func MirExpressionBindingKindCodeWithin(
+    json: String, start: Int, end: Int
+) -> Option<Int> {
+    if JsonStringValueEqualsWithin(json, start, end, "none") { return Some(SemanticExpressionBindingNone()); }
+    if JsonStringValueEqualsWithin(json, start, end, "formal_parameter") { return Some(SemanticExpressionBindingFormalParameter()); }
     return None;
 }

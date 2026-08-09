@@ -19,6 +19,24 @@ SOURCE="$ROOT_DIR/tests/self_hosted/fixtures/expression_graph_identity_prefix_ow
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/expression_graph_identity_prefix}"
 mkdir -p "$BUILD_DIR"
 
+SEQUENCE_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy"
+for extension_owner in \
+    destructure_expression_projection_owner.pgy \
+    expression_graph_option_match_owner.pgy \
+    expression_graph_tagged_enum_match_owner.pgy; do
+    path="$ROOT_DIR/src/self_hosted/mir_lower/$extension_owner"
+    grep -Fq 'MirExpressionGraphSequenceFromExtendedRows(' "$path" || {
+        echo "[self-host-parity:expression-graph-identity-prefix] $extension_owner bypassed the identity-preserving extension owner" >&2
+        exit 1
+    }
+    ! grep -Fq 'SemanticExpressionGraphArenaFromRows(' "$path" || {
+        echo "[self-host-parity:expression-graph-identity-prefix] $extension_owner rebuilt the cumulative identity universe" >&2
+        exit 1
+    }
+done
+grep -Fq 'func MirExpressionGraphSequenceFromExtendedRows(' \
+    "$SEQUENCE_OWNER" || exit 1
+
 run_backend() {
     local backend="$1"
     local bin="$BUILD_DIR/expression_graph_identity_prefix_${backend}.exe"

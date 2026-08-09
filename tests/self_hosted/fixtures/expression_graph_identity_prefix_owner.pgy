@@ -2,6 +2,7 @@
 
 import "../../../src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy";
 import "../../../src/self_hosted/mir_lower/intent_execution_graph_target_owner.pgy";
+import "../../../src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy";
 
 func ExpressionGraphIdentityPrefixReady(
     ref sequence: MirExpressionGraphSequence,
@@ -87,6 +88,16 @@ func Main() -> Void {
     if !ExpressionGraphIdentityPrefixReady(sequence, count) ||
         sequence.arena.call_target_names[call_row] != "Actor_Run" {
         Log("expression-graph-identity-prefix-projection-failed");
+        Exit(1);
+    }
+    sequence = MirExpressionGraphSequenceAppendIndexProjection(
+        sequence, "items", 0
+    );
+    let extended_count: Int =
+        SemanticExpressionGraphArenaNodeCount(sequence.arena);
+    if extended_count != count + 3 ||
+        !ExpressionGraphIdentityPrefixReady(sequence, extended_count) {
+        Log("expression-graph-identity-prefix-extension-failed");
         Exit(1);
     }
     Log("expression-graph-identity-prefix-ok");

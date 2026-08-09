@@ -57,15 +57,16 @@ func MirExpressionGraphSequenceAppendIndexProjection(
     ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());
     let roots: Array<Int> = sequence.roots;
     ArrayPush(roots, offset + 2);
-    let arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArenaFromRows(
-            kinds, texts, lefts, rights, target_kinds, target_names,
-            place_kinds
+    let extended: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceFromExtendedRows(
+            sequence, roots, kinds, texts, lefts, rights,
+            target_kinds, target_names, place_kinds
         );
-    if !MirExpressionGraphRangeReachable(arena, offset, 3, offset + 2) {
+    if !extended.ok || !MirExpressionGraphRangeReachable(
+            extended.arena, offset, 3, offset + 2) {
         return MirExpressionGraphSequenceError(sequence);
     }
-    return MirExpressionGraphSequence(true, ArrayLength(kinds), roots, arena);
+    return extended;
 }
 
 func MirExpressionGraphSequenceAppendDestructureOccurrence(

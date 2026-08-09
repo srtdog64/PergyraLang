@@ -908,10 +908,13 @@ inventory must not become a second fact-family owner registry.
   forbidden.
 - `src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy` -- bounded
   ordered graph-sequence construction over exact persisted graph captures.
+  Match/destructure extensions preserve the admitted identity prefix and append
+  only their new identity rows; they may not rebuild whole-program Unknown rows.
 - `src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy` -- the
-  persisted-shape vocabulary: expression-graph node kind and call-target kind
-  names mapped to their wire codes. A name-to-code table is a vocabulary fact,
-  not sequencing logic.
+  persisted-shape vocabulary: exact JSON spans for expression-graph node,
+  call-target, and binding kinds mapped allocation-free to their wire codes.
+  The vocabulary mapping is not sequencing logic, and the sequence consumer
+  must not materialize or remap those transient enum Strings.
 - `src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy` --
   one-pass persisted graph-HEADER capture, plus the shared index-bounds helper.
   It validates the exact schema while forbidding field-by-field JSON object
@@ -1090,8 +1093,9 @@ inventory must not become a second fact-family owner registry.
   program declaration spans; topology consumers must use its exact join and
   fail closed on missing, non-positive, or duplicate field identities.
 - `src/self_hosted/lib/json_bounded_fact_read.pgy` -- exact-bound JSON object
-  fact reads that consume structure-owner spans without rediscovering the full
-  document length.
+  and string-array fact reads that consume structure-owner spans without
+  rediscovering the full document length. The string-array scanner owns comma,
+  exact-end, and string decoding validity once for count and indexed reads.
 - `src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy` --
   fail-closed comparison of carried MIR assignment modes with semantic
   assignment type facts; the named C-oracle bridge is excluded.

@@ -1,6 +1,7 @@
 // Executable contract for exact-bound JSON string materialization.
 
 import "../../../src/self_hosted/lib/json.pgy";
+import "../../../src/self_hosted/lib/json_bounded_fact_read.pgy";
 
 func JsonBoundedStringEquals(
     encoded: String,
@@ -35,6 +36,33 @@ func Main() -> Void {
     if ReadJsonStringBounded(
         plain, 0, StringLength(plain) - 1, truncated_end
     ) != "" || truncated_end[0] != 0 {
+        failures = failures + 1;
+    }
+
+    let array_with_suffix: String = "xx[\"a\",\"b\\n\",\"\"]tail";
+    let array_end: Int = StringLength(array_with_suffix) - 4;
+    if JsonArrayStringCount(array_with_suffix, 2, array_end) != 3 ||
+        JsonArrayStringAt(array_with_suffix, 2, array_end, 0) != "a" ||
+        JsonArrayStringAt(array_with_suffix, 2, array_end, 1) != "b\n" ||
+        JsonArrayStringAt(array_with_suffix, 2, array_end, 2) != "" {
+        failures = failures + 1;
+    }
+
+    let missing_comma: String = "[\"a\" \"b\"]";
+    let leading_comma: String = "[,\"a\"]";
+    let trailing_comma: String = "[\"a\",]";
+    let non_string: String = "[\"a\",1]";
+    if JsonArrayStringCount(
+            missing_comma, 0, StringLength(missing_comma)
+        ) != 0 || JsonArrayStringCount(
+            leading_comma, 0, StringLength(leading_comma)
+        ) != 0 || JsonArrayStringCount(
+            trailing_comma, 0, StringLength(trailing_comma)
+        ) != 0 || JsonArrayStringCount(
+            non_string, 0, StringLength(non_string)
+        ) != 0 || JsonArrayStringCount(
+            array_with_suffix, 2, array_end - 1
+        ) != 0 {
         failures = failures + 1;
     }
 

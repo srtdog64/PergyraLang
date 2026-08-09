@@ -6,7 +6,6 @@ import "../semantic/role_operator_vocabulary_owner.pgy";
 import "expression_graph_persisted_shape_owner.pgy";
 import "expression_graph_persisted_read_owner.pgy";
 import "expression_graph_persisted_node_read_owner.pgy";
-import "expression_graph_kind_code_owner.pgy";
 struct MirExpressionGraphSequence {
     ok: Bool;
     ready_node_count: Int;
@@ -27,6 +26,48 @@ func MirExpressionGraphSequenceError(
     return MirExpressionGraphSequence(
         false, sequence.ready_node_count, sequence.roots, sequence.arena
     );
+}
+
+func MirExpressionGraphSequenceFromExtendedRows(
+    sequence: MirExpressionGraphSequence,
+    roots: Array<Int>, kinds: Array<Int>, texts: Array<String>,
+    lefts: Array<Int>, rights: Array<Int>,
+    target_kinds: Array<Int>, target_names: Array<String>,
+    places: Array<Int>
+) -> MirExpressionGraphSequence {
+    let prefix: Int = sequence.ready_node_count;
+    let count: Int = ArrayLength(kinds);
+    if !sequence.ok || prefix < 0 || prefix > count ||
+        ArrayLength(texts) != count || ArrayLength(lefts) != count ||
+        ArrayLength(rights) != count || ArrayLength(target_kinds) != count ||
+        ArrayLength(target_names) != count || ArrayLength(places) != count ||
+        ArrayLength(sequence.arena.call_return_type_names) != prefix ||
+        ArrayLength(sequence.arena.identities.call_target_syntax_ids) != prefix ||
+        ArrayLength(sequence.arena.identities.binding_kinds) != prefix ||
+        ArrayLength(sequence.arena.identities.binding_ordinals) != prefix {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    let return_types: Array<String> = sequence.arena.call_return_type_names;
+    let syntax_ids: Array<Int> =
+        sequence.arena.identities.call_target_syntax_ids;
+    let binding_kinds: Array<Int> = sequence.arena.identities.binding_kinds;
+    let binding_ordinals: Array<Int> =
+        sequence.arena.identities.binding_ordinals;
+    let i: Int = prefix;
+    while i < count {
+        ArrayPush(return_types, ""); ArrayPush(syntax_ids, 0);
+        ArrayPush(binding_kinds, SemanticExpressionBindingNone());
+        ArrayPush(binding_ordinals, -1); i = i + 1;
+    }
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaFromTopologyWithIdentities(
+            AstExpressionArena(kinds, texts, lefts, rights), texts,
+            target_kinds, target_names, return_types,
+            SemanticExpressionIdentityRows(
+                syntax_ids, binding_kinds, binding_ordinals
+            ), places
+        );
+    return MirExpressionGraphSequence(true, count, roots, arena);
 }
 
 func MirExpressionGraphRangeReachable(
@@ -106,6 +147,7 @@ func MirExpressionGraphSequenceAppend(
     }
     let i: Int = 0;
     let cursor: Int = header.nodes_start + 1;
+    let string_end_scratch: Array<Int> = [0];
     while cursor < header.nodes_end {
         cursor = JsonSkipWhitespaceWithin(
             graph.json, cursor, header.nodes_end
@@ -123,39 +165,27 @@ func MirExpressionGraphSequenceAppend(
         }
         let node: MirExpressionGraphNodeCapture =
             MirExpressionGraphNodeCaptureWithin(
-                graph.json, cursor, header.nodes_end
+                graph.json, cursor, header.nodes_end, string_end_scratch
             );
         if !node.valid || node.text == "" {
             return MirExpressionGraphSequenceError(sequence);
         }
-        let kind_opt: Option<Int> = MirExpressionGraphKindCode(
-            node.kind
-        );
-        if !IsSome(kind_opt) {
-            return MirExpressionGraphSequenceError(sequence);
-        }
-        let target_kind_opt: Option<Int> = MirExpressionCallTargetKindCode(
-            node.target_kind
-        );
-        if !IsSome(target_kind_opt) {
-            return MirExpressionGraphSequenceError(sequence);
-        }
-        let target_kind: Int = UnwrapOption(target_kind_opt);
+        let target_kind: Int = node.target_kind;
         if (target_kind == SemanticCallTargetNone() &&
                 node.target_name != "") ||
             ((target_kind == SemanticCallTargetDirect() ||
                 target_kind == SemanticCallTargetNamespace() ||
                 target_kind == SemanticCallTargetMember()) &&
                 (node.target_name == "" ||
-                    UnwrapOption(kind_opt) != AstExpressionNodeCall())) ||
+                    node.kind != AstExpressionNodeCall())) ||
             (target_kind == SemanticCallTargetRoleOperator() &&
                 (node.target_name == "" ||
                     !SemanticRoleOperatorKindSupported(
-                        UnwrapOption(kind_opt)
+                        node.kind
                     ))) {
             return MirExpressionGraphSequenceError(sequence);
         }
-        let kind: Int = UnwrapOption(kind_opt);
+        let kind: Int = node.kind;
         let node_text: String = node.text;
         if (kind == AstExpressionNodeLongLiteral() &&
                 !AstExpressionLongLiteralPayloadReady(node_text)) ||
@@ -227,14 +257,7 @@ func MirExpressionGraphSequenceAppend(
         ArrayPush(call_target_names, node.target_name);
         ArrayPush(call_return_type_names, "");
         ArrayPush(call_target_syntax_ids, node.call_target_syntax_id);
-        if node.binding_kind == "formal_parameter" {
-            ArrayPush(
-                binding_kinds,
-                SemanticExpressionBindingFormalParameter()
-            );
-        } else {
-            ArrayPush(binding_kinds, SemanticExpressionBindingNone());
-        }
+        ArrayPush(binding_kinds, node.binding_kind);
         if node.has_binding_ordinal {
             ArrayPush(binding_ordinals, node.binding_ordinal);
         } else {

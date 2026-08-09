@@ -15,6 +15,18 @@ func PersistedGraphProbeJson(mode: String) -> String {
     if mode == "--overflow-root" {
         return "{\"root\":2147483648,\"nodes\":[{\"kind\":\"integer_literal\",\"text\":\"1\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"left\":null,\"right\":null}]}";
     }
+    if mode == "--unknown-node-kind" {
+        return "{\"root\":0,\"nodes\":[{\"kind\":\"mystery\",\"text\":\"1\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"left\":null,\"right\":null}]}";
+    }
+    if mode == "--unknown-target-kind" {
+        return "{\"root\":0,\"nodes\":[{\"kind\":\"integer_literal\",\"text\":\"1\",\"call_target_kind\":\"mystery\",\"call_target_name\":\"\",\"left\":null,\"right\":null}]}";
+    }
+    if mode == "--unknown-binding-kind" {
+        return "{\"root\":0,\"nodes\":[{\"kind\":\"integer_literal\",\"text\":\"1\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"call_target_syntax_id\":0,\"binding_kind\":\"mystery\",\"binding_ordinal\":null,\"left\":null,\"right\":null}]}";
+    }
+    if mode == "--extended-identity" {
+        return "{\"root\":3,\"nodes\":[{\"kind\":\"leaf\",\"text\":\"f\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"call_target_syntax_id\":0,\"binding_kind\":\"none\",\"binding_ordinal\":null,\"left\":null,\"right\":null},{\"kind\":\"leaf\",\"text\":\"x\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"call_target_syntax_id\":0,\"binding_kind\":\"formal_parameter\",\"binding_ordinal\":4,\"left\":null,\"right\":null},{\"kind\":\"call\",\"text\":\"f\",\"call_target_kind\":\"direct\",\"call_target_name\":\"F\",\"call_target_syntax_id\":713,\"binding_kind\":\"none\",\"binding_ordinal\":null,\"left\":0,\"right\":null},{\"kind\":\"call_argument\",\"text\":\"f(x)\",\"call_target_kind\":\"none\",\"call_target_name\":\"\",\"call_target_syntax_id\":0,\"binding_kind\":\"none\",\"binding_ordinal\":null,\"left\":2,\"right\":1}]}";
+    }
     if mode == "--reordered-fields" {
         return "{\"digest\":7,\"nodes\":[{\"right\":null,\"left\":null,\"call_target_name\":\"\",\"call_target_kind\":\"none\",\"text\":\"1\",\"kind\":\"integer_literal\"},{\"text\":\"2\",\"kind\":\"integer_literal\",\"right\":null,\"left\":null,\"call_target_name\":\"\",\"call_target_kind\":\"none\"},{\"left\":0,\"kind\":\"add\",\"right\":1,\"text\":\"1 + 2\",\"call_target_name\":\"\",\"call_target_kind\":\"none\"}],\"root\":2}";
     }
@@ -34,7 +46,9 @@ func Main() -> Void with caps env {
         );
     let negative: Bool = mode == "--duplicate-node-field" ||
         mode == "--unknown-header-field" || mode == "--unreachable-node" ||
-        mode == "--overflow-root";
+        mode == "--overflow-root" || mode == "--unknown-node-kind" ||
+        mode == "--unknown-target-kind" ||
+        mode == "--unknown-binding-kind";
     if negative {
         if sequence.ok {
             Log("malformed persisted graph was accepted");
@@ -43,9 +57,25 @@ func Main() -> Void with caps env {
         Log("persisted-graph-negative=closed");
         return;
     }
-    if !sequence.ok || sequence.ready_node_count != 3 ||
-        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 2 ||
-        sequence.arena.node_texts[sequence.roots[0]] != "1 + 2" {
+    let expected_count: Int = 3;
+    let expected_root: Int = 2;
+    if mode == "--extended-identity" {
+        expected_count = 4;
+        expected_root = 3;
+    }
+    if !sequence.ok || sequence.ready_node_count != expected_count ||
+        ArrayLength(sequence.roots) != 1 ||
+        sequence.roots[0] != expected_root ||
+        (mode == "--extended-identity" &&
+            (sequence.arena.node_texts[3] != "f(x)" ||
+                sequence.arena.call_target_kinds[2] !=
+                    SemanticCallTargetDirect() ||
+                sequence.arena.identities.call_target_syntax_ids[2] != 713 ||
+                sequence.arena.identities.binding_kinds[1] !=
+                    SemanticExpressionBindingFormalParameter() ||
+                sequence.arena.identities.binding_ordinals[1] != 4)) ||
+        (mode != "--extended-identity" &&
+            sequence.arena.node_texts[sequence.roots[0]] != "1 + 2") {
         Log("valid persisted graph did not reconstruct exactly");
         Exit(1);
         return;

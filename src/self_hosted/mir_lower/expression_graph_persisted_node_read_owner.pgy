@@ -4,19 +4,19 @@
 // HEADER record. They are two different records with two different shapes;
 // holding both put that owner well past its line cap. The shared bounds
 // helper MirExpressionGraphIndexWithin stays with the header owner.
-
 import "../lib/json_fact_table.pgy";
+import "expression_graph_kind_code_owner.pgy";
 import "expression_graph_persisted_read_owner.pgy";
 
 struct MirExpressionGraphNodeCapture {
     let valid: Bool;
     let end: Int;
-    let kind: String;
+    let kind: Int;
     let text: String;
-    let target_kind: String;
+    let target_kind: Int;
     let target_name: String;
     let call_target_syntax_id: Int;
-    let binding_kind: String;
+    let binding_kind: Int;
     let has_binding_ordinal: Bool;
     let binding_ordinal: Int;
     let has_left: Bool;
@@ -28,24 +28,26 @@ struct MirExpressionGraphNodeCapture {
 func InvalidMirExpressionGraphNodeCapture(
 ) -> MirExpressionGraphNodeCapture {
     return MirExpressionGraphNodeCapture(
-        false, 0 - 1, "", "", "", "", 0, "none", false, 0,
+        false, 0 - 1, 0 - 1, "", 0 - 1, "", 0,
+        SemanticExpressionBindingNone(), false, 0,
         false, 0, false, 0
     );
 }
 
 func MirExpressionGraphNodeCaptureWithin(
-    json: String, start: Int, array_end: Int
+    json: String, start: Int, array_end: Int,
+    inout string_end_scratch: Array<Int>
 ) -> MirExpressionGraphNodeCapture {
     if start < 0 || start >= array_end ||
         JsonCharCodeAt(json, array_end, start) != JsonAsciiCode("{") {
         return InvalidMirExpressionGraphNodeCapture();
     }
-    let kind: String = "";
+    let kind: Int = 0 - 1;
     let text: String = "";
-    let target_kind: String = "";
+    let target_kind: Int = 0 - 1;
     let target_name: String = "";
     let call_target_syntax_id: Int = 0;
-    let binding_kind: String = "none";
+    let binding_kind: Int = SemanticExpressionBindingNone();
     let has_binding_ordinal: Bool = false;
     let binding_ordinal: Int = 0;
     let has_left: Bool = false;
@@ -84,13 +86,16 @@ func MirExpressionGraphNodeCaptureWithin(
                 return InvalidMirExpressionGraphNodeCapture();
             }
             if extended && ((call_target_syntax_id > 0 &&
-                    target_kind != "direct") ||
-                (target_kind == "none" && call_target_syntax_id != 0) ||
-                (binding_kind == "none" && has_binding_ordinal) ||
-                (binding_kind == "formal_parameter" &&
+                    target_kind != SemanticCallTargetDirect()) ||
+                (target_kind == SemanticCallTargetNone() &&
+                    call_target_syntax_id != 0) ||
+                (binding_kind == SemanticExpressionBindingNone() &&
+                    has_binding_ordinal) ||
+                (binding_kind == SemanticExpressionBindingFormalParameter() &&
                     !has_binding_ordinal) ||
-                (binding_kind != "none" &&
-                    binding_kind != "formal_parameter")) {
+                (binding_kind != SemanticExpressionBindingNone() &&
+                    binding_kind !=
+                        SemanticExpressionBindingFormalParameter())) {
                 return InvalidMirExpressionGraphNodeCapture();
             }
             return MirExpressionGraphNodeCapture(
@@ -171,35 +176,57 @@ func MirExpressionGraphNodeCaptureWithin(
             return InvalidMirExpressionGraphNodeCapture();
         }
         let value_end: Int = UnwrapOption(value_end_opt);
-        if field_kind <= 4 || field_kind == 8 {
-            if JsonValueKindAt(json, i, value_end) != "string" ||
-                (field_kind == 1 && kind_seen) ||
-                (field_kind == 2 && text_seen) ||
-                (field_kind == 3 && target_kind_seen) ||
-                (field_kind == 4 && target_name_seen) ||
-                (field_kind == 8 && binding_kind_seen) {
-                return InvalidMirExpressionGraphNodeCapture();
-            }
-            let decoded_end: Array<Int> = [0];
-            let value: String = ReadJsonStringBounded(
-                json, i, value_end, decoded_end
+        if field_kind == 1 {
+            if kind_seen { return InvalidMirExpressionGraphNodeCapture(); }
+            let value: Option<Int> = MirExpressionGraphKindCodeWithin(
+                json, i, value_end
             );
-            if decoded_end[0] != value_end {
+            if !IsSome(value) {
                 return InvalidMirExpressionGraphNodeCapture();
             }
-            if field_kind == 1 { kind = value; kind_seen = true; }
-            if field_kind == 2 { text = value; text_seen = true; }
-            if field_kind == 3 {
-                target_kind = value;
-                target_kind_seen = true;
+            kind = UnwrapOption(value);
+            kind_seen = true;
+        } else if field_kind == 3 {
+            if target_kind_seen {
+                return InvalidMirExpressionGraphNodeCapture();
             }
+            let value: Option<Int> = MirExpressionCallTargetKindCodeWithin(
+                json, i, value_end
+            );
+            if !IsSome(value) {
+                return InvalidMirExpressionGraphNodeCapture();
+            }
+            target_kind = UnwrapOption(value);
+            target_kind_seen = true;
+        } else if field_kind == 8 {
+            if binding_kind_seen {
+                return InvalidMirExpressionGraphNodeCapture();
+            }
+            let value: Option<Int> = MirExpressionBindingKindCodeWithin(
+                json, i, value_end
+            );
+            if !IsSome(value) {
+                return InvalidMirExpressionGraphNodeCapture();
+            }
+            binding_kind = UnwrapOption(value);
+            binding_kind_seen = true;
+        } else if field_kind == 2 || field_kind == 4 {
+            if JsonValueKindAt(json, i, value_end) != "string" ||
+                (field_kind == 2 && text_seen) ||
+                (field_kind == 4 && target_name_seen) {
+                return InvalidMirExpressionGraphNodeCapture();
+            }
+            ArraySet(string_end_scratch, 0, 0);
+            let value: String = ReadJsonStringBounded(
+                json, i, value_end, string_end_scratch
+            );
+            if string_end_scratch[0] != value_end {
+                return InvalidMirExpressionGraphNodeCapture();
+            }
+            if field_kind == 2 { text = value; text_seen = true; }
             if field_kind == 4 {
                 target_name = value;
                 target_name_seen = true;
-            }
-            if field_kind == 8 {
-                binding_kind = value;
-                binding_kind_seen = true;
             }
         } else if field_kind == 7 {
             if target_syntax_seen ||

@@ -745,8 +745,7 @@ done
 for reuse_contract in \
     "$CALL_TARGETS|SemanticAstAnalysisResolveCallTargetsFromAdmittedBody" \
     "$GENERIC_FACTS|SemanticAstGenericSpecializationFactsFromAdmittedBody" \
-    "$INITIALIZER_CURSOR|SemanticAstInitializerEnvironmentCursorAdvance" \
-    "$STATEMENT_FACTS|SemanticAstStatementTypeFactsFromAdmittedArtifact"; do
+    "$INITIALIZER_CURSOR|SemanticAstInitializerEnvironmentCursorAdvance"; do
     path="${reuse_contract%%|*}"
     function_name="${reuse_contract#*|}"
     function_body "$path" "$function_name" |
@@ -815,11 +814,29 @@ for fresh_environment in \
         exit 1
     }
 done
-[[ "$(grep -Fc 'SemanticAstExpressionEnvironmentReset(names, types, modes);' \
-    <<<"$statement_row_epoch" || true)" -eq 1 ]] || {
-    echo "[self-host-parity:semantic-environment-lifetime] statement row loop lost its exact environment reset" >&2
+for prefix_reset in \
+    'while ArrayLength(names) > enum_environment_count { ArrayPop(names); }' \
+    'while ArrayLength(types) > enum_environment_count { ArrayPop(types); }' \
+    'while ArrayLength(modes) > enum_environment_count { ArrayPop(modes); }'; do
+    grep -Fq "$prefix_reset" <<<"$statement_row_epoch" || {
+        echo "[self-host-parity:semantic-environment-lifetime] statement row lost enum-prefix reset: $prefix_reset" >&2
+        exit 1
+    }
+done
+if grep -Fq 'SemanticAstExpressionEnvironmentReset(names, types, modes);' \
+    <<<"$statement_row_epoch"; then
+    echo "[self-host-parity:semantic-environment-lifetime] statement row discarded its admitted enum prefix" >&2
+    exit 1
+fi
+[[ "$(grep -Fc 'SemanticAstExpressionSeedEnumValues(' \
+    <<<"$statement_environment_prefix" || true)" -eq 1 ]] || {
+    echo "[self-host-parity:semantic-environment-lifetime] statement owner lost its one enum-prefix admission" >&2
     exit 1
 }
+if grep -Fq 'SemanticAstExpressionSeedEnumValues(' <<<"$statement_row_epoch"; then
+    echo "[self-host-parity:semantic-environment-lifetime] statement row rebuilt the enum prefix" >&2
+    exit 1
+fi
 [[ "$(grep -Fc 'SemanticAstExpressionEnvironmentClear(names, types, modes);' \
     <<<"$statement_row_epoch" || true)" -eq 1 ]] || {
     echo "[self-host-parity:semantic-environment-lifetime] statement owner lost its post-row last-consumer cleanup" >&2

@@ -4,23 +4,29 @@
 // them only with end-exclusive bounds carried from the JSON structure owner.
 
 import "json.pgy";
-func JsonObjectKeyEqualsWithin(
+func JsonStringValueEqualsWithin(
     json: String,
-    key_open: Int,
-    key_end: Int,
+    value_open: Int,
+    value_end: Int,
     expected: String
 ) -> Bool {
-    if key_open < 0 || key_end <= key_open + 1 { return false; }
+    if value_open < 0 || value_end <= value_open + 1 ||
+        JsonCharCodeAt(json, value_end, value_open) != JsonAsciiCode("\"") ||
+        JsonCharCodeAt(json, value_end, value_end - 1) != JsonAsciiCode("\"") {
+        return false;
+    }
     let expected_length: Int = StringLength(expected);
-    let raw_length: Int = key_end - key_open - 2;
+    let raw_length: Int = value_end - value_open - 2;
     let row: Int = 0;
     while row < raw_length {
-        let actual: Int = JsonCharCodeAt(json, key_end, key_open + 1 + row);
+        let actual: Int = JsonCharCodeAt(
+            json, value_end, value_open + 1 + row
+        );
         if actual == JsonAsciiCode("\\") {
             let decoded_end: Array<Int> = [0];
             return ReadJsonStringBounded(
-                json, key_open, key_end, decoded_end
-            ) == expected && decoded_end[0] == key_end;
+                json, value_open, value_end, decoded_end
+            ) == expected && decoded_end[0] == value_end;
         }
         if row >= expected_length ||
             actual != JsonCharCodeAt(expected, expected_length, row) {
@@ -29,6 +35,14 @@ func JsonObjectKeyEqualsWithin(
         row = row + 1;
     }
     return row == expected_length;
+}
+
+func JsonObjectKeyEqualsWithin(
+    json: String, key_open: Int, key_end: Int, expected: String
+) -> Bool {
+    return JsonStringValueEqualsWithin(
+        json, key_open, key_end, expected
+    );
 }
 
 func JsonArrayEndWithin(
@@ -309,4 +323,115 @@ func JsonObjectTwoFieldValueBoundsWithin(
         i = value_end;
     }
     return false;
+}
+
+struct JsonArrayStringFact {
+    valid: Bool;
+    count: Int;
+    target_found: Bool;
+    target_value: String;
+}
+
+func JsonArrayStringFactWithin(
+    json: String,
+    array_open: Int,
+    array_end: Int,
+    target_index: Int
+) -> JsonArrayStringFact {
+    if array_open < 0 || array_end <= array_open + 1 ||
+        JsonCharCodeAt(json, array_end, array_open) != JsonAsciiCode("[") {
+        return JsonArrayStringFact(false, 0, false, "");
+    }
+    let count: Int = 0;
+    let target_found: Bool = false;
+    let target_value: String = "";
+    let expect_value: Bool = true;
+    let after_comma: Bool = false;
+    let i: Int = array_open + 1;
+    while i < array_end {
+        i = JsonSkipWhitespaceWithin(json, i, array_end);
+        if i >= array_end {
+            return JsonArrayStringFact(false, 0, false, "");
+        }
+        let c: Int = JsonCharCodeAt(json, array_end, i);
+        if c == JsonAsciiCode("]") {
+            if after_comma || i + 1 != array_end {
+                return JsonArrayStringFact(false, 0, false, "");
+            }
+            return JsonArrayStringFact(
+                true, count, target_found, target_value
+            );
+        }
+        if !expect_value {
+            if c != JsonAsciiCode(",") {
+                return JsonArrayStringFact(false, 0, false, "");
+            }
+            expect_value = true;
+            after_comma = true;
+            i = i + 1;
+            continue;
+        }
+        if c != JsonAsciiCode("\"") {
+            return JsonArrayStringFact(false, 0, false, "");
+        }
+        let value_end_opt: Option<Int> = JsonStringEndWithin(
+            json, i, array_end
+        );
+        if !IsSome(value_end_opt) {
+            return JsonArrayStringFact(false, 0, false, "");
+        }
+        let value_end: Int = UnwrapOption(value_end_opt);
+        if count == target_index {
+            let decoded_end: Array<Int> = [0];
+            target_value = ReadJsonStringBounded(
+                json, i, value_end, decoded_end
+            );
+            if decoded_end[0] != value_end {
+                return JsonArrayStringFact(false, 0, false, "");
+            }
+            target_found = true;
+        }
+        count = count + 1;
+        i = value_end;
+        expect_value = false;
+        after_comma = false;
+    }
+    return JsonArrayStringFact(false, 0, false, "");
+}
+
+func JsonArrayStringAt(
+    json: String, array_open: Int, array_end: Int, target_index: Int
+) -> String {
+    if target_index < 0 { return ""; }
+    let fact: JsonArrayStringFact = JsonArrayStringFactWithin(
+        json, array_open, array_end, target_index
+    );
+    if !fact.valid || !fact.target_found { return ""; }
+    return fact.target_value;
+}
+
+func JsonArrayStringCount(
+    json: String, array_open: Int, array_end: Int
+) -> Int {
+    let fact: JsonArrayStringFact = JsonArrayStringFactWithin(
+        json, array_open, array_end, 0 - 1
+    );
+    if !fact.valid { return 0; }
+    return fact.count;
+}
+
+func JsonObjectArrayStringAt(
+    json: String, start: Int, end: Int,
+    field: String, target_index: Int
+) -> String {
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFieldValueBoundsWithin(
+            json, start, end, field, bounds
+        ) || bounds[0] >= bounds[1] ||
+        JsonCharCodeAt(json, bounds[1], bounds[0]) != JsonAsciiCode("[") {
+        return "";
+    }
+    return JsonArrayStringAt(
+        json, bounds[0], bounds[1], target_index
+    );
 }

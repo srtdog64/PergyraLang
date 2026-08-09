@@ -161,14 +161,21 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
     let names: Array<String> = [];
     let types: Array<String> = [];
     let modes: Array<String> = [];
+    if !SemanticAstExpressionSeedEnumValues(
+        enum_facts, names, types, modes
+    ) {
+        return SemanticAstStatementTypeStructuralError(
+            artifact, "enum_environment"
+        );
+    }
+    let enum_environment_count: Int = ArrayLength(names);
     let i: Int = 0;
     while i < SemanticAstStatementCount(statements) {
-        SemanticAstExpressionEnvironmentReset(names, types, modes);
+        while ArrayLength(names) > enum_environment_count { ArrayPop(names); }
+        while ArrayLength(types) > enum_environment_count { ArrayPop(types); }
+        while ArrayLength(modes) > enum_environment_count { ArrayPop(modes); }
         let environment_fact: String = "";
-        if !SemanticAstExpressionSeedEnumValues(
-            enum_facts, names, types, modes
-        ) { environment_fact = "enum_environment"; }
-        else if !SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
+        if !SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
             signatures, constructors, statements.function_node_ids[i],
             names, types, modes
         ) { environment_fact = "owner_field_environment"; }

@@ -37,16 +37,14 @@ func MirExpressionGraphSequenceAppendUnaryCall(
     ArrayPush(target_kinds, SemanticCallTargetDirect());
     ArrayPush(target_names, callee_name);
     ArrayPush(places, SemanticExpressionPlaceUnknown());
-    let prefix_arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArenaFromRows(
-            kinds, texts, left, right, target_kinds, target_names, places
+    let prefix: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceFromExtendedRows(
+            sequence, roots, kinds, texts, left, right,
+            target_kinds, target_names, places
         );
     let with_subject: MirExpressionGraphSequence =
         MirExpressionGraphSequenceAppend(
-            MirExpressionGraphSequence(
-                true, ArrayLength(kinds), roots, prefix_arena
-            ),
-            subject_graph
+            prefix, subject_graph
         );
     if !with_subject.ok || ArrayLength(with_subject.roots) == 0 {
         return MirExpressionGraphSequenceError(with_subject);
@@ -84,13 +82,10 @@ func MirExpressionGraphSequenceAppendUnaryCall(
         ArrayPush(result_places, SemanticExpressionPlaceUnknown());
     }
     ArraySet(result_roots, ArrayLength(result_roots) - 1, final_root);
-    let final_arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArenaFromRows(
-            result_kinds, result_texts, result_left, result_right,
-            result_target_kinds, result_target_names, result_places
-        );
-    return MirExpressionGraphSequence(
-        true, ArrayLength(result_kinds), result_roots, final_arena
+    return MirExpressionGraphSequenceFromExtendedRows(
+        with_subject, result_roots, result_kinds, result_texts,
+        result_left, result_right, result_target_kinds,
+        result_target_names, result_places
     );
 }
 

@@ -4675,7 +4675,16 @@ require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
     "SemanticAstExpressionMemberRootNames("
 require_file "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" 525
+require_max_lines "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" 540
+require_function_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
+    "func SemanticAstStatementTypeFactsFromAdmittedArtifact(" \
+    "let enum_environment_count: Int = ArrayLength(names);"
+require_function_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
+    "func SemanticAstStatementTypeFactsFromAdmittedArtifact(" \
+    "while ArrayLength(names) > enum_environment_count { ArrayPop(names); }"
+reject_function_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
+    "func SemanticAstStatementTypeFactsFromAdmittedArtifact(" \
+    "SemanticAstExpressionEnvironmentReset(names, types, modes);"
 require_text "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" \
     "func SemanticAstStatementTypeFactsMatchArtifact"
 reject_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
@@ -4965,8 +4974,9 @@ require_text "src/self_hosted/parser/expr_postfix_owner.pgy" \
     'nc == "?" && ParserCharAt(content, after_ws + 1) != "?"'
 require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeCoalesce() { return "coalesce"; }'
-require_text "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
-    'kind == "coalesce"'
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
+    "func MirExpressionGraphKindCodeWithin(" '"coalesce"'
 require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
     "OptionCoalescePayloadTypeOpt(left, right)"
 require_text "src/self_hosted/semantic/wrapper_type_owner.pgy" \
@@ -5680,6 +5690,10 @@ require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "ready_node_count: Int"
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "sequence.ready_node_count != offset"
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    "func MirExpressionGraphSequenceFromExtendedRows(" \
+    "SemanticExpressionGraphArenaFromTopologyWithIdentities("
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     "MirProgramRoutineIndexStructureReady(routines) &&"
 reject_function_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
@@ -5723,12 +5737,30 @@ reject_function_text "src/self_hosted/mir_lower/destructure_expression_projectio
 reject_function_text "src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy" \
     "func MirExpressionGraphSequenceAppendIndexProjection(" \
     "SemanticExpressionGraphArenaReady("
+require_function_text "src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy" \
+    "func MirExpressionGraphSequenceAppendIndexProjection(" \
+    "MirExpressionGraphSequenceFromExtendedRows("
+reject_function_text "src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy" \
+    "func MirExpressionGraphSequenceAppendIndexProjection(" \
+    "SemanticExpressionGraphArenaFromRows("
 reject_function_text "src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy" \
     "func MirExpressionGraphSequenceAppendUnaryCall(" \
     "SemanticExpressionGraphArenaReady("
+require_function_text "src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy" \
+    "func MirExpressionGraphSequenceAppendUnaryCall(" \
+    "MirExpressionGraphSequenceFromExtendedRows("
+reject_function_text "src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy" \
+    "func MirExpressionGraphSequenceAppendUnaryCall(" \
+    "SemanticExpressionGraphArenaFromRows("
 reject_function_text "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" \
     "func MirExpressionGraphSequenceAppendTaggedEnumMatchOccurrence(" \
     "SemanticExpressionGraphArenaReady("
+require_function_text "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" \
+    "func MirExpressionGraphSequenceAppendTaggedEnumMatchOccurrence(" \
+    "MirExpressionGraphSequenceFromExtendedRows("
+reject_function_text "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" \
+    "func MirExpressionGraphSequenceAppendTaggedEnumMatchOccurrence(" \
+    "SemanticExpressionGraphArenaFromRows("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func CompileMirJsonTextToCVerified("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -6307,8 +6339,9 @@ require_text "src/self_hosted/parser/expr_precedence_owner.pgy" \
     "AstExpressionNodeSpawn()"
 require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'return "spawn"'
-require_text "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
-    'kind == "spawn"'
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
+    "func MirExpressionGraphKindCodeWithin(" '"spawn"'
 require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
     "Future<"
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
@@ -7310,6 +7343,12 @@ require_text "src/self_hosted/mir_lower/structured_condition_emission_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" 300
 require_file "src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy" 360
+require_file "src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy" 300
+require_file "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" 100
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy"
 require_text "src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy" \
@@ -7319,6 +7358,46 @@ require_text "src/self_hosted/mir_lower/expression_graph_persisted_node_read_own
 require_function_text \
     "src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy" \
     "func MirExpressionGraphNodeCaptureWithin(" "let field_kind: Int = 0;"
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy" \
+    "func MirExpressionGraphNodeCaptureWithin(" \
+    "MirExpressionGraphKindCodeWithin("
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy" \
+    "func MirExpressionGraphNodeCaptureWithin(" \
+    "MirExpressionCallTargetKindCodeWithin("
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy" \
+    "func MirExpressionGraphNodeCaptureWithin(" \
+    "MirExpressionBindingKindCodeWithin("
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy" \
+    "func MirExpressionGraphNodeCaptureWithin(" \
+    "inout string_end_scratch: Array<Int>"
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    "func MirExpressionGraphSequenceAppend(" \
+    "let string_end_scratch: Array<Int> = [0];"
+reject_function_text \
+    "src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy" \
+    "func MirExpressionGraphNodeCaptureWithin(" \
+    "let decoded_end: Array<Int> = [0];"
+reject_function_text \
+    "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    "func MirExpressionGraphSequenceAppend(" "MirExpressionGraphKindCode("
+reject_function_text \
+    "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    "func MirExpressionGraphSequenceAppend(" \
+    "MirExpressionCallTargetKindCode("
+reject_function_text \
+    "src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy" \
+    "func MirExpressionGraphNodeCaptureWithin(" "let kind: String;"
+reject_function_text \
+    "src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy" \
+    "func MirExpressionGraphNodeCaptureWithin(" "let target_kind: String;"
+reject_function_text \
+    "src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy" \
+    "func MirExpressionGraphNodeCaptureWithin(" "let binding_kind: String;"
 reject_function_text \
     "src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy" \
     "func MirExpressionGraphIndexWithin(" "StringLength("
@@ -7341,6 +7420,14 @@ require_text "tests/self_hosted/parity/mir_expression_graph_persisted_read_owner
     "--unreachable-node"
 require_text "tests/self_hosted/parity/mir_expression_graph_persisted_read_owner.sh" \
     "--overflow-root"
+require_text "tests/self_hosted/parity/mir_expression_graph_persisted_read_owner.sh" \
+    "--extended-identity"
+require_text "tests/self_hosted/parity/mir_expression_graph_persisted_read_owner.sh" \
+    "--unknown-node-kind"
+require_text "tests/self_hosted/parity/mir_expression_graph_persisted_read_owner.sh" \
+    "--unknown-target-kind"
+require_text "tests/self_hosted/parity/mir_expression_graph_persisted_read_owner.sh" \
+    "--unknown-binding-kind"
 require_max_lines "src/self_hosted/mir_lower/expression_graph_match_owner.pgy" 220
 require_max_lines "src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy" 120
 require_max_lines "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" 220
@@ -8280,16 +8367,21 @@ require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeStringLiteral() { return "string_literal"; }'
 require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeAwait() { return "await"; }'
-require_text "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
-    'if kind == "integer_literal" {'
-require_text "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
-    'if kind == "long_literal" {'
-require_text "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
-    'if kind == "bool_literal" {'
-require_text "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
-    'if kind == "string_literal" {'
-require_text "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
-    'if kind == "await" { return Some(AstExpressionNodeAwait()); }'
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
+    "func MirExpressionGraphKindCodeWithin(" '"integer_literal"'
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
+    "func MirExpressionGraphKindCodeWithin(" '"long_literal"'
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
+    "func MirExpressionGraphKindCodeWithin(" '"bool_literal"'
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
+    "func MirExpressionGraphKindCodeWithin(" '"string_literal"'
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
+    "func MirExpressionGraphKindCodeWithin(" '"await"'
 reject_function_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "func MirExpressionGraphSequenceAppend(" \
     "JsonArrayNextObjectBounds("
@@ -8375,8 +8467,9 @@ if grep -Fq "ParserExpressionLeaf(" <<<"$try_postfix_block"; then
 fi
 require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeTry() { return "try"; }'
-require_text "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
-    'kind == "try"'
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
+    "func MirExpressionGraphKindCodeWithin(" '"try"'
 require_text "src/self_hosted/parser/stmt_owner.pgy" \
     'import "stmt_call_graph_owner.pgy";'
 require_text "src/self_hosted/parser/stmt_call_graph_owner.pgy" \
@@ -9661,12 +9754,15 @@ require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeArrayElement() { return "array_element"; }'
 require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeStructField() { return "struct_field"; }'
-require_text "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
-    'if kind == "array_element" {'
-require_text "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
-    'if kind == "struct_field" {'
-require_text "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
-    'if kind == "struct_field_name" {'
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
+    "func MirExpressionGraphKindCodeWithin(" '"array_element"'
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
+    "func MirExpressionGraphKindCodeWithin(" '"struct_field"'
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
+    "func MirExpressionGraphKindCodeWithin(" '"struct_field_name"'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'if order_i != order_count || !sequence.ok ||'
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
@@ -12983,7 +13079,9 @@ reject_function_text "src/self_hosted/lib/json.pgy" \
 reject_function_text "src/self_hosted/lib/json.pgy" \
     "func JsonArrayNextObjectBounds(" "StringLength(json)"
 require_file "src/self_hosted/lib/json_bounded_fact_read.pgy"
-require_max_lines "src/self_hosted/lib/json_bounded_fact_read.pgy" 320
+require_max_lines "src/self_hosted/lib/json_bounded_fact_read.pgy" 450
+require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonStringValueEqualsWithin("
 require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectFieldValueBoundsWithin("
 require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
@@ -13000,17 +13098,44 @@ require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectTwoFieldValueBoundsWithin("
 require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectKeyEqualsWithin("
+require_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonObjectKeyEqualsWithin(" "JsonStringValueEqualsWithin("
+require_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonArrayStringFactWithin(" "JsonSkipWhitespaceWithin("
+require_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonArrayStringFactWithin(" "JsonStringEndWithin("
+require_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonArrayStringFactWithin(" "ReadJsonStringBounded("
+reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonArrayStringFactWithin(" "StringLength(json)"
+reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonArrayStringFactWithin(" "JsonSkipWhitespace("
+reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonArrayStringFactWithin(" "ReadJsonString("
+reject_text "src/self_hosted/lib/json.pgy" "func JsonArrayStringAt("
+reject_text "src/self_hosted/lib/json.pgy" "func JsonArrayStringCount("
+reject_text "src/self_hosted/lib/json.pgy" "func JsonObjectArrayStringAt("
 require_text "src/self_hosted/lib/json.pgy" \
     "func ReadJsonStringBounded("
 reject_function_text "src/self_hosted/lib/json.pgy" \
     "func ReadJsonStringBounded(" "Substring(json"
 require_function_text "src/self_hosted/lib/json.pgy" \
     "func ReadJsonStringBounded(" "return SubstringWithLen(json, n"
+require_function_text "src/self_hosted/lib/json.pgy" \
+    "func ReadJsonStringBounded(" 'if close == open + 1 { return ""; }'
 require_text "src/self_hosted/lib/json.pgy" \
     "ArrayPush(chunks, CharAtN("
 require_file "tests/self_hosted/fixtures/json_bounded_string_owner.pgy"
 require_file "tests/self_hosted/parity/json_bounded_string_owner_smoke.sh"
 require_text "Makefile" "self-host-json-bounded-string-test-smoke:"
+require_text "tests/self_hosted/fixtures/json_bounded_string_owner.pgy" \
+    "let missing_comma: String"
+require_text "tests/self_hosted/fixtures/json_bounded_string_owner.pgy" \
+    "let leading_comma: String"
+require_text "tests/self_hosted/fixtures/json_bounded_string_owner.pgy" \
+    "let trailing_comma: String"
+require_text "tests/self_hosted/fixtures/json_bounded_string_owner.pgy" \
+    "array_end - 1"
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectFieldValueBoundsWithin(" "StringLength(json)"
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
@@ -15848,8 +15973,9 @@ require_text "src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy" \
     "SemanticRoleOperatorKindForMethodName(mname)"
 reject_text "src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy" \
     'mname == "Add"'
-require_text "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
-    'if kind == "role_operator"'
+require_function_text \
+    "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" \
+    "func MirExpressionCallTargetKindCodeWithin(" '"role_operator"'
 require_text "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
     "DirectMirRoleOperatorProgramCandidate(admitted)"
 for role_fixture_term in IntMath Arithmetic Hero role_operator_dispatch; do
