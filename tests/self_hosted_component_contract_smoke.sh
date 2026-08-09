@@ -5477,6 +5477,23 @@ reject_function_text "src/self_hosted/mir_lower/expression_graph_parser_bridge_o
 reject_function_text "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy" \
     "func MirExpressionGraphSequenceAppendParserBridge(" \
     "SemanticExpressionGraphArenaFromRows("
+require_function_text "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy" \
+    "func MirExpressionGraphSequenceAppendParserBridge(" \
+    "SemanticExpressionGraphArenaFromTopologyWithIdentities("
+reject_function_text "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy" \
+    "func MirExpressionGraphSequenceAppendParserBridge(" \
+    "SemanticExpressionGraphArenaFromTopology("
+require_function_text "src/self_hosted/mir_lower/intent_execution_graph_target_owner.pgy" \
+    "func MirIntentExecutionGraphTargetProject(" \
+    "SemanticExpressionGraphArenaFromTopologyWithIdentities("
+reject_function_text "src/self_hosted/mir_lower/intent_execution_graph_target_owner.pgy" \
+    "func MirIntentExecutionGraphTargetProject(" \
+    "SemanticExpressionGraphArenaFromTopology("
+require_file "tests/self_hosted/fixtures/expression_graph_identity_prefix_owner.pgy"
+require_max_lines "tests/self_hosted/fixtures/expression_graph_identity_prefix_owner.pgy" 110
+require_file "tests/self_hosted/parity/expression_graph_identity_prefix_owner_smoke.sh"
+require_max_lines "tests/self_hosted/parity/expression_graph_identity_prefix_owner_smoke.sh" 80
+require_text "Makefile" "self-host-expression-graph-identity-prefix-test-smoke:"
 reject_function_text "src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy" \
     "func MirExpressionGraphSequenceAppendIndexProjection(" \
     "SemanticExpressionGraphArenaUnclassified("
@@ -6327,23 +6344,31 @@ require_function_text \
     "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy" \
     "func SemanticExpressionGraphNominalConstructorCallFactFromGraph(" \
     "if !IsSome(maximum_opt)"
-require_text "src/codegen/transpiler_mir_ssa_contract.c" \
-    "ast_call_semantic_callee_decl_id(call)"
-require_text "src/codegen/transpiler_mir_ssa_contract.c" \
-    "transpiler_active_routine_lookup_by_source_syntax_id("
-require_text "src/codegen/transpiler_mir_ssa_contract.c" \
-    "lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE"
-require_text "src/codegen/transpiler_mir_ssa_contract.c" \
-    "transpiler_mir_routine_kind(lookup.routine) == MIR_SCOPE_FUNCTION"
+static_function_body="$(awk '
+    index($0, "transpiler_call_targets_static_function(") == 1 {
+        in_function = 1
+    }
+    in_function { print }
+    in_function && /^}$/ { exit }
+' "$ROOT_DIR/src/codegen/transpiler_mir_ssa_contract.c")"
+[[ -n "$static_function_body" ]] ||
+    fail "missing C function: transpiler_call_targets_static_function("
+for static_identity_term in \
+    "ast_call_semantic_callee_decl_id(call)" \
+    "transpiler_active_routine_lookup_by_source_syntax_id(" \
+    "lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE" \
+    "transpiler_mir_routine_kind(lookup.routine) == MIR_SCOPE_FUNCTION"; do
+    [[ "$static_function_body" == *"$static_identity_term"* ]] ||
+        fail "static-call identity owner missing term: $static_identity_term"
+done
 for retired_namespace_guess in \
     "pergyra_strdup_printf" \
     "receiver_name" \
     "lookup_typed_var" \
     "is_slot_var" \
     "transpiler_function_decl_exists_local"; do
-    reject_function_text "src/codegen/transpiler_mir_ssa_contract.c" \
-        "transpiler_call_targets_static_function(" \
-        "$retired_namespace_guess"
+    [[ "$static_function_body" != *"$retired_namespace_guess"* ]] ||
+        fail "static-call identity owner reopened fallback: $retired_namespace_guess"
 done
 reject_text "src/codegen/transpiler_inventory_view.c" \
     "routine->source_syntax_id"

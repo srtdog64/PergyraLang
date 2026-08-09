@@ -1,12 +1,10 @@
 // LLVM projection of String runtime expressions from one ABI projection.
-
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_window_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_collection_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_special_expression_owner.pgy";
-
 func DirectMirScalarProgramLlvmStringExpressionAt(
     kind: Int, result: String, left: String, right: String,
     arguments: Array<String>,

@@ -1,5 +1,4 @@
 // C StringReplace/math calls from one sealed runtime projection.
-
 import "direct_mir_scalar_program_case_math_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
 

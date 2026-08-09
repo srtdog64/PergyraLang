@@ -17,6 +17,11 @@ func MirExpressionGraphSequenceAppendParserBridge(
     let call_target_names: Array<String> = sequence.arena.call_target_names;
     let call_return_type_names: Array<String> =
         sequence.arena.call_return_type_names;
+    let call_target_syntax_ids: Array<Int> =
+        sequence.arena.identities.call_target_syntax_ids;
+    let binding_kinds: Array<Int> = sequence.arena.identities.binding_kinds;
+    let binding_ordinals: Array<Int> =
+        sequence.arena.identities.binding_ordinals;
     let place_kinds: Array<Int> = sequence.arena.place_kinds;
     let offset: Int = ArrayLength(kinds);
     if ArrayLength(texts) != offset || ArrayLength(left_children) != offset ||
@@ -24,6 +29,9 @@ func MirExpressionGraphSequenceAppendParserBridge(
         ArrayLength(call_target_kinds) != offset ||
         ArrayLength(call_target_names) != offset ||
         ArrayLength(call_return_type_names) != offset ||
+        ArrayLength(call_target_syntax_ids) != offset ||
+        ArrayLength(binding_kinds) != offset ||
+        ArrayLength(binding_ordinals) != offset ||
         ArrayLength(place_kinds) != offset {
         return MirExpressionGraphSequenceError(sequence);
     }
@@ -38,18 +46,24 @@ func MirExpressionGraphSequenceAppendParserBridge(
     let i: Int = offset;
     while i < ArrayLength(kinds) {
         ArrayPush(call_return_type_names, "");
+        ArrayPush(call_target_syntax_ids, 0);
+        ArrayPush(binding_kinds, SemanticExpressionBindingNone());
+        ArrayPush(binding_ordinals, -1);
         ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());
         i = i + 1;
     }
     let roots: Array<Int> = sequence.roots;
     ArrayPush(roots, build.root_id);
     let arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArenaFromTopology(
+        SemanticExpressionGraphArenaFromTopologyWithIdentities(
             AstExpressionArena(
                 kinds, texts, left_children, right_children
             ),
             texts, call_target_kinds, call_target_names,
-            call_return_type_names, place_kinds
+            call_return_type_names,
+            SemanticExpressionIdentityRows(
+                call_target_syntax_ids, binding_kinds, binding_ordinals
+            ), place_kinds
         );
     if !MirExpressionGraphRangeReachable(
             arena, offset, ArrayLength(kinds) - offset, build.root_id

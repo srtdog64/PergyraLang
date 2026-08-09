@@ -1,8 +1,7 @@
 // Per-step MIR intent AST projection from already-admitted routine facts.
 //
 // This owner validates participant/action/outcome identity and emits each
-// legacy or typed step tree. It does not discover routine carriers, own typed
-// transition topology, or emit terminal transitions.
+// legacy or typed step tree. It does not own carriers or terminal transitions.
 
 import "intent_routine_carrier_projection_owner.pgy";
 import "intent_execution_tree_projection_owner.pgy";

@@ -1,0 +1,93 @@
+// Executable contract for expression-graph identity prefix preservation.
+
+import "../../../src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy";
+import "../../../src/self_hosted/mir_lower/intent_execution_graph_target_owner.pgy";
+
+func ExpressionGraphIdentityPrefixReady(
+    ref sequence: MirExpressionGraphSequence,
+    expected_count: Int
+) -> Bool {
+    if !sequence.ok ||
+        SemanticExpressionGraphArenaNodeCount(sequence.arena) !=
+            expected_count ||
+        ArrayLength(sequence.arena.identities.call_target_syntax_ids) !=
+            expected_count ||
+        ArrayLength(sequence.arena.identities.binding_kinds) !=
+            expected_count ||
+        ArrayLength(sequence.arena.identities.binding_ordinals) !=
+            expected_count ||
+        sequence.arena.identities.call_target_syntax_ids[0] != 713 ||
+        sequence.arena.identities.binding_kinds[0] !=
+            SemanticExpressionBindingFormalParameter() ||
+        sequence.arena.identities.binding_ordinals[0] != 4 {
+        return false;
+    }
+    let row: Int = 1;
+    while row < expected_count {
+        if sequence.arena.identities.call_target_syntax_ids[row] != 0 ||
+            sequence.arena.identities.binding_kinds[row] !=
+                SemanticExpressionBindingNone() ||
+            sequence.arena.identities.binding_ordinals[row] != -1 {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func Main() -> Void {
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaFromTopologyWithIdentities(
+            AstExpressionArena(
+                [AstExpressionNodeLeaf()], ["prefix"], [0], [0]
+            ),
+            ["prefix"], [SemanticCallTargetNone()], [""], [""],
+            SemanticExpressionIdentityRows(
+                [713], [SemanticExpressionBindingFormalParameter()], [4]
+            ),
+            [SemanticExpressionPlaceBinding()]
+        );
+    let sequence: MirExpressionGraphSequence =
+        MirExpressionGraphSequence(true, 1, [0], arena);
+    sequence = MirExpressionGraphSequenceAppendParserBridge(
+        sequence, "actor.Run()"
+    );
+    let count: Int = SemanticExpressionGraphArenaNodeCount(sequence.arena);
+    if count <= 1 || !ExpressionGraphIdentityPrefixReady(sequence, count) {
+        Log("expression-graph-identity-prefix-bridge-failed");
+        Exit(1);
+    }
+
+    let target_kinds: Array<Int> = sequence.arena.call_target_kinds;
+    let target_names: Array<String> = sequence.arena.call_target_names;
+    let call_row: Int = 0 - 1;
+    let row: Int = 1;
+    while row < count {
+        if sequence.arena.topology.node_kinds[row] == AstExpressionNodeCall() {
+            if call_row >= 0 {
+                Log("expression-graph-identity-prefix-call-count-failed");
+                Exit(1);
+            }
+            call_row = row;
+        }
+        row = row + 1;
+    }
+    if call_row < 0 {
+        Log("expression-graph-identity-prefix-call-missing");
+        Exit(1);
+    }
+    ArraySet(target_kinds, call_row, SemanticCallTargetMember());
+    ArraySet(target_names, call_row, "Run");
+    sequence = MirIntentExecutionGraphTargetProject(
+        sequence, 1,
+        MirIntentExecutionGraphTargetProjection(
+            true, true, "Run", "Actor_Run"
+        )
+    );
+    if !ExpressionGraphIdentityPrefixReady(sequence, count) ||
+        sequence.arena.call_target_names[call_row] != "Actor_Run" {
+        Log("expression-graph-identity-prefix-projection-failed");
+        Exit(1);
+    }
+    Log("expression-graph-identity-prefix-ok");
+}
