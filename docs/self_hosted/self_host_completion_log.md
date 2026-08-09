@@ -11483,3 +11483,13 @@ Released/default replacement remains 0%.
   and all focused negative mutations. The monolithic component inventory has
   valid shell syntax but did not finish or emit a diagnostic inside 60 seconds;
   it remains unverified rather than green.
+- Canonical verified projection, routine-phase identity, generic specialization
+  epoch, default runtime-free LLVM compile/run, substrate contract, recursive
+  compiler-world topology, substitution velocity, and program-graph unification
+  are also green against the installed driver.
+- The Pergyra-likeness gate remains a separate deliberate campaign wall: 286
+  sentinel spellings versus a maximum of 22. Historical checkpoint `1c391204`
+  already contained 290 under the same census and deliberately replaced the
+  temporary 291 debt ceiling with 22. The current installed work therefore did
+  not create this RED, and neither a baseline increase nor a blanket direct-MIR
+  exclusion is an acceptable fix.

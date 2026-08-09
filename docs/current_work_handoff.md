@@ -57,6 +57,20 @@ owner, and the named executable gate.
   permutation invariants, and all 27/7 plus 35/10 backend negatives. The
   monolithic component inventory has valid shell syntax but emitted no
   diagnostic before its 60-second budget expired, so it remains unverified.
+- The remaining installed dependency chain is also current-green without a
+  rebuild: canonical verified projection 1.5 seconds, routine-phase identity
+  2.8 seconds, generic specialization epoch 2.0 seconds, default runtime-free
+  LLVM compile/run 12.4 seconds, substrate contract 0.9 seconds, and recursive
+  compiler-world topology 44.1 seconds. Substitution velocity and program-graph
+  unification are green.
+- `self_host_pergyra_likeness_smoke.sh` remains deliberately RED at 286
+  `return -1`/`== -1`/`!= -1` sites against a maximum of 22. This is not a
+  regression from the installed replacement: checkpoint `1c391204` measured
+  290 sites and intentionally restored the previously temporary 291 ceiling to
+  22 to reopen the Option/Result migration campaign. Current source has reduced
+  that inventory by four. Do not raise the ceiling, exclude the direct-MIR
+  family wholesale, or mix this broad campaign into a focused installed-owner
+  fix without a new objective card and executable consumer.
 - Next objective card: objective = select the next installed replacement
   falsifier without reopening already closed aggregate decisions; priority =
   installed production reachability, first executable failure, owner closure,
@@ -69,6 +83,8 @@ owner, and the named executable gate.
   green, or expanding timeout/cap to hide a reached cost; verification = the
   next repository-owned installed execution gate, while the component inventory
   must either finish within its static budget or remain explicitly unverified.
+  The broad sentinel campaign is a separate declared blocker, not evidence that
+  the canonical installation or aggregate projection regressed.
 
 ## Historical checkpoint - current-source gen2/gen3 fixed point is closed
 
