@@ -8,10 +8,10 @@ owner, and the named executable gate.
 
 ## Active self-host context - callable identity allocation is closed; full driver fixed point is next
 
-- Verified Git checkpoint is `1c24b0d5` on `main`. The current task-owned dirty
-  change closes the canonical-callable comparison memory seam, adds opt-in
-  codegen pressure receipts, and splits native oracle C emission from host
-  compilation. Preserve the separate user-owned stdlib work: modified
+- Verified code checkpoint is `b304cf3a` on `main`. It closes the
+  canonical-callable comparison memory seam, adds opt-in codegen pressure
+  receipts, and splits native oracle C emission from host compilation.
+  Preserve the separate user-owned stdlib work: modified
   `docs/138_standard_library_scope.md` and `docs/148_stdlib_architecture.md`;
   untracked `stdlib/math.pgy`, `stdlib/pgy_math_registry.pgy`, and
   `tests/cases/stdlib_math_matrix/`.

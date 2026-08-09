@@ -67,7 +67,7 @@
   },
   "semantic_callable_canonical_compare": {
     "measured_at": "2026-08-09",
-    "source_revision": "1c24b0d5+task-owned-dirty",
+    "source_revision": "b304cf3a",
     "owner_set_sha256": "B37B4A7ED913D5BB2DAB63D63F62906401BC216E9635F9682F0A1660B936CE73",
     "owner_files_sha256": {
       "src/self_hosted/semantic/callable_resolution_owner.pgy": "DE376EFA2860286C2B5778526B79B92325105C744B5561BCC23428666E746AA0",
