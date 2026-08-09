@@ -897,6 +897,7 @@ test_mir_lowering(void)
     test_mir_carries_function_param_flow_summary();
     test_mir_carries_region_escape_facts();
     test_mir_inventory_source_identity_lookup();
+    test_mir_decl_header_storage_layout_receipt();
     test_mir_carries_dir_domain_topology();
     test_mir_lowering_part_a();
     test_mir_lowering_part_b();

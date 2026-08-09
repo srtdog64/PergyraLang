@@ -6302,3 +6302,147 @@ receipts를 출력한다. default wrapper는 observation을 `false`로 전달한
 worker, signature row 축소, namespace 이름 특별처리다. 먼저 반복되는 owned allocation을
 allocation-free identity predicate로 바꾸고 동일 input에서 native/self byte parity와
 stage별 retained-memory 감소를 함께 증명한다.
+
+---
+
+## A partial rebuild links ABI-incompatible compiler objects
+
+If a newly linked development compiler crashes in MIR cleanup while a clean or
+release compiler does not, compare the compiled layout used by the producer and
+consumer before changing cleanup code. On 2026-08-09, one `bin-dev/pgy.exe`
+contained a stale `mir_decl_headers.o` that appended 376-byte
+`MIRDeclHeader` rows and a newer `mir_nominal_abi_layout.o` that walked
+928-byte rows. The consumer read an unrelated allocation tail as
+`option_abi_type_name` and failed inside `free`.
+
+The dependency file already named `mir_decl.h`; this was not evidence for
+adding another dependency rule. The immediate repair was a canonical rebuild.
+The durable guard is producer-owned: `mir_decl_headers.c` exposes its compiled
+layout receipt and owns clearing the storage it allocated. Consumers compare
+their local size/offset receipt before the first row dereference. On mismatch,
+cleanup must not walk fields with the consumer's layout; fail closed with the
+layout diagnostic and let the producer storage owner handle the raw carrier.
+
+Do not delete the `free`, skip ABI capture, accept a garbage pointer, or patch a
+Make dependency without evidence. A mixed-object executable is a build ABI
+failure, not a normal MIR lifetime case.
+
+## A streaming artifact writer still grows with output bytes
+
+Writing each JSON fragment immediately is not sufficient if the temporary
+fragment remains process-owned. The full self-host MIR writer reached
+`json-write:start`, wrote 66,748,416 bytes, and grew about 190.6 MB private
+before crossing the 3 GiB limit. The repeated operations were node-local
+`JsonEmitField*`/`ToString` results and a fresh allocator pool for every quoted
+escape-free fact string.
+
+Keep `SelfMirProgramFacts` as the semantic owner and the artifact transaction as
+the framing owner. The last consumer of a renderer-owned fragment is the return
+from synchronous `CompilerArtifactWrite`. Retire that fragment immediately.
+Borrowed fact strings use a non-owning writer; do not transfer them to a
+deep-free path. One expression-identity projection view owns readiness and
+values for both String and file projection, so the file path does not rebuild a
+three-field array. One `JsonEscapeTokenAt` mapping owns both escape detection and
+escaped rendering; otherwise the fast path becomes a second wire authority.
+
+The fixed-scale result is the acceptance evidence: the Pergyra-built driver and
+native oracle each commit the same 186,071,774-byte MIR with SHA-256
+`345DD2E30AF1B75CE1B7B6797A4ABC9F1A979449FF4A6130436E8ACDB359AE95`.
+The self-host path peaks at 2.974 GiB and therefore remains an attention-level
+performance debt even though it no longer exceeds 3 GiB.
+
+Do not raise the cap, return to a whole-program JSON String, free fact-owned
+Strings, or add a cache/shard/worker. Also do not trust `own String` as the sole
+guard today: String is copy-only in the native checker, so the focused gate
+allows only known owned renderer/number results at the deep-release writer.
+
+## Full MIR publication succeeds but `--mir-json` produces no C artifact
+
+Treat producer memory and consumer throughput as different blockers. After the
+full MIR producer became green, the Pergyra-built `--mir-json` consumer stayed
+below 0.584 GiB private but timed out at exactly 900 seconds with no stage
+receipt and no committed C artifact. Increasing the timeout would only conceal
+the missing observation boundary.
+
+Start from the admitted `pgy.mir.v1` program and find the first repeated owned
+operation between input admission and C publication. Add one opt-in reached
+owner receipt or use an existing one, then rerun the same artifact once. Do not
+add per-routine document reparsing, a second JSON index, graph reconstruction,
+cache/query infrastructure, sharding, workers, or a native substitute.
+
+The first observed fixed-scale run showed the exact duplicate read. Document
+admission already produced `MirProgramDeclarationIndex`, but routine-index
+construction reopened the 186 MB JSON and rebuilt it. Carrying the typed index
+reduced the routine-index interval from about 136.5 seconds to 0.872 seconds.
+The same 300-second run advanced from routine 576 to routine 1,600. This is a
+real executable improvement, but no C artifact was committed, so it does not
+close the full consumer rung.
+
+Do not manufacture parser AST files with ad-hoc nested-shell CR escapes. One
+manual conversion interpreted an escaped octal spelling as a deletion set and
+removed every literal `0`, `1`, and `5`. The compact expression parser then
+encountered forms such as `Substring(path, index, )` and exited before it could
+return a structured surface diagnostic. Use the repository's parser capture
+owner and literal `tr -d '\r'` normalization, then run the existing codegen
+`--check` before treating the AST as evidence. A later `tr -d "\r"` spelling
+was interpreted as the literal letter `r` and damaged identifiers such as
+`cursor`. Prefer a byte-preserving converter such as `dos2unix` and verify the
+normalized artifact with `--check`. PowerShell text redirection can also
+produce UTF-16 output; encoding conversion must preserve all source bytes.
+
+## An exact JSON fact table still scans the full document
+
+An end-exclusive object bound is not enough if a nested cursor utility silently
+rediscovers the whole String length. On the 186,071,774-byte full MIR,
+`JsonObjectFactCount` and `JsonObjectFactIndex` passed `table.end` to
+`JsonSkipWhitespace`, but that utility still called `StringLength(json)` on
+every invocation. Self-host C lowers that operation to `strlen`, so field and
+enum admission repeatedly traversed hundreds of gigabytes to terabytes of
+prefix bytes despite already owning exact bounds.
+
+The object fact table now consumes `JsonSkipWhitespaceWithin`, whose read limit
+is the admitted `table.end`. The structural owner gate requires the bounded
+primitive and rejects both the unbounded call and a local `StringLength` in the
+two reached functions. On the fixed full MIR, declaration admission fell from
+about 136.9 seconds to 0.286 seconds; topology stayed bounded at 0.079 seconds
+and routine indexing at 1.221 seconds. The same 300-second run advanced from
+routine 1,600 to routine 2,240, but still emitted no C artifact.
+
+Do not describe this as a fully linear declaration index: field identity still
+contains prior-row uniqueness scans. Also do not introduce a cache, global
+length receipt, or a new field-row parser merely to avoid the reached call. An
+experimental one-pass row/Set rewrite was rejected because it duplicated JSON
+grammar, leaked per-declaration Set storage, and could fail open when Set
+insertion failed. Fix the smallest owner whose existing exact bound is being
+ignored, then measure the unchanged fixed-scale input.
+
+## Generated scalar projections multiply MIR lowering work
+
+When several generated functions each project one column from the same
+registry row, the source may look allocation-free while the compiler workload
+contains the same large decision CFG many times. The LanguageWord registry had
+eleven independent 146-case metadata selectors. In the full compiler MIR, the
+1,024-to-1,088 batch contained 3,434 blocks and took 39.946 to 43.291 seconds
+across fixed-workload runs.
+
+Keep the declarative registry as the source of truth. Where all scalar
+consumers need the same row, generate one immutable complete row projection and
+bind it once per index. Preserve genuinely different identity axes: the typed
+`LanguageWordId` spelling projection cannot be replaced with an enum ordinal
+guess, and the reserved lexer compatibility view remains a separate bounded
+consumer. Delete the retired selectors and files, add an explicit invalid row,
+and gate both negative and upper bounds.
+
+The current-source MIR provides the falsifier. The row projection reduced that
+batch to 1,247 blocks and 15.389 seconds. Self-host and native producers emitted
+byte-identical 184,181,002-byte MIR artifacts with SHA-256
+`C4CC3F161F69E978127209A1857BD87F47F0284E39FF7478C222F6D086773EE2`.
+This proves the bounded projection collapse, not the full consumer: the
+300-second run still timed out before C publication.
+
+Do not generalize this mechanically. Before collapsing another registry,
+verify that the registry really owns every field. The next intent-observability
+candidate currently violates that precondition: append-only ABI IDs are tied
+to sorted `index + 1`, and Int parameter shape is independently reconstructed
+by native and generated consumers. A faster projection that preserves those
+dual policies would only hide the ownership defect.

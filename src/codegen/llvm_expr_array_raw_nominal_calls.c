@@ -85,6 +85,27 @@ llvm_array_emit_raw_nominal_call(LLVMGenCtx *ctx, ASTNode *node,
 }
 
 bool
+llvm_array_emit_storage_drop(LLVMGenCtx *ctx, ASTNode *node,
+                             const char *callee_name,
+                             LLVMValueRef arr_alloca,
+                             LLVMArrayVarEntry *entry,
+                             LLVMValueRef *out)
+{
+    if (ctx == NULL || arr_alloca == NULL || entry == NULL
+        || entry->elem_type == NULL) {
+        return llvm_array_raw_nominal_error_out(node, ctx,
+            "LLVM CompilerRetireArrayStorage requires a concrete Array<T> binding",
+            out);
+    }
+    LLVMValueRef args[] = {
+        llvm_array_raw_nominal_array_ptr(ctx, arr_alloca),
+        llvm_array_raw_nominal_elem_size_i64(ctx, entry->elem_type)
+    };
+    return llvm_array_emit_raw_nominal_call(ctx, node, callee_name,
+        "pgy_array_drop_storage_raw_export", args, 2, out);
+}
+
+bool
 llvm_array_emit_raw_nominal_push(LLVMGenCtx *ctx, ASTNode *node,
                                  const char *callee_name,
                                  LLVMValueRef arr_alloca,

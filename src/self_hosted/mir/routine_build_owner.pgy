@@ -548,16 +548,23 @@ func SelfMirLocalVersionsPrefix(
 
 func SelfMirRoutineAtLocalVersions(
     build: SelfMirRoutineBuild,
-    versions: Array<Int>
+    ref versions: Array<Int>
 ) -> SelfMirRoutineBuild {
-    let restored: Array<Int> = SelfMirLocalVersionsSnapshot(versions);
-    if ArrayLength(restored) > ArrayLength(build.local_names) {
+    let restored: Array<Int> = build.local_versions;
+    if ArrayLength(versions) > ArrayLength(build.local_names) ||
+        ArrayLength(restored) != ArrayLength(build.local_names) ||
+        ArrayLength(restored) != ArrayLength(build.local_types) ||
+        ArrayLength(restored) != ArrayLength(build.local_refs) {
         return SelfMirRoutineBuildError(
             build, "MIR restored local versions exceed local inventory"
         );
     }
-    while ArrayLength(restored) < ArrayLength(build.local_names) {
-        ArrayPush(restored, 0);
+    let i: Int = 0;
+    while i < ArrayLength(restored) {
+        let version: Int = 0;
+        if i < ArrayLength(versions) { version = versions[i]; }
+        ArraySet(restored, i, version);
+        i = i + 1;
     }
     return SelfMirRoutineBuild(
         build.ok, build.diagnostic_message, build.cfg, build.current_block,
@@ -578,17 +585,12 @@ func SelfMirRoutineAtLocalCount(
             build, "MIR lexical local inventory boundary is invalid"
         );
     }
-    let names: Array<String> = [];
-    let types: Array<String> = [];
-    let versions: Array<Int> = [];
-    let refs: Array<String> = [];
-    let i: Int = 0;
-    while i < local_count {
-        ArrayPush(names, build.local_names[i]);
-        ArrayPush(types, build.local_types[i]);
-        ArrayPush(versions, build.local_versions[i]);
-        ArrayPush(refs, build.local_refs[i]);
-        i = i + 1;
+    let names: Array<String> = build.local_names;
+    let types: Array<String> = build.local_types;
+    let versions: Array<Int> = build.local_versions;
+    let refs: Array<String> = build.local_refs;
+    while ArrayLength(names) > local_count {
+        ArrayPop(names); ArrayPop(types); ArrayPop(versions); ArrayPop(refs);
     }
     return SelfMirRoutineBuild(
         build.ok, build.diagnostic_message, build.cfg, build.current_block,

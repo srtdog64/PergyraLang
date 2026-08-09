@@ -97,7 +97,7 @@ func DriverRung2PressureStage(enabled: Bool, stage: String) -> Void {
 }
 
 func DriverRung2MirProjectionFromVerifiedFactsObserved(
-    artifact: AstTreeArtifact,
+    own artifact: AstTreeArtifact,
     verified: DriverRung2VerifiedFacts,
     machine_declaration: SelfHostMachineLayerDeclaration,
     observe_pressure: Bool
@@ -109,7 +109,7 @@ func DriverRung2MirProjectionFromVerifiedFactsObserved(
         Die("driver rung-2 verified body facts are missing or stale");
     }
     DriverRung2PressureStage(observe_pressure, "mir-facts:start");
-    let mir_facts: SelfMirProgramFacts = SelfMirProgramFactsFromReadyArtifactObserved(
+    let mir_facts: SelfMirProgramFacts = SelfMirProgramFactsBeforeCanonicalIdsObserved(
         artifact, verified.analysis, verified.body_types.initializer_types,
         verified.body_types.iteration_types,
         verified.body_types.assignment_types,
@@ -117,6 +117,9 @@ func DriverRung2MirProjectionFromVerifiedFactsObserved(
         verified.body_types.generic_specializations,
         machine_declaration, observe_pressure
     );
+    SelfMirArtifactPressureStage(observe_pressure, "canonical-ids:start");
+    mir_facts = SelfMirCanonicalInstructionIds(mir_facts);
+    SelfMirArtifactPressureStage(observe_pressure, "canonical-ids:done");
     if !SelfMirProgramFactsReady(mir_facts) {
         Log(SelfMirProgramFactsValidationError(mir_facts));
         Exit(1);
@@ -126,7 +129,7 @@ func DriverRung2MirProjectionFromVerifiedFactsObserved(
 }
 
 func DriverRung2MirProjectionFromAdmittedAnalysisObserved(
-    artifact: AstTreeArtifact, analysis: SemanticAstArtifactAnalysis,
+    own artifact: AstTreeArtifact, analysis: SemanticAstArtifactAnalysis,
     machine_declaration: SelfHostMachineLayerDeclaration, observe_pressure: Bool
 ) -> DriverRung2MirProjection {
     DriverRung2PressureStage(observe_pressure, "verify:start");
@@ -141,7 +144,7 @@ func DriverRung2MirProjectionFromAdmittedAnalysisObserved(
 }
 
 func DriverRung2MirProjectionFromAnalysisObserved(
-    artifact: AstTreeArtifact, analysis: SemanticAstArtifactAnalysis,
+    own artifact: AstTreeArtifact, analysis: SemanticAstArtifactAnalysis,
     machine_declaration: SelfHostMachineLayerDeclaration, observe_pressure: Bool
 ) -> DriverRung2MirProjection {
     if !SemanticAstArtifactAnalysisMatches(artifact, analysis, true) {
@@ -172,7 +175,7 @@ func DriverRung2MirProjectionJson(inout projection: DriverRung2MirProjection,
 }
 
 func CompileArtifactAnalysisToMirJsonVerifiedObserved(
-    artifact: AstTreeArtifact,
+    own artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
     machine_declaration: SelfHostMachineLayerDeclaration,
     observe_pressure: Bool
@@ -185,7 +188,7 @@ func CompileArtifactAnalysisToMirJsonVerifiedObserved(
 }
 
 func CompileArtifactAnalysisToMirJsonVerified(
-    artifact: AstTreeArtifact,
+    own artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String {
@@ -195,7 +198,7 @@ func CompileArtifactAnalysisToMirJsonVerified(
 }
 
 func CompileArtifactToMirJsonVerified(
-    artifact: AstTreeArtifact,
+    own artifact: AstTreeArtifact,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String {
     let analysis: SemanticAstArtifactAnalysis =
@@ -211,8 +214,9 @@ func CompileSourceToMirJsonVerified(
     source_path: String,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String with caps io_read {
+    let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
     return CompileArtifactToMirJsonVerified(
-        CompileSourceToAstArtifact(source_path), machine_declaration
+        artifact, machine_declaration
     );
 }
 

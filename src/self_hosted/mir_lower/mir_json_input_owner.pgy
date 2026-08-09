@@ -57,7 +57,10 @@ func MirJsonReadMachineAdmittedInputObserved(
         observe_pressure, "consumer:input:parallel-capture:done"
     );
     let declarations: MirProgramDeclarationIndex =
-        BuildMirProgramDeclarationIndex(document.root.json);
+        BuildMirProgramDeclarationIndexFromTable(document.declarations);
+    MirJsonInputPressureStage(
+        observe_pressure, "consumer:input:declaration-index:done"
+    );
     let topology_required: Bool = MirDomainTopologyRequiredForDocument(document);
     let topology: MirDomainTopologyFacts =
         MirDomainTopologyFactsFromDocumentWithDeclarations(

@@ -1,0 +1,73 @@
+// Typed-AST arena carrier lifetime at the MIR domain/routine boundaries.
+// String elements and expression graphs remain borrowed by semantic/MIR facts;
+// only Array backing storage is retired.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+
+func SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection(
+    own artifact: AstTreeArtifact
+) -> AstTreeArtifact {
+    let tree_text: String = artifact.tree_text;
+    let count: Int = artifact.count;
+    let expression_graphs: AstExpressionGraphRows = artifact.expression_graphs;
+    let identity_digest: Int = artifact.identity_digest;
+    let kinds: Array<Int> = artifact.arena.kinds;
+    let first_children: Array<Int> = artifact.arena.first_children;
+    let child_counts: Array<Int> = artifact.arena.child_counts;
+    let parents: Array<Int> = artifact.arena.parents;
+    let children: Array<Int> = artifact.arena.children;
+    let nominal_subkinds: Array<Int> = artifact.arena.nominal_subkinds;
+    let atoms: Array<Int> = artifact.arena.atoms;
+    let has_atoms: Array<Int> = artifact.arena.has_atoms;
+    let type_names: Array<Int> = artifact.arena.type_names;
+    let has_type_names: Array<Int> = artifact.arena.has_type_names;
+    let values: Array<Int> = artifact.arena.values;
+    let has_values: Array<Int> = artifact.arena.has_values;
+    let aux_values: Array<Int> = artifact.arena.aux_values;
+    let has_aux_values: Array<Int> = artifact.arena.has_aux_values;
+    let modes: Array<Int> = artifact.arena.modes;
+    let indents: Array<Int> = artifact.arena.indents;
+    let provenance_texts: Array<String> = artifact.arena.provenance_texts;
+    let atom_table: Array<String> = artifact.arena.atom_table;
+    CompilerRetireArrayStorage(nominal_subkinds);
+    CompilerRetireArrayStorage(atoms);
+    CompilerRetireArrayStorage(has_atoms);
+    CompilerRetireArrayStorage(type_names);
+    CompilerRetireArrayStorage(has_type_names);
+    CompilerRetireArrayStorage(values);
+    CompilerRetireArrayStorage(has_values);
+    CompilerRetireArrayStorage(aux_values);
+    CompilerRetireArrayStorage(has_aux_values);
+    CompilerRetireArrayStorage(modes);
+    CompilerRetireArrayStorage(indents);
+    CompilerRetireArrayStorage(provenance_texts);
+    CompilerRetireArrayStorage(atom_table);
+    let empty_ints: Array<Int> = [];
+    let empty_strings: Array<String> = [];
+    return AstTreeArtifact(
+        tree_text,
+        AstArena(
+            kinds, empty_ints, empty_ints, empty_ints,
+            empty_ints, empty_ints, empty_ints, empty_ints,
+            empty_ints, empty_ints, empty_ints,
+            first_children, child_counts, parents, empty_ints,
+            empty_strings, children, empty_strings
+        ),
+        count, expression_graphs, identity_digest
+    );
+}
+
+func SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts(
+    own artifact: AstTreeArtifact
+) -> Void {
+    let kinds: Array<Int> = artifact.arena.kinds;
+    let first_children: Array<Int> = artifact.arena.first_children;
+    let child_counts: Array<Int> = artifact.arena.child_counts;
+    let parents: Array<Int> = artifact.arena.parents;
+    let children: Array<Int> = artifact.arena.children;
+    CompilerRetireArrayStorage(kinds);
+    CompilerRetireArrayStorage(first_children);
+    CompilerRetireArrayStorage(child_counts);
+    CompilerRetireArrayStorage(parents);
+    CompilerRetireArrayStorage(children);
+}

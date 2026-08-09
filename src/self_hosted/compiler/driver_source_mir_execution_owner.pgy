@@ -44,9 +44,11 @@ func DriverSourceMirProjectionFromAdmittedRequest(
     let analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     DriverRung2PressureStage(observe_pressure, "semantic:done");
-    return DriverRung2MirProjectionFromAdmittedAnalysisObserved(
+    let projection: DriverRung2MirProjection =
+        DriverRung2MirProjectionFromAdmittedAnalysisObserved(
         artifact, analysis, machine_declaration, observe_pressure
     );
+    return projection;
 }
 
 func DriverSourceMirProducePayloadAdmitted(

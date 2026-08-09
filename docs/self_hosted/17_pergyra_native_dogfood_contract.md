@@ -447,7 +447,7 @@ prototype 순서를 고정하고,
 또는 later zone/world value까지 보장하려면 대응 parity fixture와 domain method
 schedule gate를 먼저 추가한다.
 
-145개 언어 단어 레지스트리도 이 판정과 분리한다. 단어가 lexer, parser,
+146개 언어 단어 레지스트리도 이 판정과 분리한다. 단어가 lexer, parser,
 LSP, TextMate에서 일치하는 것은 필요한 SoT 증거지만, 그 단어가 실제
 컴파일러 책임을 소유한다는 증거는 아니다. fixture, generated projection,
 parser probe, readiness shell의 단어 수는 실행 개사료율로 세지 않는다.

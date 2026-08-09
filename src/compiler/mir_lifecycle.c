@@ -1,5 +1,6 @@
 #include "mir.h"
 #include "mir_base_helpers.h"
+#include "mir_decl_headers.h"
 #include "mir_decl_header_authority.h"
 #include "mir_decl_header_fields.h"
 #include "mir_decl_header_refresh.h"
@@ -27,8 +28,12 @@
 void
 mir_destroy(MIRProgram *mir)
 {
+    bool decl_header_layout_matches;
+
     if (mir == NULL)
         return;
+    decl_header_layout_matches =
+        MIR_DECL_HEADER_STORAGE_LAYOUT_MATCHES_LOCAL();
     if (mir->routines != NULL) {
         for (size_t i = 0; i < mir->routine_count; i++) {
             MIRRoutine *routine = &mir->routines[i];
@@ -122,7 +127,7 @@ mir_destroy(MIRProgram *mir)
         }
     }
     free(mir->externs);
-    if (mir->decl_headers != NULL) {
+    if (mir->decl_headers != NULL && decl_header_layout_matches) {
         for (size_t i = 0; i < mir->decl_header_count; i++) {
             if (mir->decl_headers[i].method_metadata != NULL) {
                 for (size_t j = 0;

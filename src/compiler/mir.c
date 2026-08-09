@@ -115,6 +115,12 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
                 "MIR lowering request has an unsupported protocol id/version");
         return NULL;
     }
+    if (!MIR_DECL_HEADER_STORAGE_LAYOUT_MATCHES_LOCAL()) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "MIR declaration header storage layout mismatch");
+        return NULL;
+    }
     hir = request->hir;
     dir = request->dir;
     rir = request->rir;

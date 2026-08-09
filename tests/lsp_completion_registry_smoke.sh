@@ -40,15 +40,24 @@ for path in "$SELF_HOST_OWNER" "$SELF_HOST_FEATURE" \
     "$SELF_HOST_RESPONSE" "$SELF_HOST_MAIN"; do
     [[ -f "$path" ]] || fail "missing ${path#"$ROOT_DIR/"}"
 done
+for retired in LanguageWordSpellingAt LanguageWordDebugIdentityAt \
+    LanguageWordClassAt LanguageWordClassNameAt LanguageWordAxisAt \
+    LanguageWordAxisNameAt LanguageWordContextMaskAt \
+    LanguageWordImplementationSupportAt LanguageWordToolingFlagsAt \
+    LanguageWordHighlightScopeAt LanguageWordCompletionEnabledAt \
+    LanguageWordCompletionOwnedAt; do
+    if grep -Fq -- "$retired(" "$SELF_HOST_OWNER"; then
+        fail "self-host completion reopened retired projection: $retired"
+    fi
+done
 for term in 'LanguageWordRegistryCount()' \
     'LanguageWordRegistryProjectionReady()' \
-    'LanguageWordSpellingAt(index)' \
-    'LanguageWordCompletionEnabledAt(index)' \
-    'LanguageWordCompletionOwnedAt(index)' \
-    'LanguageWordClassNameAt(index)' \
-    'LanguageWordAxisNameAt(index)' \
-    'LspCompletionSpellingStrictlyAfter(previous, spelling)' \
-    'LspCompletionOwnedItemCount()' \
+    'LanguageWordRegistryRowAt(index)' \
+    'row.completion_enabled' \
+    'row.spelling' \
+    'row.class_name' \
+    'row.axis_name' \
+    'LspCompletionSpellingStrictlyAfter(previous, row.spelling)' \
     'JsonEmitFieldString("label", spelling)' \
     'JsonEmitFieldNumber("kind", "14")' \
     'JsonEmitFieldString("detail", detail)'; do

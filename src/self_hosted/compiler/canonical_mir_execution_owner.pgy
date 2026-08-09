@@ -5,7 +5,7 @@
 import "driver_rung2_owner.pgy";
 
 func CanonicalizeMirArtifactWithAdmittedTopology(
-    artifact: AstTreeArtifact,
+    own artifact: AstTreeArtifact,
     verified: DriverRung2VerifiedFacts,
     ref admitted: MirMachineLayerAdmittedJsonInput,
     machine_declaration: SelfHostMachineLayerDeclaration,

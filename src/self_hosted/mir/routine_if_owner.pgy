@@ -163,7 +163,7 @@ func SelfMirLowerIfFromArtifact(
         else_block = SelfMirCfgBlockCount(build.cfg) - 1;
         build = SelfMirRoutineAtBlock(build, else_block);
         build = SelfMirRoutineAtLocalVersions(
-            build, SelfMirLocalVersionsSnapshot(entry_versions)
+            build, entry_versions
         );
         build = SelfMirLowerBlockFromArtifact(
             input, build, UnwrapOption(else_body_opt),

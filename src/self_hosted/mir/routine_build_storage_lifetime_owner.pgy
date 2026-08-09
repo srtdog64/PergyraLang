@@ -1,0 +1,144 @@
+// Retires the final routine-build Array carrier after its last consumer.
+// Seventy-nine CFG backings were copied; five routine-state backings are
+// already dead. String elements remain shared and must not be freed.
+
+import "routine_build_owner.pgy";
+
+func SelfMirRoutineBuildStorageRetireAfterLastConsumer(
+    own build: SelfMirRoutineBuild
+) -> Void {
+    let block_ids: Array<Int> = build.cfg.blocks.ids;
+    let block_reachable: Array<Int> = build.cfg.blocks.reachable;
+    let block_instruction_starts: Array<Int> = build.cfg.blocks.instruction_starts;
+    let block_instruction_counts: Array<Int> = build.cfg.blocks.instruction_counts;
+    let block_has_true: Array<Int> = build.cfg.blocks.has_succ_true;
+    let block_succ_true: Array<Int> = build.cfg.blocks.succ_true;
+    let block_has_false: Array<Int> = build.cfg.blocks.has_succ_false;
+    let block_succ_false: Array<Int> = build.cfg.blocks.succ_false;
+
+    let instruction_ids: Array<Int> = build.cfg.instructions.ids;
+    let instruction_kinds: Array<String> = build.cfg.instructions.kinds;
+    let instruction_names: Array<String> = build.cfg.instructions.names;
+    let instruction_results: Array<String> = build.cfg.instructions.results;
+    let instruction_arg0s: Array<String> = build.cfg.instructions.arg0s;
+    let instruction_arg1s: Array<String> = build.cfg.instructions.arg1s;
+    let instruction_slot_anchors: Array<String> = build.cfg.instructions.slot_anchors;
+    let instruction_expr0s: Array<String> = build.cfg.instructions.expr0s;
+    let instruction_expr1s: Array<String> = build.cfg.instructions.expr1s;
+    let instruction_source_types: Array<String> = build.cfg.instructions.source_types;
+    let machine_contact_kinds: Array<String> = build.cfg.instructions.machine_contact_kinds;
+    let machine_manifest_ids: Array<String> = build.cfg.instructions.machine_layer_manifest_ids;
+    let machine_grant_ids: Array<String> = build.cfg.instructions.machine_layer_physical_grant_ids;
+    let machine_bases: Array<Int> = build.cfg.instructions.machine_layer_physical_bases;
+    let machine_sizes: Array<Int> = build.cfg.instructions.machine_layer_physical_sizes;
+    let machine_modes: Array<String> = build.cfg.instructions.machine_layer_physical_modes;
+    let machine_operations: Array<String> = build.cfg.instructions.machine_layer_runtime_operations;
+    let machine_adequate: Array<Int> = build.cfg.instructions.machine_layer_hardware_adequate;
+    let machine_authority: Array<Int> = build.cfg.instructions.machine_layer_authority_required;
+    let machine_lease: Array<Int> = build.cfg.instructions.machine_layer_live_lease_required;
+    let instruction_use_starts: Array<Int> = build.cfg.instructions.use_starts;
+    let instruction_use_counts: Array<Int> = build.cfg.instructions.use_counts;
+    let instruction_uses: Array<String> = build.cfg.instructions.uses;
+    let instruction_abi_types: Array<String> = build.cfg.instructions.abi_type_names;
+
+    let expr0_has_roots: Array<Int> = build.cfg.instructions.expr0_graphs.has_roots;
+    let expr0_roots: Array<Int> = build.cfg.instructions.expr0_graphs.roots;
+    let expr0_starts: Array<Int> = build.cfg.instructions.expr0_graphs.node_starts;
+    let expr0_counts: Array<Int> = build.cfg.instructions.expr0_graphs.node_counts;
+    let expr1_has_roots: Array<Int> = build.cfg.instructions.expr1_graphs.has_roots;
+    let expr1_roots: Array<Int> = build.cfg.instructions.expr1_graphs.roots;
+    let expr1_starts: Array<Int> = build.cfg.instructions.expr1_graphs.node_starts;
+    let expr1_counts: Array<Int> = build.cfg.instructions.expr1_graphs.node_counts;
+
+    let match_instruction_indices: Array<Int> = build.cfg.instructions.match_facts.instruction_indices;
+    let match_pattern_starts: Array<Int> = build.cfg.instructions.match_facts.pattern_starts;
+    let match_pattern_counts: Array<Int> = build.cfg.instructions.match_facts.pattern_counts;
+    let match_patterns: Array<String> = build.cfg.instructions.match_facts.patterns;
+    let match_variants: Array<String> = build.cfg.instructions.match_facts.variants;
+    let match_binding_starts: Array<Int> = build.cfg.instructions.match_facts.binding_starts;
+    let match_binding_counts: Array<Int> = build.cfg.instructions.match_facts.binding_counts;
+    let match_bindings: Array<String> = build.cfg.instructions.match_facts.bindings;
+    let match_binding_types: Array<String> = build.cfg.instructions.match_facts.binding_types;
+
+    let destructure_instruction_indices: Array<Int> = build.cfg.instructions.destructure_facts.instruction_indices;
+    let destructure_element_types: Array<String> = build.cfg.instructions.destructure_facts.element_types;
+    let destructure_binding_starts: Array<Int> = build.cfg.instructions.destructure_facts.binding_starts;
+    let destructure_binding_counts: Array<Int> = build.cfg.instructions.destructure_facts.binding_counts;
+    let destructure_bindings: Array<String> = build.cfg.instructions.destructure_facts.bindings;
+
+    let abi_present: Array<Int> = build.cfg.instructions.runtime_call_abi.present;
+    let abi_owners: Array<String> = build.cfg.instructions.runtime_call_abi.owners;
+    let abi_domains: Array<String> = build.cfg.instructions.runtime_call_abi.domains;
+    let abi_type_names: Array<String> = build.cfg.instructions.runtime_call_abi.type_names;
+    let abi_operations: Array<String> = build.cfg.instructions.runtime_call_abi.operations;
+    let abi_symbols: Array<String> = build.cfg.instructions.runtime_call_abi.symbols;
+    let abi_target_kinds: Array<String> = build.cfg.instructions.runtime_call_abi.target_kinds;
+    let abi_materializations: Array<String> = build.cfg.instructions.runtime_call_abi.materializations;
+    let abi_call_shapes: Array<String> = build.cfg.instructions.runtime_call_abi.call_shapes;
+    let abi_ids: Array<Int> = build.cfg.instructions.runtime_call_abi.runtime_call_abi_ids;
+    let abi_aux_instruction_indices: Array<Int> = build.cfg.instructions.runtime_call_abi.aux_instruction_indices;
+    let abi_aux_owners: Array<String> = build.cfg.instructions.runtime_call_abi.aux_owners;
+    let abi_aux_domains: Array<String> = build.cfg.instructions.runtime_call_abi.aux_domains;
+    let abi_aux_type_names: Array<String> = build.cfg.instructions.runtime_call_abi.aux_type_names;
+    let abi_aux_operations: Array<String> = build.cfg.instructions.runtime_call_abi.aux_operations;
+    let abi_aux_symbols: Array<String> = build.cfg.instructions.runtime_call_abi.aux_symbols;
+    let abi_aux_target_kinds: Array<String> = build.cfg.instructions.runtime_call_abi.aux_target_kinds;
+    let abi_aux_materializations: Array<String> = build.cfg.instructions.runtime_call_abi.aux_materializations;
+    let abi_aux_call_shapes: Array<String> = build.cfg.instructions.runtime_call_abi.aux_call_shapes;
+    let abi_aux_ids: Array<Int> = build.cfg.instructions.runtime_call_abi.aux_runtime_call_abi_ids;
+
+    let local_primary_refs: Array<String> = build.cfg.local_refs.primary_refs;
+    let local_expr0_starts: Array<Int> = build.cfg.local_refs.expr0_starts;
+    let local_expr0_counts: Array<Int> = build.cfg.local_refs.expr0_counts;
+    let local_expr0_nodes: Array<Int> = build.cfg.local_refs.expr0_nodes;
+    let local_expr0_refs: Array<String> = build.cfg.local_refs.expr0_refs;
+    let terminated: Array<Int> = build.terminated;
+    let local_names: Array<String> = build.local_names;
+    let local_types: Array<String> = build.local_types;
+    let local_versions: Array<Int> = build.local_versions;
+    let local_refs: Array<String> = build.local_refs;
+
+    CompilerRetireArrayStorage(block_ids); CompilerRetireArrayStorage(block_reachable);
+    CompilerRetireArrayStorage(block_instruction_starts); CompilerRetireArrayStorage(block_instruction_counts);
+    CompilerRetireArrayStorage(block_has_true); CompilerRetireArrayStorage(block_succ_true);
+    CompilerRetireArrayStorage(block_has_false); CompilerRetireArrayStorage(block_succ_false);
+    CompilerRetireArrayStorage(instruction_ids); CompilerRetireArrayStorage(instruction_kinds);
+    CompilerRetireArrayStorage(instruction_names); CompilerRetireArrayStorage(instruction_results);
+    CompilerRetireArrayStorage(instruction_arg0s); CompilerRetireArrayStorage(instruction_arg1s);
+    CompilerRetireArrayStorage(instruction_slot_anchors); CompilerRetireArrayStorage(instruction_expr0s);
+    CompilerRetireArrayStorage(instruction_expr1s); CompilerRetireArrayStorage(instruction_source_types);
+    CompilerRetireArrayStorage(machine_contact_kinds); CompilerRetireArrayStorage(machine_manifest_ids);
+    CompilerRetireArrayStorage(machine_grant_ids); CompilerRetireArrayStorage(machine_bases);
+    CompilerRetireArrayStorage(machine_sizes); CompilerRetireArrayStorage(machine_modes);
+    CompilerRetireArrayStorage(machine_operations); CompilerRetireArrayStorage(machine_adequate);
+    CompilerRetireArrayStorage(machine_authority); CompilerRetireArrayStorage(machine_lease);
+    CompilerRetireArrayStorage(instruction_use_starts); CompilerRetireArrayStorage(instruction_use_counts);
+    CompilerRetireArrayStorage(instruction_uses); CompilerRetireArrayStorage(instruction_abi_types);
+    CompilerRetireArrayStorage(expr0_has_roots); CompilerRetireArrayStorage(expr0_roots);
+    CompilerRetireArrayStorage(expr0_starts); CompilerRetireArrayStorage(expr0_counts);
+    CompilerRetireArrayStorage(expr1_has_roots); CompilerRetireArrayStorage(expr1_roots);
+    CompilerRetireArrayStorage(expr1_starts); CompilerRetireArrayStorage(expr1_counts);
+    CompilerRetireArrayStorage(match_instruction_indices); CompilerRetireArrayStorage(match_pattern_starts);
+    CompilerRetireArrayStorage(match_pattern_counts); CompilerRetireArrayStorage(match_patterns);
+    CompilerRetireArrayStorage(match_variants); CompilerRetireArrayStorage(match_binding_starts);
+    CompilerRetireArrayStorage(match_binding_counts); CompilerRetireArrayStorage(match_bindings);
+    CompilerRetireArrayStorage(match_binding_types);
+    CompilerRetireArrayStorage(destructure_instruction_indices); CompilerRetireArrayStorage(destructure_element_types);
+    CompilerRetireArrayStorage(destructure_binding_starts); CompilerRetireArrayStorage(destructure_binding_counts);
+    CompilerRetireArrayStorage(destructure_bindings); CompilerRetireArrayStorage(abi_present);
+    CompilerRetireArrayStorage(abi_owners); CompilerRetireArrayStorage(abi_domains);
+    CompilerRetireArrayStorage(abi_type_names); CompilerRetireArrayStorage(abi_operations);
+    CompilerRetireArrayStorage(abi_symbols); CompilerRetireArrayStorage(abi_target_kinds);
+    CompilerRetireArrayStorage(abi_materializations); CompilerRetireArrayStorage(abi_call_shapes);
+    CompilerRetireArrayStorage(abi_ids); CompilerRetireArrayStorage(abi_aux_instruction_indices);
+    CompilerRetireArrayStorage(abi_aux_owners); CompilerRetireArrayStorage(abi_aux_domains);
+    CompilerRetireArrayStorage(abi_aux_type_names); CompilerRetireArrayStorage(abi_aux_operations);
+    CompilerRetireArrayStorage(abi_aux_symbols); CompilerRetireArrayStorage(abi_aux_target_kinds);
+    CompilerRetireArrayStorage(abi_aux_materializations); CompilerRetireArrayStorage(abi_aux_call_shapes);
+    CompilerRetireArrayStorage(abi_aux_ids); CompilerRetireArrayStorage(local_primary_refs);
+    CompilerRetireArrayStorage(local_expr0_starts); CompilerRetireArrayStorage(local_expr0_counts);
+    CompilerRetireArrayStorage(local_expr0_nodes); CompilerRetireArrayStorage(local_expr0_refs);
+    CompilerRetireArrayStorage(terminated); CompilerRetireArrayStorage(local_names);
+    CompilerRetireArrayStorage(local_types); CompilerRetireArrayStorage(local_versions);
+    CompilerRetireArrayStorage(local_refs);
+}

@@ -7,11 +7,21 @@ import "../../../src/self_hosted/mir_lower/routine_fact_index_owner.pgy";
 import "../../../src/self_hosted/mir_lower/abi_layout_fact_owner.pgy";
 import "../../../src/self_hosted/mir_lower/routine_lower.pgy";
 
+func MirProgramRoutineIndexFromDocument(
+    document: MirDocumentFactIndex
+) -> MirProgramRoutineIndex {
+    let declarations: MirProgramDeclarationIndex =
+        BuildMirProgramDeclarationIndexFromTable(document.declarations);
+    return BuildMirProgramRoutineIndexFromTable(
+        document.routines, declarations
+    );
+}
+
 func MirProgramRoutineIndexJsonReady(json: String) -> Bool {
     let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);
     if !document.valid { return false; }
     let index: MirProgramRoutineIndex =
-        BuildMirProgramRoutineIndexFromTable(document.routines);
+        MirProgramRoutineIndexFromDocument(document);
     return MirProgramRoutineIndexStructureReady(index);
 }
 
@@ -48,8 +58,26 @@ func Main() -> Void {
     );
     let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);
     let index: MirProgramRoutineIndex =
-        BuildMirProgramRoutineIndexFromTable(document.routines);
+        MirProgramRoutineIndexFromDocument(document);
+    let foreign_document: MirDocumentFactIndex = BuildMirDocumentFactIndex(
+        StringReplace(json, "Box", "ForeignBox")
+    );
+    let foreign_declarations: MirProgramDeclarationIndex =
+        BuildMirProgramDeclarationIndexFromTable(foreign_document.declarations);
+    let extended_declaration_table: JsonArrayObjectFactTable =
+        JsonArrayObjectFactTable(
+            true, document.declarations.json, document.declarations.start,
+            document.declarations.end + 1
+        );
+    let extended_declarations: MirProgramDeclarationIndex =
+        BuildMirProgramDeclarationIndexFromTable(extended_declaration_table);
+    let cross_document_index: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndexFromTable(
+            document.routines, foreign_declarations
+        );
     if !MirProgramRoutineIndexStructureReady(index) ||
+        extended_declarations.valid ||
+        cross_document_index.valid ||
         index.source_json != json || index.source_length != StringLength(json) ||
         !MirProgramRoutineIndexRowReady(index, 0) ||
         !MirProgramRoutineIndexRowReady(index, 1) ||
@@ -353,7 +381,7 @@ func Main() -> Void {
     let branch_document: MirDocumentFactIndex =
         BuildMirDocumentFactIndex(branch_json);
     let branch_program: MirProgramRoutineIndex =
-        BuildMirProgramRoutineIndexFromTable(branch_document.routines);
+        MirProgramRoutineIndexFromDocument(branch_document);
     let branch_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(branch_program, 0);
     let branch_selection: MirRoutineInstructionSelection =
@@ -417,7 +445,7 @@ func Main() -> Void {
     let cross_block_document: MirDocumentFactIndex =
         BuildMirDocumentFactIndex(cross_block_json);
     let cross_block_program: MirProgramRoutineIndex =
-        BuildMirProgramRoutineIndexFromTable(cross_block_document.routines);
+        MirProgramRoutineIndexFromDocument(cross_block_document);
     let cross_block_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(cross_block_program, 0);
     let cross_block_branch_rows: Array<Int> =
@@ -455,7 +483,7 @@ func Main() -> Void {
     let for_json: String = Concat(prefix, Concat(for_routine, "]}"));
     let for_document: MirDocumentFactIndex = BuildMirDocumentFactIndex(for_json);
     let for_program: MirProgramRoutineIndex =
-        BuildMirProgramRoutineIndexFromTable(for_document.routines);
+        MirProgramRoutineIndexFromDocument(for_document);
     let for_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(for_program, 0);
     if !LoopFlowSummaryProjectionReady(for_index, for_program, 0) {
@@ -533,9 +561,7 @@ func Main() -> Void {
     let duplicate_branch_document: MirDocumentFactIndex =
         BuildMirDocumentFactIndex(duplicate_branch_json);
     let duplicate_branch_program: MirProgramRoutineIndex =
-        BuildMirProgramRoutineIndexFromTable(
-            duplicate_branch_document.routines
-        );
+        MirProgramRoutineIndexFromDocument(duplicate_branch_document);
     if !MirProgramRoutineIndexStructureReady(duplicate_branch_program) ||
         BuildMirRoutineInstructionFactBundle(
             duplicate_branch_program, 0
@@ -560,7 +586,7 @@ func Main() -> Void {
     let phi_prefix_document: MirDocumentFactIndex =
         BuildMirDocumentFactIndex(phi_prefix_json);
     let phi_prefix_program: MirProgramRoutineIndex =
-        BuildMirProgramRoutineIndexFromTable(phi_prefix_document.routines);
+        MirProgramRoutineIndexFromDocument(phi_prefix_document);
     let phi_prefix_facts: MirRoutineInstructionFactBundle =
         BuildMirRoutineInstructionFactBundle(phi_prefix_program, 0);
     if !phi_prefix_facts.valid ||
@@ -583,7 +609,7 @@ func Main() -> Void {
     let late_phi_document: MirDocumentFactIndex =
         BuildMirDocumentFactIndex(late_phi_json);
     let late_phi_program: MirProgramRoutineIndex =
-        BuildMirProgramRoutineIndexFromTable(late_phi_document.routines);
+        MirProgramRoutineIndexFromDocument(late_phi_document);
     let late_phi_facts: MirRoutineInstructionFactBundle =
         BuildMirRoutineInstructionFactBundle(late_phi_program, 0);
     if !MirProgramRoutineIndexStructureReady(late_phi_program) ||
@@ -604,7 +630,7 @@ func Main() -> Void {
     let negative_successor_document: MirDocumentFactIndex =
         BuildMirDocumentFactIndex(negative_successor_json);
     let negative_successor_program: MirProgramRoutineIndex =
-        BuildMirProgramRoutineIndexFromTable(negative_successor_document.routines);
+        MirProgramRoutineIndexFromDocument(negative_successor_document);
     let negative_successor_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(negative_successor_program, 0);
     let out_of_range_successor_routine: String =
@@ -615,9 +641,7 @@ func Main() -> Void {
     let out_of_range_successor_document: MirDocumentFactIndex =
         BuildMirDocumentFactIndex(out_of_range_successor_json);
     let out_of_range_successor_program: MirProgramRoutineIndex =
-        BuildMirProgramRoutineIndexFromTable(
-            out_of_range_successor_document.routines
-        );
+        MirProgramRoutineIndexFromDocument(out_of_range_successor_document);
     let out_of_range_successor_index: MirRoutineFactIndex =
         BuildMirRoutineFactIndex(out_of_range_successor_program, 0);
     if missing_successor_index.block_succ_true[0] != (0 - 1) ||
@@ -709,13 +733,11 @@ func Main() -> Void {
     let duplicate_expr0_document: MirDocumentFactIndex =
         BuildMirDocumentFactIndex(duplicate_expr0);
     let duplicate_expr0_program: MirProgramRoutineIndex =
-        BuildMirProgramRoutineIndexFromTable(
-            duplicate_expr0_document.routines
-        );
+        MirProgramRoutineIndexFromDocument(duplicate_expr0_document);
     let wrong_expr0_document: MirDocumentFactIndex =
         BuildMirDocumentFactIndex(wrong_expr0);
     let wrong_expr0_program: MirProgramRoutineIndex =
-        BuildMirProgramRoutineIndexFromTable(wrong_expr0_document.routines);
+        MirProgramRoutineIndexFromDocument(wrong_expr0_document);
     if BuildMirRoutineInstructionFactBundle(
             duplicate_expr0_program, 0
         ).valid ||

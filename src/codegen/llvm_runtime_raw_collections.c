@@ -40,6 +40,12 @@ llvm_declare_runtime_raw_collections(LLVMGenCtx *ctx)
           ctx->type_void); }
     { LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i64 };
       LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
+      LLVMValueRef fn = LLVMAddFunction(ctx->module,
+          "pgy_array_drop_storage_raw_export", ft);
+      llvm_register_function(ctx, "pgy_array_drop_storage_raw_export", fn, ft,
+          ctx->type_void); }
+    { LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i64 };
+      LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
       LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_list_new_raw_export", ft);
       llvm_register_function(ctx, "pgy_list_new_raw_export", fn, ft, ctx->type_void);
       fn = LLVMAddFunction(ctx->module, "pgy_set_new_raw_export", ft);

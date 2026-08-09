@@ -65,11 +65,12 @@ func CollectionPolicyProbeGraphOwned() -> Bool {
     let root_id: Int = graph.roots[0];
     let rejected: SemanticExpressionGraphCollectionMutationFact =
         SemanticExpressionGraphCollectionMutationFactFromGraph(
-            graph, root_id, ["xs"], ["Array<Int>"], ["default_param"]
+            graph, root_id, ["xs"], ["Array<Int>"], ["default_param"],
+            false
         );
     let admitted: SemanticExpressionGraphCollectionMutationFact =
         SemanticExpressionGraphCollectionMutationFactFromGraph(
-            graph, root_id, ["xs"], ["Array<Int>"], ["inout_param"]
+            graph, root_id, ["xs"], ["Array<Int>"], ["inout_param"], false
         );
     return rejected.applies && !rejected.ok &&
         rejected.diagnostic_code == "value_param_collection_mutation" &&
@@ -94,7 +95,7 @@ func CollectionPolicyProbeRejectsTargetDrift() -> Bool {
     let fact: SemanticExpressionGraphCollectionMutationFact =
         SemanticExpressionGraphCollectionMutationFactFromGraph(
             graph, graph.roots[0], ["xs"], ["Array<Int>"],
-            ["default_param"]
+            ["default_param"], false
         );
     return fact.applies && !fact.ok &&
         fact.diagnostic_code == "ast_artifact_invalid";

@@ -9,7 +9,7 @@
 #define COMPLETION_JSON_CAPACITY 65536u
 #define COMPLETION_LABEL_CAPACITY 128u
 #define COMPLETION_DETAIL_CAPACITY 128u
-#define EXPECTED_COMPLETION_COUNT 27u
+#define EXPECTED_COMPLETION_COUNT 28u
 
 static const char *
 skip_space(const char *cursor)

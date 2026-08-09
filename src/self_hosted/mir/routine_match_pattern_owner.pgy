@@ -15,12 +15,11 @@ func SelfMirMatchCaseFactInvalid() -> SelfMirMatchCaseFact {
     return SelfMirMatchCaseFact(false, "", "", strings, strings);
 }
 
-func SelfMirMatchCaseFactFromArtifact(
-    artifact: AstTreeArtifact,
-    case_node_id: Int
+func SelfMirMatchCaseFactFromText(
+    pattern: String
 ) -> SelfMirMatchCaseFact {
     let fact: AstMatchCasePatternFact =
-        AstMatchCasePatternFactFromArtifact(artifact, case_node_id);
+        AstMatchCasePatternFactFromText(pattern);
     if !fact.ok {
         return SelfMirMatchCaseFactInvalid();
     }

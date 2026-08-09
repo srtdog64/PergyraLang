@@ -1,7 +1,24 @@
 #ifndef PGY_MIR_DECL_HEADERS_H
 #define PGY_MIR_DECL_HEADERS_H
 
+#include <stddef.h>
+
 #include "mir.h"
+
+bool mir_decl_header_storage_layout_matches(
+    size_t row_size,
+    size_t row_align,
+    size_t method_metadata_offset,
+    size_t abi_layout_offset,
+    size_t option_abi_type_name_offset,
+    size_t option_abi_layout_id_offset);
+#define MIR_DECL_HEADER_STORAGE_LAYOUT_MATCHES_LOCAL() \
+    mir_decl_header_storage_layout_matches( \
+        sizeof(MIRDeclHeader), _Alignof(MIRDeclHeader), \
+        offsetof(MIRDeclHeader, method_metadata), \
+        offsetof(MIRDeclHeader, abi_layout), \
+        offsetof(MIRDeclHeader, option_abi_type_name), \
+        offsetof(MIRDeclHeader, option_abi_layout_id))
 
 bool mir_record_decl_header(MIRProgram *mir, ASTNode *decl);
 void mir_link_decl_method_routines(MIRProgram *mir);

@@ -361,25 +361,9 @@ def _append_index_string_function(
     lines.extend(['    return "";', "}"])
 
 
-def _append_index_int_function(
-    lines: list[str],
-    name: str,
-    rows: list[KeywordRow],
-    value,
-) -> None:
-    lines.extend(["", f"func {name}(index: Int) -> Int {{"])
-    for index, row in enumerate(rows):
-        lines.append(f"    if index == {index} {{ return {value(row)}; }}")
-    lines.extend(["    return -1;", "}"])
-
-
 PROJECTION_PART_FILES = (
     "language_word_identity_projection_owner.pgy",
-    "language_word_index_projection_owner.pgy",
-    "language_word_class_projection_owner.pgy",
-    "language_word_axis_projection_owner.pgy",
-    "language_word_semantic_projection_owner.pgy",
-    "language_word_tooling_projection_owner.pgy",
+    "language_word_row_projection_owner.pgy",
     "language_keyword_compatibility_projection_owner.pgy",
 )
 
@@ -428,106 +412,54 @@ def _render_identity_projection(rows: list[KeywordRow]) -> str:
     return "\n".join(lines)
 
 
-def _render_index_projection(rows: list[KeywordRow]) -> str:
-    lines = _projection_header("ordered spelling and debug-identity index")
-    _append_index_string_function(
-        lines, "LanguageWordSpellingAt", rows, lambda row: row.spelling
+def _render_row_projection(rows: list[KeywordRow]) -> str:
+    lines = _projection_header("complete ordered language-word metadata row")
+    lines.extend(
+        [
+            "struct LanguageWordRegistryRow {",
+            "    let valid: Bool;",
+            "    let spelling: String;",
+            "    let debug_identity: String;",
+            "    let keyword_class: Int;",
+            "    let class_name: String;",
+            "    let context_mask: Int;",
+            "    let axis: Int;",
+            "    let axis_name: String;",
+            "    let implementation_support: Int;",
+            "    let tooling_flags: Int;",
+            "    let highlight_scope: String;",
+            "    let completion_enabled: Bool;",
+            "}",
+            "",
+            "func LanguageWordRegistryRowAt(index: Int) -> LanguageWordRegistryRow {",
+        ]
     )
-    _append_index_string_function(
-        lines,
-        "LanguageWordDebugIdentityAt",
-        rows,
-        lambda row: row.debug_identity,
-    )
-    lines.append("")
-    return "\n".join(lines)
-
-
-def _render_class_projection(rows: list[KeywordRow]) -> str:
-    lines = _projection_header("lexical class metadata")
-    _append_index_int_function(
-        lines,
-        "LanguageWordClassAt",
-        rows,
-        lambda row: CLASS_VALUES[row.keyword_class][0],
-    )
-    _append_index_string_function(
-        lines,
-        "LanguageWordClassNameAt",
-        rows,
-        lambda row: CLASS_VALUES[row.keyword_class][1],
-    )
-    lines.append("")
-    return "\n".join(lines)
-
-
-def _render_axis_projection(rows: list[KeywordRow]) -> str:
-    lines = _projection_header("language-axis metadata")
-    _append_index_int_function(
-        lines,
-        "LanguageWordAxisAt",
-        rows,
-        lambda row: AXIS_VALUES[row.axis][0],
-    )
-    _append_index_string_function(
-        lines,
-        "LanguageWordAxisNameAt",
-        rows,
-        lambda row: AXIS_VALUES[row.axis][1],
-    )
-    lines.append("")
-    return "\n".join(lines)
-
-
-def _render_semantic_projection(rows: list[KeywordRow]) -> str:
-    lines = _projection_header("grammar context and implementation support")
-    _append_index_int_function(
-        lines,
-        "LanguageWordContextMaskAt",
-        rows,
-        lambda row: _flag_value(row.context_mask, CONTEXT_VALUES),
-    )
-    _append_index_int_function(
-        lines,
-        "LanguageWordImplementationSupportAt",
-        rows,
-        lambda row: _flag_value(row.implementation_support, SUPPORT_VALUES),
-    )
-    lines.append("")
-    return "\n".join(lines)
-
-
-def _render_tooling_projection(rows: list[KeywordRow]) -> str:
-    lines = _projection_header("tooling flags, TextMate scope, and completion")
-    _append_index_int_function(
-        lines,
-        "LanguageWordToolingFlagsAt",
-        rows,
-        lambda row: _flag_value(row.tooling_flags, TOOLING_VALUES),
-    )
-    _append_index_string_function(
-        lines,
-        "LanguageWordHighlightScopeAt",
-        rows,
-        lambda row: (
-            ""
-            if HIGHLIGHT_SCOPE_META[row.highlight_scope] is None
-            else HIGHLIGHT_SCOPE_META[row.highlight_scope][1]
-        ),
-    )
-    lines.extend(["", "func LanguageWordCompletionEnabledAt(index: Int) -> Bool {"])
     for index, row in enumerate(rows):
-        enabled = "PGY_KEYWORD_TOOLING_COMPLETION" in row.tooling_flags
+        class_id, class_name = CLASS_VALUES[row.keyword_class]
+        axis_id, axis_name = AXIS_VALUES[row.axis]
+        highlight = HIGHLIGHT_SCOPE_META[row.highlight_scope]
+        highlight_scope = "" if highlight is None else highlight[1]
+        completion = "PGY_KEYWORD_TOOLING_COMPLETION" in row.tooling_flags
+        values = (
+            "true",
+            json.dumps(row.spelling),
+            json.dumps(row.debug_identity),
+            str(class_id),
+            json.dumps(class_name),
+            str(_flag_value(row.context_mask, CONTEXT_VALUES)),
+            str(axis_id),
+            json.dumps(axis_name),
+            str(_flag_value(row.implementation_support, SUPPORT_VALUES)),
+            str(_flag_value(row.tooling_flags, TOOLING_VALUES)),
+            json.dumps(highlight_scope),
+            str(completion).lower(),
+        )
         lines.append(
-            f"    if index == {index} {{ return {str(enabled).lower()}; }}"
+            f"    if index == {index} {{ return LanguageWordRegistryRow({', '.join(values)}); }}"
         )
     lines.extend(
         [
-            "    return false;",
-            "}",
-            "",
-            "func LanguageWordCompletionOwnedAt(index: Int) -> Bool {",
-            "    return LanguageWordCompletionEnabledAt(index);",
+            "    return LanguageWordRegistryRow(false, \"\", \"\", -1, \"\", -1, -1, \"\", -1, -1, \"\", false);",
             "}",
             "",
         ]
@@ -577,17 +509,19 @@ def _render_aggregate_projection() -> str:
         [
             "",
             "func LanguageWordRegistryProjectionReady() -> Bool {",
+            "    if LanguageWordRegistryRowAt(-1).valid ||",
+            "        LanguageWordRegistryRowAt(LanguageWordRegistryCount()).valid {",
+            "        return false;",
+            "    }",
             "    let index: Int = 0;",
             "    while index < LanguageWordRegistryCount() {",
-            "        if StringLength(LanguageWordSpellingAt(index)) == 0 ||",
-            "            StringLength(LanguageWordDebugIdentityAt(index)) == 0 ||",
-            "            LanguageWordClassAt(index) < 1 ||",
-            "            StringLength(LanguageWordClassNameAt(index)) == 0 ||",
-            "            LanguageWordContextMaskAt(index) <= 0 ||",
-            "            LanguageWordAxisAt(index) < 0 ||",
-            "            StringLength(LanguageWordAxisNameAt(index)) == 0 ||",
-            "            LanguageWordImplementationSupportAt(index) <= 0 ||",
-            "            LanguageWordToolingFlagsAt(index) < 0 {",
+            "        let row: LanguageWordRegistryRow = LanguageWordRegistryRowAt(index);",
+            "        if !row.valid || StringLength(row.spelling) == 0 ||",
+            "            StringLength(row.debug_identity) == 0 ||",
+            "            row.keyword_class < 1 || StringLength(row.class_name) == 0 ||",
+            "            row.context_mask <= 0 || row.axis < 0 ||",
+            "            StringLength(row.axis_name) == 0 ||",
+            "            row.implementation_support <= 0 || row.tooling_flags < 0 {",
             "            return false;",
             "        }",
             "        index = index + 1;",
@@ -623,12 +557,8 @@ def render_projection_files(
     return {
         aggregate_name: _render_aggregate_projection(),
         PROJECTION_PART_FILES[0]: _render_identity_projection(rows),
-        PROJECTION_PART_FILES[1]: _render_index_projection(rows),
-        PROJECTION_PART_FILES[2]: _render_class_projection(rows),
-        PROJECTION_PART_FILES[3]: _render_axis_projection(rows),
-        PROJECTION_PART_FILES[4]: _render_semantic_projection(rows),
-        PROJECTION_PART_FILES[5]: _render_tooling_projection(rows),
-        PROJECTION_PART_FILES[6]: _render_compatibility_projection(rows),
+        PROJECTION_PART_FILES[1]: _render_row_projection(rows),
+        PROJECTION_PART_FILES[2]: _render_compatibility_projection(rows),
     }
 
 

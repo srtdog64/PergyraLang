@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let values: Array<Int> = [1, 2, 3];
+    let alias: Array<Int> = values;
+    CompilerRetireArrayStorage(values);
+    Log(alias[0]);
+}

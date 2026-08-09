@@ -8,18 +8,6 @@
 import "../lexer/language_keyword_registry_projection_owner.pgy";
 import "../lib/json_emit.pgy";
 
-func LspCompletionOwnedItemCount() -> Int {
-    let count: Int = 0;
-    let index: Int = 0;
-    while index < LanguageWordRegistryCount() {
-        if LanguageWordCompletionOwnedAt(index) {
-            count = count + 1;
-        }
-        index = index + 1;
-    }
-    return count;
-}
-
 func LspCompletionInvariantFailure(reason: String) -> String {
     let missing: Option<String> = None;
     return UnwrapOption(missing);
@@ -83,33 +71,28 @@ func LspCompletionItemsJson() -> String {
     let previous: String = "";
     let index: Int = 0;
     while index < registry_count {
-        let spelling: String = LanguageWordSpellingAt(index);
-        let class_name: String = LanguageWordClassNameAt(index);
-        let axis_name: String = LanguageWordAxisNameAt(index);
-        if StringLength(spelling) == 0 ||
-            !LspCompletionClassNameReady(class_name) ||
-            !LspCompletionAxisNameReady(axis_name) ||
+        let row: LanguageWordRegistryRow = LanguageWordRegistryRowAt(index);
+        if !row.valid || StringLength(row.spelling) == 0 ||
+            !LspCompletionClassNameReady(row.class_name) ||
+            !LspCompletionAxisNameReady(row.axis_name) ||
             (index > 0 &&
-                !LspCompletionSpellingStrictlyAfter(previous, spelling)) {
+                !LspCompletionSpellingStrictlyAfter(previous, row.spelling)) {
             return LspCompletionInvariantFailure(
                 "self-host LSP completion registry ordering or row is invalid"
             );
         }
         // Tooling completion exposure is registry policy, not evidence that
         // every selected word already has complete parser support.
-        if LanguageWordCompletionEnabledAt(index) {
+        if row.completion_enabled {
             ArrayPush(
                 items,
-                LspCompletionItemJson(spelling, class_name, axis_name)
+                LspCompletionItemJson(
+                    row.spelling, row.class_name, row.axis_name
+                )
             );
         }
-        previous = spelling;
+        previous = row.spelling;
         index = index + 1;
-    }
-    if ArrayLength(items) != LspCompletionOwnedItemCount() {
-        return LspCompletionInvariantFailure(
-            "self-host LSP completion item count is invalid"
-        );
     }
     return JsonEmitArray(items);
 }

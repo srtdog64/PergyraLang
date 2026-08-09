@@ -3,25 +3,23 @@
 // Responsibility: compatibility import hub and cross-projection readiness.
 
 import "language_word_identity_projection_owner.pgy";
-import "language_word_index_projection_owner.pgy";
-import "language_word_class_projection_owner.pgy";
-import "language_word_axis_projection_owner.pgy";
-import "language_word_semantic_projection_owner.pgy";
-import "language_word_tooling_projection_owner.pgy";
+import "language_word_row_projection_owner.pgy";
 import "language_keyword_compatibility_projection_owner.pgy";
 
 func LanguageWordRegistryProjectionReady() -> Bool {
+    if LanguageWordRegistryRowAt(-1).valid ||
+        LanguageWordRegistryRowAt(LanguageWordRegistryCount()).valid {
+        return false;
+    }
     let index: Int = 0;
     while index < LanguageWordRegistryCount() {
-        if StringLength(LanguageWordSpellingAt(index)) == 0 ||
-            StringLength(LanguageWordDebugIdentityAt(index)) == 0 ||
-            LanguageWordClassAt(index) < 1 ||
-            StringLength(LanguageWordClassNameAt(index)) == 0 ||
-            LanguageWordContextMaskAt(index) <= 0 ||
-            LanguageWordAxisAt(index) < 0 ||
-            StringLength(LanguageWordAxisNameAt(index)) == 0 ||
-            LanguageWordImplementationSupportAt(index) <= 0 ||
-            LanguageWordToolingFlagsAt(index) < 0 {
+        let row: LanguageWordRegistryRow = LanguageWordRegistryRowAt(index);
+        if !row.valid || StringLength(row.spelling) == 0 ||
+            StringLength(row.debug_identity) == 0 ||
+            row.keyword_class < 1 || StringLength(row.class_name) == 0 ||
+            row.context_mask <= 0 || row.axis < 0 ||
+            StringLength(row.axis_name) == 0 ||
+            row.implementation_support <= 0 || row.tooling_flags < 0 {
             return false;
         }
         index = index + 1;

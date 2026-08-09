@@ -251,6 +251,7 @@ void validate_class_where_clause_specialization_ast(ASTNode *class_decl,
 
 bool consume_qubit_value(ASTNode *expr, SemanticContext *ctx,
                          const char *action);
+bool consume_array_storage_binding(ASTNode *expr, SemanticContext *ctx);
 bool type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx);
 bool type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx);
 /* docs/181 SS1 rungs 0-2 (type_checker_flow_parallel_join.c) */

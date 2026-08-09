@@ -355,6 +355,35 @@ func RewriteSemanticOwnedStringArrayCall(
     return "";
 }
 
+func RewriteSemanticCompilerRetireArrayStorageCall(
+    graph: SemanticExpressionGraphFacts,
+    view: SemanticCallSpineView,
+    env: CodegenTypeEnv
+) -> String {
+    if ArrayLength(view.argument_nodes) != 1 {
+        Die("CompilerRetireArrayStorage requires exactly one argument");
+    }
+    let array_type_opt: Option<String> = CodegenExpressionTypeFromGraph(
+        graph, view.argument_nodes[0], env
+    );
+    if !IsSome(array_type_opt) {
+        Die("CompilerRetireArrayStorage argument type fact is missing");
+    }
+    let array_type: String = UnwrapOption(array_type_opt);
+    let fact: CollectionRuntimeFact = CollectionRuntimeFactFromTypeName(
+        array_type, env
+    );
+    let array_arg: String = RewriteSemanticCallArgument(
+        graph, view.argument_nodes[0], array_type, "inout", env
+    );
+    return Concat(
+        CollectionRuntimeCDropStorageFn(
+            CollectionRuntimeKindCode(fact.kind)
+        ),
+        Concat("(", Concat(array_arg, ")"))
+    );
+}
+
 func RewriteSemanticDirectCall(
     graph: SemanticExpressionGraphFacts,
     root_id: Int,
@@ -401,6 +430,9 @@ func RewriteSemanticDirectCall(
         return RewriteSemanticOwnedStringArrayCall(
             graph, view, source_name, env
         );
+    }
+    if source_name == "CompilerRetireArrayStorage" {
+        return RewriteSemanticCompilerRetireArrayStorageCall(graph, view, env);
     }
     if source_name == "ClaimSlot" || source_name == "Read" ||
         source_name == "Write" || source_name == "Release" {

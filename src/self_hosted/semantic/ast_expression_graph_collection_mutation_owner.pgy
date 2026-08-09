@@ -4,6 +4,49 @@ import "ast_expression_graph_call_view_owner.pgy";
 import "ast_expression_call_target_fact_owner.pgy";
 import "collection_mutation_policy_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+
+func SemanticCompilerRetireArrayStorageCallerReady(
+    signatures: SemanticAstFunctionSignatureFacts,
+    function_node_id: Int
+) -> Bool {
+    let index: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+        signatures, function_node_id
+    );
+    if !IsSome(index) { return false; }
+    let row: Int = UnwrapOption(index);
+    let name: Option<String> = SemanticAstFunctionNameAt(signatures, row);
+    let returns: Option<String> = SemanticAstFunctionReturnTypeAt(
+        signatures, row
+    );
+    let count: Option<Int> = SemanticAstFunctionParamCountAt(signatures, row);
+    let param_type: Option<String> = SemanticAstFunctionParamTypeAt(
+        signatures, row, 0
+    );
+    let param_mode: Option<Int> = SemanticAstFunctionParamModeAt(
+        signatures, row, 0
+    );
+    if !IsSome(name) || !IsSome(returns) || !IsSome(count) ||
+        !IsSome(param_type) || !IsSome(param_mode) ||
+        UnwrapOption(count) != 1 ||
+        UnwrapOption(param_mode) != 2 {
+        return false;
+    }
+    let routine_build_owner: Bool = UnwrapOption(name) ==
+        "SelfMirRoutineBuildStorageRetireAfterLastConsumer" &&
+        UnwrapOption(param_type) == "SelfMirRoutineBuild" &&
+        UnwrapOption(returns) == "Void";
+    let artifact_non_traversal_owner: Bool = UnwrapOption(name) ==
+        "SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection" &&
+        UnwrapOption(param_type) == "AstTreeArtifact" &&
+        UnwrapOption(returns) == "AstTreeArtifact";
+    let artifact_traversal_owner: Bool = UnwrapOption(name) ==
+        "SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts" &&
+        UnwrapOption(param_type) == "AstTreeArtifact" &&
+        UnwrapOption(returns) == "Void";
+    return routine_build_owner || artifact_non_traversal_owner ||
+        artifact_traversal_owner;
+}
 
 struct SemanticExpressionGraphCollectionMutationFact {
     applies: Bool;
@@ -38,7 +81,8 @@ func SemanticExpressionGraphCollectionMutationFactFromGraph(
     root_id: Int,
     names: Array<String>,
     types: Array<String>,
-    modes: Array<String>
+    modes: Array<String>,
+    internal_caller_ready: Bool
 ) -> SemanticExpressionGraphCollectionMutationFact {
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
         graph, root_id
@@ -83,6 +127,15 @@ func SemanticExpressionGraphCollectionMutationFactFromGraph(
             )
         );
     }
+    if callee == "CompilerRetireArrayStorage" &&
+        ArrayLength(call.argument_nodes) != 1 {
+        return SemanticExpressionGraphCollectionMutationError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "array_drop_storage_arity", "expected", "1"
+            )
+        );
+    }
     if ArrayLength(call.argument_nodes) == 0 {
         return SemanticExpressionGraphCollectionMutationOk();
     }
@@ -101,12 +154,24 @@ func SemanticExpressionGraphCollectionMutationFactFromGraph(
             )
         );
     }
+    if callee == "CompilerRetireArrayStorage" &&
+        (UnwrapOption(receiver_kind) != AstExpressionNodeLeaf() ||
+         !IsIdentText(UnwrapOption(receiver_text))) {
+        return SemanticExpressionGraphCollectionMutationError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "array_drop_storage_requires_binding", "receiver",
+                UnwrapOption(receiver_text)
+            )
+        );
+    }
     if UnwrapOption(receiver_kind) != AstExpressionNodeLeaf() ||
         !IsIdentText(UnwrapOption(receiver_text)) {
         return SemanticExpressionGraphCollectionMutationOk();
     }
     let message: String = SemanticCollectionMutationError(
-        callee, UnwrapOption(receiver_text), names, types, modes
+        callee, UnwrapOption(receiver_text), names, types, modes,
+        internal_caller_ready
     );
     if StringLength(message) > 0 {
         return SemanticExpressionGraphCollectionMutationError(

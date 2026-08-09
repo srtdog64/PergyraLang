@@ -4,7 +4,8 @@
 #include <stdbool.h>
 
 typedef enum PgyBuiltinFlags {
-    PGY_BUILTIN_FLAG_NONE = 0
+    PGY_BUILTIN_FLAG_NONE = 0,
+    PGY_BUILTIN_FLAG_COMPILER_INTERNAL = 1u << 0
 } PgyBuiltinFlags;
 
 typedef struct PgyBuiltinInfo {

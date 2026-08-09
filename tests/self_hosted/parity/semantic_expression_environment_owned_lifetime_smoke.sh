@@ -449,7 +449,7 @@ grep -Fq 'SelfMirProgramFactsFromReadyArtifact(' <<<"$mir_checked_body" || {
 }
 
 driver_mir_body="$(function_body "$DRIVER" 'DriverRung2MirProjectionFromVerifiedFactsObserved')"
-grep -Fq 'SelfMirProgramFactsFromReadyArtifactObserved(' <<<"$driver_mir_body" || {
+grep -Fq 'SelfMirProgramFactsBeforeCanonicalIdsObserved(' <<<"$driver_mir_body" || {
     echo "[self-host-parity:semantic-environment-lifetime] verified driver lost ready-artifact MIR path" >&2
     exit 1
 }
@@ -744,7 +744,9 @@ done
 
 for reuse_contract in \
     "$CALL_TARGETS|SemanticAstAnalysisResolveCallTargetsFromAdmittedBody" \
-    "$INITIALIZER_CURSOR|SemanticAstInitializerEnvironmentCursorAdvance"; do
+    "$GENERIC_FACTS|SemanticAstGenericSpecializationFactsFromAdmittedBody" \
+    "$INITIALIZER_CURSOR|SemanticAstInitializerEnvironmentCursorAdvance" \
+    "$STATEMENT_FACTS|SemanticAstStatementTypeFactsFromAdmittedArtifact"; do
     path="${reuse_contract%%|*}"
     function_name="${reuse_contract#*|}"
     function_body "$path" "$function_name" |
@@ -753,6 +755,86 @@ for reuse_contract in \
         exit 1
     }
 done
+
+generic_surface_epoch="$(sed -n \
+    '/while surface_index < SemanticAstExpressionSurfaceCount(/,/SemanticAstExpressionEnvironmentClear(names, types, modes);/p' \
+    "$GENERIC_FACTS")"
+generic_environment_prefix="$(sed -n \
+    '/func SemanticAstGenericSpecializationFactsFromAdmittedBody(/,/let surface_index: Int = 0;/p' \
+    "$GENERIC_FACTS")"
+for fresh_environment in \
+    'let names: Array<String> = [];' \
+    'let types: Array<String> = [];' \
+    'let modes: Array<String> = [];'; do
+    [[ "$(grep -Fc "$fresh_environment" <<<"$generic_environment_prefix" || true)" -eq 1 ]] || {
+        echo "[self-host-parity:semantic-environment-lifetime] generic owner lost its one reusable environment: $fresh_environment" >&2
+        exit 1
+    }
+    if grep -Fq "$fresh_environment" <<<"$generic_surface_epoch"; then
+        echo "[self-host-parity:semantic-environment-lifetime] generic surface loop recreated environment backing: $fresh_environment" >&2
+        exit 1
+    fi
+done
+[[ "$(grep -Fc 'SemanticAstExpressionEnvironmentReset(names, types, modes);' \
+    <<<"$generic_surface_epoch" || true)" -eq 1 ]] || {
+    echo "[self-host-parity:semantic-environment-lifetime] generic surface loop lost its exact environment reset" >&2
+    exit 1
+}
+[[ "$(grep -Fc 'SemanticAstExpressionEnvironmentClear(names, types, modes);' \
+    <<<"$generic_surface_epoch" || true)" -eq 1 ]] || {
+    echo "[self-host-parity:semantic-environment-lifetime] generic owner lost its post-surface last-consumer cleanup" >&2
+    exit 1
+}
+generic_last_surface_line="$(grep -n -F 'surface_index = surface_index + 1;' \
+    <<<"$generic_surface_epoch" | tail -n 1 | cut -d: -f1)"
+generic_clear_line="$(grep -n -F \
+    'SemanticAstExpressionEnvironmentClear(names, types, modes);' \
+    <<<"$generic_surface_epoch" | cut -d: -f1)"
+if [[ -z "$generic_last_surface_line" || -z "$generic_clear_line" || \
+    "$generic_clear_line" -le "$generic_last_surface_line" ]]; then
+    echo "[self-host-parity:semantic-environment-lifetime] generic owner clears its environment before the final surface consumer" >&2
+    exit 1
+fi
+
+statement_row_epoch="$(sed -n \
+    '/while i < SemanticAstStatementCount(statements)/,/SemanticAstExpressionEnvironmentClear(names, types, modes);/p' \
+    "$STATEMENT_FACTS")"
+statement_environment_prefix="$(sed -n \
+    '/func SemanticAstStatementTypeFactsFromAdmittedArtifact(/,/let i: Int = 0;/p' \
+    "$STATEMENT_FACTS")"
+for fresh_environment in \
+    'let names: Array<String> = [];' \
+    'let types: Array<String> = [];' \
+    'let modes: Array<String> = [];'; do
+    [[ "$(grep -Fc "$fresh_environment" <<<"$statement_environment_prefix" || true)" -eq 1 ]] || {
+        echo "[self-host-parity:semantic-environment-lifetime] statement owner lost its one reusable environment: $fresh_environment" >&2
+        exit 1
+    }
+    [[ "$(grep -Fc "$fresh_environment" <<<"$statement_row_epoch" || true)" -eq 0 ]] || {
+        echo "[self-host-parity:semantic-environment-lifetime] statement row loop recreated environment backing: $fresh_environment" >&2
+        exit 1
+    }
+done
+[[ "$(grep -Fc 'SemanticAstExpressionEnvironmentReset(names, types, modes);' \
+    <<<"$statement_row_epoch" || true)" -eq 1 ]] || {
+    echo "[self-host-parity:semantic-environment-lifetime] statement row loop lost its exact environment reset" >&2
+    exit 1
+}
+[[ "$(grep -Fc 'SemanticAstExpressionEnvironmentClear(names, types, modes);' \
+    <<<"$statement_row_epoch" || true)" -eq 1 ]] || {
+    echo "[self-host-parity:semantic-environment-lifetime] statement owner lost its post-row last-consumer cleanup" >&2
+    exit 1
+}
+statement_last_row_line="$(grep -n -F 'i = i + 1;' \
+    <<<"$statement_row_epoch" | tail -n 1 | cut -d: -f1)"
+statement_clear_line="$(grep -n -F \
+    'SemanticAstExpressionEnvironmentClear(names, types, modes);' \
+    <<<"$statement_row_epoch" | cut -d: -f1)"
+if [[ -z "$statement_last_row_line" || -z "$statement_clear_line" || \
+    "$statement_clear_line" -le "$statement_last_row_line" ]]; then
+    echo "[self-host-parity:semantic-environment-lifetime] statement owner clears its environment before the final row consumer" >&2
+    exit 1
+fi
 
 for copy_contract in \
     "$ASSIGNMENT_FACTS|Concat(\"\", target_binding_mode)" \

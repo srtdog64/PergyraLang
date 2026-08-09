@@ -48,7 +48,8 @@ struct MirProgramRoutineIndex {
 }
 
 func BuildMirProgramRoutineIndexFromTable(
-    ref routines: JsonArrayObjectFactTable
+    ref routines: JsonArrayObjectFactTable,
+    declarations: MirProgramDeclarationIndex
 ) -> MirProgramRoutineIndex {
     let json: String = routines.json;
     let starts: Array<Int> = [];
@@ -82,8 +83,6 @@ func BuildMirProgramRoutineIndexFromTable(
         instruction_expressions.text_bounds;
     let expression_graph_bounds: Array<Int> =
         instruction_expressions.graph_bounds;
-    let declarations: MirProgramDeclarationIndex =
-        BuildMirProgramDeclarationIndex(json);
     let valid: Bool =
         declarations.valid && declarations.field_identities.valid;
     if !JsonArrayObjectFactTableReady(routines) {
@@ -254,7 +253,11 @@ func BuildMirProgramRoutineIndexFromTable(
 
 func BuildMirProgramRoutineIndex(json: String) -> MirProgramRoutineIndex {
     let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);
-    return BuildMirProgramRoutineIndexFromTable(document.routines);
+    let declarations: MirProgramDeclarationIndex =
+        BuildMirProgramDeclarationIndexFromTable(document.declarations);
+    return BuildMirProgramRoutineIndexFromTable(
+        document.routines, declarations
+    );
 }
 
 func MirProgramRoutineIndexCount(ref index: MirProgramRoutineIndex) -> Int {

@@ -587,7 +587,7 @@ func MirDomainRuntimeAssignmentFactsFromDocument(
     ref topology: MirDomainTopologyFacts
 ) -> MirDomainRuntimeAssignmentFacts {
     let declarations: MirProgramDeclarationIndex =
-        BuildMirProgramDeclarationIndex(document.root.json);
+        BuildMirProgramDeclarationIndexFromTable(document.declarations);
     return MirDomainRuntimeAssignmentFactsFromDocumentWithDeclarations(
         document, topology, declarations
     );

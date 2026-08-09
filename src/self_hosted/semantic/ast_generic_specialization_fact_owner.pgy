@@ -261,6 +261,9 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
             actual_type_names
         );
     }
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    let modes: Array<String> = [];
     let surface_index: Int = 0;
     while surface_index < SemanticAstExpressionSurfaceCount(
         expression_surfaces
@@ -296,9 +299,7 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
                 actual_counts, actual_type_names
             );
         }
-        let names: Array<String> = [];
-        let types: Array<String> = [];
-        let modes: Array<String> = [];
+        SemanticAstExpressionEnvironmentReset(names, types, modes);
         let environment_ok: Bool = SemanticAstExpressionSeedEnumValues(
             enum_facts, names, types, modes
         );
@@ -426,10 +427,9 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
             }
             lane = lane + 1;
         }
-        SemanticAstExpressionEnvironmentClear(names, types, modes);
         surface_index = surface_index + 1;
     }
-
+    SemanticAstExpressionEnvironmentClear(names, types, modes);
     node_id = 0;
     while node_id < SemanticExpressionGraphArenaNodeCount(
         expression_surfaces.expression_graph.arena

@@ -245,7 +245,7 @@ func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
                 names, types, modes,
                 function_tables.names, function_tables.returns,
                 function_tables.params,
-                member_root_names
+                member_root_names, statements.function_node_ids[i]
             );
         if !first.ok {
             row_verified = 0;
@@ -269,7 +269,7 @@ func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
                     names, types, modes,
                     function_tables.names, function_tables.returns,
                     function_tables.params,
-                    member_root_names
+                    member_root_names, statements.function_node_ids[i]
                 );
             binding_type = "Int";
             if !last.ok {

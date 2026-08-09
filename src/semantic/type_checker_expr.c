@@ -155,6 +155,7 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         }
         if ((type_is_general_boundary_type(sym->type, ctx)
+             || type_is_constructed_named(sym->type, "Array")
              || type_is_move_token(sym->type))
             && sym->is_consumed) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_MOVE_FROM_RELEASED,

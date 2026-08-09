@@ -11226,3 +11226,124 @@ Released/default replacement remains 0%.
 - The next sole executable falsifier is the current-source pressure-owned full
   gen2/gen3 fixed point. Full CI, full fixed point, proof suites, and released
   driver promotion are not claimed by this entry.
+
+## 2026-08-09 - full MIR producer crosses JSON publication below 3 GiB
+
+- The active fixed-point run exposed two separate memory owners before JSON.
+  MIR lowering now retires the final `SelfMirRoutineBuild` carrier after its
+  normal or intent append, restores local counts/versions in place, and carries
+  only five traversal AST-arena lanes past domain projection. Match-pattern MIR
+  facts consume the admitted statement payload rather than rereading the
+  retired atom table. The focused lifetime gate covers the exact carrier paths,
+  call order, failed-build cleanup, and internal storage-drop admission.
+- JSON publication was streaming only at the file-handle level. Per-node
+  expression identity fields, `ToString` results, row fragments, and an
+  allocator pool for every escape-free string accumulated with output bytes.
+  The file path now consumes a shared identity projection view directly,
+  retires renderer-owned fragments after the synchronous write, and writes
+  borrowed escape-free facts without an allocation. `JsonEscapeTokenAt` is the
+  one escape mapping for both detection and rendering.
+- Six focused fixtures prove raw String/file byte equality, including empty,
+  quote, backslash, LF, CR, and TAB values. The focused lifetime ratchet passes
+  in 0.6 seconds and rejects direct borrowed Strings at the owned-fragment sink;
+  `own String` alone is insufficient while String remains copy-only.
+- A fresh Pergyra-built codegen seed and bounded integrated driver bootstrap
+  exit 0. The bounded driver run takes 358.010 seconds at 2.065 GiB private and
+  passes self/oracle sample, MIR producer, and MIR consumer parity.
+- The full Pergyra-built source-to-MIR producer now finishes 6,049 routines and
+  14 intents, reaches `json-write:done`, and commits 186,071,774 bytes in
+  74.077 seconds at 2.974 GiB peak private. The independent native oracle takes
+  128.048 seconds at 2.365 GiB. Both artifacts have SHA-256
+  `345DD2E30AF1B75CE1B7B6797A4ABC9F1A979449FF4A6130436E8ACDB359AE95`.
+  This is executable producer progress, while the small 26 MB self-host memory
+  headroom remains OPEN attention debt.
+- The next fixed-point stage did not complete. The Pergyra-built seed consumed
+  the same full MIR through `--mir-json` for exactly 900 seconds, remained at
+  only 0.584 GiB peak private, emitted no stage receipt, and committed no C
+  artifact. That is an independent consumer-throughput/observability blocker;
+  timeout or memory-cap increases, native substitution, caching, sharding, and
+  per-routine document reparsing remain forbidden.
+- Full gen2==gen3, full CI, proof suites, and released-driver promotion are not
+  claimed by this entry.
+
+## 2026-08-09 - gen2 declaration index is carried once
+
+- The existing observed consumer path localized the first gen2 throughput
+  blocker. Document admission completed declaration/topology work at about
+  130.3 seconds, then routine-index construction spent another 136.5 seconds
+  rebuilding the same declaration index from the 186,071,774-byte JSON.
+- `MirDocumentFactIndex.declarations` now produces one typed declaration index.
+  Machine admission carries it into `BuildMirProgramRoutineIndexFromTable`,
+  which is negative-gated against rebuilding the document, declaration index,
+  or raw declaration bounds. Extended-table and foreign-declaration receipts
+  fail closed. The focused C/LLVM owner gate passes in 24.0 seconds.
+- The final Pergyra-built driver passes its bounded source smoke. On the same
+  fixed input, routine indexing takes 0.872 seconds (`130.396` to `131.268`)
+  instead of about 136.5 seconds. A 300-second run reaches routine 1,600 rather
+  than 576 and peaks at 354.7 MB private, below the attention threshold.
+- The run still times out before C publication. The next reached boundary is
+  MIR-to-AST routine lowering, with about 44.9 seconds concentrated in the
+  1,024-to-1,088 batch. This is executable progress but not a completed gen2 C
+  artifact, gen2==gen3 fixed point, full CI, or released replacement claim.
+- A transient compact-check failure was traced to a malformed manual AST
+  conversion that deleted literal digits `0`, `1`, and `5`. The correctly
+  normalized 8,058,031-byte parser artifact passes self-host codegen `--check`
+  in 3.25 seconds; no semantic fallback was added.
+
+## 2026-08-09 - exact object bounds remove full-document length rediscovery
+
+- The next declaration-admission blocker was inside the shared JSON fact table,
+  not a missing declaration cache. `JsonObjectFactCount` and
+  `JsonObjectFactIndex` already owned `table.end`, but six whitespace calls used
+  a utility that recomputed `StringLength(json)` over the full 186 MB document.
+- Those functions now use `JsonSkipWhitespaceWithin`. A function-scoped
+  structural ratchet requires the bounded primitive and rejects the unbounded
+  call. The existing topology admission execution gate passes with duplicate
+  field/declaration negatives and cross-owner/descending-ID positives.
+- An attempted one-pass field-row/Set rewrite was removed before merge. Red-team
+  found unknown-member compatibility drift, duplicated scalar JSON grammar,
+  per-declaration Set lifetime debt, and unchecked insertion that could make
+  uniqueness fail open. None of those risks is needed for the reached fix.
+- Current-source driver SHA-256 is
+  `4D58168C525E4F61FEBAD687A64BDD68F82610FC133C1EC548D0B8FEBFB3FB3B`.
+  On the unchanged 186,071,774-byte MIR, declaration admission takes 0.286 s,
+  topology 0.079 s, and routine indexing 1.221 s. The 300-second run reaches
+  routine 2,240 at 422.2 MB private, versus routine 1,600 before this fix.
+- The consumer remains RED because no C artifact was committed. The next
+  reached batch is routines 1,024 through 1,088, which still costs 39.946 s and
+  is dominated by generated LanguageWord projection chains. Full gen2==gen3,
+  full CI, and released-driver promotion are not claimed.
+
+## 2026-08-09 - one LanguageWord row replaces eleven selector ladders
+
+- `language_keyword_registry.def` remains the single semantic owner. The typed
+  `LanguageWordId` spelling projection and 70-row reserved compatibility view
+  remain separate because enum ordinal conversion is not an admitted fact.
+  Five fragmented metadata projection files and eleven 146-case selector
+  ladders were deleted and replaced by one immutable complete row projection.
+  Registry readiness and LSP completion each bind that row once per index.
+- The new row has an explicit invalid sentinel, and both `-1` and registry
+  count fail closed. The LSP no longer makes a second full pass to recompute a
+  count it just materialized. Focused structural gates reject the retired
+  files and APIs and enforce responsibility-specific caps of 330/200/250/80
+  lines for identity/row/compatibility/hub.
+- The generator/registry gate passes for all 146 rows, native/self-host LSP
+  output is byte-identical for 28 completion items, and parser typed-boundary
+  parity remains green. The current-source Pergyra producer exits 0 in
+  82.265 seconds at 3,032.7 MB private; the independent native oracle exits 0
+  in 148.323 seconds at 2,418.9 MB. Both commit the same 184,181,002-byte MIR
+  with SHA-256
+  `C4CC3F161F69E978127209A1857BD87F47F0284E39FF7478C222F6D086773EE2`,
+  and direct byte comparison passes.
+- A control run that consumes the old MIR still spends 43.291 seconds in the
+  old 1,024-to-1,088 workload. In the current-source MIR, that exact marker
+  interval contains 1,247 rather than 3,434 blocks and falls to 15.389 seconds.
+  The bounded run advances from routine 2,240 to 2,368 but still times out
+  without a C artifact, so the full consumer remains RED.
+- The next largest reached interval is 1,920-to-1,984 at 24.363 seconds. Six
+  generated intent-observability ABI selector ladders are the smallest repeated
+  shape, but the current registry contract is not ready for mechanical row
+  collapse: append-only ABI IDs are incorrectly coupled to sorted position and
+  Int parameter shape is duplicated in native and generated consumers. Those
+  authority defects are OPEN; full gen2==gen3, full CI, and released-driver
+  promotion are not claimed.

@@ -248,7 +248,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                         UnwrapOption(index_root), constructors, signatures,
                         names, types, modes, function_tables.names,
                         function_tables.returns, function_tables.params,
-                        member_root_names
+                        member_root_names, assignments.function_node_ids[i]
                     );
                 if !index_verdict.ok {
                     row_code = index_verdict.diagnostic_code;
@@ -293,7 +293,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                         names, types, modes,
                         function_tables.names, function_tables.returns,
                         function_tables.params,
-                        member_root_names
+                        member_root_names, assignments.function_node_ids[i]
                     );
                 inferred = value_verdict.inferred_type_name;
                 if !value_verdict.ok {

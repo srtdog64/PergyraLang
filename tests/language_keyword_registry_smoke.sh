@@ -16,12 +16,15 @@ REGISTRY="$ROOT_DIR/src/lexer/language_keyword_registry.def"
 PROJECTION="$ROOT_DIR/src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy"
 PROJECTION_PARTS=(
     language_word_identity_projection_owner.pgy
+    language_word_row_projection_owner.pgy
+    language_keyword_compatibility_projection_owner.pgy
+)
+RETIRED_PROJECTION_PARTS=(
     language_word_index_projection_owner.pgy
     language_word_class_projection_owner.pgy
     language_word_axis_projection_owner.pgy
     language_word_semantic_projection_owner.pgy
     language_word_tooling_projection_owner.pgy
-    language_keyword_compatibility_projection_owner.pgy
 )
 GRAMMAR="$ROOT_DIR/editor/vscode-pergyra/syntaxes/pergyra.tmLanguage.json"
 INVENTORY="$ROOT_DIR/docs/semantics/language_word_implementation_inventory.generated.md"
@@ -58,13 +61,40 @@ done
 for part in "${PROJECTION_PARTS[@]}"; do
     part_path="$ROOT_DIR/src/self_hosted/lexer/$part"
     [[ -f "$part_path" ]] || fail "missing ${part_path#"$ROOT_DIR/"}"
-    [[ "$(wc -l < "$part_path")" -le 600 ]] ||
-        fail "generated projection exceeds 600 lines: $part"
+    case "$part" in
+        language_word_identity_projection_owner.pgy) part_cap=330 ;;
+        language_word_row_projection_owner.pgy) part_cap=200 ;;
+        language_keyword_compatibility_projection_owner.pgy) part_cap=250 ;;
+        *) fail "projection cap is not owned for $part" ;;
+    esac
+    [[ "$(wc -l < "$part_path")" -le "$part_cap" ]] ||
+        fail "generated projection exceeds $part_cap lines: $part"
     grep -Fq "import \"$part\";" "$PROJECTION" ||
         fail "projection hub does not import $part"
 done
-[[ "$(wc -l < "$PROJECTION")" -le 600 ]] ||
-    fail "generated projection hub exceeds 600 lines"
+for retired_part in "${RETIRED_PROJECTION_PARTS[@]}"; do
+    [[ ! -e "$ROOT_DIR/src/self_hosted/lexer/$retired_part" ]] ||
+        fail "retired parallel projection still exists: $retired_part"
+done
+[[ "$(wc -l < "$PROJECTION")" -le 80 ]] ||
+    fail "generated projection hub exceeds 80 lines"
+
+ROW_PROJECTION="$ROOT_DIR/src/self_hosted/lexer/language_word_row_projection_owner.pgy"
+grep -Fq 'struct LanguageWordRegistryRow' "$ROW_PROJECTION" ||
+    fail "complete language-word row is missing"
+grep -Fq 'func LanguageWordRegistryRowAt(index: Int)' "$ROW_PROJECTION" ||
+    fail "complete language-word row projection is missing"
+grep -Fq 'LanguageWordRegistryRowAt(-1).valid' "$PROJECTION" ||
+    fail "negative row boundary is not fail-closed"
+grep -Fq 'LanguageWordRegistryRowAt(LanguageWordRegistryCount()).valid' \
+    "$PROJECTION" || fail "upper row boundary is not fail-closed"
+[[ "$(grep -Fc 'if index ==' "$ROW_PROJECTION")" -eq 146 ]] ||
+    fail "complete language-word row projection must own exactly 146 cases"
+for forbidden in 'Array<' 'Set<' 'Map<' 'StringJoin(' 'ToInt('; do
+    if grep -Fq -- "$forbidden" "$ROW_PROJECTION"; then
+        fail "language-word row projection introduced dynamic authority: $forbidden"
+    fi
+done
 
 PYTHONDONTWRITEBYTECODE=1 "$PYTHON_BIN" -B \
     "$ROOT_DIR/scripts/render_language_keyword_registry.py" \

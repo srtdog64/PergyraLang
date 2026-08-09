@@ -102,7 +102,7 @@ func MirDomainRuntimeAdmitDocumentWithTopology(
     domain_topology: MirDomainTopologyFacts
 ) -> Option<MirDomainRuntimeAdmittedDocument> {
     let declarations: MirProgramDeclarationIndex =
-        BuildMirProgramDeclarationIndex(document.root.json);
+        BuildMirProgramDeclarationIndexFromTable(document.declarations);
     return MirDomainRuntimeAdmitDocumentWithTopologyAndDeclarations(
         document, domain_topology, declarations
     );
@@ -113,7 +113,7 @@ func MirDomainRuntimeAdmitDocument(
 ) -> Option<MirDomainRuntimeAdmittedDocument> {
     if !document.valid { return None; }
     let declarations: MirProgramDeclarationIndex =
-        BuildMirProgramDeclarationIndex(document.root.json);
+        BuildMirProgramDeclarationIndexFromTable(document.declarations);
     let topology: MirDomainTopologyFacts =
         MirDomainTopologyFactsFromDocumentWithDeclarations(
             document, declarations
@@ -324,7 +324,7 @@ func MirMachineLayerAdmitDocumentObserved(
 ) -> Option<MirMachineLayerAdmittedJsonInput> {
     if !document.valid { return None; }
     let declarations: MirProgramDeclarationIndex =
-        BuildMirProgramDeclarationIndex(document.root.json);
+        BuildMirProgramDeclarationIndexFromTable(document.declarations);
     let domain_topology: MirDomainTopologyFacts =
         MirDomainTopologyFactsFromDocumentWithDeclarations(
             document, declarations
@@ -342,7 +342,7 @@ func MirMachineLayerAdmitDocumentWithTopologyObserved(
     observe_pressure: Bool
 ) -> Option<MirMachineLayerAdmittedJsonInput> {
     let declarations: MirProgramDeclarationIndex =
-        BuildMirProgramDeclarationIndex(document.root.json);
+        BuildMirProgramDeclarationIndexFromTable(document.declarations);
     return MirMachineLayerAdmitDocumentWithTopologyAndDeclarationsObserved(
         machine_declaration, document, domain_topology, declarations,
         observe_pressure
@@ -376,7 +376,7 @@ func MirMachineLayerAdmitDocumentWithTopologyAndDeclarationsObserved(
         observe_pressure, "consumer:input:machine-layer:routine-index:start"
     );
     let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndexFromTable(
-        document.routines
+        document.routines, declarations
     );
     if !routines.valid {
         return None;

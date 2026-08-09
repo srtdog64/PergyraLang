@@ -3644,6 +3644,22 @@ for lookup_status in \
         "$lookup_status"
 done
 for term in \
+    "mir_decl_header_storage_layout_matches(" \
+    "MIR_DECL_HEADER_STORAGE_LAYOUT_MATCHES_LOCAL()" \
+    "offsetof(MIRDeclHeader, option_abi_type_name)"; do
+    require_term "src/compiler/mir_decl_headers.h" "$term"
+done
+require_term "src/compiler/mir_decl_headers.c" \
+    "row_size == sizeof(MIRDeclHeader)"
+require_term "src/compiler/mir.c" \
+    "MIR declaration header storage layout mismatch"
+require_term "src/compiler/mir_nominal_abi_layout.c" \
+    "MIR_DECL_HEADER_STORAGE_LAYOUT_MATCHES_LOCAL()"
+require_term "src/compiler/mir_lifecycle.c" \
+    "mir->decl_headers != NULL && decl_header_layout_matches"
+require_term "src/tests/mir/test_mir_inventory_identity.cases.h" \
+    "test_mir_decl_header_storage_layout_receipt"
+for term in \
     "MIRDeclHeaderInventory" \
     "has_signature" \
     "size_t             generic_param_count" \

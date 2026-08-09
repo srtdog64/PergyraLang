@@ -116,7 +116,8 @@ func SemanticAstExpressionVerdictFromGraph(
     function_names: Array<String>,
     function_returns: Array<String>,
     function_params: Array<String>,
-    member_root_names: Array<String>
+    member_root_names: Array<String>,
+    current_function_node_id: Int
 ) -> SemanticAstExpressionVerdict {
     let text: String = SemanticStripOuterParens(expression);
     let domain_queries: SemanticExpressionGraphDomainQueryFact =
@@ -231,7 +232,10 @@ func SemanticAstExpressionVerdictFromGraph(
     }
     let collection_mutation: SemanticExpressionGraphCollectionMutationFact =
         SemanticExpressionGraphCollectionMutationFactFromGraph(
-            graph, root_id, names, types, modes
+            graph, root_id, names, types, modes,
+            SemanticCompilerRetireArrayStorageCallerReady(
+                signatures, current_function_node_id
+            )
         );
     if collection_mutation.applies && !collection_mutation.ok {
         return SemanticAstExpressionVerdict(

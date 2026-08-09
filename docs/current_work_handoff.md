@@ -6,82 +6,140 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - callable identity allocation is closed; full driver fixed point is next
+## Active self-host context - full MIR producer is green; gen2 consumer throughput is RED
 
-- Verified code checkpoint is `b304cf3a` on `main`. It closes the
-  canonical-callable comparison memory seam, adds opt-in codegen pressure
-  receipts, and splits native oracle C emission from host compilation.
-  Preserve the separate user-owned stdlib work: modified
-  `docs/138_standard_library_scope.md` and `docs/148_stdlib_architecture.md`;
-  untracked `stdlib/math.pgy`, `stdlib/pgy_math_registry.pgy`, and
-  `tests/cases/stdlib_math_matrix/`.
-- The August 9 external architecture review at `31499793` is now historical.
-  Its `dir_validate` localization was valid at that revision, but current
-  evidence has moved through DIR, bounded driver bootstrap, and the full
-  Pergyra-built MIR-to-C consumer. Do not reopen a general query engine,
-  FactStore, lifecycle, Zeno/Insere, or sentinel campaign from that review.
-- Closed owner seam: `SemanticCallableCanonicalDeclaredName` materialized
-  `owner + "_" + local` through nested `Concat` inside two signature-table hot
-  loops. `callable_resolution_owner.pgy` now owns an allocation-free exact range
-  predicate. `SemanticGenericCallSignatureIndex` and
-  `SemanticExpressionDirectTargetSyntaxId` consume it and are negative-gated
-  against reintroducing the materializing call. Source order, duplicate
-  ambiguity, and missing-row fail-closed behavior are unchanged.
-- On the final 8,027,242-byte integrated driver AST
-  (`746E9462...3EA410`), standalone self-host codegen exits 0 in 127.451 s at
-  1,992.9 MB peak private. The prior 3,059.2 MB run used a nearby but not
-  byte-identical 8,025,579-byte input, so it is retained only as near-scale
-  memory evidence. `generic:done` is 1,229.8 MB and `verdict:done` is
-  1,302.6 MB. The 2.4 GiB attention threshold no longer fires.
-- Native-built gen0 and Pergyra-built gen2 both exit 0 on that exact input.
-  Native takes 199.188 s at 1,740.2 MB peak private; self-host takes 127.451 s
-  at 1,992.9 MB. Their complete 8,603,212-byte observed stdout is byte-identical
-  with SHA-256
-  `9A27889DF1EA983D38B00D92D7FB9F8BE7A9B77883BC0759EBD4D0A0EE0EA9BE`.
-  The observed route is argv-only and now separates input, AST artifact, and
-  semantic admission. The normal wrapper still passes observation `false`.
-- The refreshed bounded driver bootstrap exits 0 in 375.463 s at 2.085 GiB
-  peak private. It emits an 8,465,513-byte Pergyra-built driver C seed, a
-  5,123,243-byte seed executable, a 26,071,872-byte native oracle C artifact,
-  and a 5,843,514-byte oracle executable. Sample parity, bounded MIR producer
-  parity, and bounded MIR consumer parity all pass. Native oracle generation
-  uses `--emit-c` and a separate host compile so compiler and `cc1` lifetimes do
-  not overlap. The pressure wrapper reports `output_capture_complete=false`,
-  but the child exit is 0 and the captured stdout contains both final parity
-  receipts; do not rewrite that flag as true.
-- The refreshed Pergyra-built driver consumes the exact 84,972,718-byte MIR
-  (`20ED883D...4E303`) in 296.896 s, peaks at 1.083 GiB private, reaches
-  `consumer:c-emission:done`, and publishes a 3,956,147-byte C artifact. Its
-  SHA-256 is `C67E0B8B25ED7ACE933DBB48A6B41AF324E0BBF3BCD981F801849B9323048E84`,
-  byte-identical to the independent native fixed artifact.
-- Green focused evidence: build-pressure contract, semantic-environment owned
-  lifetime gate, source-scan owner gate, callable identity C executable gate,
-  current codegen seed bootstrap,
-  native/self full observed-output parity, bounded driver bootstrap, and the
-  full Pergyra-built MIR consumer. Full CI and the current-source full
-  gen2==gen3 fixed point have not run; do not claim them green.
-- The callable identity probe's C backend passes. Its LLVM leg remains RED at
-  the existing `direct MIR terminal multi-routine graph is unsupported`
-  boundary. Do not classify that as LLVM-unavailable or skip it; it belongs to
-  the already-open general multi-routine legalization blocker.
-- The monolithic `tests/self_hosted_component_contract_smoke.sh` did not finish
-  inside the repository's 60-second static-gate budget. It is unverified, not
-  green; the narrower source-scan, pressure, semantic-lifetime, documentation,
-  JSON, and shell-syntax gates passed.
-- Active executable rung: run the existing pressure-owned full driver fixed
-  point only. It must emit current-source MIR from seed and native oracle,
-  compare those artifacts, make the Pergyra-built seed publish
-  `driver_gen2.c`, compile it, pass bounded generated-driver preflight, and make
-  gen2 publish byte-identical `driver_gen3.c`. Stop at the first reached owner
-  if it fails.
-- Objective card: production entry is `driver_bootstrap_main.pgy`; the admitted
-  complete-source MIR is the generation fact; the last legitimate consumer is
-  C publication followed by the gen2/gen3 comparator. Forbidden fallbacks are
-  native release substitution, skipped oracle parity, materialized callable
-  comparisons in the two hot loops, graph reconstruction, cache/query engine,
+- Verified Git checkpoint is `e714f15f` on `main`; the current compiler work is
+  intentionally dirty and not yet committed. Preserve the separate user-owned
+  stdlib work: modified `docs/138_standard_library_scope.md` and
+  `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
+  `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`.
+- The current source closes two production-sized memory seams without raising
+  the 3 GiB boundary. MIR lowering now retires 13 non-traversal typed-AST arena
+  backings after domain projection and the remaining five traversal backings
+  after routine/intent facts. Match lowering consumes the admitted semantic
+  statement payload instead of rereading retired atom lanes. Routine-build
+  final carriers are retired after append, and local-version/count restoration
+  reuses its active backing rather than replacing it.
+- The streaming MIR artifact writer no longer retains expression-identity field
+  arrays or one pool per escape-free scalar. One identity projection view owns
+  target/kind/ordinal readiness for both String and file renderers. Owned row
+  fragments are retired after synchronous writes, while borrowed fact strings
+  use a non-owning quote path. `JsonEscapeTokenAt` is the single escape mapping
+  consumed by both the fast-path predicate and escaped renderer. The focused
+  lifetime ratchet rejects direct borrowed Strings despite `String` currently
+  being copy-only.
+- Fresh self-host codegen seed and bounded integrated driver bootstrap exit 0.
+  The bounded driver run takes 358.010 s, peaks at 2.065 GiB private, and passes
+  sample, MIR producer, and MIR consumer parity.
+- The current-source full producer is green. The Pergyra-built seed finishes
+  6,049 routines and 14 intents, reaches `json-write:done`, and commits a
+  186,071,774-byte MIR in 74.077 s at 2.974 GiB peak private. The independent
+  native oracle emits the same byte count in 128.048 s at 2.365 GiB. Both have
+  SHA-256
+  `345DD2E30AF1B75CE1B7B6797A4ABC9F1A979449FF4A6130436E8ACDB359AE95`.
+  This closes the former JSON-write memory blocker, but the self-host path has
+  only about 26 MB private-memory headroom and remains above the 2.4 GiB
+  attention threshold; do not call its memory profile complete.
+- Green focused evidence: native compile of the writer probe; six-fixture raw
+  String/file byte parity including empty, quote, backslash, LF, CR, and TAB;
+  `mir_json_artifact_writer_lifetime_owner.sh` in 0.6 s; refreshed codegen seed;
+  bounded driver bootstrap; full self/native MIR byte parity. The monolithic
+  component contract still does not finish inside the 60-second static budget
+  and is unverified, not green.
+- Active executable rung remains the Pergyra-built
+  `driver_seed.exe --mir-json <full MIR> -o driver_gen2.c` consumer. The old
+  non-observed 900-second timeout was localized with the existing
+  `--observe-mir-consumer-stages` path. Input read and parallel capture finish
+  in 0.214 s, but declaration/topology admission takes about 130.1 s and the old
+  routine index then spent another 136.5 s rebuilding the same declaration
+  index from the 186 MB document.
+- The current source carries `MirDocumentFactIndex.declarations` into one
+  `MirProgramDeclarationIndex`, then passes that exact typed index into
+  `BuildMirProgramRoutineIndexFromTable`. The routine owner is negative-gated
+  against document, declaration, or raw-bounds reconstruction. A foreign
+  declaration receipt and an extended declaration-table boundary both fail
+  closed. The focused routine-index gate reaches its C leg, but the installed
+  self-host LLVM leg remains RED at the known `direct MIR terminal
+  multi-routine graph is unsupported` projector boundary; no native LLVM
+  substitution or skip is accepted as closure.
+- A fresh Pergyra-built driver first proved the declaration-index carry delta.
+  On the same input, `routine-index:start` at 130.396 s reached
+  `routine-index:done` at 131.268 s: **0.872 s instead of 136.5 s**. That fixed
+  300-second run reached MIR-to-AST routine 1,600 instead of routine 576.
+- The next reached declaration cost was not the remaining field-name scans. An
+  exact-bounds object table still called `JsonSkipWhitespace`, whose internal
+  `StringLength(json)` became `strlen` over the complete 186 MB document.
+  `JsonObjectFactCount` and `JsonObjectFactIndex` now consume `table.end`
+  through `JsonSkipWhitespaceWithin`; their structural gate rejects the
+  unbounded call and an unfinished one-pass field-row/Set experiment was
+  rolled back after red-team found grammar, allocation-lifetime, and fail-open
+  insertion risks.
+- The current Pergyra-built driver hash is
+  `4D58168C525E4F61FEBAD687A64BDD68F82610FC133C1EC548D0B8FEBFB3FB3B`.
+  On the unchanged 186,071,774-byte MIR, declaration admission is now 0.286 s
+  (`parallel-capture:done` 1.398 s to `declaration-index:done` 1.684 s), topology
+  takes 0.079 s, and routine indexing takes 1.221 s. The fixed 300-second run
+  reaches routine 2,240, peaks at 422.2 MB private, and still publishes no C
+  artifact. Therefore the exact-bounds sub-seam is closed but the consumer rung
+  remains RED. The 1,024-to-1,088 batch still takes 39.946 s and contains the
+  generated LanguageWord projection chains; that is the next reached owner.
+- The generated LanguageWord projection now keeps the typed
+  `LanguageWordId` spelling owner and the 70-row reserved compatibility view,
+  but replaces five fragmented metadata files and eleven 146-case selector
+  ladders with one complete immutable `LanguageWordRegistryRowAt` projection.
+  Registry readiness and LSP completion bind one row per index; invalid `-1`
+  and `count` lookups fail closed, the LSP no longer recounts the same rows,
+  and the five retired files/APIs are negative-gated. Responsibility caps are
+  identity 330, row 200, compatibility 250, and hub 80 lines.
+- Focused evidence is green: the 146-row generator/registry gate in 4.7 s,
+  native/self-host LSP byte parity for 28 items in 23.1 s, and typed parser
+  boundary parity in 104.3 s. The current-source self-host producer exits 0
+  in 82.265 s at 3,032.7 MB private and the native oracle exits 0 in 148.323 s
+  at 2,418.9 MB. Both commit exactly 184,181,002 bytes with SHA-256
+  `C4CC3F161F69E978127209A1857BD87F47F0284E39FF7478C222F6D086773EE2`;
+  a direct byte comparison exits 0. The self-host producer has only about
+  39 MB of 3 GiB headroom, so its memory profile remains attention debt.
+- On the old fixed MIR workload, the new O2 measurement carrier still takes
+  43.291 s for routines 1,024-to-1,088 and reaches 2,240; that control does not
+  contain the aggregate-row workload. The current-source MIR reduces the same
+  marker batch from 3,434 blocks to 1,247 and the interval to 15.389 s, a
+  64.4% wall-time reduction matching the 63.7% block reduction. The 300-second
+  run reaches routine 2,368 at 390.5 MB private but still publishes no C
+  artifact. These binaries are comparable O2 measurement carriers, not the
+  canonical O3 installed release.
+- The next reached batch is routines 1,920-to-1,984 at 24.363 s. Six generated
+  `IntentObservabilityAbi*At` ladders account for 618 of its 1,407 blocks, but
+  a blind row collapse is blocked by two existing authority contradictions:
+  the documented append-only runtime ABI ID is currently enforced as sorted
+  `index + 1`, and Int parameter shape is duplicated between native C and the
+  generator instead of being declared in the `.def` SoT. Keep this next rung
+  OPEN until the registry owns non-positional stable identity and parameter
+  shape; do not preserve either dual policy inside a faster projection.
+- Apparent compact-semantic regressions were corrupted manual AST carriers,
+  not a language change. An ad-hoc CR-removal command deleted literal digits
+  `0`, `1`, and `5`, producing expressions such as `bounds[]`. The official
+  parser capture/normalization path preserves those bytes; the corrected
+  8,058,031-byte AST passes self-host codegen `--check` in 3.25 s. Never accept a
+  malformed AST by best effort or treat this carrier error as semantic evidence.
+  A second nested-shell attempt interpreted `\r` as the literal letter `r` and
+  damaged identifiers such as `cursor`. Use a byte-preserving CRLF converter
+  such as `dos2unix`, then require codegen `--check` before emission.
+- Objective card: production entry is the integrated driver's `--mir-json`
+  mode; the closed sub-seam owners are the document-owned declaration index,
+  exact-bounds JSON object fact table, and complete LanguageWord registry row.
+  The open fact owner is `src/common/intent_observability_abi.def`; it must own
+  stable runtime-call ABI identity and parameter shape before its six generated
+  projections can become one row. The last legitimate consumer
+  is C artifact publication followed by the gen2/gen3 byte comparator.
+  Forbidden fallbacks are native substitution, skipped oracle parity, whole-
+  document or per-routine reparsing, graph reconstruction, cache/query engine,
   shard/worker, timeout or memory-cap increase, and fixture-specific output.
-  Acceptance is `PGY_SELFHOST_DRIVER_FULL_FIXPOINT=1` exit 0 below the existing
-  3 GiB boundary with complete gen2/gen3 byte equality.
+  The next falsifier must first reject positional ABI-ID generation and
+  consumer-local parameter-kind reconstruction, then reduce the six 51-branch
+  projections without adding a second registry authority.
+  Final acceptance remains a bounded gen2 C
+  artifact; only then may the generated binary attempt byte-identical gen3
+  reproduction.
 
 ## Historical checkpoint - expression-graph memory blocker closure
 

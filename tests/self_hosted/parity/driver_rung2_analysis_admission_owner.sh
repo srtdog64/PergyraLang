@@ -59,7 +59,7 @@ require_in_function "$OWNER" DriverRung2MirProjectionFromAdmittedAnalysisObserve
 reject_in_function "$OWNER" DriverRung2MirProjectionFromAdmittedAnalysisObserved \
     'VerifyArtifactAnalysisForDriverRung2Observed('
 require_in_function "$OWNER" DriverRung2MirProjectionFromVerifiedFactsObserved 'SemanticAstBodyTypeBundleAdmissionReceiptReadyFor('
-require_in_function "$OWNER" DriverRung2MirProjectionFromVerifiedFactsObserved 'SelfMirProgramFactsFromReadyArtifactObserved('
+require_in_function "$OWNER" DriverRung2MirProjectionFromVerifiedFactsObserved 'SelfMirProgramFactsBeforeCanonicalIdsObserved('
 reject_in_function "$OWNER" DriverRung2MirProjectionFromVerifiedFactsObserved 'VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved('
 
 for raw_consumer in \

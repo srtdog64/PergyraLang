@@ -96,7 +96,7 @@ func JsonObjectFactCount(ref table: JsonObjectFactTable) -> Int {
     let count: Int = 0;
     let i: Int = table.start + 1;
     while i < table.end {
-        i = JsonSkipWhitespace(table.json, i, table.end);
+        i = JsonSkipWhitespaceWithin(table.json, i, table.end);
         if i >= table.end {
             return 0;
         }
@@ -118,12 +118,12 @@ func JsonObjectFactCount(ref table: JsonObjectFactTable) -> Int {
         if key_end[0] <= i {
             return 0;
         }
-        i = JsonSkipWhitespace(table.json, key_end[0], table.end);
+        i = JsonSkipWhitespaceWithin(table.json, key_end[0], table.end);
         if i >= table.end ||
             JsonCharCodeAt(table.json, table.end, i) != JsonAsciiCode(":") {
             return 0;
         }
-        i = JsonSkipWhitespace(table.json, i + 1, table.end);
+        i = JsonSkipWhitespaceWithin(table.json, i + 1, table.end);
         let value_end_opt: Option<Int> = JsonValueEndWithin(
             table.json, i, table.end
         );
@@ -143,7 +143,7 @@ func JsonObjectFactIndex(ref table: JsonObjectFactTable, field: String) -> Optio
     let i: Int = 0;
     let cursor: Int = table.start + 1;
     while cursor < table.end {
-        cursor = JsonSkipWhitespace(table.json, cursor, table.end);
+        cursor = JsonSkipWhitespaceWithin(table.json, cursor, table.end);
         if cursor >= table.end {
             return None;
         }
@@ -165,12 +165,12 @@ func JsonObjectFactIndex(ref table: JsonObjectFactTable, field: String) -> Optio
         if key_end[0] <= cursor {
             return None;
         }
-        cursor = JsonSkipWhitespace(table.json, key_end[0], table.end);
+        cursor = JsonSkipWhitespaceWithin(table.json, key_end[0], table.end);
         if cursor >= table.end ||
             JsonCharCodeAt(table.json, table.end, cursor) != JsonAsciiCode(":") {
             return None;
         }
-        cursor = JsonSkipWhitespace(table.json, cursor + 1, table.end);
+        cursor = JsonSkipWhitespaceWithin(table.json, cursor + 1, table.end);
         let value_end_opt: Option<Int> = JsonValueEndWithin(
             table.json, cursor, table.end
         );

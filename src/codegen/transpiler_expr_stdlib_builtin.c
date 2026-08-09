@@ -266,6 +266,27 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             free(arr);
             return result;
         }
+        if (array_op == TRANSPILER_ARRAY_OP_DROP_STORAGE) {
+            if (!transpiler_require_c_addressable_storage(ctx, arg0,
+                    "CompilerRetireArrayStorage", "Array"))
+                return NULL;
+            char *arr = transpiler_stdlib_emit_arg(ctx, arg0,
+                "CompilerRetireArrayStorage", "array");
+            if (arr == NULL)
+                return NULL;
+            const char *inner = NULL;
+            char inner_buf[64];
+            if (!transpiler_require_array_inner_type(ctx, arg0,
+                    "CompilerRetireArrayStorage", false,
+                    inner_buf, sizeof(inner_buf), &inner)) {
+                free(arr);
+                return NULL;
+            }
+            char *result = strdup_fmt(
+                "pgy_array_drop_%s(&%s)", inner, arr);
+            free(arr);
+            return result;
+        }
         if (array_op == TRANSPILER_ARRAY_OP_PUSH ||
             array_op == TRANSPILER_ARRAY_OP_PUSH_OWNED_STRING) {
             if (!transpiler_require_c_addressable_storage(ctx, arg0,

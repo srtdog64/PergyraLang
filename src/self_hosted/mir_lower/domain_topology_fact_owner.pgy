@@ -419,7 +419,7 @@ func MirDomainTopologyFactsFromDocument(
     ref document: MirDocumentFactIndex
 ) -> MirDomainTopologyFacts {
     let declarations: MirProgramDeclarationIndex =
-        BuildMirProgramDeclarationIndex(document.root.json);
+        BuildMirProgramDeclarationIndexFromTable(document.declarations);
     return MirDomainTopologyFactsFromDocumentWithDeclarations(
         document, declarations
     );

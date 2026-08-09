@@ -31,6 +31,7 @@ fixtures=(
     "src/self_hosted/codegen/fixture/enum_multi_payload.pgy"
     "src/self_hosted/mir_lower/fixture/array_destructure.pgy"
     "src/self_hosted/codegen/fixture/option_string_core.pgy"
+    "tests/self_hosted/fixtures/mir_json_writer_escape_surface.pgy"
 )
 
 diagnose_raw_difference() {

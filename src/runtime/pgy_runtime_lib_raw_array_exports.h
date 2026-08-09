@@ -1,4 +1,4 @@
-/* Raw byte-array exports for LLVM-only Array<NominalRecord> lowering.
+/* Raw byte-array exports for LLVM Array<T> storage operations.
  * The view layout intentionally matches PgyArray_<T>:
  * data pointer, length, capacity, allocator pointer. */
 
@@ -144,4 +144,24 @@ pgy_array_pop_raw_export(void *arr_ptr)
         return;
     if (arr->length > 0)
         arr->length--;
+}
+
+void
+pgy_array_drop_storage_raw_export(void *arr_ptr, size_t elem_size)
+{
+    PgyRawArrayExport *arr = (PgyRawArrayExport *)arr_ptr;
+
+    if (arr == NULL)
+        return;
+    pgy_array_raw_require_elem_size(elem_size);
+    if (arr->data != NULL) {
+        if (arr->capacity > SIZE_MAX / elem_size) {
+            PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                              "raw array drop capacity overflow");
+        }
+        pgy_free(arr->allocator, arr->data, arr->capacity * elem_size);
+    }
+    arr->data = NULL;
+    arr->length = 0;
+    arr->capacity = 0;
 }

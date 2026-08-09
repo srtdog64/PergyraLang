@@ -31,6 +31,7 @@ static const TranspilerArrayStdlibSpec kTranspilerArraySpecs[] = {
     {"ArrayReverse", 1, TRANSPILER_ARRAY_OP_REVERSE},
     {"ArraySet", 3, TRANSPILER_ARRAY_OP_SET},
     {"ArraySort", 1, TRANSPILER_ARRAY_OP_SORT},
+    {"CompilerRetireArrayStorage", 1, TRANSPILER_ARRAY_OP_DROP_STORAGE},
     {"SliceCopy", 1, TRANSPILER_ARRAY_OP_SLICE_COPY},
 };
 

@@ -69,7 +69,7 @@
 | `involves`, `step`, `who`, `expect`, `success`, `failure` | intent body clause |
 | `fields` | ability field-contract declaration selector |
 
-전체 71개 예약어, 71개 문맥어, 3개 soft word 목록과 소비자 투영 규칙은
+전체 70개 예약어, 73개 문맥어, 3개 soft word 목록과 소비자 투영 규칙은
 [Language Keyword Registry](../semantics/language_keyword_registry.md)가 소유한다.
 이 표는 문법 안내용 부분집합이며 두 번째 전수 어휘 권위가 아니다.
 

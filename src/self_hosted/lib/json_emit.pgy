@@ -1,5 +1,14 @@
 // Shared JSON emission primitives for self-hosted fact-shaped tools.
 
+func JsonEscapeTokenAt(value: String, length: Int, index: Int) -> String {
+    if SubEqualsWithLen(value, length, index, 1, "\"") { return "\\\""; }
+    if SubEqualsWithLen(value, length, index, 1, "\\") { return "\\\\"; }
+    if SubEqualsWithLen(value, length, index, 1, "\n") { return "\\n"; }
+    if SubEqualsWithLen(value, length, index, 1, "\r") { return "\\r"; }
+    if SubEqualsWithLen(value, length, index, 1, "\t") { return "\\t"; }
+    return "";
+}
+
 func JsonEscapeStringWithAllocator(
     value: String,
     result_allocator: Allocator
@@ -9,18 +18,7 @@ func JsonEscapeStringWithAllocator(
     let n: Int = StringLength(value);
     let span_start: Int = 0;
     while i < n {
-        let escaped: String = "";
-        if SubEqualsWithLen(value, n, i, 1, "\"") {
-            escaped = "\\\"";
-        } else if SubEqualsWithLen(value, n, i, 1, "\\") {
-            escaped = "\\\\";
-        } else if SubEqualsWithLen(value, n, i, 1, "\n") {
-            escaped = "\\n";
-        } else if SubEqualsWithLen(value, n, i, 1, "\r") {
-            escaped = "\\r";
-        } else if SubEqualsWithLen(value, n, i, 1, "\t") {
-            escaped = "\\t";
-        }
+        let escaped: String = JsonEscapeTokenAt(value, n, i);
         if escaped != "" {
             if i > span_start {
                 TextBuilderAppend(
@@ -76,6 +74,15 @@ func JsonStringLiteral(value: String) -> String {
     return literal;
 }
 
+func JsonStringLiteralRequiresEscape(value: String, length: Int) -> Bool {
+    let i: Int = 0;
+    while i < length {
+        if JsonEscapeTokenAt(value, length, i) != "" { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
 // FileWrite is synchronous on both native backends.  Keep the escaped and
 // quoted transient bytes in one call-local pool and release them only after
 // the write returns; production artifact writers must not retain the result.
@@ -85,6 +92,12 @@ func JsonStringLiteralWriteFile(
 ) -> Bool {
     let value_length: Int = StringLength(value);
     if value_length < 0 || value_length > 536870909 { return false; }
+    if !JsonStringLiteralRequiresEscape(value, value_length) {
+        CompilerArtifactWrite(output, "\"");
+        CompilerArtifactWrite(output, value);
+        CompilerArtifactWrite(output, "\"");
+        return true;
+    }
     let transient_allocator: Allocator = AllocatorPool(
         value_length * 4 + 8
     );
@@ -94,6 +107,19 @@ func JsonStringLiteralWriteFile(
     CompilerArtifactWrite(output, literal);
     AllocatorDestroy(transient_allocator);
     return true;
+}
+
+// CompilerArtifactWrite is synchronous.  Retire a renderer-owned fragment
+// only after that last consumer returns; borrowed fact strings must use the
+// literal writer above instead of transferring their lifetime here.
+func JsonOwnedFragmentWriteFile(
+    output: Int,
+    own fragment: String
+) -> Void {
+    CompilerArtifactWrite(output, fragment);
+    if fragment == "" { return; }
+    let owned_fragment: Array<String> = [fragment];
+    ArrayDropOwnedStrings(owned_fragment);
 }
 
 func JsonEmitCollection(

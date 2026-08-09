@@ -87,7 +87,7 @@ func MirDomainRuntimePlanFromFacts(
         return EmptyMirDomainRuntimePlan(true);
     }
     let declarations: MirProgramDeclarationIndex =
-        BuildMirProgramDeclarationIndex(document.root.json);
+        BuildMirProgramDeclarationIndexFromTable(document.declarations);
     if !MirDomainTopologyDeclarationIndexReady(declarations) {
         return EmptyMirDomainRuntimePlan(true);
     }

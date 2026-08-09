@@ -50,3 +50,24 @@ test_mir_inventory_source_identity_lookup(void)
     EXPECT(invalid_rejected && missing_rejected && unique_found
         && duplicate_rejected && method_keeps_kind);
 }
+
+static void
+test_mir_decl_header_storage_layout_receipt(void)
+{
+    bool exact = MIR_DECL_HEADER_STORAGE_LAYOUT_MATCHES_LOCAL();
+    bool size_skew = mir_decl_header_storage_layout_matches(
+        sizeof(MIRDeclHeader) + 1, _Alignof(MIRDeclHeader),
+        offsetof(MIRDeclHeader, method_metadata),
+        offsetof(MIRDeclHeader, abi_layout),
+        offsetof(MIRDeclHeader, option_abi_type_name),
+        offsetof(MIRDeclHeader, option_abi_layout_id));
+    bool offset_skew = mir_decl_header_storage_layout_matches(
+        sizeof(MIRDeclHeader), _Alignof(MIRDeclHeader),
+        offsetof(MIRDeclHeader, method_metadata),
+        offsetof(MIRDeclHeader, abi_layout),
+        offsetof(MIRDeclHeader, option_abi_type_name) + 1,
+        offsetof(MIRDeclHeader, option_abi_layout_id));
+
+    TEST("MIR declaration header storage layout rejects partial-link skew");
+    EXPECT(exact && !size_skew && !offset_skew);
+}

@@ -245,6 +245,17 @@ func CollectionRuntimeCPopFn(kind_code: Int) -> String {
     return "pgy_ai_pop";
 }
 
+func CollectionRuntimeCDropStorageFn(kind_code: Int) -> String {
+    let checked: Int = CollectionRuntimeKindCodeOrDie(
+        kind_code, "array storage drop"
+    );
+    if checked == 2 { return "pgy_as_drop_storage"; }
+    if checked != 1 {
+        Die("self-host CompilerRetireArrayStorage supports only Array<Int>/Array<String>");
+    }
+    return "pgy_ai_drop_storage";
+}
+
 func CollectionRuntimeFactFromKind(
     kind: String, env: CodegenTypeEnv
 ) -> CollectionRuntimeFact {
@@ -374,6 +385,7 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
     block = Concat(block, CollectionRuntimeCGuardedSet(CollectionRuntimeCSetFn(1), int_array_type, "long long"));
     block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCLenFn(1), Concat("(", Concat(int_array_type, " a) { return a.len; }\n")))));
     block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCPopFn(1), Concat("(", Concat(int_array_type, " *a) { return a->len > 0 ? a->data[--a->len] : 0; }\n\n")))));
+    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCDropStorageFn(1), Concat("(", Concat(int_array_type, " *a) { if (a == NULL) return; free(a->data); a->data = NULL; a->len = 0; a->cap = 0; }\n\n")))));
     if uses_array_sort {
         block = Concat(block, "static int pgy_ai_cmp(const void *pa, const void *pb)\n{\n");
         block = Concat(block, "    long long a = *(const long long *)pa;\n    long long b = *(const long long *)pb;\n");
@@ -427,6 +439,7 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
     block = Concat(block, CollectionRuntimeCGuardedSet(CollectionRuntimeCSetFn(2), string_array_type, "const char *"));
     block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCLenFn(2), Concat("(", Concat(string_array_type, " a) { return a.len; }\n")))));
     block = Concat(block, Concat("static const char *", Concat(CollectionRuntimeCPopFn(2), Concat("(", Concat(string_array_type, " *a) { return a->len > 0 ? a->data[--a->len] : \"\"; }\n\n")))));
+    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCDropStorageFn(2), Concat("(", Concat(string_array_type, " *a) { if (a == NULL) return; free(a->data); a->data = NULL; a->len = 0; a->cap = 0; }\n\n")))));
     block = Concat(block, Concat("typedef struct { bool *data; long long len; long long cap; } ", Concat(bool_array_type, ";\n")));
     block = Concat(block, Concat("static ", Concat(bool_array_type, Concat(" ", Concat(CollectionRuntimeCNewFn(4), Concat("(void) { ", Concat(bool_array_type, " a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n")))))));
     block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCPushFn(4), Concat("(", Concat(bool_array_type, " *a, bool v) {\n")))));

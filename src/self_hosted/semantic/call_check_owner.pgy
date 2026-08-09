@@ -147,7 +147,7 @@ func CheckCollectionMutatorReceiver(
 ) -> String {
     let receiver: String = FirstArgFromFacts(argument_facts, args_src);
     return SemanticCollectionMutationError(
-        callee, receiver, names, types, modes
+        callee, receiver, names, types, modes, false
     );
 }
 func CheckOptionBuiltinArgs(

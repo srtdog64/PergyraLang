@@ -31,7 +31,7 @@ verified_projection="$(function_body "$DRIVER_OWNER" DriverRung2MirProjectionFro
 canonical_projection="$(function_body "$CANONICAL_OWNER" CanonicalizeMirArtifactWithAdmittedTopology)"
 grep -Fq 'SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(' <<<"$verified_projection" \
     || fail "verified projection does not validate its receipt"
-grep -Fq 'SelfMirProgramFactsFromReadyArtifactObserved(' <<<"$verified_projection" \
+grep -Fq 'SelfMirProgramFactsBeforeCanonicalIdsObserved(' <<<"$verified_projection" \
     || fail "verified projection does not consume ready body facts"
 if grep -Fq 'VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(' <<<"$verified_projection"; then
     fail "verified projection reruns semantic verification"

@@ -18,8 +18,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/lib/diagnostic.pgy` -- stable diagnostic-block rendering.
 - `src/self_hosted/lib/json_scan.pgy` -- shared JSON cursor/string scan
   primitives.
-- `src/self_hosted/lib/json_emit.pgy` -- shared JSON string escaping and
-  emission primitives for fact-shaped tools.
+- `src/self_hosted/lib/json_emit.pgy` -- shared JSON string escaping,
+  call-local file quoting, and synchronous last-consumer retirement of owned
+  renderer fragments for fact-shaped tools.
 - `src/self_hosted/lib/json.pgy` -- shared bounded JSON string-read, top-level
   object/value bounds, and array-object row iteration.
 - `src/self_hosted/lib/json_fact_table.pgy` -- shared object, array-object,
@@ -45,18 +46,11 @@ inventory must not become a second fact-family owner registry.
   existing consumer import path remains stable.
 - `src/self_hosted/lexer/language_word_identity_projection_owner.pgy` --
   generated stable `LanguageWordId.Word*`, spelling, and length projection.
-- `src/self_hosted/lexer/language_word_index_projection_owner.pgy` --
-  generated ordered spelling and debug-identity index projection.
-- `src/self_hosted/lexer/language_word_class_projection_owner.pgy` --
-  generated lexical class metadata projection.
-- `src/self_hosted/lexer/language_word_axis_projection_owner.pgy` --
-  generated language-axis metadata projection.
-- `src/self_hosted/lexer/language_word_semantic_projection_owner.pgy` --
-  generated grammar-context and implementation-support projection.
-- `src/self_hosted/lexer/language_word_tooling_projection_owner.pgy` --
-  generated tooling, TextMate scope, and completion projection.
+- `src/self_hosted/lexer/language_word_row_projection_owner.pgy` -- generated
+  immutable complete ordered metadata row. Registry readiness and LSP bind one
+  row per index instead of reopening eleven parallel 146-branch projections.
 - `src/self_hosted/lexer/language_keyword_compatibility_projection_owner.pgy` --
-  generated 71-row reserved lexer compatibility view. All generated lexer
+  generated 70-row reserved lexer compatibility view. All generated lexer
   projections derive from `src/lexer/language_keyword_registry.def`, which
   remains the single language-word authority.
 - `src/self_hosted/lexer/run_owner.pgy` -- lexer CLI run boundary and mode
@@ -136,8 +130,9 @@ inventory must not become a second fact-family owner registry.
   shape stays in `lib/diagnostic.pgy`.
 - `src/self_hosted/parser/program_parse_owner.pgy` -- program-root assembly.
 - `src/self_hosted/hir/ast_match_pattern_fact_owner.pgy` -- interprets the
-  canonical typed `MatchCase` AST atom as one bounded pattern fact for semantic
-  and MIR consumers; no parallel match-pattern graph may own the same identity.
+  canonical typed `MatchCase` spelling as one bounded pattern fact. Semantic
+  statement rows capture the AST atom once; MIR consumes that admitted payload
+  through the same text owner instead of rereading the typed-AST arena.
 - `src/self_hosted/parser/run_owner.pgy` -- parser CLI run boundary and mode
   selection.
 - `src/self_hosted/parser/source_path_owner.pgy` -- source path/default and import read input.
@@ -779,6 +774,16 @@ inventory must not become a second fact-family owner registry.
   owner join that projects the routine owner/kind/receiver-carriage tuple.
 - `src/self_hosted/mir/routine_cfg_append_owner.pgy` -- CFG row append and
   instruction/use offset rebinding across routine-local MIR graphs.
+- `src/self_hosted/mir/routine_build_storage_lifetime_owner.pgy` -- the
+  bounded final-carrier lifetime boundary that retires 79 copied CFG Array
+  backings plus 5 already-dead routine-state backings, without freeing shared
+  semantic/program-owned String elements. Earlier build scratch remains open.
+- `src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy` -- the typed-AST
+  arena carrier lifetime boundary. It retires 13 non-traversal backings after
+  domain projection, rebuilds a five-lane traversal-only artifact view, then
+  retires those five backings after routine and intent facts are materialized.
+  String elements and expression-graph facts remain borrowed and are never
+  deep-freed here.
 - `src/self_hosted/mir/artifact_lower_owner.pgy` -- program assembly and
   deterministic instruction-ID canonicalization.
 - `src/self_hosted/mir/intent_routine_owner.pgy` -- lossless typed MIR carrier
@@ -835,12 +840,13 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy` --
   sequential file framing for unbounded instruction-local expression graphs,
   match/destructure lists, uses, and runtime-call ABI auxiliary rows; it reads
-  only verified `SelfMirProgramFacts` and cannot establish semantic facts.
+  only verified `SelfMirProgramFacts`, retires owned row fragments immediately
+  after synchronous writes, and cannot establish semantic facts.
 - `src/self_hosted/mir/program_json_artifact_writer_owner.pgy` -- bounded
   program/routine/block file-artifact framing of the same verified
   `pgy.mir.v1` row order; instruction-local unbounded rows are delegated to
-  the sequential artifact writer and `SelfMirProgramFacts` remains the
-  semantic owner.
+  the sequential artifact writer, renderer-owned fragments are retired at the
+  write boundary, and `SelfMirProgramFacts` remains the semantic owner.
 - `src/self_hosted/mir/abi_layout_json_projection_owner.pgy` -- self-host
   producer ABI-layout tuple and explicit dynamic-row projection.
 - `src/self_hosted/mir/machine_layer_json_projection_owner.pgy` -- machine
@@ -1070,9 +1076,11 @@ inventory must not become a second fact-family owner registry.
   capture boundary/kind/writer fact validation for MIR JSON input.
 - `src/self_hosted/mir_lower/program_declaration_index_owner.pgy` -- one
   document-order declaration identity/span inventory shared across canonical
-  declaration-family projection phases; it composes the field identity index
-  and enum variant index from those already-discovered spans rather than
-  reopening the declaration array.
+  declaration-family projection phases. It consumes the document-owned
+  declaration table carrier and preserves its row spans while composing field
+  identity and enum variant indexes without reopening the JSON root. The
+  production caller owns same-document provenance; this index does not claim an
+  independently sealed document digest.
 - `src/self_hosted/mir_lower/program_enum_variant_index_owner.pgy` -- one
   program-owned enum variant/name/ordinal/payload identity index built during
   declaration admission; condition and expression-graph consumers query it
@@ -1146,9 +1154,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/program_routine_index_owner.pgy` -- one admitted
   document-order routine/block/instruction structure view, including
   short instruction routing facts, borrowed expression/expression-graph spans,
-  and raw machine spans, shared by machine admission, declaration lookup,
-  routine reconstruction, and final graph reconstruction. It must not retain
-  materialized program-wide render expressions.
+  and raw machine spans. It consumes and preserves the already-admitted
+  declaration index from the same source document; it must not rebuild that
+  index or retain materialized program-wide render expressions.
 - `src/self_hosted/mir_lower/program_instruction_expression_index_owner.pgy` --
   program-lifetime aligned borrowed routing, expression, and graph spans. Long
   text and optional routing values are never materialized into program-global

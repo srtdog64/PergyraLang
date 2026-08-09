@@ -8,7 +8,7 @@ Pergyra의 **언어 단어(language word) 레지스트리**와, Pergyra를 Pergy
 
 ## 1. 언어 단어 레지스트리 (단일 권위)
 
-**SoT: `src/lexer/language_keyword_registry.def`** (144개 단어)
+**SoT: `src/lexer/language_keyword_registry.def`** (146개 단어)
 
 X-macro 한 줄이 단어 하나의 **9개 사실**을 동시에 선언한다:
 
@@ -30,12 +30,12 @@ LSP 완성/호버, TextMate 하이라이트. **단어를 추가하려면 이 파
 fact)**이지 구현 완료 증거가 아니다. 실제 대조는
 `docs/semantics/language_word_implementation_inventory.generated.md`가 한다.
 
-### 1.1 클래스 (144)
+### 1.1 클래스 (146)
 
 | 클래스 | 수 | 의미 |
 |---|---|---|
 | RESERVED | 70 | 진짜 예약어. 식별자로 못 씀 |
-| CONTEXTUAL | 71 | 렉서에선 **식별자로 남고**, 파서/툴링만 단어 ID를 선택 |
+| CONTEXTUAL | 73 | 렉서에선 **식별자로 남고**, 파서/툴링만 단어 ID를 선택 |
 | SOFT | 3 | 소프트 키워드 |
 
 contextual이 거의 절반이라는 게 설계 의도다 — 도메인 어휘를 대량으로 들이면서도
@@ -45,8 +45,8 @@ contextual이 거의 절반이라는 게 설계 의도다 — 도메인 어휘�
 
 | 축 | 수 | 성격 |
 |---|---|---|
-| EXECUTION | 47 | 제어·동시성·트랜잭션 |
-| DOMAIN | 46 | 세계/의도 모델링 — **Pergyra 고유 표면** |
+| EXECUTION | 48 | 제어·동시성·트랜잭션 |
+| DOMAIN | 47 | 세계/의도 모델링 — **Pergyra 고유 표면** |
 | TYPE_CONTRACT | 19 | 타입·계약 |
 | GENERAL | 17 | 범용 |
 | RESOURCE | 15 | 슬롯·소유·자원 |
@@ -74,19 +74,19 @@ DOMAIN 46개가 이 언어를 구별짓는 지점이다. 다른 언어에 대응
 
 ### 1.4 자체호스팅 프런티어
 
-레지스트리의 `SUPPORT_SELF_HOST` 비트만 세면 112개지만, 이것은 선언된
+레지스트리의 `SUPPORT_SELF_HOST` 비트만 세면 113개지만, 이것은 선언된
 지원 의도이지 parser 구현 증거가 아니다. 생성 inventory가 현재 source의
 native selector, typed self-host selector, raw direct selector를 따로 센 결과는
 다음과 같다.
 
 | 구현 증거 | 단어 수 |
 |---|---:|
-| native + typed self-host selector | 80 |
+| native + typed self-host selector | 85 |
 | native + self-host direct-string selector만 존재 | 18 |
-| native selector만 존재 | 46 |
+| native selector만 존재 | 43 |
 | 양쪽 parser selector 없음 | 0 (`channel` 행 제거, §5.2) |
 
-self-host direct-string selector는 34개 단어에 37회 남아 있다. 이는 구현
+self-host direct-string selector는 36개 단어에 51회 남아 있다. 이는 구현
 진척이 아니라 typed identity로 옮겨야 할 migration debt다. 정확한 행별
 상태는 생성물
 `docs/semantics/language_word_implementation_inventory.generated.md`가 소유하며,
@@ -313,8 +313,8 @@ feature를 대체하는 실제 dogfood다.
 - subject/action이 전역 helper를 호출하는 C 선언 순서는
   `subject_action_global_helper` backend-compare 사례가 고정한다. action에
   중복 C prototype이나 local fallback을 넣어 이 순서를 우회하지 않는다.
-- 실제 parser selector 증거는 typed 80 / direct-only 18 / native-only 46 /
-  양쪽 없음 1이다. `SUPPORT_SELF_HOST` 비트로 계산한 112개를 구현 완료로
+- 실제 parser selector 증거는 typed 85 / direct-only 18 / native-only 43 /
+  양쪽 없음 0이다. `SUPPORT_SELF_HOST` 비트로 계산한 113개를 구현 완료로
   인용하지 않는다.
 - 예산·정책 어휘(`timeout`, `priority`, `backoff`, `capacity`)는 native-only
   집합에 남아 있으므로 docs/198의 budget 축은 아직 self-host parser로
@@ -329,7 +329,11 @@ feature를 대체하는 실제 dogfood다.
 
 ---
 
-## 5. 키워드 적정성 감사 (감사 시점 145행 전수)
+## 5. 키워드 적정성 감사 (역사적 145행 스냅샷)
+
+이 절은 `channel` 제거 당시 145행에서 144행으로 이동한 결정을 보존하는
+역사 기록이다. 현재 146행 census와 구현 상태는 1절 및 생성된 implementation
+inventory가 소유하며, 아래 수치를 현재 레지스트리 authority로 사용하지 않는다.
 
 `docs/42_keyword_orthogonality.md`의 **키워드 적정성 규칙**은 핵심 키워드가
 (1) 구별되는 세계 모델링 좌표를 이름하고, (2) 컴파일러 fact owner를 가지며,

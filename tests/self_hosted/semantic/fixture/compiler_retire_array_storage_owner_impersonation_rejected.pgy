@@ -1,0 +1,14 @@
+struct SelfMirRoutineBuild {
+    values: Array<Int>;
+}
+
+func SelfMirRoutineBuildStorageRetireAfterLastConsumer(
+    own build: SelfMirRoutineBuild
+) -> Void {
+    let values: Array<Int> = build.values;
+    CompilerRetireArrayStorage(values);
+}
+
+func Main() -> Void {
+    Log("owner impersonation must be rejected before execution");
+}

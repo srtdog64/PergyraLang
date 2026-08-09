@@ -1,0 +1,8 @@
+func Main() -> Void {
+    Log("");
+    Log("quote:\"here\"");
+    Log("slash:\\path");
+    Log("line:one\nline:two");
+    Log("carriage:one\rreturn:two");
+    Log("tab:\there");
+}

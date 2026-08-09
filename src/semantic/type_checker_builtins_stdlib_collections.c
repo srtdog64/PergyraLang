@@ -41,6 +41,7 @@ static StdlibCollectionBuiltinKind stdlib_collection_builtin_kind(const char *na
         { "ArrayReverse", STDLIB_COLLECTION_ARRAY_REVERSE },
         { "ArraySet", STDLIB_COLLECTION_ARRAY_SET },
         { "ArraySort", STDLIB_COLLECTION_ARRAY_SORT },
+        { "CompilerRetireArrayStorage", STDLIB_COLLECTION_COMPILER_RETIRE_ARRAY_STORAGE },
         { "ListGet", STDLIB_COLLECTION_LIST_GET },
         { "ListNew", STDLIB_COLLECTION_LIST_NEW },
         { "ListPush", STDLIB_COLLECTION_LIST_PUSH },
@@ -82,6 +83,7 @@ static bool stdlib_collection_builtin_mutates_storage(StdlibCollectionBuiltinKin
         || kind == STDLIB_COLLECTION_ARRAY_PUSH
         || kind == STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING
         || kind == STDLIB_COLLECTION_ARRAY_DROP_OWNED_STRINGS
+        || kind == STDLIB_COLLECTION_COMPILER_RETIRE_ARRAY_STORAGE
         || kind == STDLIB_COLLECTION_ARRAY_SET
         || kind == STDLIB_COLLECTION_ARRAY_POP
         || kind == STDLIB_COLLECTION_ARRAY_SORT

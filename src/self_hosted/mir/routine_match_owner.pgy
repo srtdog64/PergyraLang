@@ -2,7 +2,7 @@
 //
 // The active hard rung accepts one scalar pattern per case plus an optional
 // final default. Match arms carry live exit/version rows to the N-way merge
-// owner. Case shape comes only from the parser-owned expression graph.
+// owner. Case shape comes only from admitted semantic statement facts.
 
 import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
@@ -26,7 +26,9 @@ func SelfMirMatchCaseFactForNode(
         TypedAstKindMatchCaseStmtTag() {
         return SelfMirMatchCaseFactInvalid();
     }
-    return SelfMirMatchCaseFactFromArtifact(input.artifact, case_node_id);
+    return SelfMirMatchCaseFactFromText(
+        input.analysis.statements.payload_texts[index]
+    );
 }
 
 func SelfMirMatchSubjectType(
@@ -278,7 +280,7 @@ func SelfMirLowerMatchFromArtifact(
             let body_block: Int = SelfMirCfgBlockCount(build.cfg) - 1;
             build = SelfMirRoutineAtBlock(build, body_block);
             build = SelfMirRoutineAtLocalVersions(
-                build, SelfMirLocalVersionsSnapshot(entry_versions)
+                build, entry_versions
             );
             let body_local_count: Int = ArrayLength(build.local_names);
             build = SelfMirLowerBlockFromArtifact(
@@ -307,7 +309,7 @@ func SelfMirLowerMatchFromArtifact(
                 );
                 build = SelfMirRoutineAtBlock(build, next_block);
                 build = SelfMirRoutineAtLocalVersions(
-                    build, SelfMirLocalVersionsSnapshot(entry_versions)
+                    build, entry_versions
                 );
             } else {
                 build = SelfMirRoutineSetSuccessors(

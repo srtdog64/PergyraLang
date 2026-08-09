@@ -5,6 +5,12 @@
 
 bool llvm_array_entry_uses_raw_nominal(LLVMGenCtx *ctx,
                                        LLVMArrayVarEntry *entry);
+bool llvm_array_emit_storage_drop(LLVMGenCtx *ctx,
+                                  ASTNode *node,
+                                  const char *callee_name,
+                                  LLVMValueRef arr_alloca,
+                                  LLVMArrayVarEntry *entry,
+                                  LLVMValueRef *out);
 bool llvm_array_emit_raw_nominal_push(LLVMGenCtx *ctx,
                                       ASTNode *node,
                                       const char *callee_name,

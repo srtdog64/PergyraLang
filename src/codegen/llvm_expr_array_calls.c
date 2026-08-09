@@ -14,6 +14,7 @@
 typedef enum {
     LLVM_ARRAY_BUILTIN_NONE = 0,
     LLVM_ARRAY_BUILTIN_DROP_OWNED_STRINGS,
+    LLVM_ARRAY_BUILTIN_DROP_STORAGE,
     LLVM_ARRAY_BUILTIN_LENGTH,
     LLVM_ARRAY_BUILTIN_POP,
     LLVM_ARRAY_BUILTIN_PUSH,
@@ -41,6 +42,7 @@ static const LLVMArrayBuiltinSpec kArrayBuiltinSpecs[] = {
     {"ArrayPushOwnedString", 2, LLVM_ARRAY_BUILTIN_PUSH_OWNED_STRING},
     {"ArraySet", 3, LLVM_ARRAY_BUILTIN_SET},
     {"ArraySort", 1, LLVM_ARRAY_BUILTIN_SORT},
+    {"CompilerRetireArrayStorage", 1, LLVM_ARRAY_BUILTIN_DROP_STORAGE},
     {"SliceCopy", 1, LLVM_ARRAY_BUILTIN_SLICE_COPY},
 };
 
@@ -484,6 +486,19 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
         *out = llvm_void_expression_placeholder(ctx, node, callee_name);
         return true;
+    }
+
+    if (op == LLVM_ARRAY_BUILTIN_DROP_STORAGE) {
+        ASTNode *arr_arg = ast_call_argument(node, 0);
+        LLVMArrayVarEntry *entry = NULL;
+        LLVMValueRef arr_alloca = llvm_array_required_receiver_binding(
+            ctx, node, arr_arg, callee_name, &entry);
+        if (arr_alloca == NULL)
+            return llvm_array_error_out(node, ctx,
+                "LLVM CompilerRetireArrayStorage requires registered Array<T> receiver",
+                out);
+        return llvm_array_emit_storage_drop(
+            ctx, node, callee_name, arr_alloca, entry, out);
     }
 
     if (op == LLVM_ARRAY_BUILTIN_PUSH ||

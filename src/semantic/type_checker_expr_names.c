@@ -72,3 +72,17 @@ consume_qubit_value(ASTNode *expr, SemanticContext *ctx, const char *action)
     (void)action;
     return true;
 }
+
+bool
+consume_array_storage_binding(ASTNode *expr, SemanticContext *ctx)
+{
+    Symbol *sym = lookup_identifier_symbol(expr, ctx);
+    if (sym == NULL || !type_is_constructed_named(sym->type, "Array")
+        || sym->is_consumed) {
+        return false;
+    }
+
+    sym->is_consumed = true;
+    sym->is_used = true;
+    return true;
+}

@@ -39,6 +39,25 @@ mir_decl_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
     return true;
 }
 
+bool
+mir_decl_header_storage_layout_matches(
+    size_t row_size,
+    size_t row_align,
+    size_t method_metadata_offset,
+    size_t abi_layout_offset,
+    size_t option_abi_type_name_offset,
+    size_t option_abi_layout_id_offset)
+{
+    return row_size == sizeof(MIRDeclHeader)
+        && row_align == _Alignof(MIRDeclHeader)
+        && method_metadata_offset == offsetof(MIRDeclHeader, method_metadata)
+        && abi_layout_offset == offsetof(MIRDeclHeader, abi_layout)
+        && option_abi_type_name_offset
+            == offsetof(MIRDeclHeader, option_abi_type_name)
+        && option_abi_layout_id_offset
+            == offsetof(MIRDeclHeader, option_abi_layout_id);
+}
+
 static bool
 mir_append_decl_header(MIRProgram *mir, MIRDeclHeader header)
 {

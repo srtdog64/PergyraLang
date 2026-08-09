@@ -6,6 +6,8 @@ import "routine_entry_owner.pgy";
 import "routine_local_inventory_owner.pgy";
 import "routine_receiver_carriage_owner.pgy";
 import "routine_cfg_append_owner.pgy";
+import "routine_build_storage_lifetime_owner.pgy";
+import "ast_arena_storage_lifetime_owner.pgy";
 import "intent_routine_owner.pgy";
 import "canonical_instruction_id_owner.pgy";
 import "../dir/domain_graph_fact_owner.pgy";
@@ -313,8 +315,8 @@ func SelfMirProgramDomainFactsFromReadyArtifact(
     );
 }
 
-func SelfMirProgramFactsFromReadyArtifactObserved(
-    artifact: AstTreeArtifact,
+func SelfMirProgramFactsBeforeCanonicalIdsObserved(
+    own artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
     initializer_types: SemanticAstInitializerTypeFacts,
     iteration_types: SemanticAstIterationTypeFacts,
@@ -363,11 +365,13 @@ func SelfMirProgramFactsFromReadyArtifactObserved(
     let domain_facts: SelfMirProgramFacts = domain_projection.facts;
     if !domain_facts.ok { return domain_facts; }
     SelfMirArtifactPressureStage(observe_pressure, "domain-projection:done");
+    let traversal_artifact: AstTreeArtifact =
+        SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection(artifact);
     let declarations: SelfMirDeclarationRows = domain_facts.declarations;
     let domain_graph: SelfDirDomainGraphFacts =
         domain_projection.domain_graph;
     facts = SelfMirProgramFacts(
-        true, "", "", artifact.count, declarations,
+        true, "", "", traversal_artifact.count, declarations,
         domain_facts.domain_topology,
         domain_facts.domain_runtime_assignments, generic_rows,
         facts.parallel_captures, facts.routines, facts.cfg,
@@ -379,16 +383,20 @@ func SelfMirProgramFactsFromReadyArtifactObserved(
     let assignment_rows: SelfMirAssignmentRows =
         SelfMirAssignmentRowsFromSemantic(assignment_types);
     let input: SelfMirRoutineInput = SelfMirRoutineInput(
-        artifact, analysis,
+        traversal_artifact, analysis,
         initializer_rows, iteration_rows, assignment_rows,
         statement_types,
         machine_declaration
     );
     if !SelfMirRoutineInputRowsReady(input) {
-        return SelfMirProgramFactsError(
+        let error: SelfMirProgramFacts = SelfMirProgramFactsError(
             facts, "mir_routine_input_invalid",
             "MIR routine input rows must be validated once before lowering"
         );
+        SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts(
+            traversal_artifact
+        );
+        return error;
     }
     SelfMirArtifactPressureStage(observe_pressure, "routine-lowering:start");
     let i: Int = 0;
@@ -401,7 +409,7 @@ func SelfMirProgramFactsFromReadyArtifactObserved(
         let function_node_id: Int =
             analysis.signatures.function_node_ids[i];
         if !IsSome(SelfMirFunctionBodyBlock(
-            artifact.arena, function_node_id
+            traversal_artifact.arena, function_node_id
         )) {
             i = i + 1;
             continue;
@@ -413,14 +421,29 @@ func SelfMirProgramFactsFromReadyArtifactObserved(
             input, function_node_id
         );
         if !build.ok {
-            return SelfMirProgramFactsError(
+            let error: SelfMirProgramFacts = SelfMirProgramFactsError(
                 facts, "mir_lower_unsupported", build.diagnostic_message
             );
+            SelfMirRoutineBuildStorageRetireAfterLastConsumer(build);
+            SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts(
+                traversal_artifact
+            );
+            return error;
         }
+        SelfMirArtifactRoutinePressureStage(
+            observe_pressure, "routine-build", i, "done"
+        );
         facts = SelfMirAppendRoutine(
             facts, analysis, input, i, build,
             initializer_types
         );
+        SelfMirRoutineBuildStorageRetireAfterLastConsumer(build);
+        if !facts.ok {
+            SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts(
+                traversal_artifact
+            );
+            return facts;
+        }
         SelfMirArtifactRoutinePressureStage(
             observe_pressure, "routine", i, "done"
         );
@@ -437,20 +460,54 @@ func SelfMirProgramFactsFromReadyArtifactObserved(
             input, declarations, domain_graph.intents, intent_i
         );
         if !intent_build.ok {
-            return SelfMirProgramFactsError(
+            let error: SelfMirProgramFacts = SelfMirProgramFactsError(
                 facts, "mir_intent_lower_unsupported",
                 intent_build.diagnostic_message
             );
+            SelfMirRoutineBuildStorageRetireAfterLastConsumer(intent_build);
+            SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts(
+                traversal_artifact
+            );
+            return error;
         }
         facts = SelfMirAppendIntentRoutine(
             facts, domain_graph.intents, intent_i, intent_build
         );
+        SelfMirRoutineBuildStorageRetireAfterLastConsumer(intent_build);
+        if !facts.ok {
+            SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts(
+                traversal_artifact
+            );
+            return facts;
+        }
         SelfMirArtifactRoutinePressureStage(
             observe_pressure, "intent", intent_i, "done"
         );
         intent_i = intent_i + 1;
     }
     SelfMirArtifactPressureStage(observe_pressure, "intent-lowering:done");
+    SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts(
+        traversal_artifact
+    );
+    return facts;
+}
+
+func SelfMirProgramFactsFromReadyArtifactObserved(
+    own artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    iteration_types: SemanticAstIterationTypeFacts,
+    assignment_types: SemanticAstAssignmentTypeFacts,
+    statement_types: SemanticAstStatementTypeFacts,
+    generic_specializations: SemanticAstGenericSpecializationFacts,
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    observe_pressure: Bool
+) -> SelfMirProgramFacts {
+    let facts: SelfMirProgramFacts = SelfMirProgramFactsBeforeCanonicalIdsObserved(
+        artifact, analysis, initializer_types, iteration_types,
+        assignment_types, statement_types, generic_specializations,
+        machine_declaration, observe_pressure
+    );
     SelfMirArtifactPressureStage(observe_pressure, "canonical-ids:start");
     facts = SelfMirCanonicalInstructionIds(facts);
     SelfMirArtifactPressureStage(observe_pressure, "canonical-ids:done");
@@ -458,7 +515,7 @@ func SelfMirProgramFactsFromReadyArtifactObserved(
 }
 
 func SelfMirProgramFactsFromReadyArtifact(
-    artifact: AstTreeArtifact,
+    own artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
     initializer_types: SemanticAstInitializerTypeFacts,
     iteration_types: SemanticAstIterationTypeFacts,
@@ -475,7 +532,7 @@ func SelfMirProgramFactsFromReadyArtifact(
 }
 
 func SelfMirProgramFactsFromArtifact(
-    artifact: AstTreeArtifact,
+    own artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
     initializer_types: SemanticAstInitializerTypeFacts,
     iteration_types: SemanticAstIterationTypeFacts,

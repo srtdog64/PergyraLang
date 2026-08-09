@@ -354,6 +354,14 @@ require_file "src/self_hosted/mir/routine_cfg_append_owner.pgy"
 require_max_lines "src/self_hosted/mir/routine_cfg_append_owner.pgy" 320
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir/routine_cfg_append_owner.pgy"
+require_file "src/self_hosted/mir/routine_build_storage_lifetime_owner.pgy"
+require_max_lines "src/self_hosted/mir/routine_build_storage_lifetime_owner.pgy" 180
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir/routine_build_storage_lifetime_owner.pgy"
+require_file "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy"
+require_max_lines "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy" 100
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy"
 require_file "src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy"
 require_max_lines "src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" \
@@ -553,6 +561,14 @@ for bounded_fact_function in \
     reject_function_text "src/self_hosted/lib/json_fact_table.pgy" \
         "func $bounded_fact_function" "StringLength("
 done
+for exact_object_fact_function in \
+    "JsonObjectFactCount" \
+    "JsonObjectFactIndex"; do
+    require_function_text "src/self_hosted/lib/json_fact_table.pgy" \
+        "func $exact_object_fact_function" "JsonSkipWhitespaceWithin("
+    reject_function_text "src/self_hosted/lib/json_fact_table.pgy" \
+        "func $exact_object_fact_function" "JsonSkipWhitespace("
+done
 require_function_text "src/self_hosted/lib/json_fact_table.pgy" \
     "func JsonValueKindAt" "JsonSkipWhitespaceWithin("
 reject_function_text "src/self_hosted/lib/json_fact_table.pgy" \
@@ -661,6 +677,7 @@ for mir_producer_owner in \
     routine_iteration_owner.pgy \
     routine_statement_owner.pgy \
     routine_build_owner.pgy \
+    routine_build_storage_lifetime_owner.pgy \
     routine_assignment_owner.pgy \
     routine_local_predecessor_snapshot_owner.pgy \
     routine_control_transfer_owner.pgy \
@@ -783,6 +800,23 @@ reject_text "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
     'JsonEmitFieldRaw("expr1_graph"'
 require_text "src/self_hosted/lib/json_emit.pgy" \
     'func JsonStringLiteralWriteFile('
+require_function_text "src/self_hosted/lib/json_emit.pgy" \
+    'func JsonStringLiteralWriteFile(' \
+    'if !JsonStringLiteralRequiresEscape(value, value_length) {'
+require_function_text "src/self_hosted/lib/json_emit.pgy" \
+    'func JsonEscapeStringWithAllocator(' 'JsonEscapeTokenAt(value, n, i)'
+require_function_text "src/self_hosted/lib/json_emit.pgy" \
+    'func JsonStringLiteralRequiresEscape(' \
+    'JsonEscapeTokenAt(value, length, i)'
+reject_function_text "src/self_hosted/lib/json_emit.pgy" \
+    'func JsonStringLiteralRequiresEscape(' 'SubEqualsWithLen('
+require_function_text "src/self_hosted/lib/json_emit.pgy" \
+    'func JsonStringLiteralWriteFile(' 'CompilerArtifactWrite(output, value);'
+require_function_text "src/self_hosted/lib/json_emit.pgy" \
+    'func JsonOwnedFragmentWriteFile(' 'own fragment: String'
+require_function_text "src/self_hosted/lib/json_emit.pgy" \
+    'func JsonOwnedFragmentWriteFile(' \
+    'ArrayDropOwnedStrings(owned_fragment);'
 require_text "src/self_hosted/lib/json_emit.pgy" \
     'let transient_allocator: Allocator = AllocatorPool('
 require_text "src/self_hosted/lib/json_emit.pgy" \
@@ -791,8 +825,54 @@ require_text "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
     'JsonStringLiteralWriteFile('
 reject_text "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
     'FileWrite(output, JsonStringLiteral('
+for retained_json_fragment_pattern in \
+    'CompilerArtifactWrite(output, ToString(' \
+    'CompilerArtifactWrite(output, SelfMirJson' \
+    'CompilerArtifactWrite(output, JsonEmit' \
+    'CompilerArtifactWrite(output, JsonStringLiteral('; do
+    reject_text \
+        "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
+        "$retained_json_fragment_pattern"
+    reject_text \
+        "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
+        "$retained_json_fragment_pattern"
+done
+require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
+    'JsonOwnedFragmentWriteFile('
+require_text "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
+    'JsonOwnedFragmentWriteFile('
+require_file \
+    "tests/self_hosted/parity/mir_json_artifact_writer_lifetime_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/mir_json_artifact_writer_lifetime_owner.sh" 75
+require_text "Makefile" \
+    'self-host-mir-json-artifact-writer-lifetime-test-smoke:'
+require_function_text \
+    "src/self_hosted/mir/expression_identity_json_projection_owner.pgy" \
+    'func SelfMirJsonExpressionIdentityWriteFile(' \
+    'SelfMirJsonExpressionIdentityProjectionForNode(graph, node)'
+require_function_text \
+    "src/self_hosted/mir/expression_identity_json_projection_owner.pgy" \
+    'func SelfMirJsonExpressionIdentityWriteFile(' \
+    'JsonOwnedFragmentWriteFile('
+require_function_text \
+    "src/self_hosted/mir/expression_identity_json_projection_owner.pgy" \
+    'func SelfMirJsonExpressionIdentityWriteFile(' \
+    'JsonStringLiteralWriteFile(output, projection.binding_kind)'
+reject_function_text \
+    "src/self_hosted/mir/expression_identity_json_projection_owner.pgy" \
+    'func SelfMirJsonExpressionIdentityWriteFile(' \
+    'SelfMirJsonExpressionIdentityFields('
+reject_text "src/self_hosted/mir/local_ref_json_projection_owner.pgy" \
+    'CompilerArtifactWrite(output, ToString('
 require_file "src/self_hosted/tools/mir_json_instruction_writer_probe/main.pgy"
 require_file "tests/self_hosted/parity/mir_json_instruction_writer_byte_parity.sh"
+require_file "tests/self_hosted/fixtures/mir_json_writer_escape_surface.pgy"
+for json_escape_literal in '\"' '\\' '\n' '\r' '\t'; do
+    require_text \
+        "tests/self_hosted/fixtures/mir_json_writer_escape_surface.pgy" \
+        "$json_escape_literal"
+done
 require_text "src/self_hosted/tools/mir_json_instruction_writer_probe/main.pgy" \
     'SelfMirProgramJson(projection.facts)'
 require_text "src/self_hosted/tools/mir_json_instruction_writer_probe/main.pgy" \
@@ -958,21 +1038,52 @@ require_file "src/self_hosted/lexer/char_owner.pgy"
 require_file "src/self_hosted/lexer/source_input_owner.pgy"
 require_file "src/self_hosted/lexer/token_owner.pgy"
 require_file "src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy"
-for language_word_projection_owner in \
-    language_word_identity_projection_owner.pgy \
+for language_word_projection_owner_cap in \
+    language_word_identity_projection_owner.pgy:330 \
+    language_word_row_projection_owner.pgy:200 \
+    language_keyword_compatibility_projection_owner.pgy:250; do
+    language_word_projection_owner="${language_word_projection_owner_cap%%:*}"
+    language_word_projection_cap="${language_word_projection_owner_cap##*:}"
+    require_file "src/self_hosted/lexer/$language_word_projection_owner"
+    require_max_lines \
+        "src/self_hosted/lexer/$language_word_projection_owner" \
+        "$language_word_projection_cap"
+    require_text "src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy" \
+        "import \"$language_word_projection_owner\";"
+done
+for retired_language_word_projection_owner in \
     language_word_index_projection_owner.pgy \
     language_word_class_projection_owner.pgy \
     language_word_axis_projection_owner.pgy \
     language_word_semantic_projection_owner.pgy \
-    language_word_tooling_projection_owner.pgy \
-    language_keyword_compatibility_projection_owner.pgy; do
-    require_file "src/self_hosted/lexer/$language_word_projection_owner"
-    require_max_lines "src/self_hosted/lexer/$language_word_projection_owner" 600
-    require_text "src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy" \
-        "import \"$language_word_projection_owner\";"
+    language_word_tooling_projection_owner.pgy; do
+    reject_file "src/self_hosted/lexer/$retired_language_word_projection_owner"
+done
+require_function_text \
+    "src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy" \
+    "func LanguageWordRegistryProjectionReady(" \
+    "let row: LanguageWordRegistryRow = LanguageWordRegistryRowAt(index);"
+require_function_text \
+    "src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy" \
+    "func LanguageWordRegistryProjectionReady(" \
+    "LanguageWordRegistryRowAt(-1).valid"
+require_function_text \
+    "src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy" \
+    "func LanguageWordRegistryProjectionReady(" \
+    "LanguageWordRegistryRowAt(LanguageWordRegistryCount()).valid"
+for retired_language_word_projection in \
+    LanguageWordSpellingAt LanguageWordDebugIdentityAt LanguageWordClassAt \
+    LanguageWordClassNameAt LanguageWordAxisAt LanguageWordAxisNameAt \
+    LanguageWordContextMaskAt LanguageWordImplementationSupportAt \
+    LanguageWordToolingFlagsAt LanguageWordHighlightScopeAt \
+    LanguageWordCompletionEnabledAt LanguageWordCompletionOwnedAt; do
+    if grep -R -Fq --include='*.pgy' \
+        "func $retired_language_word_projection(" "$SELF_HOST_DIR"; then
+        fail "retired language-word projection returned: $retired_language_word_projection"
+    fi
 done
 require_max_lines \
-    "src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy" 600
+    "src/self_hosted/lexer/language_keyword_registry_projection_owner.pgy" 80
 require_file "src/self_hosted/lexer/fixture_manifest_owner.pgy"
 require_text "src/self_hosted/lexer/run_owner.pgy" 'import "scan_owner.pgy";'
 require_text "src/self_hosted/lexer/run_owner.pgy" 'import "source_input_owner.pgy";'
@@ -5404,6 +5515,8 @@ require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
 require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
     '"consumer:input:parallel-capture:done"'
 require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
+    '"consumer:input:declaration-index:done"'
+require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
     '"consumer:input:machine-layer:done"'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" \
     "struct MirDocumentFactIndex"
@@ -5423,6 +5536,9 @@ require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
 require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
     "MirDomainTopologyFactsFromDocumentWithDeclarations("
 require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
+    "BuildMirProgramDeclarationIndexFromTable(document.declarations)"
+reject_function_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
+    "func MirJsonReadMachineAdmittedInputObserved(" \
     "BuildMirProgramDeclarationIndex(document.root.json)"
 reject_function_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
     "func MirJsonReadMachineAdmittedInputObserved(" \
@@ -5432,6 +5548,23 @@ reject_function_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
     "MirParallelCaptureFactsReady("
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
     "func BuildMirProgramRoutineIndexFromTable("
+reject_function_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "func BuildMirProgramRoutineIndexFromTable(" \
+    "BuildMirProgramDeclarationIndex("
+reject_function_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "func BuildMirProgramRoutineIndexFromTable(" \
+    "BuildMirProgramDeclarationIndexFromTable("
+reject_function_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "func BuildMirProgramRoutineIndexFromTable(" \
+    "BuildMirDocumentFactIndex("
+reject_function_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "func BuildMirProgramRoutineIndexFromTable(" "MirDeclArrayBounds("
+require_function_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "func BuildMirProgramRoutineIndexFromTable(" \
+    "declarations.valid && declarations.field_identities.valid"
+require_function_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
+    "func MirMachineLayerAdmitDocumentWithTopologyAndDeclarationsObserved(" \
+    "document.routines, declarations"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "func EmitRegion(ref index: MirRoutineFactIndex,"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
@@ -5597,7 +5730,7 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstStatem
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileSourceToMirJsonVerified"
 require_text "src/self_hosted/compiler/canonical_mir_execution_owner.pgy" \
     "func CanonicalizeMirJsonVerified"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SelfMirProgramFactsFromReadyArtifactObserved("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SelfMirProgramFactsBeforeCanonicalIdsObserved("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func DriverRung2MirProjectionFromVerifiedFactsObserved("
 reject_text "src/self_hosted/compiler/canonical_mir_execution_owner.pgy" \
@@ -5922,12 +6055,16 @@ require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "RuntimeCHeaderOwnsBoolToString("
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "RuntimeCHeaderOwnsPrint("
 require_file "src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy"
 require_max_lines "src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy" 60
 require_text "src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy" \
     "uses_allocator, uses_text_builder, uses_box_array, false, false,"
 require_text "src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy" \
     "func RuntimeCHeaderOwnsBoolToString("
+require_text "src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy" \
+    "func RuntimeCHeaderOwnsPrint("
 require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
     '#include \"pgy_runtime.h\"'
 require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
@@ -7052,9 +7189,14 @@ require_text "src/self_hosted/mir/routine_match_merge_owner.pgy" \
 require_text "src/self_hosted/mir/routine_match_merge_owner.pgy" \
     'build, "phi", build.local_names[local_i]'
 require_text "src/self_hosted/mir/routine_match_pattern_owner.pgy" \
-    'func SelfMirMatchCaseFactFromArtifact('
+    'func SelfMirMatchCaseFactFromText('
 require_text "src/self_hosted/mir/routine_match_pattern_owner.pgy" \
-    'AstMatchCasePatternFactFromArtifact(artifact, case_node_id)'
+    'AstMatchCasePatternFactFromText(pattern)'
+require_function_text "src/self_hosted/mir/routine_match_owner.pgy" \
+    'func SelfMirMatchCaseFactForNode(' \
+    'input.analysis.statements.payload_texts[index]'
+reject_function_text "src/self_hosted/mir/routine_match_owner.pgy" \
+    'func SelfMirMatchCaseFactForNode(' 'input.artifact'
 # typed MatchCase atom owner; parallel pattern graph and semantic local parse forbidden
 require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
     'func AstMatchCasePatternFactFromArtifact('
@@ -7168,8 +7310,6 @@ require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
     '"match_bindings":["w","h"],"match_binding_types":["Int","Int"]'
 require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
     'incomplete ordered enum binding types were accepted'
-reject_text "src/self_hosted/mir/routine_match_owner.pgy" \
-    'payload_texts[index]'
 reject_text "src/self_hosted/mir/routine_match_owner.pgy" \
     'requires N-way phi lowering'
 require_text "src/self_hosted/mir/routine_assignment_owner.pgy" \
@@ -10779,13 +10919,13 @@ require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
 reject_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
     "Array<String>"
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
-    "merge = MirRoutineGraphStructuralMerge("
+    "MirRoutineGraphStructuralMerge("
 reject_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     "MirRoutineGraphDistances("
 reject_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     "MirRoutineGraphDistancesAvoiding("
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
-    "backedge_headers = MirRoutineBackedgeHeaders("
+    "MirRoutineBackedgeHeaders("
 reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     "func BuildMirRoutineFactIndex(" \
     "MirRoutineEdgeTargetsDominator("
@@ -12929,7 +13069,14 @@ require_text "src/self_hosted/mir_lower/program_declaration_index_owner.pgy" \
 require_text "src/self_hosted/mir_lower/program_declaration_index_owner.pgy" \
     "func BuildMirProgramDeclarationIndex("
 require_text "src/self_hosted/mir_lower/program_declaration_index_owner.pgy" \
-    "MirDeclArrayBounds(json, array_bounds)"
+    "func BuildMirProgramDeclarationIndexFromTable("
+require_text "src/self_hosted/mir_lower/program_declaration_index_owner.pgy" \
+    "JsonArrayObjectFactTableReady(declarations)"
+reject_function_text "src/self_hosted/mir_lower/program_declaration_index_owner.pgy" \
+    "func BuildMirProgramDeclarationIndexFromTable(" \
+    "MirDeclArrayBounds("
+require_function_text "src/self_hosted/mir_lower/program_declaration_index_owner.pgy" \
+    "func MirProgramDeclarationIndexCursorAtEnd(" "i + 1 == array_end"
 require_text "src/self_hosted/mir_lower/program_declaration_index_owner.pgy" \
     "JsonArrayNextObjectBounds("
 reject_text "src/self_hosted/mir_lower/program_declaration_index_owner.pgy" \

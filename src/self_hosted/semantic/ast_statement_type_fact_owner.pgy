@@ -1,5 +1,4 @@
 // Statement expression/type verdicts joined from artifact-owned facts.
-
 import "ast_statement_fact_owner.pgy";
 import "ast_signature_artifact_match_owner.pgy";
 import "ast_expression_environment_owner.pgy";
@@ -159,11 +158,12 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
             artifact, "member_root_environment"
         );
     }
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    let modes: Array<String> = [];
     let i: Int = 0;
     while i < SemanticAstStatementCount(statements) {
-        let names: Array<String> = [];
-        let types: Array<String> = [];
-        let modes: Array<String> = [];
+        SemanticAstExpressionEnvironmentReset(names, types, modes);
         let environment_fact: String = "";
         if !SemanticAstExpressionSeedEnumValues(
             enum_facts, names, types, modes
@@ -247,7 +247,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                     names, types, modes,
                     function_tables.names, function_tables.returns,
                     function_tables.params,
-                    member_root_names
+                    member_root_names, statements.function_node_ids[i]
                 );
             } else {
                 expression_verdict = SemanticAstExpressionVerdictFromPayload(
@@ -293,7 +293,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
             }
             let mutation_error: String = SemanticCollectionMutationError(
                 mutator_name, statements.payload_texts[i],
-                names, types, modes
+                names, types, modes, false
             );
             if StringLength(mutation_error) > 0 {
                 row_verified = 0;
@@ -341,7 +341,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                         UnwrapOption(index_root), constructors, signatures,
                         names, types, modes, function_tables.names,
                         function_tables.returns, function_tables.params,
-                        member_root_names
+                        member_root_names, statements.function_node_ids[i]
                     );
                 let index_type: String = index_verdict.inferred_type_name;
                 if !index_verdict.ok {
@@ -385,7 +385,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                         UnwrapOption(value_root), constructors, signatures,
                         names, types, modes, function_tables.names,
                         function_tables.returns, function_tables.params,
-                        member_root_names
+                        member_root_names, statements.function_node_ids[i]
                     );
                 inferred = value_verdict.inferred_type_name;
                 expected = UnwrapOption(element_type_opt);
@@ -515,9 +515,9 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
         ArrayPush(verified, row_verified);
         ArrayPush(diagnostic_codes, row_code);
         ArrayPush(diagnostic_messages, row_message);
-        SemanticAstExpressionEnvironmentClear(names, types, modes);
         i = i + 1;
     }
+    SemanticAstExpressionEnvironmentClear(names, types, modes);
     return SemanticAstStatementTypeFacts(
         true, "", "", artifact.count, node_ids, kind_tags,
         expected_types, inferred_types, verified,

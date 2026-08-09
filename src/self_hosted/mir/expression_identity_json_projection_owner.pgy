@@ -5,32 +5,60 @@ import "../compiler/artifact_zone_owner.pgy";
 import "../lib/json_emit.pgy";
 import "../semantic/ast_expression_graph_node_view_owner.pgy";
 
-func SelfMirJsonExpressionIdentityFields(
+struct SelfMirJsonExpressionIdentityProjection {
+    ready: Bool;
+    call_target_syntax_id: Int;
+    binding_kind: String;
+    binding_ordinal: Int;
+}
+
+func SelfMirJsonExpressionIdentityProjectionForNode(
     ref graph: SemanticExpressionGraphFacts, node: Int
-) -> Array<String> {
+) -> SelfMirJsonExpressionIdentityProjection {
     let target: Option<Int> =
         SemanticExpressionGraphCallTargetSyntaxId(graph, node);
     let kind: Option<Int> = SemanticExpressionGraphBindingKind(graph, node);
     let ordinal: Option<Int> =
         SemanticExpressionGraphBindingOrdinal(graph, node);
-    if !IsSome(target) || !IsSome(kind) || !IsSome(ordinal) ||
-        SemanticExpressionBindingKindName(UnwrapOption(kind)) == "" {
+    if !IsSome(target) || !IsSome(kind) || !IsSome(ordinal) {
+        return SelfMirJsonExpressionIdentityProjection(false, 0, "", -1);
+    }
+    let kind_name: String =
+        SemanticExpressionBindingKindName(UnwrapOption(kind));
+    if kind_name == "" {
+        return SelfMirJsonExpressionIdentityProjection(false, 0, "", -1);
+    }
+    return SelfMirJsonExpressionIdentityProjection(
+        true,
+        UnwrapOption(target),
+        kind_name,
+        UnwrapOption(ordinal)
+    );
+}
+
+func SelfMirJsonExpressionIdentityFields(
+    ref graph: SemanticExpressionGraphFacts, node: Int
+) -> Array<String> {
+    let projection: SelfMirJsonExpressionIdentityProjection =
+        SelfMirJsonExpressionIdentityProjectionForNode(graph, node);
+    if !projection.ready {
         return [];
     }
     let fields: Array<String> = [
         JsonEmitFieldNumber(
-            "call_target_syntax_id", ToString(UnwrapOption(target))
+            "call_target_syntax_id",
+            ToString(projection.call_target_syntax_id)
         ),
         JsonEmitFieldString(
             "binding_kind",
-            SemanticExpressionBindingKindName(UnwrapOption(kind))
+            projection.binding_kind
         )
     ];
-    if UnwrapOption(ordinal) < 0 {
+    if projection.binding_ordinal < 0 {
         ArrayPush(fields, JsonEmitFieldRaw("binding_ordinal", "null"));
     } else {
         ArrayPush(fields, JsonEmitFieldNumber(
-            "binding_ordinal", ToString(UnwrapOption(ordinal))
+            "binding_ordinal", ToString(projection.binding_ordinal)
         ));
     }
     return fields;
@@ -39,14 +67,24 @@ func SelfMirJsonExpressionIdentityFields(
 func SelfMirJsonExpressionIdentityWriteFile(
     ref graph: SemanticExpressionGraphFacts, node: Int, output: Int
 ) -> Bool {
-    let fields: Array<String> =
-        SelfMirJsonExpressionIdentityFields(graph, node);
-    if ArrayLength(fields) != 3 { return false; }
-    let row: Int = 0;
-    while row < ArrayLength(fields) {
-        CompilerArtifactWrite(output, ",");
-        CompilerArtifactWrite(output, fields[row]);
-        row = row + 1;
+    let projection: SelfMirJsonExpressionIdentityProjection =
+        SelfMirJsonExpressionIdentityProjectionForNode(graph, node);
+    if !projection.ready { return false; }
+    CompilerArtifactWrite(output, ",\"call_target_syntax_id\":");
+    JsonOwnedFragmentWriteFile(
+        output, ToString(projection.call_target_syntax_id)
+    );
+    CompilerArtifactWrite(output, ",\"binding_kind\":");
+    if !JsonStringLiteralWriteFile(output, projection.binding_kind) {
+        return false;
+    }
+    CompilerArtifactWrite(output, ",\"binding_ordinal\":");
+    if projection.binding_ordinal < 0 {
+        CompilerArtifactWrite(output, "null");
+    } else {
+        JsonOwnedFragmentWriteFile(
+            output, ToString(projection.binding_ordinal)
+        );
     }
     return true;
 }

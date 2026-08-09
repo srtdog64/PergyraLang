@@ -448,7 +448,10 @@ func GenerateCUnitFromReadySemanticFacts(
             usage.uses_machine_layer || usage.uses_slot || RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction)
         ));
     }
-    if uses_print {
+    if uses_print && !RuntimeCHeaderOwnsPrint(
+        usage.uses_box_array, uses_list, uses_queue, uses_set,
+        uses_artifact_transaction
+    ) {
         TextBuilderAppend(output, StringRuntimeCPrintBlock());
     }
     if uses_random_value {

@@ -1,6 +1,7 @@
 #include "mir_nominal_abi_layout.h"
 
 #include "mir_abi_layout.h"
+#include "mir_decl_headers.h"
 #include "../common/string_compat.h"
 
 #include <limits.h>
@@ -238,6 +239,12 @@ mir_nominal_abi_layouts_capture(MIRProgram *program, char **error_message)
         *error_message = NULL;
     if (program == NULL)
         return false;
+    if (!MIR_DECL_HEADER_STORAGE_LAYOUT_MATCHES_LOCAL()) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "MIR declaration header storage layout mismatch");
+        return false;
+    }
     for (size_t i = 0; i < program->decl_header_count; i++) {
         MIRDeclHeader *header = &program->decl_headers[i];
         free(header->option_abi_type_name);

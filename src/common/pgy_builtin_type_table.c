@@ -58,6 +58,8 @@ pgy_builtin_entries(size_t *count)
         { "CompilerArtifactBegin", "Int", PGY_BUILTIN_FLAG_NONE },
         { "CompilerArtifactCommit", "Int", PGY_BUILTIN_FLAG_NONE },
         { "CompilerArtifactWrite", "Bool", PGY_BUILTIN_FLAG_NONE },
+        { "CompilerRetireArrayStorage", "Void",
+          PGY_BUILTIN_FLAG_COMPILER_INTERNAL },
         { "Concat", "String", PGY_BUILTIN_FLAG_NONE },
         { "Contains", "Bool", PGY_BUILTIN_FLAG_NONE },
         { "CooldownNew", "Cooldown", PGY_BUILTIN_FLAG_NONE },
