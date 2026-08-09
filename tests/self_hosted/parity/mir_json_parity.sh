@@ -332,10 +332,13 @@ for fixture_entry in "${FIXTURES[@]}"; do
         fi
         missing_authority="$B/${base}.missing-zone-authority.mirjson"
         invalid_authority="$B/${base}.invalid-zone-authority-slot.mirjson"
+        invalid_delegation="$B/${base}.undeclared-delegated-intent.mirjson"
         sed 's/,"zone_authorities":\[{"subject_slot":"source","requires":\[{"base":"SourceReading","actuals":\[\]}\]}\]//' \
             "$mj" >"$missing_authority"
         sed 's/"subject_slot":"source"/"subject_slot":"missing"/' \
             "$mj" >"$invalid_authority"
+        sed 's/"call_target_name":"IntakeSource"/"call_target_name":"MissingIntent"/g' \
+            "$mj" >"$invalid_delegation"
         for mutation in missing-zone-authority invalid-zone-authority-slot; do
             mutation_input="$B/${base}.${mutation}.mirjson"
             mutation_out="$B/${base}.${mutation}.out"
@@ -355,6 +358,20 @@ for fixture_entry in "${FIXTURES[@]}"; do
                 exit 1
             }
         done
+        invalid_delegation_out="$B/${base}.undeclared-delegated-intent.out"
+        invalid_delegation_err="$B/${base}.undeclared-delegated-intent.err"
+        if (cd "$ROOT_DIR" && "$B/mir_lower.exe" \
+                "${invalid_delegation#$ROOT_DIR/}" \
+                >"$invalid_delegation_out" 2>"$invalid_delegation_err"); then
+            echo "[self-host-parity:mir-json] intent_nested_direct: undeclared delegated intent was accepted" >&2
+            exit 1
+        fi
+        grep -Fq 'MIR intent step semantic carriers are incomplete' \
+            "$invalid_delegation_out" "$invalid_delegation_err" || {
+            echo "[self-host-parity:mir-json] intent_nested_direct: undeclared delegation diagnostic drifted" >&2
+            cat "$invalid_delegation_out" "$invalid_delegation_err" >&2
+            exit 1
+        }
     fi
     if [[ "$base" == "forloop" ]]; then
         for required in \
@@ -540,6 +557,26 @@ for fixture_entry in "${FIXTURES[@]}"; do
                 exit 1
             fi
         done
+        intake_section="$(awk '
+            /^  Intent: IntakeSource$/ { inside = 1 }
+            inside { print }
+            inside && /^  Intent: FrontendPipeline$/ { exit }
+        ' "$reast")"
+        frontend_section="$(awk '
+            /^  Intent: FrontendPipeline$/ { inside = 1 }
+            inside { print }
+            inside && /^  Function: Main$/ { exit }
+        ' "$reast")"
+        if ! printf '%s\n' "$intake_section" |
+                grep -Fq 'AuthorizedBy: source'; then
+            echo "[self-host-parity:mir-json] intent_nested_direct: terminal action authority was not reconstructed" >&2
+            exit 1
+        fi
+        if printf '%s\n' "$frontend_section" |
+                grep -Fq 'AuthorizedBy:'; then
+            echo "[self-host-parity:mir-json] intent_nested_direct: nested orchestration duplicated delegated authority" >&2
+            exit 1
+        fi
     fi
     if [[ "$base" == "enum_multi_payload" ]]; then
         for required in \

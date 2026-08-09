@@ -113,10 +113,30 @@ func MirIntentRoutineStepTreeLines(
             }
             carrier_row = carrier_row + 1;
         }
+        let eval_action: MirIntentActionGraphFact =
+            MirIntentActionGraphFromInstruction(
+                routines, eval_row, eval_text
+            );
+        let direct_target_syntax_id: String = "";
+        if eval_action.ok && eval_action.receiver_alias == "" &&
+            eval_action.action_name == eval_action.call_target_name {
+            direct_target_syntax_id = MirIntentDirectTargetSyntaxId(
+                routines, eval_action.action_name
+            );
+        }
+        // A legacy orchestration step may delegate authority to one exact
+        // declared intent. It must not duplicate the nested terminal action's
+        // authority contract in another direct carrier.
+        let direct_intent_target: Bool = !typed_execution &&
+            direct_target_syntax_id != "";
+        let delegates_authority: Bool = direct_intent_target &&
+            authority_count == 0;
         if zone_count != 1 || alias_count != 1 ||
             invalidation_count != 1 || who_count != 1 ||
-            authority_count != 1 || who_name == "" ||
-            authority_name != who_name || cause_count > 1 ||
+            authority_count > 1 || who_name == "" ||
+            (authority_count == 0 && !direct_intent_target) ||
+            (authority_count == 1 && authority_name != who_name) ||
+            cause_count > 1 ||
             zone_name == "" || zone_alias == "" ||
             eval_text == "" || eval_row < 0 {
             MirLowerFailClosed("MIR intent step semantic carriers are incomplete");
@@ -151,6 +171,8 @@ func MirIntentRoutineStepTreeLines(
         }
         let read_count: Int = 0;
         let authorize_count: Int = 0;
+        let authorize_name: String = "";
+        let authorize_slot: String = "";
         let resource_row: Int = 0;
         while resource_row < ArrayLength(routine_carriers.resource_names) {
             if routine_carriers.resource_names[resource_row] == "Read" &&
@@ -160,14 +182,18 @@ func MirIntentRoutineStepTreeLines(
                 read_count = read_count + 1;
             }
             if routine_carriers.resource_names[resource_row] == "Authorize" &&
-                routine_carriers.resource_arg0s[resource_row] == authority_name &&
-                routine_carriers.resource_arg1s[resource_row] == step_name &&
-                routine_carriers.resource_slots[resource_row] == authority_name {
+                routine_carriers.resource_arg1s[resource_row] == step_name {
                 authorize_count = authorize_count + 1;
+                authorize_name = routine_carriers.resource_arg0s[resource_row];
+                authorize_slot = routine_carriers.resource_slots[resource_row];
             }
             resource_row = resource_row + 1;
         }
-        if read_count != 1 || authorize_count != 1 {
+        if read_count != 1 || authorize_count > 1 ||
+            (delegates_authority && authorize_count != 0) ||
+            (!delegates_authority &&
+                (authorize_count != 1 || authorize_name != authority_name ||
+                 authorize_slot != authority_name)) {
             MirLowerFailClosed("MIR intent step resource carrier is incomplete");
         }
         let executable_count: Int = 0;
@@ -190,10 +216,6 @@ func MirIntentRoutineStepTreeLines(
                 "MIR intent executable and semantic step facts disagree"
             );
         }
-        let eval_action: MirIntentActionGraphFact =
-            MirIntentActionGraphFromInstruction(
-                routines, eval_row, eval_text
-            );
         let executable_action: MirIntentActionGraphFact =
             MirIntentActionGraphFromInstruction(
                 routines, executable_row, eval_text
@@ -225,9 +247,7 @@ func MirIntentRoutineStepTreeLines(
             binding_scan = binding_scan + 1;
         }
         if eval_action.receiver_alias == "" {
-            action_syntax_id = MirIntentDirectTargetSyntaxId(
-                routines, eval_action.action_name
-            );
+            action_syntax_id = direct_target_syntax_id;
             if typed_execution || outcome_count != 0 ||
                 action_syntax_id == "" || eval_action.action_name !=
                     eval_action.call_target_name {
@@ -297,7 +317,7 @@ func MirIntentRoutineStepTreeLines(
         tree = MirIntentTreeAppendLine(
             tree, Concat("      Using: ", zone_alias)
         );
-        if !typed_execution {
+        if !typed_execution && authority_count == 1 {
             tree = MirIntentTreeAppendLine(
                 tree, Concat("      AuthorizedBy: ", authority_name)
             );

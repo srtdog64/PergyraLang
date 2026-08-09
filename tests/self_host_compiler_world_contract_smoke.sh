@@ -1281,9 +1281,65 @@ ast_out="$tmp_dir/world.ast.txt"
 
 awk '
     function close_step() {
-        if (in_step && authorized_count != 1) bad = 1
+        if (in_step && authorized_count > 1) {
+            print "duplicate authority carrier in " current_intent > "/dev/stderr"
+            bad = 1
+        }
+        if (in_step && authorized_count == 0) {
+            if (direct_target == "") {
+                print "missing authority target in " current_intent > "/dev/stderr"
+                bad = 1
+            }
+            else {
+                delegated_count++
+                delegated_intents[delegated_count] = current_intent
+                delegated_targets[delegated_count] = direct_target
+            }
+        }
         in_step = 0
         authorized_count = 0
+        direct_target = ""
+    }
+    /^  [^ ]/ {
+        current_subject = ""
+        current_action = ""
+        current_intent = ""
+    }
+    /^  Subject:/ {
+        line = $0
+        sub(/^  Subject:[[:space:]]+/, "", line)
+        current_subject = line
+    }
+    current_subject != "" && /^      Action:/ {
+        line = $0
+        sub(/^      Action:[[:space:]]+/, "", line)
+        current_action = current_subject "." line
+        action_count[current_action]++
+    }
+    current_action != "" && /^        Requires:/ {
+        action_requires[current_action] = 1
+    }
+    current_action != "" && /^        Within:/ {
+        action_within[current_action] = 1
+    }
+    current_action != "" && /^        Authorized by:[[:space:]]+self$/ {
+        action_authorized[current_action] = 1
+    }
+    /^  Intent:/ {
+        line = $0
+        sub(/^  Intent:[[:space:]]+/, "", line)
+        current_intent = line
+        declared_intents[line] = 1
+    }
+    current_intent != "" && /^    IntentInvolves:/ {
+        line = $0
+        sub(/^    IntentInvolves:[[:space:]]+/, "", line)
+        separator = index(line, ": ")
+        if (separator > 1) {
+            alias = substr(line, 1, separator - 1)
+            type_name = substr(line, separator + 2)
+            intent_alias_types[current_intent SUBSEP alias] = type_name
+        }
     }
     /^[[:space:]]+IntentStep:/ {
         close_step()
@@ -1294,12 +1350,40 @@ awk '
         authorized_count++
         next
     }
+    in_step && /^[[:space:]]+On:/ {
+        line = $0
+        sub(/^[[:space:]]+On:[[:space:]]+/, "", line)
+        sub(/\(.*/, "", line)
+        direct_target = line
+        next
+    }
     /^[[:space:]]+Intent(Success|Failure):/ { close_step() }
     END {
         close_step()
+        for (i = 1; i <= delegated_count; i++) {
+            target = delegated_targets[i]
+            separator = index(target, ".")
+            if (separator == 0) {
+                if (!(target in declared_intents)) {
+                    print "undeclared delegated intent " target > "/dev/stderr"
+                    bad = 1
+                }
+            } else {
+                alias = substr(target, 1, separator - 1)
+                action = substr(target, separator + 1)
+                type_name = intent_alias_types[delegated_intents[i] SUBSEP alias]
+                key = type_name "." action
+                if (type_name == "" || action_count[key] != 1 ||
+                    action_requires[key] != 1 || action_within[key] != 1 ||
+                    action_authorized[key] != 1) {
+                    print "incomplete delegated action contract " key > "/dev/stderr"
+                    bad = 1
+                }
+            }
+        }
         if (bad) exit 1
     }
-' "$ast_out" || fail "compiler world intent step lacks one explicit authority fact"
+' "$ast_out" || fail "compiler world intent step authority is neither explicit nor delegated to one declared intent"
 
 grep -Fq "World: PgyCompilerWorld" "$ast_out" ||
     fail "compiler world AST missing PgyCompilerWorld"
