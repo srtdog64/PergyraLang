@@ -8,9 +8,10 @@ owner, and the named executable gate.
 
 ## Active self-host context - full MIR producer is green; gen2 consumer throughput is RED
 
-- Verified Git checkpoint is `e714f15f` on `main`; the current compiler work is
-  intentionally dirty and not yet committed. Preserve the separate user-owned
-  stdlib work: modified `docs/138_standard_library_scope.md` and
+- Verified Git checkpoint is `bf45fb00` on `main`; the compiler changes through
+  the LanguageWord aggregate-row rung are committed. The remaining worktree
+  changes are separate user-owned stdlib work: modified
+  `docs/138_standard_library_scope.md` and
   `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
   `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`.
 - The current source closes two production-sized memory seams without raising
