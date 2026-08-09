@@ -1093,6 +1093,7 @@ require_file "src/self_hosted/lexer/fixture_manifest_owner.pgy"
 require_text "src/self_hosted/lexer/run_owner.pgy" 'import "scan_owner.pgy";'
 require_text "src/self_hosted/lexer/run_owner.pgy" 'import "source_input_owner.pgy";'
 require_text "src/self_hosted/lexer/run_owner.pgy" 'import "fixture_manifest_owner.pgy";'
+reject_text "src/self_hosted/lexer/char_owner.pgy" "func CharAt("
 require_text "src/self_hosted/lexer/scan_owner.pgy" 'import "char_owner.pgy";'
 require_text "src/self_hosted/lexer/scan_owner.pgy" 'import "token_owner.pgy";'
 require_text "src/self_hosted/lexer/token_owner.pgy" "func LexerTokenPayloadContractReady"
@@ -1126,6 +1127,8 @@ require_text "tests/self_hosted/parity/lexer_parity.sh" '"$PERGYRA_TOOL_BUILD_DI
 require_text "tests/self_hosted/parity/lexer_parity.sh" 'compare_lexer_output_with_owner "c" "$label" "$expected_file" "$c_out" 2'
 require_text "tests/self_hosted/parity/lexer_parity.sh" 'compare_lexer_output_with_owner "llvm" "$label" "$expected_file" "$llvm_out" 2'
 require_text "tests/self_hosted/parity/lexer_parity.sh" 'compare_lexer_output_with_owner "live-tokens" "$label" "$expected_file" "$live_out" 0'
+require_text "tests/self_hosted/parity/lexer_parity.sh" '"$PGY" --native-pipeline --tokens "$src"'
+reject_text "tests/self_hosted/parity/lexer_parity.sh" '"$PGY" --tokens "$src"'
 reject_text "tests/self_hosted/parity/lexer_parity.sh" "examples/hello.pgy:hello_tokens.txt"
 reject_text "tests/self_hosted/parity/lexer_parity.sh" "string_escape_sequences_tokens.txt"
 reject_text "tests/self_hosted/parity/lexer_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
@@ -7556,7 +7559,7 @@ require_file "src/self_hosted/compiler/driver_rung2_cli_owner.pgy"
 require_max_lines "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 40
 require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" "func RunDriverRung2FromArgs"
 require_file "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
-require_max_lines "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 240
+require_max_lines "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 250
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     "enum DriverRung2CliRequest"
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
@@ -7624,6 +7627,7 @@ require_file "src/compiler/compiler_transient_artifact_workspace.c"
 require_file "src/compiler/compiler_transient_artifact_workspace.h"
 require_file "tests/self_hosted/parity/self_host_compiler_build.sh"
 require_file "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh"
+require_file "tests/self_hosted/parity/public_tokens_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh"
 require_file "tests/self_hosted/parity/public_llvm_ir_stdout_installed_self_host_owner.sh"
@@ -7635,11 +7639,12 @@ reject_text "src/self_hosted/parser/stmt_match_owner.pgy" \
     "TypedAstKindMatchCaseStmtTag()"
 require_text "src/self_hosted/parser/program_parse_owner.pgy" \
     "PARSER GRAPH ERROR: "
-require_max_lines "src/compiler/self_host_driver.c" 200
+require_max_lines "src/compiler/self_host_driver.c" 220
 require_max_lines "src/compiler/self_host_mir_artifact_owner.c" 90
 require_max_lines "src/compiler/self_host_llvm_driver.c" 120
-require_max_lines "src/compiler/driver_self_host_selection_owner.c" 100
+require_max_lines "src/compiler/driver_self_host_selection_owner.c" 110
 require_max_lines "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh" 140
+require_max_lines "tests/self_hosted/parity/public_tokens_installed_self_host_owner.sh" 120
 require_max_lines "src/compiler/driver_self_host_llvm_selection_owner.c" 60
 require_max_lines "src/compiler/self_host_llvm_ir_artifact_owner.c" 90
 require_max_lines "tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh" 140
@@ -7648,7 +7653,7 @@ require_max_lines "src/compiler/self_host_llvm_ir_stdout_owner.c" 80
 require_max_lines "tests/self_hosted/parity/public_llvm_ir_stdout_installed_self_host_owner.sh" 120
 require_max_lines "src/compiler/compiler_self_host_artifact.c" 180
 require_max_lines "src/compiler/compiler_transient_artifact_workspace.c" 160
-require_max_lines "src/pgy_driver.c" 320
+require_max_lines "src/pgy_driver.c" 330
 require_max_lines "src/compiler/c_runner.c" 380
 require_max_lines "src/compiler/llvm_runner.c" 300
 require_max_lines "src/compiler/pkg.c" 300
@@ -7661,6 +7666,8 @@ require_text "src/pgy_driver.c" 'strcmp(argv[1], "--self-driver") == 0'
 require_text "src/pgy_driver.c" "driver_run_self_host_command"
 require_text "src/pgy_driver.c" "driver_self_host_mir_json_request_supported"
 require_text "src/pgy_driver.c" "driver_run_self_host_mir_json"
+require_text "src/pgy_driver.c" "driver_self_host_tokens_request_supported"
+require_text "src/pgy_driver.c" "driver_run_self_host_tokens"
 require_text "src/pgy_driver.c" \
     "driver_self_host_llvm_ir_file_request_supported"
 require_text "src/pgy_driver.c" \
@@ -7683,6 +7690,8 @@ require_text "src/pgy_driver.c" \
     "--emit-c options are outside the installed self-host driver contract"
 require_text "src/compiler/driver_self_host_selection_owner.c" \
     "driver_plain_binary_target_requested("
+require_text "src/compiler/driver_self_host_selection_owner.c" \
+    "driver_self_host_tokens_request_supported("
 require_text "src/compiler/driver_self_host_selection_owner.c" \
     "flags->runtime_mode == RUNTIME_DEFAULT"
 reject_text "src/compiler/driver_self_host_selection_owner.c" "driver_run_pipeline("
@@ -7708,6 +7717,16 @@ require_text "src/compiler/self_host_driver.c" 'mir_canonicalize_mode = strcmp(a
 require_text "src/compiler/self_host_driver.c" 'child_argv[child_argc++] = argv[1]'
 require_text "src/compiler/self_host_driver.c" \
     'args[0] = (char *)"--emit-mir-json-verified";'
+require_text "src/compiler/self_host_driver.c" \
+    'args[0] = (char *)"--tokens";'
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    "DriverCliSourceTokensStdout(String)"
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    'args[0] == "--tokens"'
+require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
+    "Log(LexContent(source_path, LexerReadSource(source_path)));"
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+    "case DriverCliSourceTokensStdout(source_path):"
 require_function_text "src/compiler/self_host_mir_artifact_owner.c" \
     "driver_materialize_self_host_mir_artifact(" \
     'child_argv[1] = "--emit-mir-json-verified";'
@@ -13638,8 +13657,9 @@ reject_function_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     "MirProgramRoutineIndexStructureReady("
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     "MirProgramRoutineIndexRowReady(routines, routine_row)"
-require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
-    ') != ToString(routine_block_count)'
+require_function_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
+    "func BuildMirProgramRoutineIndexFromTable(" \
+    "block_fact.id != ToString(routine_block_count)"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineNameEnd("
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineSpanEnd("
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineObjectEnd("

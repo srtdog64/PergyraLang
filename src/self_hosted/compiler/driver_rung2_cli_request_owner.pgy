@@ -7,6 +7,7 @@ import "../lib/path.pgy";
 import "../codegen/text/text_owner.pgy";
 
 enum DriverRung2CliRequest {
+    DriverCliSourceTokensStdout(String),
     DriverCliSourceCStdout(String),
     DriverCliSourceCManifestStdout(String, String),
     DriverCliSourceCArtifact(String, String),
@@ -55,6 +56,15 @@ func DriverRung2CliRequestFromArgsOrDie(
     let count: Int = ArrayLength(args);
     if count == 0 {
         Die("driver rung-2 requires an explicit source or mode");
+    }
+
+    if args[0] == "--tokens" {
+        if count != 2 {
+            Die("source token mode requires exactly one input path");
+        }
+        return DriverCliSourceTokensStdout(
+            DriverRung2CliPathOperandOrDie(args[1], "source token input path")
+        );
     }
 
     if args[0] == "--emit-c-artifact-verified" {

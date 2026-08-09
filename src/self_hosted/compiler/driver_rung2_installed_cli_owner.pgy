@@ -89,6 +89,8 @@ func DriverRung2ExecuteInstalledRequest(
     request: DriverRung2CliRequest
 ) -> Void with caps io_read, io_write {
     match request {
+        case DriverCliSourceTokensStdout(source_path):
+            DriverRung2ExecuteReadRequest(request);
         case DriverCliSourceCArtifact(source_path, output_path):
             DriverRung2InstalledCommitSourceC(source_path, output_path);
         case DriverCliSourceMirArtifact(source_path, output_path):

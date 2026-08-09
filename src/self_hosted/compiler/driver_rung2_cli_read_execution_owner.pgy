@@ -3,6 +3,8 @@
 import "driver_rung2_cli_request_owner.pgy";
 import "compiler_world_direct_mir_owner.pgy";
 import "canonical_mir_execution_owner.pgy";
+import "../lexer/scan_owner.pgy";
+import "../lexer/source_input_owner.pgy";
 
 func DriverRung2CliLogSourceMirPayloadOrDie(
     source_path: String,
@@ -35,6 +37,8 @@ func DriverRung2ExecuteReadRequest(
     request: DriverRung2CliRequest
 ) -> Void with caps io_read {
     match request {
+        case DriverCliSourceTokensStdout(source_path):
+            Log(LexContent(source_path, LexerReadSource(source_path)));
         case DriverCliSourceCStdout(source_path):
             Log(CompileSourceToCVerified(
                 source_path, SelfHostMachineLayerDeclarationEmpty()

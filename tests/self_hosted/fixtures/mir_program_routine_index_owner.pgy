@@ -702,6 +702,13 @@ func Main() -> Void {
     let scalar_instruction: String = Concat(
         prefix, Concat(scalar_instruction_routine, "]}")
     );
+    let nonsequential_block_id_routine: String = Concat(
+        "{\"kind\":\"function\",\"name\":\"BadBlockId\",\"blocks\":[",
+        Concat(empty_block, "]}")
+    );
+    let nonsequential_block_id: String = Concat(
+        prefix, Concat(nonsequential_block_id_routine, "]}")
+    );
     let missing_kind: String = Concat(
         prefix,
         "{\"name\":\"A\",\"blocks\":[{\"id\":0,\"instructions\":[]}]}]}"
@@ -749,6 +756,7 @@ func Main() -> Void {
     if MirProgramRoutineIndexJsonReady(scalar_routine) ||
         MirProgramRoutineIndexJsonReady(scalar_block) ||
         MirProgramRoutineIndexJsonReady(scalar_instruction) ||
+        MirProgramRoutineIndexJsonReady(nonsequential_block_id) ||
         MirProgramRoutineIndexJsonReady(missing_kind) ||
         MirProgramRoutineIndexJsonReady(missing_instructions) ||
         MirProgramRoutineIndexJsonReady(missing_source_type) ||

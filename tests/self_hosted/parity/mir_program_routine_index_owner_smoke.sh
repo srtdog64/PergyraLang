@@ -100,6 +100,8 @@ grep -Fq 'document.declarations.end + 1' "$SOURCE" ||
     fail "missing extended declaration-bound negative"
 grep -Fq 'cross_document_index.valid' "$SOURCE" ||
     fail "missing cross-document declaration negative"
+grep -Fq 'nonsequential_block_id' "$SOURCE" ||
+    fail "missing non-sequential block-id negative"
 
 run_backend() {
     local backend="$1"

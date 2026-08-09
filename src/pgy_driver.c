@@ -262,6 +262,14 @@ main(int argc, char *argv[])
     if (flags.native_pipeline
         || pgy_env_value_is_truthy(getenv("PGY_NATIVE_PIPELINE")))
         return driver_run_pipeline(&flags);
+    if (flags.dump_tokens) {
+        if (!driver_self_host_tokens_request_supported(&flags)) {
+            fprintf(stderr,
+                    "pgy: --tokens options are outside the installed self-host driver contract\n");
+            return 1;
+        }
+        return driver_run_self_host_tokens(argv[0], flags.source_path);
+    }
     if (flags.dump_mir_json) {
         if (!driver_self_host_mir_json_request_supported(&flags)) {
             fprintf(stderr,

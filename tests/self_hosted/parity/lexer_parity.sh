@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Rung 1 parity for the minimal Pergyra-origin lexer (2026-05-27).
 # Asserts: clean exit, byte-equal stdout vs committed C-lexer fixtures, and
-# live-drift guard vs `pgy --tokens` for each source pair.
+# live-drift guard vs explicit native `pgy --native-pipeline --tokens` for each
+# source pair. Public `pgy --tokens` is installed self-host production now and
+# would make this oracle check self-confirming.
 # See tests/self_hosted/parity/README.md.
 
 set -euo pipefail
@@ -218,11 +220,12 @@ for pair in "${SOURCE_PAIRS[@]}"; do
         compare_lexer_output_with_owner "llvm" "$label" "$expected_file" "$llvm_out" 2
     fi
 
-    # Live C-lexer drift guard for this source pair.
+    # Explicit native C-lexer oracle for this source pair. Do not use the
+    # public selector here: it delegates to the same installed lexer under test.
     live_out="$PERGYRA_TOOL_BUILD_DIR/${label}_live_tokens.out"
     live_err="$PERGYRA_TOOL_BUILD_DIR/${label}_live_tokens.err"
     set +e
-    (cd "$ROOT_DIR" && "$PGY" --tokens "$src" 2>"$live_err" \
+    (cd "$ROOT_DIR" && "$PGY" --native-pipeline --tokens "$src" 2>"$live_err" \
         | tr -d '\r' \
         | awk 'NR > 1 { printf "\n" } { printf "%s", $0 } END { if (NR > 0) printf "\n" }' >"$live_out")
     LIVE_RC=$?

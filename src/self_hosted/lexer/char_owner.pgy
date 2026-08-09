@@ -1,16 +1,5 @@
 // Self-host lexer character/codepoint owner.
 
-func CharAt(s: String, i: Int) -> String {
-    let n: Int = StringLength(s);
-    if i < 0 {
-        return "";
-    }
-    if i >= n {
-        return "";
-    }
-    return Substring(s, i, 1);
-}
-
 // Code of the first byte of a 1-char string literal, in O(1) and no allocation.
 // Lets char comparisons stay readable (cc == Ord("x")) without magic numbers.
 func Ord(ch: String) -> Int {

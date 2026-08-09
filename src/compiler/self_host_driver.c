@@ -37,6 +37,7 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
 {
     const char *child_argv[4];
     char *binary;
+    bool tokens_mode;
     bool mir_json_mode;
     bool mir_producer_mode;
     bool mir_canonicalize_mode;
@@ -48,9 +49,15 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
                 "pgy: --self-driver requires a source path or read-only compiler mode\n");
         return 1;
     }
+    tokens_mode = strcmp(argv[0], "--tokens") == 0;
     mir_json_mode = strcmp(argv[0], "--mir-json") == 0;
     mir_producer_mode = strcmp(argv[0], "--emit-mir-json-verified") == 0;
     mir_canonicalize_mode = strcmp(argv[0], "--canonicalize-mir-json") == 0;
+    if (tokens_mode && argc != 2) {
+        fprintf(stderr,
+                "pgy: --self-driver --tokens requires one source path\n");
+        return 1;
+    }
     if (mir_json_mode && argc != 2) {
         fprintf(stderr,
                 "pgy: --self-driver --mir-json requires one MIR JSON path\n");
@@ -66,12 +73,13 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
                 "pgy: --self-driver --canonicalize-mir-json requires one MIR JSON path\n");
         return 1;
     }
-    if (!mir_json_mode && !mir_producer_mode && !mir_canonicalize_mode
+    if (!tokens_mode && !mir_json_mode
+        && !mir_producer_mode && !mir_canonicalize_mode
         && (argc > 2
             || (argc == 2
                 && strcmp(argv[1], "--emit-c-verified") != 0))) {
         fprintf(stderr,
-                "pgy: --self-driver supports <source.pgy> [--emit-c-verified], --emit-mir-json-verified <source.pgy>, --canonicalize-mir-json <file>, or --mir-json <file>\n");
+                "pgy: --self-driver supports --tokens <source.pgy>, <source.pgy> [--emit-c-verified], --emit-mir-json-verified <source.pgy>, --canonicalize-mir-json <file>, or --mir-json <file>\n");
         return 1;
     }
 
@@ -85,7 +93,7 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
 
     child_argv[child_argc++] = binary;
     child_argv[child_argc++] = argv[0];
-    if (mir_json_mode || mir_producer_mode || mir_canonicalize_mode)
+    if (tokens_mode || mir_json_mode || mir_producer_mode || mir_canonicalize_mode)
         child_argv[child_argc++] = argv[1];
     else
         child_argv[child_argc++] = "--emit-c-verified";
@@ -94,6 +102,21 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
     rc = pgy_exec_argv(child_argv, false);
     free(binary);
     return rc;
+}
+
+int
+driver_run_self_host_tokens(const char *launcher_path,
+                            const char *source_path)
+{
+    char *args[2];
+
+    if (source_path == NULL || source_path[0] == '\0') {
+        fprintf(stderr, "pgy: self-host token emission requires a source path\n");
+        return 1;
+    }
+    args[0] = (char *)"--tokens";
+    args[1] = (char *)source_path;
+    return driver_run_self_host_command(launcher_path, 2, args);
 }
 
 int
