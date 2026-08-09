@@ -11470,9 +11470,16 @@ Released/default replacement remains 0%.
   header/link owner. The same mistake is negative-gated in the component
   inventory: emitted artifact compilation must use the repository-owned target
   profile rather than reconstructing it locally.
-- The next hard-contract failure is a stale structural term requiring
+- The next hard-contract failure was a stale structural term requiring
   `projection.flow.call_abi.target_capability_fingerprint`. The aggregate target
   projection is intentionally flat: it validates
   `flow.call_abi.target_capability_fingerprint` against the storage projection
-  before sealing the receipt. The next step is to correct that gate without
-  adding duplicate projection state, then continue from the next first failure.
+  before sealing the receipt. The hard and component gates now require that
+  real function-scoped join, require readiness validation of the flat receipt,
+  and reject nested `projection.flow` reconstruction.
+- The hard contract is green in 19.3 seconds. Direct-MIR ownership signatures
+  are green in 1.1 seconds. Constructed Array<Int> and Array<Point> execute
+  through both C and LLVM with exact 44/45 output, their permutation invariants,
+  and all focused negative mutations. The monolithic component inventory has
+  valid shell syntax but did not finish or emit a diagnostic inside 60 seconds;
+  it remains unverified rather than green.

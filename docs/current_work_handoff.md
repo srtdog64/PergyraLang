@@ -45,21 +45,30 @@ owner, and the named executable gate.
   gate are green. The two C-compiling gates now consume the shared emitted-C
   runtime-header owner instead of invoking bare `cc` without repository runtime
   include/link policy.
-- Active objective card: objective = advance the installed hard contract from
-  its first failure; priority = preserve aggregate value-flow identity, consume
-  the target projection receipt, remove stale gate authority, then continue to
-  the next executable falsifier; fact owner =
+- Closed aggregate gate seam: the hard contract and component inventory both
+  required a nonexistent nested
+  `projection.flow.call_abi.target_capability_fingerprint`. The target receipt
+  is intentionally flat. Both gates now function-scope the real seal-time
+  flow/storage fingerprint join, require readiness validation of the promoted
+  receipt fingerprint, and reject `projection.flow` reconstruction.
+- Hard-contract execution exits 0 in 19.3 seconds. The direct-MIR ownership
+  signature gate exits 0 in 1.1 seconds. The constructed Array<Int> and
+  Array<Point> C/LLVM gates exit 0 in 19.9/21.7 seconds with exact 44/45 output,
+  permutation invariants, and all 27/7 plus 35/10 backend negatives. The
+  monolithic component inventory has valid shell syntax but emitted no
+  diagnostic before its 60-second budget expired, so it remains unverified.
+- Next objective card: objective = select the next installed replacement
+  falsifier without reopening already closed aggregate decisions; priority =
+  installed production reachability, first executable failure, owner closure,
+  negative ratchet, then merge-boundary breadth; fact owner =
   `DirectMirAggregateValueFlowFact` plus
   `DirectMirArrayStorageAbiProjection`; last legitimate consumer =
   `DirectMirAggregateValueFlowTargetProjectionFromFacts` and the four C/LLVM
-  aggregate emitters; forbidden fallback = inventing a nested
-  `projection.flow` carrier, reopening target facts in emitters, or satisfying a
-  source grep with duplicate state; verification = the hard contract followed
-  by the focused aggregate C/LLVM parity gates. The current first blocker is a
-  stale hard-contract term requiring nonexistent
-  `projection.flow.call_abi.target_capability_fingerprint`; production already
-  validates `flow.call_abi.target_capability_fingerprint` against the storage
-  projection before sealing the flat receipt.
+  aggregate emitters; forbidden fallback = inventing a nested `projection.flow`
+  carrier, reopening target facts in emitters, treating the component timeout as
+  green, or expanding timeout/cap to hide a reached cost; verification = the
+  next repository-owned installed execution gate, while the component inventory
+  must either finish within its static budget or remain explicitly unverified.
 
 ## Historical checkpoint - current-source gen2/gen3 fixed point is closed
 

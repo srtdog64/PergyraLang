@@ -886,9 +886,21 @@ require_text \
 forbid_text \
     "src/self_hosted/compiler/direct_mir_constructed_record_array_member_plan_owner.pgy" \
     'main.digest'
-require_text \
+require_function_text \
     "src/self_hosted/compiler/direct_mir_aggregate_value_flow_target_projection_owner.pgy" \
-    'projection.flow.call_abi.target_capability_fingerprint'
+    "DirectMirAggregateValueFlowTargetProjectionFromFacts" \
+    'flow.call_abi.target_capability_fingerprint !='
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_aggregate_value_flow_target_projection_owner.pgy" \
+    "DirectMirAggregateValueFlowTargetProjectionFromFacts" \
+    'storage.target_capability_fingerprint'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_aggregate_value_flow_target_projection_owner.pgy" \
+    "DirectMirAggregateValueFlowTargetProjectionReadyFor" \
+    'projection.target_capability_fingerprint !='
+forbid_text \
+    "src/self_hosted/compiler/direct_mir_aggregate_value_flow_target_projection_owner.pgy" \
+    'projection.flow.'
 for aggregate_emitter in \
     direct_mir_constructed_array_member_c_emission_owner.pgy \
     direct_mir_constructed_array_member_llvm_emission_owner.pgy \

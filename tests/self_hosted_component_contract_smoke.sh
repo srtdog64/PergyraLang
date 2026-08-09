@@ -15742,9 +15742,21 @@ done
 require_text \
     "src/self_hosted/compiler/direct_mir_aggregate_value_flow_fact_owner.pgy" \
     'if fact.call_abi.external_interop'
-require_text \
+require_function_text \
     "src/self_hosted/compiler/direct_mir_aggregate_value_flow_target_projection_owner.pgy" \
-    'projection.flow.call_abi.target_capability_fingerprint'
+    'func DirectMirAggregateValueFlowTargetProjectionFromFacts(' \
+    'flow.call_abi.target_capability_fingerprint !='
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_aggregate_value_flow_target_projection_owner.pgy" \
+    'func DirectMirAggregateValueFlowTargetProjectionFromFacts(' \
+    'storage.target_capability_fingerprint'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_aggregate_value_flow_target_projection_owner.pgy" \
+    'func DirectMirAggregateValueFlowTargetProjectionReadyFor(' \
+    'projection.target_capability_fingerprint !='
+reject_text \
+    "src/self_hosted/compiler/direct_mir_aggregate_value_flow_target_projection_owner.pgy" \
+    'projection.flow.'
 for aggregate_emitter in \
     direct_mir_constructed_array_member_c_emission_owner.pgy \
     direct_mir_constructed_array_member_llvm_emission_owner.pgy \
