@@ -237,7 +237,6 @@ func CodegenWrapperDeclarationBlock(
     }
     return option_fact;
 }
-
 func CollectTypeDeclarations(
     enum_facts: SemanticAstEnumFacts,
     nominal_facts: SemanticAstNominalConstructorFacts,
@@ -257,6 +256,8 @@ func CollectTypeDeclarations(
     let blocks: Array<String> = [];
     let requires_bool_header: Bool =
         CodegenSemanticNominalsRequireProjectionReadyBool(nominal_facts);
+    let dependency_env: CodegenTypeEnv =
+        CodegenTypeEnvFromPresealRows(env_box[0], "");
     while remaining > 0 {
         let made_progress: Bool = false;
         let enum_selected: Array<Int> =
@@ -275,9 +276,12 @@ func CollectTypeDeclarations(
             enum_index = enum_index + 1;
         }
         if enum_selected_count > 0 {
-            ArrayPush(blocks, CollectEnumsSelected(
-                enum_facts, enum_selected, env_box
-            ));
+            let batch: CodegenEnumDeclarationBatchFact =
+                CollectEnumsSelected(enum_facts, enum_selected, dependency_env);
+            ArrayPush(blocks, batch.c_block);
+            dependency_env = CodegenTypeEnvAdvancePresealRows(
+                env_box, dependency_env, batch.env_rows
+            );
             enum_index = 0;
             while enum_index < enum_count {
                 if enum_selected[enum_index] != 0 {
@@ -288,7 +292,6 @@ func CollectTypeDeclarations(
             remaining = remaining - enum_selected_count;
             made_progress = true;
         }
-
         let nominal_selected: Array<Int> =
             CodegenTypeDeclarationZeroMask(nominal_count);
         let nominal_selected_count: Int = 0;
@@ -305,9 +308,14 @@ func CollectTypeDeclarations(
             nominal_index = nominal_index + 1;
         }
         if nominal_selected_count > 0 {
-            ArrayPush(blocks, CollectStructsSelected(
-                nominal_facts, role_facts, nominal_selected, env_box
-            ));
+            let batch: CodegenNominalDeclarationBatchFact =
+                CollectStructsSelected(
+                    nominal_facts, role_facts, nominal_selected, dependency_env
+                );
+            ArrayPush(blocks, batch.c_block);
+            dependency_env = CodegenTypeEnvAdvancePresealRows(
+                env_box, dependency_env, batch.env_rows
+            );
             nominal_index = 0;
             while nominal_index < nominal_count {
                 if nominal_selected[nominal_index] != 0 {
@@ -318,8 +326,6 @@ func CollectTypeDeclarations(
             remaining = remaining - nominal_selected_count;
             made_progress = true;
         }
-        let wrapper_dependency_env: CodegenTypeEnv =
-            CodegenTypeEnvFromPresealRows(env_box[0], "");
         let wrapper_index: Int = 0;
         while wrapper_index < wrapper_count {
             if wrapper_emitted[wrapper_index] == 0 &&
@@ -330,7 +336,7 @@ func CollectTypeDeclarations(
                 let wrapper_block: OptionStructDefinitionBlockFact =
                     CodegenWrapperDeclarationBlock(
                         wrapper_facts.type_names[wrapper_index],
-                        wrapper_dependency_env
+                        dependency_env
                     );
                 if wrapper_block.c_block != "" {
                     ArrayPush(blocks, wrapper_block.c_block);

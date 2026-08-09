@@ -2768,6 +2768,14 @@ require_function_text \
 require_function_text \
     "src/self_hosted/codegen/type_facts/type_env.pgy" \
     "func LookupKindTypeRowPresent(" "CodegenTypeGlobalIndexContainsAdmitted("
+require_function_text \
+    "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "func CodegenTypeEnvAdvancePresealRows(" \
+    "env.global_index"
+require_function_text \
+    "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "func CodegenTypeEnvAdvancePresealRows(" \
+    "Concat(local_rows, rows)"
 reject_function_text \
     "src/self_hosted/codegen/type_facts/type_env_global_index_owner.pgy" \
     "func CodegenTypeGlobalIndexLookupAdmitted(" "StringLength(rows)"
@@ -2819,13 +2827,20 @@ require_function_text \
     "src/self_hosted/codegen/emission/program_emit.pgy" \
     "func GenerateCUnitFromReadySemanticFacts(" \
     'let base_env: CodegenTypeEnv = CodegenTypeEnvFromRows(env_acc[0], "");'
-for preseal_batch_owner in \
-    "src/self_hosted/codegen/emission/enum_emit_owner.pgy" \
-    "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
-    "src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy"; do
-    require_text "$preseal_batch_owner" "CodegenTypeEnvFromPresealRows("
-    reject_text "$preseal_batch_owner" "CodegenTypeEnvFromRows(env_box"
+for declaration_batch_owner in \
+    "src/self_hosted/codegen/emission/enum_emit_owner.pgy|func CollectEnumsSelected(" \
+    "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy|func CollectStructsSelected("; do
+    declaration_batch_path="${declaration_batch_owner%%|*}"
+    declaration_batch_function="${declaration_batch_owner#*|}"
+    require_function_text "$declaration_batch_path" \
+        "$declaration_batch_function" "dependency_env: CodegenTypeEnv"
+    reject_function_text "$declaration_batch_path" \
+        "$declaration_batch_function" "CodegenTypeEnvFromPresealRows("
 done
+require_text "src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy" \
+    "CodegenTypeEnvFromPresealRows("
+reject_text "src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy" \
+    "CodegenTypeEnvFromRows(env_box"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'let env_state: Array<String> = [base_env.global_rows, ""];'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     'let function_env_rows: Array<String> = [Concat("", "|")];'
@@ -8698,12 +8713,19 @@ require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
     'let env_blocks: Array<String> = [];'
 require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
     'ArrayPush(env_blocks, StringJoin(struct_env_rows, ""));'
-require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
-    'ArraySet(env_box, 0, Concat(env_box[0], StringJoin(env_blocks, "")));'
+require_function_text \
+    "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
+    "func CollectStructsSelected(" 'StringJoin(env_blocks, "")'
+require_function_text \
+    "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
+    "func CollectStructs(" "CodegenTypeEnvAdvancePresealRows("
 reject_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
     'ArraySet(env_box, 0, Concat(env_box[0], StringJoin(struct_env_rows, "")));'
 require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "func CollectEnums("
 require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "func CollectEnumsSelected("
+require_function_text \
+    "src/self_hosted/codegen/emission/enum_emit_owner.pgy" \
+    "func CollectEnums(" "CodegenTypeEnvAdvancePresealRows("
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     'import "type_declaration_emit_owner.pgy";'
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" \
@@ -8737,6 +8759,26 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "CodegenResultUsageFactsFromSemantic"
 require_text "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
     "func CollectTypeDeclarations("
+require_function_text \
+    "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
+    "func CollectTypeDeclarations(" \
+    'CodegenTypeEnvAdvancePresealRows('
+require_function_text \
+    "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
+    "func CollectTypeDeclarations(" \
+    'let dependency_env: CodegenTypeEnv ='
+require_file \
+    "tests/self_hosted/fixtures/codegen_type_env_preseal_epoch_owner.pgy"
+require_file \
+    "tests/self_hosted/parity/codegen_type_env_preseal_epoch_owner.sh"
+require_text "Makefile" \
+    "self-host-codegen-type-env-preseal-epoch-test-smoke:"
+require_text \
+    "tests/self_hosted/fixtures/codegen_type_env_preseal_epoch_owner.pgy" \
+    'LookupKindType(env, "Later", "s") == "struct"'
+require_text \
+    "tests/self_hosted/parity/codegen_type_env_preseal_epoch_owner.sh" \
+    "malformed delta was accepted"
 require_text "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
     "struct CodegenTypeDeclarationBlockFact"
 require_text "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
@@ -11052,8 +11094,12 @@ require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
     "let false_succ: Int = block_succ_false[block];"
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     "let block_succ_true: Array<Int>;"
-require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
-    'if true_successor < 0 { valid = false; validation_stage = "cfg_successor"; }'
+require_function_text \
+    "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "func BuildMirRoutineFactIndex(" 'if true_target < (0 - 1) {'
+require_function_text \
+    "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "func BuildMirRoutineFactIndex(" 'if false_target < (0 - 1) {'
 require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \
     'succ_true\":-1'
 require_text "tests/self_hosted/fixtures/mir_program_routine_index_owner.pgy" \

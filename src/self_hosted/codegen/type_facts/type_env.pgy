@@ -32,6 +32,22 @@ func CodegenTypeEnvFromPresealRows(
     return CodegenTypeEnvFromRows(global_rows, local_rows);
 }
 
+func CodegenTypeEnvAdvancePresealRows(
+    inout global_rows_box: Array<String>, env: CodegenTypeEnv, rows: String
+) -> CodegenTypeEnv {
+    if rows == "" { return env; }
+    if ArrayLength(global_rows_box) != 1 ||
+        CodegenCharAt(rows, StringLength(rows) - 1) != "|" {
+        Die("codegen preseal type-row delta is malformed");
+    }
+    let local_rows: String = env.local_rows;
+    if local_rows == "" { local_rows = "|"; }
+    ArraySet(global_rows_box, 0, Concat(global_rows_box[0], rows));
+    return CodegenTypeEnv(
+        env.global_rows, Concat(local_rows, rows), env.global_index
+    );
+}
+
 func LookupKindType(env: CodegenTypeEnv, name: String, kind: String) -> String {
     // Preserve the flat owner's established first-row semantics while the
     // rows live in separate storage. Scope-aware shadowing needs typed scope

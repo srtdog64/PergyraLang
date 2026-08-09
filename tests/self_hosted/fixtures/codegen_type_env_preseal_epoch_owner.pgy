@@ -1,0 +1,36 @@
+// Executable contract for declaration-preseal type-environment epochs.
+
+import "../../../src/self_hosted/codegen/type_facts/type_env.pgy";
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    let global_rows: Array<String> = [
+        "|Root=s:struct|Shared=type:Int|"
+    ];
+    let env: CodegenTypeEnv = CodegenTypeEnvFromPresealRows(
+        global_rows[0], ""
+    );
+    if ArrayLength(args) > 0 && args[0] == "--malformed" {
+        env = CodegenTypeEnvAdvancePresealRows(
+            global_rows, env, "Broken=s:struct"
+        );
+        return;
+    }
+    env = CodegenTypeEnvAdvancePresealRows(
+        global_rows, env, "Later=s:struct|Alias=type:String|"
+    );
+    env = CodegenTypeEnvAdvancePresealRows(
+        global_rows, env, "Later=s:shadow|Tail=type:Bool|"
+    );
+    if global_rows[0] ==
+            "|Root=s:struct|Shared=type:Int|Later=s:struct|Alias=type:String|Later=s:shadow|Tail=type:Bool|" &&
+        LookupKindType(env, "Root", "s") == "struct" &&
+        LookupKindType(env, "Shared", "type") == "Int" &&
+        LookupKindType(env, "Later", "s") == "struct" &&
+        LookupKindType(env, "Alias", "type") == "String" &&
+        LookupKindType(env, "Tail", "type") == "Bool" {
+        Log("codegen-type-env-preseal-epoch-ok");
+        return;
+    }
+    Log("codegen-type-env-preseal-epoch-failed");
+}

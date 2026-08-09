@@ -3500,6 +3500,9 @@ self-host-mir-program-routine-index-owner-test-smoke: $(PGY)
 self-host-json-bounded-string-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/json_bounded_string_owner_smoke.sh
 
+self-host-codegen-type-env-preseal-epoch-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_type_env_preseal_epoch_owner.sh
+
 self-host-expression-graph-identity-prefix-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/expression_graph_identity_prefix_owner_smoke.sh
 
@@ -3512,7 +3515,7 @@ self-host-mir-json-instruction-writer-parity-test-smoke: $(PGY)
 self-host-mir-json-artifact-writer-lifetime-test-smoke:
 	"$(BASH)" tests/self_hosted/parity/mir_json_artifact_writer_lifetime_owner.sh
 
-.PHONY: self-host-domain-topology-admission-test-smoke self-host-intent-execution-plan-admission-test-smoke self-host-domain-runtime-assignment-test-smoke self-host-domain-runtime-zone-sync-test-smoke self-host-mir-cfg-graph-query-test-smoke self-host-mir-program-routine-index-owner-test-smoke self-host-json-bounded-string-test-smoke self-host-expression-graph-identity-prefix-test-smoke self-host-routine-build-storage-lifetime-test-smoke self-host-mir-json-instruction-writer-parity-test-smoke self-host-mir-json-artifact-writer-lifetime-test-smoke
+.PHONY: self-host-domain-topology-admission-test-smoke self-host-intent-execution-plan-admission-test-smoke self-host-domain-runtime-assignment-test-smoke self-host-domain-runtime-zone-sync-test-smoke self-host-mir-cfg-graph-query-test-smoke self-host-mir-program-routine-index-owner-test-smoke self-host-json-bounded-string-test-smoke self-host-codegen-type-env-preseal-epoch-test-smoke self-host-expression-graph-identity-prefix-test-smoke self-host-routine-build-storage-lifetime-test-smoke self-host-mir-json-instruction-writer-parity-test-smoke self-host-mir-json-artifact-writer-lifetime-test-smoke
 
 match-binding-type-fact-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/match_binding_type_fact_smoke.sh

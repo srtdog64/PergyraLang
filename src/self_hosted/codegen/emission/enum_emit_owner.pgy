@@ -5,18 +5,21 @@ import "../input/semantic_enum_codegen_view_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 
+struct CodegenEnumDeclarationBatchFact {
+    c_block: String;
+    env_rows: String;
+}
+
 func CollectEnumsSelected(
     facts: SemanticAstEnumFacts,
     selected: Array<Int>,
-    inout env_box: Array<String>
-) -> String {
+    dependency_env: CodegenTypeEnv
+) -> CodegenEnumDeclarationBatchFact {
     if ArrayLength(selected) != SemanticAstEnumCount(facts) {
         Die("enum declaration selection mask does not match semantic rows");
     }
     let blocks: Array<String> = [];
     let env_rows: Array<String> = [];
-    let dependency_env: CodegenTypeEnv =
-        CodegenTypeEnvFromPresealRows(env_box[0], "");
     let i: Int = 0;
     while i < SemanticAstEnumCount(facts) {
         if selected[i] == 0 {
@@ -272,12 +275,9 @@ func CollectEnumsSelected(
         ArrayPush(blocks, StringJoin(enum_rows, ""));
         i = i + 1;
     }
-    if ArrayLength(env_rows) > 0 {
-        ArraySet(env_box, 0, Concat(
-            env_box[0], StringJoin(env_rows, "")
-        ));
-    }
-    return StringJoin(blocks, "");
+    return CodegenEnumDeclarationBatchFact(
+        StringJoin(blocks, ""), StringJoin(env_rows, "")
+    );
 }
 
 func CollectEnums(
@@ -290,5 +290,9 @@ func CollectEnums(
         ArrayPush(selected, 1);
         i = i + 1;
     }
-    return CollectEnumsSelected(facts, selected, env_box);
+    let env: CodegenTypeEnv = CodegenTypeEnvFromPresealRows(env_box[0], "");
+    let batch: CodegenEnumDeclarationBatchFact =
+        CollectEnumsSelected(facts, selected, env);
+    CodegenTypeEnvAdvancePresealRows(env_box, env, batch.env_rows);
+    return batch.c_block;
 }

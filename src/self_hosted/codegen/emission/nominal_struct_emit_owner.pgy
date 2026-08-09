@@ -8,19 +8,22 @@ import "../../lib/nominal_field_kind_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "role_dispatch_emit_owner.pgy";
 
+struct CodegenNominalDeclarationBatchFact {
+    c_block: String;
+    env_rows: String;
+}
+
 func CollectStructsSelected(
     facts: SemanticAstNominalConstructorFacts,
     roles: SemanticAstRoleFacts,
     selected: Array<Int>,
-    inout env_box: Array<String>
-) -> String {
+    dependency_env: CodegenTypeEnv
+) -> CodegenNominalDeclarationBatchFact {
     if ArrayLength(selected) != SemanticAstNominalConstructorCount(facts) {
         Die("nominal declaration selection mask does not match semantic rows");
     }
     let typedefs: Array<String> = [];
     let env_blocks: Array<String> = [];
-    let dependency_env: CodegenTypeEnv =
-        CodegenTypeEnvFromPresealRows(env_box[0], "");
     let i: Int = 0;
     while i < SemanticAstNominalConstructorCount(facts) {
         if selected[i] == 0 {
@@ -176,10 +179,9 @@ func CollectStructsSelected(
         ArrayPush(env_blocks, StringJoin(struct_env_rows, ""));
         i = i + 1;
     }
-    if ArrayLength(env_blocks) > 0 {
-        ArraySet(env_box, 0, Concat(env_box[0], StringJoin(env_blocks, "")));
-    }
-    return StringJoin(typedefs, "");
+    return CodegenNominalDeclarationBatchFact(
+        StringJoin(typedefs, ""), StringJoin(env_blocks, "")
+    );
 }
 
 func CollectStructs(
@@ -193,7 +195,11 @@ func CollectStructs(
         ArrayPush(selected, 1);
         i = i + 1;
     }
-    return CollectStructsSelected(facts, roles, selected, env_box);
+    let env: CodegenTypeEnv = CodegenTypeEnvFromPresealRows(env_box[0], "");
+    let batch: CodegenNominalDeclarationBatchFact =
+        CollectStructsSelected(facts, roles, selected, env);
+    CodegenTypeEnvAdvancePresealRows(env_box, env, batch.env_rows);
+    return batch.c_block;
 }
 
 // Build the C forward-declaration block for every non-Main function, in
