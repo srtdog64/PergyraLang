@@ -11,12 +11,11 @@ import "../../semantic/role_operator_vocabulary_owner.pgy";
 func CollectRoleOperators(
     roles: SemanticAstRoleFacts,
     signatures: SemanticAstFunctionSignatureFacts,
+    dependency_env: CodegenTypeEnv,
     inout env_box: Array<String>
 ) -> String {
     let rows: Array<String> = [];
     let blocks: Array<String> = [];
-    let dependency_env: CodegenTypeEnv =
-        CodegenTypeEnvFromPresealRows(env_box[0], "");
     let i: Int = 0;
     while i < SemanticAstRoleCount(roles) {
         let role_name: String = CodegenSemanticRoleNameOrDie(roles, i);

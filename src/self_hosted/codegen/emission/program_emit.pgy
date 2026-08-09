@@ -301,19 +301,33 @@ func GenerateCUnitFromReadySemanticFacts(
         );
     if observe_pressure { Log("[codegen-pressure-stage] type-declarations:done"); }
     if observe_pressure { Log("[codegen-pressure-stage] role-dispatch:start"); }
+    let declaration_env: CodegenTypeEnv = type_declaration_fact.type_env;
     let dispatch_type_block: String = CodegenSemanticRoleDispatchTypeBlock(
         semantic_analysis.roles, signatures,
-        CodegenTypeEnvFromPresealRows(env_acc[0], "")
+        declaration_env
     );
     let dispatch_forward_block: String =
         CodegenSemanticRoleDispatchForwardBlock(semantic_analysis.roles);
+    let runtime_row_start: Int = StringLength(env_acc[0]);
     let dispatch_runtime_block: String =
         CodegenSemanticRoleDispatchRuntimeBlock(
             semantic_analysis.roles, signatures,
             semantic_analysis.constructors, env_acc
         );
+    let runtime_rows: String = Substring(
+        env_acc[0], runtime_row_start,
+        StringLength(env_acc[0]) - runtime_row_start
+    );
+    let runtime_env: CodegenTypeEnv = CodegenTypeEnvAppendPresealRows(
+        declaration_env, runtime_rows
+    );
+    let operator_row_start: Int = StringLength(env_acc[0]);
     let operator_adapter_block: String = CollectRoleOperators(
-        semantic_analysis.roles, signatures, env_acc
+        semantic_analysis.roles, signatures, runtime_env, env_acc
+    );
+    let operator_rows: String = Substring(
+        env_acc[0], operator_row_start,
+        StringLength(env_acc[0]) - operator_row_start
     );
     let type_declaration_block: String = Concat(
         dispatch_forward_block, Concat(
@@ -326,7 +340,9 @@ func GenerateCUnitFromReadySemanticFacts(
     );
     if observe_pressure { Log("[codegen-pressure-stage] role-dispatch:done"); }
     if observe_pressure { Log("[codegen-pressure-stage] base-env:start"); }
-    let base_env: CodegenTypeEnv = CodegenTypeEnvFromRows(env_acc[0], "");
+    let base_env: CodegenTypeEnv = CodegenTypeEnvSealPresealRows(
+        CodegenTypeEnvAppendPresealRows(runtime_env, operator_rows)
+    );
     if observe_pressure { Log("[codegen-pressure-stage] base-env:done"); }
     if observe_pressure { Log("[codegen-pressure-stage] runtime-usage:start"); }
     let usage: CodegenRuntimeUsageFacts =

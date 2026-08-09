@@ -1288,8 +1288,11 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/text/struct_literal_field_owner.pgy` -- struct literal field-name/value entry facts.
 - `src/self_hosted/codegen/text/struct_field_access_owner.pgy` -- dotted member-access field spelling projection facts.
 - `src/self_hosted/codegen/type_facts/type_env.pgy` -- type environment facts,
-  including declaration-preseal epochs that keep one sealed global index and
-  append only newly admitted declaration rows to the ordered local delta view.
+  including declaration/role preseal epochs that keep the original global
+  index, the ordered program-global delta, and function-local rows as distinct
+  lookup layers. The program delta is sealed once into its own immutable index
+  after the last role/operator row; it is never copied into each function-local
+  environment or reparsed with the original global serialization.
 - `src/self_hosted/codegen/type_facts/type_env_global_index_owner.pgy` --
   immutable same-epoch global type-row offset index; it owns no copied row
   strings and never scans the sealed global serialization during lookup.

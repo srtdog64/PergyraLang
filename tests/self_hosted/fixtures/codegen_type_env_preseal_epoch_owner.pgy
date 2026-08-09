@@ -22,13 +22,25 @@ func Main() -> Void {
     env = CodegenTypeEnvAdvancePresealRows(
         global_rows, env, "Later=s:shadow|Tail=type:Bool|"
     );
+    let role_env: CodegenTypeEnv = CodegenTypeEnvAppendPresealRows(
+        env, "Runtime=bind:ready|Operator=op:plus|"
+    );
+    let sealed_role_env: CodegenTypeEnv = CodegenTypeEnvSealPresealRows(role_env);
+    let local_env: CodegenTypeEnv = TypeEnvAppendLocalRows(
+        sealed_role_env, "Runtime=bind:local|Local=type:Value|"
+    );
     if global_rows[0] ==
             "|Root=s:struct|Shared=type:Int|Later=s:struct|Alias=type:String|Later=s:shadow|Tail=type:Bool|" &&
         LookupKindType(env, "Root", "s") == "struct" &&
         LookupKindType(env, "Shared", "type") == "Int" &&
         LookupKindType(env, "Later", "s") == "struct" &&
         LookupKindType(env, "Alias", "type") == "String" &&
-        LookupKindType(env, "Tail", "type") == "Bool" {
+        LookupKindType(env, "Tail", "type") == "Bool" &&
+        LookupKindType(sealed_role_env, "Runtime", "bind") == "ready" &&
+        LookupKindType(sealed_role_env, "Operator", "op") == "plus" &&
+        LookupKindType(env, "Runtime", "bind") == "" &&
+        LookupKindType(local_env, "Runtime", "bind") == "ready" &&
+        LookupKindType(local_env, "Local", "type") == "Value" {
         Log("codegen-type-env-preseal-epoch-ok");
         return;
     }

@@ -318,6 +318,8 @@ require_stage_owner_line_cap() {
         cap=600
         if [[ "$rel" == "src/self_hosted/codegen/emission/stmt_emit.pgy" ]]; then
             cap=640
+        elif [[ "$rel" == "src/self_hosted/codegen/type_facts/type_env.pgy" ]]; then
+            cap=640
         fi
         require_max_lines "$rel" "$cap"
         require_text "src/self_hosted/OWNERS.md" "$rel"
@@ -2734,6 +2736,8 @@ require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "struct CodegenTy
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "global_rows: String;"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "local_rows: String;"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "preseal_index: CodegenTypeGlobalIndex;"
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" \
     "global_index: CodegenTypeGlobalIndex;"
 require_file \
     "src/self_hosted/codegen/type_facts/type_env_global_index_owner.pgy"
@@ -2756,6 +2760,15 @@ require_text "src/self_hosted/OWNERS.md" \
 require_function_text \
     "src/self_hosted/codegen/type_facts/type_env.pgy" \
     "func LookupKindType(" "CodegenTypeGlobalIndexLookupAdmitted("
+require_function_text \
+    "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "func LookupKindType(" "env.preseal_rows"
+reject_function_text \
+    "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "func LookupKindType(" "CodegenTypeGlobalIndexLookup("
+reject_function_text \
+    "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "func LookupKindTypeRowPresent(" "CodegenTypeGlobalIndexContains("
 reject_function_text \
     "src/self_hosted/codegen/type_facts/type_env.pgy" \
     "func LookupKindType(" "LookupKindTypeRows(env.global_rows"
@@ -2770,12 +2783,20 @@ require_function_text \
     "func LookupKindTypeRowPresent(" "CodegenTypeGlobalIndexContainsAdmitted("
 require_function_text \
     "src/self_hosted/codegen/type_facts/type_env.pgy" \
-    "func CodegenTypeEnvAdvancePresealRows(" \
+    "func CodegenTypeEnvAppendPresealRows(" \
     "env.global_index"
 require_function_text \
     "src/self_hosted/codegen/type_facts/type_env.pgy" \
     "func CodegenTypeEnvAdvancePresealRows(" \
-    "Concat(local_rows, rows)"
+    "CodegenTypeEnvAppendPresealRows(env, rows)"
+require_function_text \
+    "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "func CodegenTypeEnvAppendPresealRows(" \
+    "Concat(preseal_rows, rows)"
+require_function_text \
+    "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "func CodegenTypeEnvSealPresealRows(" \
+    "CodegenTypeGlobalIndexFromRows(env.preseal_rows)"
 reject_function_text \
     "src/self_hosted/codegen/type_facts/type_env_global_index_owner.pgy" \
     "func CodegenTypeGlobalIndexLookupAdmitted(" "StringLength(rows)"
@@ -2802,6 +2823,9 @@ require_function_text \
 require_function_text \
     "src/self_hosted/codegen/type_facts/type_env.pgy" \
     "func CodegenTypeEnvStateView(" "base_env.global_rows"
+require_function_text \
+    "src/self_hosted/codegen/type_facts/type_env.pgy" \
+    "func CodegenTypeEnvStateView(" "base_env.preseal_index"
 reject_function_text \
     "src/self_hosted/codegen/type_facts/type_env.pgy" \
     "func CodegenTypeEnvStateView(" "state[0] != base_env.global_rows"
@@ -2816,7 +2840,7 @@ while IFS= read -r raw_type_env_constructor_path; do
     [[ -n "$raw_type_env_constructor_path" ]] || continue
     raw_type_env_constructor_rel="${raw_type_env_constructor_path#"$ROOT_DIR/"}"
     case "$raw_type_env_constructor_rel" in
-        src/self_hosted/codegen/type_facts/type_env.pgy|src/self_hosted/codegen/emission/intent_signature_emit_owner.pgy)
+        src/self_hosted/codegen/type_facts/type_env.pgy)
             ;;
         *)
             fail "raw CodegenTypeEnv constructor escaped allowlist: $raw_type_env_constructor_rel"
@@ -2826,7 +2850,14 @@ done <<<"$raw_type_env_constructor_paths"
 require_function_text \
     "src/self_hosted/codegen/emission/program_emit.pgy" \
     "func GenerateCUnitFromReadySemanticFacts(" \
-    'let base_env: CodegenTypeEnv = CodegenTypeEnvFromRows(env_acc[0], "");'
+    'let base_env: CodegenTypeEnv = CodegenTypeEnvSealPresealRows('
+require_function_text \
+    "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "func GenerateCUnitFromReadySemanticFacts(" "type_declaration_fact.type_env"
+reject_function_text \
+    "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "func GenerateCUnitFromReadySemanticFacts(" \
+    'CodegenTypeEnvFromRows(env_acc[0], "")'
 for declaration_batch_owner in \
     "src/self_hosted/codegen/emission/enum_emit_owner.pgy|func CollectEnumsSelected(" \
     "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy|func CollectStructsSelected("; do
@@ -2837,11 +2868,16 @@ for declaration_batch_owner in \
     reject_function_text "$declaration_batch_path" \
         "$declaration_batch_function" "CodegenTypeEnvFromPresealRows("
 done
-require_text "src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy" \
-    "CodegenTypeEnvFromPresealRows("
+reject_function_text \
+    "src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy" \
+    "func CollectRoleOperators(" "CodegenTypeEnvFromPresealRows("
 reject_text "src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy" \
     "CodegenTypeEnvFromRows(env_box"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'let env_state: Array<String> = [base_env.global_rows, ""];'
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    'let env_state: Array<String> = [base_env.global_rows, ""];'
+require_function_text \
+    "src/self_hosted/codegen/emission/intent_signature_emit_owner.pgy" \
+    "func CodegenIntentLocalEnv(" "TypeEnvAppendLocalRows(base_env"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     'let function_env_rows: Array<String> = [Concat("", "|")];'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" \

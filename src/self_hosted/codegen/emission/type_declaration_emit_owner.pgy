@@ -13,8 +13,8 @@ import "../input/semantic_nominal_codegen_view_owner.pgy";
 struct CodegenTypeDeclarationBlockFact {
     let c_block: String;
     let requires_bool_header: Bool;
+    let type_env: CodegenTypeEnv;
 }
-
 func CodegenTypeDeclarationZeroMask(count: Int) -> Array<Int> {
     let rows: Array<Int> = [];
     let i: Int = 0;
@@ -355,6 +355,6 @@ func CollectTypeDeclarations(
         }
     }
     return CodegenTypeDeclarationBlockFact(
-        StringJoin(blocks, ""), requires_bool_header
+        StringJoin(blocks, ""), requires_bool_header, dependency_env
     );
 }

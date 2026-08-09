@@ -130,7 +130,5 @@ func CodegenIntentLocalEnv(
         ).env_rows);
         p = p + 1;
     }
-    return CodegenTypeEnv(
-        base_env.global_rows, StringJoin(rows, ""), base_env.global_index
-    );
+    return TypeEnvAppendLocalRows(base_env, StringJoin(rows, ""));
 }
