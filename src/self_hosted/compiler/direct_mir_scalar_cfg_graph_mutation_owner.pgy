@@ -1,9 +1,7 @@
 // Digest mutation rejection for one otherwise sealed scalar CFG plan.
-
 import "direct_mir_scalar_cfg_graph_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_program_extension_mutation_owner.pgy";
 import "direct_mir_scalar_cfg_routine_partition_mutation_owner.pgy";
-
 func DirectMirScalarCfgGraphPlanMutationRejected(
     plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {

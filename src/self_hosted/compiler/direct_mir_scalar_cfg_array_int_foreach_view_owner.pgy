@@ -2,7 +2,6 @@
 
 import "direct_mir_scalar_cfg_array_int_collection_owner.pgy";
 import "direct_mir_scalar_cfg_foreach_fact_owner.pgy";
-
 func DirectMirScalarCfgArrayIntCollectionFromForEach(
     ref fact: DirectMirScalarCfgForEachFact
 ) -> DirectMirScalarCfgArrayIntCollectionFact {
@@ -21,8 +20,6 @@ func DirectMirScalarCfgArrayIntCollectionFromForEach(
             fact.data_offset, fact.length_offset, fact.capacity_offset,
             fact.allocator_offset
         );
-    if !DirectMirScalarCfgArrayIntCollectionFactReady(view) {
-        return DirectMirScalarCfgArrayIntCollectionFactEmpty();
-    }
+    if !DirectMirScalarCfgArrayIntCollectionFactReady(view) { return DirectMirScalarCfgArrayIntCollectionFactEmpty(); }
     return view;
 }

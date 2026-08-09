@@ -172,14 +172,18 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(
 func DirectMirScalarCfgLocalRefsReady(
     local_names: Array<String>, local_ref_kinds: Array<Int>,
     local_ref_value_ids: Array<String>, local_ref_syntax_ids: Array<Int>,
-    value_local_rows: Array<Int>,
+    value_names: Array<String>, value_local_rows: Array<Int>,
+    value_definition_blocks: Array<Int>, block_count: Int,
     ref ranges: DirectMirScalarCfgRangeFactSet,
     ref foreach_facts: DirectMirScalarCfgForEachFactSet
 ) -> Bool {
     let count: Int = ArrayLength(local_names);
+    let value_count: Int = ArrayLength(value_names);
     if count != ArrayLength(local_ref_kinds) ||
         count != ArrayLength(local_ref_value_ids) ||
-        count != ArrayLength(local_ref_syntax_ids) {
+        count != ArrayLength(local_ref_syntax_ids) ||
+        value_count != ArrayLength(value_local_rows) ||
+        value_count != ArrayLength(value_definition_blocks) {
         return false;
     }
     let row: Int = 0;
@@ -221,9 +225,12 @@ func DirectMirScalarCfgLocalRefsReady(
         row = row + 1;
     }
     row = 0;
-    while row < ArrayLength(value_local_rows) {
+    while row < value_count {
         let local_binding: Int = value_local_rows[row];
-        if local_binding < 0 || local_binding >= count ||
+        if StringLength(value_names[row]) == 0 ||
+            local_binding < 0 || local_binding >= count ||
+            value_definition_blocks[row] < 0 ||
+            value_definition_blocks[row] >= block_count ||
             local_ref_kinds[local_binding] != DirectMirScalarCfgLocalRefValue() {
             return false;
         }

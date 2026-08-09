@@ -34,11 +34,17 @@ require_text "$GRAPH" 'let routines: DirectMirScalarCfgRoutinePartitionFact;'
 require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v23'
 reject_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v16'
 require_text "$ADMISSION" 'DirectMirScalarCfgSingleRoutinePartitionFromOwners('
-require_text "$SEAL" 'ref routine_partition: DirectMirScalarCfgRoutinePartitionFact'
+require_text "$SEAL" 'own routine_partition: DirectMirScalarCfgRoutinePartitionFact'
+reject_text "$SEAL" 'ref routine_partition: DirectMirScalarCfgRoutinePartitionFact'
 require_text "$SEAL" 'DirectMirScalarCfgGraphPlanVerified(plan)'
 require_text "$VERIFY" 'DirectMirScalarCfgGraphPlanMutationRejected(verified)'
 require_text "$READY" 'DirectMirScalarCfgRoutinePartitionReady('
-require_text "$MUTATION" 'DirectMirScalarCfgRoutinePartitionMutationRejected(plan.routines)'
+require_text "$MUTATION" \
+    'let routine_partition: DirectMirScalarCfgRoutinePartitionFact ='
+require_text "$MUTATION" \
+    'DirectMirScalarCfgRoutinePartitionMutationRejected(routine_partition)'
+reject_text "$MUTATION" \
+    'DirectMirScalarCfgRoutinePartitionMutationRejected(plan.routines)'
 for column in source_syntax_ids signature_digests cfg_digests \
         local_starts value_starts block_starts operation_starts phi_starts; do
     require_text "$FACT" "let $column:"

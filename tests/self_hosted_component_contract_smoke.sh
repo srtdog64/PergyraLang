@@ -15735,11 +15735,20 @@ require_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy" \
     "DirectMirScalarCfgOperandsEmpty"
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy"
-# Re-armed at the file's true size. This owner is a single function, so a few
-# lines of growth is not a decomposition failure and there is no seam to split
-# on. The 600-line owner cap is the SRP standard and is not relaxed here.
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy" 243
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy" \
+    "func DirectMirScalarCfgLocalRefsReady(" \
+    "value_definition_blocks"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy" \
+    "func DirectMirScalarCfgLocalRefsReady(" \
+    "StringLength(value_names[row])"
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy" \
+    "func DirectMirScalarCfgGraphPlanReady(" \
+    "while value < value_count"
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_phi_operation_admission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_phi_operation_admission_owner.pgy" 80

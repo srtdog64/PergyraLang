@@ -34,12 +34,11 @@ func DirectMirScalarCfgGraphPlanReady(
         !DirectMirScalarCfgLocalRefsReady(
             plan.local_names, plan.local_ref_kinds,
             plan.local_ref_value_ids, plan.local_ref_syntax_ids,
-            plan.value_local_rows, plan.range_iterations,
+            plan.value_names, plan.value_local_rows,
+            plan.value_definition_blocks, block_count, plan.range_iterations,
             plan.foreach_iterations
         ) ||
         operation_count < 1 ||
-        value_count != ArrayLength(plan.value_local_rows) ||
-        value_count != ArrayLength(plan.value_definition_blocks) ||
         block_count != ArrayLength(plan.block_succ_false) ||
         block_count != ArrayLength(plan.block_operation_starts) ||
         block_count != ArrayLength(plan.block_operation_counts) ||
@@ -64,17 +63,6 @@ func DirectMirScalarCfgGraphPlanReady(
         plan.target_schema != CompilerTargetCapabilitySchema() ||
         plan.target_fingerprint != CompilerTargetCapabilityFingerprint() {
         return false;
-    }
-    let value: Int = 0;
-    while value < value_count {
-        if StringLength(plan.value_names[value]) == 0 ||
-            plan.value_local_rows[value] < 0 ||
-            plan.value_local_rows[value] >= local_count ||
-            plan.value_definition_blocks[value] < 0 ||
-            plan.value_definition_blocks[value] >= block_count {
-            return false;
-        }
-        value = value + 1;
     }
     let expected_operation: Int = 0;
     let block: Int = 0;
