@@ -53,17 +53,19 @@ C and LLVM select the same AIR-bound row after MIR validation; neither backend
 owns a second observability-usage query and neither reads AIR directly.
 
 The call ABI has one independent owner:
-`src/common/intent_observability_abi.c`. Its 51 source-name-sorted rows own a
+`src/common/intent_observability_abi.def`. Its 51 source-name-sorted rows own a
 stable, non-zero, unique `RuntimeCallAbiId`, source name, runtime symbol, arity,
-argument kind, and return kind. The current family-level argument fact is `Int`
-for every handle/index argument and is consumed by semantic and LLVM type
-projection rather than duplicated there. IDs are append-only identities, not
-sorted row positions; a new source name receives a fresh ID without
-renumbering existing rows.
+parameter shape, and return kind. The explicit `PARAMS_NONE`, `PARAMS_INT`, and
+`PARAMS_INT_INT` tokens derive both arity and argument kinds for native and
+self-host consumers; neither consumer reconstructs an all-`Int` policy from a
+count. IDs are append-only identities, not sorted row positions; a new source
+name receives a fresh positive ID without renumbering existing rows.
 Semantic checking, builtin classification, C emission, LLVM emission, and LLVM
 runtime declaration consume those rows. The previous names-only table,
 per-call `BuiltinKind` aliases, semantic spec table, and backend-local runtime
-symbol tables are retired.
+symbol tables are retired. The generated self-host projection returns one
+complete immutable row per index; the six independent 51-branch selectors are
+also retired.
 
 ## Gate
 
@@ -77,6 +79,10 @@ symbol tables are retired.
 - `OBS0` maps to `ERASE` and `OBS1` maps to `MATERIALIZE`;
 - C and LLVM consume target-specific rows from the same planner;
 - all 51 ABI rows have unique non-zero IDs and deterministic source-name order;
+- a lexically middle row with a fresh non-positional ID preserves all existing
+  identities, while duplicate and non-positive IDs fail closed;
+- zero-, one-, and two-`Int` parameter shapes project identically through
+  native semantic, C, LLVM, and self-host signature consumers;
 - semantic/C/LLVM consumers use the canonical ABI owner;
 - retired aliases, backend-local runtime symbols, and AST/HIR fallback scans
   cannot return;

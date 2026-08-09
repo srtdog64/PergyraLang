@@ -11347,3 +11347,28 @@ Released/default replacement remains 0%.
   Int parameter shape is duplicated in native and generated consumers. Those
   authority defects are OPEN; full gen2==gen3, full CI, and released-driver
   promotion are not claimed.
+
+## 2026-08-10 - intent observability ABI identity and shape become one row
+
+- `intent_observability_abi.def` now owns positive unique non-positional
+  `RuntimeCallAbiId` literals and explicit zero/one/two-`Int` parameter shapes.
+  Native arity and argument-kind accessors plus the self-host signature
+  generator derive from that shape; the former all-`Int` reconstruction and
+  sorted `index + 1` identity rule are removed.
+- The generated self-host owner now returns one complete immutable row and the
+  six 51-branch scalar selectors are gone. Invalid `-1` and count lookups fail
+  closed. The registry gate accepts a lexically middle row with fresh ID 99,
+  preserves all existing identities, and rejects duplicate or zero IDs.
+- Native registry, runtime contract, verified projection, and self-host builtin
+  C/LLVM parity gates are green. The fixture exercises no-argument, one-Int,
+  and two-Int observability signatures through the actual builtin owner.
+- The current-source Pergyra-built producer exits 0 in 101.198 seconds at
+  2.965 GiB private; the native oracle exits 0 in 132.579 seconds at 2.325 GiB.
+  Both commit exactly 183,890,971 bytes with SHA-256
+  `9B144FD5D25A18EA22BECA1BB78BA51484EC68BF6ADE846B0762F63F898D1A57`,
+  and direct byte comparison passes.
+- The current-source 1,920-to-1,984 consumer interval falls from 24.363 seconds
+  to 15.952 seconds. The 300-second run reaches routine 2,752 at 401.7 MB
+  private, versus routine 2,368 before the row collapse, but still publishes no
+  C artifact. Full gen2==gen3, full CI, and released-driver promotion remain
+  open.

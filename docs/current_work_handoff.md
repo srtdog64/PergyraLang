@@ -8,8 +8,8 @@ owner, and the named executable gate.
 
 ## Active self-host context - full MIR producer is green; gen2 consumer throughput is RED
 
-- Verified Git checkpoint is `bf45fb00` on `main`; the compiler changes through
-  the LanguageWord aggregate-row rung are committed. The remaining worktree
+- Verified Git checkpoint is `838c7de9` on `main`; the compiler changes through
+  the intent-observability aggregate-row rung are committed. The remaining worktree
   changes are separate user-owned stdlib work: modified
   `docs/138_standard_library_scope.md` and
   `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
@@ -108,14 +108,25 @@ owner, and the named executable gate.
   run reaches routine 2,368 at 390.5 MB private but still publishes no C
   artifact. These binaries are comparable O2 measurement carriers, not the
   canonical O3 installed release.
-- The next reached batch is routines 1,920-to-1,984 at 24.363 s. Six generated
-  `IntentObservabilityAbi*At` ladders account for 618 of its 1,407 blocks, but
-  a blind row collapse is blocked by two existing authority contradictions:
-  the documented append-only runtime ABI ID is currently enforced as sorted
-  `index + 1`, and Int parameter shape is duplicated between native C and the
-  generator instead of being declared in the `.def` SoT. Keep this next rung
-  OPEN until the registry owns non-positional stable identity and parameter
-  shape; do not preserve either dual policy inside a faster projection.
+- The intent-observability registry now owns positive unique non-positional ABI
+  IDs and explicit `NONE`/`INT`/`INT_INT` parameter shapes. Native arity/kind
+  and generated self-host signatures derive from that shape. Six generated
+  51-case selectors are replaced by one complete immutable row, with invalid
+  lower/upper sentinels and negative gates against positional identity or old
+  selectors. A lexically middle ID-99 mutation preserves every existing ID;
+  duplicate and zero IDs fail closed.
+- Native registry, runtime contract, verified-plan, and self-host builtin C/LLVM
+  gates are green. The new Pergyra-built producer exits 0 in 101.198 s at
+  2.965 GiB private, and the native oracle exits 0 in 132.579 s at 2.325 GiB.
+  Both commit 183,890,971 bytes with SHA-256
+  `9B144FD5D25A18EA22BECA1BB78BA51484EC68BF6ADE846B0762F63F898D1A57`;
+  byte comparison exits 0.
+- The current-source 1,920-to-1,984 batch falls from 24.363 s to 15.952 s. The
+  300-second run reaches routine 2,752 at 401.7 MB private instead of 2,368,
+  but still publishes no C artifact. The next largest completed intervals are
+  2,112-to-2,176 at 18.316 s and 2,176-to-2,240 at 18.146 s. The first is
+  dominated by branch-heavy parser owners (`ParseIntentDecl` 287 blocks and
+  `ParseNominalDecl` 196 blocks), not another parallel registry projection.
 - Apparent compact-semantic regressions were corrupted manual AST carriers,
   not a language change. An ad-hoc CR-removal command deleted literal digits
   `0`, `1`, and `5`, producing expressions such as `bounds[]`. The official
@@ -127,17 +138,19 @@ owner, and the named executable gate.
   such as `dos2unix`, then require codegen `--check` before emission.
 - Objective card: production entry is the integrated driver's `--mir-json`
   mode; the closed sub-seam owners are the document-owned declaration index,
-  exact-bounds JSON object fact table, and complete LanguageWord registry row.
-  The open fact owner is `src/common/intent_observability_abi.def`; it must own
-  stable runtime-call ABI identity and parameter shape before its six generated
-  projections can become one row. The last legitimate consumer
+  exact-bounds JSON object fact table, complete LanguageWord registry row, and
+  complete intent-observability ABI row. The next open owner is
+  `src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy`; the smallest candidate is
+  the allocation-free terminal-true-arm merge proof for branch-heavy parser
+  routines, while general CFG topology fallback must retain exact semantics.
+  The last legitimate consumer
   is C artifact publication followed by the gen2/gen3 byte comparator.
   Forbidden fallbacks are native substitution, skipped oracle parity, whole-
   document or per-routine reparsing, graph reconstruction, cache/query engine,
   shard/worker, timeout or memory-cap increase, and fixture-specific output.
-  The next falsifier must first reject positional ABI-ID generation and
-  consumer-local parameter-kind reconstruction, then reduce the six 51-branch
-  projections without adding a second registry authority.
+  The next falsifier must compare the same current-source MIR before/after one
+  bounded CFG-owner change and reject semantic drift on shared-terminal,
+  nonterminal diamond, loop, malformed-successor, and earlier-merge cases.
   Final acceptance remains a bounded gen2 C
   artifact; only then may the generated binary attempt byte-identical gen3
   reproduction.

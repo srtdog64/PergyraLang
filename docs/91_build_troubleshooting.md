@@ -6446,3 +6446,34 @@ candidate currently violates that precondition: append-only ABI IDs are tied
 to sorted `index + 1`, and Int parameter shape is independently reconstructed
 by native and generated consumers. A faster projection that preserves those
 dual policies would only hide the ownership defect.
+
+## A faster aggregate must not preserve a broken ABI owner
+
+Before collapsing the intent-observability selectors, the registry comment
+claimed append-only `RuntimeCallAbiId` values while its generator required IDs
+to equal the source-name-sorted row position. The same registry stored only an
+argument count; native C and the self-host generator independently assumed that
+every argument was `Int`. A mechanical six-to-one projection would have made
+the compiler faster while preserving two contradictory authorities.
+
+Keep the positive, unique ABI ID literal in
+`src/common/intent_observability_abi.def` and never derive or validate it as
+`index + 1`. Store the complete parameter shape there as one of
+`PARAMS_NONE`, `PARAMS_INT`, or `PARAMS_INT_INT`. Native arity, native argument
+kinds, and generated self-host signature text all derive from that token. The
+registry gate inserts a lexically middle row with ID 99 and proves every old ID
+stays unchanged; duplicate and zero IDs fail closed.
+
+Only after that ownership repair may the generator emit one complete immutable
+row. Delete all six scalar selector ladders, bind one row per consumer index,
+and make negative and count-bound lookups invalid. On the current-source MIR,
+the 1,920-to-1,984 interval fell from 24.363 seconds to 15.952 seconds. The
+Pergyra-built and native producers emitted byte-identical 183,890,971-byte MIR
+artifacts with SHA-256
+`9B144FD5D25A18EA22BECA1BB78BA51484EC68BF6ADE846B0762F63F898D1A57`.
+The 300-second consumer advanced from routine 2,368 to 2,752 but still did not
+publish C, so this closes only the ABI-row projection rung.
+
+Do not add wrapper selectors, a dynamic table/cache, positional enum casts, or
+a second parameter-kind switch in a consumer. Do not call the full consumer
+green until a bounded C artifact is committed.

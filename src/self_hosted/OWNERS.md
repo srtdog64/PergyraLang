@@ -30,8 +30,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/lib/mir_decl_field_kind_vocabulary_projection_owner.pgy` --
   generated stable MIR declaration-field wire spelling and AST-label projection.
 - `src/self_hosted/lib/intent_observability_abi_projection_owner.pgy` --
-  generated stable ID, source/runtime name, argument, result, and semantic
-  signature projection from the native intent observability ABI registry.
+  generated complete stable-ID, source/runtime name, parameter-shape, result,
+  and semantic-signature row from the intent observability ABI registry.
 - `src/self_hosted/lib/nominal_field_kind_owner.pgy` -- declaration-family
   compatibility and shape policy over the generated field-kind vocabulary.
 
