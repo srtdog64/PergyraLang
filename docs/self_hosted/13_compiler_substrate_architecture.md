@@ -707,17 +707,39 @@ owner and advanced a gen3 attempt to `base-env:start` at 296.038 seconds, but it
 still did not commit gen3 C inside 300 seconds.
 
 Generic specialization then exposed the same invariant prefix shape already
-closed for statements. The owner now seeds enum values once and removes only
-surface-local suffix rows. Focused lifetime and C semantic gates are green; the
-installed self-host LLVM leg remains at its existing multi-routine projector
-blocker. A patched full run has not yet supplied comparable performance
-evidence because all routine batches slowed uniformly by roughly 1.3--1.5x and
-the run did not reach the generic stage. Therefore the semantic lifetime seam
-is closed, but its full-scale time delta and gen2/gen3 byte parity remain open.
+closed for statements. The owner seeds enum values once and removes only
+surface-local suffix rows. After that closure, the final repeated operation was
+the codegen type environment rebuilding one combined serialization at the role,
+operator, and function epochs.
 
-Do not raise the timeout, substitute the faster AST-built measurement carrier,
-reuse a MIR produced before the source owner change, or claim byte parity
-without a completed gen3 artifact.
+`CodegenTypeEnv` now preserves three distinct lifetimes: the original admitted
+global rows and index, an ordered declaration/role/operator program delta, and
+function-local rows. The declaration owner returns the current delta view;
+runtime and operator producers append only their exact suffix; the scheduler
+seals that program delta once after the last producer. Function and intent
+consumers attach local rows without copying the program delta. Lookups consume
+the admitted immutable indexes directly.
+
+Two failed falsifiers define the negative contract. Putting the program delta
+in the local layer made function-local construction overwrite program facts.
+Building a delta index but calling the validating lookup wrapper still repeated
+`StringLength(preseal_rows)` for every query and timed out in definitions. Do
+not merge program-global deltas into function-local rows, rebuild the combined
+serialization, or use a same-epoch validation wrapper after the delta index has
+already admitted its exact row length.
+
+The current-source MIR is 184,436,842 bytes with SHA-256
+`48F725A4F94940BC05C38FCB30DB5ACA8AEDBD3851D4CD472DD54D3013610981`.
+Its Pergyra-built producer exits 0 in 76.599 seconds at 2.968 GiB peak private.
+The generated gen2 consumer exits 0 in 264.403 seconds at 2.185 GiB and writes
+8,778,318 bytes with SHA-256
+`65BE9045D2990E66ABF61EF82FC53FAEFE8F01741F12D75167E0387879F8BB04`.
+The generated gen3 consumer exits 0 in 271.920 seconds at 2.199 GiB and writes
+the byte-identical artifact. Type declarations take 1.906/1.857 seconds,
+role dispatch 1 millisecond in both runs, base environment sealing 0.567/0.572
+seconds, and definitions 3.107/2.731 seconds. This closes the current-source
+gen2/gen3 fixed point under the unchanged 3 GiB/300-second boundary. It does
+not by itself claim full CI or installed release-driver promotion.
 
 ### Current-To-Target Mapping
 

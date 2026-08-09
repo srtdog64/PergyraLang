@@ -11400,3 +11400,40 @@ Released/default replacement remains 0%.
   Unknown, no patched gen2 artifact exists yet, and gen2==gen3 parity remains
   open. Timeout/cap increases, stale-MIR reuse, cache/query work, and AST-built
   final substitution remain forbidden.
+
+## 2026-08-10 - program type delta is sealed once and gen2 equals gen3
+
+- The last reached repetition was not another semantic cache problem. Codegen
+  reconstructed the cumulative type-row serialization for role dispatch and
+  again for every function epoch. `CodegenTypeEnv` now has three explicit
+  layers: the original admitted global index, an ordered declaration/role/
+  operator program delta, and function-local rows.
+- The declaration fact carries its current environment. Runtime and operator
+  owners append only their exact new rows, and the scheduler seals the program
+  delta once after the last producer. Function and intent owners append local
+  rows without copying or reparsing that delta. Lookup precedence remains
+  global, then first program-delta row, then local.
+- Two negative experiments are part of the contract. Reusing the local layer
+  for program rows lost those rows when a function environment replaced its
+  locals. Indexing the program delta but using the validating lookup wrapper
+  still recomputed `StringLength(preseal_rows)` on every lookup and timed out in
+  definitions. The final owner therefore uses admitted immutable index lookup;
+  the component gate rejects both old forms.
+- `codegen_type_env_preseal_epoch_owner.sh` passes in 4.6 seconds for installed
+  self-host C and the independent native LLVM oracle. The role receiver
+  admission parity gate also passes. The monolithic component inventory emits
+  no diagnostic inside its 60-second budget but times out, so it remains
+  unverified rather than green.
+- The current-source producer commits a 184,436,842-byte MIR with SHA-256
+  `48F725A4F94940BC05C38FCB30DB5ACA8AEDBD3851D4CD472DD54D3013610981`
+  in 76.599 seconds at 2.968 GiB peak private.
+- Gen2 exits 0 in 264.403 seconds at 2.185 GiB and commits 8,778,318 bytes with
+  SHA-256
+  `65BE9045D2990E66ABF61EF82FC53FAEFE8F01741F12D75167E0387879F8BB04`.
+  Gen3 exits 0 in 271.920 seconds at 2.199 GiB and commits the same byte count
+  and hash; direct byte equality is true. Under the unchanged 3 GiB/300-second
+  boundary, current-source gen2 equals gen3.
+- This closes the generated fixed point, not full CI or installed release-driver
+  promotion. Timeout/cap increases, stale MIR, combined-row reconstruction,
+  per-function program-row copies, and same-epoch length revalidation remain
+  forbidden fallbacks.

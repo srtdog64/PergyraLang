@@ -6,7 +6,71 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - prepatch current-source gen2 is proven; patched reproduction is RED
+## Active self-host context - current-source gen2/gen3 fixed point is closed
+
+- Verified source checkpoint is `59d83a24` on `main`. Preserve the separate
+  user-owned stdlib work: modified `docs/138_standard_library_scope.md` and
+  `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
+  `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`.
+- Active production entry is the Pergyra-built full MIR producer and consumer.
+  The current-source MIR is
+  `.tmp/self_hosted/compiler/preseal-index-admitted-20260810/driver_source.focused.mir.json`,
+  exactly 184,436,842 bytes with SHA-256
+  `48F725A4F94940BC05C38FCB30DB5ACA8AEDBD3851D4CD472DD54D3013610981`.
+  Its producer exits 0 in 76.599 seconds at 2.968 GiB peak private. The 2.4 GiB
+  attention threshold is crossed, but the unchanged 3 GiB cap is not.
+- Closed owner seam: `CodegenTypeEnv` preserves the original admitted global
+  index, an ordered declaration/role/operator program delta, and function-local
+  rows as three distinct lifetime layers. Declaration facts carry the current
+  environment, runtime/operator producers append exact suffix rows, and the
+  scheduler seals the program delta once after the last producer. Function and
+  intent owners append only local rows.
+- Lookup order is original global, then first program-delta row, then local.
+  The sealed program index is consumed through admitted immutable lookup. It
+  must not use the wrapper that recomputes `StringLength(preseal_rows)` for each
+  query after exact length was already admitted.
+- Two falsifiers document the same-mistake boundary. Storing program rows in the
+  local layer let function-local construction overwrite them. Building an index
+  but retaining per-query row-length validation removed role cost yet left
+  definitions above 33 seconds and timed out. Both paths are now negative-gated:
+  never combine the global serialization again, never copy program rows into
+  every function, and never collapse program-global and local lifetimes.
+- Focused evidence: `codegen_type_env_preseal_epoch_owner.sh` exits 0 in 4.6
+  seconds for installed self-host C and the independent native LLVM oracle.
+  `codegen_role_receiver_admission_owner.sh` passes exact base/metamorphic
+  execution and its negative admission cases. The monolithic component
+  inventory emitted no diagnostic but did not finish within its 60-second
+  static budget, so it remains unverified rather than green.
+- Gen2 pressure receipt
+  `self-host-driver-preseal-index-admitted-gen2-20260810` exits 0 in 264.403
+  seconds at 2.185 GiB peak private and publishes
+  `.tmp/self_hosted/compiler/preseal-index-admitted-20260810/driver_gen2.c`,
+  exactly 8,778,318 bytes with SHA-256
+  `65BE9045D2990E66ABF61EF82FC53FAEFE8F01741F12D75167E0387879F8BB04`.
+  Type declarations take 1.906 seconds, role dispatch 1 millisecond, base-env
+  sealing 0.567 seconds, runtime usage 0.849 seconds, and definitions 3.107
+  seconds.
+- Gen3 pressure receipt
+  `self-host-driver-preseal-index-admitted-gen3-20260810` exits 0 in 271.920
+  seconds at 2.199 GiB peak private and publishes the same 8,778,318 bytes and
+  SHA-256. Direct byte equality is true. Type declarations take 1.857 seconds,
+  role dispatch 1 millisecond, base-env sealing 0.572 seconds, runtime usage
+  0.850 seconds, and definitions 2.731 seconds. Current-source gen2 equals gen3
+  under the unchanged 3 GiB/300-second boundary.
+- Objective card for the next rung: objective = promote this exact fixed-point
+  source through the canonical release/installed-driver build owner; priority =
+  source and artifact identity, installed production reachability, old-carrier
+  deletion, negative ratchet, then broader CI; fact owner = the fixed-point C
+  receipt above plus the canonical self-host compiler build manifest; last
+  legitimate consumer = the installed driver executing the named production
+  slice; forbidden fallback = treating the manual O2 measurement carrier as a
+  released substitute, stale MIR reuse, AST-built final substitution,
+  timeout/cap increase, cache/shard/worker, or accepting hash drift. The next
+  falsifier is a canonical release build from `59d83a24`, followed by the
+  installed production slice and exact artifact/hash receipt. Full CI and
+  released-driver promotion are not yet claimed.
+
+## Historical checkpoint - prepatch current-source gen2 is proven; patched reproduction was RED
 
 - Verified code checkpoint is `f3076c7e` on `main`. Preserve the separate
   user-owned stdlib work: modified `docs/138_standard_library_scope.md` and
