@@ -606,9 +606,12 @@ require_text "src/self_hosted/lib/json.pgy" "func JsonObjectNumberFieldOpt"
 require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectFieldCount"
 require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectStringFieldEqualsCount"
 require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectBoolFieldEqualsCount"
-require_text "src/self_hosted/lib/json.pgy" "func JsonArrayStringAt"
-require_text "src/self_hosted/lib/json.pgy" "func JsonArrayStringCount"
-require_text "src/self_hosted/lib/json.pgy" "func JsonObjectArrayStringAt"
+require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonArrayStringAt"
+require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonArrayStringCount"
+require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
+    "func JsonObjectArrayStringAt"
 require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentNumberField"
 reject_text "src/self_hosted/lib/json.pgy" "func JsonFirstArrayString"
 require_text "src/self_hosted/lib/json_emit.pgy" "func JsonEscapeString"

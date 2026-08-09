@@ -643,6 +643,48 @@ arrays, and instruction source facts. The `stage_envelope_only` ratchet is now
 closed at zero; future work should deepen each payload contract rather than
 reintroducing envelope-only readiness.
 
+### Production-Scale Repeated-Owner Memory Rule
+
+An exact outer span is not enough when a nested reader rediscovers the whole
+document length, and an admitted cumulative graph is not permission for a
+consumer to rebuild its prefix. The full MIR consumer exposed both mistakes on
+the fixed 183,890,971-byte input (SHA-256
+`9B144FD5D25A18EA22BECA1BB78BA51484EC68BF6ADE846B0762F63F898D1A57`).
+
+The closed objective cards are:
+
+| Objective | Fact owner | Last legitimate consumer | Forbidden fallback | Falsifier |
+|---|---|---|---|---|
+| append synthetic match/destructure nodes without rebuilding admitted identities | `mir_lower/expression_graph_sequence_owner.pgy::MirExpressionGraphSequenceFromExtendedRows` | the extended `SemanticExpressionGraphArena` | `SemanticExpressionGraphArenaFromRows` or whole-prefix Unknown identity arrays | prefix identity C/native-LLVM parity plus a negative source ratchet |
+| decode persisted enum vocabulary without transient String rows | `mir_lower/expression_graph_kind_code_owner.pgy` | `MirExpressionGraphNodeCaptureWithin` | decode-to-String followed by a second name-to-code pass | exact-span vocabulary parity, including unknown kind/target/binding rejection |
+| read string-array facts within the structure owner's exact bounds | `lib/json_bounded_fact_read.pgy::JsonArrayStringFactWithin` | match, destructure, and generic MIR fact readers | `StringLength(json)`, unbounded whitespace/string reads, or permissive comma recovery | suffix-bound, malformed-comma, non-string, and truncated-bound cases |
+| retain invariant enum bindings across statement rows | `semantic/ast_statement_type_fact_owner.pgy` | each row's statement verdict | pop-to-zero and reseed the same enum inventory for every statement | environment lifetime gate that requires one seed and reset-to-prefix |
+
+These are ownership corrections, not caches. The sequence owner preserves the
+admitted identity prefix and appends only delta rows. The JSON owner validates
+comma state and the exact closing boundary once within its carried span. The
+statement owner keeps only an immutable admitted prefix and removes row-local
+suffix bindings before the next row. Missing or malformed facts still fail
+closed.
+
+The fixed-input pressure evidence must be read by reached stage, not by peak
+alone. Before the cumulative identity fix, the consumer hit the 3 GiB cap near
+247 seconds. With prefix identities preserved it stayed near 1.057 GiB but
+timed out during expression-surface work. After exact-bound string-array reads,
+it completed MIR-to-AST and expression-graph coverage at a 1.407 GiB peak.
+After statement enum-prefix reuse, it completed semantic body typing and
+verification, reached C emission, and stopped at
+`[codegen-pressure-stage] type-declarations:start` at a 1.665 GiB peak. Later
+peaks are not regressions: those runs reached later owners.
+
+The next open boundary is type-declaration collection. Several declaration
+consumers currently materialize a type environment during dependency epochs,
+but their ordering can expose newly admitted enum, nominal, and wrapper rows.
+Until a focused receipt identifies the repeated owned operation, do not replace
+those calls with a stale shared snapshot and do not add a cache, shard, worker,
+timeout, or memory allowance. The next change must name the type-environment
+fact owner, its exact last consumer, and a dependency-order falsifier first.
+
 ### Current-To-Target Mapping
 
 | Current surface | Target owner shape | Migration rule |

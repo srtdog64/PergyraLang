@@ -6,7 +6,78 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - full MIR producer is green; gen2 consumer throughput is RED
+## Active self-host context - expression/semantic memory owners are closed; type declarations are RED
+
+- Verified code checkpoint is `6eafbd3f` on `main`. Preserve the separate
+  user-owned stdlib work: modified `docs/138_standard_library_scope.md` and
+  `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
+  `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`.
+- Active production entry remains the Pergyra-built full MIR consumer. The
+  fixed input is
+  `.tmp/self_hosted/compiler/intent-observability-row/driver_source.focused.mir.json`,
+  exactly 183,890,971 bytes with SHA-256
+  `9B144FD5D25A18EA22BECA1BB78BA51484EC68BF6ADE846B0762F63F898D1A57`.
+  Do not substitute the older 186,071,774-byte bootstrap MIR; one attempted
+  run was correctly rejected before measurement because its byte/hash receipt
+  did not match.
+- Closed owner seam 1: persisted expression kind, call-target kind, and binding
+  kind spellings are classified directly from exact JSON spans. The node reader
+  no longer materializes transient enum Strings or remaps them in the sequence
+  consumer. Unknown vocabulary fails closed.
+- Closed owner seam 2: match, option, tagged-enum, and destructure extensions
+  preserve the admitted expression-identity prefix and append identity rows
+  only for new nodes. The old
+  `SemanticExpressionGraphArenaFromRows` whole-prefix Unknown reconstruction is
+  deleted and negative-gated throughout `mir_lower/`.
+- Closed owner seam 3: `JsonArrayStringFactWithin` owns exact-bound string-array
+  grammar, comma state, closing-boundary validation, and bounded decoding.
+  The old readers rediscovered `StringLength(json)` inside a carried array span;
+  on the full MIR that became repeated whole-document `strlen` work.
+- Closed owner seam 4: statement typing seeds the 159-row enum environment once,
+  records the admitted prefix length, and removes only row-local suffix bindings
+  between 42,928 statement rows. Full reset plus per-row enum reseeding is
+  forbidden by the lifetime gate.
+- Fixed-input progression under the unchanged 3 GiB/300 s boundary:
+  - before identity-prefix preservation: memory cap near 247 s;
+  - identity-prefix run: 1.057 GiB peak, stopped during expression surfaces;
+  - exact string-array bound run: 1.407 GiB peak, MIR-to-AST done at 267.269 s,
+    expression sequence/coverage valid and expression graph done at 269.311 s;
+  - statement-prefix run: 1.665 GiB peak, statement typing done at 252.270 s,
+    generic/verdict/body verification done, C emission started at 278.260 s,
+    and the last marker was `type-declarations:start` at 278.417 s.
+  The later peak reflects later stage reachability and is not a stage-aligned
+  memory regression. No gen2 C artifact was committed; the executable rung is
+  still RED.
+- Green focused evidence observed on current source:
+  `expression_graph_identity_prefix_owner_smoke.sh`,
+  `mir_expression_graph_persisted_read_owner.sh`, and
+  `semantic_expression_environment_owned_lifetime_smoke.sh`. The bounded JSON
+  C fixture and independent native LLVM oracle both print
+  `json-bounded-string-owner-ok`.
+- Known unrelated/previous blockers remain explicit. The installed self-host
+  LLVM leg of the bounded JSON gate stops at
+  `direct MIR terminal multi-routine graph is unsupported`; it is not counted
+  green or replaced by the native oracle. `self_host_hard_contract_smoke.sh`
+  reaches the separate existing missing
+  `projection.flow.call_abi.target_capability_fingerprint` term. The monolithic
+  component inventory first exposed and closed one stale requirement for the
+  retired `json.pgy` string-array owner; after that repair it produced no new
+  diagnostic but did not finish inside the 60-second static budget (exit 124),
+  so it remains unverified rather than green.
+- Objective card for the next rung: objective = complete type-declaration
+  collection without repeated owned reconstruction; priority = semantic order,
+  one type-environment SoT, fail-closed dependency admission, then throughput;
+  current fact owner = `CollectTypeDeclarations` and its enum/nominal/wrapper
+  consumers; last legitimate consumer = emitted type declarations before
+  definitions; forbidden fallback = stale pre-epoch environment sharing,
+  cache/query engine, shard/worker, timeout or cap increase; next falsifier = a
+  focused receipt that separates enum, nominal, and wrapper environment
+  materialization while preserving a dependency chain that unlocks a later row
+  in the same epoch. The repeated owned operation inside this boundary remains
+  `Unknown`; do not redesign `CodegenTypeEnvFromPresealRows` from call counts
+  alone.
+
+## Historical checkpoint - full MIR producer and gen2 admission/block-row closure
 
 - Verified Git checkpoint is `bc0eca60` on `main`; the compiler changes through
   the one-pass MIR block-row capture rung are committed. The remaining worktree
