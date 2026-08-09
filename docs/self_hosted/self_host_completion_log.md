@@ -11372,3 +11372,31 @@ Released/default replacement remains 0%.
   private, versus routine 2,368 before the row collapse, but still publishes no
   C artifact. Full gen2==gen3, full CI, and released-driver promotion remain
   open.
+
+## 2026-08-10 - fixed-point provenance is refreshed and generic enum rows become a prefix
+
+- The first generated-gen2 reproduction attempt was not a current-source
+  fixed point. Its 183,890,971-byte MIR predated
+  `MirProgramRoutineBlockCaptureWithin`, so the emitted gen2 lacked that owner
+  and reintroduced repeated block-object reads. A fixed workload is not a valid
+  source-generation receipt after compiler source changes.
+- A regenerated 184,351,609-byte MIR has SHA-256
+  `C2636CA0665B41DCB55C58FA0E87FE7F32645AACF4E17B647481D62D2BF8C673`.
+  The current AST-built consumer exits 0 in 276.634 seconds at 2.117 GiB peak
+  private and commits 8,774,599 bytes. The resulting generated binary contains
+  the one-pass block owner and reaches `base-env:start` in its gen3 attempt,
+  but times out at 300.583 seconds without a gen3 artifact.
+- The next repeated semantic operation was generic specialization rebuilding
+  the admitted 159-row enum environment for every body surface. It now seeds
+  that environment once and pops only surface-local suffix bindings. The
+  lifetime gate is green in 22.1 seconds; generic-return C parity and mismatch
+  negatives are green in 152.9 seconds. The full C/LLVM script remains RED at
+  the known installed self-host LLVM multi-routine terminal projector boundary.
+- The patched source publishes a 184,370,403-byte MIR with SHA-256
+  `398DEFC5C47822D29D548A047281676FB36947BB4415C3EE54A718AF0F72594A`.
+  Two full consumer attempts did not reach the generic stage because routine
+  batches slowed uniformly by about 1.3--1.5x across the run; the common span
+  rose from 203.9 to 281.9 seconds. The generic full-scale delta is therefore
+  Unknown, no patched gen2 artifact exists yet, and gen2==gen3 parity remains
+  open. Timeout/cap increases, stale-MIR reuse, cache/query work, and AST-built
+  final substitution remain forbidden.

@@ -647,9 +647,11 @@ reintroducing envelope-only readiness.
 
 An exact outer span is not enough when a nested reader rediscovers the whole
 document length, and an admitted cumulative graph is not permission for a
-consumer to rebuild its prefix. The full MIR consumer exposed both mistakes on
-the fixed 183,890,971-byte input (SHA-256
+consumer to rebuild its prefix. The full MIR consumer first exposed both
+mistakes on the 183,890,971-byte input (SHA-256
 `9B144FD5D25A18EA22BECA1BB78BA51484EC68BF6ADE846B0762F63F898D1A57`).
+That receipt is historical after later source-owner changes; fixed-point claims
+must use a newly published current-source MIR, not silently reuse it.
 
 The closed objective cards are:
 
@@ -659,6 +661,7 @@ The closed objective cards are:
 | decode persisted enum vocabulary without transient String rows | `mir_lower/expression_graph_kind_code_owner.pgy` | `MirExpressionGraphNodeCaptureWithin` | decode-to-String followed by a second name-to-code pass | exact-span vocabulary parity, including unknown kind/target/binding rejection |
 | read string-array facts within the structure owner's exact bounds | `lib/json_bounded_fact_read.pgy::JsonArrayStringFactWithin` | match, destructure, and generic MIR fact readers | `StringLength(json)`, unbounded whitespace/string reads, or permissive comma recovery | suffix-bound, malformed-comma, non-string, and truncated-bound cases |
 | retain invariant enum bindings across statement rows | `semantic/ast_statement_type_fact_owner.pgy` | each row's statement verdict | pop-to-zero and reseed the same enum inventory for every statement | environment lifetime gate that requires one seed and reset-to-prefix |
+| retain invariant enum bindings across generic expression surfaces | `semantic/ast_generic_specialization_fact_owner.pgy` | each surface's generic-call projection | pop-to-zero and reseed the same enum inventory for every body surface | environment lifetime gate plus generic-return C parity and mismatch negatives |
 
 These are ownership corrections, not caches. The sequence owner preserves the
 admitted identity prefix and appends only delta rows. The JSON owner validates
@@ -667,11 +670,12 @@ statement owner keeps only an immutable admitted prefix and removes row-local
 suffix bindings before the next row. Missing or malformed facts still fail
 closed.
 
-The fixed-input pressure evidence must be read by reached stage, not by peak
-alone. Before the cumulative identity fix, the consumer hit the 3 GiB cap near
-247 seconds. With prefix identities preserved it stayed near 1.057 GiB but
-timed out during expression-surface work. After exact-bound string-array reads,
-it completed MIR-to-AST and expression-graph coverage at a 1.407 GiB peak.
+The pressure evidence must be read by reached stage and by source-generation
+identity, not by peak alone. Before the cumulative identity fix, the consumer
+hit the 3 GiB cap near 247 seconds. With prefix identities preserved it stayed
+near 1.057 GiB but timed out during expression-surface work. After exact-bound
+string-array reads, it completed MIR-to-AST and expression-graph coverage at a
+1.407 GiB peak.
 After statement enum-prefix reuse, it completed semantic body typing and
 verification, reached C emission, and stopped at
 `[codegen-pressure-stage] type-declarations:start` at a 1.665 GiB peak. Later
@@ -694,12 +698,26 @@ declarations in 1.814 seconds and publishes an 8,752,013-byte gen2 C artifact
 in 284.921 seconds at 2.107 GiB peak private, below both the 3 GiB cap and the
 2.4 GiB attention threshold.
 
-That artifact is not yet full substitution closure. Compiled as an O2 gen2
-driver, it did not reproduce gen3 within 300 seconds: it reached MIR-to-AST
-routine 2,496 at only 0.386 GiB peak private and emitted no C artifact. The next
-open boundary is therefore generated-gen2 MIR-to-AST throughput, not memory or
-type declarations. Do not raise the timeout, substitute the faster AST-built
-measurement carrier, or claim byte parity without a completed gen3 artifact.
+That artifact was later shown to be an invalid current-source fixed-point
+carrier: its MIR predated `MirProgramRoutineBlockCaptureWithin`, so its generated
+gen2 necessarily retained the retired repeated block reads. After regenerating
+source MIR, the current AST-built consumer published an 8,774,599-byte gen2 C
+artifact in 276.634 seconds. Its generated binary carried the one-pass block
+owner and advanced a gen3 attempt to `base-env:start` at 296.038 seconds, but it
+still did not commit gen3 C inside 300 seconds.
+
+Generic specialization then exposed the same invariant prefix shape already
+closed for statements. The owner now seeds enum values once and removes only
+surface-local suffix rows. Focused lifetime and C semantic gates are green; the
+installed self-host LLVM leg remains at its existing multi-routine projector
+blocker. A patched full run has not yet supplied comparable performance
+evidence because all routine batches slowed uniformly by roughly 1.3--1.5x and
+the run did not reach the generic stage. Therefore the semantic lifetime seam
+is closed, but its full-scale time delta and gen2/gen3 byte parity remain open.
+
+Do not raise the timeout, substitute the faster AST-built measurement carrier,
+reuse a MIR produced before the source owner change, or claim byte parity
+without a completed gen3 artifact.
 
 ### Current-To-Target Mapping
 

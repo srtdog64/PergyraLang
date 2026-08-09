@@ -6,20 +6,27 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - gen2 C artifact is green; gen3 reproduction throughput is RED
+## Active self-host context - prepatch current-source gen2 is proven; patched reproduction is RED
 
-- Verified code checkpoint is `4f241994` on `main`. Preserve the separate
+- Verified code checkpoint is `f3076c7e` on `main`. Preserve the separate
   user-owned stdlib work: modified `docs/138_standard_library_scope.md` and
   `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
   `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`.
 - Active production entry remains the Pergyra-built full MIR consumer. The
-  fixed input is
-  `.tmp/self_hosted/compiler/intent-observability-row/driver_source.focused.mir.json`,
-  exactly 183,890,971 bytes with SHA-256
-  `9B144FD5D25A18EA22BECA1BB78BA51484EC68BF6ADE846B0762F63F898D1A57`.
-  Do not substitute the older 186,071,774-byte bootstrap MIR; one attempted
-  run was correctly rejected before measurement because its byte/hash receipt
-  did not match.
+  current patched input is
+  `.tmp/self_hosted/compiler/generic-enum-prefix-mir-20260810/driver_source.focused.mir.json`,
+  exactly 184,370,403 bytes with SHA-256
+  `398DEFC5C47822D29D548A047281676FB36947BB4415C3EE54A718AF0F72594A`.
+  It was published by the Pergyra-built current-source seed in 113.622 seconds
+  at 2.954 GiB peak private. The attention threshold is crossed, but the 3 GiB
+  cap is not.
+- A fixed-point generation input is a source snapshot, not merely a convenient
+  workload. The former 183,890,971-byte input did not contain the later
+  `MirProgramRoutineBlockCaptureWithin` owner. A gen2 built from that MIR
+  therefore reintroduced the retired multi-read block path even when the
+  consumer binary itself came from current source. Never claim current-source
+  gen2/gen3 evidence until the source-to-MIR artifact has been regenerated
+  after the owner change and its byte/hash receipt has been recorded.
 - Closed owner seam 1: persisted expression kind, call-target kind, and binding
   kind spellings are classified directly from exact JSON spans. The node reader
   no longer materializes transient enum Strings or remaps them in the sequence
@@ -37,6 +44,10 @@ owner, and the named executable gate.
   records the admitted prefix length, and removes only row-local suffix bindings
   between 42,928 statement rows. Full reset plus per-row enum reseeding is
   forbidden by the lifetime gate.
+- Closed owner seam 5: generic specialization now applies the same lifetime
+  invariant. It seeds the admitted enum environment once, retains that prefix,
+  and pops only function/intent-surface suffix bindings between expression
+  surfaces. The old pop-to-zero plus per-surface enum reseed is negative-gated.
 - Fixed-input progression under the unchanged 3 GiB/300 s boundary:
   - before identity-prefix preservation: memory cap near 247 s;
   - identity-prefix run: 1.057 GiB peak, stopped during expression surfaces;
@@ -59,17 +70,35 @@ owner, and the named executable gate.
   precedence, and updates the raw row serialization once. The enum and nominal
   batch facts return both their C block and exact env-row delta; wrapper
   declarations consume the current view without rebuilding it.
-- On the same fixed MIR, type declarations now run from 266.747 s to 268.561 s
+- On the former fixed MIR, type declarations run from 266.747 s to 268.561 s
   (**1.814 s**) and the full consumer exits 0 in 284.921 s at 2.107 GiB peak
   private. It publishes exactly 8,752,013 bytes with SHA-256
   `039036D38ACFA3D814FFBF97ECFC54C044EE837FE4C0821655D376D56E86A119`.
-  This is the first bounded gen2 C artifact for the active consumer rung.
-- The emitted gen2 C compiles successfully as an O2 driver (binary SHA-256
-  `591FE8C9E9B8A49CB430021E8BCFC9EAD684DC554BDC82C6F95DAEFB73BCCF3D`).
-  Its gen3 reproduction run remains RED: exit 124 at 300.334 s, 0.386 GiB peak
-  private, last marker `consumer:mir-to-ast:top-level-routines:2496`, and no
-  gen3 C artifact. The low memory peak rules out the former cap blocker but
-  does not prove throughput correctness or byte parity.
+  This remains valid evidence for the type-environment delta, but not a
+  current-source fixed-point artifact.
+- Regenerating source MIR before the next attempt exposed and closed that
+  provenance error. The pre-generic-prefix current-source MIR is 184,351,609
+  bytes (`C2636CA0665B41DCB55C58FA0E87FE7F32645AACF4E17B647481D62D2BF8C673`).
+  Its current AST-built consumer exits 0 in 276.634 seconds at 2.117 GiB peak
+  private and publishes an 8,774,599-byte gen2 C artifact with SHA-256
+  `12C796311CB6AE170EC925AE0B626A61527114939BDC50E2451936307758B452`.
+  The generated gen2 binary contains the one-pass block owner and reaches
+  `base-env:start` in its gen3 attempt at 296.038 seconds, but still times out
+  at 300.583 seconds with no artifact and 1.668 GiB peak private.
+- The generic-prefix correction is focused-green: the semantic environment
+  lifetime gate exits 0 in 22.1 seconds, and the generic-return C parity plus
+  mismatch negatives exit 0 in 152.9 seconds. The full C/LLVM script remains
+  RED only at the existing installed self-host LLVM multi-routine terminal
+  projector boundary. The patched source AST is 7,941,880 bytes and passes
+  surface, event-scan, and shape checks.
+- Two patched full consumers did not reach generic specialization: the O2 run
+  timed out after MIR-to-AST and the canonical O3 run ended at routine 5,952.
+  Their common MIR-to-AST batches were uniformly about 1.3--1.5 times slower
+  than the earlier successful run (203.9 s versus 281.9 s over the common
+  measured span), rather than showing one new owner spike. Therefore the
+  prefix's full-scale time effect is `Unknown`; neither timeout is evidence of
+  a generic regression, and no patched gen2 artifact or gen2/gen3 parity is
+  claimed.
 - Green focused evidence observed on current source:
   `expression_graph_identity_prefix_owner_smoke.sh`,
   `mir_expression_graph_persisted_read_owner.sh`, and
@@ -91,18 +120,18 @@ owner, and the named executable gate.
   those repairs it produced no new diagnostic but did not finish inside the
   60-second static budget (exit 124), so it remains unverified rather than
   green.
-- Objective card for the next rung: objective = make the generated gen2 driver
-  reproduce byte-identical gen3 C inside the existing 300-second boundary;
-  priority = semantic identity, current MIR fact owners, old-path deletion,
-  negative ratchet, then throughput; fact owner = the existing
-  `MirProgramRoutineIndex`/routine fact-index chain already carried in the gen2
-  artifact; last legitimate consumer = MIR-to-AST routine emission before
-  expression/semantic/codegen stages; forbidden fallback = AST-built carrier
+- Objective card for the next rung: objective = make the current-source
+  generated gen2 driver reproduce byte-identical gen3 C inside the existing
+  300-second boundary; priority = source-generation identity, semantic facts,
+  old-path deletion, negative ratchet, then throughput; fact owner = the
+  source-to-MIR artifact receipt followed by the existing routine and semantic
+  owners carried in that exact artifact; last legitimate consumer = C artifact
+  commit; forbidden fallback = stale MIR substitution, AST-built final
   substitution, timeout/cap increase, cache/query engine, shard/worker, ordinal
-  skip, or fixture-specific rendering; next falsifier = compare the fixed
-  generated-gen2 routine batches against the faster AST-built carrier and name
-  the first repeated owned operation before changing structure. Final
-  acceptance is exit 0 plus raw byte equality between gen2 and gen3 C.
+  skip, or fixture-specific rendering. The next falsifier must use the
+  184,370,403-byte patched MIR and first establish a comparable routine-batch
+  control before attributing generic-stage time. Final acceptance remains exit
+  0 plus raw byte equality between gen2 and gen3 C.
 
 ## Historical checkpoint - full MIR producer and gen2 admission/block-row closure
 
