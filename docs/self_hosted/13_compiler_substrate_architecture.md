@@ -677,13 +677,29 @@ verification, reached C emission, and stopped at
 `[codegen-pressure-stage] type-declarations:start` at a 1.665 GiB peak. Later
 peaks are not regressions: those runs reached later owners.
 
-The next open boundary is type-declaration collection. Several declaration
-consumers currently materialize a type environment during dependency epochs,
-but their ordering can expose newly admitted enum, nominal, and wrapper rows.
-Until a focused receipt identifies the repeated owned operation, do not replace
-those calls with a stale shared snapshot and do not add a cache, shard, worker,
-timeout, or memory allowance. The next change must name the type-environment
-fact owner, its exact last consumer, and a dependency-order falsifier first.
+The type-declaration receipt then showed three dependency epochs. Enum and
+nominal batches completed, wrapper emission itself took less than a millisecond,
+but every batch rebuilt `CodegenTypeEnvFromPresealRows` over the cumulative
+global serialization. Wrapper-env reconstruction grew from 3.351 seconds to
+4.347 seconds and the third reconstruction was still running at the old
+300-second boundary.
+
+`CodegenTypeEnvAdvancePresealRows` now seals the original global index once and
+keeps newly admitted declaration rows in an ordered delta view. Enum and
+nominal owners return their exact C block and env-row delta; the scheduler alone
+advances the raw row SoT and lookup view. Global rows keep precedence, delta
+rows retain first-row order, malformed deltas fail closed, and wrappers consume
+the current epoch without a stale snapshot. The same input completes type
+declarations in 1.814 seconds and publishes an 8,752,013-byte gen2 C artifact
+in 284.921 seconds at 2.107 GiB peak private, below both the 3 GiB cap and the
+2.4 GiB attention threshold.
+
+That artifact is not yet full substitution closure. Compiled as an O2 gen2
+driver, it did not reproduce gen3 within 300 seconds: it reached MIR-to-AST
+routine 2,496 at only 0.386 GiB peak private and emitted no C artifact. The next
+open boundary is therefore generated-gen2 MIR-to-AST throughput, not memory or
+type declarations. Do not raise the timeout, substitute the faster AST-built
+measurement carrier, or claim byte parity without a completed gen3 artifact.
 
 ### Current-To-Target Mapping
 

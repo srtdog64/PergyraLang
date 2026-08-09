@@ -6,9 +6,9 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - expression/semantic memory owners are closed; type declarations are RED
+## Active self-host context - gen2 C artifact is green; gen3 reproduction throughput is RED
 
-- Verified code checkpoint is `6eafbd3f` on `main`. Preserve the separate
+- Verified code checkpoint is `4f241994` on `main`. Preserve the separate
   user-owned stdlib work: modified `docs/138_standard_library_scope.md` and
   `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
   `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`.
@@ -46,36 +46,63 @@ owner, and the named executable gate.
     generic/verdict/body verification done, C emission started at 278.260 s,
     and the last marker was `type-declarations:start` at 278.417 s.
   The later peak reflects later stage reachability and is not a stage-aligned
-  memory regression. No gen2 C artifact was committed; the executable rung is
-  still RED.
+  memory regression. That intermediate run emitted no gen2 C artifact; the
+  type-declaration closure below supersedes its RED boundary.
+- A focused type-declaration receipt separated three dependency epochs. Enum
+  and nominal emission completed in every reached epoch, wrapper emission was
+  below 1 ms, and the repeated operation was cumulative
+  `CodegenTypeEnvFromPresealRows` reconstruction. Wrapper-env time grew from
+  3.351 s to 4.347 s before the third rebuild hit the 300-second boundary.
+- `CodegenTypeEnvAdvancePresealRows` now owns the exact epoch transition. It
+  preserves one sealed global index, appends only newly admitted enum/nominal
+  rows to an ordered delta lookup view, keeps global and first-delta-row
+  precedence, and updates the raw row serialization once. The enum and nominal
+  batch facts return both their C block and exact env-row delta; wrapper
+  declarations consume the current view without rebuilding it.
+- On the same fixed MIR, type declarations now run from 266.747 s to 268.561 s
+  (**1.814 s**) and the full consumer exits 0 in 284.921 s at 2.107 GiB peak
+  private. It publishes exactly 8,752,013 bytes with SHA-256
+  `039036D38ACFA3D814FFBF97ECFC54C044EE837FE4C0821655D376D56E86A119`.
+  This is the first bounded gen2 C artifact for the active consumer rung.
+- The emitted gen2 C compiles successfully as an O2 driver (binary SHA-256
+  `591FE8C9E9B8A49CB430021E8BCFC9EAD684DC554BDC82C6F95DAEFB73BCCF3D`).
+  Its gen3 reproduction run remains RED: exit 124 at 300.334 s, 0.386 GiB peak
+  private, last marker `consumer:mir-to-ast:top-level-routines:2496`, and no
+  gen3 C artifact. The low memory peak rules out the former cap blocker but
+  does not prove throughput correctness or byte parity.
 - Green focused evidence observed on current source:
   `expression_graph_identity_prefix_owner_smoke.sh`,
   `mir_expression_graph_persisted_read_owner.sh`, and
   `semantic_expression_environment_owned_lifetime_smoke.sh`. The bounded JSON
   C fixture and independent native LLVM oracle both print
   `json-bounded-string-owner-ok`.
+- `codegen_type_env_preseal_epoch_owner.sh` is also green for installed
+  self-host C and native LLVM. It pins global-before-delta lookup, first delta
+  row precedence, ordered serialization, and the malformed-delta diagnostic.
 - Known unrelated/previous blockers remain explicit. The installed self-host
   LLVM leg of the bounded JSON gate stops at
   `direct MIR terminal multi-routine graph is unsupported`; it is not counted
   green or replaced by the native oracle. `self_host_hard_contract_smoke.sh`
   reaches the separate existing missing
   `projection.flow.call_abi.target_capability_fingerprint` term. The monolithic
-  component inventory first exposed and closed one stale requirement for the
-  retired `json.pgy` string-array owner; after that repair it produced no new
-  diagnostic but did not finish inside the 60-second static budget (exit 124),
-  so it remains unverified rather than green.
-- Objective card for the next rung: objective = complete type-declaration
-  collection without repeated owned reconstruction; priority = semantic order,
-  one type-environment SoT, fail-closed dependency admission, then throughput;
-  current fact owner = `CollectTypeDeclarations` and its enum/nominal/wrapper
-  consumers; last legitimate consumer = emitted type declarations before
-  definitions; forbidden fallback = stale pre-epoch environment sharing,
-  cache/query engine, shard/worker, timeout or cap increase; next falsifier = a
-  focused receipt that separates enum, nominal, and wrapper environment
-  materialization while preserving a dependency chain that unlocks a later row
-  in the same epoch. The repeated owned operation inside this boundary remains
-  `Unknown`; do not redesign `CodegenTypeEnvFromPresealRows` from call counts
-  alone.
+  component inventory exposed and closed stale requirements for the retired
+  `json.pgy` string-array owner, direct nominal env append, and an obsolete
+  successor rule that incorrectly rejected the valid `-1` sentinel. After
+  those repairs it produced no new diagnostic but did not finish inside the
+  60-second static budget (exit 124), so it remains unverified rather than
+  green.
+- Objective card for the next rung: objective = make the generated gen2 driver
+  reproduce byte-identical gen3 C inside the existing 300-second boundary;
+  priority = semantic identity, current MIR fact owners, old-path deletion,
+  negative ratchet, then throughput; fact owner = the existing
+  `MirProgramRoutineIndex`/routine fact-index chain already carried in the gen2
+  artifact; last legitimate consumer = MIR-to-AST routine emission before
+  expression/semantic/codegen stages; forbidden fallback = AST-built carrier
+  substitution, timeout/cap increase, cache/query engine, shard/worker, ordinal
+  skip, or fixture-specific rendering; next falsifier = compare the fixed
+  generated-gen2 routine batches against the faster AST-built carrier and name
+  the first repeated owned operation before changing structure. Final
+  acceptance is exit 0 plus raw byte equality between gen2 and gen3 C.
 
 ## Historical checkpoint - full MIR producer and gen2 admission/block-row closure
 
