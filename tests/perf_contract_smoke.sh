@@ -3131,7 +3131,7 @@ grep -Fq "AllocatorDestroy argument '%s' must have type Allocator" "$ROOT_DIR/sr
 grep -Fq "intent_observability_require_arg_count" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
 grep -Fq "pgy_intent_observability_abi_row_by_source" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
 grep -Fq "row->runtime_name" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
-grep -Fq "row->arg_count" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
+grep -Fq "pgy_intent_observability_argument_count(row)" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
 ! grep -Fq "return pergyra_strdup(\"0\")" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
 grep -Fq "transpiler_call_arg_can_take_subject_address" "$ROOT_DIR/src/codegen/transpiler_call_subject_arg_policy.c"
 grep -Fq "transpiler_user_call_emit_part" "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"

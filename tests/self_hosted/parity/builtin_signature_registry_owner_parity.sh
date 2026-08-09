@@ -28,6 +28,15 @@ if [[ "$(grep -Fc '"SubstringWithLen^String^String|Int|Int|Int"' "$OWNER")" -ne 
     echo "[self-host-parity:builtin-signature] SubstringWithLen row is missing or duplicated" >&2
     exit 1
 fi
+for row in \
+    'IntentHistoryCount^Int^none' \
+    'IntentActiveConcurrent^Bool^Int' \
+    'IntentActiveStepFailure^String^Int|Int'; do
+    if ! grep -Fq "$row" "$PROBE"; then
+        echo "[self-host-parity:builtin-signature] missing observability row probe: $row" >&2
+        exit 1
+    fi
+done
 
 mkdir -p "$BUILD_DIR"
 PROBE_ARG="$(pgy_path_for_compiler "$PGY" "$PROBE")"

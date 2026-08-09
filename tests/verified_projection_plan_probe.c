@@ -419,9 +419,11 @@ main(void)
     for (size_t i = 0; i < count; i++) {
         const PgyIntentObservabilityAbiRow *row =
             pgy_intent_observability_abi_row_at(i);
+        size_t argument_count =
+            pgy_intent_observability_argument_count(row);
         if (row == NULL || row->runtime_call_abi_id == 0
             || row->source_name == NULL || row->runtime_name == NULL
-            || row->arg_count > 2
+            || argument_count > 2
             || pgy_intent_observability_return_type_name(row->return_kind)
                 == NULL
             || pgy_intent_observability_abi_row_by_source(row->source_name)
@@ -437,7 +439,7 @@ main(void)
                 return 9;
             }
         }
-        for (size_t j = 0; j < row->arg_count; j++) {
+        for (size_t j = 0; j < argument_count; j++) {
             PgyIntentObservabilityArgumentKind kind =
                 pgy_intent_observability_argument_kind_at(row, j);
             if (kind != PGY_INTENT_OBSERVABILITY_ARGUMENT_INT

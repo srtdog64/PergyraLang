@@ -16,12 +16,18 @@ typedef enum PgyIntentObservabilityArgumentKind {
     PGY_INTENT_OBSERVABILITY_ARGUMENT_INT
 } PgyIntentObservabilityArgumentKind;
 
+typedef enum PgyIntentObservabilityParameterShape {
+    PGY_INTENT_OBSERVABILITY_PARAMS_NONE,
+    PGY_INTENT_OBSERVABILITY_PARAMS_INT,
+    PGY_INTENT_OBSERVABILITY_PARAMS_INT_INT
+} PgyIntentObservabilityParameterShape;
+
 typedef struct PgyIntentObservabilityAbiRow {
     /* Append-only identity: never derive this value from the sorted row index. */
     uint32_t runtime_call_abi_id;
     const char *source_name;
     const char *runtime_name;
-    size_t arg_count;
+    PgyIntentObservabilityParameterShape parameter_shape;
     PgyIntentObservabilityReturnKind return_kind;
 } PgyIntentObservabilityAbiRow;
 
@@ -32,6 +38,8 @@ const PgyIntentObservabilityAbiRow *pgy_intent_observability_abi_row_by_source(
     const char *source_name);
 const char *pgy_intent_observability_return_type_name(
     PgyIntentObservabilityReturnKind kind);
+size_t pgy_intent_observability_argument_count(
+    const PgyIntentObservabilityAbiRow *row);
 PgyIntentObservabilityArgumentKind
 pgy_intent_observability_argument_kind_at(
     const PgyIntentObservabilityAbiRow *row, size_t index);

@@ -7,14 +7,27 @@ func Main() -> Void {
     }
     let rows: Array<String> = SemanticBuiltinSignatureRows();
     let substring_with_len_rows: Int = 0;
+    let history_count_rows: Int = 0;
+    let active_concurrent_rows: Int = 0;
+    let active_step_failure_rows: Int = 0;
     let i: Int = 0;
     while i < ArrayLength(rows) {
         if rows[i] == "SubstringWithLen^String^String|Int|Int|Int" {
             substring_with_len_rows = substring_with_len_rows + 1;
         }
+        if rows[i] == "IntentHistoryCount^Int^none" {
+            history_count_rows = history_count_rows + 1;
+        }
+        if rows[i] == "IntentActiveConcurrent^Bool^Int" {
+            active_concurrent_rows = active_concurrent_rows + 1;
+        }
+        if rows[i] == "IntentActiveStepFailure^String^Int|Int" {
+            active_step_failure_rows = active_step_failure_rows + 1;
+        }
         i = i + 1;
     }
-    if substring_with_len_rows != 1 {
+    if substring_with_len_rows != 1 || history_count_rows != 1 ||
+        active_concurrent_rows != 1 || active_step_failure_rows != 1 {
         Exit(2);
     }
     Log("builtin-signature-ready");

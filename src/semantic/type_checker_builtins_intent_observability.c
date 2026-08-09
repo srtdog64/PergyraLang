@@ -46,15 +46,17 @@ type_check_intent_observability_builtin(ASTNode *call,
     const char *source_name = ast_identifier_name(callee);
     const PgyIntentObservabilityAbiRow *row =
         pgy_intent_observability_abi_row_by_source(source_name);
+    size_t argument_count;
 
     if (handled_out != NULL)
         *handled_out = row != NULL;
     if (row == NULL)
         return TYPE_UNKNOWN;
 
-    check_call_arity(call, row->arg_count, row->source_name, ctx);
+    argument_count = pgy_intent_observability_argument_count(row);
+    check_call_arity(call, argument_count, row->source_name, ctx);
     for (size_t i = 0;
-         call != NULL && i < row->arg_count && i < ast_call_arg_count(call);
+         call != NULL && i < argument_count && i < ast_call_arg_count(call);
         i++) {
         ASTNode *arg = ast_call_argument(call, i);
         Type *expected = intent_observability_argument_type(

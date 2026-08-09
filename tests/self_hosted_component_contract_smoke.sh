@@ -2035,6 +2035,19 @@ require_text "src/self_hosted/semantic/program_check_owner.pgy" 'import "builtin
 require_file "src/self_hosted/semantic/builtin_signature_owner.pgy"
 require_max_lines "src/self_hosted/semantic/builtin_signature_owner.pgy" 600
 require_file "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy"
+require_max_lines "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy" 140
+require_text "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy" \
+    "struct IntentObservabilityAbiRow"
+require_text "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy" \
+    "func IntentObservabilityAbiRowAt"
+require_text "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy" \
+    "IntentObservabilityAbiRowAt(-1).valid"
+require_text "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy" \
+    "IntentObservabilityAbiRowAt(IntentObservabilityAbiCount()).valid"
+reject_regex "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy" \
+    'func IntentObservabilityAbi(StableId|SourceName|RuntimeName|ArgumentCount|ReturnType|ParameterTypes)At'
+reject_text "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy" \
+    "runtime_call_abi_id != i + 1"
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
     'import "../lib/intent_observability_abi_projection_owner.pgy";'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \

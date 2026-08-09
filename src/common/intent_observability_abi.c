@@ -4,8 +4,8 @@
 #include <string.h>
 
 static const PgyIntentObservabilityAbiRow kIntentObservabilityAbiRows[] = {
-#define PGY_INTENT_OBSERVABILITY_ABI(abi_id, source, runtime, argc, result) \
-    { abi_id, source, runtime, argc, result },
+#define PGY_INTENT_OBSERVABILITY_ABI(abi_id, source, runtime, params, result) \
+    { abi_id, source, runtime, params, result },
 #include "intent_observability_abi.def"
 #undef PGY_INTENT_OBSERVABILITY_ABI
 };
@@ -67,11 +67,39 @@ PgyIntentObservabilityArgumentKind
 pgy_intent_observability_argument_kind_at(
     const PgyIntentObservabilityAbiRow *row, size_t index)
 {
-    if (row == NULL || index >= row->arg_count)
+    if (row == NULL)
         return PGY_INTENT_OBSERVABILITY_ARGUMENT_INVALID;
 
-    /* The current observability ABI uses Int handles and indexes only. */
-    return PGY_INTENT_OBSERVABILITY_ARGUMENT_INT;
+    switch (row->parameter_shape) {
+    case PGY_INTENT_OBSERVABILITY_PARAMS_NONE:
+        break;
+    case PGY_INTENT_OBSERVABILITY_PARAMS_INT:
+        if (index == 0)
+            return PGY_INTENT_OBSERVABILITY_ARGUMENT_INT;
+        break;
+    case PGY_INTENT_OBSERVABILITY_PARAMS_INT_INT:
+        if (index < 2)
+            return PGY_INTENT_OBSERVABILITY_ARGUMENT_INT;
+        break;
+    }
+    return PGY_INTENT_OBSERVABILITY_ARGUMENT_INVALID;
+}
+
+size_t
+pgy_intent_observability_argument_count(
+    const PgyIntentObservabilityAbiRow *row)
+{
+    if (row == NULL)
+        return 0;
+    switch (row->parameter_shape) {
+    case PGY_INTENT_OBSERVABILITY_PARAMS_NONE:
+        return 0;
+    case PGY_INTENT_OBSERVABILITY_PARAMS_INT:
+        return 1;
+    case PGY_INTENT_OBSERVABILITY_PARAMS_INT_INT:
+        return 2;
+    }
+    return 0;
 }
 
 const char *

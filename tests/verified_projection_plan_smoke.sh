@@ -31,7 +31,15 @@ require_text src/common/intent_observability_abi.h \
 require_text src/common/intent_observability_abi.h "runtime_call_abi_id"
 require_text src/common/intent_observability_abi.h "Append-only identity"
 require_text src/common/intent_observability_abi.h "runtime_name"
-require_text src/common/intent_observability_abi.h "arg_count"
+require_text src/common/intent_observability_abi.h "parameter_shape"
+require_text src/common/intent_observability_abi.h \
+    "pgy_intent_observability_argument_count"
+for shape in \
+    PGY_INTENT_OBSERVABILITY_PARAMS_NONE \
+    PGY_INTENT_OBSERVABILITY_PARAMS_INT \
+    PGY_INTENT_OBSERVABILITY_PARAMS_INT_INT; do
+    require_text src/common/intent_observability_abi.def "$shape"
+done
 require_text src/common/intent_observability_abi.h \
     "PgyIntentObservabilityArgumentKind"
 require_text src/common/intent_observability_abi.h "return_kind"
@@ -133,6 +141,8 @@ for consumer in \
 done
 require_text src/semantic/type_checker_builtins_intent_observability.c \
     "pgy_intent_observability_argument_kind_at(row, i)"
+require_text src/semantic/type_checker_builtins_intent_observability.c \
+    "pgy_intent_observability_argument_count(row)"
 require_text src/codegen/llvm_runtime_core_builtin_decl.c \
     "pgy_intent_observability_argument_kind_at(row, j)"
 require_text src/semantic/type_checker_builtins_resolve.c \

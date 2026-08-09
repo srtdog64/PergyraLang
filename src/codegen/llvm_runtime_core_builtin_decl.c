@@ -84,15 +84,17 @@ llvm_declare_intent_observability_builtins(LLVMGenCtx *ctx)
     for (size_t i = 0; i < row_count; i++) {
         const PgyIntentObservabilityAbiRow *row =
             pgy_intent_observability_abi_row_at(i);
+        size_t argument_count =
+            pgy_intent_observability_argument_count(row);
         LLVMTypeRef params[2] = { NULL, NULL };
         LLVMTypeRef ret = llvm_intent_observability_return_type(
             ctx, row->return_kind);
-        for (size_t j = 0; j < row->arg_count; j++) {
+        for (size_t j = 0; j < argument_count; j++) {
             params[j] = llvm_intent_observability_argument_type(
                 ctx, pgy_intent_observability_argument_kind_at(row, j));
         }
         LLVMTypeRef ft = LLVMFunctionType(
-            ret, params, (unsigned)row->arg_count, 0);
+            ret, params, (unsigned)argument_count, 0);
         LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_name, ft);
         llvm_register_function(ctx, row->runtime_name, fn, ft, ret);
     }
