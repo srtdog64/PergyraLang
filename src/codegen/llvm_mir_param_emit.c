@@ -208,16 +208,101 @@ llvm_register_class_field_slots(LLVMGenCtx *ctx, const char *owner_name)
             &fields_view, i);
 }
 
-void
-llvm_emit_mut_ref_writebacks(LLVMGenCtx *ctx)
+bool
+llvm_emit_mir_mut_ref_writebacks(const MIRRoutine *routine,
+                                 const MIRBasicBlock *block,
+                                 LLVMMirVar *vars,
+                                 size_t var_count,
+                                 LLVMGenCtx *ctx)
 {
-    if (ctx == NULL)
-        return;
-    for (int i = 0; i < ctx->mut_ref_count; i++) {
-        LLVMValueRef v = LLVMBuildLoad2(ctx->builder, ctx->mut_ref_pt[i],
-            ctx->mut_ref_alloca[i], "");
-        LLVMBuildStore(ctx->builder, v, ctx->mut_ref_ptr[i]);
+    int mut_ref_index = 0;
+
+    if (routine == NULL || block == NULL || ctx == NULL)
+        return false;
+
+    for (size_t i = 0; i < mir_routine_param_count(routine); i++) {
+        FuncParam *param;
+        const char *exit_name = NULL;
+        LLVMMirVar *exit_var = NULL;
+
+        if (mir_routine_param_carriage(routine, i)
+            != MIR_PARAM_CARRIAGE_VALUE_RESULT) {
+            continue;
+        }
+        param = mir_routine_param(routine, i);
+        if (param == NULL || param->name == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "LLVM MIR value-result parameter is missing its identity");
+            return false;
+        }
+        if (mut_ref_index >= ctx->mut_ref_count) {
+            llvm_set_mir_inventory_missing(ctx,
+                "LLVM MIR value-result parameter '%s' has no registered copy-out boundary",
+                param->name);
+            return false;
+        }
+
+        for (size_t j = 0; j < block->ssa_exit_value_count; j++) {
+            const char *candidate = block->ssa_exit_values[j];
+            const char *separator;
+            size_t base_len;
+
+            if (candidate == NULL)
+                continue;
+            separator = strrchr(candidate, '.');
+            base_len = separator != NULL
+                ? (size_t)(separator - candidate)
+                : strlen(candidate);
+            if (strlen(param->name) != base_len
+                || strncmp(candidate, param->name, base_len) != 0) {
+                continue;
+            }
+            if (exit_name != NULL) {
+                llvm_set_mir_topology_invalid(ctx,
+                    "LLVM MIR block %llu has duplicate exit SSA facts for value-result parameter '%s'",
+                    (unsigned long long)block->id,
+                    param->name);
+                return false;
+            }
+            exit_name = candidate;
+        }
+
+        if (exit_name != NULL) {
+            exit_var = llvm_mir_get_var_entry(vars, var_count, exit_name);
+            if (exit_var == NULL || exit_var->alloca == NULL
+                || exit_var->type == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "LLVM MIR value-result exit identity '%s' has no storage fact",
+                    exit_name);
+                return false;
+            }
+            if (exit_var->type != ctx->mut_ref_pt[mut_ref_index]) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "LLVM MIR value-result exit identity '%s' disagrees with parameter ABI type",
+                    exit_name);
+                return false;
+            }
+        }
+
+        /* An absent exit SSA row denotes version zero: this path did not
+         * rebind the parameter, so its registered copy-in storage is the
+         * current value.  A present row is authoritative and must resolve. */
+        LLVMValueRef storage = exit_var != NULL
+            ? exit_var->alloca
+            : ctx->mut_ref_alloca[mut_ref_index];
+        LLVMValueRef value = LLVMBuildLoad2(ctx->builder,
+            ctx->mut_ref_pt[mut_ref_index], storage, "");
+        LLVMBuildStore(ctx->builder, value,
+            ctx->mut_ref_ptr[mut_ref_index]);
+        mut_ref_index++;
     }
+
+    if (mut_ref_index != ctx->mut_ref_count) {
+        llvm_set_mir_inventory_missing(ctx,
+            "LLVM MIR value-result parameter inventory disagrees with registered copy-out boundaries");
+        return false;
+    }
+    return true;
 }
 
 void

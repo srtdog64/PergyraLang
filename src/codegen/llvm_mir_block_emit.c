@@ -457,7 +457,9 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                         ctx, val, function_ret_type);
                     if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                         return;
-                    llvm_emit_mut_ref_writebacks(ctx);
+                    if (!llvm_emit_mir_mut_ref_writebacks(routine, mir_block,
+                            vars, var_count, ctx))
+                        return;
                     llvm_mir_region_scope_destroy(ctx);
                     LLVMBuildRet(ctx->builder, val);
                     emitted_terminator = true;
@@ -480,7 +482,9 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             } else {
                 if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                     return;
-                llvm_emit_mut_ref_writebacks(ctx);
+                if (!llvm_emit_mir_mut_ref_writebacks(routine, mir_block,
+                        vars, var_count, ctx))
+                    return;
                 if (function_ret_type == ctx->type_void) {
                     llvm_mir_region_scope_destroy(ctx);
                     LLVMBuildRetVoid(ctx->builder);
@@ -591,7 +595,9 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
             if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                 return;
-            llvm_emit_mut_ref_writebacks(ctx);
+            if (!llvm_emit_mir_mut_ref_writebacks(routine, mir_block,
+                    vars, var_count, ctx))
+                return;
             if (function_ret_type == ctx->type_void) {
                 llvm_mir_region_scope_destroy(ctx);
                 LLVMBuildRetVoid(ctx->builder);

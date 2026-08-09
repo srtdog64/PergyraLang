@@ -60,6 +60,26 @@ PY
     [[ "$(cat "$left")" == "$(cat "$right")" ]]
 }
 
+text_files_equal_normalized() {
+    local left="$1"
+    local right="$2"
+
+    if command -v cmp >/dev/null 2>&1 && command -v tr >/dev/null 2>&1; then
+        cmp -s <(tr -d '\r' <"$left") <(tr -d '\r' <"$right")
+        return $?
+    fi
+    if [[ -n "$PYTHON_BIN" ]]; then
+        "$PYTHON_BIN" - "$left" "$right" <<'PY'
+import pathlib, sys
+left = pathlib.Path(sys.argv[1]).read_bytes().replace(b"\r\n", b"\n")
+right = pathlib.Path(sys.argv[2]).read_bytes().replace(b"\r\n", b"\n")
+raise SystemExit(0 if left == right else 1)
+PY
+        return $?
+    fi
+    files_equal "$left" "$right"
+}
+
 show_diff() {
     local left="$1"
     local right="$2"
@@ -474,6 +494,7 @@ run_case() {
     local llvm_out
     local c_err
     local llvm_err
+    local expected_stdout
     local c_rc=0
     local llvm_rc=0
 
@@ -500,6 +521,7 @@ run_case() {
     llvm_out="$WORK_DIR/${case_name}_llvm.stdout"
     c_err="$WORK_DIR/${case_name}_c.stderr"
     llvm_err="$WORK_DIR/${case_name}_llvm.stderr"
+    expected_stdout="$run_dir/expected.stdout"
 
     if ! run_compiler_backend "$source_arg" "c" "$c_bin_arg" "$c_compile_log"; then
         echo "backend-compare: C backend compile failed for $source_rel" >&2
@@ -558,6 +580,19 @@ run_case() {
         return 1
     fi
 
+    if [[ -f "$expected_stdout" ]]; then
+        if ! text_files_equal_normalized "$expected_stdout" "$c_out"; then
+            echo "backend-compare: C stdout disagrees with expected output for $source_rel" >&2
+            show_diff "$expected_stdout" "$c_out" >&2
+            return 1
+        fi
+        if ! text_files_equal_normalized "$expected_stdout" "$llvm_out"; then
+            echo "backend-compare: LLVM stdout disagrees with expected output for $source_rel" >&2
+            show_diff "$expected_stdout" "$llvm_out" >&2
+            return 1
+        fi
+    fi
+
     if ! files_equal "$c_err" "$llvm_err"; then
         echo "backend-compare: stderr mismatch for $source_rel" >&2
         show_diff "$c_err" "$llvm_err" >&2
@@ -577,6 +612,7 @@ main() {
         "tests/cases/backend_compare/role_override_mir"
         "tests/cases/backend_compare/inout_caller_mutation"
         "tests/cases/backend_compare/inout_nested_return_copyout"
+        "tests/cases/backend_compare/inout_branch_rebind_copyout"
         "tests/cases/backend_compare/long_cast_roundtrip"
         "tests/cases/backend_compare/reflect_type_name"
         "tests/cases/backend_compare/entry_lowercase_main"

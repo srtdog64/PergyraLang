@@ -98,6 +98,30 @@ mir_remove_instruction(MIRBasicBlock *block, size_t index)
 }
 
 static bool
+mir_phi_carries_value_result_parameter(const MIRRoutine *routine,
+                                       const MIRInstruction *inst)
+{
+    const char *anchor;
+
+    if (routine == NULL || inst == NULL || inst->kind != MIR_INST_PHI
+        || (inst->slot_anchor == NULL && inst->name == NULL)) {
+        return false;
+    }
+    anchor = inst->slot_anchor != NULL ? inst->slot_anchor : inst->name;
+
+    for (size_t i = 0; i < mir_routine_param_count(routine); i++) {
+        FuncParam *param = mir_routine_param(routine, i);
+        if (param != NULL && param->name != NULL
+            && strcmp(param->name, anchor) == 0
+            && mir_routine_param_carriage(routine, i)
+                == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
 mir_instruction_is_dead_value(const MIRRoutine *routine, const MIRInstruction *inst)
 {
     int idx;
@@ -112,6 +136,12 @@ mir_instruction_is_dead_value(const MIRRoutine *routine, const MIRInstruction *i
          * uses complete MIR use edges. */
         return false;
     if (inst->kind != MIR_INST_PHI)
+        return false;
+    /* An inout parameter is observed implicitly at every function exit by
+     * value-result copy-out.  Backends consume the merge PHI to choose the
+     * exact exit value, so the absence of an ordinary instruction use does
+     * not make this fact dead. */
+    if (mir_phi_carries_value_result_parameter(routine, inst))
         return false;
     idx = mir_find_value_summary(routine, inst->result_name);
     if (idx < 0)

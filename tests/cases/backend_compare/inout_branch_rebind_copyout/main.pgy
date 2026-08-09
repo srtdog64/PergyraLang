@@ -1,0 +1,22 @@
+// A value-result parameter rebound on either branch must copy the merged SSA
+// value back to the caller, not the unchanged copy-in value.
+struct Snapshot {
+    count: Int;
+}
+
+func SelectSnapshot(inout snapshot: Snapshot, take_new: Bool) -> Void {
+    if take_new {
+        snapshot = Snapshot(7);
+    } else {
+        snapshot = Snapshot(9);
+    }
+}
+
+func Main() -> Void {
+    let first: Snapshot = Snapshot(1);
+    SelectSnapshot(first, true);
+    Log(first.count);
+    let second: Snapshot = Snapshot(2);
+    SelectSnapshot(second, false);
+    Log(second.count);
+}

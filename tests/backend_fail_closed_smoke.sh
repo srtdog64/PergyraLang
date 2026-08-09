@@ -1660,6 +1660,17 @@ if grep -Fq "llvm_register_callable_param_if_needed" \
     echo "[backend-fail-closed] active MIR parameter binding reintroduced AST callable registration" >&2
     exit 1
 fi
+grep -Fq "llvm_emit_mir_mut_ref_writebacks" \
+    "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
+grep -Fq "block->ssa_exit_values" \
+    "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
+if grep -Fq "llvm_emit_mut_ref_writebacks" \
+        "$ROOT_DIR/src/codegen/llvm_mir_local_emit.h" \
+        "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c" \
+        "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"; then
+    echo "[backend-fail-closed] LLVM MIR copy-out reintroduced the stale generic parameter-storage path" >&2
+    exit 1
+fi
 grep -Fq "llvm_register_callable_mir_signature" \
     "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
 grep -Fq "llvm_stmt_callable_entry_return_type" \

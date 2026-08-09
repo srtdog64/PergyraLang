@@ -42,6 +42,52 @@
         hir_destroy(hir);
     }
 
+    TEST("MIR DCE preserves branch-merged inout copy-out phi");
+    {
+        const char *src =
+            "struct Snapshot { count: Int; }\n"
+            "func SelectSnapshot(inout snapshot: Snapshot, take_new: Bool) -> Void {\n"
+            "    let dead: Int = 0;\n"
+            "    if take_new {\n"
+            "        snapshot = Snapshot(7);\n"
+            "        dead = 1;\n"
+            "    } else {\n"
+            "        snapshot = Snapshot(9);\n"
+            "        dead = 2;\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        bool has_copyout_phi = false;
+        bool has_dead_phi = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "SelectSnapshot", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count; bi++) {
+                if (block_has_phi_result_prefix(
+                        &routine->blocks[bi], "snapshot."))
+                    has_copyout_phi = true;
+                if (block_has_phi_result_prefix(
+                        &routine->blocks[bi], "dead."))
+                    has_dead_phi = true;
+            }
+        }
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && routine->has_dce
+               && mir_routine_param_carriage(routine, 0)
+                    == MIR_PARAM_CARRIAGE_VALUE_RESULT
+               && has_copyout_phi
+               && !has_dead_phi);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR lowers for-loop init as loop-init instead of fallback statement");
     {
         const char *src =

@@ -24,6 +24,10 @@ void llvm_register_mir_param_ssa_aliases(const MIRRoutine *routine,
                                          size_t *var_capacity_ptr,
                                          size_t *var_count_ptr);
 void llvm_register_class_field_slots(LLVMGenCtx *ctx, const char *owner_name);
-void llvm_emit_mut_ref_writebacks(LLVMGenCtx *ctx);
+bool llvm_emit_mir_mut_ref_writebacks(const MIRRoutine *routine,
+                                      const MIRBasicBlock *block,
+                                      LLVMMirVar *vars,
+                                      size_t var_count,
+                                      LLVMGenCtx *ctx);
 
 #endif
