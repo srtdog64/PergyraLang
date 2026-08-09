@@ -4906,6 +4906,18 @@ require_file "src/self_hosted/compiler/canonical_mir_field_identity_epoch_owner.
 require_max_lines "src/self_hosted/compiler/canonical_mir_field_identity_epoch_owner.pgy" 600
 require_text "src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy" \
     'import "canonical_mir_field_identity_epoch_owner.pgy";'
+require_function_text \
+    "src/self_hosted/compiler/canonical_mir_execution_owner.pgy" \
+    "func CanonicalizeMirArtifactWithAdmittedTopology(" \
+    "SemanticAstNominalConstructorFactsFromArtifact(artifact)"
+reject_function_text \
+    "src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy" \
+    "func CanonicalMirIdentityEpochRebindProgramFacts(" \
+    "SemanticAstNominalConstructorFactsFromArtifact("
+require_function_text \
+    "src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy" \
+    "func CanonicalMirIdentityEpochRebindProgramFacts(" \
+    "ref constructors: SemanticAstNominalConstructorFacts"
 require_text "src/self_hosted/compiler/canonical_mir_field_identity_epoch_owner.pgy" \
     "func CanonicalMirIdentityEpochBindDeclarationFields("
 require_text "src/self_hosted/compiler/canonical_mir_field_identity_epoch_owner.pgy" \

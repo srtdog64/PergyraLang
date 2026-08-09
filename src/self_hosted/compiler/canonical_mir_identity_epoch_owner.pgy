@@ -551,7 +551,8 @@ func CanonicalMirIdentityEpochRemapTopology(
 func CanonicalMirIdentityEpochRebindProgramFacts(
     facts: SelfMirProgramFacts,
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    identity_epoch: CanonicalMirIdentityEpochArtifact
+    identity_epoch: CanonicalMirIdentityEpochArtifact,
+    ref constructors: SemanticAstNominalConstructorFacts
 ) -> CanonicalMirProgramIdentityEpoch {
     if !admitted.domain_topology.present {
         return CanonicalMirProgramIdentityEpoch(true, facts);
@@ -559,10 +560,6 @@ func CanonicalMirIdentityEpochRebindProgramFacts(
     if !identity_epoch.ok {
         return CanonicalMirProgramIdentityEpoch(false, facts);
     }
-    let constructors: SemanticAstNominalConstructorFacts =
-        SemanticAstNominalConstructorFactsFromArtifact(
-            identity_epoch.artifact
-        );
     let declarations: CanonicalMirDeclarationIdentityEpoch =
         CanonicalMirIdentityEpochBindDeclarationFields(
             facts.declarations, constructors

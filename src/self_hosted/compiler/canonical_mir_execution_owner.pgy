@@ -11,6 +11,8 @@ func CanonicalizeMirArtifactWithAdmittedTopology(
     machine_declaration: SelfHostMachineLayerDeclaration,
     identity_epoch: CanonicalMirIdentityEpochArtifact
 ) -> String {
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let projection: DriverRung2MirProjection =
         DriverRung2MirProjectionFromVerifiedFactsObserved(
             artifact, verified, machine_declaration, false
@@ -18,7 +20,7 @@ func CanonicalizeMirArtifactWithAdmittedTopology(
     let facts: SelfMirProgramFacts = projection.facts;
     let rebound: CanonicalMirProgramIdentityEpoch =
         CanonicalMirIdentityEpochRebindProgramFacts(
-            facts, admitted, identity_epoch
+            facts, admitted, identity_epoch, constructors
         );
     if !rebound.ok {
         DriverRung2MirProjectionRelease(projection);

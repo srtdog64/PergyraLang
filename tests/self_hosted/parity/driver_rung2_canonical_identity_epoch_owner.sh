@@ -33,11 +33,13 @@ fi
 
 IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy"
 FIELD_IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/compiler/canonical_mir_field_identity_epoch_owner.pgy"
+EXECUTION_OWNER="$ROOT_DIR/src/self_hosted/compiler/canonical_mir_execution_owner.pgy"
 DRIVER_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy"
 CARRIER_OWNER="$ROOT_DIR/src/self_hosted/mir/domain_topology_fact_owner.pgy"
 DRIVER_SOURCE="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_main.pgy"
 FIXTURE="$ROOT_DIR/tests/cases/backend_compare/zone_layer_projection_runtime/main.pgy"
 BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/canonical_identity_epoch_gate"
+PREBUILT_DRIVER="${PGY_SELFHOST_PREBUILT_DRIVER:-}"
 DRIVER_BIN="$BUILD_DIR/driver_c.exe"
 RAW_MIR="$BUILD_DIR/raw.mir.json"
 VALID_MIR="$BUILD_DIR/valid-simple.mir.json"
@@ -48,16 +50,41 @@ mkdir -p "$BUILD_DIR"
 
 for term in \
     'import "canonical_mir_identity_epoch_owner.pgy"' \
-    'CanonicalMirIdentityEpochArtifactFromTreeText' \
-    'CanonicalMirIdentityEpochRebindProgramFacts'; do
+    'CanonicalMirIdentityArtifactFromTreeTextOrDie'; do
     grep -Fq -- "$term" "$DRIVER_OWNER" \
         || fail "driver import/consumer closure is missing: $term"
+done
+for term in \
+    'CanonicalMirIdentityEpochArtifactFromTreeText' \
+    'CanonicalMirIdentityEpochRebindProgramFacts'; do
+    grep -Fq -- "$term" "$EXECUTION_OWNER" \
+        || fail "canonical execution owner lost identity epoch consumption: $term"
 done
 grep -Fq -- 'import "canonical_mir_field_identity_epoch_owner.pgy"' \
     "$IDENTITY_OWNER" \
     || fail "tree/directive epoch owner does not import the field epoch owner"
 grep -Fq -- 'CanonicalMirIdentityEpochRemapTopology' "$IDENTITY_OWNER" \
     || fail "tree/directive epoch owner lost topology composition"
+grep -Fq -- 'ref constructors: SemanticAstNominalConstructorFacts' \
+    "$IDENTITY_OWNER" \
+    || fail "canonical rebind no longer consumes the captured constructor facts"
+if grep -Fq -- 'SemanticAstNominalConstructorFactsFromArtifact(' \
+    "$IDENTITY_OWNER"; then
+    fail "canonical rebind reread the artifact after projection retirement"
+fi
+constructor_line="$(grep -nF -- \
+    'SemanticAstNominalConstructorFactsFromArtifact(artifact)' \
+    "$EXECUTION_OWNER" | head -1 | cut -d: -f1)"
+projection_line="$(grep -nF -- \
+    'DriverRung2MirProjectionFromVerifiedFactsObserved(' \
+    "$EXECUTION_OWNER" | head -1 | cut -d: -f1)"
+rebind_line="$(grep -nF -- \
+    'CanonicalMirIdentityEpochRebindProgramFacts(' \
+    "$EXECUTION_OWNER" | head -1 | cut -d: -f1)"
+[[ -n "$constructor_line" && -n "$projection_line" && -n "$rebind_line" && \
+    "$constructor_line" -lt "$projection_line" && \
+    "$projection_line" -lt "$rebind_line" ]] \
+    || fail "constructor facts must be captured before projection and consumed by rebind"
 for term in \
     'admitted.domain_topology.layer_slot_source_syntax_ids[row]' \
     'admitted.domain_topology.target_slot_source_syntax_ids[row]' \
@@ -88,12 +115,19 @@ if grep -Fq -- 'canonical MIR bridge cannot reconstruct non-empty domain topolog
     fail "canonicalizer retained the non-empty topology rejection"
 fi
 
-if ! (cd "$ROOT_DIR" && "$PGY" \
-    "$(pgy_path_for_compiler "$PGY" "$DRIVER_SOURCE")" \
-    --backend=c -o "$(pgy_path_for_compiler "$PGY" "$DRIVER_BIN")" \
-    >"$BUILD_DIR/driver.compile.log" 2>&1); then
-    cat "$BUILD_DIR/driver.compile.log" >&2
-    fail "driver build failed"
+if [[ -n "$PREBUILT_DRIVER" ]]; then
+    DRIVER_BIN="$(pgy_select_optional_exe_binary "$PREBUILT_DRIVER")"
+    pgy_require_runnable_binary_here \
+        "canonical-identity-epoch" "$DRIVER_BIN" \
+        || fail "PGY_SELFHOST_PREBUILT_DRIVER is not runnable"
+else
+    if ! (cd "$ROOT_DIR" && "$PGY" \
+        "$(pgy_path_for_compiler "$PGY" "$DRIVER_SOURCE")" \
+        --backend=c -o "$(pgy_path_for_compiler "$PGY" "$DRIVER_BIN")" \
+        >"$BUILD_DIR/driver.compile.log" 2>&1); then
+        cat "$BUILD_DIR/driver.compile.log" >&2
+        fail "driver build failed"
+    fi
 fi
 
 (cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified \

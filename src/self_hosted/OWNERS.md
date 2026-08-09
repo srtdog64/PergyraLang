@@ -2841,16 +2841,20 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/canonical_mir_execution_owner.pgy` -- canonical
   MIR execution owner. It reads one admitted MIR input, performs body
   verification once, consumes the resulting `DriverRung2VerifiedFacts`
-  receipt for MIR projection, and rebinds the canonical identity epoch. It may
-  not submit the published call-return rows to a second body fixpoint.
+  receipt for MIR projection, and rebinds the canonical identity epoch. It
+  captures nominal-constructor identity facts before projection retires the
+  artifact storage; rebind consumes that typed capture and may not reread the
+  retired artifact or submit published call-return rows to a second body
+  fixpoint.
 - `src/self_hosted/compiler/driver_rung2_intent_consumer_owner.pgy` -- one
   admitted typed-intent plan tree projection and exact post-semantic expression
   occurrence remap boundary for the DRV-2 consumer.
 - `src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy` --
   canonical MIR tree/directive identity adapter and program-level atomic
   composition boundary; rebinds nominal owners and topology directives into
-  one reconstructed `AstTreeArtifact` epoch, then consumes the field identity
-  epoch owner before publishing program facts.
+  one reconstructed `AstTreeArtifact` epoch, then consumes the pre-projection
+  nominal-constructor capture and field identity epoch owner before publishing
+  program facts.
 - `src/self_hosted/compiler/canonical_mir_field_identity_epoch_owner.pgy` --
   declaration-field identity epoch owner; rebinds declaration fields and
   topology field references by exact `(owner, name, field_kind)` joins.
