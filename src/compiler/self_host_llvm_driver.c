@@ -2,8 +2,8 @@
 
 #include "compiler_process.h"
 #include "path_utils.h"
-#include "self_host_child_io_authority.h"
 #include "self_host_driver.h"
+#include "self_host_mir_artifact_owner.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,7 +16,6 @@ driver_materialize_self_host_llvm_artifacts(
     const char *llvm_output_path,
     bool verbose)
 {
-    const char *producer_argv[6];
     const char *backend_argv[6];
     char *binary;
     int rc;
@@ -28,38 +27,18 @@ driver_materialize_self_host_llvm_artifacts(
                 "pgy: self-host LLVM materialization requires source, MIR, and LLVM paths\n");
         return 1;
     }
+    remove(llvm_output_path);
+    rc = driver_materialize_self_host_mir_artifact(
+        launcher_path, source_path, mir_output_path, verbose);
+    if (rc != 0)
+        return rc;
+
     binary = driver_resolve_self_host_binary(launcher_path);
     if (binary == NULL || !path_file_exists(binary)) {
         fprintf(stderr,
                 "pgy: self-host driver is unavailable; run 'make self-host-compiler' or set PGY_SELF_DRIVER_BIN\n");
         free(binary);
         return 1;
-    }
-
-    remove(mir_output_path);
-    remove(llvm_output_path);
-    producer_argv[0] = binary;
-    producer_argv[1] = "--emit-mir-json-verified";
-    producer_argv[2] = source_path;
-    producer_argv[3] = "-o";
-    producer_argv[4] = mir_output_path;
-    producer_argv[5] = NULL;
-    /* Same grant the C materialization makes: the delegated driver reads the
-     * source path the user named on pgy's own command line, and the runtime
-     * IO policy denies absolute paths without it -- the denial surfaced as a
-     * bare exit 1 with no diagnostic at all. */
-    driver_authorize_self_host_child_io();
-    rc = pgy_exec_argv(producer_argv, verbose);
-    if (rc != 0) {
-        fprintf(stderr,
-                "pgy: self-host MIR producer failed with code %d\n", rc);
-        goto done;
-    }
-    if (!path_file_exists(mir_output_path)) {
-        fprintf(stderr,
-                "pgy: self-host driver reported success without a MIR artifact\n");
-        rc = 1;
-        goto done;
     }
 
     backend_argv[0] = binary;

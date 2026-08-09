@@ -1918,6 +1918,10 @@ inventory must not become a second fact-family owner registry.
 - `src/compiler/compiler_transient_artifact_workspace.c` -- private transient
   artifact directory lifetime owner shared by the C and LLVM installed-driver
   runners. It owns path allocation and cleanup, not semantic or backend facts.
+- `src/compiler/self_host_mir_artifact_owner.c` -- installed verified
+  source-to-MIR artifact publication owner shared by package verification and
+  LLVM materialization. It owns one sibling-driver invocation, output
+  existence, and fail-closed diagnostics; it cannot re-enter native semantics.
 - `src/compiler/self_host_llvm_driver.c` -- installed self-host LLVM materializer
   boundary. It invokes exactly one verified source-to-MIR producer and one
   direct-MIR LLVM projector. It does not inspect LLVM text to infer runtime

@@ -198,7 +198,7 @@ main(int argc, char *argv[])
         if (strcmp(argv[1], "fmt") == 0 && argc > 2 && argv[2][0] != '-')
             return driver_run_fmt_command(argc - 1, argv + 1);
         if (strcmp(argv[1], "fmt") == 0)
-            return driver_run_pkg_command("fmt", argc - 2, argv + 2);
+            return driver_run_pkg_command(argv[0], pgy_env_value_is_truthy(getenv("PGY_NATIVE_PIPELINE")), "fmt", argc - 2, argv + 2);
         if (strcmp(argv[1], "init") == 0)
             return driver_run_pkg_init(argc - 2, argv + 2);
         if (strcmp(argv[1], "check") == 0
@@ -210,7 +210,7 @@ main(int argc, char *argv[])
             || strcmp(argv[1], "package") == 0
             || strcmp(argv[1], "publish") == 0
             || strcmp(argv[1], "install") == 0)
-            return driver_run_pkg_command(argv[1], argc - 2, argv + 2);
+            return driver_run_pkg_command(argv[0], pgy_env_value_is_truthy(getenv("PGY_NATIVE_PIPELINE")), argv[1], argc - 2, argv + 2);
         if (strcmp(argv[1], "debug") == 0)
             return driver_run_debug_command(argc - 1, argv + 1);
         if (strcmp(argv[1], "scaffold") == 0)

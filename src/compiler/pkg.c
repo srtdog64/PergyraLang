@@ -2,14 +2,19 @@
  * pgy package command owner.
  *
  * Seashell manifest parsing and lock validation live in pkg_manifest.c.
- * This file owns command dispatch and driver pipeline invocation only.
+ * This file owns command dispatch and the manifest-to-installed-artifact
+ * handoff. The native pipeline remains an explicit bootstrap/test opt-out.
  */
 
 #include "pkg.h"
 
+#include "compiler_transient_artifact_workspace.h"
+#include "c_runner.h"
 #include "driver_app.h"
 #include "fmt.h"
+#include "llvm_runner.h"
 #include "pkg_manifest.h"
+#include "self_host_mir_artifact_owner.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -37,7 +42,28 @@ pkg_driver_flags(const PgyPackageManifest *manifest,
 }
 
 static int
-pkg_run_entry(const PgyPackageManifest *manifest,
+pkg_verify_entry_with_installed_self_host(const char *launcher_path,
+                                          const char *source_path)
+{
+    CompilerTransientArtifactWorkspace workspace;
+    int rc;
+
+    if (!compiler_transient_artifact_workspace_open(
+            source_path, ".", ".mir.json", NULL, &workspace)) {
+        fprintf(stderr,
+                "pgy: could not create a private package verification workspace\n");
+        return 1;
+    }
+    rc = driver_materialize_self_host_mir_artifact(
+        launcher_path, source_path, workspace.primary_path, false);
+    compiler_transient_artifact_workspace_close(&workspace);
+    return rc;
+}
+
+static int
+pkg_run_entry(const char *launcher_path,
+              bool native_pipeline,
+              const PgyPackageManifest *manifest,
               const char *verb,
               bool test_target,
               bool check_only,
@@ -53,7 +79,18 @@ pkg_run_entry(const PgyPackageManifest *manifest,
         return 1;
     }
     flags = pkg_driver_flags(manifest, entry_path, check_only, do_run);
-    rc = driver_run_pipeline(&flags);
+    if (native_pipeline) {
+        rc = driver_run_pipeline(&flags);
+    } else if (check_only) {
+        rc = pkg_verify_entry_with_installed_self_host(
+            launcher_path, entry_path);
+    } else if (flags.backend == BACKEND_LLVM) {
+        rc = llvm_runner_execute_installed_self_host_llvm(
+            launcher_path, &flags, NULL);
+    } else {
+        rc = c_runner_execute_installed_self_host_c(
+            launcher_path, &flags, NULL);
+    }
     if (rc == 0)
         printf("pgy %s: %s ok\n", verb, entry_path);
     free(entry_path);
@@ -148,7 +185,11 @@ driver_run_pkg_init(int argc, char *argv[])
 }
 
 int
-driver_run_pkg_command(const char *verb, int argc, char *argv[])
+driver_run_pkg_command(const char *launcher_path,
+                       bool native_pipeline,
+                       const char *verb,
+                       int argc,
+                       char *argv[])
 {
     PgyPackageManifest manifest;
     int rc = 1;
@@ -175,23 +216,30 @@ driver_run_pkg_command(const char *verb, int argc, char *argv[])
         goto cleanup;
 
     if (strcmp(verb, "check") == 0) {
-        rc = pkg_run_entry(&manifest, "check", false, true, false);
+        rc = pkg_run_entry(launcher_path, native_pipeline,
+            &manifest, "check", false, true, false);
     } else if (strcmp(verb, "build") == 0) {
-        rc = pkg_run_entry(&manifest, "build", false, false, false);
+        rc = pkg_run_entry(launcher_path, native_pipeline,
+            &manifest, "build", false, false, false);
     } else if (strcmp(verb, "run") == 0) {
-        rc = pkg_run_entry(&manifest, "run", false, false, true);
+        rc = pkg_run_entry(launcher_path, native_pipeline,
+            &manifest, "run", false, false, true);
     } else if (strcmp(verb, "test") == 0) {
-        rc = pkg_run_entry(&manifest, "test", true, false, true);
+        rc = pkg_run_entry(launcher_path, native_pipeline,
+            &manifest, "test", true, false, true);
     } else if (strcmp(verb, "lint") == 0) {
-        rc = pkg_run_entry(&manifest, "lint", false, true, false);
+        rc = pkg_run_entry(launcher_path, native_pipeline,
+            &manifest, "lint", false, true, false);
     } else if (strcmp(verb, "prove") == 0) {
-        rc = pkg_run_entry(&manifest, "prove", false, true, false);
+        rc = pkg_run_entry(launcher_path, native_pipeline,
+            &manifest, "prove", false, true, false);
         if (rc == 0)
             printf("pgy prove: package evidence preflight ok (not a theorem)\n");
     } else if (strcmp(verb, "fmt") == 0) {
         rc = pkg_run_fmt_entry(&manifest, argc, argv);
     } else if (strcmp(verb, "package") == 0) {
-        rc = pkg_run_entry(&manifest, "package-check", false, true, false);
+        rc = pkg_run_entry(launcher_path, native_pipeline,
+            &manifest, "package-check", false, true, false);
         if (rc == 0)
             rc = pgy_package_manifest_write_lock(&manifest);
     } else if (strcmp(verb, "publish") == 0) {

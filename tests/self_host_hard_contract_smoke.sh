@@ -1022,10 +1022,15 @@ forbid_text "src/compiler/self_host_llvm_ir_stdout_owner.c" \
     "driver_run_pipeline("
 forbid_text "src/compiler/self_host_llvm_ir_stdout_owner.c" \
     "compiler_emit_llvm_ir"
+require_text "src/compiler/self_host_mir_artifact_owner.c" \
+    "driver_materialize_self_host_mir_artifact("
+require_text "src/compiler/self_host_mir_artifact_owner.c" \
+    'child_argv[1] = "--emit-mir-json-verified";'
+require_text "src/compiler/self_host_mir_artifact_owner.c" \
+    'child_argv[3] = "-o";'
 require_text "src/compiler/self_host_llvm_driver.c" \
-    'producer_argv[1] = "--emit-mir-json-verified"'
-require_text "src/compiler/self_host_llvm_driver.c" \
-    'producer_argv[3] = "-o"'
+    "driver_materialize_self_host_mir_artifact("
+forbid_text "src/compiler/self_host_llvm_driver.c" "producer_argv"
 require_text "src/compiler/self_host_llvm_driver.c" \
     'backend_argv[1] = "--mir-json-backend=llvm"'
 require_text "src/compiler/self_host_llvm_driver.c" \
@@ -1035,6 +1040,13 @@ forbid_text "src/compiler/self_host_llvm_driver.c" \
     "compiler_build_native_llvm("
 forbid_text "src/compiler/self_host_llvm_driver.c" \
     "compiler_runtime_object"
+require_text "src/compiler/pkg.c" "pkg_verify_entry_with_installed_self_host("
+require_text "src/compiler/pkg.c" "c_runner_execute_installed_self_host_c("
+require_text "src/compiler/pkg.c" "llvm_runner_execute_installed_self_host_llvm("
+require_text "src/compiler/pkg.c" "if (native_pipeline)"
+forbid_text "src/compiler/pkg.c" 'getenv("PGY_NATIVE_PIPELINE")'
+require_text "tests/self_hosted/parity/package_commands_installed_self_host_owner.sh" \
+    "package commands consume installed MIR/C/LLVM artifacts and fail closed"
 require_text "Makefile" \
     'ifneq ($(abspath $(PGY)),$(abspath $(REPO_BIN_DIR)/pgy$(EXEEXT)))'
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \

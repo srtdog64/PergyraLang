@@ -7607,6 +7607,8 @@ reject_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "CheckB
 reject_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "LoadSemanticSource"
 require_file "src/compiler/self_host_driver.c"
 require_file "src/compiler/self_host_driver.h"
+require_file "src/compiler/self_host_mir_artifact_owner.c"
+require_file "src/compiler/self_host_mir_artifact_owner.h"
 require_file "src/compiler/self_host_llvm_driver.c"
 require_file "src/compiler/self_host_llvm_driver.h"
 require_file "src/compiler/driver_self_host_selection_owner.c"
@@ -7634,6 +7636,7 @@ reject_text "src/self_hosted/parser/stmt_match_owner.pgy" \
 require_text "src/self_hosted/parser/program_parse_owner.pgy" \
     "PARSER GRAPH ERROR: "
 require_max_lines "src/compiler/self_host_driver.c" 200
+require_max_lines "src/compiler/self_host_mir_artifact_owner.c" 90
 require_max_lines "src/compiler/self_host_llvm_driver.c" 120
 require_max_lines "src/compiler/driver_self_host_selection_owner.c" 100
 require_max_lines "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh" 140
@@ -7648,6 +7651,11 @@ require_max_lines "src/compiler/compiler_transient_artifact_workspace.c" 160
 require_max_lines "src/pgy_driver.c" 320
 require_max_lines "src/compiler/c_runner.c" 380
 require_max_lines "src/compiler/llvm_runner.c" 300
+require_max_lines "src/compiler/pkg.c" 300
+require_max_lines \
+    "tests/self_hosted/parity/package_commands_installed_self_host_owner.sh" 220
+require_max_lines \
+    "tests/self_hosted/parity/fixture/counting_package_self_host_driver.c" 90
 require_max_lines "src/compiler/compiler.c" 560
 require_text "src/pgy_driver.c" 'strcmp(argv[1], "--self-driver") == 0'
 require_text "src/pgy_driver.c" "driver_run_self_host_command"
@@ -7700,14 +7708,24 @@ require_text "src/compiler/self_host_driver.c" 'mir_canonicalize_mode = strcmp(a
 require_text "src/compiler/self_host_driver.c" 'child_argv[child_argc++] = argv[1]'
 require_text "src/compiler/self_host_driver.c" \
     'args[0] = (char *)"--emit-mir-json-verified";'
+require_function_text "src/compiler/self_host_mir_artifact_owner.c" \
+    "driver_materialize_self_host_mir_artifact(" \
+    'child_argv[1] = "--emit-mir-json-verified";'
+require_function_text "src/compiler/self_host_mir_artifact_owner.c" \
+    "driver_materialize_self_host_mir_artifact(" \
+    'child_argv[3] = "-o";'
 require_text "src/compiler/self_host_driver.c" "pgy_exec_argv(child_argv, false)"
 require_text "src/compiler/self_host_driver.c" "self-host driver is unavailable"
 reject_text "src/compiler/self_host_driver.c" "driver_run_pipeline("
 reject_text "src/compiler/self_host_driver.c" "system("
-require_text "src/compiler/self_host_llvm_driver.c" \
-    'producer_argv[1] = "--emit-mir-json-verified"'
-require_text "src/compiler/self_host_llvm_driver.c" \
-    'producer_argv[3] = "-o"'
+reject_text "src/compiler/self_host_mir_artifact_owner.c" "driver_run_pipeline("
+reject_text "src/compiler/self_host_mir_artifact_owner.c" "system("
+require_function_text "src/compiler/self_host_llvm_driver.c" \
+    "driver_materialize_self_host_llvm_artifacts(" \
+    "driver_materialize_self_host_mir_artifact("
+reject_function_text "src/compiler/self_host_llvm_driver.c" \
+    "driver_materialize_self_host_llvm_artifacts(" \
+    "producer_argv"
 require_text "src/compiler/self_host_llvm_driver.c" \
     'backend_argv[1] = "--mir-json-backend=llvm"'
 require_text "src/compiler/self_host_llvm_driver.c" \
@@ -7717,6 +7735,20 @@ reject_text "src/compiler/self_host_llvm_driver.c" "strstr("
 reject_text "src/compiler/self_host_llvm_driver.c" "driver_run_pipeline("
 reject_text "src/compiler/self_host_llvm_driver.c" "compiler_build_native_llvm("
 reject_text "src/compiler/self_host_llvm_driver.c" "compiler_runtime_object"
+require_function_text "src/compiler/pkg.c" "pkg_run_entry(" \
+    "if (native_pipeline)"
+require_function_text "src/compiler/pkg.c" "pkg_run_entry(" \
+    "pkg_verify_entry_with_installed_self_host("
+require_function_text "src/compiler/pkg.c" "pkg_run_entry(" \
+    "c_runner_execute_installed_self_host_c("
+require_function_text "src/compiler/pkg.c" "pkg_run_entry(" \
+    "llvm_runner_execute_installed_self_host_llvm("
+reject_text "src/compiler/pkg.c" 'getenv("PGY_NATIVE_PIPELINE")'
+require_text "src/pgy_driver.c" \
+    'pgy_env_value_is_truthy(getenv("PGY_NATIVE_PIPELINE"))'
+require_file "tests/self_hosted/parity/package_commands_installed_self_host_owner.sh"
+require_file \
+    "tests/self_hosted/parity/fixture/counting_package_self_host_driver.c"
 require_text "src/compiler/self_host_llvm_ir_artifact_owner.c" \
     "driver_materialize_self_host_llvm_artifacts("
 require_text "src/compiler/self_host_llvm_ir_artifact_owner.c" \
