@@ -11437,3 +11437,42 @@ Released/default replacement remains 0%.
   promotion. Timeout/cap increases, stale MIR, combined-row reconstruction,
   per-function program-row copies, and same-epoch length revalidation remain
   forbidden fallbacks.
+
+## 2026-08-10 - canonical identity lifetime and installed replacement close
+
+- Canonical MIR rebinding previously reread constructor identities from a
+  semantic artifact after MIR projection had consumed and retired its arena
+  storage. A shallow sibling copy kept field descriptors, not backing ownership,
+  so constructor lookup failed at the canonical field-ID remap boundary.
+- The execution owner now captures
+  `SemanticAstNominalConstructorFactsFromArtifact` before projection. The
+  identity epoch owner receives that typed fact directly. Its gate pins
+  `capture < projection < rebind`, rejects artifact rereads in the rebind
+  function, and keeps stale/wrong-kind field-ID negatives. The focused
+  `function_clause_order_minimal` source/MIR frontier and the prebuilt canonical
+  identity gate are green; the monolithic variant timed out while rebuilding
+  the driver and is not claimed green.
+- The refreshed current-source producer exits 0 in 71.124 seconds at 2.943 GiB
+  peak private and commits a 184,437,140-byte MIR with SHA-256
+  `D25824A2C270F352B1F12BCA195256F7E542DCE2895AE2B9D17A70CC7EA60B8E`.
+- Gen2 exits 0 in 260.083 seconds at 2.134 GiB; gen3 exits 0 in 270.149
+  seconds at 2.135 GiB. Both commit exactly 8,778,464 bytes with SHA-256
+  `3B0F924D34A30C71E7AA0BB646C95E802BCF8E5FB33EF06F787A19BE1C98323F`.
+  Direct byte equality is true under the unchanged 3 GiB/300-second boundary.
+- The canonical release build owner installs `bin/pgy-self-driver.exe` with
+  SHA-256
+  `9D70CC1C4F8F66D60ABB26F9068433EC9A5C8C9943422304654BA28BB59A18CD`.
+  Installed CLI mode, public MIR JSON, default C emit/compile, public LLVM IR,
+  nested scalar CFG LLVM, LLVM stdout, and the 13-fixture live replacement
+  gate are green.
+- Two installed gates had compiled header-backed emitted C with bare `cc` and
+  therefore produced false REDs. They now consume the shared emitted-C runtime
+  header/link owner. The same mistake is negative-gated in the component
+  inventory: emitted artifact compilation must use the repository-owned target
+  profile rather than reconstructing it locally.
+- The next hard-contract failure is a stale structural term requiring
+  `projection.flow.call_abi.target_capability_fingerprint`. The aggregate target
+  projection is intentionally flat: it validates
+  `flow.call_abi.target_capability_fingerprint` against the storage projection
+  before sealing the receipt. The next step is to correct that gate without
+  adding duplicate projection state, then continue from the next first failure.

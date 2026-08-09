@@ -741,6 +741,30 @@ seconds, and definitions 3.107/2.731 seconds. This closes the current-source
 gen2/gen3 fixed point under the unchanged 3 GiB/300-second boundary. It does
 not by itself claim full CI or installed release-driver promotion.
 
+Canonical installation exposed a separate ownership-lifetime invariant. The
+semantic artifact contains shallow Array carriers, so copying the aggregate or
+retaining a sibling value does not extend the backing lifetime after an `own`
+consumer retires it. Constructor identity facts are now captured before MIR
+projection consumes the artifact, and canonical identity rebinding consumes
+that typed fact instead of rereading the retired arena. The structural gate pins
+`capture < projection < rebind` and rejects the old artifact read. This rule is
+general: when a consumer needs evidence after a destructive owner boundary,
+project the evidence before the boundary and pass the typed fact; never use a
+shallow sibling alias as an implicit lifetime receipt.
+
+The refreshed compiler-source fixed point publishes a 184,437,140-byte MIR with
+SHA-256
+`D25824A2C270F352B1F12BCA195256F7E542DCE2895AE2B9D17A70CC7EA60B8E`.
+Gen2 and gen3 each publish 8,778,464 bytes with SHA-256
+`3B0F924D34A30C71E7AA0BB646C95E802BCF8E5FB33EF06F787A19BE1C98323F`;
+direct byte equality is true. The canonical build owner installs the release
+driver with SHA-256
+`9D70CC1C4F8F66D60ABB26F9068433EC9A5C8C9943422304654BA28BB59A18CD`.
+Installed CLI, MIR JSON, C emission/compilation, LLVM IR/stdout, and the
+13-fixture live replacement paths are green. Tests that compile emitted C must
+consume the repository's shared runtime-header compile owner; a bare host `cc`
+command is not evidence for a header-backed emitted artifact.
+
 ### Current-To-Target Mapping
 
 | Current surface | Target owner shape | Migration rule |

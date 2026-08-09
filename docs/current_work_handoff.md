@@ -6,7 +6,62 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - current-source gen2/gen3 fixed point is closed
+## Active self-host context - canonical installed replacement is promoted
+
+- Verified repository checkpoint is `b37ab436` on `main`; the compiler-source
+  checkpoint that produced the current fixed point is `74146fe3`. Preserve the
+  separate user-owned stdlib work: modified `docs/138_standard_library_scope.md`
+  and `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
+  `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`.
+- Closed identity-lifetime seam: canonical MIR constructor identities are now
+  captured from the admitted semantic artifact before MIR projection consumes
+  and retires that artifact's arena storage. Rebinding consumes the captured
+  constructor fact directly and is negative-gated against rereading the retired
+  artifact. A sibling value that shallowly aliases a consumed aggregate is not
+  a lifetime receipt and must never be used as one.
+- The focused hard frontier `function_clause_order_minimal` passes source/MIR
+  parity in 21.3 seconds. The canonical identity epoch gate passes in 2.2
+  seconds with the exact canonical prebuilt driver and pins
+  `capture < projection < rebind`, plus stale/wrong-kind field-ID negatives.
+  Its all-in-one form timed out while rebuilding the large driver at 304
+  seconds, so that form remains unverified rather than green.
+- Current-source MIR receipt
+  `self-host-driver-canonical-identity-mir-retry-20260810` exits 0 in 71.124
+  seconds at 2.943 GiB peak private. It publishes
+  `.tmp/self_hosted/compiler/canonical-identity-fixed-point-20260810/driver_source.focused.mir.json`,
+  exactly 184,437,140 bytes with SHA-256
+  `D25824A2C270F352B1F12BCA195256F7E542DCE2895AE2B9D17A70CC7EA60B8E`.
+- Gen2 exits 0 in 260.083 seconds at 2.134 GiB and publishes 8,778,464
+  bytes with SHA-256
+  `3B0F924D34A30C71E7AA0BB646C95E802BCF8E5FB33EF06F787A19BE1C98323F`.
+  Gen3 exits 0 in 270.149 seconds at 2.135 GiB and publishes the same bytes
+  and hash. Direct byte equality is true under the unchanged 3 GiB/300-second
+  boundary.
+- The canonical release build owner installs `bin/pgy-self-driver.exe` with
+  SHA-256
+  `9D70CC1C4F8F66D60ABB26F9068433EC9A5C8C9943422304654BA28BB59A18CD`.
+  Installed CLI mode, public MIR JSON, default C emit/compile, public LLVM IR,
+  nested scalar CFG LLVM, LLVM stdout, and the 13-fixture live replacement
+  gate are green. The two C-compiling gates now consume the shared emitted-C
+  runtime-header owner instead of invoking bare `cc` without repository runtime
+  include/link policy.
+- Active objective card: objective = advance the installed hard contract from
+  its first failure; priority = preserve aggregate value-flow identity, consume
+  the target projection receipt, remove stale gate authority, then continue to
+  the next executable falsifier; fact owner =
+  `DirectMirAggregateValueFlowFact` plus
+  `DirectMirArrayStorageAbiProjection`; last legitimate consumer =
+  `DirectMirAggregateValueFlowTargetProjectionFromFacts` and the four C/LLVM
+  aggregate emitters; forbidden fallback = inventing a nested
+  `projection.flow` carrier, reopening target facts in emitters, or satisfying a
+  source grep with duplicate state; verification = the hard contract followed
+  by the focused aggregate C/LLVM parity gates. The current first blocker is a
+  stale hard-contract term requiring nonexistent
+  `projection.flow.call_abi.target_capability_fingerprint`; production already
+  validates `flow.call_abi.target_capability_fingerprint` against the storage
+  projection before sealing the flat receipt.
+
+## Historical checkpoint - current-source gen2/gen3 fixed point is closed
 
 - Verified source checkpoint is `59d83a24` on `main`. Preserve the separate
   user-owned stdlib work: modified `docs/138_standard_library_scope.md` and
