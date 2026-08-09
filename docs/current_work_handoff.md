@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-08-09 (Asia/Seoul)
+Updated: 2026-08-10 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -8,8 +8,8 @@ owner, and the named executable gate.
 
 ## Active self-host context - full MIR producer is green; gen2 consumer throughput is RED
 
-- Verified Git checkpoint is `838c7de9` on `main`; the compiler changes through
-  the intent-observability aggregate-row rung are committed. The remaining worktree
+- Verified Git checkpoint is `bc0eca60` on `main`; the compiler changes through
+  the one-pass MIR block-row capture rung are committed. The remaining worktree
   changes are separate user-owned stdlib work: modified
   `docs/138_standard_library_scope.md` and
   `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
@@ -127,6 +127,36 @@ owner, and the named executable gate.
   2,112-to-2,176 at 18.316 s and 2,176-to-2,240 at 18.146 s. The first is
   dominated by branch-heavy parser owners (`ParseIntentDecl` 287 blocks and
   `ParseNominalDecl` 196 blocks), not another parallel registry projection.
+- A focused receipt then separated `ParseIntentDecl`: routine fact-index
+  construction took 3.247 s, validation/header about 0.003 s, and region
+  emission about 0.215 s. An allocation-free terminal-true-arm CFG proof was
+  sound on focused C/native-LLVM fixtures but changed the fixed 2,112-to-2,176
+  batch by only about 0.4%, so that experiment was rolled back rather than
+  recorded as progress.
+- The reached repeated operation was the block JSON read itself. The program
+  index read block id/instruction bounds, then the routine index reopened the
+  same object three times for reachability and successors, crossing the large
+  instruction payload on each lookup. `MirProgramRoutineBlockCaptureWithin`
+  now owns one exact order-independent scan and carries aligned reachability and
+  successor facts in `MirProgramRoutineIndex`; the downstream routine owner is
+  negative-gated against the old raw-key reads. Missing/null successor `-1`
+  remains distinct from an explicitly negative invalid successor, preserving
+  the `cfg_successor` diagnostic before graph validation.
+- Focused C and native LLVM both print exact
+  `mir-program-routine-index-owner-ok`. The repository focused script reaches
+  and passes its C leg, while installed self-host LLVM remains RED at the known
+  `direct MIR terminal multi-routine graph is unsupported` boundary. The
+  bounded JSON C leg is green; its installed LLVM leg stops at the same known
+  projector boundary. The current source AST is 7,931,132 bytes and passes
+  self-host codegen surface/event-scan/shape `--check` before emission.
+- On the unchanged 183,890,971-byte MIR (SHA-256
+  `9B144FD5D25A18EA22BECA1BB78BA51484EC68BF6ADE846B0762F63F898D1A57`),
+  the 2,112-to-2,176 batch fell from 18.243 s to 3.215 s. The 300-second run
+  completed all top-level MIR-to-AST routines at 270.226 s and reached
+  `consumer:mir-to-ast:done` at 270.556 s, instead of stopping at routine
+  2,752. It timed out during expression-graph surface assembly at row 90,112.
+  The 2.803 GiB private peak belongs to that newly reached stage and is not a
+  stage-aligned comparison with the old 0.372 GiB mid-routine peak.
 - Apparent compact-semantic regressions were corrupted manual AST carriers,
   not a language change. An ad-hoc CR-removal command deleted literal digits
   `0`, `1`, and `5`, producing expressions such as `bounds[]`. The official
@@ -138,19 +168,19 @@ owner, and the named executable gate.
   such as `dos2unix`, then require codegen `--check` before emission.
 - Objective card: production entry is the integrated driver's `--mir-json`
   mode; the closed sub-seam owners are the document-owned declaration index,
-  exact-bounds JSON object fact table, complete LanguageWord registry row, and
-  complete intent-observability ABI row. The next open owner is
-  `src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy`; the smallest candidate is
-  the allocation-free terminal-true-arm merge proof for branch-heavy parser
-  routines, while general CFG topology fallback must retain exact semantics.
-  The last legitimate consumer
+  exact-bounds JSON object fact table, complete LanguageWord registry row,
+  complete intent-observability ABI row, and exact one-pass MIR block-row
+  capture. The next open reached boundary is expression-graph surface assembly;
+  its repeated owned operation is still Unknown and must be localized from the
+  existing surface-row receipts before another structural change. The last
+  legitimate consumer
   is C artifact publication followed by the gen2/gen3 byte comparator.
   Forbidden fallbacks are native substitution, skipped oracle parity, whole-
   document or per-routine reparsing, graph reconstruction, cache/query engine,
   shard/worker, timeout or memory-cap increase, and fixture-specific output.
-  The next falsifier must compare the same current-source MIR before/after one
-  bounded CFG-owner change and reject semantic drift on shared-terminal,
-  nonterminal diamond, loop, malformed-successor, and earlier-merge cases.
+  The next falsifier must use the same current-source MIR and distinguish graph
+  surface admission from sequence/identity construction without adding a
+  cache, global observation path, or a second graph fact owner.
   Final acceptance remains a bounded gen2 C
   artifact; only then may the generated binary attempt byte-identical gen3
   reproduction.

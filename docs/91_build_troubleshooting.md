@@ -6477,3 +6477,44 @@ publish C, so this closes only the ABI-row projection rung.
 Do not add wrapper selectors, a dynamic table/cache, positional enum casts, or
 a second parameter-kind switch in a consumer. Do not call the full consumer
 green until a bounded C artifact is committed.
+
+## MIR routine lowering repeatedly reopens each block object
+
+A routine can be small in source lines and still be expensive to consume when
+each block object contains a large `instructions` array. On the fixed
+183,890,971-byte MIR, a focused receipt for `ParseIntentDecl` showed 3.247
+seconds in `BuildMirRoutineFactIndex` and only about 0.215 seconds in region
+emission. An allocation-free terminal-arm CFG proof was then tested and rolled
+back: it changed the 2,112-to-2,176 interval by only about 0.4%. Branch-heavy
+source shape was the trigger, not proof that the CFG merge query was the owner.
+
+The reached repeated operation was block-field lookup. The program index found
+`id` and `instructions`, while the routine index reopened the same block for
+`reachable`, `succ_true`, and `succ_false`. Because successors appear after the
+instruction payload in canonical MIR JSON, each lookup crossed that payload
+again. The block row now has one exact schema owner. It scans the admitted
+object once, accepts key permutation and unknown future fields, rejects
+duplicate known keys and malformed separators, and carries identity,
+reachability, instruction bounds, and successors into `MirProgramRoutineIndex`.
+The routine fact owner consumes those aligned facts and is negative-gated
+against reopening the three raw successor/reachability keys.
+
+Preserve diagnostic identity while collapsing reads. An absent or `null`
+successor remains the terminal sentinel `-1`; an explicitly negative numeric
+successor is captured as an invalid sentinel, rejected as `cfg_successor`, and
+normalized to terminal only before graph queries so `cfg_backedge` cannot
+overwrite the earlier diagnosis. Do not flatten “missing” and “invalid” into
+the same fact merely because both are negative integers.
+
+The fixed-input result is the performance falsifier. The 2,112-to-2,176 batch
+fell from 18.243 seconds to 3.215 seconds, and the same 300-second run completed
+all MIR-to-AST routines at 270.556 seconds instead of stopping at routine 2,752.
+It then entered expression-graph construction and timed out there. The later
+2.803 GiB private peak reflects newly reached work and must not be compared to
+the old mid-routine 0.372 GiB peak as if it were a stage-aligned regression.
+
+Do not add a block cache, query engine, routine-local JSON copy, field-order
+parser, timeout increase, or CFG shortcut to hide this pattern. Also keep
+structural shell gates honest: `require_function_text` accepts one required
+term. Use a separate call for every claimed body invariant; extra shell
+arguments are ignored and can create a false green.
