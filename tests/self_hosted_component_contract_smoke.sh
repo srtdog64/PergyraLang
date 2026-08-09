@@ -4594,11 +4594,23 @@ reject_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
     "SemanticAstInitializerTypeFactsRefinedByIterationsFromAdmittedFactsWithFunctionTables("
 require_file "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" 553
+require_max_lines "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" 570
 require_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
     "struct SemanticAstGenericSpecializationFacts"
 require_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
     "func SemanticAstGenericSpecializationFactsFromBody("
+require_function_text \
+    "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
+    "func SemanticAstGenericSpecializationFactsFromAdmittedBody(" \
+    "let enum_environment_count: Int = ArrayLength(names);"
+require_function_text \
+    "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
+    "func SemanticAstGenericSpecializationFactsFromAdmittedBody(" \
+    "while ArrayLength(names) > enum_environment_count { ArrayPop(names); }"
+reject_function_text \
+    "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
+    "func SemanticAstGenericSpecializationFactsFromAdmittedBody(" \
+    "SemanticAstExpressionEnvironmentReset(names, types, modes);"
 require_file "src/self_hosted/semantic/ast_generic_specialization_query_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_generic_specialization_query_owner.pgy" 92
 require_text "src/self_hosted/OWNERS.md" \

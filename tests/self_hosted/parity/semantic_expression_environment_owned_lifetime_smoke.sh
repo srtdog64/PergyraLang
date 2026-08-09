@@ -744,7 +744,6 @@ done
 
 for reuse_contract in \
     "$CALL_TARGETS|SemanticAstAnalysisResolveCallTargetsFromAdmittedBody" \
-    "$GENERIC_FACTS|SemanticAstGenericSpecializationFactsFromAdmittedBody" \
     "$INITIALIZER_CURSOR|SemanticAstInitializerEnvironmentCursorAdvance"; do
     path="${reuse_contract%%|*}"
     function_name="${reuse_contract#*|}"
@@ -774,11 +773,30 @@ for fresh_environment in \
         exit 1
     fi
 done
-[[ "$(grep -Fc 'SemanticAstExpressionEnvironmentReset(names, types, modes);' \
-    <<<"$generic_surface_epoch" || true)" -eq 1 ]] || {
-    echo "[self-host-parity:semantic-environment-lifetime] generic surface loop lost its exact environment reset" >&2
+for prefix_reset in \
+    'while ArrayLength(names) > enum_environment_count { ArrayPop(names); }' \
+    'while ArrayLength(types) > enum_environment_count { ArrayPop(types); }' \
+    'while ArrayLength(modes) > enum_environment_count { ArrayPop(modes); }'; do
+    grep -Fq "$prefix_reset" <<<"$generic_surface_epoch" || {
+        echo "[self-host-parity:semantic-environment-lifetime] generic surface lost enum-prefix reset: $prefix_reset" >&2
+        exit 1
+    }
+done
+if grep -Fq 'SemanticAstExpressionEnvironmentReset(names, types, modes);' \
+    <<<"$generic_surface_epoch"; then
+    echo "[self-host-parity:semantic-environment-lifetime] generic surface discarded its admitted enum prefix" >&2
+    exit 1
+fi
+[[ "$(grep -Fc 'SemanticAstExpressionSeedEnumValues(' \
+    <<<"$generic_environment_prefix" || true)" -eq 1 ]] || {
+    echo "[self-host-parity:semantic-environment-lifetime] generic owner lost its one enum-prefix admission" >&2
     exit 1
 }
+if grep -Fq 'SemanticAstExpressionSeedEnumValues(' \
+    <<<"$generic_surface_epoch"; then
+    echo "[self-host-parity:semantic-environment-lifetime] generic surface rebuilt the enum prefix" >&2
+    exit 1
+fi
 [[ "$(grep -Fc 'SemanticAstExpressionEnvironmentClear(names, types, modes);' \
     <<<"$generic_surface_epoch" || true)" -eq 1 ]] || {
     echo "[self-host-parity:semantic-environment-lifetime] generic owner lost its post-surface last-consumer cleanup" >&2

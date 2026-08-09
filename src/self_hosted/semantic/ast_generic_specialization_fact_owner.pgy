@@ -264,6 +264,19 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
     let names: Array<String> = [];
     let types: Array<String> = [];
     let modes: Array<String> = [];
+    if !SemanticAstExpressionSeedEnumValues(
+        enum_facts, names, types, modes
+    ) {
+        return SemanticAstGenericSpecializationError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "generic_enum_environment"
+            ),
+            call_node_ids, signature_indexes, actual_starts, actual_counts,
+            actual_type_names
+        );
+    }
+    let enum_environment_count: Int = ArrayLength(names);
     let surface_index: Int = 0;
     while surface_index < SemanticAstExpressionSurfaceCount(
         expression_surfaces
@@ -299,10 +312,13 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
                 actual_counts, actual_type_names
             );
         }
-        SemanticAstExpressionEnvironmentReset(names, types, modes);
-        let environment_ok: Bool = SemanticAstExpressionSeedEnumValues(
-            enum_facts, names, types, modes
-        );
+        while ArrayLength(names) > enum_environment_count { ArrayPop(names); }
+        while ArrayLength(types) > enum_environment_count { ArrayPop(types); }
+        while ArrayLength(modes) > enum_environment_count { ArrayPop(modes); }
+        let environment_ok: Bool =
+            ArrayLength(names) == enum_environment_count &&
+            ArrayLength(types) == enum_environment_count &&
+            ArrayLength(modes) == enum_environment_count;
         if environment_ok && IsSome(function_node) {
             environment_ok = SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
                 signatures, constructors, UnwrapOption(function_node),
