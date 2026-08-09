@@ -8,6 +8,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -25,6 +26,20 @@ fi
 [[ -x "$PGY" ]] || { echo "[self-host-live] missing pgy: $PGY" >&2; exit 1; }
 [[ -x "$SELF_DRIVER" ]] || { echo "[self-host-live] missing self driver: $SELF_DRIVER" >&2; exit 1; }
 command -v "$CC" >/dev/null 2>&1 || { echo "[self-host-live] missing C compiler: $CC" >&2; exit 1; }
+pgy_selfhost_select_emitted_c_compile_profile || exit 1
+
+compile_live_emitted_c() {
+    local source="$1"
+    local output="$2"
+    local log="$3"
+    local -a command=("$CC" -x c -std=c11)
+    command+=("${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[@]}")
+    if pgy_selfhost_emitted_c_uses_runtime_headers "$source"; then
+        command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+    fi
+    command+=("$source" -o "$output")
+    "${command[@]}" >"$log" 2>&1
+}
 
 positive="src/self_hosted/semantic/fixture/valid_call_int.pgy"
 negative="src/self_hosted/semantic/fixture/bad_return_type.pgy"
@@ -49,8 +64,8 @@ cmp -s "$WORK_DIR/direct.c" "$WORK_DIR/launcher.c" || {
     echo "[self-host-live] launcher C artifact differs from direct DRV-2" >&2
     exit 1
 }
-"$CC" -x c -std=c11 "$WORK_DIR/launcher.c" -o "$WORK_DIR/launcher-program" \
-    >"$WORK_DIR/cc.log" 2>&1 || {
+compile_live_emitted_c "$WORK_DIR/launcher.c" \
+    "$WORK_DIR/launcher-program" "$WORK_DIR/cc.log" || {
         cat "$WORK_DIR/cc.log" >&2
         exit 1
     }
@@ -123,10 +138,8 @@ check_live_mir_source() {
             echo "[self-host-live] $label: launcher C artifact drift" >&2
             exit 1
         }
-    "$CC" -x c -std=c11 -I"$ROOT_DIR/src/runtime" \
-        "$WORK_DIR/$label.launcher-mir.c" \
-        -o "$WORK_DIR/$label.launcher-program" \
-        >"$WORK_DIR/$label.cc.log" 2>&1 || {
+    compile_live_emitted_c "$WORK_DIR/$label.launcher-mir.c" \
+        "$WORK_DIR/$label.launcher-program" "$WORK_DIR/$label.cc.log" || {
             cat "$WORK_DIR/$label.cc.log" >&2
             exit 1
         }

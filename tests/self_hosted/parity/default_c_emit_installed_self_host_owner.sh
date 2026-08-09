@@ -7,6 +7,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -56,7 +57,15 @@ cmp -s "$WORK_DIR/direct.c" "$WORK_DIR/launcher.c" ||
 grep -Fq "pgy: wrote $WORK_REL/launcher.c" "$WORK_DIR/launcher.out" ||
     fail "public --emit-c did not report its installed artifact"
 
-"$CC" -x c -std=c11 "$WORK_DIR/launcher.c" -o "$WORK_DIR/hello-program"
+pgy_selfhost_select_emitted_c_compile_profile \
+    || fail "emitted C compile profile is invalid"
+compile_command=("$CC" -x c -std=c11)
+compile_command+=("${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[@]}")
+if pgy_selfhost_emitted_c_uses_runtime_headers "$WORK_DIR/launcher.c"; then
+    compile_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+fi
+compile_command+=("$WORK_DIR/launcher.c" -o "$WORK_DIR/hello-program")
+"${compile_command[@]}"
 "$WORK_DIR/hello-program" | tr -d '\r' >"$WORK_DIR/hello.out"
 printf 'Hello, Pergyra!\n' >"$WORK_DIR/hello.expected"
 cmp -s "$WORK_DIR/hello.expected" "$WORK_DIR/hello.out" ||

@@ -7740,6 +7740,10 @@ require_text "src/compiler/compiler_self_host_artifact.c" \
 reject_text "src/compiler/compiler_self_host_artifact.c" "CompilerIRBundle"
 reject_text "src/compiler/compiler_self_host_artifact.c" "compiler_runtime_object"
 require_file "tests/self_host_live_replacement_smoke.sh"
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"'
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    'compile_live_emitted_c() {'
 require_text "Makefile" "self-host-compiler:"
 require_text "Makefile" "self-host-compiler: self-host-codegen-bootstrap-seed-test-smoke"
 reject_text "Makefile" '$(call pgy_run_native,"$(PGY)" src/self_hosted/compiler/driver_rung2_main.pgy'
@@ -7810,6 +7814,12 @@ require_text "Makefile" \
 require_text \
     "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh" \
     'PGY_SELF_DRIVER_BIN="$WORK_DIR/missing-driver"'
+require_text \
+    "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"'
+require_text \
+    "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh" \
+    'pgy_selfhost_emitted_c_uses_runtime_headers "$WORK_DIR/launcher.c"'
 require_text \
     "tests/self_hosted/parity/default_c_emit_installed_self_host_owner.sh" \
     "missing installed driver silently used the native C path"
