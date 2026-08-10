@@ -1018,6 +1018,7 @@ docs/semantics/proofs/CompensationCore.v \
 docs/semantics/proofs/CoordinationCore.v \
 docs/semantics/proofs/VerificationMethodology.v \
 docs/semantics/proofs/SoTAuthority.v \
+docs/semantics/proofs/ModuleAuthority.v \
 docs/semantics/proofs/ProofSpine.v \
 docs/semantics/proofs/GuardCalculus.v \
 docs/semantics/proofs/WholeProgramCore.v \

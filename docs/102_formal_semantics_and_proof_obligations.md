@@ -40,7 +40,10 @@ Regression tests, smoke tests, and backend compare runs are evidence. They are n
 
 Each Coq/Rocq file owns a bounded model. `SlotCalculus.v` covers handle/token
 and pin invariants; the architecture-boundary cores cover delegation,
-cumulative loss, and the logical-resource/physical-machine bridge. Do not
+cumulative loss, and the logical-resource/physical-machine bridge.
+`ModuleAuthority.v` covers the planned `use MODULE;` surface before any
+compiler code exists: stratified links, unique export resolution, and
+authority provenance, with size-quantified load theorems (docs/202). Do not
 describe model theorems as implementation adequacy, completed beta proof, or a
 whole-language proof. The proof spine makes that negative boundary explicit.
 
