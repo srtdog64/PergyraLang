@@ -25,7 +25,7 @@ pgy_selfhost_compile_parser_tool \
     "$ROOT_DIR/src/self_hosted/parser/main.pgy" c "$SELF_BIN" "$SELF_LOG"
 
 (cd "$ROOT_DIR" && "$SELF_BIN" "$SOURCE") >"$SELF_OUT"
-(cd "$ROOT_DIR" && "$PGY" --ast "$SOURCE") >"$NATIVE_OUT"
+(cd "$ROOT_DIR" && "$PGY" --native-pipeline --ast "$SOURCE") >"$NATIVE_OUT"
 pgy_selfhost_compare_expected_text_artifact_file_with_owner \
     "self-host-parity:generic-defaults" "$BUILD_DIR" \
     "$NATIVE_OUT" "$SELF_OUT" "ast_text"
@@ -38,7 +38,7 @@ if (cd "$ROOT_DIR" && "$SELF_BIN" \
     echo "[self-host-parity:generic-defaults] self-host accepted invalid default" >&2
     exit 1
 fi
-if (cd "$ROOT_DIR" && "$PGY" --ast \
+if (cd "$ROOT_DIR" && "$PGY" --native-pipeline --ast \
     "$(pgy_path_for_compiler "$PGY" "$MUTATED")" \
     >"$MUTATED.native.out" 2>"$MUTATED.native.err"); then
     echo "[self-host-parity:generic-defaults] native accepted invalid default" >&2

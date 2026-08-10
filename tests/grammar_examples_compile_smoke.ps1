@@ -43,7 +43,7 @@ foreach ($src in $sources) {
     $outName = ($rel -replace '[\\/:*?"<>|]', '_') + ".c"
     $outPath = Join-Path $OutDir $outName
 
-    & $PgyBin "--ast" $src.FullName > $null
+    & $PgyBin "--native-pipeline" "--ast" $src.FullName > $null
     $rc = $LASTEXITCODE
     if ($rc -ne 0) {
         Write-Error "[grammar-examples] AST failed: $rel (exit=$rc)"

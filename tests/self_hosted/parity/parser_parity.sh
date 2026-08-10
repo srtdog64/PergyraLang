@@ -164,7 +164,7 @@ check_live_fixture_drift() {
         local live_text
         local live_rc
         set +e
-            live_text="$(cd "$ROOT_DIR" && "$PGY_EXEC" --ast "$src" 2>"$live_err")"
+            live_text="$(cd "$ROOT_DIR" && "$PGY_EXEC" --native-pipeline --ast "$src" 2>"$live_err")"
         live_rc=$?
         set -e
         printf '%s' "$live_text" > "$live_out"

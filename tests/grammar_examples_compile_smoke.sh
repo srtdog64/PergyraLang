@@ -79,7 +79,7 @@ while IFS= read -r src; do
     src_abs="$ROOT_DIR/$src"
     out_name="$(printf '%s' "$src" | sed 's#[/\\:]#_#g').c"
     out_path="$OUT_DIR/$out_name"
-    run_pgy --ast "$src_abs" >/dev/null
+    run_pgy --native-pipeline --ast "$src_abs" >/dev/null
     run_pgy "$src_abs" --emit-c -o "$out_path" >/dev/null
     if [[ ! -s "$out_path" ]]; then
         fail "empty emitted C for $src"

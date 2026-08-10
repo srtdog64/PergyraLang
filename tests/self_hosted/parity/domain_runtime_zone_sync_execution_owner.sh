@@ -51,7 +51,7 @@ ZERO_BIN="$BUILD_DIR/zero.exe"
 ZERO_THREADSAFE_BIN="$BUILD_DIR/zero-threadsafe.exe"
 ZERO_HARNESS="$ROOT_DIR/tests/self_hosted/parity/fixture/domain_runtime_zone_sync_harness.c"
 
-"$PGY_BIN" --ast "$ZERO_SOURCE" >"$ZERO_AST"
+"$PGY_BIN" --native-pipeline --ast "$ZERO_SOURCE" >"$ZERO_AST"
 ZERO_AST_INPUT="${ZERO_AST#"$ROOT_DIR/"}"
 [[ "$ZERO_AST_INPUT" != "$ZERO_AST" ]]
 "$CODEGEN_BIN" "$ZERO_AST_INPUT" >"$ZERO_C"
@@ -92,7 +92,7 @@ NONZERO_AST="$BUILD_DIR/nonzero.ast.txt"
 NONZERO_OUT="$BUILD_DIR/nonzero.out"
 NONZERO_ERR="$BUILD_DIR/nonzero.err"
 
-"$PGY_BIN" --ast "$NONZERO_SOURCE" >"$NONZERO_AST"
+"$PGY_BIN" --native-pipeline --ast "$NONZERO_SOURCE" >"$NONZERO_AST"
 NONZERO_AST_INPUT="${NONZERO_AST#"$ROOT_DIR/"}"
 [[ "$NONZERO_AST_INPUT" != "$NONZERO_AST" ]]
 if "$CODEGEN_BIN" "$NONZERO_AST_INPUT" >"$NONZERO_OUT" 2>"$NONZERO_ERR"; then

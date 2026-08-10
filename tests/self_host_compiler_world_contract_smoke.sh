@@ -1276,7 +1276,7 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
     "run_output"
 
 ast_out="$tmp_dir/world.ast.txt"
-(cd "$ROOT_DIR" && "$pgy_bin" --ast \
+(cd "$ROOT_DIR" && "$pgy_bin" --native-pipeline --ast \
     "$(pgy_path_for_compiler "$pgy_bin" "$ROOT_DIR/${PGY_SELFHOST_COMPILER_WORLD_PATH}")") >"$ast_out"
 
 awk '

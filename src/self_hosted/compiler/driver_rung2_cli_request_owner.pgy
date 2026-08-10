@@ -8,6 +8,7 @@ import "../codegen/text/text_owner.pgy";
 
 enum DriverRung2CliRequest {
     DriverCliSourceTokensStdout(String),
+    DriverCliSourceAstStdout(String),
     DriverCliSourceCStdout(String),
     DriverCliSourceCManifestStdout(String, String),
     DriverCliSourceCArtifact(String, String),
@@ -64,6 +65,15 @@ func DriverRung2CliRequestFromArgsOrDie(
         }
         return DriverCliSourceTokensStdout(
             DriverRung2CliPathOperandOrDie(args[1], "source token input path")
+        );
+    }
+
+    if args[0] == "--ast" {
+        if count != 2 {
+            Die("source AST mode requires exactly one input path");
+        }
+        return DriverCliSourceAstStdout(
+            DriverRung2CliPathOperandOrDie(args[1], "source AST input path")
         );
     }
 

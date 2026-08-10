@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Public token dumping is owned by the installed Pergyra lexer. The native
-# lexer remains reachable only through the declared --native-pipeline oracle.
+# Public AST dumping is owned by the installed Pergyra parser. The native
+# parser remains reachable only through the declared --native-pipeline oracle.
 # Registry forbidden-fallback inventory exercised below:
-# public_token_native_fallback, public_token_oracle_self_compare.
+# public_ast_native_fallback, public_ast_oracle_self_compare.
 
 set -euo pipefail
 
@@ -13,10 +13,11 @@ pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 SELF_DRIVER="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"
-WORK_REL=".tmp/self_hosted/public_tokens_installed"
+WORK_REL=".tmp/self_hosted/public_ast_installed"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
-SOURCE="examples/hello.pgy"
-EXPECTED="$ROOT_DIR/src/self_hosted/lexer/fixture/hello_tokens.txt"
+SOURCE="src/self_hosted/parser/fixture/arith_let.pgy"
+IMPORT_SOURCE="tests/parser_imported_intent_composition/positive_main.pgy"
+EXPECTED="$ROOT_DIR/src/self_hosted/parser/fixture/arith_let_ast.txt"
 LAUNCHER_OWNER="$ROOT_DIR/src/pgy_driver.c"
 SELECTION_OWNER="$ROOT_DIR/src/compiler/driver_self_host_selection_owner.c"
 SIBLING_OWNER="$ROOT_DIR/src/compiler/self_host_driver.c"
@@ -24,7 +25,7 @@ REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner
 EXECUTION_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
 
 fail() {
-    echo "[self-host-public-tokens] $*" >&2
+    echo "[self-host-public-ast] $*" >&2
     exit 1
 }
 
@@ -56,63 +57,77 @@ installed_name="pgy-self-driver"
 rm -rf "$WORK_DIR"
 mkdir -p "$WORK_DIR"
 
-(cd "$ROOT_DIR" && "$SELF_DRIVER" --tokens "$SOURCE") \
+(cd "$ROOT_DIR" && "$SELF_DRIVER" --ast "$SOURCE") \
     >"$WORK_DIR/direct.out" 2>"$WORK_DIR/direct.err"
 (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN PGY_NATIVE_PIPELINE &&
-    "$PGY" --tokens "$SOURCE") \
+    "$PGY" --ast "$SOURCE") \
     >"$WORK_DIR/public.out" 2>"$WORK_DIR/public.err"
 cmp -s "$WORK_DIR/direct.out" "$WORK_DIR/public.out" ||
-    fail "public --tokens differs from the installed Pergyra lexer"
+    fail "public --ast differs from the installed Pergyra parser"
 
-(cd "$ROOT_DIR" && "$PGY" --native-pipeline --tokens "$SOURCE") \
+(cd "$ROOT_DIR" && "$PGY" --native-pipeline --ast "$SOURCE") \
     >"$WORK_DIR/native.out" 2>"$WORK_DIR/native.err"
 normalize "$WORK_DIR/direct.out" "$WORK_DIR/direct.norm"
 normalize "$WORK_DIR/native.out" "$WORK_DIR/native.norm"
 normalize "$EXPECTED" "$WORK_DIR/expected.norm"
 cmp -s "$WORK_DIR/direct.norm" "$WORK_DIR/native.norm" ||
-    fail "installed token stream differs from the native oracle"
+    fail "installed AST differs from the native oracle"
 cmp -s "$WORK_DIR/direct.norm" "$WORK_DIR/expected.norm" ||
-    fail "installed token stream differs from the committed owner fixture"
+    fail "installed AST differs from the committed owner fixture"
+
+(cd "$ROOT_DIR" && "$SELF_DRIVER" --ast "$IMPORT_SOURCE") \
+    >"$WORK_DIR/import.direct" 2>"$WORK_DIR/import.direct.err"
+(cd "$ROOT_DIR" && "$PGY" --ast "$IMPORT_SOURCE") \
+    >"$WORK_DIR/import.public" 2>"$WORK_DIR/import.public.err"
+(cd "$ROOT_DIR" && "$PGY" --native-pipeline --ast "$IMPORT_SOURCE") \
+    >"$WORK_DIR/import.native" 2>"$WORK_DIR/import.native.err"
+normalize "$WORK_DIR/import.direct" "$WORK_DIR/import.direct.norm"
+normalize "$WORK_DIR/import.native" "$WORK_DIR/import.native.norm"
+cmp -s "$WORK_DIR/import.direct" "$WORK_DIR/import.public" ||
+    fail "public imported AST differs from the installed Pergyra parser"
+cmp -s "$WORK_DIR/import.direct.norm" "$WORK_DIR/import.native.norm" ||
+    fail "installed imported AST differs from the native oracle"
+grep -Fq 'Intent: ImportedFrontendPipeline' "$WORK_DIR/import.direct" ||
+    fail "installed AST did not preserve import composition"
 
 set +e
 (cd "$ROOT_DIR" && PGY_SELF_DRIVER_BIN="$WORK_REL/missing-driver" \
-    PGY_DEBUG_PIPELINE_TIMING=1 "$PGY" --tokens "$SOURCE") \
+    PGY_DEBUG_PIPELINE_TIMING=1 "$PGY" --ast "$SOURCE") \
     >"$WORK_DIR/missing.out" 2>"$WORK_DIR/missing.err"
 missing_rc=$?
 (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN PGY_NATIVE_PIPELINE &&
-    "$PGY" --tokens "$SOURCE" --verbose) \
+    "$PGY" --ast "$SOURCE" --verbose) \
     >"$WORK_DIR/unsupported.out" 2>"$WORK_DIR/unsupported.err"
 unsupported_rc=$?
-(cd "$ROOT_DIR" && "$SELF_DRIVER" --tokens) \
+(cd "$ROOT_DIR" && "$SELF_DRIVER" --ast) \
     >"$WORK_DIR/arity.out" 2>"$WORK_DIR/arity.err"
 arity_rc=$?
 set -e
 
 [[ "$missing_rc" -ne 0 && ! -s "$WORK_DIR/missing.out" ]] ||
-    fail "missing sibling silently entered native token production"
+    fail "missing sibling silently entered native AST production"
 grep -Fq "self-host driver is unavailable" "$WORK_DIR/missing.err" ||
     fail "missing sibling did not report the installed boundary"
 ! grep -Fq "[pipeline timing]" "$WORK_DIR/missing.err" ||
     fail "missing sibling retried through the native pipeline"
 [[ "$unsupported_rc" -ne 0 && ! -s "$WORK_DIR/unsupported.out" ]] ||
-    fail "unsupported token options entered a compiler path"
-grep -Fq -- "--tokens options are outside the installed self-host driver contract" \
-    "$WORK_DIR/unsupported.err" || fail "unsupported token options lost the selector diagnostic"
-[[ "$arity_rc" -ne 0 ]] ||
-    fail "installed token request accepted a missing source"
-grep -Fq "source token mode requires exactly one input path" \
+    fail "unsupported AST options entered a compiler path"
+grep -Fq -- "--ast options are outside the installed self-host driver contract" \
+    "$WORK_DIR/unsupported.err" || fail "unsupported AST options lost the selector diagnostic"
+[[ "$arity_rc" -ne 0 ]] || fail "installed AST request accepted a missing source"
+grep -Fq "source AST mode requires exactly one input path" \
     "$WORK_DIR/arity.out" "$WORK_DIR/arity.err" ||
-    fail "installed token arity lost its typed diagnostic"
+    fail "installed AST arity lost its typed diagnostic"
 
 require_text "$LAUNCHER_OWNER" 'if (flags.dump_tokens || flags.dump_ast) {'
 require_text "$LAUNCHER_OWNER" 'driver_self_host_source_read_mode(&flags)'
 require_text "$LAUNCHER_OWNER" 'driver_run_self_host_source_read('
-require_text "$SELECTION_OWNER" 'driver_self_host_source_read_mode('
-require_text "$SIBLING_OWNER" 'strcmp(argv[0], "--tokens") == 0'
-require_text "$REQUEST_OWNER" 'DriverCliSourceTokensStdout(String)'
-require_text "$REQUEST_OWNER" 'args[0] == "--tokens"'
-require_text "$EXECUTION_OWNER" 'Log(LexContent(source_path, LexerReadSource(source_path)));'
+require_text "$SELECTION_OWNER" 'return flags->dump_tokens ? "--tokens" : "--ast";'
+require_text "$SIBLING_OWNER" 'strcmp(argv[0], "--ast") == 0'
+require_text "$REQUEST_OWNER" 'DriverCliSourceAstStdout(String)'
+require_text "$REQUEST_OWNER" 'args[0] == "--ast"'
+require_text "$EXECUTION_OWNER" 'Log(ParseRootProgram(source_path));'
 grep -Fq 'driver_run_pipeline(' "$SIBLING_OWNER" &&
     fail "installed sibling launcher regained a native pipeline fallback"
 
-echo "[self-host-public-tokens] installed Pergyra lexer owns public --tokens and fails closed"
+echo "[self-host-public-ast] installed Pergyra parser owns public --ast and fails closed"

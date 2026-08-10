@@ -131,7 +131,7 @@ for src in "$ROOT_DIR"/examples/*.pgy; do
     rel="${src#$ROOT_DIR/}"
     TOTAL=$((TOTAL + 1))
 
-    if ! (cd "$ROOT_DIR" && "$PGY" --ast "$rel" 2>/dev/null | tr -d '\r' > "$LIVE_FILE"); then
+    if ! (cd "$ROOT_DIR" && "$PGY" --native-pipeline --ast "$rel" 2>/dev/null | tr -d '\r' > "$LIVE_FILE"); then
         C_SKIP=$((C_SKIP + 1))
         continue
     fi

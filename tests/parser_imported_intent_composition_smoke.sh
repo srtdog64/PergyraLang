@@ -18,7 +18,7 @@ PRIVATE_AST="$BUILD_DIR/private.ast.txt"
 PRIVATE_ERR="$BUILD_DIR/private.err.txt"
 mkdir -p "$BUILD_DIR"
 
-(cd "$ROOT_DIR" && "$PGY" --ast \
+(cd "$ROOT_DIR" && "$PGY" --native-pipeline --ast \
     "tests/parser_imported_intent_composition/positive_main.pgy" \
     >"$POSITIVE_AST" 2>"$POSITIVE_ERR")
 
@@ -30,14 +30,14 @@ if grep -Fq 'IntentValue: intake: SourceIntakeZone' "$POSITIVE_AST"; then
     exit 1
 fi
 
-(cd "$ROOT_DIR" && "$PGY" --ast \
+(cd "$ROOT_DIR" && "$PGY" --native-pipeline --ast \
     "tests/parser_imported_intent_composition/private_main.pgy" \
     >"$PRIVATE_AST" 2>"$PRIVATE_ERR")
 grep -Fq 'Intent: ExportedPipeline' "$PRIVATE_AST"
 grep -Eq 'IntentValue: manifest: __imp[0-9]+_LocalManifest' \
     "$PRIVATE_AST"
 
-if (cd "$ROOT_DIR" && "$PGY" --ast \
+if (cd "$ROOT_DIR" && "$PGY" --native-pipeline --ast \
     "tests/parser_imported_intent_composition/unresolved_main.pgy" \
     >"$UNRESOLVED_AST" 2>"$UNRESOLVED_ERR"); then
     echo "[parser-imported-intent] unresolved imported parameter was accepted" >&2

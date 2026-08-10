@@ -175,7 +175,7 @@ pgy_selfhost_compile_parser_tool \
     "$ROOT_DIR/src/self_hosted/parser/main.pgy" c \
     "$SELF_BIN" "$BUILD_DIR/parser_c.compile.log"
 
-(cd "$ROOT_DIR" && "$PGY_EXEC" --ast \
+(cd "$ROOT_DIR" && "$PGY_EXEC" --native-pipeline --ast \
     "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$POSITIVE_REL")") \
     >"$BUILD_DIR/positive.native.ast" 2>"$BUILD_DIR/positive.native.err"
 (cd "$ROOT_DIR" && "$SELF_BIN" "$POSITIVE_REL") \
@@ -189,7 +189,7 @@ if ! cmp -s "$BUILD_DIR/positive.native.norm" "$BUILD_DIR/positive.self.norm"; t
 fi
 
 set +e
-(cd "$ROOT_DIR" && "$PGY_EXEC" --ast \
+(cd "$ROOT_DIR" && "$PGY_EXEC" --native-pipeline --ast \
     "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$NEGATIVE_REL")") \
     >"$BUILD_DIR/systemic.native.out" 2>"$BUILD_DIR/systemic.native.err"
 native_rc=$?

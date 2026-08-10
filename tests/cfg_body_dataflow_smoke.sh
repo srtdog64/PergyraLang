@@ -2350,7 +2350,7 @@ func Main() -> Void {
 }
 EOF
 PARALLEL_SELECT_FOR_PGY="$(to_native_path_for_pgy "$PARALLEL_SELECT")"
-"$PGY" "$PARALLEL_SELECT_FOR_PGY" --ast > "$PARALLEL_SELECT_AST"
+"$PGY" "$PARALLEL_SELECT_FOR_PGY" --native-pipeline --ast > "$PARALLEL_SELECT_AST"
 "$PGY" "$PARALLEL_SELECT_FOR_PGY" --mir > "$PARALLEL_SELECT_MIR"
 
 cat > "$WITH_SLOT_ORDER" <<'EOF'
