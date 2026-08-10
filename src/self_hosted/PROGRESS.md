@@ -1,35 +1,46 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-10 public token dump substitution
+## Active self-host context - 2026-08-10 public AST dump substitution
 
-- Executable checkpoint `1cec72d7` removes the final native fallback for exact
-  public `pgy --tokens <source>`. `DriverFlags` admission selects one installed
-  sibling request, `DriverRung2CliRequestFromArgsOrDie` assigns the typed
-  `DriverCliSourceTokensStdout` identity, and the read executor consumes it
-  through `LexerReadSource` plus `LexContent`. Unsupported option mixtures and
+- Executable checkpoint `37624de9` removes the final native fallback for exact
+  public `pgy --ast <source>`. `DriverFlags` admission selects one installed
+  source-read sibling request, `DriverRung2CliRequestFromArgsOrDie` assigns the
+  typed `DriverCliSourceAstStdout` identity, and the read executor consumes it
+  through import-composed `ParseRootProgram`. Unsupported option mixtures and
   a missing sibling fail without entering `driver_run_pipeline`.
-- `tests/self_hosted/parity/public_tokens_installed_self_host_owner.sh` passes
-  in 2.0 seconds. It proves direct-installed/public byte equality, exact
-  equality with the committed hello fixture and explicit native oracle, missing
-  sibling no-fallback behavior, unsupported-option rejection, and installed
-  argv arity failure.
-- `tests/self_hosted/parity/lexer_parity.sh` passes all 9 sources for C and LLVM
-  in 16.7 seconds. Its live oracle now spells
-  `--native-pipeline --tokens`; public `--tokens` is the installed candidate
-  and must not be reused as its own oracle. The component gate requires the
-  explicit native spelling and rejects that self-confirming public call.
-- The existing installed CLI mode gate passes in 2.6 seconds, preserving the
-  disjoint source-C, source-MIR, and MIR-C stdout/artifact effects after adding
-  the token variant. The full component inventory passes in 124.8 seconds.
-- The installed Pergyra-built driver used for these gates is
-  `bin/pgy-self-driver.exe`, 5,072,121 bytes, SHA-256
-  `505AAE4470D9F99041B07DCA39E392B13BA775A00669D41143BFB0B553D7D432`.
-  Public token dumping is bounded `SUBSTITUTING`; it does not claim that source
-  compilation's lexer/parser pipeline or every debug/dump mode is substituted.
-- The adjacent routine-index audit corrected a stale structural term and added
-  a nonsequential first-block-ID executable negative. The native LLVM oracle
-  prints `mir-program-routine-index-owner-ok`, while the repository's installed
-  LLVM leg remains honestly RED at the existing multi-routine projector gap.
+- `tests/self_hosted/parity/public_ast_installed_self_host_owner.sh` passes in
+  2.2 seconds. It proves direct-installed/public byte equality, equality with
+  the committed arithmetic fixture and explicit native oracle, imported-source
+  composition through `Intent: ImportedFrontendPipeline`, missing sibling
+  no-fallback behavior, unsupported-option rejection, and installed argv arity
+  failure.
+- `tests/self_hosted/parity/parser_parity.sh` passes all 189 manifest rows for C
+  and LLVM in 324.8 seconds. Every live native reference now spells
+  `--native-pipeline --ast`; public `--ast` is the installed candidate and must
+  not be reused as its own oracle. Imported intent composition, generic default
+  contracts, and language-word registry parser gates also pass in 1.9, 128.7,
+  and 121.8 seconds respectively.
+- The token substitution remains green: its focused regression gate passes in
+  3.0 seconds. The installed CLI mode gate passes in 2.4 seconds, and the full
+  component inventory passes in 129.8 seconds after the shared source-read
+  selector and parser-oracle ratchets.
+- The current Pergyra-built installed driver is `bin/pgy-self-driver.exe`,
+  5,072,633 bytes, SHA-256
+  `A123FBBD00F10CEC9DE72F8EFD5D3C2F8BAC08F5A715964DBB031957FE418465`.
+  Its canonical rebuild completed in 134.8 seconds. Public AST dumping is
+  bounded `SUBSTITUTING`; source compilation's parser/semantic path and other
+  debug/dump modes remain open.
+- Same-mistake rule: after a public source-read selector becomes the installed
+  candidate, that public spelling is no longer an independent oracle. Token
+  and AST native references must use `--native-pipeline`; the direct sibling or
+  public selector owns the installed voice, and the gate compares the two
+  artifacts explicitly.
+- Documentation quality, self-host progress metric, and substitution velocity
+  gates pass. The SoT edge gate accepts the updated
+  `selfhost.driver_cli_request` row, then stops at the unrelated pre-existing
+  `abi.intent_observability_rows` enforcement-text drift. SoT adequacy remains
+  unverified because this environment has no Coq/Rocq prover; no missing-prover
+  skip is claimed.
 - Next objective card: objective = select the next remaining user-facing
   request that reaches the launcher's final native pipeline fallback;
   priority = production reach, one request identity, installed fact owner,

@@ -1913,9 +1913,9 @@ inventory must not become a second fact-family owner registry.
   bearing LLVM programs or package paths.
 - `src/compiler/driver_self_host_selection_owner.c` -- native launcher's one
   policy owner for deciding whether a plain C/LLVM binary request is inside an
-  installed self-host artifact envelope and whether exact public `--tokens`
-  is an admitted installed-lexer request. Unsupported options fail closed and
-  cannot fall through to the native semantic/backend pipeline.
+  installed self-host artifact envelope and whether exact public `--tokens` or
+  `--ast` is an admitted installed source-read request. Unsupported options
+  fail closed and cannot fall through to the native semantic/backend pipeline.
 - `src/compiler/compiler_transient_artifact_workspace.c` -- private transient
   artifact directory lifetime owner shared by the C and LLVM installed-driver
   runners. It owns path allocation and cleanup, not semantic or backend facts.
@@ -2867,14 +2867,14 @@ inventory must not become a second fact-family owner registry.
   forbidden.
 - `src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy` -- sole pure
   argv admission owner for the versioned DRV-2 CLI request family. It maps
-  exact source-token, source-C, source-MIR, canonical, MIR-C, and direct-backend
-  forms to a flat typed enum before I/O. Artifact requests require an explicit
-  artifact mode or `-o`; optional positional-third guessing and implicit
-  default source are forbidden.
+  exact source-token, source-AST, source-C, source-MIR, canonical, MIR-C, and
+  direct-backend forms to a flat typed enum before I/O. Artifact requests
+  require an explicit artifact mode or `-o`; optional positional-third guessing
+  and implicit default source are forbidden.
 - `src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy` --
-  read-only executor for admitted token stdout, compiler stdout,
-  machine-manifest, canonicalization, and missing-projection probe requests.
-  Artifact variants fail before reads.
+  read-only executor for admitted token stdout, import-composed AST stdout,
+  compiler stdout, machine-manifest, canonicalization, and missing-projection
+  probe requests. Artifact variants fail before reads.
 - `src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy` -- installed
   artifact-effect executor. It delegates read variants to the read owner and
   publishes only typed artifact variants through the compiler-world and atomic

@@ -2,8 +2,8 @@
 
 **Status:** *rung-1 expanding* (2026-07-13). Pergyra-written parser
 substitute for a subset of the C-side `src/parser/`. It lexes + parses a
-growing subset of Pergyra source and emits the same compact text tree
-`pgy --ast` produces, byte-for-byte.
+growing subset of Pergyra source and emits the same compact text tree the
+explicit native `pgy --native-pipeline --ast` oracle produces, byte-for-byte.
 
 ## Intent
 
@@ -11,8 +11,9 @@ After the lexer (`src/self_hosted/lexer/`) proved the committed token parity
 rung and the broader historical 97% token surface, the parser is the next
 compiler-internal substitute. This tool takes a Pergyra source file, lexes it,
 recognises a growing declaration/statement/expression surface, and emits the
-same `pgy --ast` tree. Coverage is measured in two ways: committed fixture
-parity and the examples scale probe.
+same compact AST tree. Public `pgy --ast` is now an installed parser consumer,
+not an oracle. Coverage is measured in two ways: committed fixture parity and
+the examples scale probe.
 
 ## Compiler World Binding
 
@@ -85,31 +86,35 @@ parity and the examples scale probe.
 
 ## Output Contract
 
-Plain text matching `pgy --ast <source>` byte-for-byte. Exit code `0` on
-success, `1` if input cannot be read or parse fails.
+Plain text matching `pgy --native-pipeline --ast <source>` byte-for-byte. Exit
+code `0` on success, `1` if input cannot be read or parse fails.
 
 ## Oracle
 
-The C-side reference is `pgy --ast <source>`. The parity rung asserts
-byte-equal stdout against committed `fixture/<base>_ast.txt` files and runs a
-live-drift guard against `pgy --ast` (graceful-skip if the sandboxed shell
-cannot launch the pgy subprocess).
+The independent C-side reference is
+`pgy --native-pipeline --ast <source>`. The parity rung asserts byte-equal
+stdout against committed `fixture/<base>_ast.txt` files and runs a live-drift
+guard against that explicit native oracle (graceful-skip if the sandboxed shell
+cannot launch the pgy subprocess). Public `pgy --ast` is tested separately as
+the installed candidate and cannot serve as its own reference.
 
 Current measured coverage:
 
-- `parser_parity.sh`: 188 source/fixture rows byte-equal on both generated C
+- `parser_parity.sh`: 189 source/fixture rows byte-equal on both generated C
   and LLVM parser binaries. The compiled parser owner emits the manifest,
   including external `examples/hello.pgy` and duplicate
   `generic_class` coverage. The 2026-07-13 run includes payload-preserving
   `enum_data` and `tagged_union` rows with native live-drift enabled.
 - `parser_scale_probe.sh --failing`: 120 of 121 `examples/*.pgy` byte-equal
-  against live `pgy --ast`; zero byte-drift, zero self-host parser exits, and 1
-  C-oracle skip (`secure_slots`).
+  against the live explicit native AST oracle; zero byte-drift, zero self-host
+  parser exits, and 1 C-oracle skip (`secure_slots`).
 
 ## Not In Scope (yet)
 
 - The remaining C-oracle skip (`secure_slots`) and full replacement of the
   text-mirror parser with structured AST ownership.
 - Full parser recovery/error reporting parity.
-- Replacing the C parser. This remains a side-by-side substitute rung with
-  `pgy --ast` as oracle.
+- Replacing every C parser consumer. Exact public `pgy --ast <source>` is
+  installed and fail-closed, but source compilation and other parser consumers
+  remain outside this bounded substitution; the C parser is retained only as
+  the explicit native oracle for this parity boundary.

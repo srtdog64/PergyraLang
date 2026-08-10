@@ -1,9 +1,10 @@
 # Parser Substitution Track
 
-Pergyra-written parser that emits the same compact text tree `pgy --ast`
-produces, byte-for-byte. Mirrors C-side `src/parser/`. The goal is byte-equal
-AST output for a growing source subset, so parity can be checked without
-inventing a second AST serialization format.
+Pergyra-written parser that emits the same compact text tree the explicit
+native `pgy --native-pipeline --ast` oracle produces, byte-for-byte. Public
+`pgy --ast` now consumes this installed parser. Mirrors C-side `src/parser/`.
+The goal is byte-equal AST output for a growing source subset without inventing
+a second AST serialization format.
 
 - `main.pgy` - entrypoint only. It delegates all CLI mode selection to
   `run_owner.pgy`.
@@ -46,8 +47,8 @@ inventing a second AST serialization format.
   variant parameter types in compact AST output instead of erasing payload
   arity before semantic analysis.
 - `fixture/` - committed `<base>.pgy` sources and `<base>_ast.txt` baselines.
-  The parser manifest owner emits the 188-row parity manifest, while the AST
-  payload contract consumes the manifest-owned 187-fixture payload frontier
+  The parser manifest owner emits the 189-row parity manifest, while the AST
+  payload contract consumes the manifest-owned 188-fixture payload frontier
   after subtracting the duplicate coverage row.
 - `expected/clean.txt` - expected stdout when run on the default source.
 - `intent.md` - contract, current grammar surface, and latest fixture/scale
