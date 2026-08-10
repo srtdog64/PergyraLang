@@ -1,42 +1,61 @@
-// One- or two-routine scalar program claim keyed by typed semantic envelopes.
-
+// Declaration-free scalar program claim keyed by typed routine envelopes.
 import "direct_mir_scalar_cfg_hash_owner.pgy";
 import "direct_mir_scalar_program_single_string_route_owner.pgy";
 import "direct_mir_scalar_program_builtin_route_owner.pgy";
-import "direct_mir_scalar_program_two_routine_route_owner.pgy";
+import "direct_mir_scalar_program_callable_route_envelope_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir_lower/routine_inventory_owner.pgy";
-
 struct DirectMirScalarProgramRouteFact {
-    let claimed: Bool;
-    let digest: Int;
-    let entrypoint_row: Int;
-    let callable_row: Int;
+    let claimed: Bool; let digest: Int;
+    let entrypoint_row: Int; let callable_row: Int;
+    let routine_rows: Array<Int>;
+    let nominal: DirectMirScalarProgramTwoIntNominalAbiFact;
 }
-
-func DirectMirScalarProgramRouteFactEmpty(
-) -> DirectMirScalarProgramRouteFact {
-    return DirectMirScalarProgramRouteFact(false, 0, -1, -1);
+func DirectMirScalarProgramRouteFactEmpty() -> DirectMirScalarProgramRouteFact {
+    let rows: Array<Int> = [];
+    return DirectMirScalarProgramRouteFact(
+        false, 0, -1, -1, rows,
+        DirectMirScalarProgramTwoIntNominalAbiFactInvalid());
 }
-
 func DirectMirScalarProgramRouteFactDigest(
     ref fact: DirectMirScalarProgramRouteFact
 ) -> Int {
     if !fact.claimed { return 0; }
     let hash: Long = DirectMirCfgHashInt(223L, fact.entrypoint_row);
     hash = DirectMirCfgHashInt(hash, fact.callable_row);
+    hash = DirectMirScalarCfgHashInts(hash, fact.routine_rows);
+    hash = DirectMirCfgHashInt(hash, fact.nominal.digest);
     return DirectMirCfgBoundedDigest(hash);
 }
 
 func DirectMirScalarProgramRouteFactReady(
     ref fact: DirectMirScalarProgramRouteFact
 ) -> Bool {
-    return fact.claimed && fact.digest != 0 &&
-        fact.digest == DirectMirScalarProgramRouteFactDigest(fact) &&
-        fact.entrypoint_row >= 0 &&
-        ((fact.callable_row < 0 && fact.entrypoint_row == 0) ||
-         (fact.callable_row >= 0 &&
-          fact.entrypoint_row != fact.callable_row));
+    let count: Int = ArrayLength(fact.routine_rows);
+    if !fact.claimed || fact.digest == 0 || count < 1 ||
+        fact.digest != DirectMirScalarProgramRouteFactDigest(fact) ||
+        fact.entrypoint_row < 0 || fact.routine_rows[0] != fact.entrypoint_row ||
+        ((count == 2) != (fact.callable_row >= 0)) ||
+        (count == 2 && fact.routine_rows[1] != fact.callable_row) ||
+        (count != 2 && fact.callable_row >= 0) ||
+        !DirectMirScalarProgramTwoIntNominalAbiFactReady(fact.nominal) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if fact.routine_rows[row] < 0 { return false; }
+        let prior: Int = 0;
+        while prior < row {
+            if fact.routine_rows[prior] == fact.routine_rows[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
 }
 
 func DirectMirScalarProgramRouteFactFromAdmitted(
@@ -45,41 +64,64 @@ func DirectMirScalarProgramRouteFactFromAdmitted(
     let invalid: DirectMirScalarProgramRouteFact =
         DirectMirScalarProgramRouteFactEmpty();
     let routine_count: Int = MirProgramRoutineIndexCount(admitted.routines);
-    if (routine_count != 1 && routine_count != 2) ||
+    let nominal: DirectMirScalarProgramTwoIntNominalAbiFact =
+        DirectMirScalarProgramTwoIntNominalAbiFactFromAdmitted(admitted);
+    if routine_count < 1 ||
         !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
-        JsonArrayObjectFactCount(admitted.document.declarations) != 0 {
+        !DirectMirScalarProgramTwoIntNominalAbiFactReady(nominal) {
         return invalid;
     }
     if routine_count == 1 {
         if !DirectMirScalarSingleStringProgramRouteClaimed(admitted) &&
-            !DirectMirScalarBuiltinProgramRouteClaimed(admitted) {
-            return invalid;
-        }
-        let single: DirectMirScalarProgramRouteFact =
-            DirectMirScalarProgramRouteFact(true, 0, 0, -1);
-        let verified_single: DirectMirScalarProgramRouteFact =
+            !DirectMirScalarBuiltinProgramRouteClaimed(admitted) { return invalid; }
+        let rows: Array<Int> = [0];
+        let fact: DirectMirScalarProgramRouteFact =
             DirectMirScalarProgramRouteFact(
-                single.claimed,
-                DirectMirScalarProgramRouteFactDigest(single),
-                single.entrypoint_row, single.callable_row
-            );
-        if !DirectMirScalarProgramRouteFactReady(verified_single) {
-            return invalid;
-        }
-        return verified_single;
+                true, 0, 0, -1, rows, nominal);
+        let sealed: DirectMirScalarProgramRouteFact =
+            DirectMirScalarProgramRouteFact(true,
+                DirectMirScalarProgramRouteFactDigest(fact), 0, -1, rows,
+                nominal);
+        if !DirectMirScalarProgramRouteFactReady(sealed) { return invalid; }
+        return sealed;
     }
-    let rows: DirectMirScalarProgramTwoRoutineRows =
-        DirectMirScalarProgramTwoRoutineRowsFromAdmitted(admitted);
-    if !rows.valid { return invalid; }
-    let fact: DirectMirScalarProgramRouteFact =
-        DirectMirScalarProgramRouteFact(
-            true, 0, rows.entrypoint_row, rows.callable_row
-        );
-    let verified: DirectMirScalarProgramRouteFact =
-        DirectMirScalarProgramRouteFact(
-            fact.claimed, DirectMirScalarProgramRouteFactDigest(fact),
-            fact.entrypoint_row, fact.callable_row
-        );
-    if !DirectMirScalarProgramRouteFactReady(verified) { return invalid; }
-    return verified;
+    let entrypoint_row: Int = -1;
+    let routine_rows: Array<Int> = [];
+    let nominal_referenced: Bool = false;
+    let row: Int = 0;
+    while row < routine_count {
+        let signature: DirectMirRoutineSignatureFact =
+            DirectMirRoutineSignatureFactAt(admitted.routines, row,
+                MirProgramRoutineIndexBlockInstructionCountAt(
+                    admitted.routines, row, 0));
+        if !DirectMirRoutineSignatureFactReady(signature) { return invalid; }
+        if DirectMirScalarProgramTwoIntNominalSignatureReferenced(
+                nominal, signature) { nominal_referenced = true; }
+        if signature.name == "Main" {
+            if entrypoint_row >= 0 || signature.return_type != "Void" ||
+                signature.param_count != 0 { return invalid; }
+            entrypoint_row = row;
+        } else if !DirectMirScalarProgramCallableRouteEnvelopeSupported(
+                signature, nominal) { return invalid; }
+        row = row + 1;
+    }
+    if entrypoint_row < 0 || (nominal.present && !nominal_referenced) {
+        return invalid;
+    }
+    ArrayPush(routine_rows, entrypoint_row);
+    row = 0;
+    while row < routine_count {
+        if row != entrypoint_row { ArrayPush(routine_rows, row); }
+        row = row + 1;
+    }
+    let callable_row: Int = -1;
+    if routine_count == 2 { callable_row = routine_rows[1]; }
+    let fact: DirectMirScalarProgramRouteFact = DirectMirScalarProgramRouteFact(
+        true, 0, entrypoint_row, callable_row, routine_rows, nominal);
+    let sealed: DirectMirScalarProgramRouteFact =
+        DirectMirScalarProgramRouteFact(true,
+            DirectMirScalarProgramRouteFactDigest(fact), entrypoint_row,
+            callable_row, routine_rows, nominal);
+    if !DirectMirScalarProgramRouteFactReady(sealed) { return invalid; }
+    return sealed;
 }

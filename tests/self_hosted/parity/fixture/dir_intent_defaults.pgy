@@ -1,0 +1,28 @@
+subject Hero {
+    let mut hp: Int;
+    action Guard(self) -> Void {
+        self.hp = self.hp + 1;
+    }
+}
+
+zone BattleZone {
+    subject slot hero: Hero
+    authority hero
+}
+
+intent Patrol(battle: BattleZone, hero: Hero) {
+    who: hero;
+    where: BattleZone;
+    step Guard {
+        using: battle;
+        authorized by: hero;
+        on: hero.Guard();
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+    let hero: Hero = Hero(1);
+    let battle: BattleZone = BattleZone(Clone(hero));
+    Patrol(battle, hero);
+}

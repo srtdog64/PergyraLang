@@ -98,3 +98,47 @@ func SemanticCallSpineViewFromGraph(
         true, node, base_callee, arguments, actuals
     );
 }
+
+func SemanticCallSpineViewForCallNodeWithin(
+    ref graph: SemanticExpressionGraphFacts,
+    call_node: Int,
+    end_node: Int
+) -> SemanticCallSpineView {
+    let no_arguments: Array<Int> = [];
+    let no_actuals: Array<String> = [];
+    let call_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, call_node
+    );
+    if !IsSome(call_kind) ||
+        UnwrapOption(call_kind) != AstExpressionNodeCall() ||
+        end_node < call_node || end_node >=
+            SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        return SemanticCallSpineView(
+            false, 0, 0, no_arguments, no_actuals
+        );
+    }
+    let spine_root: Int = call_node;
+    let node: Int = call_node + 1;
+    while node <= end_node {
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+        if IsSome(kind) &&
+            UnwrapOption(kind) == AstExpressionNodeCallArgument() {
+            let previous: Option<Int> = SemanticExpressionGraphLeftChild(
+                graph, node
+            );
+            if IsSome(previous) && UnwrapOption(previous) == spine_root {
+                spine_root = node;
+            }
+        }
+        node = node + 1;
+    }
+    let view: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, spine_root
+    );
+    if !view.ok || view.call_node != call_node {
+        return SemanticCallSpineView(
+            false, 0, 0, no_arguments, no_actuals
+        );
+    }
+    return view;
+}

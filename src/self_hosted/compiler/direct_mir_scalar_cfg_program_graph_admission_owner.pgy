@@ -1,9 +1,11 @@
-// Sole one-/two-routine issuer for the one immutable scalar GraphPlan.
+// Sole arbitrary-routine issuer for the one immutable scalar GraphPlan.
 
 import "direct_mir_scalar_cfg_program_routine_admission_owner.pgy";
 import "direct_mir_scalar_cfg_program_routine_partition_owner.pgy";
 import "direct_mir_scalar_cfg_graph_plan_seal_owner.pgy";
 import "direct_mir_scalar_cfg_program_admission_owner.pgy";
+import "direct_mir_scalar_program_callable_inventory_owner.pgy";
+import "direct_mir_option_match_abi_fact_owner.pgy";
 
 func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -18,36 +20,34 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
         DirectMirScalarCfgProgramGraphInputFromAdmitted(
             admitted, route.entrypoint_row, producer
         );
-    let callable: DirectMirScalarCfgProgramCallableFact =
-        DirectMirScalarCfgProgramCallableFactInvalid();
-    let routine_rows: Array<Int> = [route.entrypoint_row];
-    if route.callable_row >= 0 {
-        callable = DirectMirScalarProgramCallableFactFromAdmitted(
-            admitted, route.callable_row, 1
+    let callables: DirectMirScalarCfgProgramCallableInventory =
+        DirectMirScalarCfgProgramCallableInventoryFromAdmitted(
+            admitted, route.routine_rows, route.nominal
         );
-        if !DirectMirScalarCfgProgramCallableFactReady(callable) {
-            Die("direct MIR scalar CFG program callable is invalid");
-        }
-        ArrayPush(routine_rows, route.callable_row);
+    if !DirectMirScalarCfgProgramCallableInventoryReady(
+            callables, ArrayLength(route.routine_rows)) {
+        Die("direct MIR scalar CFG program callable inventory is invalid");
     }
     let storage: DirectMirScalarCfgProgramGraphStorage =
         DirectMirScalarCfgProgramGraphStorageEmpty();
     let expressions: DirectMirScalarProgramExpressionSet =
         DirectMirScalarProgramExpressionSetEmpty();
-    let callable_input: DirectMirScalarCfgGraphInput = entry;
+    let cfg_digests: Array<Int> = [];
+    let option_int_abi: DirectMirOptionMatchAbiFact =
+        DirectMirOptionMatchAbiFactEmpty();
     let ordinal: Int = 0;
-    while ordinal < ArrayLength(routine_rows) {
+    while ordinal < ArrayLength(route.routine_rows) {
         let input: DirectMirScalarCfgGraphInput = entry;
         if ordinal > 0 {
             input = DirectMirScalarCfgProgramGraphInputFromAdmitted(
-                admitted, routine_rows[ordinal], producer
+                admitted, route.routine_rows[ordinal], producer
             );
-            callable_input = input;
         }
+        ArrayPush(cfg_digests, DirectMirCfgDigestFromIndex(input.index));
         let admission: DirectMirScalarCfgProgramRoutineAdmission =
             DirectMirScalarCfgProgramAppendRoutine(
-                admitted, routine_rows[ordinal], ordinal, callable, input,
-                storage, expressions
+                admitted, route.routine_rows[ordinal], ordinal, callables, input,
+                storage, expressions, option_int_abi, route.nominal
             );
         if !admission.valid {
             Die(Concat(
@@ -56,20 +56,20 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
         }
         storage = admission.storage;
         expressions = admission.expressions;
+        option_int_abi = admission.option_int_abi;
         ordinal = ordinal + 1;
     }
     let partition: DirectMirScalarCfgRoutinePartitionFact =
         DirectMirScalarCfgProgramRoutinePartitionFromOwners(
-            admitted.routines, entry.index, callable_input.index,
-            route.entrypoint_row, route.callable_row,
+            admitted.routines, route.routine_rows, cfg_digests,
             storage.routines.local_counts, storage.routines.value_counts,
             storage.routines.block_counts,
             storage.routines.operation_counts,
-            storage.routines.phi_counts
+            storage.routines.phi_counts, route.nominal
         );
     let program: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFromOwners(
-            admitted, route, storage, expressions,
+            admitted, route, callables, storage, expressions, option_int_abi,
             storage.blocks.condition_expression_rows,
             storage.operations.expression_rows,
             storage.blocks.return_expression_rows

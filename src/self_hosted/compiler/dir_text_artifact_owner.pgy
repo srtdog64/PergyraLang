@@ -1,0 +1,176 @@
+// Verified source-to-DIR text artifact owner.
+//
+// The renderer consumes the admitted DIR inventory.  It never derives nodes
+// or edges from the aggregate census and never reopens parser provenance.
+
+import "driver_pipeline_owner.pgy";
+import "dir_intent_text_artifact_owner.pgy";
+import "dir_text_row_format_owner.pgy";
+import "../semantic/ast_artifact_verdict_owner.pgy";
+import "../mir/artifact_lower_owner.pgy";
+import "../dir/domain_graph_inventory_owner.pgy";
+
+func CompilerDirTextArtifactFromProjection(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis,
+    projection: SelfMirProgramDomainProjection
+) -> String {
+    let graph: SelfDirDomainGraphFacts = projection.domain_graph;
+    if !graph.ok { Die(graph.diagnostic_message); }
+    if !projection.facts.ok {
+        Die("self-host DIR text requires admitted domain facts");
+    }
+    if !SelfDirDomainGraphFactsReady(graph) {
+        Die("self-host DIR text requires admitted domain facts");
+    }
+    let inventory: SelfDirGraphInventoryFacts =
+        SelfDirGraphInventoryFactsFromAdmittedFacts(
+            artifact, projection.facts.declarations, graph.intents,
+            graph.zone_states, analysis.zone_authorities, graph.topology
+        );
+    if !SelfDirGraphInventoryFactsReady(inventory) {
+        Die(inventory.diagnostic_message);
+    }
+    if graph.required &&
+        (ArrayLength(inventory.nodes.kinds) != graph.node_count ||
+         ArrayLength(inventory.edges.kinds) != graph.edge_count) {
+        Die("self-host DIR node/edge census diverged from its inventory");
+    }
+    let text: String = "DIR Program\n  nodes: ";
+    text = Concat(text, ToString(ArrayLength(inventory.nodes.kinds)));
+    text = Concat(text, "\n  edges: ");
+    text = Concat(text, ToString(ArrayLength(inventory.edges.kinds)));
+    text = Concat(text, "\n  intents: ");
+    text = Concat(text, ToString(ArrayLength(graph.intents.intent_node_ids)));
+    text = Concat(text, "\n  domain_participant_role_facts: ");
+    text = Concat(text, ToString(ArrayLength(
+        projection.facts.domain_runtime_assignments.participant_roles.roles
+    )));
+    text = Concat(
+        text, "\n  domain_projection_member_assignment_facts: "
+    );
+    text = Concat(text, ToString(ArrayLength(
+        projection.facts.domain_runtime_assignments.projection_members.operations
+    )));
+    text = Concat(text, "\n  domain_topology_rows: ");
+    text = Concat(text, ToString(graph.topology_row_count));
+    text = Concat(text, "\n");
+    let node_id: Int = 0;
+    while node_id < ArrayLength(inventory.nodes.kinds) {
+        text = Concat(text, "  node[");
+        text = Concat(text, CompilerDirTextRowIndex(node_id));
+        text = Concat(text, "] ");
+        text = Concat(text, CompilerDirTextPadRight(
+            inventory.nodes.kinds[node_id], 8
+        ));
+        text = Concat(text, " ");
+        text = Concat(text, inventory.nodes.names[node_id]);
+        text = Concat(text, " source=");
+        text = Concat(text, ToString(
+            inventory.nodes.source_syntax_ids[node_id]
+        ));
+        text = Concat(text, " owner_source=");
+        text = Concat(text, ToString(
+            inventory.nodes.owner_source_syntax_ids[node_id]
+        ));
+        text = Concat(text, "\n");
+        node_id = node_id + 1;
+    }
+    let edge_id: Int = 0;
+    while edge_id < ArrayLength(inventory.edges.kinds) {
+        text = Concat(text, "  edge[");
+        text = Concat(text, CompilerDirTextRowIndex(edge_id));
+        text = Concat(text, "] ");
+        text = Concat(text, CompilerDirTextPadRight(
+            inventory.edges.kinds[edge_id], 14
+        ));
+        text = Concat(text, " from=");
+        text = Concat(text, ToString(
+            inventory.edges.from_node_ids[edge_id]
+        ));
+        text = Concat(text, " label=");
+        text = Concat(text, CompilerDirTextTopologyValue(
+            inventory.edges.labels[edge_id]
+        ));
+        text = Concat(text, " target=");
+        text = Concat(text, CompilerDirTextTopologyValue(
+            inventory.edges.target_names[edge_id]
+        ));
+        text = Concat(text, " resolved=");
+        text = Concat(text, CompilerDirTextResolvedNode(
+            inventory.edges.to_node_ids[edge_id]
+        ));
+        text = Concat(text, "\n");
+        edge_id = edge_id + 1;
+    }
+    let topology_id: Int = 0;
+    while topology_id < ArrayLength(graph.topology.kinds) {
+        let owner_node: Int = SelfDirGraphInventoryDomainOwnerNodeIndex(
+            inventory, graph.topology.owner_names[topology_id]
+        );
+        text = Concat(text, "  topology[");
+        text = Concat(text, CompilerDirTextRowIndex(topology_id));
+        text = Concat(text, "] ");
+        text = Concat(text, CompilerDirTextPadRight(
+            graph.topology.kinds[topology_id], 16
+        ));
+        text = Concat(text, " owner=");
+        text = Concat(text, ToString(owner_node));
+        text = Concat(text, " source=");
+        text = Concat(text, ToString(
+            graph.topology.source_syntax_ids[topology_id]
+        ));
+        text = Concat(text, " projection=");
+        text = Concat(text, CompilerDirTextTopologyValue(
+            graph.topology.projection_slot_names[topology_id]
+        ));
+        text = Concat(text, " source-slot=");
+        text = Concat(text, CompilerDirTextTopologyValue(
+            graph.topology.source_slot_names[topology_id]
+        ));
+        text = Concat(text, " layer=");
+        text = Concat(text, CompilerDirTextTopologyValue(
+            graph.topology.layer_slot_names[topology_id]
+        ));
+        text = Concat(text, " target=");
+        text = Concat(text, CompilerDirTextTopologyValue(
+            graph.topology.target_slot_names[topology_id]
+        ));
+        text = Concat(text, " left=");
+        text = Concat(text, CompilerDirTextTopologyValue(
+            graph.topology.left_slot_names[topology_id]
+        ));
+        text = Concat(text, " right=");
+        text = Concat(text, CompilerDirTextTopologyValue(
+            graph.topology.right_slot_names[topology_id]
+        ));
+        text = Concat(text, " participant=");
+        text = Concat(text, CompilerDirTextTopologyValue(
+            graph.topology.participant_slot_names[topology_id]
+        ));
+        text = Concat(text, "\n");
+        topology_id = topology_id + 1;
+    }
+    text = Concat(text, CompilerDirIntentTextFromFacts(
+        projection.facts.declarations, inventory, graph.intents
+    ));
+    return text;
+}
+
+func CompileSourceDirTextVerified(
+    source_path: String
+) -> String with caps io_read {
+    let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok ||
+        !SemanticAstArtifactAdmissionReady(artifact, analysis, true) {
+        Log(analysis.verdict.diagnostic_message);
+        Exit(1);
+    }
+    let projection: SelfMirProgramDomainProjection =
+        SelfMirProgramDomainFactsFromReadyArtifact(artifact, analysis);
+    return CompilerDirTextArtifactFromProjection(
+        artifact, analysis, projection
+    );
+}

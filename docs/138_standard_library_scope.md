@@ -173,6 +173,7 @@ for such a search over stdlib kernels.)
 ### Numeric & math
 | module | ref | status | Pergyra seam | AI % | tier |
 | --- | --- | --- | --- | --- | --- |
+| exact 2D linear algebra | PgyMath / Lean proof + Int backend | sketch | value-level vector/matrix API first; ABI and Result boundary remain open | 90 | P2 |
 | scalar math (sqrt/pow/trig/log) | libm / `f64` | partial | effect-free; deterministic across backends (parity) | 90 | P1 |
 | integer utils (gcd/clamp/...) | num crates | partial | signed-default | 95 | P1 |
 | fixed-point / decimal | `rust_decimal` | — | for money/settlement (CLAUDE.md finance domain); exact, no float | 60 | P2 |

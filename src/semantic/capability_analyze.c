@@ -14,6 +14,41 @@
 #include "callable_contract_vocabulary.h"
 #include "runtime/pgy_runtime_capability.h" /* PGY_CAP_* bits */
 
+typedef enum PgyBuiltinCapabilityPolicy {
+    PGY_BUILTIN_CAPABILITY_FIXED = 1,
+    PGY_BUILTIN_CAPABILITY_FILE_MODE = 2
+} PgyBuiltinCapabilityPolicy;
+
+typedef struct PgyBuiltinCapabilitySpec {
+    size_t stable_id;
+    const char *name;
+    PgyCallableContractWordId primary_id;
+    PgyCallableContractWordId secondary_id;
+    PgyBuiltinCapabilityPolicy policy;
+} PgyBuiltinCapabilitySpec;
+
+#define PGY_BUILTIN_CAPABILITY(identity, stable_id_value, source_name,        \
+                               primary_identity, secondary_identity,          \
+                               policy_value)                                  \
+    { stable_id_value, source_name,                                            \
+      PGY_CALLABLE_CONTRACT_WORD_##primary_identity,                           \
+      PGY_CALLABLE_CONTRACT_WORD_##secondary_identity, policy_value },
+static const PgyBuiltinCapabilitySpec k_builtin_caps[] = {
+#include "builtin_capability_registry.def"
+};
+#undef PGY_BUILTIN_CAPABILITY
+
+static uint32_t
+capability_mask_for_identity(PgyCallableContractWordId id)
+{
+    const PgyCallableContractWordSpec *spec =
+        pgy_callable_contract_vocabulary_find_id(id);
+    return spec != NULL &&
+           spec->axis == PGY_CALLABLE_CONTRACT_AXIS_CAPABILITY
+        ? spec->mask
+        : PGY_CAP_NONE;
+}
+
 /* Emit the used-capability names as a bare JSON array: ["IO_READ", "RANDOM"].
    These names are the program's external effect families; AIR reuses this so the
    effect inventory and the capability mask are owned in one place. */
@@ -24,31 +59,47 @@
 uint32_t
 capability_for_builtin(const char *name)
 {
-    static const struct { const char *name; uint32_t cap; } k_builtin_caps[] = {
-        {"Random",     PGY_CAP_RANDOM},
-        {"SeedRandom", PGY_CAP_RANDOM},
-        {"Now",        PGY_CAP_CLOCK},
-        {"CompilerArtifactAbort",  PGY_CAP_IO_WRITE},
-        {"CompilerArtifactBegin",  PGY_CAP_IO_WRITE},
-        {"CompilerArtifactCommit", PGY_CAP_IO_WRITE},
-        {"CompilerArtifactWrite",  PGY_CAP_IO_WRITE},
-        {"FileExists", PGY_CAP_IO_READ},
-        {"FileRead",   PGY_CAP_IO_READ},
-        {"FileWrite",  PGY_CAP_IO_WRITE},
-        {"ReadFile",   PGY_CAP_IO_READ},
-        {"ReadStdin",  PGY_CAP_IO_READ},
-        {"Input",      PGY_CAP_IO_READ},
-        {"DirWalk",    PGY_CAP_IO_READ},
-        {"WriteFile",  PGY_CAP_IO_WRITE},
-        {"Args",       PGY_CAP_ENV},
-    };
     if (name == NULL)
         return PGY_CAP_NONE;
     for (size_t i = 0; i < sizeof(k_builtin_caps) / sizeof(k_builtin_caps[0]); i++) {
-        if (strcmp(name, k_builtin_caps[i].name) == 0)
-            return k_builtin_caps[i].cap;
+        if (strcmp(name, k_builtin_caps[i].name) == 0) {
+            if (k_builtin_caps[i].policy != PGY_BUILTIN_CAPABILITY_FIXED)
+                return PGY_CAP_NONE;
+            return capability_mask_for_identity(k_builtin_caps[i].primary_id);
+        }
     }
     return PGY_CAP_NONE;
+}
+
+bool
+capability_builtin_registry_ready(void)
+{
+    const size_t count = sizeof(k_builtin_caps) / sizeof(k_builtin_caps[0]);
+    size_t file_mode_count = 0;
+
+    if (count != 17 || !pgy_callable_contract_vocabulary_ready())
+        return false;
+    for (size_t i = 0; i < count; i++) {
+        const PgyBuiltinCapabilitySpec *row = &k_builtin_caps[i];
+        uint32_t primary = capability_mask_for_identity(row->primary_id);
+        uint32_t secondary = capability_mask_for_identity(row->secondary_id);
+        if (row->stable_id != i || row->name == NULL || row->name[0] == '\0' ||
+            primary == PGY_CAP_NONE || secondary == PGY_CAP_NONE ||
+            (i > 0 && strcmp(k_builtin_caps[i - 1].name, row->name) >= 0))
+            return false;
+        if (row->policy == PGY_BUILTIN_CAPABILITY_FIXED) {
+            if (primary != secondary || capability_for_builtin(row->name) != primary)
+                return false;
+        } else if (row->policy == PGY_BUILTIN_CAPABILITY_FILE_MODE) {
+            file_mode_count++;
+            if (strcmp(row->name, "FileOpen") != 0 || primary == secondary ||
+                capability_for_builtin(row->name) != PGY_CAP_NONE)
+                return false;
+        } else {
+            return false;
+        }
+    }
+    return file_mode_count == 1;
 }
 
 /* The capability name for a single PGY_CAP_* bit, or NULL. */

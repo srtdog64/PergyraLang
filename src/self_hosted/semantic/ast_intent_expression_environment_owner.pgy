@@ -37,6 +37,8 @@ func SemanticAstIntentExpressionOwnerNodeId(
     ) && !TypedAstArenaNodeKindIs(
         artifact.arena, expression_node_id, TypedAstKindIntentStepExpectTag()
     ) && !TypedAstArenaNodeKindIs(
+        artifact.arena, expression_node_id, TypedAstKindIntentStepIntentTag()
+    ) && !TypedAstArenaNodeKindIs(
         artifact.arena, expression_node_id, TypedAstKindIntentStepOnTag()
     ) {
         return None;

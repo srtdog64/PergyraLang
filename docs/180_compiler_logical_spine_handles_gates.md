@@ -455,6 +455,34 @@ An allowed migration bridge is one-way and typed. It may expose provenance or a
 fact not yet promoted, but it cannot decide the migrated fact and cannot fall
 back to the old owner.
 
+Observation does not create a second bridge owner. A debug or pressure CLI may
+select an observed adapter and emit owner-boundary receipts, but it must call
+the same artifact/fact owner as the normal path. It may not invoke a parser,
+artifact constructor, semantic analyzer, or backend bridge directly merely to
+place markers around it. The negative gate must reject that direct call in the
+orchestration file and require the observed adapter in the established owner.
+
+A gate receipt is part of the evidence contract, not decorative output. Its
+stable text must name the material positive and negative facts that the gate
+actually ran. When a registry cites that receipt, weakening or shortening the
+message without changing the registry is a failing evidence drift; expanding
+the message without executable checks is equally invalid. New `*_fact_owner`
+files must also be classified immediately as an authority or as a named
+`projection`, `bridge`, `cache`, or `local_view` of an existing authority.
+
+Function-scoped structural checks must own an exact function body. A shared
+extractor starts only when the signature begins at column zero and stops at the
+outer column-zero closing brace; it must not assume that the next declaration
+starts with Pergyra `func`, because the same inventory also checks C functions.
+Otherwise a forbidden spelling in the next C function can falsely condemn the
+target, or a required spelling anywhere later in the file can falsely satisfy
+it. A single-term check accepts exactly one term. Multiple required or rejected
+terms use an explicit variadic wrapper so shell surplus arguments cannot be
+silently ignored. The permanent regression shape keeps a retired spelling in
+the function immediately following the target: the target check must pass, and
+moving that spelling into the target must fail. These remain structural source
+claims; executable parity continues to own behavior.
+
 ### Boundary Migration Gate
 
 The repository has one manifest-backed gate with these fields:
@@ -807,3 +835,268 @@ assembly reduce the focused Windows run from more than 86 seconds without a
 verdict to 2.681 seconds with `Status: ok`. The faster path exposed and closed a
 real checker gap: `zone` and `world` constructors now derive their exact
 zone/subject/object/tobject slot types and skip nested callable bodies.
+
+### Installed immutable companion rule
+
+When a public self-host request consumes an artifact whose semantic producer
+must remain native, installation may carry one immutable companion instead of
+creating a second serializer. The producer emits it once, the build receipt
+hashes it with the installed binary, and the launcher resolves it relative to
+that selected binary. The self-host request must parse and validate the
+companion through the existing consumer before replaying its original payload.
+Missing or invalid companions fail at that boundary; they do not retry native
+semantics and they do not reconstruct the artifact from duplicated constants.
+
+This rule applies only when the payload is invariant for the installed binary.
+It cannot be used for a source-specific semantic result. In particular,
+`--capability-manifest` is derived from the current program's inferred
+capability facts; packaging one fixed companion would replace semantic analysis
+with stale installation data. The installed path therefore derives callable
+declared, direct-used, transitive-used, and exported masks from admitted call
+identities, then renders only the resulting program mask. Declared `with caps`
+text is a constraint, not evidence of use. The renderer cannot rescan builtin
+names, infer `FileOpen` mode, or repeat the interprocedural fixed point.
+
+Builtin capability assignment and file-mode refinement are separate canonical
+registries. Native type checking and the generated self-host projection consume
+those rows and fail admission if their registries are incomplete. A new ambient
+builtin must first enter the builtin signature inventory and the capability
+registry; adding it to only one side is a deterministic failure. The `Now`
+builtin exposed this exact omission during the first installed run.
+
+Call identity and call-argument topology are also distinct facts. A `Call` node
+owns the resolved callee identity, while its argument list begins at the
+matching `CallArgument` spine. Passing the `Call` node to a generic spine view
+can silently produce an empty argument list and misclassify literal
+`FileOpen("w")` as a dynamic mode. The call-view owner must join the exact call
+node to its argument spine once; capability policy consumes that view and does
+not search the graph again.
+
+The public spelling is not an independent oracle after delegation. Exact byte
+parity uses `--native-pipeline --capability-manifest`; missing installed
+siblings, arity drift, and unsupported option combinations fail without a
+native retry. The permanent falsifier includes clean, declared-but-unused,
+interprocedural under-declaration, literal read/write/read-write modes, dynamic
+mode, and missing-driver cases. A fixed companion, declared-as-used shortcut,
+renderer name scan, or public-vs-public comparison is a forbidden recurrence.
+
+Text framing belongs to the final sink, not the semantic artifact. In
+particular, a CRLF companion passed unchanged to a Windows text-mode stream
+becomes CRCRLF because the stream translates the LF again. A verified replay
+may remove the already-owned CR immediately before that sink so the platform
+emits exactly one CRLF. The gate must compare raw oracle bytes and include
+changed-working-directory, missing-companion, and invalid-companion cases;
+broad trimming or JSON normalization is not evidence of parity.
+
+### DIR inventory is not a census
+
+The self-host DIR debug path distinguishes the program inventory from the
+MIR-facing domain census. `SelfDirDomainGraphFacts` may own a graph anchor and
+aggregate counts for the executable domain subset, but those numbers do not
+prove which nodes and edges were admitted. The debug renderer therefore calls
+`SelfDirGraphInventoryFactsFromAdmittedFacts` exactly once and renders those
+rows. When the independent domain census is present, its counts must equal the
+inventory lengths; the renderer never creates rows from the count or anchor.
+
+```text
+objective: replace count-only DIR confidence with exact admitted node/edge rows
+priority: internal references -> source order -> independent census seal -> text
+fact owner: admitted declaration, role, authority, zone-state, topology,
+            and intent rows
+derived owner: SelfDirGraphInventoryFactsFromAdmittedFacts and typed intent
+               step provenance rows
+last consumer: CompilerDirTextArtifactFromProjection and
+               CompilerDirIntentTextFromFacts
+forbidden fallback: count-to-row reconstruction, native-oracle graft,
+                    provenance-text rescan, renderer default re-inference,
+                    native numeric source-ID equality
+gate: tests/self_hosted/parity/dir_graph_inventory_owner.sh
+falsifier: a count-preserving edge or intent-provenance mutation compares equal
+```
+
+Source syntax IDs belong to one parser artifact epoch. Native and self-host
+parsers may assign different numeric values while preserving the same program
+identity and internal joins. Differential DIR evidence may normalize only the
+`source` and `owner_source` fields (plus the topology directive source field).
+It must not normalize DIR node indexes, edge `from`, `resolved`, row order,
+kind, name, label, target, or topology owner. Treating all numbers as cosmetic
+would hide a broken internal reference; demanding native source-ID equality
+would create a false cross-producer ABI.
+
+`SelfDirZoneStateRows` now carries the exact state name, effect/relation layer
+slot, and participant-slot identities from the DIR fact boundary. The state is
+not also treated as a runtime-topology directive, and the inventory emits one
+`zone-state` edge whose resolved node is the owning zone. The focused oracle
+includes a source whose state row has no semicolon because the native grammar
+admits both spellings. Requiring `;` only in the self parser was a compatibility
+bug, not a stricter ownership rule; future syntax gates must execute both
+spellings instead of pinning one parser branch as evidence.
+
+Intent detail now has an exact admitted subset. `SelfDirIntentFacts` owns
+participant/value ranges and ordered steps, while
+`SelfDirIntentStepProvenanceFacts` records whether action- or transfer-derived
+`who`, `where`, `using`, `requires`, `causes`, and `authorized_by` values came
+from a default rather than an explicit clause. The renderer consumes those booleans;
+it may not compare final spellings with an action contract and guess the
+provenance after the fact. The focused oracle executes a zero-step participant
+intent, a fully explicit step, an action-default step, and both derived and
+explicit transfer steps. Changing only `who-derived=on-receiver` or reversing
+only the transfer endpoints while preserving every count must fail comparison.
+
+That gate also exposed a separate same-mistake bug: an intent participant with
+zone type carried the right declaration index but the inventory resolved it as
+kind `type`. A declaration identity is not a type-only hint. Resolution now
+uses the declaration owner's exact DIR kind, so subject/type, zone, and other
+nominal participant rows join the node inventory consistently.
+
+Intent-level `who` and `where` defaults now enter through the parser-owned
+`ParserIntentStepDefaultsResolve` boundary. The compact AST appends kind 88 for
+the exact native `ContractProvenance` row; the DIR clause census consumes that
+typed row and never infers intent defaults from the resolved values. The
+focused gate byte-compares the default-bearing compact AST as well as its final
+DIR output, and a default-to-derived provenance mutation must fail.
+
+Inline sub-intent targets now append compact-AST kind 89 and keep their exact
+expression node in `target_expression_node_ids`. Action targets require an
+`On` row. Intent targets admit the exact carried syntax row: appended `Intent`
+for inline syntax or `On` for the established `on: NestedIntent(...)` spelling.
+The semantic target kind must not be used to invent one syntax tag. The old
+action-only `on_node_ids` carrier is forbidden. Step header parsing remains
+owned once by `SemanticAstIntentStepHeaderFromText`; DIR consumes that semantic
+row instead of adding a second header parser. The focused oracle executes both
+spellings and requires byte-equal native DIR rows, including the native
+`where=- resolved=- using=-` spelling and single-participant provenance.
+
+Public `pgy --dir` now delegates to the installed Pergyra driver through
+`--emit-dir-verified`. The public bytes equal the direct installed-driver bytes;
+the independent oracle is explicitly `--native-pipeline --dir`, never public
+`--dir` again. The replacement gate covers authority rows, intent defaults,
+transfer shorthand, inline `intent:` targets, and nested `on:` intent targets.
+Missing installed drivers and unsupported option combinations fail closed
+without native retry. A header with correct counts, omitted detail, or renderer-
+inferred provenance is never a partial success.
+
+Same-mistake rule: before adding a syntax-row parser to a later IR owner, search
+the semantic row owners and migrate every consumer to one canonical parser.
+Parser/default and semantic row owners are not automatically derived-fact
+registry rows; only repository-classified `*_fact_owner.pgy` carriers belong in
+that inventory. A target expression node must be named for both admitted target
+kinds instead of preserving an action-only field and treating an inline intent
+as a special missing value. Do not equate a semantic target kind with one source
+syntax tag: the same intent identity can arrive through `on:` or `intent:` and
+the carried AST node decides which tag is valid. Once a public mode delegates,
+every differential gate that claims a native oracle must spell
+`--native-pipeline`; otherwise public-versus-public is a self-comparison.
+
+The same closure rule applies at the native link boundary. The declaration-
+header layout guard is produced with the MIR storage owner and consumed before
+nominal ABI capture or destruction dereferences rows. `pgy-lsp` previously
+linked the nominal consumer through a selective AIR list but omitted that
+producer symbol. Its target now consumes the canonical `MIR_CORE_OBJECTS`
+closure. Do not duplicate a hand-picked ABI link inventory: after a header
+layout change it can either fail to link or, worse, omit the fail-closed receipt
+that prevents a mixed-object heap dereference.
+
+## Arbitrary scalar multi-routine legalization
+
+A declaration-free scalar program is classified by its admitted routine
+inventory and typed direct-call edges, not by the number of routines it happens
+to contain. `DirectMirScalarProgramRouteFact` carries the exact routine rows in
+canonical Main-first order. One `DirectMirScalarCfgProgramCallableInventory`
+then joins every non-Main routine's persisted source syntax ID to its ordered
+parameter types, return type, and signature digest. Expression admission and
+the final routine partition consume that catalog; neither scans display names
+nor creates one optional callable receipt per instruction.
+
+```text
+objective: legalize declaration-free scalar programs with any admitted routine count
+priority: callable identity -> typed edges -> all-routine partition -> C/LLVM parity
+fact owner: MirProgramRoutineIndex plus carried expression call-target syntax IDs
+derived owner: DirectMirScalarCfgProgramCallableInventory
+last consumer: DirectMirScalarCfgGraphPlan C and LLVM program emitters
+forbidden fallback: routine_count == N dispatch, name lookup, AST/source rescan,
+                    fabricated local/value rows, native retry
+gate: tests/self_hosted/parity/direct_mir_scalar_multi_routine_owner.sh
+falsifier: four-routine call chain, missing call target, duplicate routine identity
+```
+
+Same-mistake rule: a routine count is cardinality evidence, never a semantic
+program shape. When one admitted inventory already owns routine identity and
+one expression graph already owns direct-call target IDs, route and legalize by
+those facts. Do not add another `count == 3`, `count == 4`, or fixture-name
+branch, and do not manufacture dummy CFG locals or SSA values to satisfy a
+minimum-shape check. A zero-local, zero-definition expression-only program is
+valid when its typed graph, routine partition, and operation inventory are
+otherwise ready.
+
+## Option<Int> value representation in the shared GraphPlan
+
+`Option<Int>` is the first non-scalar return family admitted by the arbitrary
+routine inventory. Surface spelling is not a representation fact. The program
+path captures one required MIR ABI row into
+`DirectMirOptionMatchAbiFact`, verifies every reached instruction agrees with
+that layout identity, and carries the receipt inside the existing GraphPlan
+extension. The C and LLVM emitters consume target projections of the same tag,
+value, print-type, field-index, and discriminant facts.
+
+```text
+objective: carry Option<Int> returns and nested calls through any admitted routine inventory
+priority: persisted ABI identity -> typed expression/call readiness -> C/LLVM parity
+fact owner: required MIR ABI row projected as DirectMirOptionMatchAbiFact
+last consumer: GraphPlan C/LLVM signatures, expression writers, and program preambles
+forbidden fallback: type-name-only {tag,value} invention, copied offsets/tags,
+                    routine-count route, source rescan, native backend retry
+gate: tests/self_hosted/parity/direct_mir_scalar_option_int_owner.sh
+falsifier: Main -> Extract -> Relay -> Wrap, exact 11, value offset 4 -> 0 mutation
+```
+
+Same-mistake rule: generic syntax answers which value family is requested; it
+does not answer its physical layout. Never legalize a new `Option<T>` merely by
+adding a backend struct spelling or an LLVM aggregate literal. First capture a
+required ABI row, seal one target-neutral receipt, make missing or disagreeing
+receipts fail closed, and then project both backends from that receipt. Direct
+call readiness must consume the callable return-type policy; a second
+“scalar-only” check after callable admission silently recreates the old type
+classifier and rejects the very representation the inventory admitted.
+
+## Two-Int nominal representation in the shared GraphPlan
+
+A nominal spelling is not a physical representation, and the existence of one
+supported declaration does not legalize every declaration in the program. The
+bounded first nominal rung scans the admitted declaration table once and
+selects exactly zero or one struct whose declaration-owned field identities and
+required MIR ABI row prove two ordered `Int` fields. Unsupported unrelated
+declarations do not become representation facts; a second eligible candidate
+is ambiguous and fails closed. One
+`DirectMirScalarProgramTwoIntNominalAbiFact` is carried through route,
+callable, extension, and target projection owners. Every matching formal
+parameter and instruction ABI receipt must equal that declaration row.
+
+```text
+objective: carry one admitted two-Int nominal value through the arbitrary routine inventory
+priority: declaration identity -> exact ABI row -> all-routine signatures -> C/LLVM parity
+fact owner: DirectMirScalarProgramTwoIntNominalAbiFact derived from abi.layout_rows
+last consumer: GraphPlan C/LLVM nominal preamble, signature, and return emission
+forbidden fallback: type-spelling layout inference, copied field offsets,
+                    routine-count routing, unused-routine deletion, native retry
+gate: tests/self_hosted/parity/direct_mir_scalar_two_int_nominal_owner.sh
+falsifier: unused Keep(Pair)->Pair plus scalar Main chain; offset 4 -> 0 mutation
+```
+
+The target-neutral projection carries the selected target capability
+fingerprint. C emits size, alignment, and field-offset assertions from the
+admitted row; LLVM emits its aggregate spelling only after the same physical
+shape proof. The fixture deliberately leaves `Keep(Pair) -> Pair` unreachable
+from `Main` and also declares an unused, unsupported `Metadata` struct. Both
+backends must still compile `Keep` while omitting the unrelated declaration,
+which prevents dead-routine elimination from masquerading as representation
+support. A second fixture adds `KeepMetadata(Metadata) -> Metadata`; both
+backends must reject it without publishing an artifact.
+
+Same-mistake rule: do not turn one selected declaration into
+`declaration_count > 0` acceptance, and do not flatten the whole declaration
+table into each routine. The next generalization must derive one program-wide
+representation inventory from the admitted declaration index and the complete
+routine signature/instruction ABI references, then fail at the first referenced
+unsupported row. Unreferenced declarations are not permission to guess a
+layout; referenced declarations are not permission to drop the routine.

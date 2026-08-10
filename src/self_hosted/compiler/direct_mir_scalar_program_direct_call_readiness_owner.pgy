@@ -20,7 +20,8 @@ func DirectMirScalarProgramDirectCallNodeReady(
     let arguments: Array<Int> =
         DirectMirScalarProgramDirectCallArgumentRows(facts, node);
     if facts.node_kinds[node] != DirectMirScalarProgramExprDirectCall() ||
-        !DirectMirScalarCfgScalarTypeSupported(facts.node_types[node]) ||
+        !DirectMirScalarProgramCallableReturnTypeSupported(
+            facts.node_types[node]) ||
         ArrayLength(arguments) < 1 || facts.node_local_rows[node] != -1 ||
         facts.node_parameter_ordinals[node] != -1 ||
         facts.node_literals[node] != "" ||

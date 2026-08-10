@@ -1,0 +1,31 @@
+// Referencing an unprojected nominal must fail even beside an admitted Pair.
+
+struct Pair {
+    left: Int;
+    right: Int;
+}
+
+struct Metadata {
+    ready: Bool;
+    label: String;
+}
+
+func Keep(value: Pair) -> Pair {
+    return value;
+}
+
+func KeepMetadata(value: Metadata) -> Metadata {
+    return value;
+}
+
+func Leaf(value: Int) -> Int {
+    return value + 1;
+}
+
+func Relay(value: Int) -> Int {
+    return Leaf(value) + 2;
+}
+
+func Main() -> Void {
+    Log(Relay(8));
+}

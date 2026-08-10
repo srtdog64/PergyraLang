@@ -180,6 +180,9 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Expect:") {
         return TypedAstKindIntentStepExpectTag();
     }
+    if StartsWith(text, "ContractProvenance:") {
+        return TypedAstKindIntentStepContractProvenanceTag();
+    }
     if StartsWith(text, "Intent:") {
         return TypedAstKindIntentDeclTag();
     }
@@ -565,6 +568,9 @@ func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAs
         if StringLength(trimmed) > 0 {
             let indent: Int = CodegenAstTextIndentOf(raw_line);
             let kind: Int = TypedAstTextKindOf(trimmed);
+            if kind == TypedAstKindIntentDeclTag() && indent >= 6 {
+                kind = TypedAstKindIntentStepIntentTag();
+            }
             if param_indent >= 0 && indent < param_indent {
                 param_indent = -1;
             }

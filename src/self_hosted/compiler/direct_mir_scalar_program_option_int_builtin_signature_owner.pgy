@@ -1,0 +1,49 @@
+// Typed projection of the generic semantic Option builtins for Option<Int>.
+
+import "direct_mir_scalar_program_option_int_expression_kind_owner.pgy";
+import "abi_layout_row_owner.pgy";
+
+func DirectMirScalarProgramOptionIntBuiltinSignatureExpected(
+    name: String
+) -> Array<String> {
+    if name == "Some" {
+        return ["Unknown", "Unknown", ToString(
+            DirectMirScalarProgramExprSomeInt())];
+    }
+    if name == "None" {
+        return ["Option<Unknown>", "none", ToString(
+            DirectMirScalarProgramExprNoneInt())];
+    }
+    if name == "IsSome" {
+        return ["Bool", "Unknown", ToString(
+            DirectMirScalarProgramExprIsSomeInt())];
+    }
+    if name == "UnwrapOption" {
+        return ["Unknown", "Unknown", ToString(
+            DirectMirScalarProgramExprUnwrapOptionInt())];
+    }
+    return [];
+}
+
+func DirectMirScalarProgramOptionIntBuiltinReturnType(
+    name: String, fallback: String
+) -> String {
+    if name == "Some" || name == "None" {
+        return CompilerAbiLayoutOptionIntTypeName();
+    }
+    if name == "UnwrapOption" {
+        return CompilerAbiLayoutIntTypeName();
+    }
+    return fallback;
+}
+
+func DirectMirScalarProgramOptionIntBuiltinParameterTypes(
+    name: String, fallback: Array<String>
+) -> Array<String> {
+    if name == "None" { return []; }
+    if name == "Some" { return [CompilerAbiLayoutIntTypeName()]; }
+    if name == "IsSome" || name == "UnwrapOption" {
+        return [CompilerAbiLayoutOptionIntTypeName()];
+    }
+    return fallback;
+}

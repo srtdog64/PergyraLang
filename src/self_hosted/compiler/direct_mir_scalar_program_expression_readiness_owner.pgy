@@ -9,6 +9,7 @@ import "direct_mir_scalar_program_case_math_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
 import "direct_mir_scalar_program_string_search_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_string_transform_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_option_int_expression_readiness_owner.pgy";
 
 func DirectMirScalarProgramExpressionNodeReady(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int
@@ -39,6 +40,9 @@ func DirectMirScalarProgramExpressionNodeReady(
     let transform_ready: Option<Bool> =
         DirectMirScalarProgramStringTransformExpressionNodeReady(facts, node);
     if IsSome(transform_ready) { return UnwrapOption(transform_ready); }
+    let option_ready: Option<Bool> =
+        DirectMirScalarProgramOptionIntExpressionNodeReady(facts, node);
+    if IsSome(option_ready) { return UnwrapOption(option_ready); }
     if kind == DirectMirScalarProgramExprLocal() {
         return local_binding >= 0 && left == -1 && right == -1 && param == -1 &&
             literal == "" && callable == -1;

@@ -18,12 +18,18 @@ pgy_file_mode_capability_mask(const char *mode)
     if (mode == NULL || mode[0] == '\0')
         return PGY_CAP_IO_READ | PGY_CAP_IO_WRITE;
     for (const char *p = mode; *p != '\0'; p++) {
-        if (*p == 'r')
-            mask |= PGY_CAP_IO_READ;
-        if (*p == 'w' || *p == 'a')
-            mask |= PGY_CAP_IO_WRITE;
-        if (*p == '+')
-            mask |= PGY_CAP_IO_READ | PGY_CAP_IO_WRITE;
+#define PGY_FILE_MODE_CAPABILITY_CAP_IO_READ PGY_CAP_IO_READ
+#define PGY_FILE_MODE_CAPABILITY_CAP_IO_WRITE PGY_CAP_IO_WRITE
+#define PGY_FILE_MODE_CAPABILITY_CAP_IO_READ_WRITE \
+    (PGY_CAP_IO_READ | PGY_CAP_IO_WRITE)
+#define PGY_FILE_MODE_CAPABILITY(character, capability_identity)             \
+        if (*p == (character))                                               \
+            mask |= PGY_FILE_MODE_CAPABILITY_##capability_identity;
+#include "pgy_file_mode_capability.def"
+#undef PGY_FILE_MODE_CAPABILITY
+#undef PGY_FILE_MODE_CAPABILITY_CAP_IO_READ_WRITE
+#undef PGY_FILE_MODE_CAPABILITY_CAP_IO_WRITE
+#undef PGY_FILE_MODE_CAPABILITY_CAP_IO_READ
     }
     return mask != PGY_CAP_NONE
         ? mask

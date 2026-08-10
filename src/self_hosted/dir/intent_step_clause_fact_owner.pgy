@@ -7,6 +7,8 @@ struct SelfDirIntentStepClauseFacts {
     diagnostic_message: String;
     on_text: String;
     on_node_id: Int;
+    intent_text: String;
+    intent_node_id: Int;
     outcome_node_id: Int;
     outcome_name: String;
     expect_node_id: Int;
@@ -14,10 +16,12 @@ struct SelfDirIntentStepClauseFacts {
     post_node_id: Int;
     compensate_node_ids: Array<Int>;
     explicit_using: String;
+    transfer_text: String;
     explicit_causes: String;
     who_names: Array<String>;
     requires_names: Array<String>;
     authorized_names: Array<String>;
+    provenance_text: String;
     child_count: Int;
 }
 
@@ -27,8 +31,8 @@ func SelfDirIntentStepClauseFactsError(
     let ints: Array<Int> = [];
     let strings: Array<String> = [];
     return SelfDirIntentStepClauseFacts(
-        false, message, "", -1, -1, "", -1, -1, -1, ints, "", "",
-        strings, strings, strings, 0
+        false, message, "", -1, "", -1, -1, "", -1, -1, -1, ints, "", "", "",
+        strings, strings, strings, "", 0
     );
 }
 
@@ -57,6 +61,8 @@ func SelfDirIntentStepClauseFactsFromArtifact(
 ) -> SelfDirIntentStepClauseFacts {
     let on_text: String = "";
     let on_node_id: Int = -1;
+    let intent_text: String = "";
+    let intent_node_id: Int = -1;
     let outcome_node_id: Int = -1;
     let outcome_name: String = "";
     let expect_node_id: Int = -1;
@@ -64,10 +70,12 @@ func SelfDirIntentStepClauseFactsFromArtifact(
     let post_node_id: Int = -1;
     let compensate_node_ids: Array<Int> = [];
     let explicit_using: String = "";
+    let transfer_text: String = "";
     let explicit_causes: String = "";
     let who_names: Array<String> = [];
     let requires_names: Array<String> = [];
     let authorized_names: Array<String> = [];
+    let provenance_text: String = "";
     let child_index: Int = 0;
     let child: Option<Int> = TypedAstArenaChildAt(
         artifact.arena, step_node_id, child_index
@@ -95,6 +103,14 @@ func SelfDirIntentStepClauseFactsFromArtifact(
             }
             on_text = payload;
             on_node_id = row_id;
+        } else if kind == TypedAstKindIntentStepIntentTag() {
+            if intent_node_id >= 0 || payload == "" {
+                return SelfDirIntentStepClauseFactsError(
+                    "self-host DIR intent step has duplicate intent rows"
+                );
+            }
+            intent_text = payload;
+            intent_node_id = row_id;
         } else if kind == TypedAstKindIntentStepOutcomeTag() {
             if outcome_node_id >= 0 || !IsIdentifier(payload) {
                 return SelfDirIntentStepClauseFactsError(
@@ -118,6 +134,13 @@ func SelfDirIntentStepClauseFactsFromArtifact(
                 );
             }
             explicit_using = payload;
+        } else if kind == TypedAstKindIntentStepTransferTag() {
+            if transfer_text != "" || payload == "" {
+                return SelfDirIntentStepClauseFactsError(
+                    "self-host DIR intent transfer row is invalid"
+                );
+            }
+            transfer_text = payload;
         } else if kind == TypedAstKindActionRequiresTag() {
             if ArrayLength(requires_names) > 0 ||
                 !SelfDirIntentStepClauseAppendUniqueNames(
@@ -171,6 +194,13 @@ func SelfDirIntentStepClauseFactsFromArtifact(
                 );
             }
             ArrayPush(compensate_node_ids, row_id);
+        } else if kind == TypedAstKindIntentStepContractProvenanceTag() {
+            if provenance_text != "" || payload == "" {
+                return SelfDirIntentStepClauseFactsError(
+                    "self-host DIR intent provenance row is invalid"
+                );
+            }
+            provenance_text = payload;
         } else if kind == TypedAstKindIntentStepSuccessTag() ||
             kind == TypedAstKindIntentStepFailureTag() {
             if payload == "" {
@@ -189,9 +219,10 @@ func SelfDirIntentStepClauseFactsFromArtifact(
         );
     }
     return SelfDirIntentStepClauseFacts(
-        true, "", on_text, on_node_id, outcome_node_id, outcome_name,
+        true, "", on_text, on_node_id, intent_text, intent_node_id,
+        outcome_node_id, outcome_name,
         expect_node_id, guard_node_id, post_node_id, compensate_node_ids,
-        explicit_using, explicit_causes, who_names, requires_names,
-        authorized_names, child_index
+        explicit_using, transfer_text, explicit_causes, who_names, requires_names,
+        authorized_names, provenance_text, child_index
     );
 }

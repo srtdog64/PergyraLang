@@ -1,12 +1,16 @@
 import "direct_mir_scalar_program_c_string_expression_owner.pgy";
 import "direct_mir_scalar_program_c_string_collection_expression_owner.pgy";
 import "direct_mir_scalar_program_c_extended_expression_owner.pgy";
+import "direct_mir_scalar_program_c_option_int_owner.pgy";
 
 func DirectMirScalarProgramCBuiltinExpression(
     kind: Int, left: String, right: String, arguments: Array<String>,
     callable_ordinal: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> Option<String> {
+    let option_int: Option<String> =
+        DirectMirScalarProgramCOptionIntExpression(kind, left);
+    if IsSome(option_int) { return option_int; }
     let extended: Option<String> = DirectMirScalarProgramCExtendedExpression(
         kind, left, right, arguments, callable_ordinal, runtime);
     if IsSome(extended) { return extended; }

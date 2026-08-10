@@ -37,8 +37,9 @@ function_body() {
     local function_name="$2"
     awk -v signature="func ${function_name}(" '
         index($0, signature) == 1 { in_function = 1 }
-        in_function && $0 ~ /^func / && index($0, signature) != 1 { exit }
         in_function { print }
+        in_function && index($0, signature) == 1 && /\{.*\}/ { exit }
+        in_function && /^}/ { exit }
     ' "$ROOT_DIR/$rel"
 }
 
@@ -69,6 +70,8 @@ require_file "docs/self_hosted/12_intent_zone_self_host_architecture.md"
 require_file "tests/self_host_hard_contract_smoke.sh"
 require_file "tests/self_hosted/compiler_world_manifest.sh"
 require_file "tests/self_hosted/parity/self_host_compiler_build.sh"
+require_file \
+    "tests/self_hosted/parity/public_machine_manifest_installed_self_host_owner.sh"
 
 pgy_compiler_world_require_manifest_paths "$ROOT_DIR" ||
     fail "compiler world path manifest is incomplete"
@@ -371,6 +374,8 @@ require_text "src/pgy_driver.c" "driver_plain_c_binary_target_requested("
 require_text "src/pgy_driver.c" "c_runner_execute_installed_self_host_c("
 require_text "Makefile" "self-host-default-c-emit-replacement-test-smoke:"
 require_text "Makefile" "self-host-public-mir-json-replacement-test-smoke:"
+require_text "Makefile" \
+    "self-host-public-machine-manifest-replacement-test-smoke:"
 require_text "Makefile" "self-host-public-llvm-ir-replacement-test-smoke:"
 require_text "Makefile" "self-host-public-llvm-ir-stdout-replacement-test-smoke:"
 require_text "Makefile" \
@@ -1063,6 +1068,14 @@ require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'Pergyra-built DRV-2 installed'
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     '"composed_ast=$(hash_file "$AST_FILE")"'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    '"machine_manifest=$(hash_file "$MANIFEST_SOURCE")"'
+require_text "src/pgy_driver.c" \
+    "driver_write_self_host_machine_manifest(argv[0])"
+require_text "src/compiler/self_host_machine_manifest_artifact_owner.c" \
+    'child_argv[1] = "--emit-machine-manifest-verified";'
+forbid_text "src/compiler/self_host_machine_manifest_artifact_owner.c" \
+    "driver_run_pipeline("
 forbid_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'PGY_SELFHOST_SOURCE_FINGERPRINT_FILE'
 forbid_text "tests/self_hosted/parity/self_host_compiler_build.sh" \

@@ -16,6 +16,10 @@ func DirectMirScalarCfgProgramExtensionFactReady(
                 fact.closed_call_abi) &&
             DirectMirScalarProgramRuntimeAbiFactCanonicalEmpty(
                 fact.runtime_abi) &&
+            DirectMirScalarProgramOptionIntAbiReadyForExpressions(
+                fact.option_int_abi, fact.expressions) &&
+            DirectMirScalarProgramTwoIntNominalAbiFactReady(
+                fact.nominal_abi) &&
             DirectMirScalarProgramArrayStringAbiReadyForExpressions(
                 fact.array_string_abi, fact.expressions) &&
             DirectMirScalarProgramArrayStringBoundaryFactCanonicalEmpty(
@@ -45,6 +49,10 @@ func DirectMirScalarCfgProgramExtensionFactReady(
             fact.expressions) &&
         DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
             fact.runtime_abi, fact.expressions) &&
+        DirectMirScalarProgramOptionIntAbiReadyForExpressions(
+            fact.option_int_abi, fact.expressions) &&
+        DirectMirScalarProgramTwoIntNominalAbiFactReady(
+            fact.nominal_abi) &&
         DirectMirScalarProgramArrayStringAbiReadyForExpressions(
             fact.array_string_abi, fact.expressions) && array_boundary_ready;
 }

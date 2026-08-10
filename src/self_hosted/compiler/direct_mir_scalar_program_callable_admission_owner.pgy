@@ -4,7 +4,8 @@ import "direct_mir_scalar_program_callable_fact_owner.pgy";
 
 func DirectMirScalarProgramCallableFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    callable_row: Int, routine_ordinal: Int
+    callable_row: Int, routine_ordinal: Int,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
 ) -> DirectMirScalarCfgProgramCallableFact {
     if !MirProgramRoutineIndexRowReady(admitted.routines, callable_row) {
         return DirectMirScalarCfgProgramCallableFactInvalid();
@@ -27,7 +28,8 @@ func DirectMirScalarProgramCallableFactFromAdmitted(
             DirectMirScalarCfgProgramCallableFactDigest(source),
             source.signature, source.routine_ordinal
         );
-    if !DirectMirScalarCfgProgramCallableFactReady(fact) {
+    if !DirectMirScalarCfgProgramCallableFactReadyWithNominal(
+            fact, nominal) {
         return DirectMirScalarCfgProgramCallableFactInvalid();
     }
     return fact;

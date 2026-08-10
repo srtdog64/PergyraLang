@@ -77,6 +77,8 @@ func SelfDirIntentFactsFromArtifact(
     let step_where_zone_names: Array<String> = [];
     let step_where_declaration_indices: Array<Int> = [];
     let step_using_aliases: Array<String> = [];
+    let step_transfer_from_aliases: Array<String> = [];
+    let step_transfer_to_aliases: Array<String> = [];
     let step_receiver_aliases: Array<String> = [];
     let step_action_names: Array<String> = [];
     let step_action_signature_indices: Array<Int> = [];
@@ -89,7 +91,7 @@ func SelfDirIntentFactsFromArtifact(
     let step_outcome_node_ids: Array<Int> = [];
     let step_outcome_names: Array<String> = [];
     let step_outcome_type_names: Array<String> = [];
-    let step_on_node_ids: Array<Int> = [];
+    let step_target_expression_node_ids: Array<Int> = [];
     let step_guard_node_ids: Array<Int> = [];
     let step_post_node_ids: Array<Int> = [];
     let step_expect_node_ids: Array<Int> = [];
@@ -110,6 +112,8 @@ func SelfDirIntentFactsFromArtifact(
     let authorized_starts: Array<Int> = [];
     let authorized_counts: Array<Int> = [];
     let authorized_names: Array<String> = [];
+    let step_provenance: SelfDirIntentStepProvenanceFacts =
+        SelfDirIntentStepProvenanceFactsEmpty();
     let edge_count: Int = 0;
 
     let intent_index: Int = 0;
@@ -212,6 +216,12 @@ func SelfDirIntentFactsFromArtifact(
                 ArrayPush(step_where_declaration_indices,
                     resolved.where_declaration_index);
                 ArrayPush(step_using_aliases, resolved.using_alias);
+                ArrayPush(
+                    step_transfer_from_aliases, resolved.transfer_from_alias
+                );
+                ArrayPush(
+                    step_transfer_to_aliases, resolved.transfer_to_alias
+                );
                 ArrayPush(step_receiver_aliases, resolved.receiver_alias);
                 ArrayPush(step_action_names, resolved.action_name);
                 ArrayPush(step_action_signature_indices,
@@ -234,7 +244,10 @@ func SelfDirIntentFactsFromArtifact(
                 ArrayPush(step_outcome_names, resolved.outcome_name);
                 ArrayPush(step_outcome_type_names,
                     resolved.outcome_type_name);
-                ArrayPush(step_on_node_ids, resolved.on_node_id);
+                ArrayPush(
+                    step_target_expression_node_ids,
+                    resolved.target_expression_node_id
+                );
                 ArrayPush(step_guard_node_ids, resolved.guard_node_id);
                 ArrayPush(step_post_node_ids, resolved.post_node_id);
                 ArrayPush(step_expect_node_ids, resolved.expect_node_id);
@@ -255,6 +268,9 @@ func SelfDirIntentFactsFromArtifact(
                 ArrayPush(authorized_starts, authorized_start);
                 ArrayPush(authorized_counts,
                     ArrayLength(resolved.authorized_names));
+                SelfDirIntentStepProvenanceAppend(
+                    step_provenance, resolved.provenance
+                );
                 edge_count = edge_count + resolved.edge_count;
                 let transition_row: Int = ArrayLength(step_node_ids) - 1;
                 if transition_facts.step_requireds[transition_row] &&
@@ -295,12 +311,14 @@ func SelfDirIntentFactsFromArtifact(
         SelfDirIntentStepFacts(
             step_node_ids, step_names, step_where_zone_names,
             step_where_declaration_indices, step_using_aliases,
+            step_transfer_from_aliases, step_transfer_to_aliases,
             step_receiver_aliases, step_action_names,
             step_action_signature_indices, step_target_kinds,
             step_target_declaration_node_ids, step_target_indices,
             step_target_names, step_target_return_type_names,
             step_target_param_counts, step_outcome_node_ids,
-            step_outcome_names, step_outcome_type_names, step_on_node_ids,
+            step_outcome_names, step_outcome_type_names,
+            step_target_expression_node_ids,
             step_guard_node_ids, step_post_node_ids, step_expect_node_ids,
             step_compensate_starts, step_compensate_counts,
             step_compensate_node_ids, step_child_counts,
@@ -308,7 +326,7 @@ func SelfDirIntentFactsFromArtifact(
             step_causes_declaration_indices, who_starts, who_counts, who_names,
             requires_starts, requires_counts, requires_names,
             requires_declaration_indices, authorized_starts, authorized_counts,
-            authorized_names
+            authorized_names, step_provenance
         ),
         transition_facts,
         edge_count
@@ -396,9 +414,11 @@ func SelfDirIntentFactsReady(
                 facts.participants.aliases, p_start, p_count,
                 facts.steps.using_aliases[step_row]
             );
-            if using_row < 0 || facts.participants.is_values[using_row] ||
-                facts.participants.type_names[using_row] !=
-                    facts.steps.where_zone_names[step_row] {
+            if (facts.steps.target_kinds[step_row] == "action" ||
+                facts.steps.using_aliases[step_row] != "") &&
+                (using_row < 0 || facts.participants.is_values[using_row] ||
+                 facts.participants.type_names[using_row] !=
+                    facts.steps.where_zone_names[step_row]) {
                 return false;
             }
             if facts.steps.target_kinds[step_row] == "action" {
@@ -480,14 +500,18 @@ func SelfDirIntentFactsReady(
     }
     i = 0;
     while i < step_count {
+        let placement_absent: Bool = facts.steps.target_kinds[i] == "intent" &&
+            facts.steps.where_zone_names[i] == "" &&
+            facts.steps.where_declaration_indices[i] == -1 &&
+            facts.steps.using_aliases[i] == "";
         if facts.transitions.step_node_ids[i] != facts.steps.node_ids[i] ||
-            facts.steps.where_zone_names[i] == "" ||
-            facts.steps.where_declaration_indices[i] < 0 ||
-            facts.steps.where_declaration_indices[i] >= ArrayLength(rows.names) ||
-            rows.nominal_kinds[facts.steps.where_declaration_indices[i]] != "zone" ||
-            rows.names[facts.steps.where_declaration_indices[i]] !=
+            (!placement_absent && (facts.steps.where_zone_names[i] == "" ||
+             facts.steps.where_declaration_indices[i] < 0 ||
+             facts.steps.where_declaration_indices[i] >= ArrayLength(rows.names) ||
+             rows.nominal_kinds[facts.steps.where_declaration_indices[i]] != "zone" ||
+             rows.names[facts.steps.where_declaration_indices[i]] !=
                 facts.steps.where_zone_names[i] ||
-            facts.steps.using_aliases[i] == "" ||
+             facts.steps.using_aliases[i] == "")) ||
             facts.steps.who_starts[i] < 0 || facts.steps.who_counts[i] < 0 ||
             facts.steps.who_starts[i] + facts.steps.who_counts[i] >
                 ArrayLength(facts.steps.who_names) ||

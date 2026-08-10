@@ -43,8 +43,8 @@ pgy_function_body() {
     local signature="$2"
     awk -v signature="$signature" '
         index($0, signature) == 1 { found = 1 }
-        found && /^func / && index($0, signature) != 1 { exit }
         found { print }
+        found && /^}/ { exit }
     ' "$file"
 }
 

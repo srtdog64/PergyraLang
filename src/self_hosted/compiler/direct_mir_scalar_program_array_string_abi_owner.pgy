@@ -56,14 +56,12 @@ func DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
     let empty: DirectMirScalarProgramArrayStringAbiFact =
         DirectMirScalarProgramArrayStringAbiFactEmpty();
     if !DirectMirScalarProgramRouteFactReady(route) { return empty; }
-    let rows: Array<Int> = [route.entrypoint_row];
-    if route.callable_row >= 0 { ArrayPush(rows, route.callable_row); }
     let source: DirectMirScalarProgramArrayStringAbiFact = empty;
     let found: Int = 0;
     let routine: Int = 0;
-    while routine < ArrayLength(rows) {
+    while routine < ArrayLength(route.routine_rows) {
         let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
-            admitted.routines, rows[routine]);
+            admitted.routines, route.routine_rows[routine]);
         if !index.valid { return empty; }
         let instruction: Int = 0;
         while instruction < ArrayLength(index.instruction_facts.starts) {

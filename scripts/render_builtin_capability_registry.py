@@ -1,0 +1,217 @@
+#!/usr/bin/env python3
+"""Validate the ambient-builtin capability SoT and render self-host rows."""
+
+from __future__ import annotations
+
+import argparse
+from dataclasses import dataclass
+from pathlib import Path
+import re
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import render_callable_contract_vocabulary as callable_registry
+
+
+BUILTIN_MACRO = "PGY_BUILTIN_CAPABILITY"
+MODE_MACRO = "PGY_FILE_MODE_CAPABILITY"
+FIXED = "PGY_BUILTIN_CAPABILITY_FIXED"
+FILE_MODE = "PGY_BUILTIN_CAPABILITY_FILE_MODE"
+
+
+@dataclass(frozen=True)
+class BuiltinRow:
+    identity: str
+    stable_id: int
+    source_name: str
+    primary_identity: str
+    secondary_identity: str
+    policy: str
+
+
+def _strip_comments(source: str) -> str:
+    source = re.sub(r"/\*.*?\*/", "", source, flags=re.DOTALL)
+    return re.sub(r"//.*?$", "", source, flags=re.MULTILINE)
+
+
+def _macro_bodies(source: str, macro: str) -> list[str]:
+    return re.findall(rf"{macro}\(([^\n()]*)\)", _strip_comments(source))
+
+
+def _symbol(value: str, label: str) -> str:
+    value = value.strip()
+    if re.fullmatch(r"[A-Z][A-Z0-9_]*", value) is None:
+        raise ValueError(f"{label} must be one symbol: {value!r}")
+    return value
+
+
+def _string(value: str, label: str) -> str:
+    match = re.fullmatch(r'"([A-Za-z][A-Za-z0-9_]*)"', value.strip())
+    if match is None:
+        raise ValueError(f"{label} must be one builtin spelling: {value!r}")
+    return match.group(1)
+
+
+def load_builtin_rows(path: Path) -> list[BuiltinRow]:
+    rows: list[BuiltinRow] = []
+    for row_number, body in enumerate(
+        _macro_bodies(path.read_text(encoding="utf-8"), BUILTIN_MACRO), start=1
+    ):
+        fields = [field.strip() for field in body.split(",")]
+        if len(fields) != 6:
+            raise ValueError(f"builtin row {row_number} expected 6 fields")
+        if re.fullmatch(r"0|[1-9][0-9]*", fields[1]) is None:
+            raise ValueError(f"builtin row {row_number} has invalid stable id")
+        rows.append(
+            BuiltinRow(
+                _symbol(fields[0], "builtin identity"), int(fields[1]),
+                _string(fields[2], "builtin source name"),
+                _symbol(fields[3], "primary capability identity"),
+                _symbol(fields[4], "secondary capability identity"),
+                _symbol(fields[5], "builtin capability policy"),
+            )
+        )
+    if [row.stable_id for row in rows] != list(range(len(rows))):
+        raise ValueError("builtin capability stable ids must be contiguous")
+    if len({row.identity for row in rows}) != len(rows) or len(
+        {row.source_name for row in rows}
+    ) != len(rows):
+        raise ValueError("builtin capability identities and names must be unique")
+    if [row.source_name for row in rows] != sorted(row.source_name for row in rows):
+        raise ValueError("builtin capability rows must be source-name sorted")
+    for row in rows:
+        if row.policy not in {FIXED, FILE_MODE}:
+            raise ValueError(f"unknown capability policy on {row.source_name}")
+        if row.policy == FIXED and row.primary_identity != row.secondary_identity:
+            raise ValueError(f"fixed row {row.source_name} has two capabilities")
+        if row.policy == FILE_MODE and row.source_name != "FileOpen":
+            raise ValueError("FileOpen must be the sole file-mode policy row")
+    if sum(row.policy == FILE_MODE for row in rows) != 1:
+        raise ValueError("registry must contain exactly one FileOpen mode row")
+    return rows
+
+
+def load_mode_rows(path: Path) -> list[tuple[str, str]]:
+    rows: list[tuple[str, str]] = []
+    for row_number, body in enumerate(
+        _macro_bodies(path.read_text(encoding="utf-8"), MODE_MACRO), start=1
+    ):
+        fields = [field.strip() for field in body.split(",")]
+        if len(fields) != 2 or re.fullmatch(r"'[rwa+]'", fields[0]) is None:
+            raise ValueError(f"file-mode row {row_number} is malformed")
+        rows.append((fields[0][1], _symbol(fields[1], "mode capability identity")))
+    if [char for char, _ in rows] != ["r", "w", "a", "+"]:
+        raise ValueError("file-mode rows must remain r,w,a,+ in canonical order")
+    return rows
+
+
+def render(
+    builtins: list[BuiltinRow], callable_path: Path,
+    mode_rows: list[tuple[str, str]],
+) -> str:
+    callable_rows = callable_registry.load_rows(callable_path)
+    caps = {row.identity: 1 << row.canonical_rank for row in callable_rows
+            if row.axis == "capability"}
+    caps["CAP_IO_READ_WRITE"] = caps["CAP_IO_READ"] + caps["CAP_IO_WRITE"]
+    for row in builtins:
+        if row.primary_identity not in caps or row.secondary_identity not in caps:
+            raise ValueError(f"unknown capability identity on {row.source_name}")
+    for _, identity in mode_rows:
+        if identity not in caps:
+            raise ValueError(f"unknown file-mode capability identity {identity}")
+
+    lines = [
+        "// Generated by scripts/render_builtin_capability_registry.py.",
+        "// Sources: builtin_capability_registry.def, callable_contract_vocabulary.def,",
+        "// and pgy_file_mode_capability.def. Do not edit by hand.",
+        "", "struct SemanticBuiltinCapabilityRow {", "    valid: Bool;",
+        "    source_name: String;", "    policy: Int;", "    primary_mask: Int;",
+        "    secondary_mask: Int;", "}", "",
+        "func SemanticBuiltinCapabilityFixedPolicy() -> Int { return 1; }",
+        "func SemanticBuiltinCapabilityFileModePolicy() -> Int { return 2; }",
+        f"func SemanticBuiltinCapabilityCount() -> Int {{ return {len(builtins)}; }}",
+        "", "func SemanticBuiltinCapabilityRowAt(index: Int) -> SemanticBuiltinCapabilityRow {",
+    ]
+    for index, row in enumerate(builtins):
+        policy = "SemanticBuiltinCapabilityFixedPolicy()" if row.policy == FIXED \
+            else "SemanticBuiltinCapabilityFileModePolicy()"
+        lines.append(
+            f'    if index == {index} {{ return SemanticBuiltinCapabilityRow('
+            f'true, "{row.source_name}", {policy}, {caps[row.primary_identity]}, '
+            f'{caps[row.secondary_identity]}); }}'
+        )
+    lines.extend([
+        '    return SemanticBuiltinCapabilityRow(false, "", 0, 0, 0);', "}", "",
+        "func SemanticBuiltinCapabilityRowForName(name: String) -> SemanticBuiltinCapabilityRow {",
+        "    let index: Int = 0;", "    while index < SemanticBuiltinCapabilityCount() {",
+        "        let row: SemanticBuiltinCapabilityRow = SemanticBuiltinCapabilityRowAt(index);",
+        "        if row.valid && row.source_name == name { return row; }",
+        "        index = index + 1;", "    }",
+        '    return SemanticBuiltinCapabilityRow(false, "", 0, 0, 0);', "}", "",
+        "func SemanticBuiltinFileModeCapabilityMask(mode_text: String, literal: Bool,",
+        "    read_mask: Int, write_mask: Int) -> Int {",
+        "    if !literal || StringLength(mode_text) < 2 { return read_mask + write_mask; }",
+        "    let read: Bool = false;", "    let write: Bool = false;",
+        "    let index: Int = 1;", "    while index < StringLength(mode_text) - 1 {",
+        "        let character: String = SubstringWithLen(mode_text, StringLength(mode_text), index, 1);",
+        '        if character == "\\\\" { return read_mask + write_mask; }',
+    ])
+    for char, identity in mode_rows:
+        if identity == "CAP_IO_READ":
+            lines.append(f'        if character == "{char}" {{ read = true; }}')
+        elif identity == "CAP_IO_WRITE":
+            lines.append(f'        if character == "{char}" {{ write = true; }}')
+        else:
+            lines.append(
+                f'        if character == "{char}" {{ read = true; write = true; }}'
+            )
+    lines.extend([
+        "        index = index + 1;", "    }",
+        "    if read && write { return read_mask + write_mask; }",
+        "    if read { return read_mask; }", "    if write { return write_mask; }",
+        "    return read_mask + write_mask;", "}", "",
+        "func SemanticBuiltinCapabilityProjectionReady() -> Bool {",
+        "    if SemanticBuiltinCapabilityCount() <= 0 ||",
+        "        SemanticBuiltinCapabilityRowAt(-1).valid ||",
+        "        SemanticBuiltinCapabilityRowAt(SemanticBuiltinCapabilityCount()).valid {",
+        "        return false;", "    }", "    let index: Int = 0;",
+        "    let file_mode_count: Int = 0;",
+        "    while index < SemanticBuiltinCapabilityCount() {",
+        "        let row: SemanticBuiltinCapabilityRow = SemanticBuiltinCapabilityRowAt(index);",
+        "        if !row.valid || row.source_name == \"\" || row.primary_mask <= 0 ||",
+        "            row.secondary_mask <= 0 ||", "            (row.policy != SemanticBuiltinCapabilityFixedPolicy() &&",
+        "             row.policy != SemanticBuiltinCapabilityFileModePolicy()) ||",
+        "            (row.policy == SemanticBuiltinCapabilityFixedPolicy() &&",
+        "             row.primary_mask != row.secondary_mask) { return false; }",
+        "        if row.policy == SemanticBuiltinCapabilityFileModePolicy() {",
+        "            file_mode_count = file_mode_count + 1;",
+        '            if row.source_name != "FileOpen" || row.primary_mask == row.secondary_mask {',
+        "                return false;", "            }", "        }",
+        "        index = index + 1;", "    }", "    return file_mode_count == 1;", "}", "",
+    ])
+    return "\n".join(lines)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("builtin_registry", type=Path)
+    parser.add_argument("callable_registry", type=Path)
+    parser.add_argument("file_mode_registry", type=Path)
+    parser.add_argument("projection", type=Path)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--check", action="store_true")
+    mode.add_argument("--write", action="store_true")
+    args = parser.parse_args()
+    expected = render(load_builtin_rows(args.builtin_registry), args.callable_registry,
+                      load_mode_rows(args.file_mode_registry))
+    if args.check:
+        if not args.projection.is_file() or args.projection.read_text(encoding="utf-8") != expected:
+            raise SystemExit("self-host builtin-capability projection drifted")
+    else:
+        args.projection.parent.mkdir(parents=True, exist_ok=True)
+        args.projection.write_text(expected, encoding="utf-8")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

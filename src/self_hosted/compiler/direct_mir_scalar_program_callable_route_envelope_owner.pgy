@@ -3,17 +3,19 @@
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
 
 func DirectMirScalarProgramCallableRouteEnvelopeSupported(
-    ref signature: DirectMirRoutineSignatureFact
+    ref signature: DirectMirRoutineSignatureFact,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
 ) -> Bool {
     if !DirectMirRoutineSignatureFactReady(signature) ||
         signature.param_count < 1 ||
-        !DirectMirScalarCfgScalarTypeSupported(signature.return_type) {
+        !DirectMirScalarProgramCallableReturnTypeSupportedWithNominal(
+            signature.return_type, nominal) {
         return false;
     }
     let ordinal: Int = 0;
     while ordinal < signature.param_count {
-        if !DirectMirScalarProgramCallableParameterSupported(
-                signature, ordinal) { return false; }
+        if !DirectMirScalarProgramCallableParameterSupportedWithNominal(
+                signature, ordinal, nominal) { return false; }
         ordinal = ordinal + 1;
     }
     return true;

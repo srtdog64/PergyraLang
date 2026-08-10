@@ -84,6 +84,7 @@ assert_direct_owner_ratchet() {
     ! grep -Fq -- 'Split(' "$RUNTIME_ABI_FACT_OWNER" || fail "structured ABI fact reparses serialized rows"
     ! grep -Eq -- 'snprintf|long long' "$DIRECT_OWNER" "$DIRECT_EMISSION_OWNER" || fail "direct projection hardcodes an ABI spelling"
     ! grep -Fq -- 'BuildMirDocumentFactIndex(' "$DIRECT_ADMISSION_OWNER" || fail "direct admission reindexes the MIR document"
+
 }
 
 select_case() {

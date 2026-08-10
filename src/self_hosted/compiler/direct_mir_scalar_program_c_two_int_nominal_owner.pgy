@@ -1,0 +1,48 @@
+// C declaration and spelling for the admitted two-Int nominal program fact.
+
+import "direct_mir_scalar_program_two_int_nominal_target_owner.pgy";
+import "symbol_table_owner.pgy";
+
+func DirectMirScalarProgramCTwoIntNominalTypeName() -> String {
+    return "pgy_scalar_nominal_value";
+}
+
+func DirectMirScalarProgramCTwoIntNominalPreamble(
+    ref fact: DirectMirScalarProgramTwoIntNominalAbiFact,
+    target: CompilerTargetProjectionFact
+) -> String {
+    if DirectMirScalarProgramTwoIntNominalAbiFactReady(fact) &&
+            !fact.present { return ""; }
+    let projection: DirectMirScalarProgramTwoIntNominalTarget =
+        DirectMirScalarProgramTwoIntNominalTargetFromFact(fact, target);
+    let first: String = CompilerSymbolCIdentifier(
+        fact.declaration.field_names[0]);
+    let second: String = CompilerSymbolCIdentifier(
+        fact.declaration.field_names[1]);
+    if projection.c_type_name == "" || projection.c_field_type == "" ||
+        first == "" || second == "" || first == second {
+        Die("direct MIR two-Int nominal C symbols are invalid");
+    }
+    let output: String = "#include <stdint.h>\n#include <stddef.h>\n";
+    output = Concat(output, "typedef struct { ");
+    output = Concat(output, projection.c_field_type);
+    output = Concat(output, Concat(" ", Concat(first, "; ")));
+    output = Concat(output, projection.c_field_type);
+    output = Concat(output, Concat(" ", Concat(second, "; } ")));
+    output = Concat(output, Concat(projection.c_type_name, ";\n"));
+    output = Concat(output, "_Static_assert(sizeof(");
+    output = Concat(output, projection.c_type_name);
+    output = Concat(output, ") == ");
+    output = Concat(output, fact.declaration.abi.size_text);
+    output = Concat(output, ", \"nominal size receipt\");\n");
+    output = Concat(output, "_Static_assert(_Alignof(");
+    output = Concat(output, projection.c_type_name);
+    output = Concat(output, ") == ");
+    output = Concat(output, fact.declaration.abi.align_text);
+    output = Concat(output, ", \"nominal alignment receipt\");\n");
+    output = Concat(output, "_Static_assert(offsetof(");
+    output = Concat(output, projection.c_type_name);
+    output = Concat(output, Concat(", ", Concat(second, ") == ")));
+    output = Concat(output, fact.declaration.abi.field_offsets[1]);
+    return Concat(output, ", \"nominal field receipt\");\n");
+}

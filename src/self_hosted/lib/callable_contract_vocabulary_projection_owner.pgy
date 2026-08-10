@@ -121,6 +121,28 @@ func CallableContractVocabularyMaskSymbolAt(index: Int) -> String {
     return "";
 }
 
+func CallableContractVocabularyMaskValueAt(index: Int) -> Int {
+    if index == 0 { return 1; }
+    if index == 1 { return 2; }
+    if index == 2 { return 4; }
+    if index == 3 { return 8; }
+    if index == 4 { return 16; }
+    if index == 5 { return 32; }
+    if index == 6 { return 64; }
+    if index == 7 { return 128; }
+    if index == 8 { return 256; }
+    if index == 9 { return -1; }
+    if index == 10 { return -1; }
+    if index == 11 { return -1; }
+    if index == 12 { return -1; }
+    if index == 13 { return -1; }
+    if index == 14 { return -1; }
+    if index == 15 { return -1; }
+    if index == 16 { return -1; }
+    if index == 17 { return -1; }
+    return -1;
+}
+
 func CallableContractVocabularyCanonicalRankAt(index: Int) -> Int {
     if index == 0 { return 0; }
     if index == 1 { return 1; }
@@ -243,6 +265,12 @@ func CallableContractVocabularyProjectionReady() -> Bool {
         let axis: Int = CallableContractVocabularyAxisAt(index);
         let rank: Int = CallableContractVocabularyCanonicalRankAt(index);
         let zero_policy: Int = CallableContractVocabularyZeroPolicyAt(index);
+        let expected_capability_mask: Int = 1;
+        let capability_bit: Int = 0;
+        while capability_bit < rank {
+            expected_capability_mask = expected_capability_mask * 2;
+            capability_bit = capability_bit + 1;
+        }
         if CallableContractVocabularyStableIdAt(index) != index ||
             StringLength(CallableContractVocabularyIdentityAt(index)) == 0 ||
             StringLength(CallableContractVocabularySpellingAt(index)) == 0 ||
@@ -250,6 +278,13 @@ func CallableContractVocabularyProjectionReady() -> Bool {
             (axis != CallableContractVocabularyCapabilityAxis() &&
              axis != CallableContractVocabularyEffectAxis()) ||
             CallableContractVocabularyIndexAtRank(axis, rank) != index {
+            return false;
+        }
+        if (axis == CallableContractVocabularyCapabilityAxis() &&
+            CallableContractVocabularyMaskValueAt(index) !=
+                expected_capability_mask) ||
+            (axis == CallableContractVocabularyEffectAxis() &&
+             CallableContractVocabularyMaskValueAt(index) != -1) {
             return false;
         }
         if zero_policy == CallableContractVocabularyZeroExclusive() {

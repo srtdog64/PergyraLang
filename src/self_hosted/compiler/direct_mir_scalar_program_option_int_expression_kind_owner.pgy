@@ -1,0 +1,6 @@
+// Stable normalized identities for the canonical Option<Int> value family.
+
+func DirectMirScalarProgramExprSomeInt() -> Int { return 37; }
+func DirectMirScalarProgramExprNoneInt() -> Int { return 38; }
+func DirectMirScalarProgramExprIsSomeInt() -> Int { return 39; }
+func DirectMirScalarProgramExprUnwrapOptionInt() -> Int { return 40; }

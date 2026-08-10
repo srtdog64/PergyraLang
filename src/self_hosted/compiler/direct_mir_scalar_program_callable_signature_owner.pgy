@@ -5,12 +5,19 @@ import "abi_layout_row_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
 
 func DirectMirScalarProgramCallableSignatureSupported(
-    ref signature: DirectMirRoutineSignatureFact
+    ref signature: DirectMirRoutineSignatureFact,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
 ) -> Bool {
     if !DirectMirRoutineSignatureFactReady(signature) ||
         signature.param_count <= 0 { return false; }
-    let shape_ready: Bool = signature.return_type ==
-        CompilerAbiLayoutIntTypeName();
+    let int_or_option: Bool = signature.return_type ==
+            CompilerAbiLayoutIntTypeName() ||
+        signature.return_type == CompilerAbiLayoutOptionIntTypeName();
+    let nominal_passthrough: Bool = signature.param_count == 1 &&
+        DirectMirScalarProgramTwoIntNominalTypeReady(
+            nominal, signature.return_type) &&
+        signature.param.type_name == signature.return_type;
+    let shape_ready: Bool = int_or_option || nominal_passthrough;
     if signature.param_count == 1 {
         shape_ready = shape_ready ||
             (signature.return_type == CompilerAbiLayoutBoolTypeName() &&
@@ -23,9 +30,9 @@ func DirectMirScalarProgramCallableSignatureSupported(
     if !shape_ready { return false; }
     let ordinal: Int = 0;
     while ordinal < signature.param_count {
-        if !DirectMirScalarProgramCallableParameterSupported(
-                signature, ordinal) ||
-            (signature.return_type == CompilerAbiLayoutIntTypeName() &&
+        if !DirectMirScalarProgramCallableParameterSupportedWithNominal(
+                signature, ordinal, nominal) ||
+            (int_or_option &&
              signature.parameters.type_names[ordinal] !=
                 CompilerAbiLayoutIntTypeName()) {
             return false;

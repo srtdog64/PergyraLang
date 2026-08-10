@@ -30,6 +30,13 @@ struct DirectMirOptionMatchAbiFact {
     let niche_none_pattern: String;
 }
 
+func DirectMirOptionMatchAbiFactEmpty() -> DirectMirOptionMatchAbiFact {
+    return DirectMirOptionMatchAbiFact(
+        false, 0, 0, "", 0, 0, "", 0, 0, 0, "", 0, 0, 0,
+        "", "", 0, "", "", "", ""
+    );
+}
+
 func DirectMirOptionMatchAbiCanonicalLayoutId(
     ref fact: DirectMirOptionMatchAbiFact
 ) -> Int {

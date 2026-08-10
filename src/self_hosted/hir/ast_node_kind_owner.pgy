@@ -90,10 +90,15 @@ func TypedAstKindIntentTerminalFailureTag() -> Int { return 86; }
 // Host-ABI declaration container: `extern "ABI" { func SIG; ... }`. Members
 // are body-less Function nodes, the shape ability members already carry.
 func TypedAstKindExternBlockTag() -> Int { return 87; }
+// Appended intent-step parser provenance; existing compact IDs never move.
+func TypedAstKindIntentStepContractProvenanceTag() -> Int { return 88; }
+func TypedAstKindIntentStepIntentTag() -> Int { return 89; }
 
 func TypedAstKindIsIntentRow(kind: Int) -> Bool {
-    return kind >= TypedAstKindIntentModeTag() &&
-        kind <= TypedAstKindIntentTerminalFailureTag();
+    return (kind >= TypedAstKindIntentModeTag() &&
+        kind <= TypedAstKindIntentTerminalFailureTag()) ||
+        kind == TypedAstKindIntentStepContractProvenanceTag() ||
+        kind == TypedAstKindIntentStepIntentTag();
 }
 
 func TypedAstKindIsDomainTopologyDirective(kind: Int) -> Bool {
@@ -108,7 +113,7 @@ func TypedAstKindIsCallableDecl(kind: Int) -> Bool {
 
 func TypedAstKindKnown(kind: Int) -> Bool {
     return kind >= TypedAstKindUnknownTag() &&
-        kind <= TypedAstKindExternBlockTag();
+        kind <= TypedAstKindIntentStepIntentTag();
 }
 
 func TypedAstCallStatementKindForCallee(callee: String) -> Int {
@@ -198,14 +203,16 @@ func TypedAstKindTags() -> Array<Int> {
         TypedAstKindIntentStepFailureTag(),
         TypedAstKindIntentTerminalSuccessTag(),
         TypedAstKindIntentTerminalFailureTag(),
-        TypedAstKindExternBlockTag()
+        TypedAstKindExternBlockTag(),
+        TypedAstKindIntentStepContractProvenanceTag(),
+        TypedAstKindIntentStepIntentTag()
     ];
     return tags;
 }
 
 func TypedAstKindOwnerReady() -> Bool {
     let tags: Array<Int> = TypedAstKindTags();
-    if ArrayLength(tags) != 87 {
+    if ArrayLength(tags) != 89 {
         return false;
     }
     let i: Int = 0;
@@ -246,8 +253,14 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstKindKnown(TypedAstKindIntentStepFailureTag()) &&
         TypedAstKindKnown(TypedAstKindIntentTerminalSuccessTag()) &&
         TypedAstKindKnown(TypedAstKindIntentTerminalFailureTag()) &&
+        TypedAstKindKnown(TypedAstKindIntentStepContractProvenanceTag()) &&
+        TypedAstKindKnown(TypedAstKindIntentStepIntentTag()) &&
         TypedAstKindIsIntentRow(TypedAstKindIntentModeTag()) &&
         TypedAstKindIsIntentRow(TypedAstKindIntentTerminalFailureTag()) &&
+        TypedAstKindIsIntentRow(
+            TypedAstKindIntentStepContractProvenanceTag()
+        ) &&
+        TypedAstKindIsIntentRow(TypedAstKindIntentStepIntentTag()) &&
         !TypedAstKindIsIntentRow(TypedAstKindIntentDeclTag()) &&
         TypedAstKindIsDomainTopologyDirective(
             TypedAstKindDomainRefreshTag()
@@ -259,7 +272,9 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstKindIsCallableDecl(TypedAstKindActionDeclTag()) &&
         !TypedAstKindIsCallableDecl(TypedAstKindActionRequiresTag()) &&
         !TypedAstKindKnown(TypedAstKindUnknownTag() - 1) &&
-        !TypedAstKindKnown(TypedAstKindExternBlockTag() + 1) &&
+        !TypedAstKindKnown(
+            TypedAstKindIntentStepIntentTag() + 1
+        ) &&
         TypedAstKindKnown(TypedAstKindExternBlockTag()) &&
         !TypedAstKindIsCallableDecl(TypedAstKindExternBlockTag()) &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindStruct()) ==

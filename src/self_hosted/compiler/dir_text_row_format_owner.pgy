@@ -1,0 +1,26 @@
+// Exact scalar formatting policy shared by the source-to-DIR text owners.
+
+func CompilerDirTextPadRight(value: String, width: Int) -> String {
+    let result: String = value;
+    while StringLength(result) < width {
+        result = Concat(result, " ");
+    }
+    return result;
+}
+
+func CompilerDirTextRowIndex(index: Int) -> String {
+    if index >= 0 && index < 10 {
+        return Concat("0", ToString(index));
+    }
+    return ToString(index);
+}
+
+func CompilerDirTextResolvedNode(node_id: Int) -> String {
+    if node_id < 0 { return "-"; }
+    return ToString(node_id);
+}
+
+func CompilerDirTextTopologyValue(value: String) -> String {
+    if value == "" { return "-"; }
+    return value;
+}

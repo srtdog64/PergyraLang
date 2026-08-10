@@ -1018,6 +1018,9 @@ Inductive SpineFact : Type :=
   | SFTokenStream
   | SFLanguageWordRegistry
   | SFCallableContractVocabulary
+  | SFBuiltinCapabilityPolicy
+  | SFFileModeCapabilityPolicy
+  | SFSelfHostSourceCapabilityFacts
   | SFCallableReceiverCarriage
   | SFNominalFieldKind
   | SFSyntaxProvenanceTree
@@ -1103,6 +1106,9 @@ Inductive SpineOwner : Type :=
   | SOLexer
   | SOLanguageLexicon
   | SOCallableContractVocabulary
+  | SOBuiltinCapabilityPolicy
+  | SOFileModeCapabilityPolicy
+  | SOSelfHostSemanticCapability
   | SOSemanticCallableReceiver
   | SONominalFieldKind
   | SOParserAst
@@ -1163,6 +1169,9 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFTokenStream => SOLexer
   | SFLanguageWordRegistry => SOLanguageLexicon
   | SFCallableContractVocabulary => SOCallableContractVocabulary
+  | SFBuiltinCapabilityPolicy => SOBuiltinCapabilityPolicy
+  | SFFileModeCapabilityPolicy => SOFileModeCapabilityPolicy
+  | SFSelfHostSourceCapabilityFacts => SOSelfHostSemanticCapability
   | SFCallableReceiverCarriage => SOSemanticCallableReceiver
   | SFNominalFieldKind => SONominalFieldKind
   | SFSyntaxProvenanceTree => SOParserAst

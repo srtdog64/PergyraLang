@@ -1,9 +1,12 @@
 // C signatures projected from ordered GraphPlan routine parameter facts.
 
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_c_option_int_owner.pgy";
+import "direct_mir_scalar_program_c_two_int_nominal_owner.pgy";
 
 func DirectMirScalarCfgProgramCType(
-    type_name: String, int_c_type: String
+    type_name: String, int_c_type: String,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
 ) -> String {
     if type_name == CompilerAbiLayoutIntTypeName() { return int_c_type; }
     if type_name == CompilerAbiLayoutBoolTypeName() { return "bool"; }
@@ -12,6 +15,12 @@ func DirectMirScalarCfgProgramCType(
     }
     if type_name == CompilerAbiLayoutArrayStringTypeName() {
         return CompilerAbiLayoutArrayStringCValueType();
+    }
+    if type_name == CompilerAbiLayoutOptionIntTypeName() {
+        return DirectMirScalarProgramCOptionIntTypeName();
+    }
+    if DirectMirScalarProgramTwoIntNominalTypeReady(nominal, type_name) {
+        return DirectMirScalarProgramCTwoIntNominalTypeName();
     }
     return "";
 }
@@ -30,7 +39,8 @@ func DirectMirScalarCfgProgramCSignature(
     }
     let output: String = Concat("static ", Concat(
         DirectMirScalarCfgProgramCType(
-            plan.routines.return_types[routine], int_c_type), " "));
+            plan.routines.return_types[routine], int_c_type,
+            plan.program.nominal_abi), " "));
     output = Concat(output,
         DirectMirScalarCfgProgramCRoutineName(routine));
     output = Concat(output, "(");
@@ -39,7 +49,8 @@ func DirectMirScalarCfgProgramCSignature(
     while ordinal < plan.routines.parameter_counts[routine] {
         if ordinal > 0 { output = Concat(output, ", "); }
         output = Concat(output, DirectMirScalarCfgProgramCType(
-            plan.routines.parameter_types[start + ordinal], int_c_type));
+            plan.routines.parameter_types[start + ordinal], int_c_type,
+            plan.program.nominal_abi));
         output = Concat(output, Concat(
             " pgy_param_", ToString(ordinal)));
         ordinal = ordinal + 1;

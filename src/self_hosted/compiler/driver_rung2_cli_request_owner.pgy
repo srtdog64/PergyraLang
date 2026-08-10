@@ -5,10 +5,12 @@
 
 import "../lib/path.pgy";
 import "../codegen/text/text_owner.pgy";
-
 enum DriverRung2CliRequest {
     DriverCliSourceTokensStdout(String),
     DriverCliSourceAstStdout(String),
+    DriverCliSourceCapabilityManifestStdout(String),
+    DriverCliSourceDirStdout(String),
+    DriverCliMachineManifestStdout(String),
     DriverCliSourceCStdout(String),
     DriverCliSourceCManifestStdout(String, String),
     DriverCliSourceCArtifact(String, String),
@@ -29,7 +31,6 @@ enum DriverRung2CliRequest {
     DriverCliDirectMirCArtifact(String, String),
     DriverCliDirectMirLlvmArtifact(String, String),
 }
-
 func DriverRung2CliPathOperandOrDie(
     path: String,
     purpose: String
@@ -41,7 +42,6 @@ func DriverRung2CliPathOperandOrDie(
     // fact (Dirname, import joins, seen-set dedup) assumes "/".
     return SelfHostPath.NormalizeSeparators(path);
 }
-
 func DriverRung2CliArtifactPathsOrDie(
     input_path: String,
     output_path: String
@@ -50,7 +50,6 @@ func DriverRung2CliArtifactPathsOrDie(
         Die("driver rung-2 input and output paths must differ");
     }
 }
-
 func DriverRung2CliRequestFromArgsOrDie(
     args: Array<String>
 ) -> DriverRung2CliRequest {
@@ -58,7 +57,6 @@ func DriverRung2CliRequestFromArgsOrDie(
     if count == 0 {
         Die("driver rung-2 requires an explicit source or mode");
     }
-
     if args[0] == "--tokens" {
         if count != 2 {
             Die("source token mode requires exactly one input path");
@@ -67,7 +65,6 @@ func DriverRung2CliRequestFromArgsOrDie(
             DriverRung2CliPathOperandOrDie(args[1], "source token input path")
         );
     }
-
     if args[0] == "--ast" {
         if count != 2 {
             Die("source AST mode requires exactly one input path");
@@ -76,7 +73,32 @@ func DriverRung2CliRequestFromArgsOrDie(
             DriverRung2CliPathOperandOrDie(args[1], "source AST input path")
         );
     }
-
+    if args[0] == "--emit-capability-manifest-verified" {
+        if count != 2 {
+            Die("installed capability manifest mode requires one source path");
+        }
+        return DriverCliSourceCapabilityManifestStdout(
+            DriverRung2CliPathOperandOrDie(
+                args[1], "capability manifest source path"
+            )
+        );
+    }
+    if args[0] == "--emit-dir-verified" {
+        if count != 2 {
+            Die("installed DIR mode requires one source path");
+        }
+        return DriverCliSourceDirStdout(
+            DriverRung2CliPathOperandOrDie(args[1], "DIR source path")
+        );
+    }
+    if args[0] == "--emit-machine-manifest-verified" {
+        if count != 2 {
+            Die("installed machine manifest mode requires one artifact path");
+        }
+        return DriverCliMachineManifestStdout(
+            DriverRung2CliPathOperandOrDie(args[1], "machine manifest artifact path")
+        );
+    }
     if args[0] == "--emit-c-artifact-verified" {
         if count != 3 {
             Die("source C artifact mode requires source and output paths");
@@ -90,7 +112,6 @@ func DriverRung2CliRequestFromArgsOrDie(
         DriverRung2CliArtifactPathsOrDie(source_path, output_path);
         return DriverCliSourceCArtifact(source_path, output_path);
     }
-
     if args[0] == "--emit-mir-json-verified" {
         if count == 2 {
             return DriverCliSourceMirStdout(
@@ -128,7 +149,6 @@ func DriverRung2CliRequestFromArgsOrDie(
         }
         Die("source MIR mode requires stdout, explicit machine manifest, or -o artifact syntax");
     }
-
     if args[0] == "--canonicalize-mir-json" {
         if count == 2 {
             return DriverCliCanonicalMirStdout(
@@ -143,7 +163,6 @@ func DriverRung2CliRequestFromArgsOrDie(
         }
         Die("canonical MIR mode requires input and optional explicit machine manifest");
     }
-
     if args[0] == "--canonicalize-oracle-mir-json" {
         if count == 2 {
             return DriverCliCanonicalOracleMirStdout(
@@ -158,7 +177,6 @@ func DriverRung2CliRequestFromArgsOrDie(
         }
         Die("oracle MIR mode requires input and optional explicit machine manifest");
     }
-
     if args[0] == "--mir-json" {
         if count == 2 {
             return DriverCliMirCStdout(
@@ -194,7 +212,6 @@ func DriverRung2CliRequestFromArgsOrDie(
         }
         Die("MIR C mode requires stdout, explicit machine manifest, or -o artifact syntax");
     }
-
     if args[0] == "--self-test-missing-target-projection" {
         if count == 2 {
             return DriverCliMissingProjectionProbe(
@@ -209,7 +226,6 @@ func DriverRung2CliRequestFromArgsOrDie(
         }
         Die("missing-target-projection probe requires input and optional explicit machine manifest");
     }
-
     if args[0] == "--mir-json-backend=c" ||
         args[0] == "--mir-json-backend=llvm" {
         if count != 4 || args[2] != "-o" {
@@ -234,7 +250,6 @@ func DriverRung2CliRequestFromArgsOrDie(
     if StartsWith(args[0], "-") {
         Die(Concat("unknown driver rung-2 mode: ", args[0]));
     }
-
     let source_path: String = DriverRung2CliPathOperandOrDie(
         args[0], "source C input path"
     );

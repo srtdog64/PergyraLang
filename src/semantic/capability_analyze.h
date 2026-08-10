@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 /*
  * Print a capability mask (OR of PGY_CAP_* bits) as the manifest JSON document.
@@ -40,6 +41,10 @@ void capability_used_names_print_json(uint32_t used_mask, FILE *out);
    semantic checker and enforced from the concrete mode by the runtime; AIR
    cannot claim an exact FileOpen site until MIR carries that mode fact. */
 uint32_t capability_for_builtin(const char *name);
+
+/* The generated builtin-policy registry is internally consistent with the
+   callable capability vocabulary and its canonical mask projection. */
+bool capability_builtin_registry_ready(void);
 
 /* The name of a single PGY_CAP_* bit, or NULL. */
 const char *capability_bit_name(uint32_t bit);

@@ -5,6 +5,7 @@ import "type_name_owner.pgy";
 import "expr_owner.pgy";
 import "intent_variant_binding_owner.pgy";
 import "intent_terminal_clause_owner.pgy";
+import "intent_default_clause_owner.pgy";
 func ParseIntentDecl(
     content: String, start: Int, inout cursor_out: Array<Int>,
     decl_prefix: String,
@@ -109,6 +110,8 @@ func ParseIntentDecl(
     let step_blocks: String = "";
     let success_text: String = "";
     let failure_text: String = "";
+    let default_who: String = "";
+    let default_where: String = "";
     let terminal_success_steps: Array<String> = [];
     let terminal_success_texts: Array<String> = [];
     let terminal_success_facts: Array<ParserExpressionFact> = [];
@@ -140,6 +143,16 @@ func ParseIntentDecl(
                 Exit(1);
             }
             intent_mode = "concurrent";
+            continue;
+        }
+        let default_clause: ParserIntentDefaultClause = ParserIntentDefaultClauseFromSource(content, i);
+        if default_clause.matched {
+            if !default_clause.ok ||
+                (default_clause.who_names != "" && default_who != "") ||
+                (default_clause.where_type != "" && default_where != "") { Exit(1); }
+            if default_clause.who_names != "" { default_who = default_clause.who_names; }
+            if default_clause.where_type != "" { default_where = default_clause.where_type; }
+            i = default_clause.next;
             continue;
         }
         if MatchLanguageWord(content, i, LanguageWordId.WordSuccess) {
@@ -229,6 +242,7 @@ func ParseIntentDecl(
             let s_expect_fact: ParserExpressionFact = ParserExpressionInvalid();
             let s_compensate_facts: Array<ParserExpressionFact> = [];
             let s_post_fact: ParserExpressionFact = ParserExpressionInvalid();
+            let s_intent_fact: ParserExpressionFact = ParserExpressionInvalid();
             while true {
                 i = SkipWhitespaceAndComments(content, i);
                 if i >= n {
@@ -244,7 +258,6 @@ func ParseIntentDecl(
                 if StringLength(clause) == 0 {
                     Exit(1);
                 }
-
                 let is_transfer: Bool = false;
                 if clause == "move" {
                     is_transfer = true;
@@ -275,7 +288,6 @@ func ParseIntentDecl(
                     s_transfer = Concat(t_from, Concat(" -> ", t_to));
                     continue;
                 }
-
                 if clause == "success" || clause == "failure" {
                     if intent_return_type == "" { Exit(1); }
                     if clause == "success" && s_success_pattern != "" {
@@ -300,7 +312,6 @@ func ParseIntentDecl(
                     }
                     continue;
                 }
-
                 if clause == "authorized" {
                     let peek_by: Int = SkipWhitespaceAndComments(content, i);
                     if MatchLanguageWord(content, peek_by, LanguageWordId.WordBy) {
@@ -362,6 +373,7 @@ func ParseIntentDecl(
                         ArrayPush(s_compensate_facts, val_fact);
                     }
                     if clause == "post" { s_post_fact = val_fact; }
+                    if clause == "intent" { s_intent_fact = val_fact; }
                     i = cursor_out[0];
                 }
                 i = Expect(content, i, ";");
@@ -398,20 +410,25 @@ func ParseIntentDecl(
                     Exit(1);
                 }
             }
+            let defaults: ParserIntentStepDefaults = ParserIntentStepDefaultsResolve(
+                default_who, default_where, s_who, s_where
+            );
+            s_who = defaults.who_names;
+            s_where = defaults.where_type;
             let step_header: String = Concat("    IntentStep: ", step_name);
             if predecessor_name != "" {
                 step_header = Concat(
                     step_header, Concat(" after ", predecessor_name)
                 );
             }
-            if StringLength(s_intent) > 0 {
-                step_header = Concat(step_header, Concat(" intent ", s_intent));
-            }
             if StringLength(s_where) > 0 {
                 step_header = Concat(step_header, Concat(" where ", s_where));
             }
             if StringLength(s_using) > 0 {
                 step_header = Concat(step_header, Concat(" using ", s_using));
+            }
+            if StringLength(s_intent) > 0 {
+                step_header = Concat(step_header, Concat(" intent ", s_intent));
             }
             if StringLength(s_transfer) > 0 {
                 step_header = Concat(step_header, Concat(" transfer ", s_transfer));
@@ -470,10 +487,18 @@ func ParseIntentDecl(
             if StringLength(s_expect) > 0 {
                 step_out = AppendLine(step_out, Concat("      Expect: ", s_expect));
             }
+            if defaults.provenance_text != "" {
+                step_out = AppendLine(step_out, Concat("      ContractProvenance: ", defaults.provenance_text));
+            }
             if StringLength(s_on) > 0 {
                 ParserExpressionGraphsAppendInto(
                     expression_graphs, TypedAstKindIntentStepOnTag(),
                     AstExpressionLaneAtom(), s_on_fact
+                );
+            }
+            if StringLength(s_intent) > 0 {
+                ParserExpressionGraphsAppendInto(
+                    expression_graphs, TypedAstKindIntentStepIntentTag(), AstExpressionLaneAtom(), s_intent_fact
                 );
             }
             compensate_i = 0;

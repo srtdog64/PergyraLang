@@ -2,7 +2,6 @@
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_program_callable_signature_owner.pgy";
 import "direct_mir_scalar_cfg_program_parameter_identity_owner.pgy";
-
 struct DirectMirScalarCfgProgramRoutineIdentity {
     let valid: Bool;
     let roles: Array<Int>;
@@ -16,57 +15,61 @@ struct DirectMirScalarCfgProgramRoutineIdentity {
     let signature_digests: Array<Int>;
     let cfg_digests: Array<Int>;
 }
-
 func DirectMirScalarCfgProgramRoutineIdentityFromOwners(
     ref routines: MirProgramRoutineIndex,
-    ref entry_index: MirRoutineFactIndex,
-    ref callable_index: MirRoutineFactIndex,
-    entry_row: Int, callable_row: Int, routine_count: Int
+    routine_rows: Array<Int>, cfg_digests: Array<Int>,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
 ) -> DirectMirScalarCfgProgramRoutineIdentity {
-    let entry: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFactAt(
-        routines, entry_row, entry_index.block_instruction_counts[0]);
-    let roles: Array<Int> = [DirectMirScalarCfgRoutineRoleEntrypoint()];
-    let source_rows: Array<Int> = [entry_row];
-    let source_syntax_ids: Array<Int> = [entry.source_syntax_id];
-    let names: Array<String> = [entry.name];
-    let return_types: Array<String> = [entry.return_type];
-    let parameter_counts: Array<Int> = [entry.param_count];
-    let parameter_starts: Array<Int> = [0];
+    let roles: Array<Int> = [];
+    let source_rows: Array<Int> = []; let source_syntax_ids: Array<Int> = [];
+    let names: Array<String> = []; let return_types: Array<String> = [];
+    let parameter_counts: Array<Int> = [];
+    let parameter_starts: Array<Int> = [];
     let parameter_types: Array<String> = [];
-    let signature_digests: Array<Int> = [entry.digest];
-    let cfg_digests: Array<Int> = [DirectMirCfgDigestFromIndex(entry_index)];
+    let signature_digests: Array<Int> = [];
     let identity_valid: Bool = true;
-    if !DirectMirRoutineSignatureFactReady(entry) || entry.name != "Main" ||
-        entry.return_type != "Void" || entry.param_count != 0 {
-        return DirectMirScalarCfgProgramRoutineIdentity(
-            false, roles, source_rows, source_syntax_ids, names, return_types,
-            parameter_counts, parameter_starts, parameter_types,
-            signature_digests, cfg_digests
-        );
-    }
-    if routine_count == 2 {
-        let callable: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFactAt(
-            routines, callable_row, callable_index.block_instruction_counts[0]);
-        if !DirectMirScalarProgramCallableSignatureSupported(callable) ||
-            callable_row < 0 { identity_valid = false; }
-        if identity_valid {
-            ArrayPush(roles, DirectMirScalarCfgRoutineRoleCallable());
-            ArrayPush(source_rows, callable_row);
-            ArrayPush(source_syntax_ids, callable.source_syntax_id);
-            ArrayPush(names, callable.name);
-            ArrayPush(return_types, callable.return_type);
-            ArrayPush(parameter_counts, callable.param_count);
-            ArrayPush(parameter_starts, ArrayLength(parameter_types));
-            if !DirectMirScalarCfgProgramAppendParameterTypes(
-                    parameter_types, callable) { identity_valid = false; }
-            ArrayPush(signature_digests, callable.digest);
-            ArrayPush(cfg_digests, DirectMirCfgDigestFromIndex(callable_index));
-        }
-    } else if routine_count != 1 || callable_row >= 0 {
+    if ArrayLength(routine_rows) < 1 ||
+        ArrayLength(routine_rows) != ArrayLength(cfg_digests) {
         identity_valid = false;
     }
+    let ordinal: Int = 0;
+    while identity_valid && ordinal < ArrayLength(routine_rows) {
+        let routine_row: Int = routine_rows[ordinal];
+        let first_block_count: Int =
+            MirProgramRoutineIndexBlockInstructionCountAt(
+                routines, routine_row, 0
+            );
+        let signature: DirectMirRoutineSignatureFact =
+            DirectMirRoutineSignatureFactAt(
+                routines, routine_row, first_block_count
+            );
+        if !DirectMirRoutineSignatureFactReady(signature) ||
+            (ordinal == 0 && (signature.name != "Main" ||
+             signature.return_type != "Void" || signature.param_count != 0)) ||
+            (ordinal > 0 &&
+             !DirectMirScalarProgramCallableSignatureSupported(
+                signature, nominal)) ||
+            cfg_digests[ordinal] == 0 {
+            identity_valid = false;
+        } else {
+            ArrayPush(roles, DirectMirScalarCfgRoutineRoleCallable());
+            if ordinal == 0 {
+                ArraySet(roles, 0, DirectMirScalarCfgRoutineRoleEntrypoint());
+            }
+            ArrayPush(source_rows, routine_row);
+            ArrayPush(source_syntax_ids, signature.source_syntax_id);
+            ArrayPush(names, signature.name);
+            ArrayPush(return_types, signature.return_type);
+            ArrayPush(parameter_counts, signature.param_count);
+            ArrayPush(parameter_starts, ArrayLength(parameter_types));
+            if !DirectMirScalarCfgProgramAppendParameterTypes(
+                    parameter_types, signature) { identity_valid = false; }
+            ArrayPush(signature_digests, signature.digest);
+        }
+        ordinal = ordinal + 1;
+    }
     return DirectMirScalarCfgProgramRoutineIdentity(
-        identity_valid && ArrayLength(roles) == routine_count,
+        identity_valid && ArrayLength(roles) == ArrayLength(routine_rows),
         roles, source_rows,
         source_syntax_ids, names, return_types, parameter_counts,
         parameter_starts, parameter_types, signature_digests, cfg_digests

@@ -35,6 +35,8 @@ func SemanticAstExpressionGraphAtomLaneRequired(
     ) || TypedAstArenaNodeKindIs(
         artifact.arena, node_id, TypedAstKindIntentStepExpectTag()
     ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindIntentStepIntentTag()
+    ) || TypedAstArenaNodeKindIs(
         artifact.arena, node_id, TypedAstKindIntentTerminalSuccessTag()
     ) || TypedAstArenaNodeKindIs(
         artifact.arena, node_id, TypedAstKindIntentTerminalFailureTag()

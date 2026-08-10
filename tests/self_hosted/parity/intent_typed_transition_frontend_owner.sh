@@ -57,12 +57,12 @@ reject_source unlabelled-typed-terminal \
 # Native semantic/DIR owns the exact terminal carrier.  A terminal may not
 # rebuild a same-typed tobject and thereby sever the admitted step payload
 # identity, even when ordinary expression type checking would accept it.
-(cd "$ROOT_DIR" && "$PGY_EXEC" --dir "$FIXTURE_REL" \
+(cd "$ROOT_DIR" && "$PGY_EXEC" --native-pipeline --dir "$FIXTURE_REL" \
     >"$BUILD_DIR/native-positive.dir" \
     2>"$BUILD_DIR/native-positive.err")
 sed 's/WorkflowCommitted(receipt_b)/WorkflowCommitted(WorkflowReceiptB(999))/' \
     "$ROOT_DIR/$FIXTURE_REL" >"$BUILD_DIR/rebuilt-terminal-payload.pgy"
-if (cd "$ROOT_DIR" && "$PGY_EXEC" --dir \
+if (cd "$ROOT_DIR" && "$PGY_EXEC" --native-pipeline --dir \
     "${BUILD_DIR#"$ROOT_DIR/"}/rebuilt-terminal-payload.pgy" \
     >"$BUILD_DIR/rebuilt-terminal-payload.dir" \
     2>"$BUILD_DIR/rebuilt-terminal-payload.err"); then

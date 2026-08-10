@@ -9,13 +9,15 @@ import "direct_mir_scalar_program_c_builtin_materialization_owner.pgy";
 import "direct_mir_scalar_program_c_string_collection_materialization_owner.pgy";
 import "direct_mir_scalar_program_c_array_string_cleanup_owner.pgy";
 import "direct_mir_scalar_cfg_program_c_signature_owner.pgy";
+import "direct_mir_scalar_program_c_option_int_owner.pgy";
+import "direct_mir_scalar_program_c_two_int_nominal_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
 func DirectMirScalarCfgProgramCOperation(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
     formatted_print: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
-    string_line_format: String
+    int_line_format: String, string_line_format: String
 ) -> String {
     let kind: Int = plan.operation_kinds[operation];
     let expression_row: Int =
@@ -30,8 +32,12 @@ func DirectMirScalarCfgProgramCOperation(
         return Concat(output, ";\n");
     }
     if kind != DirectMirScalarCfgOpExpressionLog() { return ""; }
+    let line_format: String = string_line_format;
+    let root: Int = plan.program.expressions.graph_roots[expression_row];
+    if plan.program.expressions.node_types[root] ==
+            CompilerAbiLayoutIntTypeName() { line_format = int_line_format; }
     let output: String = Concat("    ", formatted_print.symbol);
-    output = Concat(output, Concat("(\"", string_line_format));
+    output = Concat(output, Concat("(\"", line_format));
     output = Concat(output, "\", ");
     output = Concat(output, DirectMirScalarProgramCExpressionAt(
         plan.program.expressions, expression_row, runtime));
@@ -42,7 +48,7 @@ func DirectMirScalarCfgProgramCRoutine(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
     formatted_print: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
-    string_line_format: String,
+    int_line_format: String, string_line_format: String,
     int_c_type: String
 ) -> String {
     let output: String = DirectMirScalarCfgProgramCSignature(
@@ -71,7 +77,7 @@ func DirectMirScalarCfgProgramCRoutine(
         while operation < operation_end {
             let emitted: String = DirectMirScalarCfgProgramCOperation(
                 plan, operation, formatted_print, runtime,
-                string_line_format);
+                int_line_format, string_line_format);
             if emitted == "" &&
                 (plan.operation_kinds[operation] ==
                     DirectMirScalarCfgOpPhiInt() ||
@@ -133,13 +139,18 @@ func DirectMirScalarCfgEmitProgramC(
     ref plan: DirectMirScalarCfgGraphPlan,
     formatted_print: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
-    string_line_format: String,
-    int_c_type: String
+    int_line_format: String, string_line_format: String,
+    int_c_type: String,
+    target: CompilerTargetProjectionFact
 ) -> String {
     if !DirectMirScalarCfgProgramExtensionReadyForPlan(plan) {
         Die("direct MIR scalar CFG program C projection is invalid");
     }
     let output: String = "#include <stdbool.h>\n#include <stdio.h>\n";
+    output = Concat(output, DirectMirScalarProgramCTwoIntNominalPreamble(
+        plan.program.nominal_abi, target));
+    output = Concat(output, DirectMirScalarProgramCOptionIntPreamble(
+        plan.program.option_int_abi, target));
     output = Concat(output, DirectMirScalarCfgStringCPreamble(
         plan, runtime.string_concat));
     output = Concat(output,
@@ -165,7 +176,7 @@ func DirectMirScalarCfgEmitProgramC(
     while routine < ArrayLength(plan.routines.roles) {
         output = Concat(output, DirectMirScalarCfgProgramCRoutine(
             plan, routine, formatted_print, runtime,
-            string_line_format, int_c_type));
+            int_line_format, string_line_format, int_c_type));
         routine = routine + 1;
     }
     return output;

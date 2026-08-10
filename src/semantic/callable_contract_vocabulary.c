@@ -138,7 +138,8 @@ pgy_callable_contract_vocabulary_ready(void)
             spec->axis != PGY_CALLABLE_CONTRACT_AXIS_EFFECT)
             return false;
         if (spec->axis == PGY_CALLABLE_CONTRACT_AXIS_CAPABILITY &&
-            spec->external_name[0] == '\0')
+            (spec->external_name[0] == '\0' ||
+             spec->mask != (uint32_t)(1u << spec->canonical_rank)))
             return false;
         if (spec->axis == PGY_CALLABLE_CONTRACT_AXIS_EFFECT &&
             spec->external_name[0] != '\0')

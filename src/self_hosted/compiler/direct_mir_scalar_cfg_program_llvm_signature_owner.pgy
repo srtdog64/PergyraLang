@@ -10,8 +10,8 @@ func DirectMirScalarCfgProgramLlvmRoutineSignature(
         return "define i32 @main()";
     }
     let output: String = Concat("define internal ",
-        DirectMirScalarProgramLlvmType(
-            plan.routines.return_types[routine]));
+        DirectMirScalarProgramLlvmTypeForNominal(
+            plan.routines.return_types[routine], plan.program.nominal_abi));
     output = Concat(output, Concat(
         " @pgy.scalar.routine.", ToString(routine)));
     output = Concat(output, "(");
@@ -19,8 +19,9 @@ func DirectMirScalarCfgProgramLlvmRoutineSignature(
     let start: Int = plan.routines.parameter_starts[routine];
     while ordinal < plan.routines.parameter_counts[routine] {
         if ordinal > 0 { output = Concat(output, ", "); }
-        output = Concat(output, DirectMirScalarProgramLlvmType(
-            plan.routines.parameter_types[start + ordinal]));
+        output = Concat(output, DirectMirScalarProgramLlvmTypeForNominal(
+            plan.routines.parameter_types[start + ordinal],
+            plan.program.nominal_abi));
         output = Concat(output, Concat(
             " %pgy.param.", ToString(ordinal)));
         ordinal = ordinal + 1;

@@ -1,0 +1,484 @@
+// Program and callable capability facts derived from admitted expression-call
+// identities. This owner is the self-host equivalent of the native semantic
+// capability accumulator; renderers consume its masks and never rescan names.
+
+import "ast_artifact_verdict_owner.pgy";
+import "ast_body_type_bundle_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
+import "ast_expression_call_target_fact_owner.pgy";
+import "callable_resolution_owner.pgy";
+import "builtin_capability_projection_owner.pgy";
+import "../lib/callable_contract_vocabulary_projection_owner.pgy";
+
+struct SemanticAstCapabilityFacts {
+    ok: Bool;
+    contract_ok: Bool;
+    diagnostic_message: String;
+    artifact_node_count: Int;
+    artifact_identity_digest: Int;
+    program_used_mask: Int;
+    callable_node_ids: Array<Int>;
+    declared_masks: Array<Int>;
+    used_masks: Array<Int>;
+    exported_masks: Array<Int>;
+}
+
+struct SemanticAstCapabilityScanState {
+    ok: Bool;
+    direct_masks: Array<Int>;
+    edge_callers: Array<Int>;
+    edge_callees: Array<Int>;
+    program_direct_mask: Int;
+    program_callees: Array<Int>;
+}
+
+func SemanticCapabilityMaskHas(mask: Int, capability: Int) -> Bool {
+    return mask >= 0 && capability > 0 && ((mask / capability) % 2) == 1;
+}
+
+func SemanticCapabilityMaskJoin(left: Int, right: Int) -> Int {
+    let result: Int = left;
+    let rank: Int = 0;
+    while rank < 9 {
+        let vocabulary_index: Int = CallableContractVocabularyIndexAtRank(
+            CallableContractVocabularyCapabilityAxis(), rank
+        );
+        let capability: Int = CallableContractVocabularyMaskValueAt(
+            vocabulary_index
+        );
+        if SemanticCapabilityMaskHas(right, capability) &&
+            !SemanticCapabilityMaskHas(result, capability) {
+            result = result + capability;
+        }
+        rank = rank + 1;
+    }
+    return result;
+}
+
+func SemanticCapabilityMaskDifference(left: Int, right: Int) -> Int {
+    let result: Int = 0;
+    let rank: Int = 0;
+    while rank < 9 {
+        let vocabulary_index: Int = CallableContractVocabularyIndexAtRank(
+            CallableContractVocabularyCapabilityAxis(), rank
+        );
+        let capability: Int = CallableContractVocabularyMaskValueAt(
+            vocabulary_index
+        );
+        if SemanticCapabilityMaskHas(left, capability) &&
+            !SemanticCapabilityMaskHas(right, capability) {
+            result = result + capability;
+        }
+        rank = rank + 1;
+    }
+    return result;
+}
+
+func SemanticCapabilityMaskNames(mask: Int, external: Bool) -> String {
+    let output: String = "";
+    let rank: Int = 0;
+    while rank < 9 {
+        let vocabulary_index: Int = CallableContractVocabularyIndexAtRank(
+            CallableContractVocabularyCapabilityAxis(), rank
+        );
+        let capability: Int = CallableContractVocabularyMaskValueAt(
+            vocabulary_index
+        );
+        if SemanticCapabilityMaskHas(mask, capability) {
+            if output != "" { output = Concat(output, ", "); }
+            if external {
+                output = Concat(
+                    output,
+                    CallableContractVocabularyExternalNameAt(vocabulary_index)
+                );
+            } else {
+                output = Concat(
+                    output,
+                    CallableContractVocabularySpellingAt(vocabulary_index)
+                );
+            }
+        }
+        rank = rank + 1;
+    }
+    if output == "" { return "none"; }
+    return output;
+}
+
+func SemanticAstCapabilityDeclaredMaskAt(
+    ref contracts: SemanticAstActionContractFacts,
+    callable_index: Int
+) -> Int {
+    if callable_index < 0 || callable_index >=
+        ArrayLength(contracts.callable_node_ids) {
+        return -1;
+    }
+    let mask: Int = 0;
+    let offset: Int = 0;
+    while offset < contracts.cap_counts[callable_index] {
+        let name: String = contracts.cap_names[
+            contracts.cap_starts[callable_index] + offset
+        ];
+        let vocabulary_index: Int = CallableContractVocabularyFindIndex(
+            CallableContractVocabularyCapabilityAxis(), name
+        );
+        if vocabulary_index < 0 { return -1; }
+        mask = SemanticCapabilityMaskJoin(
+            mask, CallableContractVocabularyMaskValueAt(vocabulary_index)
+        );
+        offset = offset + 1;
+    }
+    return mask;
+}
+
+func SemanticAstCapabilityCallableIndexForTarget(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    target_name: String
+) -> Int {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < SemanticAstFunctionSignatureCount(signatures) {
+        if SemanticCallableCanonicalDeclaredNameEquals(
+            signatures.owner_names[row], signatures.names[row], target_name
+        ) {
+            if found >= 0 { return -2; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func SemanticAstCapabilityObserveCallRange(
+    ref graph: SemanticExpressionGraphFacts,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    start_node: Int,
+    end_node: Int,
+    callable_index: Int,
+    inout state: SemanticAstCapabilityScanState
+) -> Void {
+    let edge_callers: Array<Int> = state.edge_callers;
+    let edge_callees: Array<Int> = state.edge_callees;
+    let program_callees: Array<Int> = state.program_callees;
+    let node: Int = start_node;
+    while node <= end_node && state.ok {
+        if graph.arena.topology.node_kinds[node] != AstExpressionNodeCall() {
+            node = node + 1;
+            continue;
+        }
+        let target_name: String = graph.arena.call_target_names[node];
+        if target_name == "" {
+            state.ok = false;
+            continue;
+        }
+        let builtin: SemanticBuiltinCapabilityRow =
+            SemanticBuiltinCapabilityRowForName(target_name);
+        if builtin.valid {
+            let required_mask: Int = builtin.primary_mask;
+            if builtin.policy == SemanticBuiltinCapabilityFileModePolicy() {
+                let call: SemanticCallSpineView =
+                    SemanticCallSpineViewForCallNodeWithin(
+                        graph, node, end_node
+                    );
+                if !call.ok || ArrayLength(call.argument_nodes) != 2 {
+                    state.ok = false;
+                    continue;
+                }
+                let mode_node: Int = call.argument_nodes[1];
+                let mode_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+                    graph, mode_node
+                );
+                let mode_text: Option<String> = SemanticExpressionGraphNodeText(
+                    graph, mode_node
+                );
+                if !IsSome(mode_kind) || !IsSome(mode_text) {
+                    state.ok = false;
+                    continue;
+                }
+                required_mask = SemanticBuiltinFileModeCapabilityMask(
+                    UnwrapOption(mode_text),
+                    UnwrapOption(mode_kind) == AstExpressionNodeStringLiteral(),
+                    builtin.primary_mask, builtin.secondary_mask
+                );
+            }
+            if callable_index >= 0 {
+                state.direct_masks[callable_index] =
+                    SemanticCapabilityMaskJoin(
+                        state.direct_masks[callable_index], required_mask
+                    );
+            } else {
+                state.program_direct_mask = SemanticCapabilityMaskJoin(
+                    state.program_direct_mask, required_mask
+                );
+            }
+            node = node + 1;
+            continue;
+        }
+        let callee: Int = SemanticAstCapabilityCallableIndexForTarget(
+            signatures, target_name
+        );
+        if callee == -2 {
+            state.ok = false;
+        } else if callee >= 0 {
+            if callable_index >= 0 {
+                ArrayPush(edge_callers, callable_index);
+                ArrayPush(edge_callees, callee);
+            } else {
+                ArrayPush(program_callees, callee);
+            }
+        }
+        node = node + 1;
+    }
+    state.edge_callers = edge_callers;
+    state.edge_callees = edge_callees;
+    state.program_callees = program_callees;
+}
+
+func SemanticAstCapabilityFactsFromAdmittedBody(
+    artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis,
+    ref body: SemanticAstBodyTypeBundle
+) -> SemanticAstCapabilityFacts {
+    let callable_node_ids: Array<Int> = [];
+    let declared_masks: Array<Int> = [];
+    let direct_masks: Array<Int> = [];
+    let used_masks: Array<Int> = [];
+    let exported_masks: Array<Int> = [];
+    let edge_callers: Array<Int> = [];
+    let edge_callees: Array<Int> = [];
+    let program_callees: Array<Int> = [];
+    let callable_count: Int = SemanticAstFunctionSignatureCount(
+        analysis.signatures
+    );
+    let structural_ok: Bool = analysis.verdict.ok && body.verdict.ok &&
+        SemanticBuiltinCapabilityProjectionReady() &&
+        CallableContractVocabularyProjectionReady() &&
+        ArrayLength(analysis.signatures.action_contracts.callable_node_ids) ==
+            callable_count;
+    let callable: Int = 0;
+    while callable < callable_count && structural_ok {
+        ArrayPush(
+            callable_node_ids,
+            analysis.signatures.function_node_ids[callable]
+        );
+        let declared: Int = SemanticAstCapabilityDeclaredMaskAt(
+            analysis.signatures.action_contracts, callable
+        );
+        if declared < 0 {
+            structural_ok = false;
+        } else {
+            ArrayPush(declared_masks, declared);
+            ArrayPush(direct_masks, 0);
+            ArrayPush(used_masks, 0);
+            ArrayPush(exported_masks, 0);
+        }
+        callable = callable + 1;
+    }
+    let state: SemanticAstCapabilityScanState =
+        SemanticAstCapabilityScanState(
+            structural_ok, direct_masks, edge_callers, edge_callees,
+            0, program_callees
+        );
+    let last_root: Int = -1;
+    let root_slot: Int = 0;
+    while root_slot < ArrayLength(
+        analysis.expression_surfaces.expression_graph.roots
+    ) && state.ok {
+        if analysis.expression_surfaces.expression_graph.has_roots[root_slot] {
+            let root: Int =
+                analysis.expression_surfaces.expression_graph.roots[root_slot];
+            let surface: Int = root_slot / 3;
+            if surface < 0 || surface >= ArrayLength(
+                analysis.expression_surfaces.function_node_ids
+            ) || root <= last_root {
+                state.ok = false;
+            } else {
+                let owner_index: Int = -1;
+                let function_node_id: Int =
+                    analysis.expression_surfaces.function_node_ids[surface];
+                if function_node_id >= 0 {
+                    let found: Option<Int> =
+                        SemanticAstFunctionSignatureIndexForNode(
+                            analysis.signatures, function_node_id
+                        );
+                    if !IsSome(found) { state.ok = false; }
+                    else { owner_index = UnwrapOption(found); }
+                }
+                if state.ok {
+                    SemanticAstCapabilityObserveCallRange(
+                        analysis.expression_surfaces.expression_graph,
+                        analysis.signatures, last_root + 1, root,
+                        owner_index, state
+                    );
+                }
+            }
+            last_root = root;
+        }
+        root_slot = root_slot + 1;
+    }
+    let iteration_row: Int = 0;
+    while iteration_row < ArrayLength(
+        body.iteration_types.synthetic_graph_root_ids
+    ) && state.ok {
+        let root: Int = body.iteration_types.synthetic_graph_root_ids[
+            iteration_row
+        ];
+        if root >= 0 {
+            if root <= last_root || iteration_row >= ArrayLength(
+                body.iteration_types.node_ids
+            ) {
+                state.ok = false;
+            } else {
+                let statement: Option<Int> = SemanticAstStatementIndexForNode(
+                    analysis.statements,
+                    body.iteration_types.node_ids[iteration_row]
+                );
+                if !IsSome(statement) {
+                    state.ok = false;
+                } else {
+                    let owner_index: Int = -1;
+                    let function_node_id: Int =
+                        analysis.statements.function_node_ids[
+                            UnwrapOption(statement)
+                        ];
+                    if function_node_id >= 0 {
+                        let found: Option<Int> =
+                            SemanticAstFunctionSignatureIndexForNode(
+                                analysis.signatures, function_node_id
+                            );
+                        if !IsSome(found) { state.ok = false; }
+                        else { owner_index = UnwrapOption(found); }
+                    }
+                    if state.ok {
+                        SemanticAstCapabilityObserveCallRange(
+                            analysis.expression_surfaces.expression_graph,
+                            analysis.signatures, last_root + 1, root,
+                            owner_index, state
+                        );
+                    }
+                }
+            }
+            last_root = root;
+        }
+        iteration_row = iteration_row + 1;
+    }
+    if last_root + 1 != SemanticExpressionGraphArenaNodeCount(
+        analysis.expression_surfaces.expression_graph.arena
+    ) {
+        state.ok = false;
+    }
+    if !state.ok {
+        return SemanticAstCapabilityFacts(
+            false, false, "semantic capability call inventory is incomplete",
+            artifact.count, artifact.identity_digest, 0,
+            callable_node_ids, declared_masks, used_masks, exported_masks
+        );
+    }
+    callable = 0;
+    while callable < callable_count {
+        ArraySet(used_masks, callable, state.direct_masks[callable]);
+        callable = callable + 1;
+    }
+    let changed: Bool = true;
+    let round: Int = 0;
+    let round_limit: Int = (callable_count + 1) * 10;
+    while changed && round < round_limit {
+        changed = false;
+        let edge: Int = 0;
+        while edge < ArrayLength(state.edge_callers) {
+            let caller: Int = state.edge_callers[edge];
+            let callee: Int = state.edge_callees[edge];
+            let callee_surface: Int = SemanticCapabilityMaskJoin(
+                declared_masks[callee], used_masks[callee]
+            );
+            let joined: Int = SemanticCapabilityMaskJoin(
+                used_masks[caller], callee_surface
+            );
+            if joined != used_masks[caller] {
+                ArraySet(used_masks, caller, joined);
+                changed = true;
+            }
+            edge = edge + 1;
+        }
+        round = round + 1;
+    }
+    if changed {
+        return SemanticAstCapabilityFacts(
+            false, false, "semantic capability fixpoint did not converge",
+            artifact.count, artifact.identity_digest, 0,
+            callable_node_ids, declared_masks, used_masks, exported_masks
+        );
+    }
+    let program_used_mask: Int = state.program_direct_mask;
+    callable = 0;
+    while callable < callable_count {
+        let exported: Int = SemanticCapabilityMaskJoin(
+            declared_masks[callable], used_masks[callable]
+        );
+        ArraySet(exported_masks, callable, exported);
+        program_used_mask = SemanticCapabilityMaskJoin(
+            program_used_mask, used_masks[callable]
+        );
+        callable = callable + 1;
+    }
+    let program_edge: Int = 0;
+    while program_edge < ArrayLength(state.program_callees) {
+        program_used_mask = SemanticCapabilityMaskJoin(
+            program_used_mask,
+            exported_masks[state.program_callees[program_edge]]
+        );
+        program_edge = program_edge + 1;
+    }
+    let contract_ok: Bool = true;
+    let diagnostic: String = "";
+    callable = 0;
+    while callable < callable_count && contract_ok {
+        if analysis.signatures.action_contracts.caps_node_ids[callable] >= 0 {
+            let missing: Int = SemanticCapabilityMaskDifference(
+                used_masks[callable], declared_masks[callable]
+            );
+            if missing != 0 {
+                contract_ok = false;
+                diagnostic = Concat(
+                    "Function '", Concat(
+                        analysis.signatures.names[callable], Concat(
+                            "' is missing declared capabilities: ", Concat(
+                                SemanticCapabilityMaskNames(missing, false),
+                                Concat(" (declared: ", Concat(
+                                    SemanticCapabilityMaskNames(
+                                        declared_masks[callable], false
+                                    ), Concat(", used by body: ", Concat(
+                                        SemanticCapabilityMaskNames(
+                                            used_masks[callable], false
+                                        ), ")"
+                                    ))
+                                ))
+                            )
+                        )
+                    )
+                );
+            }
+        }
+        callable = callable + 1;
+    }
+    return SemanticAstCapabilityFacts(
+        true, contract_ok, diagnostic,
+        artifact.count, artifact.identity_digest, program_used_mask,
+        callable_node_ids, declared_masks, used_masks, exported_masks
+    );
+}
+
+func SemanticAstCapabilityFactsReady(
+    artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis,
+    ref facts: SemanticAstCapabilityFacts
+) -> Bool {
+    let count: Int = SemanticAstFunctionSignatureCount(analysis.signatures);
+    return facts.ok && facts.artifact_node_count == artifact.count &&
+        facts.artifact_identity_digest == artifact.identity_digest &&
+        facts.program_used_mask >= 0 &&
+        ArrayLength(facts.callable_node_ids) == count &&
+        ArrayLength(facts.declared_masks) == count &&
+        ArrayLength(facts.used_masks) == count &&
+        ArrayLength(facts.exported_masks) == count;
+}

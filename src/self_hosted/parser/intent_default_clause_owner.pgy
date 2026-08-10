@@ -1,0 +1,86 @@
+// Intent-level who/where clause parsing and exact step-default application.
+
+import "cursor_owner.pgy";
+import "type_name_owner.pgy";
+
+struct ParserIntentDefaultClause {
+    matched: Bool;
+    ok: Bool;
+    next: Int;
+    who_names: String;
+    where_type: String;
+}
+
+func ParserIntentDefaultClauseNone(start: Int) -> ParserIntentDefaultClause {
+    return ParserIntentDefaultClause(false, true, start, "", "");
+}
+
+func ParserIntentDefaultClauseInvalid(start: Int) -> ParserIntentDefaultClause {
+    return ParserIntentDefaultClause(true, false, start, "", "");
+}
+
+func ParserIntentDefaultClauseFromSource(
+    content: String, start: Int
+) -> ParserIntentDefaultClause {
+    let cursor: Array<Int> = [start];
+    if MatchLanguageWord(content, start, LanguageWordId.WordWho) {
+        let i: Int = LanguageWordEnd(start, LanguageWordId.WordWho);
+        i = Expect(content, i, ":");
+        if i < 0 { return ParserIntentDefaultClauseInvalid(start); }
+        let names: String = "";
+        while true {
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor, 0, i);
+            let name: String = ReadIdent(content, i, cursor);
+            i = cursor[0];
+            if name == "" { return ParserIntentDefaultClauseInvalid(start); }
+            if names != "" { names = Concat(names, ", "); }
+            names = Concat(names, name);
+            i = SkipWhitespaceAndComments(content, i);
+            if ParserCharAt(content, i) != "," { break; }
+            i = i + 1;
+        }
+        i = Expect(content, i, ";");
+        return ParserIntentDefaultClause(true, i >= 0, i, names, "");
+    }
+    if MatchLanguageWord(content, start, LanguageWordId.WordWhere) {
+        let i: Int = LanguageWordEnd(start, LanguageWordId.WordWhere);
+        i = Expect(content, i, ":");
+        if i < 0 { return ParserIntentDefaultClauseInvalid(start); }
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor, 0, i);
+        let type_name: String = ReadType(content, i, cursor);
+        i = cursor[0];
+        if type_name == "" { return ParserIntentDefaultClauseInvalid(start); }
+        i = Expect(content, i, ";");
+        return ParserIntentDefaultClause(true, i >= 0, i, "", type_name);
+    }
+    return ParserIntentDefaultClauseNone(start);
+}
+
+struct ParserIntentStepDefaults {
+    who_names: String;
+    where_type: String;
+    provenance_text: String;
+}
+
+func ParserIntentStepDefaultsResolve(
+    default_who: String, default_where: String,
+    explicit_who: String, explicit_where: String
+) -> ParserIntentStepDefaults {
+    let who_names: String = explicit_who;
+    let where_type: String = explicit_where;
+    let provenance: String = "";
+    if who_names == "" && default_who != "" {
+        who_names = default_who;
+        provenance = "reused who from intent-level default";
+    }
+    if where_type == "" && default_where != "" {
+        where_type = default_where;
+        if provenance != "" { provenance = Concat(provenance, ", "); }
+        provenance = Concat(
+            provenance, "reused zone from intent-level default"
+        );
+    }
+    return ParserIntentStepDefaults(who_names, where_type, provenance);
+}

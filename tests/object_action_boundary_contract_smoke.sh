@@ -173,6 +173,8 @@ require_text "src/runtime/pgy_runtime_file_mode_capability.h" \
 require_text "src/semantic/type_checker_builtins_nominal.c" \
     'pgy_file_mode_capability_mask('
 require_text "src/semantic/type_checker_builtins_nominal.c" \
+    'semantic_record_capability(ctx, capability_for_builtin("FileWrite"));'
+reject_text "src/semantic/type_checker_builtins_nominal.c" \
     'semantic_record_capability(ctx, PGY_CAP_IO_WRITE);'
 require_text "src/runtime/pgy_runtime_io_qubit_inline.h" \
     'PGY_CAP_IO_WRITE, "file-open-write"'

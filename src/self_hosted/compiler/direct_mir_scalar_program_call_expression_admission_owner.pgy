@@ -1,7 +1,7 @@
 // Typed n-argument direct-call admission keyed only by carried SyntaxNodeId.
 
 import "direct_mir_scalar_program_builtin_argument_chain_owner.pgy";
-import "direct_mir_scalar_program_callable_fact_owner.pgy";
+import "direct_mir_scalar_program_callable_inventory_owner.pgy";
 
 struct DirectMirScalarProgramDirectCallFact {
     let recognized: Bool;
@@ -10,6 +10,7 @@ struct DirectMirScalarProgramDirectCallFact {
     let argument_rows: Array<Int>;
     let call_node: Int;
     let callable_ordinal: Int;
+    let return_type: String;
 }
 
 func DirectMirScalarProgramDirectCallFactInvalid(
@@ -17,13 +18,13 @@ func DirectMirScalarProgramDirectCallFactInvalid(
 ) -> DirectMirScalarProgramDirectCallFact {
     let rows: Array<Int> = [];
     return DirectMirScalarProgramDirectCallFact(
-        recognized, false, false, rows, -1, -1);
+        recognized, false, false, rows, -1, -1, "");
 }
 
 func DirectMirScalarProgramDirectCallFactFromGraph(
     ref sequence: MirExpressionGraphSequence, node: Int,
     source_rows: Array<Int>, normalized_types: Array<String>,
-    ref callable: DirectMirScalarCfgProgramCallableFact
+    ref callables: DirectMirScalarCfgProgramCallableInventory
 ) -> DirectMirScalarProgramDirectCallFact {
     let missing: DirectMirScalarProgramDirectCallFact =
         DirectMirScalarProgramDirectCallFactInvalid(false);
@@ -39,23 +40,31 @@ func DirectMirScalarProgramDirectCallFactFromGraph(
     let target_syntax_id: Int =
         sequence.arena.identities.call_target_syntax_ids[chain.call_node];
     if target_syntax_id == 0 { return missing; }
-    if !DirectMirScalarCfgProgramCallableFactReady(callable) ||
-        target_syntax_id != callable.signature.source_syntax_id {
+    let callable_ordinal: Int =
+        DirectMirScalarCfgProgramCallableInventoryOrdinalBySyntaxId(
+            callables, target_syntax_id
+        );
+    if !DirectMirScalarCfgProgramCallableInventoryOrdinalReady(
+            callables, callable_ordinal) {
         return DirectMirScalarProgramDirectCallFactInvalid(true);
     }
+    let callable_row: Int = callable_ordinal - 1;
     let count: Int = ArrayLength(chain.argument_rows);
-    if count > callable.signature.param_count {
+    if count > callables.parameter_counts[callable_row] {
         return DirectMirScalarProgramDirectCallFactInvalid(true);
     }
     let ordinal: Int = 0;
     while ordinal < count {
         if normalized_types[chain.argument_rows[ordinal]] !=
-                callable.signature.parameters.type_names[ordinal] {
+                callables.parameter_types[
+                    callables.parameter_starts[callable_row] + ordinal] {
             return DirectMirScalarProgramDirectCallFactInvalid(true);
         }
         ordinal = ordinal + 1;
     }
     return DirectMirScalarProgramDirectCallFact(
-        true, true, count == callable.signature.param_count,
-        chain.argument_rows, chain.call_node, callable.routine_ordinal);
+        true, true,
+        count == callables.parameter_counts[callable_row],
+        chain.argument_rows, chain.call_node, callable_ordinal,
+        callables.return_types[callable_row]);
 }

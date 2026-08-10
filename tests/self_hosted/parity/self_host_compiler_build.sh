@@ -21,6 +21,7 @@ case "$(uname -s 2>/dev/null || echo unknown)" in
 esac
 
 CC="${PGY_SELFHOST_CC:-gcc}"
+NATIVE_PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 CODEGEN_BUILD="${PGY_SELFHOST_CODEGEN_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/codegen/bootstrap}"
 BUILD_DIR="${PGY_SELFHOST_COMPILER_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/compiler/bootstrap}"
 PARSER_BIN="${PGY_SELFHOST_PARSER_SEED:-$CODEGEN_BUILD/parser_ast_producer.exe}"
@@ -34,6 +35,8 @@ EMIT_STAMP="$BUILD_DIR/driver.emit.key"
 KEY_INPUT="$BUILD_DIR/driver.build.key.input"
 AST_ERROR="$BUILD_DIR/driver.ast.err"
 SMOKE_OUT="$BUILD_DIR/driver.smoke.c"
+MANIFEST_SOURCE="$BUILD_DIR/machine-layer-manifest.json"
+MANIFEST_SMOKE="$BUILD_DIR/machine-layer-manifest.smoke.json"
 
 # The stamp owns one installed driver artifact, not just its input graph. A
 # cache directory may be reused with a different output path during isolated
@@ -51,6 +54,11 @@ case "$OUTPUT" in
         fi
         ;;
 esac
+case "$OUTPUT" in
+    *.exe) MANIFEST_OUTPUT="${OUTPUT%.exe}.machine-layer-manifest.json" ;;
+    *) MANIFEST_OUTPUT="${OUTPUT}.machine-layer-manifest.json" ;;
+esac
+NATIVE_PGY="$(pgy_select_optional_exe_binary "$NATIVE_PGY")"
 
 fail() {
     echo "[self-host-compiler-build] $*" >&2
@@ -73,9 +81,21 @@ mkdir -p "$BUILD_DIR" "$(dirname "$OUTPUT")"
 [[ -f "$ROOT_DIR/$DRIVER_SOURCE" ]] || fail "missing driver source"
 [[ -f "$PARSER_BIN" ]] || fail "missing parser seed: $PARSER_BIN"
 [[ -f "$CODEGEN_BIN" ]] || fail "missing Pergyra codegen seed: $CODEGEN_BIN"
+[[ -f "$NATIVE_PGY" ]] || fail "missing native machine manifest owner: $NATIVE_PGY"
 pgy_require_runnable_binary_here "self-host-compiler-build" "$PARSER_BIN" || exit 1
 pgy_require_runnable_binary_here "self-host-compiler-build" "$CODEGEN_BIN" || exit 1
+pgy_require_runnable_binary_here "self-host-compiler-build" "$NATIVE_PGY" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
+
+# The native serializer remains the sole physical-declaration producer. The
+# installed Pergyra driver only validates and replays this immutable companion.
+rm -f "$MANIFEST_SOURCE"
+if ! (cd "$ROOT_DIR" && "$NATIVE_PGY" --native-pipeline \
+    --machine-manifest-json >"$MANIFEST_SOURCE"); then
+    fail "native machine manifest owner failed"
+fi
+grep -Fq '"schema":"pgy.machine-layer.declaration.v1"' "$MANIFEST_SOURCE" ||
+    fail "native machine manifest owner emitted an invalid artifact"
 
 # The composed AST is the parser owner's import-graph fact. Hashing a stale
 # parser-build inventory here allowed the installed driver to retain 76 MIR
@@ -97,6 +117,7 @@ printf '%s\n' \
     "parser=$(hash_file "$PARSER_BIN")" \
     "codegen=$(hash_file "$CODEGEN_BIN")" \
     "composed_ast=$(hash_file "$AST_FILE")" \
+    "machine_manifest=$(hash_file "$MANIFEST_SOURCE")" \
     "output=$OUTPUT_KEY" \
     "cc=$($CC --version 2>/dev/null | head -1)" \
     >"$KEY_INPUT"
@@ -105,6 +126,11 @@ build_key="$(hash_file "$KEY_INPUT")"
 if [[ -x "$OUTPUT" && -f "$STAMP" ]] \
     && grep -Fxq "$build_key" "$STAMP" \
     && pgy_binary_is_runnable_here "$OUTPUT"; then
+    if [[ ! -f "$MANIFEST_OUTPUT" ]] ||
+        ! cmp -s "$MANIFEST_SOURCE" "$MANIFEST_OUTPUT"; then
+        cp "$MANIFEST_SOURCE" "${MANIFEST_OUTPUT}.tmp"
+        mv -f "${MANIFEST_OUTPUT}.tmp" "$MANIFEST_OUTPUT"
+    fi
     echo "[self-host-compiler-build] reusing fingerprinted Pergyra-built driver"
     exit 0
 fi
@@ -152,6 +178,20 @@ if [[ ! -s "$SMOKE_OUT" ]]; then
     rm -f "$tmp_output"
     fail "Pergyra-built DRV-2 emitted no smoke artifact"
 fi
+rm -f "$MANIFEST_SMOKE"
+manifest_rel="${MANIFEST_SOURCE#"$ROOT_DIR"/}"
+if ! (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" \
+    "$tmp_output" --emit-machine-manifest-verified "$manifest_rel" \
+    >"$MANIFEST_SMOKE"); then
+    rm -f "$tmp_output"
+    fail "Pergyra-built DRV-2 rejected the installed machine manifest"
+fi
+if ! cmp -s "$MANIFEST_SOURCE" "$MANIFEST_SMOKE"; then
+    rm -f "$tmp_output"
+    fail "Pergyra-built DRV-2 changed the native machine manifest artifact"
+fi
+cp "$MANIFEST_SOURCE" "${MANIFEST_OUTPUT}.tmp"
+mv -f "${MANIFEST_OUTPUT}.tmp" "$MANIFEST_OUTPUT"
 mv -f "$tmp_output" "$OUTPUT"
 printf '%s\n' "$build_key" >"$STAMP"
 echo "[self-host-compiler-build] Pergyra-built DRV-2 installed: $OUTPUT"

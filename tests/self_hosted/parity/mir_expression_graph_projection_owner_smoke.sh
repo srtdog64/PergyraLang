@@ -17,7 +17,7 @@ trap 'rm -f "$BODY" "$ROWS_BODY" "$APPEND_BODY"' EXIT
 awk '
     /^func SelfMirExpressionGraphAttachLast\(/ { inside=1 }
     inside { print }
-    inside && /^func / && !/SelfMirExpressionGraphAttachLast/ { exit }
+    inside && /^}/ { exit }
 ' "$OWNER" >"$BODY"
 
 awk '
@@ -29,7 +29,7 @@ awk '
 awk '
     /^func SelfMirExpressionGraphRowsAppendRows\(/ { inside=1 }
     inside { print }
-    inside && /^func / && !/SelfMirExpressionGraphRowsAppendRows/ { exit }
+    inside && /^}/ { exit }
 ' "$OWNER" >"$APPEND_BODY"
 
 for required in \

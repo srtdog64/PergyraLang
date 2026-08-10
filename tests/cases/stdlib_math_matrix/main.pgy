@@ -1,0 +1,24 @@
+import "../../../stdlib/math.pgy";
+
+func Main() -> Void
+{
+    let left: Matrix2 = PgyMath.Matrix2Of(1, 2, 3, 4);
+    let right: Matrix2 = PgyMath.Matrix2Of(2, 0, 1, 2);
+    let product: Matrix2 = PgyMath.Matrix2Multiply(left, right);
+    let input: Vector2 = PgyMath.Vector2Of(1, 2);
+    let output: Vector2 = PgyMath.Matrix2Apply(product, input);
+
+    Log(product.m00);
+    Log(product.m01);
+    Log(product.m10);
+    Log(product.m11);
+    Log(output.x);
+    Log(output.y);
+    Log(PgyMath.Matrix2Determinant(left));
+    Log(PgyMathRegistry.SchemaVersion());
+    Log(PgyMathRegistry.TemplateCount());
+    Log(ToString(PgyMathRegistry.HasTemplateId("algebra.matrix")));
+    Log(ToString(PgyMathRegistry.HasLookupKey("mat2")));
+    Log(ToString(PgyMathRegistry.HasComputeOperation("compute.simulate")));
+    Log(ToString(PgyMathRegistry.HasTemplateId("algebra.not_real")));
+}

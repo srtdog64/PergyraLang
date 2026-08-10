@@ -1,0 +1,269 @@
+// Exact typed DIR zone-state rows.
+//
+// The AST-text bridge owns the syntax payload. This owner decodes that payload
+// once at the DIR fact boundary and joins every spelling to an admitted zone
+// declaration field identity. Inventory/rendering consumers receive only these
+// rows and must not reopen parser provenance.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../mir/declaration_fact_owner.pgy";
+import "../lib/nominal_field_kind_owner.pgy";
+import "domain_topology_row_owner.pgy";
+
+struct SelfDirZoneStateRows {
+    ok: Bool;
+    diagnostic_message: String;
+    owner_names: Array<String>;
+    owner_source_syntax_ids: Array<Int>;
+    source_syntax_ids: Array<Int>;
+    names: Array<String>;
+    layer_kinds: Array<String>;
+    layer_slot_names: Array<String>;
+    layer_slot_source_syntax_ids: Array<Int>;
+    left_or_target_slot_names: Array<String>;
+    left_or_target_slot_source_syntax_ids: Array<Int>;
+    right_slot_names: Array<String>;
+    right_slot_source_syntax_ids: Array<Int>;
+}
+
+func SelfDirZoneStateRowsEmpty() -> SelfDirZoneStateRows {
+    let strings0: Array<String> = [];
+    let strings1: Array<String> = [];
+    let strings2: Array<String> = [];
+    let strings3: Array<String> = [];
+    let strings4: Array<String> = [];
+    let strings5: Array<String> = [];
+    let ints0: Array<Int> = [];
+    let ints1: Array<Int> = [];
+    let ints2: Array<Int> = [];
+    let ints3: Array<Int> = [];
+    let ints4: Array<Int> = [];
+    return SelfDirZoneStateRows(
+        true, "", strings0, ints0, ints1, strings1, strings2, strings3,
+        ints2, strings4, ints3, strings5, ints4
+    );
+}
+
+func SelfDirZoneStateRowsError(message: String) -> SelfDirZoneStateRows {
+    let rows: SelfDirZoneStateRows = SelfDirZoneStateRowsEmpty();
+    rows.ok = false;
+    rows.diagnostic_message = message;
+    return rows;
+}
+
+func SelfDirZoneStateRowsFromArtifact(
+    artifact: AstTreeArtifact,
+    declarations: SelfMirDeclarationRows
+) -> SelfDirZoneStateRows {
+    let owner_names: Array<String> = [];
+    let owner_ids: Array<Int> = [];
+    let source_ids: Array<Int> = [];
+    let names: Array<String> = [];
+    let layer_kinds: Array<String> = [];
+    let layer_names: Array<String> = [];
+    let layer_ids: Array<Int> = [];
+    let left_names: Array<String> = [];
+    let left_ids: Array<Int> = [];
+    let right_names: Array<String> = [];
+    let right_ids: Array<Int> = [];
+    let node_id: Int = 0;
+    while node_id < artifact.count {
+        if !TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindDomainStateTag()
+        ) {
+            node_id = node_id + 1;
+            continue;
+        }
+        let parent: Option<Int> = TypedAstArenaParentId(
+            artifact.arena, node_id
+        );
+        let payload: Option<String> = TypedAstArenaAtomText(
+            artifact.arena, node_id
+        );
+        if !IsSome(parent) || !IsSome(payload) {
+            return SelfDirZoneStateRowsError(
+                "self-host DIR zone-state owner or payload is missing"
+            );
+        }
+        let owner_id: Int = UnwrapOption(parent);
+        let owner: Option<String> = TypedAstArenaAtomText(
+            artifact.arena, owner_id
+        );
+        let owner_index: Int = -1;
+        if IsSome(owner) {
+            owner_index = SelfDirDeclarationIndexForName(
+                declarations, UnwrapOption(owner)
+            );
+        }
+        if owner_id <= 0 || !IsSome(owner) || owner_index < 0 ||
+            declarations.nominal_kinds[owner_index] != "zone" ||
+            declarations.source_syntax_ids[owner_index] != owner_id {
+            return SelfDirZoneStateRowsError(
+                "self-host DIR zone-state owner does not join its declaration"
+            );
+        }
+        let text: String = UnwrapOption(payload);
+        let colon: Int = StringIndexOf(text, ": ");
+        if colon <= 0 {
+            return SelfDirZoneStateRowsError(
+                "self-host DIR zone-state payload is malformed"
+            );
+        }
+        let state_name: String = StringTrim(Substring(text, 0, colon));
+        let definition: String = StringTrim(Substring(
+            text, colon + 2, StringLength(text) - colon - 2
+        ));
+        let layer_kind: String = "";
+        let layer_name: String = "";
+        let left_name: String = "";
+        let right_name: String = "";
+        if StartsWith(definition, "effect ") {
+            layer_kind = "effect";
+            let on_pos: Int = StringIndexOf(definition, " on ");
+            if on_pos <= 7 {
+                return SelfDirZoneStateRowsError(
+                    "self-host DIR effect state payload is malformed"
+                );
+            }
+            layer_name = StringTrim(Substring(definition, 7, on_pos - 7));
+            left_name = StringTrim(Substring(
+                definition, on_pos + 4,
+                StringLength(definition) - on_pos - 4
+            ));
+        } else if StartsWith(definition, "relation ") {
+            layer_kind = "relation";
+            let between_pos: Int = StringIndexOf(definition, " between ");
+            if between_pos <= 9 {
+                return SelfDirZoneStateRowsError(
+                    "self-host DIR relation state payload is malformed"
+                );
+            }
+            layer_name = StringTrim(Substring(
+                definition, 9, between_pos - 9
+            ));
+            let endpoints: String = StringTrim(Substring(
+                definition, between_pos + 9,
+                StringLength(definition) - between_pos - 9
+            ));
+            let comma: Int = StringIndexOf(endpoints, ", ");
+            if comma <= 0 {
+                return SelfDirZoneStateRowsError(
+                    "self-host DIR relation state endpoints are malformed"
+                );
+            }
+            left_name = StringTrim(Substring(endpoints, 0, comma));
+            right_name = StringTrim(Substring(
+                endpoints, comma + 2, StringLength(endpoints) - comma - 2
+            ));
+        } else {
+            return SelfDirZoneStateRowsError(
+                "self-host DIR zone-state layer kind is unsupported"
+            );
+        }
+        if !IsIdentifier(state_name) || !IsIdentifier(layer_name) ||
+            !IsIdentifier(left_name) ||
+            (layer_kind == "relation" && !IsIdentifier(right_name)) {
+            return SelfDirZoneStateRowsError(
+                "self-host DIR zone-state identity is malformed"
+            );
+        }
+        let expected_layer_kind: String = NominalFieldKindEffectSlot();
+        if layer_kind == "relation" {
+            expected_layer_kind = NominalFieldKindRelationSlot();
+        }
+        let layer_id: Int = SelfDirFieldSourceSyntaxId(
+            declarations, owner_index, layer_name, expected_layer_kind
+        );
+        let left_id: Int = SelfDirFieldSourceSyntaxId(
+            declarations, owner_index, left_name,
+            NominalFieldKindSubjectSlot()
+        );
+        let right_id: Int = 0;
+        if layer_kind == "relation" {
+            right_id = SelfDirFieldSourceSyntaxId(
+                declarations, owner_index, right_name,
+                NominalFieldKindSubjectSlot()
+            );
+        }
+        if layer_id <= 0 || left_id <= 0 ||
+            (layer_kind == "relation" && right_id <= 0) {
+            return SelfDirZoneStateRowsError(
+                "self-host DIR zone-state fields do not join the zone"
+            );
+        }
+        let prior: Int = 0;
+        while prior < ArrayLength(names) {
+            if owner_names[prior] == UnwrapOption(owner) &&
+                names[prior] == state_name {
+                return SelfDirZoneStateRowsError(
+                    "self-host DIR zone-state name is duplicated"
+                );
+            }
+            prior = prior + 1;
+        }
+        ArrayPush(owner_names, UnwrapOption(owner));
+        ArrayPush(owner_ids, owner_id);
+        ArrayPush(source_ids, node_id);
+        ArrayPush(names, state_name);
+        ArrayPush(layer_kinds, layer_kind);
+        ArrayPush(layer_names, layer_name);
+        ArrayPush(layer_ids, layer_id);
+        ArrayPush(left_names, left_name);
+        ArrayPush(left_ids, left_id);
+        ArrayPush(right_names, right_name);
+        ArrayPush(right_ids, right_id);
+        node_id = node_id + 1;
+    }
+    return SelfDirZoneStateRows(
+        true, "", owner_names, owner_ids, source_ids, names, layer_kinds,
+        layer_names, layer_ids, left_names, left_ids, right_names, right_ids
+    );
+}
+
+func SelfDirZoneStateRowsReady(rows: SelfDirZoneStateRows) -> Bool {
+    if !rows.ok || rows.diagnostic_message != "" { return false; }
+    let count: Int = ArrayLength(rows.names);
+    if ArrayLength(rows.owner_names) != count ||
+        ArrayLength(rows.owner_source_syntax_ids) != count ||
+        ArrayLength(rows.source_syntax_ids) != count ||
+        ArrayLength(rows.layer_kinds) != count ||
+        ArrayLength(rows.layer_slot_names) != count ||
+        ArrayLength(rows.layer_slot_source_syntax_ids) != count ||
+        ArrayLength(rows.left_or_target_slot_names) != count ||
+        ArrayLength(rows.left_or_target_slot_source_syntax_ids) != count ||
+        ArrayLength(rows.right_slot_names) != count ||
+        ArrayLength(rows.right_slot_source_syntax_ids) != count {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if rows.owner_names[row] == "" ||
+            rows.owner_source_syntax_ids[row] <= 0 ||
+            rows.source_syntax_ids[row] <= 0 || rows.names[row] == "" ||
+            (rows.layer_kinds[row] != "effect" &&
+             rows.layer_kinds[row] != "relation") ||
+            rows.layer_slot_names[row] == "" ||
+            rows.layer_slot_source_syntax_ids[row] <= 0 ||
+            rows.left_or_target_slot_names[row] == "" ||
+            rows.left_or_target_slot_source_syntax_ids[row] <= 0 ||
+            (rows.layer_kinds[row] == "effect" &&
+             (rows.right_slot_names[row] != "" ||
+              rows.right_slot_source_syntax_ids[row] != 0)) ||
+            (rows.layer_kinds[row] == "relation" &&
+             (rows.right_slot_names[row] == "" ||
+              rows.right_slot_source_syntax_ids[row] <= 0)) {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if rows.source_syntax_ids[prior] == rows.source_syntax_ids[row] ||
+                (rows.owner_names[prior] == rows.owner_names[row] &&
+                 rows.names[prior] == rows.names[row]) {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}

@@ -3,6 +3,7 @@
 #include "diag_codes.h"
 #include "type_checker_internal.h"
 #include "type_checker_builtins_internal.h"
+#include "capability_analyze.h"
 #include "runtime/pgy_runtime_capability.h"
 #include "runtime/pgy_runtime_file_mode_capability.h"
 
@@ -63,7 +64,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         if (!check_call_arity(call, 0, "Args", ctx))
             return TYPE_UNKNOWN;
         semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
-        semantic_record_capability(ctx, PGY_CAP_ENV);
+        semantic_record_capability(ctx, capability_for_builtin("Args"));
         return type_create_constructed(TYPE_ARRAY, args, 1);
     }
     case BUILTIN_LOG:
@@ -116,7 +117,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
                 TYPE_INT, ast_call_argument(call, 0), ctx);
         }
         semantic_record_effect(ctx, EFFECT_IO);
-        semantic_record_capability(ctx, PGY_CAP_IO_WRITE);
+        semantic_record_capability(ctx, capability_for_builtin("CompilerArtifactAbort"));
         return TYPE_INT;
     case BUILTIN_COMPILER_ARTIFACT_BEGIN:
         if (check_call_arity(call, 1, "CompilerArtifactBegin", ctx)) {
@@ -124,7 +125,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
                 TYPE_STRING, ast_call_argument(call, 0), ctx);
         }
         semantic_record_effect(ctx, EFFECT_IO);
-        semantic_record_capability(ctx, PGY_CAP_IO_WRITE);
+        semantic_record_capability(ctx, capability_for_builtin("CompilerArtifactBegin"));
         return TYPE_INT;
     case BUILTIN_COMPILER_ARTIFACT_COMMIT:
         if (check_call_arity(call, 1, "CompilerArtifactCommit", ctx)) {
@@ -132,7 +133,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
                 TYPE_INT, ast_call_argument(call, 0), ctx);
         }
         semantic_record_effect(ctx, EFFECT_IO);
-        semantic_record_capability(ctx, PGY_CAP_IO_WRITE);
+        semantic_record_capability(ctx, capability_for_builtin("CompilerArtifactCommit"));
         return TYPE_INT;
     case BUILTIN_COMPILER_ARTIFACT_WRITE:
         if (check_call_arity(call, 2, "CompilerArtifactWrite", ctx)) {
@@ -142,7 +143,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
                 TYPE_STRING, ast_call_argument(call, 1), ctx);
         }
         semantic_record_effect(ctx, EFFECT_IO);
-        semantic_record_capability(ctx, PGY_CAP_IO_WRITE);
+        semantic_record_capability(ctx, capability_for_builtin("CompilerArtifactWrite"));
         return TYPE_BOOL;
     case BUILTIN_DIR_WALK:
         if (check_call_arity(call, 1, "DirWalk", ctx)) {
@@ -153,7 +154,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             Type *args[1] = { TYPE_STRING };
             semantic_record_effect(ctx, EFFECT_IO);
             semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
-            semantic_record_capability(ctx, PGY_CAP_IO_READ);
+            semantic_record_capability(ctx, capability_for_builtin("DirWalk"));
             return type_create_constructed(TYPE_ARRAY, args, 1);
         }
     case BUILTIN_FILE_EXISTS:
@@ -162,7 +163,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
                 TYPE_STRING, ast_call_argument(call, 0), ctx);
         }
         semantic_record_effect(ctx, EFFECT_IO);
-        semantic_record_capability(ctx, PGY_CAP_IO_READ);
+        semantic_record_capability(ctx, capability_for_builtin("FileExists"));
         return TYPE_BOOL;
     case BUILTIN_FILE_OPEN:
         if (check_call_arity(call, 2, "FileOpen", ctx)) {
@@ -183,7 +184,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
                 TYPE_INT, ast_call_argument(call, 0), ctx);
         }
         semantic_record_effect(ctx, EFFECT_IO);
-        semantic_record_capability(ctx, PGY_CAP_IO_READ);
+        semantic_record_capability(ctx, capability_for_builtin("FileRead"));
         return TYPE_STRING;
     case BUILTIN_FILE_WRITE:
         if (check_call_arity(call, 2, "FileWrite", ctx)) {
@@ -193,7 +194,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
                 TYPE_STRING, ast_call_argument(call, 1), ctx);
         }
         semantic_record_effect(ctx, EFFECT_IO);
-        semantic_record_capability(ctx, PGY_CAP_IO_WRITE);
+        semantic_record_capability(ctx, capability_for_builtin("FileWrite"));
         return TYPE_VOID;
     case BUILTIN_FILE_CLOSE:
         if (check_call_arity(call, 1, "FileClose", ctx)) {
@@ -208,7 +209,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
                 TYPE_STRING, ast_call_argument(call, 0), ctx);
         }
         semantic_record_effect(ctx, EFFECT_IO);
-        semantic_record_capability(ctx, PGY_CAP_IO_READ);
+        semantic_record_capability(ctx, capability_for_builtin("ReadFile"));
         return TYPE_STRING;
     case BUILTIN_READ_STDIN:
         if (check_call_arity(call, 1, "ReadStdin", ctx)) {
@@ -217,7 +218,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         }
         semantic_record_effect(ctx, EFFECT_IO);
         semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
-        semantic_record_capability(ctx, PGY_CAP_IO_READ);
+        semantic_record_capability(ctx, capability_for_builtin("ReadStdin"));
         return TYPE_STRING;
     case BUILTIN_WRITE_FILE:
         if (check_call_arity(call, 2, "WriteFile", ctx)) {
@@ -227,11 +228,11 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
                 TYPE_STRING, ast_call_argument(call, 1), ctx);
         }
         semantic_record_effect(ctx, EFFECT_IO);
-        semantic_record_capability(ctx, PGY_CAP_IO_WRITE);
+        semantic_record_capability(ctx, capability_for_builtin("WriteFile"));
         return TYPE_VOID;
     case BUILTIN_INPUT:
         semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
-        semantic_record_capability(ctx, PGY_CAP_IO_READ);
+        semantic_record_capability(ctx, capability_for_builtin("Input"));
         if (ast_call_arg_count(call) > 1) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,
                 "'Input' expects at most 1 argument, got %llu",

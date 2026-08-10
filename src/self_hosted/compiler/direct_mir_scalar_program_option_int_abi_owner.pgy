@@ -1,0 +1,58 @@
+// One canonical Option<Int> layout receipt shared by every program expression.
+
+import "direct_mir_option_match_abi_capture_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "../mir_lower/abi_layout_admission_fact_owner.pgy";
+import "../mir_lower/routine_instruction_scalar_capture_owner.pgy";
+
+func DirectMirScalarProgramOptionIntAbiFromInstruction(
+    current: DirectMirOptionMatchAbiFact,
+    json: String,
+    ref capture: MirRoutineInstructionScalarCapture
+) -> DirectMirOptionMatchAbiFact {
+    if capture.abi_type_name != CompilerAbiLayoutOptionIntTypeName() {
+        return current;
+    }
+    let admitted: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            json, capture.abi_type_name, capture.abi_type_value_ready,
+            capture.abi_type_start, capture.abi_type_end,
+            capture.abi_layout_id_start, capture.abi_layout_id_end,
+            capture.abi_layout_required_start,
+            capture.abi_layout_required_end,
+            capture.abi_layout_start, capture.abi_layout_end
+        );
+    if !IsSome(admitted) {
+        Die("direct MIR scalar program Option<Int> ABI receipt is missing");
+    }
+    let next: DirectMirOptionMatchAbiFact =
+        DirectMirOptionMatchAbiFactFromCapture(UnwrapOption(admitted));
+    if current.valid && (current.layout_id != next.layout_id ||
+        current.digest != next.digest) {
+        Die("direct MIR scalar program Option<Int> ABI owners disagree");
+    }
+    return next;
+}
+
+func DirectMirScalarProgramOptionIntAbiCanonicalEmpty(
+    ref fact: DirectMirOptionMatchAbiFact
+) -> Bool {
+    return !fact.valid && fact.digest == 0 && fact.layout_id == 0;
+}
+
+func DirectMirScalarProgramOptionIntAbiReadyForExpressions(
+    ref fact: DirectMirOptionMatchAbiFact,
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    let required: Bool = false;
+    let row: Int = 0;
+    while row < ArrayLength(expressions.node_types) {
+        if expressions.node_types[row] ==
+                CompilerAbiLayoutOptionIntTypeName() {
+            required = true;
+        }
+        row = row + 1;
+    }
+    if required { return DirectMirOptionMatchAbiFactReady(fact); }
+    return DirectMirScalarProgramOptionIntAbiCanonicalEmpty(fact);
+}

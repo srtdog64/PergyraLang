@@ -1,0 +1,56 @@
+import "pgy_math_registry.pgy";
+
+export class Vector2
+{
+    let x: Int;
+    let y: Int;
+}
+
+export class Matrix2
+{
+    let m00: Int;
+    let m01: Int;
+    let m10: Int;
+    let m11: Int;
+}
+
+namespace PgyMath
+{
+    export func Vector2Of(x: Int, y: Int) -> Vector2
+    {
+        return Vector2(x, y);
+    }
+
+    export func Matrix2Of(
+        m00: Int,
+        m01: Int,
+        m10: Int,
+        m11: Int
+    ) -> Matrix2
+    {
+        return Matrix2(m00, m01, m10, m11);
+    }
+
+    export func Matrix2Apply(matrix: Matrix2, vector: Vector2) -> Vector2
+    {
+        return Vector2(
+            matrix.m00 * vector.x + matrix.m01 * vector.y,
+            matrix.m10 * vector.x + matrix.m11 * vector.y
+        );
+    }
+
+    export func Matrix2Multiply(left: Matrix2, right: Matrix2) -> Matrix2
+    {
+        return Matrix2(
+            left.m00 * right.m00 + left.m01 * right.m10,
+            left.m00 * right.m01 + left.m01 * right.m11,
+            left.m10 * right.m00 + left.m11 * right.m10,
+            left.m10 * right.m01 + left.m11 * right.m11
+        );
+    }
+
+    export func Matrix2Determinant(matrix: Matrix2) -> Int
+    {
+        return matrix.m00 * matrix.m11 - matrix.m01 * matrix.m10;
+    }
+}

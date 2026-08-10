@@ -1,0 +1,23 @@
+// LLVM declaration and spelling for the admitted two-Int nominal program fact.
+
+import "direct_mir_scalar_program_two_int_nominal_target_owner.pgy";
+
+func DirectMirScalarProgramLlvmTwoIntNominalTypeName() -> String {
+    return "%pgy.scalar.nominal.value";
+}
+
+func DirectMirScalarProgramLlvmTwoIntNominalPreamble(
+    ref fact: DirectMirScalarProgramTwoIntNominalAbiFact,
+    target: CompilerTargetProjectionFact
+) -> String {
+    if DirectMirScalarProgramTwoIntNominalAbiFactReady(fact) &&
+            !fact.present { return ""; }
+    let projection: DirectMirScalarProgramTwoIntNominalTarget =
+        DirectMirScalarProgramTwoIntNominalTargetFromFact(fact, target);
+    if projection.llvm_type_name == "" ||
+        projection.llvm_aggregate_type == "" {
+        Die("direct MIR two-Int nominal LLVM projection is invalid");
+    }
+    return Concat(projection.llvm_type_name, Concat(
+        " = type ", Concat(projection.llvm_aggregate_type, "\n")));
+}

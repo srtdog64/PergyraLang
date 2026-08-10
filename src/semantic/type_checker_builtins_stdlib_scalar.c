@@ -10,6 +10,7 @@
 
 #include "type_checker_internal.h"
 #include "type_checker_builtins_internal.h"
+#include "capability_analyze.h"
 #include "runtime/pgy_runtime_capability.h"
 #include "diag_codes.h"
 
@@ -429,7 +430,7 @@ stdlib_scalar_check_random(ASTNode *expr, const char *name, SemanticContext *ctx
         return TYPE_UNKNOWN;
     stdlib_scalar_require_int_arg(expr, 0, ctx);
     semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
-    semantic_record_capability(ctx, PGY_CAP_RANDOM);
+    semantic_record_capability(ctx, capability_for_builtin("Random"));
     return TYPE_INT;
 }
 
@@ -442,7 +443,7 @@ stdlib_scalar_check_seed_random(ASTNode *expr, const char *name,
     require_assignable(type_check_expression(ast_call_argument(expr, 0), ctx),
         TYPE_INT, ast_call_argument(expr, 0), ctx);
     semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
-    semantic_record_capability(ctx, PGY_CAP_RANDOM);
+    semantic_record_capability(ctx, capability_for_builtin("SeedRandom"));
     return TYPE_VOID;
 }
 

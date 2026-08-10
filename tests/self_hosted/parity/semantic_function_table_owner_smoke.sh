@@ -56,7 +56,7 @@ grep -Fq 'facts.params = params;' "$FACT_OWNER" ||
 grep -Fq 'SemanticAstExpressionFunctionTableFactsFromArtifact(' "$ANALYSIS_OWNER" ||
     fail "artifact analysis does not own callable-table production"
 
-table_body="$(awk '/^func SemanticAstExpressionFunctionTables\(/ { found=1 } found { print } /^func SemanticAstExpressionFunctionTableFactsFromArtifact\(/ { exit }' "$ENV_OWNER")"
+table_body="$(awk '/^func SemanticAstExpressionFunctionTables\(/ { found=1 } found { print } found && /^}/ { exit }' "$ENV_OWNER")"
 if grep -Eq 'ArrayPush\((names|returns|params)' <<<"$table_body"; then
     fail "callable-table producer retains ordinary String-array insertion"
 fi

@@ -1,0 +1,39 @@
+// Semantic shape checks for normalized Option<Int> expression nodes.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_option_int_expression_kind_owner.pgy";
+import "abi_layout_row_owner.pgy";
+
+func DirectMirScalarProgramOptionIntExpressionNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    let kind: Int = facts.node_kinds[node];
+    if kind < DirectMirScalarProgramExprSomeInt() ||
+        kind > DirectMirScalarProgramExprUnwrapOptionInt() { return None; }
+    let left: Int = facts.node_lefts[node];
+    let right: Int = facts.node_rights[node];
+    let shape: Bool = right == -1 &&
+        facts.node_local_rows[node] == -1 &&
+        facts.node_parameter_ordinals[node] == -1 &&
+        facts.node_literals[node] == "" &&
+        facts.node_callable_rows[node] == -1;
+    if !shape { return Some(false); }
+    if kind == DirectMirScalarProgramExprNoneInt() {
+        return Some(left == -1 && facts.node_types[node] ==
+            CompilerAbiLayoutOptionIntTypeName());
+    }
+    if left < 0 { return Some(false); }
+    if kind == DirectMirScalarProgramExprSomeInt() {
+        return Some(facts.node_types[node] ==
+            CompilerAbiLayoutOptionIntTypeName() &&
+            facts.node_types[left] == CompilerAbiLayoutIntTypeName());
+    }
+    if facts.node_types[left] != CompilerAbiLayoutOptionIntTypeName() {
+        return Some(false);
+    }
+    if kind == DirectMirScalarProgramExprIsSomeInt() {
+        return Some(facts.node_types[node] ==
+            CompilerAbiLayoutBoolTypeName());
+    }
+    return Some(facts.node_types[node] == CompilerAbiLayoutIntTypeName());
+}

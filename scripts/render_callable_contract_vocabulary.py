@@ -265,6 +265,11 @@ def render_projection(rows: list[ContractWord]) -> str:
     _append_index_string(
         lines, "CallableContractVocabularyMaskSymbolAt", rows, "mask_symbol"
     )
+    lines.extend(["", "func CallableContractVocabularyMaskValueAt(index: Int) -> Int {"])
+    for index, row in enumerate(rows):
+        value = 1 << row.canonical_rank if row.axis == "capability" else -1
+        lines.append(f"    if index == {index} {{ return {value}; }}")
+    lines.extend(["    return -1;", "}"])
     _append_index_int(
         lines, "CallableContractVocabularyCanonicalRankAt", rows, "canonical_rank"
     )
@@ -318,6 +323,12 @@ def render_projection(rows: list[ContractWord]) -> str:
             "        let axis: Int = CallableContractVocabularyAxisAt(index);",
             "        let rank: Int = CallableContractVocabularyCanonicalRankAt(index);",
             "        let zero_policy: Int = CallableContractVocabularyZeroPolicyAt(index);",
+            "        let expected_capability_mask: Int = 1;",
+            "        let capability_bit: Int = 0;",
+            "        while capability_bit < rank {",
+            "            expected_capability_mask = expected_capability_mask * 2;",
+            "            capability_bit = capability_bit + 1;",
+            "        }",
             "        if CallableContractVocabularyStableIdAt(index) != index ||",
             "            StringLength(CallableContractVocabularyIdentityAt(index)) == 0 ||",
             "            StringLength(CallableContractVocabularySpellingAt(index)) == 0 ||",
@@ -325,6 +336,13 @@ def render_projection(rows: list[ContractWord]) -> str:
             "            (axis != CallableContractVocabularyCapabilityAxis() &&",
             "             axis != CallableContractVocabularyEffectAxis()) ||",
             "            CallableContractVocabularyIndexAtRank(axis, rank) != index {",
+            "            return false;",
+            "        }",
+            "        if (axis == CallableContractVocabularyCapabilityAxis() &&",
+            "            CallableContractVocabularyMaskValueAt(index) !=",
+            "                expected_capability_mask) ||",
+            "            (axis == CallableContractVocabularyEffectAxis() &&",
+            "             CallableContractVocabularyMaskValueAt(index) != -1) {",
             "            return false;",
             "        }",
             "        if zero_policy == CallableContractVocabularyZeroExclusive() {",

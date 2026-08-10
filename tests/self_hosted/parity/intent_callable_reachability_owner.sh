@@ -96,7 +96,8 @@ native_dir="$BUILD_DIR/native.dir.log"
 (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$FIXTURE" >"$native_mir" 2>&1) \
     || { cat "$native_mir" >&2; fail "native MIR oracle failed"; }
-(cd "$ROOT_DIR" && "$PGY" --dir "$FIXTURE" >"$native_dir" 2>&1) \
+(cd "$ROOT_DIR" && "$PGY" --native-pipeline --dir "$FIXTURE" \
+    >"$native_dir" 2>&1) \
     || { cat "$native_dir" >&2; fail "native DIR oracle failed"; }
 for fact in 'nodes: 14' 'edges: 30' 'intents: 1' \
     'intent-participant from=8 label=payment target=PaymentZone' \
@@ -228,7 +229,7 @@ two_step_dir="$BUILD_DIR/two-step.native.dir.log"
 (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle "$two_step_source" \
     >"$two_step_native" 2>&1) \
     || { cat "$two_step_native" >&2; fail "two-step native MIR failed"; }
-(cd "$ROOT_DIR" && "$PGY" --dir "$two_step_source" \
+(cd "$ROOT_DIR" && "$PGY" --native-pipeline --dir "$two_step_source" \
     >"$two_step_dir" 2>&1) \
     || { cat "$two_step_dir" >&2; fail "two-step native DIR failed"; }
 grep -Fq 'intent-step-depends-on' "$two_step_dir" \

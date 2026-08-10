@@ -5,6 +5,7 @@
 
 #include "../common/string_compat.h"
 #include "type_checker_internal.h"
+#include "capability_analyze.h"
 #include "diag_codes.h"
 
 /* PGY_DEBUG_SEMANTIC_TIMING sub-slots for type_check_program: which of the
@@ -95,6 +96,11 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
 
     if (program == NULL || program->type != AST_PROGRAM)
         return false;
+    if (!capability_builtin_registry_ready()) {
+        semantic_error(ctx, program,
+            "Builtin capability policy registry is invalid");
+        return false;
+    }
     if (timing)
         t_mark = program_timing_now();
 

@@ -6,6 +6,7 @@ import "direct_mir_scalar_program_collection_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_case_math_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_string_window_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_string_transform_builtin_signature_owner.pgy";
+import "direct_mir_scalar_program_option_int_builtin_signature_owner.pgy";
 
 struct DirectMirScalarProgramBuiltinSignatureFact {
     let valid: Bool;
@@ -51,6 +52,9 @@ func DirectMirScalarProgramBuiltinSignatureExpected(
     let case_math: Array<String> =
         DirectMirScalarProgramCaseMathBuiltinSignatureExpected(name);
     if ArrayLength(case_math) != 0 { return case_math; }
+    let option_int: Array<String> =
+        DirectMirScalarProgramOptionIntBuiltinSignatureExpected(name);
+    if ArrayLength(option_int) != 0 { return option_int; }
     return DirectMirScalarProgramCollectionBuiltinSignatureExpected(name);
 }
 
@@ -75,11 +79,16 @@ func DirectMirScalarProgramBuiltinSignatureFactFromName(
     }
     if registry_row < 0 || returns[registry_row] != expected[0] ||
         params[registry_row] != expected[1] { return invalid; }
+    let return_type: String = DirectMirScalarProgramCaseMathBuiltinResultType(
+        name, returns[registry_row]);
+    return_type = DirectMirScalarProgramOptionIntBuiltinReturnType(
+        name, return_type);
+    let parameter_types: Array<String> =
+        DirectMirScalarProgramOptionIntBuiltinParameterTypes(
+            name, Split(params[registry_row], "|"));
     return DirectMirScalarProgramBuiltinSignatureFact(
-        true, registry_row, name,
-        DirectMirScalarProgramCaseMathBuiltinResultType(
-            name, returns[registry_row]),
-        Split(params[registry_row], "|"), ToInt(expected[2]));
+        true, registry_row, name, return_type,
+        parameter_types, ToInt(expected[2]));
 }
 
 func DirectMirScalarProgramBuiltinArgumentPrefixReady(

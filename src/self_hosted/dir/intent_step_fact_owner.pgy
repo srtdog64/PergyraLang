@@ -6,18 +6,12 @@ import "../semantic/ast_signature_fact_owner.pgy";
 import "../semantic/ast_intent_action_call_fact_owner.pgy";
 import "../semantic/ast_intent_call_fact_owner.pgy";
 import "../semantic/ast_intent_signature_fact_owner.pgy";
+import "../semantic/ast_intent_transition_row_owner.pgy";
 import "../semantic/ast_expression_surface_fact_owner.pgy";
 import "../mir/declaration_fact_owner.pgy";
 import "domain_topology_row_owner.pgy";
 import "intent_step_clause_fact_owner.pgy";
-
-struct SelfDirIntentStepHeader {
-    ok: Bool;
-    name: String;
-    predecessor_name: String;
-    where_zone_name: String;
-    using_alias: String;
-}
+import "intent_step_provenance_fact_owner.pgy";
 
 struct SelfDirIntentResolvedStep {
     ok: Bool;
@@ -27,6 +21,8 @@ struct SelfDirIntentResolvedStep {
     where_zone_name: String;
     where_declaration_index: Int;
     using_alias: String;
+    transfer_from_alias: String;
+    transfer_to_alias: String;
     receiver_alias: String;
     action_name: String;
     action_signature_index: Int;
@@ -39,7 +35,7 @@ struct SelfDirIntentResolvedStep {
     outcome_node_id: Int;
     outcome_name: String;
     outcome_type_name: String;
-    on_node_id: Int;
+    target_expression_node_id: Int;
     guard_node_id: Int;
     post_node_id: Int;
     expect_node_id: Int;
@@ -52,6 +48,7 @@ struct SelfDirIntentResolvedStep {
     requires_names: Array<String>;
     requires_declaration_indices: Array<Int>;
     authorized_names: Array<String>;
+    provenance: SelfDirIntentStepProvenanceRow;
     edge_count: Int;
 }
 
@@ -64,10 +61,11 @@ func SelfDirIntentResolvedStepError(
     let authorized_names: Array<String> = [];
     let compensate_node_ids: Array<Int> = [];
     return SelfDirIntentResolvedStep(
-        false, message, -1, "", "", -1, "", "", "", -1,
+        false, message, -1, "", "", -1, "", "", "", "", "", -1,
         "", -1, -1, "", "", -1, -1, "", "",
         -1, -1, -1, -1, compensate_node_ids, 0, -1, "", -1,
-        who_names, requires_names, requires_indices, authorized_names, 0
+        who_names, requires_names, requires_indices, authorized_names,
+        SelfDirIntentStepProvenanceRowEmpty(), 0
     );
 }
 
@@ -97,63 +95,6 @@ func SelfDirIntentUniqueParticipantForType(
         i = i + 1;
     }
     return found;
-}
-
-func SelfDirIntentStepHeaderFromText(
-    text: String
-) -> SelfDirIntentStepHeader {
-    if text == "" || StringIndexOf(text, " intent ") >= 0 ||
-        StringIndexOf(text, " transfer ") >= 0 {
-        return SelfDirIntentStepHeader(false, "", "", "", "");
-    }
-    let where_at: Int = StringIndexOf(text, " where ");
-    let using_at: Int = StringIndexOf(text, " using ");
-    if where_at >= 0 && using_at >= 0 && using_at < where_at {
-        return SelfDirIntentStepHeader(false, "", "", "", "");
-    }
-    let name_end: Int = StringLength(text);
-    if where_at >= 0 { name_end = where_at; }
-    if using_at >= 0 && using_at < name_end { name_end = using_at; }
-    let topology: String = StringTrim(Substring(text, 0, name_end));
-    let after_at: Int = StringIndexOf(topology, " after ");
-    let name: String = topology;
-    let predecessor_name: String = "";
-    if after_at >= 0 {
-        name = Substring(topology, 0, after_at);
-        predecessor_name = Substring(
-            topology, after_at + 7, StringLength(topology) - after_at - 7
-        );
-    }
-    let where_zone: String = "";
-    let using_alias: String = "";
-    if where_at >= 0 {
-        let where_end: Int = StringLength(text);
-        if using_at > where_at { where_end = using_at; }
-        where_zone = StringTrim(Substring(
-            text, where_at + 7, where_end - where_at - 7
-        ));
-    }
-    if using_at >= 0 {
-        using_alias = StringTrim(Substring(
-            text, using_at + 7, StringLength(text) - using_at - 7
-        ));
-    }
-    let canonical: String = name;
-    if predecessor_name != "" {
-        canonical = Concat(canonical, Concat(" after ", predecessor_name));
-    }
-    if where_zone != "" {
-        canonical = Concat(canonical, Concat(" where ", where_zone));
-    }
-    if using_alias != "" {
-        canonical = Concat(canonical, Concat(" using ", using_alias));
-    }
-    return SelfDirIntentStepHeader(
-        IsIdentifier(name) &&
-            (predecessor_name == "" || IsIdentifier(predecessor_name)) &&
-            canonical == text,
-        name, predecessor_name, where_zone, using_alias
-    );
 }
 
 func SelfDirIntentStepAppendActionContractRange(
@@ -199,8 +140,8 @@ func SelfDirIntentStepFromArtifact(
             "self-host DIR intent inline step header is unsupported"
         );
     }
-    let header: SelfDirIntentStepHeader =
-        SelfDirIntentStepHeaderFromText(UnwrapOption(step_header_opt));
+    let header: SemanticAstIntentStepHeaderRow =
+        SemanticAstIntentStepHeaderFromText(UnwrapOption(step_header_opt));
     if !header.ok {
         return SelfDirIntentResolvedStepError(
             "self-host DIR intent inline step header is unsupported"
@@ -211,9 +152,27 @@ func SelfDirIntentStepFromArtifact(
     if !clauses.ok {
         return SelfDirIntentResolvedStepError(clauses.diagnostic_message);
     }
+    let canonical_transfer: String = "";
+    if header.transfer_from_alias != "" && header.transfer_to_alias != "" {
+        canonical_transfer = Concat(
+            header.transfer_from_alias,
+            Concat(" -> ", header.transfer_to_alias)
+        );
+    }
+    if clauses.transfer_text != canonical_transfer {
+        return SelfDirIntentResolvedStepError(
+            "self-host DIR intent transfer header and row disagree"
+        );
+    }
     let step_name: String = header.name;
     let on_text: String = clauses.on_text;
     let on_node_id: Int = clauses.on_node_id;
+    if clauses.intent_text != header.intent_text ||
+        (on_text != "" && clauses.intent_text != "") {
+        return SelfDirIntentResolvedStepError(
+            "self-host DIR intent step target rows disagree"
+        );
+    }
     let outcome_node_id: Int = clauses.outcome_node_id;
     let outcome_name: String = clauses.outcome_name;
     let expect_node_id: Int = clauses.expect_node_id;
@@ -230,6 +189,24 @@ func SelfDirIntentStepFromArtifact(
     let who_names: Array<String> = clauses.who_names;
     let requires_names: Array<String> = clauses.requires_names;
     let authorized_names: Array<String> = clauses.authorized_names;
+    let inherited: SelfDirIntentStepProvenanceRow =
+        SelfDirIntentStepProvenanceRowEmpty();
+    if clauses.provenance_text != "" {
+        if !SelfDirIntentStepContractProvenanceTextReady(
+            clauses.provenance_text
+        ) {
+            return SelfDirIntentResolvedStepError(
+                "self-host DIR intent provenance row is unsupported"
+            );
+        }
+        inherited = SelfDirIntentStepContractProvenanceFromText(
+            clauses.provenance_text
+        );
+    }
+    let explicit_who: Bool = ArrayLength(who_names) > 0 &&
+        !inherited.who_from_intent;
+    let explicit_requires: Bool = ArrayLength(requires_names) > 0;
+    let explicit_authorized: Bool = ArrayLength(authorized_names) > 0;
 
     let action_call: SemanticAstIntentActionCallFact =
         SemanticAstIntentActionCallFromText(
@@ -239,8 +216,12 @@ func SelfDirIntentStepFromArtifact(
         );
     let intent_call: SemanticAstIntentCallFact =
         SemanticAstIntentCallFactInvalid();
+    let intent_expression_node_id: Int = on_node_id;
+    if clauses.intent_node_id >= 0 {
+        intent_expression_node_id = clauses.intent_node_id;
+    }
     intent_call = SemanticAstIntentCallFromGraph(
-        intent_signatures, expression_surfaces, on_node_id
+        intent_signatures, expression_surfaces, intent_expression_node_id
     );
     if action_call.ok && intent_call.ok {
         return SelfDirIntentResolvedStepError(
@@ -310,8 +291,10 @@ func SelfDirIntentStepFromArtifact(
     }
     let contracts: SemanticAstActionContractFacts = signatures.action_contracts;
     let where_zone: String = header.where_zone_name;
+    let action_where_default: Bool = false;
     if action_call.ok && where_zone == "" {
         where_zone = contracts.within_zone_names[action_index];
+        action_where_default = where_zone != "";
     } else if action_call.ok &&
         contracts.within_zone_names[action_index] != "" &&
         contracts.within_zone_names[action_index] != where_zone {
@@ -319,8 +302,51 @@ func SelfDirIntentStepFromArtifact(
             "self-host DIR intent explicit and action step zones disagree"
         );
     }
+    let where_from_transfer: Bool = false;
+    let using_from_transfer: Bool = false;
+    if header.transfer_from_alias != "" || header.transfer_to_alias != "" {
+        let from_row: Int = SelfDirIntentParticipantIndex(
+            participant_aliases, participant_start, participant_count,
+            header.transfer_from_alias
+        );
+        let to_row: Int = SelfDirIntentParticipantIndex(
+            participant_aliases, participant_start, participant_count,
+            header.transfer_to_alias
+        );
+        if from_row < 0 || to_row < 0 ||
+            participant_is_values[from_row] || participant_is_values[to_row] {
+            return SelfDirIntentResolvedStepError(
+                "self-host DIR intent transfer endpoint is unresolved"
+            );
+        }
+        let from_declaration: Int = SelfDirDeclarationIndexForName(
+            rows, participant_type_names[from_row]
+        );
+        let to_declaration: Int = SelfDirDeclarationIndexForName(
+            rows, participant_type_names[to_row]
+        );
+        if from_declaration < 0 || to_declaration < 0 ||
+            rows.nominal_kinds[from_declaration] != "zone" ||
+            rows.nominal_kinds[to_declaration] != "zone" {
+            return SelfDirIntentResolvedStepError(
+                "self-host DIR intent transfer endpoint is not a zone"
+            );
+        }
+        let transfer_zone: String = participant_type_names[to_row];
+        if where_zone == "" {
+            where_zone = transfer_zone;
+            where_from_transfer = true;
+        } else if where_zone != transfer_zone {
+            return SelfDirIntentResolvedStepError(
+                "self-host DIR intent transfer target and step zone disagree"
+            );
+        }
+    }
     let using_alias: String = explicit_using;
-    if action_call.ok && using_alias == "" {
+    if header.transfer_to_alias != "" && using_alias == "" {
+        using_alias = header.transfer_to_alias;
+        using_from_transfer = true;
+    } else if action_call.ok && using_alias == "" {
         using_alias = SelfDirIntentUniqueParticipantForType(
             participant_aliases, participant_type_names,
             participant_start, participant_count, where_zone
@@ -329,20 +355,26 @@ func SelfDirIntentStepFromArtifact(
     let using_row: Int = SelfDirIntentParticipantIndex(
         participant_aliases, participant_start, participant_count, using_alias
     );
-    if !action_call.ok && where_zone == "" && using_row >= 0 &&
+    let where_from_using: Bool = false;
+    if where_zone == "" && using_row >= 0 &&
         using_row < ArrayLength(participant_type_names) {
         where_zone = participant_type_names[using_row];
+        where_from_using = true;
     }
-    let where_index: Int = SelfDirDeclarationIndexForName(rows, where_zone);
-    if where_zone == "" || where_index < 0 ||
-        rows.nominal_kinds[where_index] != "zone" {
+    let where_index: Int = -1;
+    if where_zone != "" {
+        where_index = SelfDirDeclarationIndexForName(rows, where_zone);
+    }
+    if (action_call.ok && where_zone == "") ||
+        (where_zone != "" && (where_index < 0 ||
+        rows.nominal_kinds[where_index] != "zone")) {
         return SelfDirIntentResolvedStepError(
             "self-host DIR intent step zone is unresolved"
         );
     }
-    if using_alias == "" || using_row < 0 ||
+    if action_call.ok && (using_alias == "" || using_row < 0 ||
         participant_is_values[using_row] ||
-        participant_type_names[using_row] != where_zone {
+        participant_type_names[using_row] != where_zone) {
         let using_type: String = "<missing>";
         if using_row >= 0 && using_row < ArrayLength(participant_type_names) {
             using_type = participant_type_names[using_row];
@@ -360,6 +392,29 @@ func SelfDirIntentStepFromArtifact(
     }
     if action_call.ok && ArrayLength(who_names) == 0 {
         ArrayPush(who_names, receiver_alias);
+    }
+    let who_from_single_participant: Bool = false;
+    if intent_call.ok && ArrayLength(who_names) == 0 {
+        let subject_alias: String = "";
+        let subject_count: Int = 0;
+        let participant_i: Int = 0;
+        while participant_i < participant_count {
+            let participant_row: Int = participant_start + participant_i;
+            let declaration_index: Int = SelfDirDeclarationIndexForName(
+                rows, participant_type_names[participant_row]
+            );
+            if !participant_is_values[participant_row] &&
+                declaration_index >= 0 &&
+                rows.nominal_kinds[declaration_index] == "subject" {
+                subject_alias = participant_aliases[participant_row];
+                subject_count = subject_count + 1;
+            }
+            participant_i = participant_i + 1;
+        }
+        if subject_count == 1 {
+            ArrayPush(who_names, subject_alias);
+            who_from_single_participant = true;
+        }
     }
     if action_call.ok && ArrayLength(requires_names) == 0 &&
         !SelfDirIntentStepAppendActionContractRange(
@@ -443,16 +498,28 @@ func SelfDirIntentStepFromArtifact(
         ArrayLength(requires_names) + ArrayLength(authorized_names);
     if cause_name != "" { edge_count = edge_count + 1; }
     if predecessor >= 0 { edge_count = edge_count + 1; }
+    let provenance: SelfDirIntentStepProvenanceRow =
+        SelfDirIntentStepResolvedProvenance(
+            inherited.who_from_intent, inherited.where_from_intent,
+            who_from_single_participant,
+            action_call.ok, explicit_who, action_where_default,
+            where_from_using, where_from_transfer,
+            explicit_using != "", using_alias != "", using_from_transfer,
+            explicit_requires, ArrayLength(requires_names) > 0,
+            explicit_causes != "", cause_name != "",
+            explicit_authorized, ArrayLength(authorized_names) > 0
+        );
     return SelfDirIntentResolvedStep(
         true, "", step_node_id, step_name, where_zone, where_index,
-        using_alias, receiver_alias, action_name, action_index,
+        using_alias, header.transfer_from_alias, header.transfer_to_alias,
+        receiver_alias, action_name, action_index,
         target_kind, target_declaration_node_id, target_index, target_name,
         target_return_type_name, target_param_count,
         outcome_node_id, outcome_name, outcome_type_name,
-        on_node_id, clauses.guard_node_id, clauses.post_node_id,
+        intent_expression_node_id, clauses.guard_node_id, clauses.post_node_id,
         expect_node_id, clauses.compensate_node_ids, clauses.child_count,
         predecessor, cause_name, cause_index,
         who_names, requires_names, requires_indices, authorized_names,
-        edge_count
+        provenance, edge_count
     );
 }

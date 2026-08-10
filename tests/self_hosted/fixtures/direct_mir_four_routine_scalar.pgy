@@ -1,0 +1,17 @@
+// Declaration-free arbitrary-N scalar call graph falsifier.
+
+func Leaf(value: Int) -> Int {
+    return value + 1;
+}
+
+func Middle(value: Int) -> Int {
+    return Leaf(value) + 2;
+}
+
+func Top(value: Int) -> Int {
+    return Middle(value) + 3;
+}
+
+func Main() -> Void {
+    Log(Top(4));
+}

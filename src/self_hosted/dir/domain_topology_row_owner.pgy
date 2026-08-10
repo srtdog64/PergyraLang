@@ -203,6 +203,12 @@ func SelfDirDomainTopologyRowsFromArtifact(
             continue;
         }
         let kind: Int = UnwrapOption(kind_opt);
+        // State declarations own DIR graph edges, not runtime topology rows.
+        // Their exact field joins are carried by zone_state_row_fact_owner.
+        if kind == TypedAstKindDomainStateTag() {
+            node_id = node_id + 1;
+            continue;
+        }
         let parent_opt: Option<Int> = TypedAstArenaParentId(
             artifact.arena, node_id
         );

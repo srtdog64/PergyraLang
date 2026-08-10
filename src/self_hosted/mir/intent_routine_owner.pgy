@@ -128,13 +128,14 @@ func SelfMirIntentRoutineBuild(
     step_i = 0;
     while step_i < step_count {
         let step_row: Int = step_start + step_i;
-        let on_node_id: Int = intents.steps.on_node_ids[step_row];
+        let target_expression_node_id: Int =
+            intents.steps.target_expression_node_ids[step_row];
         let on_text: String = SelfMirIntentExpressionText(
-            input.analysis.expression_surfaces, on_node_id
+            input.analysis.expression_surfaces, target_expression_node_id
         );
         let on_graph: SemanticExpressionGraphView =
             SemanticAstExpressionGraphForNode(
-                input.analysis.expression_surfaces, on_node_id,
+                input.analysis.expression_surfaces, target_expression_node_id,
                 AstExpressionLaneAtom()
             );
         if on_text == "" || !on_graph.ok {
@@ -247,7 +248,8 @@ func SelfMirIntentRoutineBuild(
             );
         }
         if !build.ok { return build; }
-        let on_node_id: Int = intents.steps.on_node_ids[step_row];
+        let target_expression_node_id: Int =
+            intents.steps.target_expression_node_ids[step_row];
         let outcome_name: String = intents.steps.outcome_names[step_row];
         let outcome_type_name: String =
             intents.steps.outcome_type_names[step_row];
@@ -273,7 +275,7 @@ func SelfMirIntentRoutineBuild(
             );
         }
         build = SelfMirIntentAppendPhaseCarrier(
-            build, input, on_node_id, "on", step_name,
+            build, input, target_expression_node_id, "on", step_name,
             outcome_name, outcome_type_name
         );
         let compensate_i: Int = 0;

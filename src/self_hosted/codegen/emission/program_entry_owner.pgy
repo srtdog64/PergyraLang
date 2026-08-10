@@ -45,13 +45,20 @@ func GenerateCUnitFromSemanticArtifact(
         machine_declaration
     );
 }
+func CodegenAstArtifactFromTextObserved(
+    tree_text: String, observe_pressure: Bool
+) -> AstTreeArtifact {
+    if observe_pressure { Log("[codegen-pressure-stage] artifact:start"); }
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(tree_text);
+    if observe_pressure { Log("[codegen-pressure-stage] artifact:done"); }
+    return artifact;
+}
 func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
-    return GenerateCUnitFromAstArtifact(
-        AstTreeArtifactFromText(tree_text), require_entrypoint
-    );
+    return GenerateCUnitFromAstArtifact(CodegenAstArtifactFromTextObserved(
+        tree_text, false), require_entrypoint);
 }
 func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(tree_text);
+    let artifact: AstTreeArtifact = CodegenAstArtifactFromTextObserved(tree_text, false);
     return CheckCUnitFromSemanticArtifact(
         artifact,
         SemanticAstArtifactAnalyzeCompactBridge(artifact, require_entrypoint),
@@ -82,16 +89,12 @@ func GenerateCUnitFromTypedAstArtifact(
         SelfHostMachineLayerDeclarationEmpty()
     );
 }
-func GenerateCFromSemanticArtifact(
-    artifact: AstTreeArtifact,
-    semantic_analysis: SemanticAstArtifactAnalysis
-) -> String {
+func GenerateCFromSemanticArtifact(artifact: AstTreeArtifact,
+    semantic_analysis: SemanticAstArtifactAnalysis) -> String {
     return GenerateCUnitFromSemanticArtifact(
         artifact, semantic_analysis, true,
         SelfHostMachineLayerDeclarationEmpty()
     );
 }
-
 func GenerateCFromAstArtifact(artifact: AstTreeArtifact) -> String { return GenerateCUnitFromAstArtifact(artifact, true); }
-
 func GenerateCFromTypedAstArtifact(artifact: AstTreeArtifact) -> String { return GenerateCUnitFromTypedAstArtifact(artifact, true); }

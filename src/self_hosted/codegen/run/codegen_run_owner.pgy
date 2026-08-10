@@ -102,10 +102,8 @@ func RunCodegenFromArgs(args: Array<String>) -> Void {
         Log("[codegen-pressure-stage] input:start");
         let observed_text: String = CodegenReadAst(args[1]);
         Log("[codegen-pressure-stage] input:done");
-        Log("[codegen-pressure-stage] artifact:start");
         let observed_artifact: AstTreeArtifact =
-            AstTreeArtifactFromText(observed_text);
-        Log("[codegen-pressure-stage] artifact:done");
+            CodegenAstArtifactFromTextObserved(observed_text, true);
         Log("[codegen-pressure-stage] semantic:start");
         let observed_analysis: SemanticAstArtifactAnalysis =
             SemanticAstArtifactAnalyzeCompactBridge(observed_artifact, true);

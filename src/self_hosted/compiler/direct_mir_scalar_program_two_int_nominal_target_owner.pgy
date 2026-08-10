@@ -1,0 +1,70 @@
+// Target projection of the one admitted two-Int nominal physical row.
+
+import "direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+struct DirectMirScalarProgramTwoIntNominalTarget {
+    let valid: Bool;
+    let target_projection: String;
+    let target_capability_fingerprint: Int;
+    let c_type_name: String;
+    let c_field_type: String;
+    let llvm_type_name: String;
+    let llvm_aggregate_type: String;
+}
+
+func DirectMirScalarProgramTwoIntNominalTargetReadyFor(
+    ref projection: DirectMirScalarProgramTwoIntNominalTarget,
+    expected_target: String
+) -> Bool {
+    if !projection.valid ||
+        !CompilerTargetProjectionKnown(expected_target) ||
+        projection.target_projection != expected_target ||
+        projection.target_capability_fingerprint !=
+            CompilerTargetCapabilityFingerprint() {
+        return false;
+    }
+    if expected_target == CompilerTargetCpuCProjection() {
+        return projection.c_type_name == "pgy_scalar_nominal_value" &&
+            projection.c_field_type == "int32_t" &&
+            projection.llvm_type_name == "" &&
+            projection.llvm_aggregate_type == "";
+    }
+    return expected_target == CompilerTargetCpuLlvmProjection() &&
+        projection.c_type_name == "" && projection.c_field_type == "" &&
+        projection.llvm_type_name == "%pgy.scalar.nominal.value" &&
+        projection.llvm_aggregate_type == "{ i32, i32 }";
+}
+
+func DirectMirScalarProgramTwoIntNominalTargetFromFact(
+    ref fact: DirectMirScalarProgramTwoIntNominalAbiFact,
+    target: CompilerTargetProjectionFact
+) -> DirectMirScalarProgramTwoIntNominalTarget {
+    let is_c: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuCProjection());
+    let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuLlvmProjection());
+    if !DirectMirScalarProgramTwoIntNominalAbiFactReady(fact) ||
+        !fact.present || (!is_c && !is_llvm) {
+        Die("direct MIR two-Int nominal target projection is invalid");
+    }
+    let projection: DirectMirScalarProgramTwoIntNominalTarget =
+        DirectMirScalarProgramTwoIntNominalTarget(
+            true, target.projection, target.target_capability_fingerprint,
+            "", "", "", "");
+    if is_c {
+        projection = DirectMirScalarProgramTwoIntNominalTarget(
+            true, target.projection, target.target_capability_fingerprint,
+            "pgy_scalar_nominal_value", "int32_t", "", "");
+    } else {
+        projection = DirectMirScalarProgramTwoIntNominalTarget(
+            true, target.projection, target.target_capability_fingerprint,
+            "", "", "%pgy.scalar.nominal.value", "{ i32, i32 }");
+    }
+    if !DirectMirScalarProgramTwoIntNominalTargetReadyFor(
+        projection, target.projection
+    ) {
+        Die("direct MIR two-Int nominal target mapping is invalid");
+    }
+    return projection;
+}

@@ -1,0 +1,15 @@
+import "../../../src/self_hosted/compiler/dir_text_artifact_owner.pgy";
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    if ArrayLength(args) == 2 && args[0] == "--ast" {
+        Log(ParseRootProgram(args[1]));
+        return;
+    }
+    if ArrayLength(args) != 1 {
+        Exit(1);
+        return;
+    }
+    Log(CompileSourceDirTextVerified(args[0]));
+}

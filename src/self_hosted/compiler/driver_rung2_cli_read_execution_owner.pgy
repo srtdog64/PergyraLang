@@ -1,6 +1,8 @@
 // Read-only DRV-2 request execution owner shared by both composition roots.
 
 import "driver_rung2_cli_request_owner.pgy";
+import "capability_manifest_owner.pgy";
+import "dir_text_artifact_owner.pgy";
 import "compiler_world_direct_mir_owner.pgy";
 import "canonical_mir_execution_owner.pgy";
 import "../lexer/scan_owner.pgy";
@@ -43,6 +45,16 @@ func DriverRung2ExecuteReadRequest(
         case DriverCliSourceAstStdout(source_path):
             Log(ParseRootProgram(source_path));
             Log("");
+        case DriverCliSourceCapabilityManifestStdout(source_path):
+            CompilerCapabilityManifestOutcomeEmitOrDie(
+                CompileSourceCapabilityManifestVerified(source_path)
+            );
+        case DriverCliSourceDirStdout(source_path):
+            Log(CompileSourceDirTextVerified(source_path));
+        case DriverCliMachineManifestStdout(manifest_path):
+            Log(SelfHostMachineLayerDeclarationArtifactPayloadFromPathVerified(
+                manifest_path
+            ));
         case DriverCliSourceCStdout(source_path):
             Log(CompileSourceToCVerified(
                 source_path, SelfHostMachineLayerDeclarationEmpty()

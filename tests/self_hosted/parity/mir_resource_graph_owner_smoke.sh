@@ -13,7 +13,7 @@ BODY="$ROOT_DIR/.tmp/mir-resource-graph-owner.smoke.body"
 awk '
     /^func SelfMirRoutineResourceTypeForInstruction\(/ { inside=1 }
     inside { print }
-    inside && /^func / && !/SelfMirRoutineResourceTypeForInstruction/ { exit }
+    inside && /^}/ { exit }
 ' "$OWNER" >"$BODY"
 
 grep -Fq 'view: SemanticExpressionGraphView' "$BODY" || {

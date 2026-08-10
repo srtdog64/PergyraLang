@@ -149,4 +149,4 @@ if grep -Eq '"Intent[A-Za-z0-9_]*\^(Int|Bool|String)\^' \
     exit 1
 fi
 
-echo "[intent-observability-abi] 51 native/self-host registry rows: ok"
+echo "[intent-observability-abi] 51 native/self-host registry rows plus non-positional identity and parameter-shape negatives: ok"

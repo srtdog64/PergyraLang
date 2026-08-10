@@ -96,18 +96,27 @@ reject_text() {
     fi
 }
 
+function_body_text() {
+    local rel="$1"
+    local signature="$2"
+
+    [[ -f "$ROOT_DIR/$rel" ]] || fail "missing function input: $rel"
+    awk -v signature="$signature" '
+        index($0, signature) == 1 { in_function = 1 }
+        in_function && seen && /^func / { exit }
+        in_function { print; seen = 1 }
+        in_function && index($0, signature) == 1 && /\{.*\}/ { exit }
+        in_function && /^}/ { exit }
+    ' "$ROOT_DIR/$rel"
+}
+
 reject_function_text() {
     local rel="$1"
     local signature="$2"
     local term="$3"
     local body
 
-    [[ -f "$ROOT_DIR/$rel" ]] || fail "missing function input: $rel"
-    body="$(awk -v signature="$signature" '
-        index($0, signature) == 1 { in_function = 1 }
-        in_function && seen && /^func / { exit }
-        in_function { print; seen = 1 }
-    ' "$ROOT_DIR/$rel")"
+    body="$(function_body_text "$rel" "$signature")"
     [[ -n "$body" ]] || fail "$rel missing function: $signature"
     [[ "$body" != *"$term"* ]] ||
         fail "$rel function $signature must not contain retired term: $term"
@@ -130,12 +139,7 @@ require_function_text() {
     local term="$3"
     local body
 
-    [[ -f "$ROOT_DIR/$rel" ]] || fail "missing function input: $rel"
-    body="$(awk -v signature="$signature" '
-        index($0, signature) == 1 { in_function = 1 }
-        in_function && seen && /^func / { exit }
-        in_function { print; seen = 1 }
-    ' "$ROOT_DIR/$rel")"
+    body="$(function_body_text "$rel" "$signature")"
     [[ -n "$body" ]] || fail "$rel missing function: $signature"
     [[ "$body" == *"$term"* ]] ||
         fail "$rel function $signature missing term: $term"
@@ -1316,6 +1320,16 @@ require_text "src/self_hosted/parser/decl_ability_owner.pgy" 'import "function_d
 require_text "src/self_hosted/parser/decl_role_owner.pgy" 'import "function_decl_owner.pgy";'
 require_text "src/self_hosted/parser/decl_nominal_owner.pgy" 'import "function_decl_owner.pgy";'
 require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'import "expr_owner.pgy";'
+require_file "src/self_hosted/parser/intent_default_clause_owner.pgy"
+require_max_lines "src/self_hosted/parser/intent_default_clause_owner.pgy" 100
+require_text "src/self_hosted/parser/intent_default_clause_owner.pgy" \
+    'func ParserIntentDefaultClauseFromSource('
+require_text "src/self_hosted/parser/intent_default_clause_owner.pgy" \
+    'func ParserIntentStepDefaultsResolve('
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/parser/intent_default_clause_owner.pgy'
+require_text "src/self_hosted/parser/decl_intent_owner.pgy" \
+    'ContractProvenance: '
 require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'let parameter_lines: Array<String> = [];'
 require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'ArrayPush(parameter_lines, Concat("IntentBinding: ", row));'
 reject_text "src/self_hosted/parser/decl_intent_owner.pgy" 'ArrayPush(parameter_lines, Concat("IntentInvolves: ", row));'
@@ -1420,11 +1434,13 @@ reject_text "src/self_hosted/semantic/ast_intent_call_fact_owner.pgy" \
 require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
     'import "../semantic/ast_intent_call_fact_owner.pgy";'
 require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
-    "expression_surfaces, on_node_id"
+    "expression_surfaces, intent_expression_node_id"
 require_text "src/self_hosted/dir/intent_row_owner.pgy" \
     "target_kinds: Array<String>;"
 require_text "src/self_hosted/dir/intent_row_owner.pgy" \
     "target_declaration_node_ids: Array<Int>;"
+require_text "src/self_hosted/dir/intent_row_owner.pgy" \
+    "target_expression_node_ids: Array<Int>;"
 require_file "tests/self_hosted/parity/fixture/intent_nested_call_reachability.pgy"
 require_text "tests/self_hosted/parity/fixture/intent_nested_call_reachability.pgy" \
     "on: IntakeSource(intake, source, paths);"
@@ -1461,9 +1477,20 @@ require_text \
     "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
     "SemanticAstBodyExpressionEnvironmentSeed("
 require_file "src/self_hosted/dir/intent_fact_owner.pgy"
-require_max_lines "src/self_hosted/dir/intent_fact_owner.pgy" 560
+require_max_lines "src/self_hosted/dir/intent_fact_owner.pgy" 580
 require_file "src/self_hosted/dir/intent_step_fact_owner.pgy"
-require_max_lines "src/self_hosted/dir/intent_step_fact_owner.pgy" 470
+require_max_lines "src/self_hosted/dir/intent_step_fact_owner.pgy" 540
+reject_file "src/self_hosted/dir/intent_step_header_fact_owner.pgy"
+require_file "src/self_hosted/semantic/ast_intent_transition_row_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_intent_transition_row_owner.pgy" 240
+require_text "src/self_hosted/semantic/ast_intent_transition_row_owner.pgy" \
+    'func SemanticAstIntentStepHeaderFromText('
+require_text "src/self_hosted/semantic/ast_intent_transition_row_owner.pgy" \
+    'intent_text: String;'
+require_text "src/self_hosted/semantic/ast_intent_transition_row_owner.pgy" \
+    'transfer_from_alias: String;'
+require_text "src/self_hosted/semantic/ast_intent_transition_row_owner.pgy" \
+    'transfer_to_alias: String;'
 require_file "src/self_hosted/dir/intent_step_target_contract_owner.pgy"
 require_max_lines "src/self_hosted/dir/intent_step_target_contract_owner.pgy" 100
 require_text "src/self_hosted/dir/intent_fact_owner.pgy" \
@@ -1475,13 +1502,40 @@ require_max_lines "src/self_hosted/dir/intent_row_owner.pgy" 80
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/dir/intent_row_owner.pgy"
 require_file "src/self_hosted/dir/intent_step_clause_fact_owner.pgy"
-require_max_lines "src/self_hosted/dir/intent_step_clause_fact_owner.pgy" 220
+require_max_lines "src/self_hosted/dir/intent_step_clause_fact_owner.pgy" 240
 require_file "src/self_hosted/dir/intent_step_carriage_contract_owner.pgy"
 require_max_lines "src/self_hosted/dir/intent_step_carriage_contract_owner.pgy" 120
+require_text "src/self_hosted/dir/intent_step_carriage_contract_owner.pgy" \
+    'steps.target_kinds[i] == "action"'
+require_text "src/self_hosted/dir/intent_step_carriage_contract_owner.pgy" \
+    'TypedAstKindIntentStepIntentTag()'
+require_text "src/self_hosted/dir/intent_step_carriage_contract_owner.pgy" \
+    'target_ready = target_ready || TypedAstArenaNodeKindIs('
+reject_text "src/self_hosted/dir/intent_row_owner.pgy" \
+    '    on_node_ids: Array<Int>;'
+require_text "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" \
+    'TypedAstKindIntentStepIntentTag()'
+require_text "src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy" \
+    'TypedAstKindIntentStepIntentTag()'
+require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    'kind = TypedAstKindIntentStepIntentTag();'
+require_text "src/self_hosted/parser/decl_intent_owner.pgy" \
+    'expression_graphs, TypedAstKindIntentStepIntentTag()'
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/dir/intent_step_clause_fact_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/dir/intent_step_carriage_contract_owner.pgy"
+require_file "src/self_hosted/dir/intent_step_provenance_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/dir/intent_step_provenance_fact_owner.pgy" 190
+require_text "src/self_hosted/dir/intent_step_provenance_fact_owner.pgy" \
+    'func SelfDirIntentStepResolvedProvenance('
+require_text "src/self_hosted/dir/intent_step_provenance_fact_owner.pgy" \
+    'func SelfDirIntentStepProvenanceFactsReady('
+require_text "src/self_hosted/dir/intent_step_provenance_fact_owner.pgy" \
+    'func SelfDirIntentStepContractProvenanceFromText('
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/dir/intent_step_provenance_fact_owner.pgy"
 require_file "src/self_hosted/mir/intent_routine_owner.pgy"
 require_max_lines "src/self_hosted/mir/intent_routine_owner.pgy" 500
 require_text "src/self_hosted/OWNERS.md" \
@@ -1881,8 +1935,82 @@ require_text "src/self_hosted/dir/domain_graph_fact_owner.pgy" \
     'ArrayLength(intents.intent_node_ids)'
 require_text "src/self_hosted/dir/domain_graph_fact_owner.pgy" \
     'intents.edge_count'
+require_text "src/self_hosted/dir/domain_graph_fact_owner.pgy" \
+    'SelfDirZoneStateRowsFromArtifact(artifact, rows)'
+require_text "src/self_hosted/dir/domain_graph_fact_owner.pgy" \
+    'intents.edge_count + ArrayLength(zone_states.names)'
 reject_text "src/self_hosted/dir/domain_graph_fact_owner.pgy" \
     'UnwrapOption(node_kind) == TypedAstKindIntentDeclTag() ||'
+require_file "src/self_hosted/dir/domain_graph_inventory_owner.pgy"
+require_max_lines "src/self_hosted/dir/domain_graph_inventory_owner.pgy" 810
+require_text "src/self_hosted/dir/domain_graph_inventory_owner.pgy" \
+    'struct SelfDirGraphInventoryFacts'
+require_text "src/self_hosted/dir/domain_graph_inventory_owner.pgy" \
+    'func SelfDirGraphInventoryFactsFromAdmittedFacts('
+require_text "src/self_hosted/dir/domain_graph_inventory_owner.pgy" \
+    'func SelfDirGraphInventoryFactsReady('
+require_text "src/self_hosted/dir/domain_graph_inventory_owner.pgy" \
+    'facts, "zone-state", node_id, node_id'
+reject_text "src/self_hosted/dir/domain_graph_inventory_owner.pgy" \
+    'SelfDirDomainGraphAnchor('
+reject_text "src/self_hosted/dir/domain_graph_inventory_owner.pgy" \
+    'TypedAstArenaProvenanceText('
+reject_text "src/self_hosted/dir/domain_graph_fact_owner.pgy" \
+    'domain_graph_inventory_owner.pgy'
+require_file "src/self_hosted/dir/zone_state_row_fact_owner.pgy"
+require_max_lines "src/self_hosted/dir/zone_state_row_fact_owner.pgy" 300
+require_text "src/self_hosted/dir/zone_state_row_fact_owner.pgy" \
+    'struct SelfDirZoneStateRows'
+require_text "src/self_hosted/dir/zone_state_row_fact_owner.pgy" \
+    'func SelfDirZoneStateRowsFromArtifact('
+require_text "src/self_hosted/dir/zone_state_row_fact_owner.pgy" \
+    'SelfDirFieldSourceSyntaxId('
+reject_text "src/self_hosted/dir/zone_state_row_fact_owner.pgy" \
+    'TypedAstArenaProvenanceText('
+require_text "src/self_hosted/dir/domain_topology_row_owner.pgy" \
+    'if kind == TypedAstKindDomainStateTag() {'
+require_text "src/self_hosted/parser/decl_zone_owner.pgy" \
+    'ParserCharAt(content, i) != "\n"'
+require_file "src/self_hosted/compiler/dir_text_artifact_owner.pgy"
+require_max_lines "src/self_hosted/compiler/dir_text_artifact_owner.pgy" 220
+require_file "src/self_hosted/compiler/dir_intent_text_artifact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/dir_intent_text_artifact_owner.pgy" 220
+require_file "src/self_hosted/compiler/dir_text_row_format_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/dir_text_row_format_owner.pgy" 40
+require_text "src/self_hosted/compiler/dir_text_artifact_owner.pgy" \
+    'SelfDirGraphInventoryFactsFromAdmittedFacts('
+require_text "src/self_hosted/compiler/dir_text_artifact_owner.pgy" \
+    'self-host DIR node/edge census diverged from its inventory'
+require_text "src/self_hosted/compiler/dir_text_artifact_owner.pgy" \
+    'CompilerDirIntentTextFromFacts('
+require_text "src/self_hosted/compiler/dir_intent_text_artifact_owner.pgy" \
+    'facts.steps.provenance'
+require_text "src/self_hosted/compiler/dir_intent_text_artifact_owner.pgy" \
+    'authorized_by_provenance action-inherited'
+require_text "src/self_hosted/compiler/dir_intent_text_artifact_owner.pgy" \
+    'facts.steps.transfer_from_aliases[row]'
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
+    'func TypedAstKindIntentStepContractProvenanceTag() -> Int { return 88; }'
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
+    'func TypedAstKindIntentStepIntentTag() -> Int { return 89; }'
+require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    'return TypedAstKindIntentStepContractProvenanceTag();'
+reject_text "src/self_hosted/compiler/dir_intent_text_artifact_owner.pgy" \
+    'TypedAstArenaProvenanceText('
+reject_text "src/self_hosted/compiler/dir_text_artifact_owner.pgy" \
+    'SelfDirDomainGraphAnchor('
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/dir/domain_graph_inventory_owner.pgy'
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/dir/zone_state_row_fact_owner.pgy'
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/compiler/dir_text_artifact_owner.pgy'
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/compiler/dir_intent_text_artifact_owner.pgy'
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/compiler/dir_text_row_format_owner.pgy'
 require_text "src/self_hosted/dir/intent_fact_owner.pgy" \
     'func SelfDirIntentFactsReady('
 require_text "src/self_hosted/dir/intent_fact_owner.pgy" \
@@ -2046,6 +2174,39 @@ require_text "src/self_hosted/semantic/program_check_owner.pgy" 'import "body_ch
 require_text "src/self_hosted/semantic/program_check_owner.pgy" 'import "builtin_signature_owner.pgy";'
 require_file "src/self_hosted/semantic/builtin_signature_owner.pgy"
 require_max_lines "src/self_hosted/semantic/builtin_signature_owner.pgy" 600
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Now^Int^none"'
+require_file "src/self_hosted/semantic/builtin_capability_projection_owner.pgy"
+require_max_lines "src/self_hosted/semantic/builtin_capability_projection_owner.pgy" 120
+require_text "src/self_hosted/semantic/builtin_capability_projection_owner.pgy" \
+    "func SemanticBuiltinCapabilityRowForName("
+require_text "src/self_hosted/semantic/builtin_capability_projection_owner.pgy" \
+    "func SemanticBuiltinFileModeCapabilityMask("
+require_file "src/self_hosted/semantic/ast_capability_fact_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_capability_fact_owner.pgy" 500
+require_text "src/self_hosted/semantic/ast_capability_fact_owner.pgy" \
+    "struct SemanticAstCapabilityFacts"
+require_text "src/self_hosted/semantic/ast_capability_fact_owner.pgy" \
+    "SemanticAstCapabilityObserveCallRange("
+require_text "src/self_hosted/semantic/ast_capability_fact_owner.pgy" \
+    "SemanticCallSpineViewForCallNodeWithin("
+require_text "src/self_hosted/semantic/ast_capability_fact_owner.pgy" \
+    "analysis.signatures.action_contracts.caps_node_ids[callable]"
+require_file "src/self_hosted/compiler/capability_manifest_owner.pgy"
+require_max_lines "src/self_hosted/compiler/capability_manifest_owner.pgy" 130
+require_text "src/self_hosted/compiler/capability_manifest_owner.pgy" \
+    "SemanticAstCapabilityFactsFromAdmittedBody("
+reject_text "src/self_hosted/compiler/capability_manifest_owner.pgy" \
+    "SemanticBuiltinCapabilityRowForName("
+require_file "scripts/render_builtin_capability_registry.py"
+require_file "src/semantic/builtin_capability_registry.def"
+require_file "src/runtime/pgy_file_mode_capability.def"
+require_file "tests/builtin_capability_registry_smoke.sh"
+require_file "tests/builtin_capability_registry_probe.c"
+require_text "src/semantic/type_checker_program.c" \
+    "capability_builtin_registry_ready()"
+reject_regex_under "src/semantic" \
+    "semantic_record_capability\(ctx, PGY_CAP"
+require_text "Makefile" "builtin-capability-registry-test-smoke:"
 require_file "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy"
 require_max_lines "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy" 140
 require_text "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy" \
@@ -2335,10 +2496,20 @@ require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
     '"[codegen-pressure-stage] input:start"'
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
     '"[codegen-pressure-stage] input:done"'
-require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
+require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" \
     '"[codegen-pressure-stage] artifact:start"'
+require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" \
+    '"[codegen-pressure-stage] artifact:done"'
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
     '"[codegen-pressure-stage] semantic:done"'
+require_function_text \
+    "src/self_hosted/codegen/emission/program_entry_owner.pgy" \
+    "func CodegenAstArtifactFromTextObserved(" \
+    "AstTreeArtifactFromText(tree_text)"
+require_function_text \
+    "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
+    "func RunCodegenFromArgs(" \
+    "CodegenAstArtifactFromTextObserved(observed_text, true)"
 require_function_text \
     "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
     "func RunCodegenFromArgs(" \
@@ -5295,8 +5466,13 @@ require_max_lines "src/self_hosted/compiler/machine_layer_runtime_projection_own
 require_text "src/self_hosted/compiler/machine_layer_runtime_projection_owner.pgy" \
     "CompilerRuntimeCallAbiMachineLayerContactNameForSource("
 require_file "src/self_hosted/compiler/machine_layer_declaration_consumer.pgy"
+require_max_lines "src/self_hosted/compiler/machine_layer_declaration_consumer.pgy" 260
 require_text "src/self_hosted/compiler/machine_layer_declaration_consumer.pgy" \
     "SelfHostMachineLayerDeclarationFromPath"
+require_text "src/self_hosted/compiler/machine_layer_declaration_consumer.pgy" \
+    "SelfHostMachineLayerDeclarationArtifactPayloadFromPathVerified("
+require_text "src/self_hosted/compiler/machine_layer_declaration_consumer.pgy" \
+    "CharCode(payload, length, length - 2) == 13"
 require_text "src/self_hosted/compiler/machine_layer_declaration_consumer.pgy" \
     "MachineDeclarationPhysicalManifestIdReady"
 require_text "src/self_hosted/mir/machine_layer_projection_owner.pgy" \
@@ -6689,32 +6865,24 @@ require_function_text \
     "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy" \
     "func SemanticExpressionGraphNominalConstructorCallFactFromGraph(" \
     "if !IsSome(maximum_opt)"
-static_function_body="$(awk '
-    index($0, "transpiler_call_targets_static_function(") == 1 {
-        in_function = 1
-    }
-    in_function { print }
-    in_function && /^}$/ { exit }
-' "$ROOT_DIR/src/codegen/transpiler_mir_ssa_contract.c")"
-[[ -n "$static_function_body" ]] ||
-    fail "missing C function: transpiler_call_targets_static_function("
 for static_identity_term in \
     "ast_call_semantic_callee_decl_id(call)" \
     "transpiler_active_routine_lookup_by_source_syntax_id(" \
     "lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE" \
     "transpiler_mir_routine_kind(lookup.routine) == MIR_SCOPE_FUNCTION"; do
-    [[ "$static_function_body" == *"$static_identity_term"* ]] ||
-        fail "static-call identity owner missing term: $static_identity_term"
+    require_function_text \
+        "src/codegen/transpiler_mir_ssa_contract.c" \
+        "transpiler_call_targets_static_function(" \
+        "$static_identity_term"
 done
-for retired_namespace_guess in \
+reject_function_terms \
+    "src/codegen/transpiler_mir_ssa_contract.c" \
+    "transpiler_call_targets_static_function(" \
     "pergyra_strdup_printf" \
     "receiver_name" \
     "lookup_typed_var" \
     "is_slot_var" \
-    "transpiler_function_decl_exists_local"; do
-    [[ "$static_function_body" != *"$retired_namespace_guess"* ]] ||
-        fail "static-call identity owner reopened fallback: $retired_namespace_guess"
-done
+    "transpiler_function_decl_exists_local"
 reject_text "src/codegen/transpiler_inventory_view.c" \
     "routine->source_syntax_id"
 require_file "src/self_hosted/semantic/ast_domain_query_protocol_owner.pgy"
@@ -7387,8 +7555,8 @@ match_binding_fast_path_order="$(awk '
     /func SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts\(/ { active = 1 }
     active && /if ArrayLength\(case_nodes\) == 0/ && !fast { fast = NR }
     active && /SemanticAstEnumRowsReady\(enums\)/ && !global { global = NR }
-    active && seen && /^func / { exit }
     active { seen = 1 }
+    active && /^}/ { exit }
     END { if (fast && global && fast < global) print "ok" }
 ' "$ROOT_DIR/src/self_hosted/semantic/ast_match_binding_environment_owner.pgy")"
 [[ "$match_binding_fast_path_order" == "ok" ]] ||
@@ -7563,17 +7731,39 @@ require_file "src/self_hosted/compiler/driver_rung2_cli_owner.pgy"
 require_max_lines "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 40
 require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" "func RunDriverRung2FromArgs"
 require_file "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
-require_max_lines "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 260
+require_max_lines "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 280
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     "enum DriverRung2CliRequest"
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     "func DriverRung2CliRequestFromArgsOrDie("
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    "DriverCliMachineManifestStdout(String)"
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    "DriverCliSourceCapabilityManifestStdout(String)"
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    "DriverCliSourceDirStdout(String)"
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    'args[0] == "--emit-machine-manifest-verified"'
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    'args[0] == "--emit-capability-manifest-verified"'
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    'args[0] == "--emit-dir-verified"'
 require_file "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
 require_max_lines "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" 140
 require_file "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
 require_max_lines "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" 160
 reject_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     "io_write"
+require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
+    "SelfHostMachineLayerDeclarationArtifactPayloadFromPathVerified("
+require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
+    "CompileSourceDirTextVerified(source_path)"
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+    "case DriverCliMachineManifestStdout(manifest_path):"
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+    "case DriverCliSourceCapabilityManifestStdout(source_path):"
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+    "case DriverCliSourceDirStdout(source_path):"
 reject_regex_under "src/self_hosted/compiler" \
     "DriverRung2OptionalMachineDeclaration\\("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func RunDriverRung2FromArgs"
@@ -7614,6 +7804,8 @@ reject_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "CheckB
 reject_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "LoadSemanticSource"
 require_file "src/compiler/self_host_driver.c"
 require_file "src/compiler/self_host_driver.h"
+require_file "src/compiler/self_host_machine_manifest_artifact_owner.c"
+require_file "src/compiler/self_host_machine_manifest_artifact_owner.h"
 require_file "src/compiler/self_host_mir_artifact_owner.c"
 require_file "src/compiler/self_host_mir_artifact_owner.h"
 require_file "src/compiler/self_host_llvm_driver.c"
@@ -7630,9 +7822,13 @@ require_file "src/compiler/compiler_self_host_artifact.c"
 require_file "src/compiler/compiler_transient_artifact_workspace.c"
 require_file "src/compiler/compiler_transient_artifact_workspace.h"
 require_file "tests/self_hosted/parity/self_host_compiler_build.sh"
+require_max_lines "tests/self_hosted/parity/self_host_compiler_build.sh" 220
 require_file "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh"
+require_file "tests/self_hosted/parity/public_machine_manifest_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_tokens_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_ast_installed_self_host_owner.sh"
+require_file "tests/self_hosted/parity/public_capability_manifest_installed_self_host_owner.sh"
+require_file "tests/self_hosted/parity/public_dir_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh"
 require_file "tests/self_hosted/parity/public_llvm_ir_stdout_installed_self_host_owner.sh"
@@ -7647,10 +7843,14 @@ require_text "src/self_hosted/parser/program_parse_owner.pgy" \
 require_max_lines "src/compiler/self_host_driver.c" 230
 require_max_lines "src/compiler/self_host_mir_artifact_owner.c" 90
 require_max_lines "src/compiler/self_host_llvm_driver.c" 120
-require_max_lines "src/compiler/driver_self_host_selection_owner.c" 110
+require_max_lines "src/compiler/driver_self_host_selection_owner.c" 140
+require_max_lines "src/compiler/self_host_machine_manifest_artifact_owner.c" 70
 require_max_lines "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh" 140
+require_max_lines "tests/self_hosted/parity/public_machine_manifest_installed_self_host_owner.sh" 140
 require_max_lines "tests/self_hosted/parity/public_tokens_installed_self_host_owner.sh" 120
 require_max_lines "tests/self_hosted/parity/public_ast_installed_self_host_owner.sh" 140
+require_max_lines "tests/self_hosted/parity/public_capability_manifest_installed_self_host_owner.sh" 180
+require_max_lines "tests/self_hosted/parity/public_dir_installed_self_host_owner.sh" 140
 require_max_lines "src/compiler/driver_self_host_llvm_selection_owner.c" 60
 require_max_lines "src/compiler/self_host_llvm_ir_artifact_owner.c" 90
 require_max_lines "tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh" 140
@@ -7672,8 +7872,18 @@ require_text "src/pgy_driver.c" 'strcmp(argv[1], "--self-driver") == 0'
 require_text "src/pgy_driver.c" "driver_run_self_host_command"
 require_text "src/pgy_driver.c" "driver_self_host_mir_json_request_supported"
 require_text "src/pgy_driver.c" "driver_run_self_host_mir_json"
-require_text "src/pgy_driver.c" "driver_self_host_source_read_mode"
-require_text "src/pgy_driver.c" "driver_run_self_host_source_read"
+require_text "src/pgy_driver.c" "driver_self_host_source_stdout_mode"
+require_text "src/pgy_driver.c" "driver_run_self_host_source_stdout"
+require_text "src/pgy_driver.c" \
+    "flags.dump_tokens || flags.dump_ast"
+require_text "src/pgy_driver.c" \
+    "flags.dump_capability_manifest || flags.dump_dir"
+require_text "src/pgy_driver.c" \
+    "flags.dump_dir"
+require_text "src/pgy_driver.c" \
+    "driver_self_host_machine_manifest_request_supported(&flags)"
+require_text "src/pgy_driver.c" \
+    "driver_write_self_host_machine_manifest(argv[0])"
 require_text "src/pgy_driver.c" \
     "driver_self_host_llvm_ir_file_request_supported"
 require_text "src/pgy_driver.c" \
@@ -7697,7 +7907,13 @@ require_text "src/pgy_driver.c" \
 require_text "src/compiler/driver_self_host_selection_owner.c" \
     "driver_plain_binary_target_requested("
 require_text "src/compiler/driver_self_host_selection_owner.c" \
-    "driver_self_host_source_read_mode("
+    "driver_self_host_source_stdout_mode("
+require_text "src/compiler/driver_self_host_selection_owner.c" \
+    '"--emit-capability-manifest-verified"'
+require_text "src/compiler/driver_self_host_selection_owner.c" \
+    '"--emit-dir-verified"'
+require_text "src/compiler/driver_self_host_selection_owner.c" \
+    "driver_self_host_machine_manifest_request_supported("
 require_text "src/compiler/driver_self_host_selection_owner.c" \
     "flags->runtime_mode == RUNTIME_DEFAULT"
 reject_text "src/compiler/driver_self_host_selection_owner.c" "driver_run_pipeline("
@@ -7706,6 +7922,12 @@ require_text "src/compiler/driver_self_host_llvm_selection_owner.c" \
 require_text "src/compiler/driver_self_host_llvm_selection_owner.c" \
     "flags->output_path != NULL"
 reject_text "src/compiler/driver_self_host_llvm_selection_owner.c" \
+    "driver_run_pipeline("
+require_text "src/compiler/self_host_machine_manifest_artifact_owner.c" \
+    'child_argv[1] = "--emit-machine-manifest-verified";'
+require_text "src/compiler/self_host_machine_manifest_artifact_owner.c" \
+    'path_replace_extension('
+reject_text "src/compiler/self_host_machine_manifest_artifact_owner.c" \
     "driver_run_pipeline("
 require_text "src/compiler/self_host_driver.c" 'getenv("PGY_SELF_DRIVER_BIN")'
 require_text "src/compiler/self_host_driver.c" 'path_join_dup(directory, "pgy-self-driver")'
@@ -7727,6 +7949,8 @@ require_text "src/compiler/self_host_driver.c" \
     'strcmp(argv[0], "--tokens") == 0'
 require_text "src/compiler/self_host_driver.c" \
     'strcmp(argv[0], "--ast") == 0'
+require_text "src/compiler/self_host_driver.c" \
+    'strcmp(argv[0], "--emit-capability-manifest-verified") == 0'
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     "DriverCliSourceTokensStdout(String)"
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
@@ -7735,14 +7959,20 @@ require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     "DriverCliSourceAstStdout(String)"
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[0] == "--ast"'
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    "DriverCliSourceCapabilityManifestStdout(String)"
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     "Log(LexContent(source_path, LexerReadSource(source_path)));"
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     "Log(ParseRootProgram(source_path));"
+require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
+    "CompileSourceCapabilityManifestVerified(source_path)"
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     "case DriverCliSourceTokensStdout(source_path):"
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     "case DriverCliSourceAstStdout(source_path):"
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+    "case DriverCliSourceCapabilityManifestStdout(source_path):"
 require_function_text "src/compiler/self_host_mir_artifact_owner.c" \
     "driver_materialize_self_host_mir_artifact(" \
     'child_argv[1] = "--emit-mir-json-verified";'
@@ -7812,10 +8042,16 @@ require_text "tests/self_host_live_replacement_smoke.sh" \
 require_text "tests/self_host_live_replacement_smoke.sh" \
     'compile_live_emitted_c() {'
 require_text "Makefile" "self-host-compiler:"
+require_text "Makefile" \
+    '$(COMPILER_DIR)/self_host_machine_manifest_artifact_owner.c'
 require_text "Makefile" "self-host-compiler: self-host-codegen-bootstrap-seed-test-smoke"
 reject_text "Makefile" '$(call pgy_run_native,"$(PGY)" src/self_hosted/compiler/driver_rung2_main.pgy'
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'DRIVER_SOURCE="src/self_hosted/compiler/driver_bootstrap_main.pgy"'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    '"machine_manifest=$(hash_file "$MANIFEST_SOURCE")"'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    '--emit-machine-manifest-verified'
 reject_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'DRIVER_SOURCE="src/self_hosted/compiler/driver_rung2_main.pgy"'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
@@ -7830,6 +8066,18 @@ require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
 reject_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "args["
 require_file "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh"
 require_text "Makefile" "self-host-installed-driver-cli-mode-test-smoke"
+require_text "Makefile" \
+    "self-host-public-machine-manifest-replacement-test-smoke:"
+require_text "Makefile" \
+    "tests/self_hosted/parity/public_machine_manifest_installed_self_host_owner.sh"
+require_text "Makefile" \
+    "self-host-public-capability-manifest-replacement-test-smoke:"
+require_text "Makefile" \
+    "tests/self_hosted/parity/public_capability_manifest_installed_self_host_owner.sh"
+require_text "Makefile" \
+    "self-host-public-dir-replacement-test-smoke:"
+require_text "Makefile" \
+    "tests/self_hosted/parity/public_dir_installed_self_host_owner.sh"
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL"'
 reject_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
@@ -8748,7 +8996,7 @@ require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "ref "'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "own "'
 reject_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" "GenerateC(tree_text: String)"
-reject_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "AstTreeArtifactFromText(tree_text)"
+reject_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "AstTreeArtifactFromText("
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "GenerateCUnit(tree_text, true)"
 require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" "CheckCUnit(tree_text: String, require_entrypoint: Bool)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" 'import "../runtime_abi/host_io_runtime_owner.pgy";'
@@ -9746,7 +9994,7 @@ reject_text "src/self_hosted/mir/routine_expression_use_owner.pgy" \
     "func SelfMirExpressionUses("
 reject_text "src/self_hosted/mir/expression_fact_owner.pgy" \
     "func SelfMirTextContainsIdentifier("
-reject_function_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+reject_function_terms "src/self_hosted/mir/routine_lower_owner.pgy" \
     "func SelfMirLowerBlockFromArtifact(" \
     "SemanticAstExpressionGraphFromText(" \
     "SemanticAstExpressionGraphCompactBridge"
@@ -9788,8 +10036,8 @@ leaf_binding_cbind_count="$(awk '
     index($0, "func CodegenSemanticLeafBindingProjectionFromGraph(") == 1 {
         inside = 1
     }
-    inside && seen && /^func / { exit }
     inside { print; seen = 1 }
+    inside && /^}/ { exit }
 ' "$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     | grep -F -c 'LookupKindType(env, text, "cbind")' || true)"
 [[ "$leaf_binding_cbind_count" -eq 1 ]] ||
@@ -9872,11 +10120,13 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pg
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "kind == AstExpressionNodeMemberAccess()"
 require_file "src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy" 100
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy" 160
 require_text "src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy" \
     "struct SemanticCallSpineView"
 require_text "src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy" \
     "func SemanticCallSpineViewFromGraph("
+require_text "src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy" \
+    "func SemanticCallSpineViewForCallNodeWithin("
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     'import "../../semantic/ast_expression_graph_call_view_owner.pgy";'
 reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
@@ -14892,6 +15142,46 @@ require_max_lines \
     "tests/self_hosted/parity/one_mir_bool_logic_projection.sh" 160
 require_max_lines \
     "tests/self_hosted/parity/one_mir_bool_logic_mutations.py" 150
+require_file "tests/self_hosted/fixtures/direct_mir_four_routine_option_int.pgy"
+require_file "tests/self_hosted/parity/direct_mir_scalar_option_int_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/direct_mir_scalar_option_int_owner.sh" 180
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_option_int_abi_owner.pgy" \
+    "MirCapturedRequiredAbiLayoutRowAdmission("
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_extension_abi_seal_owner.pgy" \
+    "DirectMirScalarProgramOptionIntAbiReadyForExpressions("
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_option_int_owner.pgy" \
+    "DirectMirOptionMatchAbiProjectionFromFact("
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_option_int_owner.pgy" \
+    "DirectMirOptionMatchAbiProjectionFromFact("
+require_text "Makefile" "SELFHOST_SCALAR_OPTION_INT_GATE ?="
+require_text "Makefile" '$(SELFHOST_SCALAR_OPTION_INT_GATE)'
+require_file \
+    "tests/self_hosted/fixtures/direct_mir_four_routine_two_int_nominal.pgy"
+require_file \
+    "tests/self_hosted/fixtures/direct_mir_five_routine_unsupported_nominal.pgy"
+require_file \
+    "tests/self_hosted/parity/direct_mir_scalar_two_int_nominal_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/direct_mir_scalar_two_int_nominal_owner.sh" 180
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy" \
+    "DirectMirNominalDeclarationAbiFactFromDocument("
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy" \
+    "MirCapturedRequiredAbiLayoutRowAdmission("
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_two_int_nominal_target_owner.pgy" \
+    "DirectMirScalarProgramTwoIntNominalTargetFromFact("
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy" \
+    "nominal: DirectMirScalarProgramTwoIntNominalAbiFact"
+require_text "Makefile" "SELFHOST_SCALAR_TWO_INT_NOMINAL_GATE ?="
+require_text "Makefile" '$(SELFHOST_SCALAR_TWO_INT_NOMINAL_GATE)'
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_readiness_owner.pgy" \
     "DirectMirScalarCfgProgramExtensionReadinessCode"
@@ -14940,8 +15230,30 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
     "if scalar_program_route.claimed {"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy" \
+    "routine_rows: Array<Int>"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_inventory_owner.pgy" \
+    "DirectMirScalarCfgProgramCallableInventoryOrdinalBySyntaxId("
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_admission_owner.pgy" \
+    "while ordinal < ArrayLength(route.routine_rows)"
+for scalar_program_count_owner in \
+    direct_mir_scalar_program_route_fact_owner.pgy \
+    direct_mir_scalar_cfg_program_graph_admission_owner.pgy \
+    direct_mir_scalar_cfg_program_routine_partition_owner.pgy; do
+    reject_text "src/self_hosted/compiler/$scalar_program_count_owner" \
+        "routine_count == 3"
+    reject_text "src/self_hosted/compiler/$scalar_program_count_owner" \
+        "routine_count == 4"
+    reject_text "src/self_hosted/compiler/$scalar_program_count_owner" \
+        "routine_count <= 2"
+done
 require_text "Makefile" "SELFHOST_ONE_MIR_BOOL_LOGIC_GATE ?="
+require_text "Makefile" "SELFHOST_SCALAR_MULTI_ROUTINE_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_BOOL_LOGIC_GATE)'
+require_text "Makefile" '$(SELFHOST_SCALAR_MULTI_ROUTINE_GATE)'
 require_text ".github/workflows/ci.yml" \
     "self-host-one-mir-bool-logic-projection-test-smoke"
 for scalar_program_emitter in \
@@ -16760,7 +17072,7 @@ require_file "tests/self_hosted/parity/one_mir_array_int_reverse_artifact_contra
 # v14 -> v23 while this pin went unreached behind an earlier gate failure, so it
 # had stopped witnessing anything.
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" \
-    'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v23'
+    'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v25'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_op_code_owner.pgy" \
     'func DirectMirScalarCfgOpArrayReverseInt() -> Int { return 20; }'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_op_code_owner.pgy" \

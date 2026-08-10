@@ -39,7 +39,8 @@ func DirectMirScalarCfgEmitC(
             Die("direct MIR scalar CFG program C runtime ABI is invalid");
         }
         return DirectMirScalarCfgEmitProgramC(
-            plan, formatted_print, runtime, string_line_format, int_c_type
+            plan, formatted_print, runtime, int_line_format,
+            string_line_format, int_c_type, target
         );
     }
     let output: String = DirectMirScalarCfgForEachCPreamble(plan, target);

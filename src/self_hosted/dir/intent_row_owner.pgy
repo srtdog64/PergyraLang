@@ -1,5 +1,7 @@
 // Typed DIR intent row carriers shared by resolution and MIR projection.
 
+import "intent_step_provenance_fact_owner.pgy";
+
 struct SelfDirIntentParticipantFacts {
     node_ids: Array<Int>;
     is_values: Array<Bool>;
@@ -14,6 +16,8 @@ struct SelfDirIntentStepFacts {
     where_zone_names: Array<String>;
     where_declaration_indices: Array<Int>;
     using_aliases: Array<String>;
+    transfer_from_aliases: Array<String>;
+    transfer_to_aliases: Array<String>;
     receiver_aliases: Array<String>;
     action_names: Array<String>;
     action_signature_indices: Array<Int>;
@@ -26,7 +30,7 @@ struct SelfDirIntentStepFacts {
     outcome_node_ids: Array<Int>;
     outcome_names: Array<String>;
     outcome_type_names: Array<String>;
-    on_node_ids: Array<Int>;
+    target_expression_node_ids: Array<Int>;
     guard_node_ids: Array<Int>;
     post_node_ids: Array<Int>;
     expect_node_ids: Array<Int>;
@@ -47,6 +51,7 @@ struct SelfDirIntentStepFacts {
     authorized_starts: Array<Int>;
     authorized_counts: Array<Int>;
     authorized_names: Array<String>;
+    provenance: SelfDirIntentStepProvenanceFacts;
 }
 
 func SelfDirIntentParticipantFactsEmpty() -> SelfDirIntentParticipantFacts {
@@ -60,9 +65,11 @@ func SelfDirIntentStepFactsEmpty() -> SelfDirIntentStepFacts {
     let ints: Array<Int> = [];
     let strings: Array<String> = [];
     return SelfDirIntentStepFacts(
-        ints, strings, strings, ints, strings, strings, strings, ints,
+        ints, strings, strings, ints, strings, strings, strings, strings,
+        strings, ints,
         strings, ints, ints, strings, strings, ints, ints, strings, strings,
         ints, ints, ints, ints, ints, ints, ints, ints, ints, strings, ints,
-        ints, ints, strings, ints, ints, strings, ints, ints, ints, strings
+        ints, ints, strings, ints, ints, strings, ints, ints, ints, strings,
+        SelfDirIntentStepProvenanceFactsEmpty()
     );
 }

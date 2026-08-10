@@ -8,6 +8,8 @@ import "direct_mir_closed_module_call_abi_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_owner.pgy";
 import "direct_mir_scalar_program_array_string_callable_abi_owner.pgy";
 import "direct_mir_scalar_program_array_string_boundary_fact_owner.pgy";
+import "direct_mir_scalar_program_option_int_abi_owner.pgy";
+import "direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy";
 
 struct DirectMirScalarCfgProgramExtensionFact {
     let valid: Bool;
@@ -19,6 +21,8 @@ struct DirectMirScalarCfgProgramExtensionFact {
     let block_return_expression_rows: Array<Int>;
     let closed_call_abi: DirectMirClosedModuleCallAbiFact;
     let runtime_abi: DirectMirScalarProgramRuntimeAbiFact;
+    let option_int_abi: DirectMirOptionMatchAbiFact;
+    let nominal_abi: DirectMirScalarProgramTwoIntNominalAbiFact;
     let array_string_abi: DirectMirScalarProgramArrayStringAbiFact;
     let array_string_boundary: DirectMirScalarProgramArrayStringBoundaryFact;
 }
@@ -31,6 +35,8 @@ func DirectMirScalarCfgProgramExtensionFactEmpty(
         DirectMirScalarProgramExpressionSetEmpty(), rows, rows, rows,
         DirectMirClosedModuleCallAbiFactEmpty(),
         DirectMirScalarProgramRuntimeAbiFactEmpty(),
+        DirectMirOptionMatchAbiFactEmpty(),
+        DirectMirScalarProgramTwoIntNominalAbiFactFromCanonicalEmpty(),
         DirectMirScalarProgramArrayStringAbiFactEmpty(),
         DirectMirScalarProgramArrayStringBoundaryFactEmpty()
     );
@@ -51,6 +57,8 @@ func DirectMirScalarCfgProgramExtensionFactDigest(
         hash, fact.closed_call_abi.target_capability_fingerprint
     );
     hash = DirectMirCfgHashInt(hash, fact.runtime_abi.digest);
+    hash = DirectMirCfgHashInt(hash, fact.option_int_abi.digest);
+    hash = DirectMirCfgHashInt(hash, fact.nominal_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.array_string_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.array_string_boundary.digest);
     return DirectMirCfgBoundedDigest(hash);
@@ -63,7 +71,9 @@ func DirectMirScalarCfgProgramExtensionFactWithDigest(
         fact.valid, digest, fact.callable, fact.expressions,
         fact.block_condition_expression_rows,
         fact.operation_expression_rows, fact.block_return_expression_rows,
-        fact.closed_call_abi, fact.runtime_abi, fact.array_string_abi,
+        fact.closed_call_abi, fact.runtime_abi, fact.option_int_abi,
+        fact.nominal_abi,
+        fact.array_string_abi,
         fact.array_string_boundary
     );
 }

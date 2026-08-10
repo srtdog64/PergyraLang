@@ -18,7 +18,7 @@ func DirectMirScalarProgramAppendExpression(
     ref value_types: DirectMirScalarCfgValueTypePlan,
     ref wire: DirectMirScalarCfgWireLocalRefs,
     local_offset: Int, parameter_types: Array<String>,
-    ref callable: DirectMirScalarCfgProgramCallableFact,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
     expected_type: String
 ) -> DirectMirScalarProgramExpressionSet {
     let sequence: MirExpressionGraphSequence =
@@ -93,7 +93,7 @@ func DirectMirScalarProgramAppendExpression(
             } else {
                 let direct: DirectMirScalarProgramDirectCallFact =
                     DirectMirScalarProgramDirectCallFactFromGraph(
-                        sequence, node, source_rows, types, callable);
+                        sequence, node, source_rows, types, callables);
                 if !direct.recognized || !direct.valid { return invalid; }
                 if !direct.complete {
                     ArrayPush(source_rows, -1); node = node + 1; continue;
@@ -103,7 +103,7 @@ func DirectMirScalarProgramAppendExpression(
                 kind = DirectMirScalarProgramExprDirectCall();
                 call_arguments = direct.argument_rows;
                 call_callable = direct.callable_ordinal;
-                type_name = callable.signature.return_type;
+                type_name = direct.return_type;
             }
             if ArrayLength(call_arguments) == 1 {
                 left = call_arguments[0];

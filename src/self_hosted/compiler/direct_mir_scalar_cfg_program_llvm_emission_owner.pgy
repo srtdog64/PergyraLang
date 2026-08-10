@@ -6,6 +6,8 @@ import "direct_mir_scalar_program_llvm_string_global_owner.pgy";
 import "direct_mir_scalar_cfg_local_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_builtin_materialization_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
+import "direct_mir_scalar_program_llvm_two_int_nominal_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_string_cleanup_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy";
@@ -17,7 +19,7 @@ func DirectMirScalarCfgProgramLlvmOperation(
     ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
     formatted_print: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
-    string_line_format: String
+    int_line_format: String, string_line_format: String
 ) -> String {
     let kind: Int = plan.operation_kinds[operation];
     if kind != DirectMirScalarCfgOpExpressionDefinition() &&
@@ -46,9 +48,16 @@ func DirectMirScalarCfgProgramLlvmOperation(
         return Concat(output, ", align 8\n");
     }
     let format_name: String = "@.pgy.scalar.cfg.string.format";
-    let format_size: Int = DirectMirScalarLlvmFormatByteCount(
-        string_line_format);
+    let line_format: String = string_line_format;
     let value_type: String = "ptr";
+    let root: Int = plan.program.expressions.graph_roots[expression_row];
+    if plan.program.expressions.node_types[root] ==
+            CompilerAbiLayoutIntTypeName() {
+        format_name = "@.pgy.scalar.cfg.int.format";
+        line_format = int_line_format;
+        value_type = "i64";
+    }
+    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
     output = Concat(output, "  call i32 (ptr, ...) @");
     output = Concat(output, formatted_print.symbol);
     output = Concat(output, "(ptr getelementptr inbounds ([");
@@ -66,7 +75,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
     formatted_print: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
-    string_line_format: String
+    int_line_format: String, string_line_format: String
 ) -> String {
     let output: String = DirectMirScalarCfgProgramLlvmRoutineSignature(
         plan, routine);
@@ -94,7 +103,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(
         while operation < operation_end {
             let emitted: String = DirectMirScalarCfgProgramLlvmOperation(
                 plan, operation, formatted_print, runtime,
-                string_line_format);
+                int_line_format, string_line_format);
             if emitted == "" &&
                 (plan.operation_kinds[operation] ==
                     DirectMirScalarCfgOpPhiInt() ||
@@ -121,8 +130,8 @@ func DirectMirScalarCfgProgramLlvmRoutine(
                 "direct MIR scalar CFG LLVM return expression is invalid"); }
             output = Concat(output, expression.instructions);
             output = Concat(output, "  ret ");
-            output = Concat(output, DirectMirScalarProgramLlvmType(
-                expression.type_name));
+            output = Concat(output, DirectMirScalarProgramLlvmTypeForNominal(
+                expression.type_name, plan.program.nominal_abi));
             output = Concat(output, " ");
             output = Concat(output, expression.value);
             output = Concat(output, "\n");
@@ -171,15 +180,30 @@ func DirectMirScalarCfgEmitProgramLlvm(
     ref plan: DirectMirScalarCfgGraphPlan,
     formatted_print: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
-    string_line_format: String
+    int_line_format: String, string_line_format: String,
+    target: CompilerTargetProjectionFact
 ) -> String {
     if !DirectMirScalarCfgProgramExtensionReadyForPlan(plan) {
         Die("direct MIR scalar CFG program LLVM projection is invalid");
     }
+    let int_size: Int = DirectMirScalarLlvmFormatByteCount(int_line_format);
     let string_size: Int =
         DirectMirScalarLlvmFormatByteCount(string_line_format);
     let output: String =
-        "@.pgy.scalar.cfg.string.format = private unnamed_addr constant [";
+        "@.pgy.scalar.cfg.int.format = private unnamed_addr constant [";
+    output = Concat(
+        DirectMirScalarProgramLlvmTwoIntNominalPreamble(
+            plan.program.nominal_abi, target), output);
+    output = Concat(
+        DirectMirScalarProgramLlvmOptionIntPreamble(
+            plan.program.option_int_abi, target), output);
+    output = Concat(output, ToString(int_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output,
+        DirectMirScalarLlvmFormatPayload(int_line_format));
+    output = Concat(output, "\\00\", align 1\n");
+    output = Concat(output,
+        "@.pgy.scalar.cfg.string.format = private unnamed_addr constant [");
     output = Concat(output, ToString(string_size));
     output = Concat(output, " x i8] c\"");
     output = Concat(output,
@@ -210,7 +234,8 @@ func DirectMirScalarCfgEmitProgramLlvm(
     let routine: Int = 0;
     while routine < ArrayLength(plan.routines.roles) {
         output = Concat(output, DirectMirScalarCfgProgramLlvmRoutine(
-            plan, routine, formatted_print, runtime, string_line_format));
+            plan, routine, formatted_print, runtime, int_line_format,
+            string_line_format));
         routine = routine + 1;
     }
     return output;

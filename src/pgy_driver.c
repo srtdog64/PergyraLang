@@ -15,13 +15,13 @@
 #include "compiler/pkg.h"
 #include "compiler/debugger.h"
 #include "compiler/self_host_driver.h"
+#include "compiler/self_host_machine_manifest_artifact_owner.h"
 #include "compiler/driver_self_host_selection_owner.h"
 #include "compiler/driver_self_host_llvm_selection_owner.h"
 #include "compiler/self_host_llvm_ir_artifact_owner.h"
 #include "compiler/self_host_llvm_ir_stdout_owner.h"
 #include "compiler/c_runner.h"
 #include "compiler/llvm_runner.h"
-
 typedef enum
 {
     DRIVER_OPTION_NOOP,
@@ -254,24 +254,33 @@ main(int argc, char *argv[])
      * driver. --native-pipeline is the one declared opt-out, checked before
      * any of them so it cannot be shadowed by a narrower predicate; bootstrap
      * scaffolding uses it because the driver it would delegate to is the
-     * artifact being built. PGY_NATIVE_PIPELINE is the same opt-out spelled
-     * once per native-subject harness; both spellings land on this
-     * single decision here, so exactly one place declines delegation. An
-     * opt-out, never a fallback: unsupported sources still fail closed
-     * inside the delegated path. See docs/152. */
+     * artifact being built; PGY_NATIVE_PIPELINE is the same per-harness opt-out
+     * and both spellings land here; it is an opt-out, never a fallback. Unsupported
+     * sources still fail closed inside the delegated path. See docs/152. */
     if (flags.native_pipeline
         || pgy_env_value_is_truthy(getenv("PGY_NATIVE_PIPELINE")))
         return driver_run_pipeline(&flags);
-    const char *source_read_mode = driver_self_host_source_read_mode(&flags);
-    if (flags.dump_tokens || flags.dump_ast) {
-        if (source_read_mode == NULL) {
+    if (flags.dump_machine_manifest_json) {
+        if (!driver_self_host_machine_manifest_request_supported(&flags)) {
             fprintf(stderr,
-                    "pgy: %s options are outside the installed self-host driver contract\n",
-                    flags.dump_tokens ? "--tokens" : "--ast");
+                    "pgy: --machine-manifest-json options are outside the installed self-host driver contract\n");
             return 1;
         }
-        return driver_run_self_host_source_read(
-            argv[0], source_read_mode, flags.source_path);
+        return driver_write_self_host_machine_manifest(argv[0]);
+    }
+    const char *source_stdout_mode = driver_self_host_source_stdout_mode(&flags);
+    if (flags.dump_tokens || flags.dump_ast
+        || flags.dump_capability_manifest || flags.dump_dir) {
+        if (source_stdout_mode == NULL) {
+            const char *option = flags.dump_tokens ? "--tokens" :
+                (flags.dump_ast ? "--ast" : (flags.dump_capability_manifest
+                    ? "--capability-manifest" : "--dir"));
+            fprintf(stderr,
+                    "pgy: %s options are outside the installed self-host driver contract\n",
+                    option);
+            return 1;
+        }
+        return driver_run_self_host_source_stdout(argv[0], source_stdout_mode, flags.source_path);
     }
     if (flags.dump_mir_json) {
         if (!driver_self_host_mir_json_request_supported(&flags)) {

@@ -6,12 +6,366 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-## Active self-host context - public AST dump is installed Pergyra
+## Active self-host context - two-Int nominal GraphPlan representation
 
-- Verified executable checkpoint is `37624de9` on `main`. Preserve the separate
+- Current HEAD is `f94b550d` on `main`; this session remains uncommitted and
+  shares the larger installed capability/machine/AST/DIR closure below. Preserve
+  the separate user-owned stdlib work: modified
+  `docs/138_standard_library_scope.md` and
+  `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
+  `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`.
+- Objective card: carry one physically admitted two-`Int` nominal value through
+  the arbitrary routine GraphPlan. Priority is declaration field identity,
+  exact required ABI row, complete routine signature/return admission, then
+  C/LLVM execution. The derived fact owner is
+  `DirectMirScalarProgramTwoIntNominalAbiFact`; last consumers are the target
+  projection and C/LLVM nominal preamble, signature, and return owners.
+  Forbidden fallbacks are nominal-spelling layout inference, copied offsets,
+  routine-count routing, unused-routine deletion, declaration-table flattening
+  per routine, source rescan, or native retry.
+- The shared route now carries an optional one-candidate nominal fact beside
+  the existing scalar and Option facts. Its owner scans the admitted declaration
+  index once and selects exactly zero or one struct whose canonical declaration
+  row and required MIR ABI prove two ordered `Int` fields. Unsupported unrelated
+  declarations remain non-facts; two eligible candidates are ambiguous and
+  fail closed. Matching formal parameters and every matching instruction ABI
+  row must equal the selected receipt, and a selected fact that no signature
+  references is rejected.
+- C and LLVM consume one target-neutral projection carrying the selected target
+  capability fingerprint. C emits size, alignment, and field-offset assertions
+  from the receipt. LLVM emits `%pgy.scalar.nominal.value = type { i32, i32 }`
+  only after the same shape proof. GraphPlan schema is now
+  `pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v25`.
+- The focused four-routine fixture leaves `Keep(Pair) -> Pair` unreachable from
+  `Main`, declares an unrelated `Metadata`, and still prints exact `11`. This
+  forces both backends to compile the nominal signature without treating all
+  declarations as representations. A five-routine negative actually references
+  `Metadata` and is rejected by both targets without an artifact. The final
+  focused gate exits 0 in 5.5 seconds and also rejects the second field offset
+  mutation `4 -> 0`. The positive MIR is 8,473 bytes, SHA-256
+  `D0C8B63A5ABA4A85B51673B847F2D2F29CC14A2A54DF13C690C6D0C22F95E186`.
+- Canonical `make self-host-compiler` exits 0 in 483.4 seconds with zero errors
+  and zero warnings. The installed `bin/pgy-self-driver.exe` is 5,193,688
+  bytes, SHA-256
+  `12F9FB52BF218DF10BB3A292786E18C6EDD06DBC84824CE6B89D5EE013EE847A`.
+  The arbitrary scalar and Option regression gates exit 0 in 4.2 and 4.6
+  seconds. The component inventory exits 0 in 152.8 seconds. The SoT gate exits
+  0 with 86 authorities and 160 derived fact carriers
+  (`CLOSED=49`, `BRIDGE=36`, `ACTIVE=1`).
+- The installed LLVM routine-index canary remains intentionally RED after 50.7
+  seconds at the unchanged
+  `direct MIR terminal multi-routine graph is unsupported` boundary, with no
+  native fallback. Its exact 35,814,796-byte MIR (SHA-256
+  `86C6DF4B58F6C32152CB0759C2EDE8CD2DD8913670C1577D4A00652623A574DF`)
+  contains 1,484 routines and 88 declarations. The nominal selector now returns
+  its canonical empty fact because none is a two-`Int` candidate. A static
+  route-policy audit identifies the first subsequent rejection as routine 12,
+  `ReadJsonStringBounded(String, Int, Int, value-result Array<Int>) -> String`;
+  the external canary diagnostic does not yet expose that row.
+- Next falsifier: give the existing Array storage ABI a callable value-result
+  boundary receipt and close copy-in/copy-out for the exact four-parameter
+  `ReadJsonStringBounded` shape, or add a diagnostic receipt that proves a
+  smaller preceding failure. Do not broaden the route without the Array ABI,
+  copy declarations or parameter layouts per routine, accept
+  `declaration_count > 0`, skip unreachable routines, add
+  `routine_count == 1484`, or replace the installed LLVM substitution canary
+  with a native oracle.
+- Same-mistake rule: a successful physical carrier proves only the exact row it
+  admitted. It does not legalize another nominal spelling, another layout, or
+  a whole declaration table. Register a real `*_fact_owner.pgy` in the derived
+  SoT inventory, carry it once, cross-seal every producer, make both targets
+  consume its fingerprinted projection, and keep a persisted-layout mutation
+  plus an unused-routine positive case in the executable gate. An unrelated
+  declaration may remain unmaterialized only while no signature, local, or
+  instruction ABI references it; the referenced-unsupported negative pins that
+  distinction.
+
+## Last completed self-host context - Option<Int> GraphPlan representation
+
+- Current HEAD is `f94b550d` on `main`; this session remains uncommitted and
+  shares the larger installed capability/machine/AST/DIR closure below. Preserve
+  the separate user-owned stdlib work: modified
+  `docs/138_standard_library_scope.md` and
+  `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
+  `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`.
+- Objective card: carry `Option<Int>` value returns and nested direct calls
+  through the arbitrary routine GraphPlan. Priority is persisted ABI identity,
+  typed call/expression readiness, one program-wide receipt, then exact C/LLVM
+  execution. The fact owner is the required MIR ABI row projected as
+  `DirectMirOptionMatchAbiFact`; last consumers are the GraphPlan C/LLVM type,
+  signature, expression, and preamble owners. Forbidden fallbacks are a
+  type-name-only `{tag,value}` layout, copied offsets/tags, routine-count
+  routing, source rescan, or native retry.
+- `DirectMirScalarProgramOptionIntAbiFromInstruction` admits every reached
+  `Option<Int>` instruction layout and rejects missing or disagreeing receipts.
+  The existing extension digest carries that one fact. Some/None/IsSome/
+  UnwrapOption identities come from the semantic builtin registry projection,
+  and direct-call readiness now consumes the existing callable return-type
+  policy instead of reapplying a scalar-only classifier.
+- C and LLVM both project from `DirectMirOptionMatchAbiProjection`. C emits the
+  admitted two-field carrier and helpers; LLVM emits the admitted aggregate,
+  field indices, tags, and print-width extension. Neither target owns an
+  independent Option layout. GraphPlan schema is now
+  `pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v24`.
+- The focused fixture is `Main -> Extract -> Relay -> Wrap`: two routines return
+  `Option<Int>`, the caller unwraps the nested direct call, and both target
+  artifacts compile and print exact `11`. The canonical target
+  `make self-host-direct-mir-scalar-option-int-test-smoke` exits 0 in 440.9
+  seconds including a full self-host rebuild. A value-field offset mutation
+  from `4` to `0` is rejected by both backends without publishing an artifact.
+  The direct Option gate and the prior arbitrary scalar multi-routine gate both
+  exit 0 together in 5.8 seconds against the installed driver.
+- The current exact-source installed carrier is `bin/pgy-self-driver.exe`,
+  5,181,952 bytes, SHA-256
+  `C9C9D85D262C53DBEB7BDD7AE9A1DCC875A6F1B36AD7169789950618C055040B`.
+  The canonical build reports zero errors and zero warnings. The final full
+  component inventory exits 0 in 128.6 seconds.
+- The installed LLVM routine-index owner canary was rerun after this closure.
+  Its C executable leg still compiles and prints the expected owner result; the
+  installed LLVM leg remains RED after 43.9 seconds at the unchanged
+  `direct MIR terminal multi-routine graph is unsupported` boundary. This is
+  expected evidence, not a hidden pass: the exact 1,484-routine artifact still
+  contains 88 nominal declarations, `Option<String>`, Array parameters, and
+  other representation families outside this declaration-free Option rung.
+- Next falsifier: identify the first representation fact required before that
+  general artifact can enter the shared routine inventory. Keep the installed
+  LLVM leg as the substitution canary; do not weaken the declaration guard,
+  add a `routine_count == 1484` route, or replace it with a native LLVM oracle.
+- Same-mistake rule: generic surface spelling is not physical ABI. A backend
+  `{i32,i32}` literal or C `{tag,value}` typedef without a required MIR layout
+  receipt repeats dual authority. Capture once, compare all producers, carry
+  one receipt, project both targets, and mutate the persisted layout in the
+  negative gate. Also do not let a post-admission scalar-only check override the
+  callable return policy.
+
+## Last completed self-host context - arbitrary scalar multi-routine legalization
+
+- Current HEAD is `f94b550d` on `main`; this session remains uncommitted and
+  shares the larger installed capability/machine/AST/DIR closure below. Preserve
+  the separate user-owned stdlib work: modified
+  `docs/138_standard_library_scope.md` and
+  `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
+  `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`.
+- Objective card: legalize declaration-free scalar programs from admitted
+  routine identity and typed call edges at any routine count; priority is exact
+  callable syntax identity, ordered parameter/return types, one Main-first
+  partition, C/LLVM parity, then old count-classifier removal. Fact owners are
+  `MirProgramRoutineIndex` and expression-graph call-target syntax IDs; the
+  derived owner is `DirectMirScalarCfgProgramCallableInventory`; last consumers
+  are the scalar GraphPlan C/LLVM program emitters. Forbidden fallbacks are
+  `routine_count == N` routing in this scalar family, display-name lookup,
+  source/AST rescan, fabricated local/value rows, and native retry.
+- `DirectMirScalarProgramRouteFact` now carries every exact admitted routine row
+  in canonical Main-first order. The callable inventory seals every non-Main
+  routine's ordinal, source syntax ID, name, return type, ordered parameter
+  range/types, and signature digest once. Direct-call admission joins the
+  persisted target syntax ID to that inventory. Per-routine GraphPlan admission,
+  routine identity, partition ranges, expression readiness, and C/LLVM emitters
+  now iterate the admitted inventory rather than selecting one optional
+  callable.
+- Program `Log` expressions infer their already-admitted Int or String root type
+  and consume the matching runtime format. Pure parameter/literal/direct-call
+  graphs may legitimately have zero CFG locals and zero SSA definition rows;
+  `DirectMirScalarCfgMinimumPlanShapeReady` now requires the real program
+  invariant (at least one block) instead of forcing dummy storage.
+- The focused fixture is a four-routine chain
+  `Main -> Top -> Middle -> Leaf`. The canonical target
+  `make self-host-direct-mir-scalar-multi-routine-test-smoke` exits 0 in 439.1
+  seconds including a full self-host compiler rebuild. C and LLVM artifacts both
+  compile and print exact `10`; missing call-target syntax identity and duplicate
+  routine identity are rejected by both targets without publishing an artifact.
+  The direct focused script also exits 0 in 3.5 seconds against the installed
+  driver.
+- The current exact-source installed carrier is
+  `bin/pgy-self-driver.exe`, 5,164,099 bytes, SHA-256
+  `3111639093301ABFDC887ABC2CC64FD76A132209DAB42B2CCA4C28CBCF6D231B`.
+  The build reports zero errors and zero warnings. The full component inventory
+  exits 0 in 143.3 seconds. The shared scalar-owner cap table remains the single
+  cap SoT: route 110/110, per-routine admission 260/260, routine identity 75/75,
+  and the new callable inventory 164/180.
+- The prior `self-host-mir-program-routine-index-owner-test-smoke` is still RED,
+  and is not reported as closed. Its C executable leg succeeds, but the installed
+  LLVM leg exits 2 after 46.5 seconds at
+  `direct MIR terminal multi-routine graph is unsupported`. The exact produced
+  MIR contains 1,484 functions and 88 declarations (87 structs, one enum), with
+  non-scalar types such as `Option<Int>`. That is a different general typed/
+  nominal program-representation rung; weakening the scalar declaration-free
+  guard would skip required ABI facts. The legacy terminal `routine_count == 3`
+  branch is likewise OPEN outside this scalar owner family.
+- A read-only representation census of that exact 35,814,796-byte MIR fixes the
+  boundary more precisely. Of 1,484 routines, 862 have scalar-only parameter and
+  return signatures, but only 782 remain scalar-only after source-local and
+  instruction ABI types are included. The remaining inventory includes 56
+  `Option<Int>` returns, 54 `Option<String>` returns, 120 `Array<Int>` parameters,
+  59 `Array<String>` parameters, and 87 distinct struct declarations. This is
+  evidence against relaxing the declaration-free route: the missing owner is a
+  typed program representation plan, not another cardinality case.
+- Gate audit: keep the installed LLVM leg RED. The public `--backend=llvm`
+  contract deliberately delegates to the installed self-host driver, so adding
+  `--native-pipeline` would replace the substitution canary with an independent
+  native oracle and weaken the gate. The routine-index fixture still owns its
+  runtime result, while this current failure occurs earlier in the whole-program
+  direct-MIR representation route. Record those as two distinct claims even
+  though the executable gate carries both.
+- Next falsifier: inventory the 1,484-routine artifact by admitted return/
+  parameter representation and direct-call edge, then choose the first smallest
+  unsupported typed family whose representation facts already exist. Migrate
+  that family to one routine-inventory/representation plan and rerun the same
+  routine-index LLVM leg. Do not add a `count == 1484` route, accept declarations
+  without representation receipts, or replace installed LLVM with a native LLVM
+  oracle merely to turn the gate green.
+- Same-mistake rule: routine cardinality is not semantic program shape. A new
+  `count == 3`, `count == 4`, or fixture-name branch repeats the defect. Use the
+  routine inventory and carried call-target IDs; keep one catalog and one
+  partition; let missing or duplicate identities fail closed. A shape gate must
+  validate owned facts, not demand fake locals/SSA rows. Structural inventory
+  cannot claim behavior: the four-routine execution/negative gate owns this
+  rung, while the 1,484-routine installed LLVM RED remains explicit evidence.
+
+## Last completed self-host context - public DIR installed substitution
+
+- Current HEAD is `f94b550d` on `main`; this session remains uncommitted and
+  shares the larger installed capability/machine/AST closure below. Preserve
+  the separate user-owned stdlib work: modified
+  `docs/138_standard_library_scope.md` and
+  `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
+  `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`.
+- Objective card: make public `pgy --dir` consume the installed Pergyra DIR
+  fact owner and text sink; preserve exact participant, ordered-step, syntax,
+  and explicit-versus-derived provenance; forbid native retry, public-oracle
+  self-comparison, AST provenance rescan, renderer default re-inference,
+  count-to-row reconstruction, and cross-producer numeric source-ID equality.
+- `src/self_hosted/dir/domain_graph_inventory_owner.pgy` now materializes the
+  program inventory once from admitted declaration, role, party/roster,
+  authority, zone-state, topology, and intent carriers. It preserves native
+  edge order for effect/relation projection contracts and resolves topology
+  owners across effect, relation, and zone declarations. Normal MIR domain
+  production does not import or rebuild this debug inventory.
+- `src/self_hosted/dir/zone_state_row_fact_owner.pgy` decodes the parser-owned
+  state payload once at the DIR fact boundary and joins the state, layer slot,
+  and participant slots to exact declaration identities. State rows are not
+  also admitted as runtime-topology directives. The self parser now accepts
+  the native grammar's semicolon-optional state line; its previous mandatory
+  `Expect(";")` was an uncovered compatibility bug.
+- `src/self_hosted/compiler/dir_text_artifact_owner.pgy` is the last renderer.
+  It compares the independent domain census when that census is present, but
+  renders only admitted inventory rows. Intent detail is delegated to
+  `dir_intent_text_artifact_owner.pgy`, which consumes typed provenance rows
+  instead of re-inferring defaults from resolved names. `--emit-dir-verified`
+  is admitted by the installed driver's internal CLI. Public `pgy --dir` now
+  delegates to that request; `--native-pipeline --dir` is the one independent
+  native oracle.
+- `tests/self_hosted/parity/dir_graph_inventory_owner.sh` most recently exits
+  0 in 61.4 seconds with zero errors and zero warnings. Native and self-host
+  rows match for
+  `function_clause_order_minimal`, `party_role_bind`, the relation/effect
+  refresh/publish/apply/link topology fixture, and a semicolon-optional
+  zone-state fixture containing state rows both with and without `;`, plus a
+  zero-step participant intent, a fully explicit step, and an action-default
+  step, intent-level `who`/`where` defaults, derived and explicit transfer
+  steps, the composite inline sub-intent example, and the established
+  `on: NestedIntent(...)` spelling. The default-bearing
+  compact AST is also byte-equal after the standard
+  terminal-newline normalization. The
+  comparator normalizes only producer-local
+  node/topology source syntax fields; node indexes, edge
+  `from`/`resolved`, kinds, names, labels, targets, ordering, and topology
+  owners remain byte-significant. Count-preserving edge-kind and intent-
+  provenance mutations fail.
+- `tests/self_hosted_component_contract_smoke.sh` exits 0 in 137.2 seconds with
+  the provenance/intent renderer owners, exact line caps, no-provenance-rescan
+  rule, renderer/CLI boundaries, and removed-path ratchets.
+- `tests/sot_authority_edge_smoke.sh` exits 0 with 86 authorities and 159
+  derived fact carriers (`CLOSED=49`, `BRIDGE=36`, `ACTIVE=1`). The inventory
+  bridge and text-artifact consumer remain last consumers of
+  `dir.domain_graph`; they are not mislabeled as `*_fact_owner.pgy` derived
+  carriers.
+- Canonical `make self-host-compiler` most recently exits 0 in 448.2 seconds
+  with zero errors and zero warnings. It installed a 5,156,760-byte
+  `bin/pgy-self-driver.exe` with SHA-256
+  `A08140CDF9F7806E828F0F4F54B08F8AFDCC4FB92A1379E75B05307430DB6A4A`.
+  `tests/self_hosted/parity/public_dir_installed_self_host_owner.sh` then exits
+  0 in 3.3 seconds: public bytes equal direct installed bytes, while the
+  normalized installed rows equal the explicit native oracle for authority,
+  defaults, transfer shorthand, inline `intent:`, and nested `on:` intent
+  inputs. Missing-driver, unsupported-option, and installed-arity negatives
+  produce no partial DIR artifact and do not retry the native pipeline.
+- The first canonical `make -j4` exposed an adjacent stale-link guard bug:
+  `pgy-lsp` linked the MIR nominal-ABI consumer but omitted the producer object
+  that owns `mir_decl_header_storage_layout_matches`. The LSP target now takes
+  the complete `MIR_CORE_OBJECTS` closure instead of maintaining a second
+  partial MIR link inventory. `bin/pgy-lsp.exe` relinked successfully in 2.8
+  seconds and a following full `make -j4` exits 0 with all targets current.
+- Exact participant rows, explicit steps, action/intent-default provenance,
+  participant-alias transfer carriage, and inline sub-intents are now closed on the internal
+  request. Intent defaults are parser-owned, emitted as appended compact AST
+  kind 88, and consumed as a typed clause row. Inline targets use appended kind
+  89 and one target-kind-neutral expression-node carrier. A semantic intent
+  target may carry kind 89 from `intent:` or the existing `On` row from
+  `on: NestedIntent(...)`; action targets remain `On`-only. Transfer shorthand
+  is exact, so public `pgy --dir` is SUBSTITUTING. Wrong zone-state endpoints
+  continue to fail in the typed row owner and the independent native oracle.
+- Same-mistake rule: never promote a graph census, hash, or anchor into row
+  evidence. Never normalize all numeric fields in a differential test. Source
+  syntax IDs are producer-epoch identities; DIR-local node and resolved-edge
+  IDs are artifact-internal identities and must compare exactly. Syntax
+  compatibility gates must execute optional spellings such as state lines with
+  and without `;`; pinning one parser branch is not cross-parser evidence.
+  A resolved step value does not prove how it was obtained: provenance belongs
+  to a typed row and must not be reconstructed in the text renderer. A carried
+  declaration index must resolve through its exact DIR kind, never through an
+  assumed catch-all `type` node. Before adding a later-IR syntax parser, search
+  semantic row owners first: `SemanticAstIntentStepHeaderFromText` is the one
+  header parser consumed by semantic, codegen, and DIR. Do not register ordinary
+  parser/row owners as derived fact carriers merely because they carry data;
+  the registry's classified `*_fact_owner.pgy` convention is executable. Do
+  not derive one AST tag from a semantic target kind: validate the exact carried
+  `on:` or `intent:` node. After public delegation, a gate claiming a native
+  DIR oracle must spell `--native-pipeline --dir`; plain public `--dir` is the
+  subject under test and comparing it to itself is forbidden. A binary that
+  links a MIR consumer must link the producer-owned ABI/layout receipt through
+  the canonical MIR object closure; do not hand-maintain a smaller duplicate
+  list that can omit the fail-closed guard after a header change.
+
+## Last completed installed context - public capability manifest is installed Pergyra
+
+- Current HEAD is `f94b550d` on `main`; the verified executable code checkpoint
+  remains `37624de9`. The current session has an uncommitted SoT/gate closure
+  described below. Preserve the separate
   user-owned stdlib work: modified `docs/138_standard_library_scope.md` and
   `docs/148_stdlib_architecture.md`; untracked `stdlib/math.pgy`,
   `stdlib/pgy_math_registry.pgy`, and `tests/cases/stdlib_math_matrix/`.
+- Exact public `pgy --capability-manifest <source>` now delegates to the
+  installed Pergyra driver and never reaches the launcher's final native
+  pipeline. `DriverCliSourceCapabilityManifestStdout` owns the request;
+  `SemanticAstCapabilityFactsFromAdmittedBody` owns callable declared/direct/
+  transitive masks; `CompileSourceCapabilityManifestVerified` is the last
+  semantic-to-JSON consumer.
+- `src/semantic/builtin_capability_registry.def`,
+  `src/runtime/pgy_file_mode_capability.def`, and the callable-contract
+  vocabulary are the policy inputs shared by native and generated self-host
+  projections. The manifest renderer consumes the admitted program mask and
+  does not rescan builtin spellings or treat declarations as usage.
+- Clean, declared-ok, interprocedural under-declaration, `FileOpen` read/write/
+  read-write/dynamic modes, missing sibling, installed arity, and rejected
+  option combinations are executable negatives. The explicit independent
+  oracle is `--native-pipeline --capability-manifest`; public-vs-public is not
+  accepted as parity evidence.
+- Exact public `pgy --machine-manifest-json` no longer reaches the launcher's
+  final native pipeline. The native serializer remains the sole physical
+  declaration producer during `self-host-compiler`; its immutable output is
+  hashed into the driver build key and installed beside the Pergyra-built
+  driver as `pgy-self-driver.machine-layer-manifest.json`.
+- The launcher resolves that companion from the selected installed driver,
+  invokes only `--emit-machine-manifest-verified`, and grants absolute-path I/O
+  only to that exact delegated child request. The self-host declaration
+  consumer parses the existing `pgy.machine-layer.declaration.v1` artifact,
+  applies its full ready check, then returns the original payload. It owns no
+  host-sim literal and no JSON serializer.
+- Missing companion, invalid companion, internal arity drift, and unsupported
+  public option combinations all fail without native retry. The public gate
+  also runs from a different working directory so companion resolution cannot
+  silently depend on the repository root.
 - Exact public `pgy --ast <source>` no longer reaches the final native
   `driver_run_pipeline` fallback. `driver_self_host_source_read_mode` admits
   only one exact token/AST read-only request, the sibling receives `--ast`,
@@ -23,9 +377,20 @@ owner, and the named executable gate.
   rejects missing source arity through its existing `Die` contract. No AST text
   or import policy is reconstructed in the launcher or sibling adapter.
 - The current installed Pergyra-built carrier is `bin/pgy-self-driver.exe`,
-  5,072,633 bytes, SHA-256
-  `A123FBBD00F10CEC9DE72F8EFD5D3C2F8BAC08F5A715964DBB031957FE418465`.
-  Its canonical rebuild completed in 134.8 seconds.
+  5,091,027 bytes, SHA-256
+  `5DB8BCCC942A012A2D28B61EFF43353208FC0ECEC102D36B62A90E4BDB5BF1FA`.
+  The 1,144-byte companion has SHA-256
+  `0A83B0DB5EFE3C00C6D9413C63045C4B17AFF079781213B280442C588E5A9C19`.
+  The latest canonical `make self-host-compiler` rebuild completed in 410.5
+  seconds with zero errors and zero warnings. The matching native launcher is
+  4,640,318 bytes, SHA-256
+  `A5824D4929FB75CCA53B0188F79E033E98E9B553918EBCFAA02C560A09ABFE4D`.
+- `tests/self_hosted/parity/public_machine_manifest_installed_self_host_owner.sh`
+  exits 0 in 2.2 seconds. Installed direct, public, changed-working-directory,
+  companion, and explicit native-oracle bytes are equal. Its first build smoke
+  exposed Windows CRLF being passed through text-mode `Log` as CRCRLF; the
+  consumer now removes only the already-owned CR before the text stream emits
+  exactly one CRLF.
 - `tests/self_hosted/parity/public_ast_installed_self_host_owner.sh` exits 0 in
   2.2 seconds. Direct/public AST bytes equal the committed arithmetic fixture
   and the explicit native oracle. The imported-source leg also equals the
@@ -38,13 +403,14 @@ owner, and the named executable gate.
   contracts, and language-word registry parser gates pass in 1.9, 128.7, and
   121.8 seconds respectively.
 - The public token regression remains green in 3.0 seconds. The installed CLI
-  mode gate exits 0 in 2.4 seconds, and the full component inventory exits 0 in
-  129.8 seconds after the shared source-read and parser-oracle ratchets.
-- Classification is bounded `SUBSTITUTING` for public AST debug output only. It
-  does not promote source compilation's parser/semantic pipeline, other dump
-  modes, or the whole compiler. Package execution and the earlier installed
-  token, C, MIR, and runtime-free LLVM boundaries remain closed at their named
-  gates.
+  mode gate now exits 0 in 2.7 seconds, and the current full component inventory
+  exits 0 in 125.4 seconds with the manifest selector, companion, framing, and
+  removed-native-fallback ratchets.
+- Classification is bounded `SUBSTITUTING` for public capability-manifest
+  semantics, public machine-manifest delivery, and public AST debug output. It
+  does not promote the default source compilation pipeline or the whole
+  compiler. Package execution and the earlier installed token, C, MIR, and
+  runtime-free LLVM boundaries remain closed at their named gates.
 - Same-mistake rule: once a public source-read selector delegates to the
   installed candidate, that public spelling cannot remain the independent
   oracle. Token and AST native voices must use `--native-pipeline`; the
@@ -52,21 +418,126 @@ owner, and the named executable gate.
   the two artifacts explicitly. Import composition must be exercised when the
   public contract includes it; a root-only fixture is insufficient.
 - Documentation quality, self-host progress metric, and substitution velocity
-  gates pass. The SoT edge gate accepts the updated
-  `selfhost.driver_cli_request` row, then stops at the unrelated pre-existing
-  `abi.intent_observability_rows` enforcement-text drift. SoT adequacy remains
-  unverified because this environment has no Coq/Rocq prover; no missing-prover
-  skip is claimed.
-- Next objective card: objective = select the next remaining user-facing
-  request that reaches the launcher's final native fallback; priority =
-  production reach, one request identity, installed fact owner, no-fallback
-  negative, then breadth; fact owner = admitted `DriverFlags` plus the matching
-  Pergyra request/fact owner; last legitimate consumer = the final selector in
-  `src/pgy_driver.c`; forbidden fallback = counting a neighboring mode as
-  covered, using the substituted public selector as its own oracle, native
-  retry after installed failure, or cap/timeout growth that hides a missing
-  owner; verification = installed success, independent explicit oracle, and
-  missing/rejected installed-artifact failure for one named request.
+  gates passed at the committed checkpoint. The current session corrected the
+  intent-observability receipt to state its executed non-positional identity
+  and parameter-shape negatives; the focused registry gate exits 0. It also
+  classifies `MirProgramRoutineBlockCaptureWithin` as a `mir.execution_graph`
+  `local_view`, rather than inventing a new authority.
+- The SoT edge gate now exits 0 with 86 authorities and 157 derived carriers.
+  Its next failure exposed an observed-codegen dual bridge: the pressure CLI
+  called `AstTreeArtifactFromText` directly beside the normal
+  `program_entry_owner` path. `CodegenAstArtifactFromTextObserved` now owns the
+  artifact markers and the only codegen-side AST-text constructor call; normal,
+  check, and pressure paths all consume that owner. The semantic environment
+  lifetime gate exits 0 in 16.9 seconds.
+- The modified full component inventory is now green in 125.4 seconds. The
+  entry owner remains exactly 100 lines, its focused source assertions pass
+  through the SoT and semantic-lifetime gates. SoT adequacy remains unverified
+  because this environment has no Coq/Rocq prover; no missing-prover skip is
+  claimed.
+- The current import-composed codegen source produces a 3,703,230-byte AST with
+  SHA-256
+  `3456BD632885C587B2F5F14373A469E33EACBA8549A23A43E2B23E7646E364F9`.
+  The existing independent Pergyra-built codegen checker
+  (`gen2.exe`, 2,365,804 bytes,
+  `EF925958AB9C93016BED61C54030CA4F68DF5402F7B1E641CEC7A73948EDB0C3`)
+  accepts its surface, event scan, and shape and reports `Status: ok`. This is a
+  source syntax/type/import-composition oracle only; the checker predates the
+  adapter change and is not evidence that a rebuilt observed CLI executed it.
+- Same-mistake rule: an observation-only CLI may select an observed adapter but
+  may not reproduce the artifact/semantic bridge in its orchestration owner.
+  Gate receipts must name the negatives actually executed, and every new
+  `*_fact_owner.pgy` must be registered immediately as an authority or a named
+  derivative of one; documentation wording, file naming, or a green neighboring
+  gate cannot substitute for that classification.
+- Same-mistake rule for AST carriers invoked across PowerShell and Git Bash:
+  pass the Bash script as one argument and preserve its exact single-quoted
+  `tr -d '\r'`. Do not inject backslash-escaped quote characters around that
+  set. In this session the malformed cross-shell command passed those quote
+  bytes literally, made `tr` delete ordinary `r` bytes (`Program` became
+  `Pogam`), and caused a silent exit-1 check. The repository script's exact
+  form is byte-equal to `dos2unix`; the unchanged raw artifact passed after
+  canonical invocation.
+- Same-mistake rule for installed immutable companions: generate the payload
+  only at its declared authority, include its hash in the installed build key,
+  package it beside the selected binary, validate it through the existing
+  consumer, and replay the admitted bytes. Do not copy physical literals into
+  the self-host owner, rebuild JSON from the parsed view, accept a missing
+  companion, or retry the native pipeline after installed failure.
+- Same-mistake rule for cross-platform text artifacts: a stored CRLF already
+  owns a CR. Passing that raw pair to a Windows text stream makes the LF emit a
+  second CR. Remove only the transport-owned CR immediately before the text
+  sink and require exact oracle bytes; do not broadly trim or normalize JSON
+  content to conceal a framing error.
+- The component-gate audit found two silent source-inventory weaknesses. Its
+  shared function extractor stopped only at the next Pergyra `func`, so a C
+  function check could read to EOF; one `reject_function_text` call also passed
+  two forbidden terms even though the helper consumed only one. The extractor
+  now stops at the outer column-zero closing brace for both Pergyra and C, the
+  multi-term call uses `reject_function_terms`, and the static-call identity
+  check uses that shared extractor. The next C function deliberately contains
+  `lookup_typed_var` and `is_slot_var`, so the green component gate falsifies an
+  EOF-wide extraction. Shell syntax, fixed-arity call census, and the full
+  component inventory are green; the latest standalone run exits 0 in 126.0
+  seconds.
+- Same-mistake rule for structural function gates: never pass surplus terms to
+  a single-term helper, never delimit a C body by the next Pergyra declaration,
+  and never treat whole-file presence as function ownership. Use the explicit
+  multi-term wrapper and keep a following-function-only negative as the scope
+  falsifier. Behavioral correctness remains in the focused executable gate.
+- The same outer-brace boundary now covers the hard-contract helper and the
+  focused expression-graph, resource-graph, JSON-writer lifetime, semantic
+  function-table, simple-statement graph-use, and routine-index source checks.
+  The first six focused checks plus the hard contract are green. The
+  routine-index C executable leg is green, but its installed LLVM leg remains
+  RED at the pre-existing `direct MIR terminal multi-routine graph is
+  unsupported` projector boundary; this gate is not reported as passed and the
+  extractor cleanup is not evidence that the LLVM blocker closed.
+- Completed objective card: objective = replace the source-specific public
+  `--capability-manifest` fallback with admitted Pergyra semantic facts;
+  priority = exact capability identity and declared-vs-used semantics, one
+  builtin/file-mode policy projection, installed public reach, no-fallback
+  negative, then output breadth; fact owners =
+  `semantic.builtin_capability_policy`,
+  `semantic.file_mode_capability_policy`, and
+  `selfhost.source_capability_facts`; last legitimate consumer =
+  `CompileSourceCapabilityManifestVerified`; forbidden fallback = fixed
+  installation companion, declared-as-used, renderer builtin scan, public
+  self-oracle, or native retry. All named focused falsifiers are green.
+- The first direct installed run exposed two facts that the static design alone
+  did not prove. `Now` was present in the native builtin inventory but absent
+  from the self-host signature rows, and a `Call` node is not itself the
+  `CallArgument` spine needed to classify `FileOpen` mode. Both now have owned
+  projections and negative gates. A new ambient builtin or call view cannot be
+  added on only one side and still pass the registry/public gates.
+- Capability verification evidence: both registry generators pass `--check`;
+  `tests/builtin_capability_registry_smoke.sh` exits 0 in 2.7 seconds;
+  `tests/self_hosted/parity/public_capability_manifest_installed_self_host_owner.sh`
+  exits 0 in 4.9 seconds; `tests/capability/run_manifest.sh` reports zero
+  failures; public token, public AST, and installed CLI gates remain green; the
+  full component inventory exits 0 in 126.7 seconds.
+- The first documentation-quality run exposed one stale positive gate:
+  `object_action_boundary_contract_smoke.sh` still required the retired direct
+  `PGY_CAP_IO_WRITE` recording call. It now requires the canonical builtin
+  lookup, keeps the mode projection, and explicitly rejects the direct mask.
+  The complete documentation-quality target then exits 0 in 7.3 seconds.
+- Same-mistake rule: source-derived semantic output cannot use an immutable
+  companion. Capability declarations are constraints, not usage facts; the
+  renderer cannot rediscover builtins; native parity must use the explicit
+  `--native-pipeline`; and call-target identity must be joined to the exact
+  argument-spine view before a literal-sensitive policy such as `FileOpen` is
+  applied. Missing sibling or malformed options fail once, without fallback.
+- Same-mistake rule for migration gates: when a direct read is retired, search
+  for gates that require it as well as production consumers that call it. A
+  green legacy positive can force the old authority back into the tree just as
+  effectively as a fallback implementation. Replace that positive with the new
+  owner requirement and an explicit negative for the retired spelling.
+- Next objective card: inspect the remaining final native-fallback request at
+  `src/pgy_driver.c` only after the current ownership/document gates remain
+  green; choose one production-reachable public spelling, name its existing
+  fact owner and last consumer, then add an explicit independent oracle and a
+  missing-installed-owner negative. Do not broaden this capability closure into
+  default source compilation or infer the next owner from option proximity.
 
 ## Historical checkpoint - current-source gen2/gen3 fixed point is closed
 

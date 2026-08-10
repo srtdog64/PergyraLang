@@ -1,0 +1,218 @@
+// Exact admitted intent-detail rendering for the source-to-DIR artifact.
+// This owner consumes typed rows and never reopens AST provenance or derives
+// action defaults from the final resolved spellings.
+
+import "dir_text_row_format_owner.pgy";
+import "../dir/domain_graph_inventory_owner.pgy";
+import "../dir/intent_result_contract_owner.pgy";
+
+func CompilerDirIntentResolvedDeclarationNode(
+    rows: SelfMirDeclarationRows,
+    inventory: SelfDirGraphInventoryFacts,
+    declaration_index: Int,
+    name: String
+) -> Int {
+    if declaration_index < 0 ||
+        declaration_index >= ArrayLength(rows.names) ||
+        rows.names[declaration_index] != name {
+        return -1;
+    }
+    let kind: String = SelfDirGraphInventoryDeclarationKind(
+        rows, declaration_index
+    );
+    if kind == "" { return -1; }
+    return SelfDirGraphInventoryNodeIndex(inventory, kind, name);
+}
+
+func CompilerDirIntentAppendStepProvenance(
+    text: String,
+    provenance: SelfDirIntentStepProvenanceFacts,
+    row: Int
+) -> String {
+    if provenance.who_from_intent[row] {
+        text = Concat(text, " who-default=intent");
+    }
+    if provenance.who_from_action[row] {
+        text = Concat(text, " who-default=action");
+    }
+    if provenance.who_from_on_receiver[row] {
+        text = Concat(text, " who-derived=on-receiver");
+    }
+    if provenance.who_from_single_participant[row] {
+        text = Concat(text, " who-derived=single-participant");
+    }
+    if provenance.where_from_intent[row] {
+        text = Concat(text, " where-default=intent");
+    }
+    if provenance.where_from_action[row] {
+        text = Concat(text, " where-default=action");
+    }
+    if provenance.where_from_using[row] {
+        text = Concat(text, " where-derived=using");
+    }
+    if provenance.where_from_transfer[row] {
+        text = Concat(text, " where-derived=transfer");
+    }
+    if provenance.using_from_transfer[row] {
+        text = Concat(text, " using-derived=transfer");
+    }
+    if provenance.using_from_where[row] {
+        text = Concat(text, " using-derived=where");
+    }
+    if provenance.requires_from_action[row] {
+        text = Concat(text, " requires-default=action");
+    }
+    if provenance.causes_from_action[row] {
+        text = Concat(text, " causes-default=action");
+    }
+    return text;
+}
+
+func CompilerDirIntentTextFromFacts(
+    rows: SelfMirDeclarationRows,
+    inventory: SelfDirGraphInventoryFacts,
+    facts: SelfDirIntentFacts
+) -> String {
+    let text: String = "";
+    let intent_index: Int = 0;
+    while intent_index < ArrayLength(facts.intent_node_ids) {
+        let participant_start: Int = facts.participant_starts[intent_index];
+        let participant_count: Int = facts.participant_counts[intent_index];
+        let step_start: Int = facts.step_starts[intent_index];
+        let step_count: Int = facts.step_counts[intent_index];
+        text = Concat(text, "  intent[");
+        text = Concat(text, CompilerDirTextRowIndex(intent_index));
+        text = Concat(text, "] ");
+        text = Concat(text, facts.names[intent_index]);
+        text = Concat(text, " participants=");
+        text = Concat(text, ToString(participant_count));
+        text = Concat(text, " steps=");
+        text = Concat(text, ToString(step_count));
+        text = Concat(text, "\n");
+        let participant_index: Int = 0;
+        while participant_index < participant_count {
+            let row: Int = participant_start + participant_index;
+            let label: String = "participant";
+            if facts.participants.is_values[row] { label = "value      "; }
+            let resolved: Int = CompilerDirIntentResolvedDeclarationNode(
+                rows, inventory,
+                facts.participants.declaration_indices[row],
+                facts.participants.type_names[row]
+            );
+            text = Concat(text, "    ");
+            text = Concat(text, label);
+            text = Concat(text, " ");
+            text = Concat(text, CompilerDirTextPadRight(
+                facts.participants.aliases[row], 12
+            ));
+            text = Concat(text, " type=");
+            text = Concat(text, facts.participants.type_names[row]);
+            text = Concat(text, " resolved=");
+            text = Concat(text, CompilerDirTextResolvedNode(resolved));
+            text = Concat(text, "\n");
+            participant_index = participant_index + 1;
+        }
+        let local_step: Int = 0;
+        while local_step < step_count {
+            let row: Int = step_start + local_step;
+            let zone_node: Int = SelfDirGraphInventoryNodeIndex(
+                inventory, "zone", facts.steps.where_zone_names[row]
+            );
+            text = Concat(text, "    step[");
+            text = Concat(text, CompilerDirTextRowIndex(local_step));
+            text = Concat(text, "] ");
+            text = Concat(text, CompilerDirTextPadRight(
+                facts.steps.names[row], 12
+            ));
+            text = Concat(text, " where=");
+            text = Concat(text, CompilerDirTextTopologyValue(
+                facts.steps.where_zone_names[row]
+            ));
+            text = Concat(text, " resolved=");
+            text = Concat(text, CompilerDirTextResolvedNode(zone_node));
+            text = Concat(text, " using=");
+            text = Concat(text, CompilerDirTextTopologyValue(
+                facts.steps.using_aliases[row]
+            ));
+            text = Concat(text, " causes=");
+            text = Concat(text, CompilerDirTextTopologyValue(
+                facts.steps.causes_names[row]
+            ));
+            let predecessor: String =
+                facts.transitions.predecessor_names[row];
+            if predecessor == "" &&
+                facts.steps.predecessor_step_indices[row] >= 0 {
+                predecessor = facts.steps.names[
+                    step_start + facts.steps.predecessor_step_indices[row]
+                ];
+            }
+            if predecessor != "" {
+                text = Concat(text, " depends-on=");
+                text = Concat(text, predecessor);
+            }
+            if facts.steps.transfer_from_aliases[row] != "" ||
+                facts.steps.transfer_to_aliases[row] != "" {
+                text = Concat(text, " transfer=");
+                text = Concat(text, CompilerDirTextTopologyValue(
+                    facts.steps.transfer_from_aliases[row]
+                ));
+                text = Concat(text, "->");
+                text = Concat(text, CompilerDirTextTopologyValue(
+                    facts.steps.transfer_to_aliases[row]
+                ));
+            }
+            text = CompilerDirIntentAppendStepProvenance(
+                text, facts.steps.provenance, row
+            );
+            text = Concat(text, "\n");
+            let i: Int = 0;
+            while i < facts.steps.who_counts[row] {
+                text = Concat(text, "      who[");
+                text = Concat(text, ToString(i));
+                text = Concat(text, "] ");
+                text = Concat(text, facts.steps.who_names[
+                    facts.steps.who_starts[row] + i
+                ]);
+                text = Concat(text, "\n");
+                i = i + 1;
+            }
+            i = 0;
+            while i < facts.steps.requires_counts[row] {
+                text = Concat(text, "      requires[");
+                text = Concat(text, ToString(i));
+                text = Concat(text, "] ");
+                text = Concat(text, facts.steps.requires_names[
+                    facts.steps.requires_starts[row] + i
+                ]);
+                text = Concat(text, "\n");
+                i = i + 1;
+            }
+            i = 0;
+            while i < facts.steps.authorized_counts[row] {
+                text = Concat(text, "      authorized_by[");
+                text = Concat(text, ToString(i));
+                text = Concat(text, "] ");
+                text = Concat(text, facts.steps.authorized_names[
+                    facts.steps.authorized_starts[row] + i
+                ]);
+                text = Concat(text, "\n");
+                i = i + 1;
+            }
+            if facts.steps.provenance.authorized_from_zone[row] {
+                text = Concat(
+                    text,
+                    "      authorized_by_provenance legacy-zone-field\n"
+                );
+            }
+            if facts.steps.provenance.authorized_from_action[row] {
+                text = Concat(
+                    text,
+                    "      authorized_by_provenance action-inherited\n"
+                );
+            }
+            local_step = local_step + 1;
+        }
+        intent_index = intent_index + 1;
+    }
+    return text;
+}

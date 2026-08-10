@@ -1,0 +1,166 @@
+// Program-wide typed callable inventory for declaration-free scalar GraphPlan.
+
+import "direct_mir_scalar_program_callable_admission_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "direct_mir_scalar_cfg_program_parameter_identity_owner.pgy";
+
+struct DirectMirScalarCfgProgramCallableInventory {
+    let valid: Bool;
+    let digest: Int;
+    let routine_ordinals: Array<Int>;
+    let source_syntax_ids: Array<Int>;
+    let names: Array<String>;
+    let return_types: Array<String>;
+    let parameter_starts: Array<Int>;
+    let parameter_counts: Array<Int>;
+    let parameter_types: Array<String>;
+    let signature_digests: Array<Int>;
+}
+
+func DirectMirScalarCfgProgramCallableInventoryDigest(
+    ref inventory: DirectMirScalarCfgProgramCallableInventory
+) -> Int {
+    if !inventory.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(
+        227L, ArrayLength(inventory.routine_ordinals));
+    hash = DirectMirScalarCfgHashInts(hash, inventory.routine_ordinals);
+    hash = DirectMirScalarCfgHashInts(hash, inventory.source_syntax_ids);
+    hash = DirectMirScalarCfgHashStrings(hash, inventory.names);
+    hash = DirectMirScalarCfgHashStrings(hash, inventory.return_types);
+    hash = DirectMirScalarCfgHashInts(hash, inventory.parameter_starts);
+    hash = DirectMirScalarCfgHashInts(hash, inventory.parameter_counts);
+    hash = DirectMirScalarCfgHashStrings(hash, inventory.parameter_types);
+    hash = DirectMirScalarCfgHashInts(hash, inventory.signature_digests);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarCfgProgramCallableInventoryReady(
+    ref inventory: DirectMirScalarCfgProgramCallableInventory,
+    routine_count: Int
+) -> Bool {
+    let count: Int = ArrayLength(inventory.routine_ordinals);
+    if !inventory.valid || inventory.digest == 0 || routine_count < 1 ||
+        count != routine_count - 1 ||
+        count != ArrayLength(inventory.source_syntax_ids) ||
+        count != ArrayLength(inventory.names) ||
+        count != ArrayLength(inventory.return_types) ||
+        count != ArrayLength(inventory.parameter_starts) ||
+        count != ArrayLength(inventory.parameter_counts) ||
+        count != ArrayLength(inventory.signature_digests) ||
+        inventory.digest !=
+            DirectMirScalarCfgProgramCallableInventoryDigest(inventory) {
+        return false;
+    }
+    let expected_parameter: Int = 0;
+    let row: Int = 0;
+    while row < count {
+        if inventory.routine_ordinals[row] != row + 1 ||
+            inventory.source_syntax_ids[row] <= 0 ||
+            inventory.names[row] == "" || inventory.return_types[row] == "" ||
+            inventory.parameter_starts[row] != expected_parameter ||
+            inventory.parameter_counts[row] <= 0 ||
+            inventory.signature_digests[row] == 0 {
+            return false;
+        }
+        expected_parameter = expected_parameter +
+            inventory.parameter_counts[row];
+        let prior: Int = 0;
+        while prior < row {
+            if inventory.source_syntax_ids[prior] ==
+                    inventory.source_syntax_ids[row] ||
+                inventory.names[prior] == inventory.names[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return expected_parameter == ArrayLength(inventory.parameter_types);
+}
+
+func DirectMirScalarCfgProgramCallableInventoryFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref routine_rows: Array<Int>,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
+) -> DirectMirScalarCfgProgramCallableInventory {
+    let ordinals: Array<Int> = [];
+    let syntax_ids: Array<Int> = [];
+    let names: Array<String> = [];
+    let return_types: Array<String> = [];
+    let parameter_starts: Array<Int> = [];
+    let parameter_counts: Array<Int> = [];
+    let parameter_types: Array<String> = [];
+    let signature_digests: Array<Int> = [];
+    let ordinal: Int = 1;
+    while ordinal < ArrayLength(routine_rows) {
+        let fact: DirectMirScalarCfgProgramCallableFact =
+            DirectMirScalarProgramCallableFactFromAdmitted(
+                admitted, routine_rows[ordinal], ordinal, nominal
+            );
+        if !DirectMirScalarCfgProgramCallableFactReadyWithNominal(
+                fact, nominal) {
+            return DirectMirScalarCfgProgramCallableInventory(
+                false, 0, ordinals, syntax_ids, names, return_types,
+                parameter_starts, parameter_counts, parameter_types,
+                signature_digests);
+        }
+        ArrayPush(ordinals, ordinal);
+        ArrayPush(syntax_ids, fact.signature.source_syntax_id);
+        ArrayPush(names, fact.signature.name);
+        ArrayPush(return_types, fact.signature.return_type);
+        ArrayPush(parameter_starts, ArrayLength(parameter_types));
+        ArrayPush(parameter_counts, fact.signature.param_count);
+        if !DirectMirScalarCfgProgramAppendParameterTypes(
+                parameter_types, fact.signature) {
+            return DirectMirScalarCfgProgramCallableInventory(
+                false, 0, ordinals, syntax_ids, names, return_types,
+                parameter_starts, parameter_counts, parameter_types,
+                signature_digests);
+        }
+        ArrayPush(signature_digests, fact.signature.digest);
+        ordinal = ordinal + 1;
+    }
+    let source: DirectMirScalarCfgProgramCallableInventory =
+        DirectMirScalarCfgProgramCallableInventory(
+            true, 0, ordinals, syntax_ids, names, return_types,
+            parameter_starts, parameter_counts, parameter_types,
+            signature_digests);
+    let sealed: DirectMirScalarCfgProgramCallableInventory =
+        DirectMirScalarCfgProgramCallableInventory(
+            true, DirectMirScalarCfgProgramCallableInventoryDigest(source),
+            ordinals, syntax_ids, names, return_types,
+            parameter_starts, parameter_counts, parameter_types,
+            signature_digests);
+    if !DirectMirScalarCfgProgramCallableInventoryReady(
+            sealed, ArrayLength(routine_rows)) {
+        return DirectMirScalarCfgProgramCallableInventory(
+            false, 0, ordinals, syntax_ids, names, return_types,
+            parameter_starts, parameter_counts, parameter_types,
+            signature_digests);
+    }
+    return sealed;
+}
+
+func DirectMirScalarCfgProgramCallableInventoryOrdinalBySyntaxId(
+    ref inventory: DirectMirScalarCfgProgramCallableInventory,
+    syntax_id: Int
+) -> Int {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(inventory.source_syntax_ids) {
+        if inventory.source_syntax_ids[row] == syntax_id {
+            if found >= 0 { return -1; }
+            found = inventory.routine_ordinals[row];
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarCfgProgramCallableInventoryOrdinalReady(
+    ref inventory: DirectMirScalarCfgProgramCallableInventory,
+    ordinal: Int
+) -> Bool {
+    return ordinal > 0 && ordinal <= ArrayLength(inventory.routine_ordinals) &&
+        inventory.routine_ordinals[ordinal - 1] == ordinal;
+}

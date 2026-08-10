@@ -1,4 +1,4 @@
-// Canonical Main-first routine ranges for one- or two-routine scalar programs.
+// Canonical Main-first routine ranges for arbitrary scalar-program inventories.
 
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_cfg_program_routine_identity_owner.pgy";
@@ -8,7 +8,7 @@ func DirectMirScalarCfgProgramRoutineStarts(
     counts: Array<Int>
 ) -> Array<Int> {
     let starts: Array<Int> = [];
-    if ArrayLength(counts) < 1 || ArrayLength(counts) > 2 { return starts; }
+    if ArrayLength(counts) < 1 { return starts; }
     let next: Int = 0;
     let row: Int = 0;
     while row < ArrayLength(counts) {
@@ -25,16 +25,17 @@ func DirectMirScalarCfgProgramRoutineStarts(
 
 func DirectMirScalarCfgProgramRoutinePartitionFromOwners(
     ref routines: MirProgramRoutineIndex,
-    ref entry_index: MirRoutineFactIndex,
-    ref callable_index: MirRoutineFactIndex,
-    entry_row: Int, callable_row: Int,
+    routine_rows: Array<Int>, cfg_digests: Array<Int>,
     local_counts: Array<Int>, value_counts: Array<Int>,
     block_counts: Array<Int>, operation_counts: Array<Int>,
-    phi_counts: Array<Int>
+    phi_counts: Array<Int>,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
 ) -> DirectMirScalarCfgRoutinePartitionFact {
     let routine_count: Int = ArrayLength(local_counts);
-    if routine_count < 1 || routine_count > 2 ||
+    if routine_count < 1 ||
         MirProgramRoutineIndexCount(routines) != routine_count ||
+        ArrayLength(routine_rows) != routine_count ||
+        ArrayLength(cfg_digests) != routine_count ||
         ArrayLength(value_counts) != routine_count ||
         ArrayLength(block_counts) != routine_count ||
         ArrayLength(operation_counts) != routine_count ||
@@ -43,8 +44,7 @@ func DirectMirScalarCfgProgramRoutinePartitionFromOwners(
     }
     let identity: DirectMirScalarCfgProgramRoutineIdentity =
         DirectMirScalarCfgProgramRoutineIdentityFromOwners(
-            routines, entry_index, callable_index, entry_row, callable_row,
-            routine_count
+            routines, routine_rows, cfg_digests, nominal
         );
     if !identity.valid {
         Die("direct MIR scalar CFG program routine identity is invalid");

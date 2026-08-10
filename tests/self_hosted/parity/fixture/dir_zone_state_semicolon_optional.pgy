@@ -1,0 +1,16 @@
+subject DirStateActor {
+    let value: Int;
+}
+
+effect DirStateEffect for bearer: DirStateActor {
+}
+
+zone DirStateZone {
+    subject slot actor: DirStateActor
+    effect slot active: DirStateEffect
+    state ready: effect active on actor
+    state working: effect active on actor;
+}
+
+func Main() -> Void {
+}

@@ -1,0 +1,810 @@
+// Exact self-host DIR node/edge inventory owner.
+//
+// Declaration, role, authority, topology, and intent facts are already
+// admitted before this owner runs.  This owner assigns their DIR-local node
+// indexes once and materializes every edge against those indexes.  Consumers
+// may render or validate these rows; they may not reconstruct rows from the
+// aggregate node/edge census.
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../mir/declaration_fact_owner.pgy";
+import "../semantic/ast_role_fact_owner.pgy";
+import "../semantic/ast_zone_authority_fact_owner.pgy";
+import "../lib/nominal_field_kind_owner.pgy";
+import "domain_topology_row_owner.pgy";
+import "intent_row_owner.pgy";
+import "zone_state_row_fact_owner.pgy";
+struct SelfDirGraphNodeRows {
+    kinds: Array<String>;
+    names: Array<String>;
+    source_syntax_ids: Array<Int>;
+    owner_source_syntax_ids: Array<Int>;
+    declaration_indices: Array<Int>;
+}
+struct SelfDirGraphEdgeRows {
+    kinds: Array<String>;
+    from_node_ids: Array<Int>;
+    to_node_ids: Array<Int>;
+    labels: Array<String>;
+    target_names: Array<String>;
+}
+struct SelfDirGraphInventoryFacts {
+    ok: Bool;
+    diagnostic_message: String;
+    nodes: SelfDirGraphNodeRows;
+    edges: SelfDirGraphEdgeRows;
+}
+func SelfDirGraphInventoryEmpty() -> SelfDirGraphInventoryFacts {
+    let strings0: Array<String> = [];
+    let strings1: Array<String> = [];
+    let strings2: Array<String> = [];
+    let strings3: Array<String> = [];
+    let strings4: Array<String> = [];
+    let ints0: Array<Int> = [];
+    let ints1: Array<Int> = [];
+    let ints2: Array<Int> = [];
+    let ints3: Array<Int> = [];
+    let ints4: Array<Int> = [];
+    return SelfDirGraphInventoryFacts(
+        true, "",
+        SelfDirGraphNodeRows(strings0, strings1, ints0, ints1, ints2),
+        SelfDirGraphEdgeRows(strings2, ints3, ints4, strings3, strings4)
+    );
+}
+func SelfDirGraphInventoryError(
+    message: String
+) -> SelfDirGraphInventoryFacts {
+    let facts: SelfDirGraphInventoryFacts = SelfDirGraphInventoryEmpty();
+    facts.ok = false;
+    facts.diagnostic_message = message;
+    return facts;
+}
+
+func SelfDirGraphInventoryAppendNode(
+    inout facts: SelfDirGraphInventoryFacts,
+    kind: String,
+    name: String,
+    source_syntax_id: Int,
+    owner_source_syntax_id: Int,
+    declaration_index: Int
+) -> Int {
+    if kind == "" || name == "" || source_syntax_id <= 0 ||
+        owner_source_syntax_id < 0 {
+        return 0 - 1;
+    }
+    let kinds: Array<String> = facts.nodes.kinds;
+    let names: Array<String> = facts.nodes.names;
+    let source_syntax_ids: Array<Int> = facts.nodes.source_syntax_ids;
+    let owner_source_syntax_ids: Array<Int> =
+        facts.nodes.owner_source_syntax_ids;
+    let declaration_indices: Array<Int> = facts.nodes.declaration_indices;
+    let i: Int = 0;
+    while i < ArrayLength(kinds) {
+        if kinds[i] == kind && names[i] == name {
+            return 0 - 1;
+        }
+        i = i + 1;
+    }
+    let node_id: Int = ArrayLength(kinds);
+    ArrayPush(kinds, kind);
+    ArrayPush(names, name);
+    ArrayPush(source_syntax_ids, source_syntax_id);
+    ArrayPush(owner_source_syntax_ids, owner_source_syntax_id);
+    ArrayPush(declaration_indices, declaration_index);
+    let nodes: SelfDirGraphNodeRows = SelfDirGraphNodeRows(
+        kinds, names, source_syntax_ids, owner_source_syntax_ids,
+        declaration_indices
+    );
+    facts = SelfDirGraphInventoryFacts(
+        facts.ok, facts.diagnostic_message, nodes, facts.edges
+    );
+    return node_id;
+}
+
+func SelfDirGraphInventoryAppendEdge(
+    inout facts: SelfDirGraphInventoryFacts,
+    kind: String,
+    from_node_id: Int,
+    to_node_id: Int,
+    label: String,
+    target_name: String
+) -> Bool {
+    if kind == "" || from_node_id < 0 ||
+        from_node_id >= ArrayLength(facts.nodes.kinds) || to_node_id < -1 ||
+        to_node_id >= ArrayLength(facts.nodes.kinds) {
+        return false;
+    }
+    let kinds: Array<String> = facts.edges.kinds;
+    let from_node_ids: Array<Int> = facts.edges.from_node_ids;
+    let to_node_ids: Array<Int> = facts.edges.to_node_ids;
+    let labels: Array<String> = facts.edges.labels;
+    let target_names: Array<String> = facts.edges.target_names;
+    ArrayPush(kinds, kind);
+    ArrayPush(from_node_ids, from_node_id);
+    ArrayPush(to_node_ids, to_node_id);
+    ArrayPush(labels, label);
+    ArrayPush(target_names, target_name);
+    let edges: SelfDirGraphEdgeRows = SelfDirGraphEdgeRows(
+        kinds, from_node_ids, to_node_ids, labels, target_names
+    );
+    facts = SelfDirGraphInventoryFacts(
+        facts.ok, facts.diagnostic_message, facts.nodes, edges
+    );
+    return true;
+}
+
+func SelfDirGraphInventoryNodeIndex(
+    facts: SelfDirGraphInventoryFacts,
+    kind: String,
+    name: String
+) -> Int {
+    let i: Int = 0;
+    while i < ArrayLength(facts.nodes.kinds) {
+        if facts.nodes.kinds[i] == kind && facts.nodes.names[i] == name {
+            return i;
+        }
+        i = i + 1;
+    }
+    return 0 - 1;
+}
+
+func SelfDirGraphInventoryDomainOwnerNodeIndex(
+    facts: SelfDirGraphInventoryFacts,
+    name: String
+) -> Int {
+    let node_id: Int = SelfDirGraphInventoryNodeIndex(facts, "zone", name);
+    if node_id >= 0 { return node_id; }
+    node_id = SelfDirGraphInventoryNodeIndex(facts, "relation", name);
+    if node_id >= 0 { return node_id; }
+    return SelfDirGraphInventoryNodeIndex(facts, "effect", name);
+}
+
+func SelfDirGraphInventoryDeclarationKind(
+    rows: SelfMirDeclarationRows,
+    declaration_index: Int
+) -> String {
+    if rows.kinds[declaration_index] == "ability" { return "ability"; }
+    if rows.kinds[declaration_index] == "role" { return "role"; }
+    if rows.nominal_kinds[declaration_index] == "party" { return "party"; }
+    if rows.nominal_kinds[declaration_index] == "roster" { return "roster"; }
+    if rows.nominal_kinds[declaration_index] == "world" { return "world"; }
+    if rows.nominal_kinds[declaration_index] == "relation" { return "relation"; }
+    if rows.nominal_kinds[declaration_index] == "effect" { return "effect"; }
+    if rows.nominal_kinds[declaration_index] == "zone" { return "zone"; }
+    if rows.nominal_kinds[declaration_index] == "extern" { return ""; }
+    return "type";
+}
+
+func SelfDirGraphInventoryQualifiedName(
+    owner_name: String,
+    slot_name: String
+) -> String {
+    return Concat(owner_name, Concat(".", slot_name));
+}
+
+func SelfDirGraphInventoryAppendPrimaryNodes(
+    artifact: AstTreeArtifact,
+    rows: SelfMirDeclarationRows,
+    intents: SelfDirIntentFacts,
+    inout facts: SelfDirGraphInventoryFacts
+) -> Bool {
+    let declarations_by_source: Array<Int> = [];
+    let intents_by_source: Array<Int> = [];
+    let node_id: Int = 0;
+    while node_id < artifact.count {
+        ArrayPush(declarations_by_source, -1);
+        ArrayPush(intents_by_source, -1);
+        node_id = node_id + 1;
+    }
+    let declaration: Int = 0;
+    while declaration < ArrayLength(rows.names) {
+        let source_id: Int = rows.source_syntax_ids[declaration];
+        if source_id <= 0 || source_id >= artifact.count ||
+            declarations_by_source[source_id] >= 0 {
+            return false;
+        }
+        declarations_by_source[source_id] = declaration;
+        declaration = declaration + 1;
+    }
+    let intent_row: Int = 0;
+    while intent_row < ArrayLength(intents.intent_node_ids) {
+        let source_id: Int = intents.intent_node_ids[intent_row];
+        if source_id <= 0 || source_id >= artifact.count ||
+            intents_by_source[source_id] >= 0 ||
+            declarations_by_source[source_id] >= 0 {
+            return false;
+        }
+        intents_by_source[source_id] = intent_row;
+        intent_row = intent_row + 1;
+    }
+    node_id = 1;
+    while node_id < artifact.count {
+        declaration = declarations_by_source[node_id];
+        if declaration >= 0 {
+            let kind: String = SelfDirGraphInventoryDeclarationKind(
+                rows, declaration
+            );
+            if kind != "" && SelfDirGraphInventoryAppendNode(
+                facts, kind, rows.names[declaration], node_id, 0, declaration
+            ) < 0 {
+                return false;
+            }
+        }
+        intent_row = intents_by_source[node_id];
+        if intent_row >= 0 && SelfDirGraphInventoryAppendNode(
+            facts, "intent", intents.names[intent_row], node_id, 0, -1
+        ) < 0 {
+            return false;
+        }
+        node_id = node_id + 1;
+    }
+    return true;
+}
+
+func SelfDirGraphInventoryAppendRoleEdges(
+    artifact: AstTreeArtifact,
+    rows: SelfMirDeclarationRows,
+    node_id: Int,
+    declaration: Int,
+    inout facts: SelfDirGraphInventoryFacts
+) -> Bool {
+    let target_name: String = rows.target_types[declaration];
+    if target_name == "" || !SelfDirGraphInventoryAppendEdge(
+        facts, "role-for", node_id,
+        SelfDirGraphInventoryNodeIndex(facts, "type", target_name),
+        "for", target_name
+    ) { return false; }
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        artifact.arena, rows.source_syntax_ids[declaration], child_index
+    );
+    while IsSome(child) {
+        let child_id: Int = UnwrapOption(child);
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, child_id, TypedAstKindRoleIncludeTag()
+        ) {
+            let included: Option<String> = TypedAstArenaAtomText(
+                artifact.arena, child_id
+            );
+            if !IsSome(included) || !SelfDirGraphInventoryAppendEdge(
+                facts, "role-include", node_id,
+                SelfDirGraphInventoryNodeIndex(
+                    facts, "role", UnwrapOption(included)
+                ), "include", UnwrapOption(included)
+            ) { return false; }
+        }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(
+            artifact.arena, rows.source_syntax_ids[declaration], child_index
+        );
+    }
+    let impl_i: Int = 0;
+    while impl_i < rows.role_impl_counts[declaration] {
+        let impl_row: Int = rows.role_impl_starts[declaration] + impl_i;
+        let ability_name: String = rows.role_impl_ability_names[impl_row];
+        let ability_node: Int = SelfDirGraphInventoryNodeIndex(
+            facts, "ability", ability_name
+        );
+        if !SelfDirGraphInventoryAppendEdge(
+                facts, "role-impl", node_id, ability_node,
+                "impl", ability_name
+            ) || !SelfDirGraphInventoryAppendEdge(
+                facts, "role-complete", node_id, ability_node,
+                "complete", ability_name
+            ) {
+            return false;
+        }
+        impl_i = impl_i + 1;
+    }
+    return true;
+}
+
+func SelfDirGraphInventoryRoleSlotSourceSyntaxId(
+    artifact: AstTreeArtifact,
+    party_source_syntax_id: Int,
+    slot_name: String
+) -> Int {
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        artifact.arena, party_source_syntax_id, child_index
+    );
+    while IsSome(child) {
+        let child_id: Int = UnwrapOption(child);
+        let child_name: Option<String> = TypedAstArenaAtomText(
+            artifact.arena, child_id
+        );
+        if TypedAstArenaNodeKindIs(
+                artifact.arena, child_id, TypedAstKindRoleSlotTag()
+            ) && IsSome(child_name) && UnwrapOption(child_name) == slot_name {
+            return child_id;
+        }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(
+            artifact.arena, party_source_syntax_id, child_index
+        );
+    }
+    return 0;
+}
+
+func SelfDirGraphInventoryAppendPartyEdges(
+    artifact: AstTreeArtifact,
+    rows: SelfMirDeclarationRows,
+    node_id: Int,
+    declaration: Int,
+    inout facts: SelfDirGraphInventoryFacts
+) -> Bool {
+    let party_name: String = rows.names[declaration];
+    let slot_i: Int = 0;
+    while slot_i < rows.role_slot_counts[declaration] {
+        let slot_row: Int = rows.role_slot_starts[declaration] + slot_i;
+        let slot_name: String = rows.role_slot_names[slot_row];
+        let ability_name: String = rows.role_slot_type_names[slot_row];
+        let qualified: String = SelfDirGraphInventoryQualifiedName(
+            party_name, slot_name
+        );
+        let source_syntax_id: Int =
+            SelfDirGraphInventoryRoleSlotSourceSyntaxId(
+                artifact, rows.source_syntax_ids[declaration], slot_name
+            );
+        let slot_node: Int = SelfDirGraphInventoryAppendNode(
+            facts, "party-slot", qualified, source_syntax_id,
+            rows.source_syntax_ids[declaration], -1
+        );
+        let ability_node: Int = SelfDirGraphInventoryNodeIndex(
+            facts, "ability", ability_name
+        );
+        if source_syntax_id <= 0 || slot_node < 0 ||
+            !SelfDirGraphInventoryAppendEdge(
+                facts, "party-has-slot", node_id, slot_node,
+                slot_name, qualified
+            ) || !SelfDirGraphInventoryAppendEdge(
+                facts, "party-slot", node_id, ability_node,
+                slot_name, ability_name
+            ) || !SelfDirGraphInventoryAppendEdge(
+                facts, "party-slot", slot_node, ability_node,
+                slot_name, ability_name
+            ) {
+            return false;
+        }
+        slot_i = slot_i + 1;
+    }
+    return true;
+}
+
+func SelfDirGraphInventoryAppendDomainFieldEdges(
+    rows: SelfMirDeclarationRows,
+    node_id: Int,
+    declaration: Int,
+    inout facts: SelfDirGraphInventoryFacts
+) -> Bool {
+    let owner_kind: String = facts.nodes.kinds[node_id];
+    let owner_name: String = rows.names[declaration];
+    let owner_source_id: Int = rows.source_syntax_ids[declaration];
+    let field_i: Int = 0;
+    while field_i < rows.field_counts[declaration] {
+        let field_row: Int = rows.field_starts[declaration] + field_i;
+        let field_kind: String = rows.field_kinds[field_row];
+        let field_name: String = rows.field_names[field_row];
+        let target_name: String = rows.field_types[field_row];
+        if field_kind == NominalFieldKindSharedField() ||
+            field_kind == NominalFieldKindField() {
+            field_i = field_i + 1;
+            continue;
+        }
+        if owner_kind == "world" {
+            let target_kind: String = "zone";
+            let edge_kind: String = "world-zone";
+            if field_kind == NominalFieldKindWorldRoster() {
+                target_kind = "roster";
+                edge_kind = "world-roster";
+            } else if field_kind != NominalFieldKindWorldZone() {
+                return false;
+            }
+            if !SelfDirGraphInventoryAppendEdge(
+                facts, edge_kind, node_id,
+                SelfDirGraphInventoryNodeIndex(facts, target_kind, target_name),
+                field_name, target_name
+            ) { return false; }
+        } else if owner_kind == "roster" {
+            if field_kind != NominalFieldKindRosterSlot() ||
+                !SelfDirGraphInventoryAppendEdge(
+                    facts, "roster-party", node_id,
+                    SelfDirGraphInventoryNodeIndex(facts, "party", target_name),
+                    field_name, target_name
+                ) { return false; }
+        } else if owner_kind == "zone" &&
+            (field_kind == NominalFieldKindEffectSlot() ||
+             field_kind == NominalFieldKindRelationSlot()) {
+            let target_kind: String = "effect";
+            if field_kind == NominalFieldKindRelationSlot() {
+                target_kind = "relation";
+            }
+            if !SelfDirGraphInventoryAppendEdge(
+                facts, "zone-layer", node_id,
+                SelfDirGraphInventoryNodeIndex(facts, target_kind, target_name),
+                field_name, target_name
+            ) { return false; }
+        } else {
+            let projection: Bool =
+                field_kind == NominalFieldKindObjectSlot() ||
+                field_kind == NominalFieldKindTObjectSlot();
+            let subject_slot: Bool =
+                field_kind == NominalFieldKindSubjectSlot() ||
+                field_kind == NominalFieldKindBindingSlot();
+            if !projection && !subject_slot { return false; }
+            let slot_kind: String = "zone-slot";
+            if projection { slot_kind = "projection-slot"; }
+            let qualified: String = SelfDirGraphInventoryQualifiedName(
+                owner_name, field_name
+            );
+            let slot_node: Int = SelfDirGraphInventoryAppendNode(
+                facts, slot_kind, qualified,
+                rows.field_source_syntax_ids[field_row], owner_source_id, -1
+            );
+            let target_node: Int = SelfDirGraphInventoryNodeIndex(
+                facts, "type", target_name
+            );
+            if slot_node < 0 { return false; }
+            if owner_kind == "zone" {
+                let owner_edge_kind: String = "zone-has-slot";
+                if projection { owner_edge_kind = "owner-has-projection-slot"; }
+                if !SelfDirGraphInventoryAppendEdge(
+                    facts, owner_edge_kind, node_id, slot_node,
+                    field_name, qualified
+                ) || !SelfDirGraphInventoryAppendEdge(
+                    facts, "zone-slot", node_id, target_node,
+                    field_name, target_name
+                ) { return false; }
+            } else if projection && !SelfDirGraphInventoryAppendEdge(
+                facts, "owner-has-projection-slot", node_id, slot_node,
+                field_name, qualified
+            ) { return false; }
+            let slot_edge_kind: String = "zone-slot";
+            if projection { slot_edge_kind = "projection-slot-type"; }
+            if !SelfDirGraphInventoryAppendEdge(
+                facts, slot_edge_kind, slot_node, target_node,
+                field_name, target_name
+            ) { return false; }
+        }
+        field_i = field_i + 1;
+    }
+    return true;
+}
+
+func SelfDirGraphInventoryAppendAuthorityEdges(
+    ref authorities: SemanticAstZoneAuthorityFacts,
+    owner_name_filter: String,
+    inout facts: SelfDirGraphInventoryFacts
+) -> Bool {
+    let authority_i: Int = 0;
+    while authority_i < ArrayLength(authorities.authority_node_ids) {
+        let owner_name: String = authorities.owner_zone_names[authority_i];
+        if owner_name != owner_name_filter {
+            authority_i = authority_i + 1;
+            continue;
+        }
+        let slot_name: String = authorities.subject_slot_names[authority_i];
+        let owner_node: Int = SelfDirGraphInventoryNodeIndex(
+            facts, "zone", owner_name
+        );
+        let subject_name: String = SelfDirGraphInventoryQualifiedName(
+            owner_name, slot_name
+        );
+        let subject_node: Int = SelfDirGraphInventoryNodeIndex(
+            facts, "zone-slot", subject_name
+        );
+        let authority_node: Int = SelfDirGraphInventoryAppendNode(
+            facts, "authority-slot", subject_name,
+            authorities.authority_node_ids[authority_i],
+            authorities.owner_zone_node_ids[authority_i], -1
+        );
+        if owner_node < 0 || subject_node < 0 || authority_node < 0 ||
+            !SelfDirGraphInventoryAppendEdge(
+                facts, "zone-has-authority-slot", owner_node, authority_node,
+                slot_name, subject_name
+            ) || !SelfDirGraphInventoryAppendEdge(
+                facts, "authority-slot-subject", authority_node, subject_node,
+                slot_name, slot_name
+            ) { return false; }
+        let ability_i: Int = 0;
+        while ability_i < authorities.required_ability_counts[authority_i] {
+            let ability_row: Int =
+                authorities.required_ability_starts[authority_i] + ability_i;
+            let ability_name: String =
+                authorities.required_ability_names[ability_row];
+            let ability_node: Int = SelfDirGraphInventoryNodeIndex(
+                facts, "ability", ability_name
+            );
+            if !SelfDirGraphInventoryAppendEdge(
+                    facts, "zone-authority", owner_node, ability_node,
+                    slot_name, ability_name
+                ) || !SelfDirGraphInventoryAppendEdge(
+                    facts, "zone-authority", authority_node, ability_node,
+                    slot_name, ability_name
+                ) { return false; }
+            ability_i = ability_i + 1;
+        }
+        authority_i = authority_i + 1;
+    }
+    return true;
+}
+
+func SelfDirGraphInventoryAppendProjectionTopologyEdges(
+    topology: SelfDirDomainTopologyRows,
+    owner_name: String,
+    owner_node: Int,
+    inout facts: SelfDirGraphInventoryFacts
+) -> Bool {
+    let topology_i: Int = 0;
+    while topology_i < ArrayLength(topology.kinds) {
+        if topology.owner_names[topology_i] != owner_name ||
+            (topology.kinds[topology_i] != "refresh" &&
+             topology.kinds[topology_i] != "publish" &&
+             topology.kinds[topology_i] != "bind") {
+            topology_i = topology_i + 1;
+            continue;
+        }
+        let projection_name: String = SelfDirGraphInventoryQualifiedName(
+            owner_name, topology.projection_slot_names[topology_i]
+        );
+        let source_name: String = SelfDirGraphInventoryQualifiedName(
+            owner_name, topology.source_slot_names[topology_i]
+        );
+        let projection_node: Int = SelfDirGraphInventoryNodeIndex(
+            facts, "projection-slot", projection_name
+        );
+        let source_node: Int = SelfDirGraphInventoryNodeIndex(
+            facts, "zone-slot", source_name
+        );
+        if source_node < 0 {
+            source_node = SelfDirGraphInventoryNodeIndex(
+                facts, "projection-slot", source_name
+            );
+        }
+        if !SelfDirGraphInventoryAppendEdge(
+                facts, "projection-slot-source", projection_node,
+                source_node, topology.kinds[topology_i],
+                topology.source_slot_names[topology_i]
+            ) || !SelfDirGraphInventoryAppendEdge(
+                facts, "owner-has-projection-slot", owner_node,
+                projection_node, topology.projection_slot_names[topology_i],
+                projection_name
+            ) {
+            return false;
+        }
+        topology_i = topology_i + 1;
+    }
+    return true;
+}
+func SelfDirGraphInventoryAppendIntentEdges(
+    rows: SelfMirDeclarationRows,
+    intents: SelfDirIntentFacts,
+    inout facts: SelfDirGraphInventoryFacts
+) -> Bool {
+    let intent_i: Int = 0;
+    while intent_i < ArrayLength(intents.intent_node_ids) {
+        let intent_node: Int = SelfDirGraphInventoryNodeIndex(
+            facts, "intent", intents.names[intent_i]
+        );
+        let participant_i: Int = 0;
+        while participant_i < intents.participant_counts[intent_i] {
+            let row: Int = intents.participant_starts[intent_i] + participant_i;
+            let to_node: Int = -1;
+            let declaration: Int = intents.participants.declaration_indices[row];
+            if declaration >= 0 {
+                to_node = SelfDirGraphInventoryNodeIndex(
+                    facts,
+                    SelfDirGraphInventoryDeclarationKind(rows, declaration),
+                    intents.participants.type_names[row]
+                );
+            }
+            if !SelfDirGraphInventoryAppendEdge(
+                facts, "intent-participant", intent_node, to_node,
+                intents.participants.aliases[row],
+                intents.participants.type_names[row]
+            ) { return false; }
+            participant_i = participant_i + 1;
+        }
+        let local_step: Int = 0;
+        while local_step < intents.step_counts[intent_i] {
+            let step: Int = intents.step_starts[intent_i] + local_step;
+            let step_name: String = intents.steps.names[step];
+            if !SelfDirGraphInventoryAppendEdge(
+                facts, "intent-step-zone", intent_node,
+                SelfDirGraphInventoryNodeIndex(
+                    facts, "zone", intents.steps.where_zone_names[step]
+                ), step_name, intents.steps.where_zone_names[step]
+            ) { return false; }
+            if intents.steps.causes_names[step] != "" &&
+                !SelfDirGraphInventoryAppendEdge(
+                    facts, "intent-step-causes", intent_node,
+                    SelfDirGraphInventoryNodeIndex(
+                        facts, "effect", intents.steps.causes_names[step]
+                    ), step_name, intents.steps.causes_names[step]
+                ) { return false; }
+            if intents.steps.predecessor_step_indices[step] >= 0 &&
+                !SelfDirGraphInventoryAppendEdge(
+                    facts, "intent-step-depends-on", intent_node, intent_node,
+                    intents.steps.names[
+                        intents.step_starts[intent_i] +
+                        intents.steps.predecessor_step_indices[step]
+                    ], step_name
+                ) { return false; }
+            let name_i: Int = 0;
+            while name_i < intents.steps.who_counts[step] {
+                let row: Int = intents.steps.who_starts[step] + name_i;
+                if !SelfDirGraphInventoryAppendEdge(
+                    facts, "intent-step-who", intent_node, intent_node,
+                    step_name, intents.steps.who_names[row]
+                ) { return false; }
+                name_i = name_i + 1;
+            }
+            name_i = 0;
+            while name_i < intents.steps.requires_counts[step] {
+                let row: Int = intents.steps.requires_starts[step] + name_i;
+                if !SelfDirGraphInventoryAppendEdge(
+                    facts, "intent-step-requires", intent_node,
+                    SelfDirGraphInventoryNodeIndex(
+                        facts, "ability", intents.steps.requires_names[row]
+                    ), step_name, intents.steps.requires_names[row]
+                ) { return false; }
+                name_i = name_i + 1;
+            }
+            name_i = 0;
+            while name_i < intents.steps.authorized_counts[step] {
+                let row: Int = intents.steps.authorized_starts[step] + name_i;
+                if !SelfDirGraphInventoryAppendEdge(
+                    facts, "intent-step-authorized-by", intent_node,
+                    intent_node, step_name,
+                    intents.steps.authorized_names[row]
+                ) { return false; }
+                name_i = name_i + 1;
+            }
+            if intents.transitions.step_requireds[step] &&
+                intents.transitions.predecessor_step_indices[step] >= 0 &&
+                !SelfDirGraphInventoryAppendEdge(
+                    facts, "intent-step-depends-on", intent_node, intent_node,
+                    intents.steps.names[
+                        intents.step_starts[intent_i] +
+                        intents.transitions.predecessor_step_indices[step]
+                    ], step_name
+                ) { return false; }
+            local_step = local_step + 1;
+        }
+        intent_i = intent_i + 1;
+    }
+    return true;
+}
+func SelfDirGraphInventoryFactsFromAdmittedFacts(
+    artifact: AstTreeArtifact,
+    rows: SelfMirDeclarationRows,
+    intents: SelfDirIntentFacts,
+    zone_states: SelfDirZoneStateRows,
+    ref authorities: SemanticAstZoneAuthorityFacts,
+    topology: SelfDirDomainTopologyRows
+) -> SelfDirGraphInventoryFacts {
+    let facts: SelfDirGraphInventoryFacts = SelfDirGraphInventoryEmpty();
+    if !SelfDirGraphInventoryAppendPrimaryNodes(
+        artifact, rows, intents, facts
+    ) { return SelfDirGraphInventoryError(
+        "self-host DIR primary node inventory is invalid"
+    ); }
+    let primary_count: Int = ArrayLength(facts.nodes.kinds);
+    let node_id: Int = 0;
+    while node_id < primary_count {
+        let declaration: Int = facts.nodes.declaration_indices[node_id];
+        if declaration >= 0 && facts.nodes.kinds[node_id] == "role" {
+            if !SelfDirGraphInventoryAppendRoleEdges(
+                artifact, rows, node_id, declaration, facts
+            ) { return SelfDirGraphInventoryError(
+                "self-host DIR role edge inventory is invalid"
+            ); }
+        } else if declaration >= 0 &&
+            facts.nodes.kinds[node_id] == "party" {
+            if !SelfDirGraphInventoryAppendPartyEdges(
+                artifact, rows, node_id, declaration, facts
+            ) { return SelfDirGraphInventoryError(
+                "self-host DIR party edge inventory is invalid"
+            ); }
+        } else if declaration >= 0 &&
+            (facts.nodes.kinds[node_id] == "effect" ||
+             facts.nodes.kinds[node_id] == "relation" ||
+             facts.nodes.kinds[node_id] == "zone" ||
+             facts.nodes.kinds[node_id] == "roster" ||
+             facts.nodes.kinds[node_id] == "world") {
+            if !SelfDirGraphInventoryAppendDomainFieldEdges(
+                rows, node_id, declaration, facts
+            ) { return SelfDirGraphInventoryError(
+                "self-host DIR domain field edge inventory is invalid"
+            ); }
+            if facts.nodes.kinds[node_id] == "zone" &&
+                !SelfDirGraphInventoryAppendAuthorityEdges(
+                    authorities, facts.nodes.names[node_id], facts
+                ) {
+                return SelfDirGraphInventoryError(
+                    "self-host DIR authority edge inventory is invalid"
+                );
+            }
+            if (facts.nodes.kinds[node_id] == "effect" ||
+                facts.nodes.kinds[node_id] == "relation" ||
+                facts.nodes.kinds[node_id] == "zone") &&
+                !SelfDirGraphInventoryAppendProjectionTopologyEdges(
+                    topology, facts.nodes.names[node_id], node_id, facts
+                ) {
+                return SelfDirGraphInventoryError(
+                    "self-host DIR topology edge inventory is invalid"
+                );
+            }
+            if facts.nodes.kinds[node_id] == "zone" {
+                let state_i: Int = 0;
+                while state_i < ArrayLength(zone_states.names) {
+                    if zone_states.owner_names[state_i] ==
+                            facts.nodes.names[node_id] &&
+                        !SelfDirGraphInventoryAppendEdge(
+                            facts, "zone-state", node_id, node_id,
+                            zone_states.names[state_i],
+                            zone_states.layer_slot_names[state_i]
+                        ) {
+                        return SelfDirGraphInventoryError(
+                            "self-host DIR zone-state edge inventory is invalid"
+                        );
+                    }
+                    state_i = state_i + 1;
+                }
+            }
+        }
+        node_id = node_id + 1;
+    }
+    if !SelfDirGraphInventoryAppendIntentEdges(rows, intents, facts) {
+        return SelfDirGraphInventoryError(
+            "self-host DIR intent edge inventory is invalid"
+        );
+    }
+    return facts;
+}
+
+func SelfDirGraphInventoryFactsReady(
+    facts: SelfDirGraphInventoryFacts
+) -> Bool {
+    let node_count: Int = ArrayLength(facts.nodes.kinds);
+    let edge_count: Int = ArrayLength(facts.edges.kinds);
+    if !facts.ok || facts.diagnostic_message != "" ||
+        ArrayLength(facts.nodes.names) != node_count ||
+        ArrayLength(facts.nodes.source_syntax_ids) != node_count ||
+        ArrayLength(facts.nodes.owner_source_syntax_ids) != node_count ||
+        ArrayLength(facts.nodes.declaration_indices) != node_count ||
+        ArrayLength(facts.edges.from_node_ids) != edge_count ||
+        ArrayLength(facts.edges.to_node_ids) != edge_count ||
+        ArrayLength(facts.edges.labels) != edge_count ||
+        ArrayLength(facts.edges.target_names) != edge_count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < node_count {
+        if facts.nodes.kinds[i] == "" || facts.nodes.names[i] == "" ||
+            facts.nodes.source_syntax_ids[i] <= 0 ||
+            facts.nodes.owner_source_syntax_ids[i] < 0 {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < i {
+            if facts.nodes.kinds[prior] == facts.nodes.kinds[i] &&
+                facts.nodes.names[prior] == facts.nodes.names[i] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        i = i + 1;
+    }
+    i = 0;
+    while i < edge_count {
+        if facts.edges.kinds[i] == "" ||
+            facts.edges.from_node_ids[i] < 0 ||
+            facts.edges.from_node_ids[i] >= node_count ||
+            facts.edges.to_node_ids[i] < -1 ||
+            facts.edges.to_node_ids[i] >= node_count {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}

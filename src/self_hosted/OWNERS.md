@@ -181,6 +181,13 @@ inventory must not become a second fact-family owner registry.
   action-only `requires`/`within`/`causes`/`authorized by`, and callable
   caps/effects rows. Codegen and MIR consume this owner rather than skipping
   typed rows or inferring action identity from clauses.
+- `src/self_hosted/semantic/builtin_capability_projection_owner.pgy` --
+  generated builtin-name and FileOpen-mode capability policy derived from the
+  native registries; semantic consumers cannot reintroduce literal masks.
+- `src/self_hosted/semantic/ast_capability_fact_owner.pgy` -- admitted
+  expression-call capability facts, declared-vs-used validation, and
+  interprocedural callable propagation. Manifest rendering may consume its
+  masks but may not rescan builtin or source call spellings.
 - `src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy` -- typed
   generic-list node to ordered formal-parameter/default-type rows; nested type
   defaults are partitioned once by the delimited-range owner, and provenance
@@ -452,8 +459,8 @@ inventory must not become a second fact-family owner registry.
   payload identity for typed intents; spelling-only and source-order fallback
   are forbidden.
 - `src/self_hosted/semantic/ast_intent_transition_row_owner.pgy` -- canonical
-  typed-intent row parsing and enum-node/local-index variant seals consumed by
-  the transition fact owner.
+  typed-intent row parsing, exact ordered step-header identity, and
+  enum-node/local-index variant seals consumed by semantic transition and DIR.
 - `src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy` --
   intent-body expression environment dispatcher; it identifies the owning
   intent step and composes parameter plus step-local outcome facts.
@@ -984,7 +991,19 @@ inventory must not become a second fact-family owner registry.
   delegates present/multi/interleaved/mutation evidence to
   `tests/self_hosted/parity/intent_execution_protocol_mutation_owner.sh`.
 - `src/self_hosted/dir/domain_graph_fact_owner.pgy` -- bounded DIR census,
-  graph-anchor identity, and topology-producer orchestration.
+  graph-anchor identity, topology-producer orchestration, and exact zone-state
+  row carriage.
+- `src/self_hosted/dir/zone_state_row_fact_owner.pgy` -- exact zone-state
+  identity, effect/relation layer-slot join, and participant-slot join. The
+  parser-owned payload is decoded once at the DIR fact boundary; inventory and
+  rendering may not reopen AST provenance or replace a state edge with a count.
+- `src/self_hosted/dir/domain_graph_inventory_owner.pgy` -- exact program DIR
+  node/edge inventory projected once from admitted declaration, intent,
+  authority, and topology rows. Producer-local source syntax IDs may differ
+  across native and self-host artifacts; DIR-local row and resolved-node
+  identities may not. Aggregate census or graph-anchor values are not an
+  inventory substitute. Zone-state edges consume the typed state row and keep
+  the owning zone as their exact DIR-local resolved node.
 - `src/self_hosted/dir/intent_fact_owner.pgy` -- exact intent declaration,
   participant/value range, ordered-step range, and intent-edge census owner;
   it validates typed identities and never rescans source text.
@@ -994,16 +1013,24 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/dir/intent_step_clause_fact_owner.pgy` -- one-pass exact
   typed-AST child census and lossless intent-step clause collection; singleton
   clauses reject duplicates while compensation retains source order.
+- `src/self_hosted/parser/intent_default_clause_owner.pgy` -- intent-level
+  `who`/`where` parser clauses and their exact per-step application provenance.
+  It emits the native AST contract wording once; DIR consumes the typed row.
 - `src/self_hosted/dir/intent_step_carriage_contract_owner.pgy` -- structural
   range, node-kind, and child-census validation for intent-step row carriage.
+- `src/self_hosted/dir/intent_step_provenance_fact_owner.pgy` -- typed
+  explicit-versus-derived provenance flags for admitted intent steps. The
+  renderer consumes these rows and may not re-infer action defaults from the
+  final resolved names.
 - `src/self_hosted/dir/intent_step_target_contract_owner.pgy` -- exact
   discriminated action-or-intent target identity, return, and arity validation
   over one carried DIR step.
 - `src/self_hosted/dir/intent_step_fact_owner.pgy` -- one intent-step
   resolution owner for `on` receiver/action binding, semantic action-contract
-  defaults, zone/using/who/requires/causes/authorized identities, and ordered
-  predecessor edges. It consumes the clause owner without source rescans and
-  carries guard/post/expect plus ordered compensation identities into DIR.
+  defaults, transfer endpoints, zone/using/who/requires/causes/authorized
+  identities, and ordered predecessor edges. It consumes the clause and header
+  owners without source rescans and carries guard/post/expect plus ordered
+  compensation identities into DIR.
 - `src/self_hosted/dir/intent_outcome_contract_owner.pgy` -- exact step-to-intent
   membership, participant receiver, subject-action signature, outcome node,
   name, and return-type validation over already-owned DIR rows.
@@ -1848,6 +1875,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/machine_layer_declaration_consumer.pgy` --
   native `pgy.machine-layer.declaration.v1` JSON consumer owning the
   self-hosted physical grant/provenance view and its fail-closed shape checks.
+  Its installed-artifact entrypoint returns the original bytes only after the
+  same declaration is admitted; it is not a second physical serializer.
 - `src/self_hosted/compiler/machine_layer_runtime_binding_owner.pgy` --
   final self-host C startup consumer that serializes the checked declaration
   fingerprints and selected grant window into the runtime mapping bind; it is
@@ -1892,6 +1921,21 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/driver_pipeline_owner.pgy` -- executable
   source-to-AST-to-C pipeline shared by the user-facing driver and bootstrap;
   this is the single owner of parser/codegen composition.
+- `src/self_hosted/compiler/capability_manifest_owner.pgy` -- installed
+  source capability-manifest orchestration and stable JSON projection from
+  admitted semantic capability facts; it owns no builtin-name inference.
+- `src/self_hosted/compiler/dir_text_artifact_owner.pgy` -- verified
+  source-to-DIR debug artifact renderer over the exact admitted program
+  inventory. It compares an independently owned domain census when present,
+  never rebuilds rows from that count, and delegates admitted intent detail
+  without reopening parser provenance.
+- `src/self_hosted/compiler/dir_intent_text_artifact_owner.pgy` -- final DIR
+  intent participant and ordered-step renderer. It consumes exact declaration,
+  range, resolved-node, and typed provenance rows; it owns no action-default
+  inference.
+- `src/self_hosted/compiler/dir_text_row_format_owner.pgy` -- exact scalar
+  index, padding, unresolved-node, and empty-value formatting policy shared by
+  the DIR program and intent text renderers.
 - `src/self_hosted/compiler/driver_bootstrap_main.pgy` -- installed compiler
   composition root used by producer parity and the integrated seed/oracle
   fixed point. It admits argv once through `driver_rung2_cli_request_owner.pgy`
@@ -1913,9 +1957,15 @@ inventory must not become a second fact-family owner registry.
   bearing LLVM programs or package paths.
 - `src/compiler/driver_self_host_selection_owner.c` -- native launcher's one
   policy owner for deciding whether a plain C/LLVM binary request is inside an
-  installed self-host artifact envelope and whether exact public `--tokens` or
-  `--ast` is an admitted installed source-read request. Unsupported options
-  fail closed and cannot fall through to the native semantic/backend pipeline.
+  installed self-host artifact envelope and whether exact public `--tokens`,
+  `--ast`, `--capability-manifest`, or no-source `--machine-manifest-json` is
+  an admitted installed request. Unsupported options fail closed and cannot
+  fall through to the native semantic/backend pipeline.
+- `src/compiler/self_host_machine_manifest_artifact_owner.c` -- installed
+  machine-declaration companion delivery boundary. It resolves the companion
+  beside the selected Pergyra-built driver and invokes the exact verified
+  read request once; it owns no physical literals or JSON serialization and
+  cannot retry through the native pipeline.
 - `src/compiler/compiler_transient_artifact_workspace.c` -- private transient
   artifact directory lifetime owner shared by the C and LLVM installed-driver
   runners. It owns path allocation and cleanup, not semantic or backend facts.
@@ -2332,10 +2382,10 @@ inventory must not become a second fact-family owner registry.
   operation/type envelope, never fixture names or exact block counts. A
   validated multi-routine composition may select its exact `Main` row.
 - `src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy` --
-  common one/two-routine route receipt. The bounded semantic claims live in
-  `direct_mir_scalar_program_single_string_route_owner.pgy` and
-  `direct_mir_scalar_program_two_routine_route_owner.pgy`; neither claims by
-  fixture name, display spelling, block count, or routine order.
+  typed scalar-program route receipt. It carries the exact admitted routine
+  rows in canonical Main-first order plus the optional admitted two-Int nominal
+  representation, and never claims by fixture name, display spelling, block
+  count, routine-array order, or an exact routine count.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_fact_owner.pgy`
   -- normalized typed expression-DAG arena shared by every program routine,
   including String concat/equality/inequality and routine-qualified calls.
@@ -2356,6 +2406,32 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_readiness_owner.pgy`
   -- exact node arity, type, endpoint, and literal invariants for that arena;
   raw modulo projection is admitted only for nonzero, non-minus-one literals.
+- `src/self_hosted/compiler/direct_mir_scalar_program_option_int_expression_kind_owner.pgy`,
+  `direct_mir_scalar_program_option_int_builtin_signature_owner.pgy`, and
+  `direct_mir_scalar_program_option_int_expression_readiness_owner.pgy`
+  -- the reached Some/None/IsSome/UnwrapOption identities, canonical builtin
+  registry projection, and exact typed node shapes for the first non-scalar
+  value family in the shared program expression arena.
+- `src/self_hosted/compiler/direct_mir_scalar_program_option_int_abi_owner.pgy`
+  -- the one program-wide Option<Int> representation receipt captured from the
+  persisted required MIR ABI row. It rejects missing or disagreeing layouts;
+  consumers cannot infer tag order, field offsets, or backend type spellings.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_option_int_owner.pgy`
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_program_llvm_option_int_owner.pgy`
+  -- target projections and expression materialization for that admitted ABI.
+  Both targets consume the shared tag/value/print mapping and do not recreate
+  an Option layout from the surface type name.
+- `src/self_hosted/compiler/direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy`
+  -- the optional program-wide two-field Int nominal declaration and physical
+  ABI cross-seal. It admits one declaration row, checks formal-parameter and
+  reached instruction receipts against that owner, and rejects unused or
+  disagreeing representation facts.
+- `src/self_hosted/compiler/direct_mir_scalar_program_two_int_nominal_target_owner.pgy`,
+  `direct_mir_scalar_program_c_two_int_nominal_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_two_int_nominal_owner.pgy` -- the target
+  projection and C/LLVM type materialization for that fact. Neither backend
+  derives `{i32,i32}` or a C struct merely from the source type spelling.
 - `src/self_hosted/compiler/direct_mir_scalar_program_string_index_expression_kind_owner.pgy`
   and
   `src/self_hosted/compiler/direct_mir_scalar_program_string_search_expression_readiness_owner.pgy`
@@ -2380,6 +2456,11 @@ inventory must not become a second fact-family owner registry.
   signature support lives in `direct_mir_scalar_program_callable_signature_owner.pgy`;
   block and return admission remain owned by the shared per-routine GraphPlan
   builder.
+- `src/self_hosted/compiler/direct_mir_scalar_program_callable_inventory_owner.pgy`
+  -- the one typed callable catalog for every non-Main row in the admitted
+  program representation. Direct-call nodes join its unique persisted syntax ID
+  to ordered parameter and return types; consumers do not scan routine names or
+  rebuild one optional callable per instruction.
 - `src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_owner.pgy`
   -- the sole expression-kind-to-runtime-ABI requirement mapper. Its sealed
   case/math subfact owns StringReplace/Abs/Min/Max call identities, and its
@@ -2393,7 +2474,7 @@ inventory must not become a second fact-family owner registry.
   owned-result contract consumed by both target materializers.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_owner.pgy`
   -- optional callable identity, typed expression-row links, per-block return
-  rows, and String/closed-module ABI IDs carried by the existing scalar CFG
+  rows, and nominal/String/closed-module ABI IDs carried by the existing CFG
   GraphPlan; it owns no duplicate CFG, SSA, phi, local, or operation arrays.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_readiness_owner.pgy`
   -- range-aware cross-links from extension rows to the sole GraphPlan. It
@@ -2471,8 +2552,9 @@ inventory must not become a second fact-family owner registry.
   role arrays are assembled by the bounded
   `direct_mir_scalar_cfg_program_routine_identity_owner.pgy`.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_admission_owner.pgy`
-  -- loops over one or two canonical rows through one routine-admission call,
-  constructs one partition/extension, and calls the sole GraphPlan seal once.
+  -- loops over every canonical route row through one routine-admission call,
+  constructs one callable inventory, partition, and extension, and calls the
+  sole GraphPlan seal once.
 - `src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy`
   -- MIR-blind C expression rendering from the sealed typed arena and String
   runtime ABI receipts. Responsibility-specific direct-call, case/math, and
@@ -2867,8 +2949,10 @@ inventory must not become a second fact-family owner registry.
   forbidden.
 - `src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy` -- sole pure
   argv admission owner for the versioned DRV-2 CLI request family. It maps
-  exact source-token, source-AST, source-C, source-MIR, canonical, MIR-C, and
-  direct-backend forms to a flat typed enum before I/O. Artifact requests
+  exact source-token, source-AST, internal verified source-DIR, installed
+  machine-manifest, source-C,
+  source-MIR, canonical, MIR-C, and direct-backend forms to a flat typed enum
+  before I/O. Artifact requests
   require an explicit artifact mode or `-o`; optional positional-third guessing
   and implicit default source are forbidden.
 - `src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy` --

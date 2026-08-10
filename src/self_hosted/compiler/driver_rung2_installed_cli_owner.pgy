@@ -93,6 +93,12 @@ func DriverRung2ExecuteInstalledRequest(
             DriverRung2ExecuteReadRequest(request);
         case DriverCliSourceAstStdout(source_path):
             DriverRung2ExecuteReadRequest(request);
+        case DriverCliSourceCapabilityManifestStdout(source_path):
+            DriverRung2ExecuteReadRequest(request);
+        case DriverCliSourceDirStdout(source_path):
+            DriverRung2ExecuteReadRequest(request);
+        case DriverCliMachineManifestStdout(manifest_path):
+            DriverRung2ExecuteReadRequest(request);
         case DriverCliSourceCArtifact(source_path, output_path):
             DriverRung2InstalledCommitSourceC(source_path, output_path);
         case DriverCliSourceMirArtifact(source_path, output_path):

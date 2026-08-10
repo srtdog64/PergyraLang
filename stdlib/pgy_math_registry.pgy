@@ -1,0 +1,152 @@
+// Generated from PgyMath.Templates.Registry. Do not edit by hand.
+namespace PgyMathRegistry
+{
+    export func SchemaVersion() -> Int
+    {
+        return 2;
+    }
+
+    export func TemplateCount() -> Int
+    {
+        return 36;
+    }
+
+    export func RegistryDigest() -> String
+    {
+        return "sha256:d0b972a00358af18ee1f460c4500c9046af1390bf42563f6d68c0a6e1385ac42";
+    }
+
+    export func HasTemplateId(value: String) -> Bool
+    {
+        if value == "core.set_image" { return true; }
+        if value == "core.function_composition" { return true; }
+        if value == "core.injective" { return true; }
+        if value == "core.equivalence" { return true; }
+        if value == "core.comparison" { return true; }
+        if value == "algebra.group" { return true; }
+        if value == "algebra.ring" { return true; }
+        if value == "algebra.field" { return true; }
+        if value == "algebra.linear_map" { return true; }
+        if value == "algebra.matrix" { return true; }
+        if value == "algebra.determinant" { return true; }
+        if value == "topology.open_set" { return true; }
+        if value == "topology.neighborhood" { return true; }
+        if value == "topology.continuous_composition" { return true; }
+        if value == "topology.convergence" { return true; }
+        if value == "topology.continuity_preserves_convergence" { return true; }
+        if value == "analysis.distance" { return true; }
+        if value == "analysis.norm" { return true; }
+        if value == "analysis.derivative" { return true; }
+        if value == "analysis.interval_integral" { return true; }
+        if value == "analysis.continuity" { return true; }
+        if value == "analysis.global_minimum" { return true; }
+        if value == "analysis.discrete" { return true; }
+        if value == "number_theory.divisibility" { return true; }
+        if value == "number_theory.gcd" { return true; }
+        if value == "number_theory.primality" { return true; }
+        if value == "discrete.finite_set" { return true; }
+        if value == "discrete.transitive_relation" { return true; }
+        if value == "geometry.dot_product" { return true; }
+        if value == "geometry.squared_norm" { return true; }
+        if value == "geometry.translation" { return true; }
+        if value == "geometry.linear_action" { return true; }
+        if value == "geometry.linear_action_composition" { return true; }
+        if value == "compute.approximation" { return true; }
+        if value == "compute.counterexample_search" { return true; }
+        if value == "compute.simulation" { return true; }
+        return false;
+    }
+
+    export func HasLookupKey(value: String) -> Bool
+    {
+        if value == "core.set_image" { return true; }
+        if value == "set_image" { return true; }
+        if value == "core.function_composition" { return true; }
+        if value == "function_composition" { return true; }
+        if value == "core.injective" { return true; }
+        if value == "injective" { return true; }
+        if value == "core.equivalence" { return true; }
+        if value == "equivalence" { return true; }
+        if value == "core.comparison" { return true; }
+        if value == "comparison" { return true; }
+        if value == "algebra.group" { return true; }
+        if value == "group" { return true; }
+        if value == "algebra.ring" { return true; }
+        if value == "ring" { return true; }
+        if value == "algebra.field" { return true; }
+        if value == "field" { return true; }
+        if value == "algebra.linear_map" { return true; }
+        if value == "linear_map" { return true; }
+        if value == "algebra.matrix" { return true; }
+        if value == "matrix" { return true; }
+        if value == "mat2" { return true; }
+        if value == "algebra.determinant" { return true; }
+        if value == "determinant" { return true; }
+        if value == "topology.open_set" { return true; }
+        if value == "open_set" { return true; }
+        if value == "topology.neighborhood" { return true; }
+        if value == "neighborhood" { return true; }
+        if value == "topology.continuous_composition" { return true; }
+        if value == "continuous_composition" { return true; }
+        if value == "topology.convergence" { return true; }
+        if value == "convergence" { return true; }
+        if value == "topology.continuity_preserves_convergence" { return true; }
+        if value == "continuity_preserves_convergence" { return true; }
+        if value == "analysis.distance" { return true; }
+        if value == "distance" { return true; }
+        if value == "analysis.norm" { return true; }
+        if value == "norm" { return true; }
+        if value == "analysis.derivative" { return true; }
+        if value == "derivative" { return true; }
+        if value == "real_derivative" { return true; }
+        if value == "analysis.interval_integral" { return true; }
+        if value == "interval_integral" { return true; }
+        if value == "real_interval_integral" { return true; }
+        if value == "analysis.continuity" { return true; }
+        if value == "continuity" { return true; }
+        if value == "analysis.global_minimum" { return true; }
+        if value == "global_minimum" { return true; }
+        if value == "analysis.discrete" { return true; }
+        if value == "discrete_analysis" { return true; }
+        if value == "forward_difference" { return true; }
+        if value == "number_theory.divisibility" { return true; }
+        if value == "divisibility" { return true; }
+        if value == "number_theory.gcd" { return true; }
+        if value == "gcd" { return true; }
+        if value == "number_theory.primality" { return true; }
+        if value == "primality" { return true; }
+        if value == "discrete.finite_set" { return true; }
+        if value == "finite_set" { return true; }
+        if value == "discrete.transitive_relation" { return true; }
+        if value == "transitive_relation" { return true; }
+        if value == "geometry.dot_product" { return true; }
+        if value == "dot_product" { return true; }
+        if value == "geometry.squared_norm" { return true; }
+        if value == "squared_norm" { return true; }
+        if value == "geometry.translation" { return true; }
+        if value == "translation" { return true; }
+        if value == "geometry.linear_action" { return true; }
+        if value == "linear_action" { return true; }
+        if value == "geometry.linear_action_composition" { return true; }
+        if value == "linear_action_composition" { return true; }
+        if value == "compute.approximation" { return true; }
+        if value == "approximation" { return true; }
+        if value == "compute.counterexample_search" { return true; }
+        if value == "counterexample_search" { return true; }
+        if value == "find_counterexample" { return true; }
+        if value == "compute.simulation" { return true; }
+        if value == "simulation" { return true; }
+        return false;
+    }
+
+    export func HasComputeOperation(value: String) -> Bool
+    {
+        if value == "matrix.multiply" { return true; }
+        if value == "matrix.apply" { return true; }
+        if value == "matrix.determinant" { return true; }
+        if value == "compute.approximation" { return true; }
+        if value == "compute.counterexample" { return true; }
+        if value == "compute.simulate" { return true; }
+        return false;
+    }
+}

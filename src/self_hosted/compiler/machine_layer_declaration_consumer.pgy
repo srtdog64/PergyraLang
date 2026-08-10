@@ -188,6 +188,29 @@ func SelfHostMachineLayerDeclarationFromPath(
     return SelfHostMachineLayerDeclarationFromJson(ReadFile(path));
 }
 
+func SelfHostMachineLayerDeclarationArtifactPayloadFromPathVerified(
+    path: String
+) -> String with caps io_read {
+    if path == "" { Die("installed machine declaration artifact path is empty"); }
+    let payload: String = ReadFile(path);
+    let declaration: SelfHostMachineLayerDeclaration =
+        SelfHostMachineLayerDeclarationFromJson(payload);
+    if !SelfHostMachineLayerDeclarationReady(declaration) {
+        Die("installed machine declaration artifact is invalid");
+    }
+    let length: Int = StringLength(payload);
+    if length >= 2 && CharCode(payload, length, length - 2) == 13 &&
+        CharCode(payload, length, length - 1) == 10 {
+        // Log writes through the platform text stream. Preserve one CRLF on
+        // Windows instead of feeding it a CR that would become CRCRLF.
+        return Concat(
+            Substring(payload, 0, length - 2),
+            Substring(payload, length - 1, 1)
+        );
+    }
+    return payload;
+}
+
 func MachineDeclarationPhysicalManifestIdReady(id: String) -> Bool {
     let prefix: String = "pergyra.machine-declaration.";
     return StringLength(id) > StringLength(prefix) &&

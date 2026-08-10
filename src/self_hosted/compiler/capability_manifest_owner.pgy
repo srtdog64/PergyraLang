@@ -1,0 +1,115 @@
+// Installed source capability-manifest owner. It consumes admitted semantic
+// capability facts and renders the stable public JSON without re-reading call
+// spellings or reconstructing native capability policy.
+
+import "driver_pipeline_owner.pgy";
+import "../semantic/ast_capability_fact_owner.pgy";
+
+struct CompilerCapabilityManifestOutcome {
+    ready: Bool;
+    semantic_ok: Bool;
+    diagnostic_message: String;
+    payload: String;
+}
+
+func CompilerCapabilityManifestHex(mask: Int) -> String {
+    if mask == 0 { return "0"; }
+    let digits: String = "0123456789abcdef";
+    let reversed: String = "";
+    let remaining: Int = mask;
+    while remaining > 0 {
+        let digit: Int = remaining % 16;
+        reversed = Concat(
+            reversed,
+            SubstringWithLen(digits, StringLength(digits), digit, 1)
+        );
+        remaining = remaining / 16;
+    }
+    let output: String = "";
+    let index: Int = StringLength(reversed) - 1;
+    while index >= 0 {
+        output = Concat(
+            output,
+            SubstringWithLen(reversed, StringLength(reversed), index, 1)
+        );
+        index = index - 1;
+    }
+    return output;
+}
+
+func CompilerCapabilityManifestJson(used_mask: Int) -> String {
+    let used: String = "";
+    let rank: Int = 0;
+    while rank < 9 {
+        let vocabulary_index: Int = CallableContractVocabularyIndexAtRank(
+            CallableContractVocabularyCapabilityAxis(), rank
+        );
+        let capability: Int = CallableContractVocabularyMaskValueAt(
+            vocabulary_index
+        );
+        if SemanticCapabilityMaskHas(used_mask, capability) {
+            if used != "" { used = Concat(used, ", "); }
+            used = Concat(used, Concat(
+                "\"", Concat(
+                    CallableContractVocabularyExternalNameAt(vocabulary_index),
+                    "\""
+                )
+            ));
+        }
+        rank = rank + 1;
+    }
+    return Concat(
+        "{\n  \"pgy.capability.manifest.v1\": {\n    \"used\": [",
+        Concat(used, Concat(
+            "],\n    \"used_mask\": \"0x",
+            Concat(CompilerCapabilityManifestHex(used_mask), "\"\n  }\n}")
+        ))
+    );
+}
+
+func CompileSourceCapabilityManifestVerified(
+    source_path: String
+) -> CompilerCapabilityManifestOutcome with caps io_read {
+    let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, false);
+    if !analysis.verdict.ok {
+        return CompilerCapabilityManifestOutcome(
+            true, false, analysis.verdict.diagnostic_message, ""
+        );
+    }
+    let body: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAdmittedAnalysis(artifact, analysis);
+    if !body.verdict.ok {
+        return CompilerCapabilityManifestOutcome(
+            true, false, body.verdict.diagnostic_message, ""
+        );
+    }
+    let capabilities: SemanticAstCapabilityFacts =
+        SemanticAstCapabilityFactsFromAdmittedBody(
+            artifact, analysis, body
+        );
+    if !SemanticAstCapabilityFactsReady(artifact, analysis, capabilities) {
+        return CompilerCapabilityManifestOutcome(
+            false, false, capabilities.diagnostic_message, ""
+        );
+    }
+    return CompilerCapabilityManifestOutcome(
+        true, capabilities.contract_ok, capabilities.diagnostic_message,
+        CompilerCapabilityManifestJson(capabilities.program_used_mask)
+    );
+}
+
+func CompilerCapabilityManifestOutcomeEmitOrDie(
+    outcome: CompilerCapabilityManifestOutcome
+) -> Void {
+    if !outcome.ready {
+        Die(Concat(
+            "self-host capability manifest fact is invalid: ",
+            outcome.diagnostic_message
+        ));
+    }
+    if outcome.diagnostic_message != "" { Log(outcome.diagnostic_message); }
+    if outcome.payload != "" { Log(outcome.payload); }
+    if !outcome.semantic_ok { Exit(1); }
+}

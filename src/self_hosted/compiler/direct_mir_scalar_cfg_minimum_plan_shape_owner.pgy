@@ -12,7 +12,8 @@ func DirectMirScalarCfgMinimumPlanShapeReady(
         return local_count == 0 && value_count == 0 && block_count == 1;
     }
     if plan.program.valid {
-        return local_count >= 1 && value_count >= 1 && block_count >= 1;
+        // Typed parameter/literal/call graphs need no fabricated CFG locals.
+        return block_count >= 1;
     }
     return local_count >= 1 && block_count >= 2;
 }

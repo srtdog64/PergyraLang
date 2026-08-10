@@ -90,6 +90,7 @@ Status: `wiring-doc, inventory-gated`. docs/138이 **무엇을**(scope ledger)
 | --- | --- | --- | --- |
 | option.pgy | core | active | tests/cases/backend_compare/stdlib_option_bridges |
 | strview.pgy | core | active | tests/string_window_builtins_smoke.sh |
+| math.pgy | core | sketch | - |
 | datetime.pgy | domain | sketch | - |
 | device_adapter.pgy | domain | sketch | - |
 | host_task_slot.pgy | core | active | tests/host_task_policy_smoke.sh |

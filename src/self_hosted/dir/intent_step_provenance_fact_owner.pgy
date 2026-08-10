@@ -1,0 +1,178 @@
+// Exact provenance flags for one admitted DIR intent step.
+// The resolver records how a value was obtained; renderers never infer
+// defaults again from the final value spelling.
+
+struct SelfDirIntentStepProvenanceRow {
+    who_from_intent: Bool;
+    who_from_action: Bool;
+    who_from_on_receiver: Bool;
+    who_from_single_participant: Bool;
+    where_from_intent: Bool;
+    where_from_action: Bool;
+    where_from_using: Bool;
+    where_from_transfer: Bool;
+    using_from_transfer: Bool;
+    using_from_where: Bool;
+    requires_from_action: Bool;
+    causes_from_action: Bool;
+    authorized_from_zone: Bool;
+    authorized_from_action: Bool;
+}
+
+struct SelfDirIntentStepProvenanceFacts {
+    who_from_intent: Array<Bool>;
+    who_from_action: Array<Bool>;
+    who_from_on_receiver: Array<Bool>;
+    who_from_single_participant: Array<Bool>;
+    where_from_intent: Array<Bool>;
+    where_from_action: Array<Bool>;
+    where_from_using: Array<Bool>;
+    where_from_transfer: Array<Bool>;
+    using_from_transfer: Array<Bool>;
+    using_from_where: Array<Bool>;
+    requires_from_action: Array<Bool>;
+    causes_from_action: Array<Bool>;
+    authorized_from_zone: Array<Bool>;
+    authorized_from_action: Array<Bool>;
+}
+
+func SelfDirIntentStepProvenanceRowEmpty(
+) -> SelfDirIntentStepProvenanceRow {
+    return SelfDirIntentStepProvenanceRow(
+        false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false
+    );
+}
+
+func SelfDirIntentStepContractProvenanceTextReady(text: String) -> Bool {
+    return text == "reused who from intent-level default" ||
+        text == "reused zone from intent-level default" ||
+        text == Concat(
+            "reused who from intent-level default, ",
+            "reused zone from intent-level default"
+        );
+}
+
+func SelfDirIntentStepContractProvenanceFromText(
+    text: String
+) -> SelfDirIntentStepProvenanceRow {
+    let who_from_intent: Bool = StartsWith(
+        text, "reused who from intent-level default"
+    );
+    let where_from_intent: Bool = StringIndexOf(
+        text, "reused zone from intent-level default"
+    ) >= 0;
+    return SelfDirIntentStepProvenanceRow(
+        who_from_intent, false, false, false,
+        where_from_intent, false, false, false, false, false,
+        false, false, false, false
+    );
+}
+
+func SelfDirIntentStepResolvedProvenance(
+    who_from_intent: Bool,
+    where_from_intent: Bool,
+    who_from_single_participant: Bool,
+    action_call: Bool,
+    explicit_who: Bool,
+    action_where_default: Bool,
+    where_from_using: Bool,
+    where_from_transfer: Bool,
+    explicit_using: Bool,
+    resolved_using: Bool,
+    using_from_transfer: Bool,
+    explicit_requires: Bool,
+    resolved_requires: Bool,
+    explicit_causes: Bool,
+    resolved_causes: Bool,
+    explicit_authorized: Bool,
+    resolved_authorized: Bool
+) -> SelfDirIntentStepProvenanceRow {
+    return SelfDirIntentStepProvenanceRow(
+        who_from_intent,
+        false,
+        action_call && !explicit_who && !who_from_intent,
+        who_from_single_participant,
+        where_from_intent,
+        action_where_default,
+        where_from_using,
+        where_from_transfer,
+        using_from_transfer,
+        !explicit_using && resolved_using && !using_from_transfer,
+        action_call && !explicit_requires && resolved_requires,
+        action_call && !explicit_causes && resolved_causes,
+        false,
+        action_call && !explicit_authorized && resolved_authorized
+    );
+}
+
+func SelfDirIntentStepProvenanceFactsEmpty(
+) -> SelfDirIntentStepProvenanceFacts {
+    let rows: Array<Bool> = [];
+    return SelfDirIntentStepProvenanceFacts(
+        rows, rows, rows, rows, rows, rows, rows,
+        rows, rows, rows, rows, rows, rows, rows
+    );
+}
+
+func SelfDirIntentStepProvenanceAppend(
+    inout facts: SelfDirIntentStepProvenanceFacts,
+    row: SelfDirIntentStepProvenanceRow
+) -> Void {
+    let who_from_intent: Array<Bool> = facts.who_from_intent;
+    let who_from_action: Array<Bool> = facts.who_from_action;
+    let who_from_on_receiver: Array<Bool> = facts.who_from_on_receiver;
+    let who_from_single_participant: Array<Bool> =
+        facts.who_from_single_participant;
+    let where_from_intent: Array<Bool> = facts.where_from_intent;
+    let where_from_action: Array<Bool> = facts.where_from_action;
+    let where_from_using: Array<Bool> = facts.where_from_using;
+    let where_from_transfer: Array<Bool> = facts.where_from_transfer;
+    let using_from_transfer: Array<Bool> = facts.using_from_transfer;
+    let using_from_where: Array<Bool> = facts.using_from_where;
+    let requires_from_action: Array<Bool> = facts.requires_from_action;
+    let causes_from_action: Array<Bool> = facts.causes_from_action;
+    let authorized_from_zone: Array<Bool> = facts.authorized_from_zone;
+    let authorized_from_action: Array<Bool> = facts.authorized_from_action;
+    ArrayPush(who_from_intent, row.who_from_intent);
+    ArrayPush(who_from_action, row.who_from_action);
+    ArrayPush(who_from_on_receiver, row.who_from_on_receiver);
+    ArrayPush(who_from_single_participant, row.who_from_single_participant);
+    ArrayPush(where_from_intent, row.where_from_intent);
+    ArrayPush(where_from_action, row.where_from_action);
+    ArrayPush(where_from_using, row.where_from_using);
+    ArrayPush(where_from_transfer, row.where_from_transfer);
+    ArrayPush(using_from_transfer, row.using_from_transfer);
+    ArrayPush(using_from_where, row.using_from_where);
+    ArrayPush(requires_from_action, row.requires_from_action);
+    ArrayPush(causes_from_action, row.causes_from_action);
+    ArrayPush(authorized_from_zone, row.authorized_from_zone);
+    ArrayPush(authorized_from_action, row.authorized_from_action);
+    facts = SelfDirIntentStepProvenanceFacts(
+        who_from_intent, who_from_action, who_from_on_receiver,
+        who_from_single_participant, where_from_intent, where_from_action,
+        where_from_using, where_from_transfer, using_from_transfer,
+        using_from_where, requires_from_action, causes_from_action,
+        authorized_from_zone, authorized_from_action
+    );
+}
+
+func SelfDirIntentStepProvenanceFactsReady(
+    facts: SelfDirIntentStepProvenanceFacts,
+    step_count: Int
+) -> Bool {
+    return ArrayLength(facts.who_from_intent) == step_count &&
+        ArrayLength(facts.who_from_action) == step_count &&
+        ArrayLength(facts.who_from_on_receiver) == step_count &&
+        ArrayLength(facts.who_from_single_participant) == step_count &&
+        ArrayLength(facts.where_from_intent) == step_count &&
+        ArrayLength(facts.where_from_action) == step_count &&
+        ArrayLength(facts.where_from_using) == step_count &&
+        ArrayLength(facts.where_from_transfer) == step_count &&
+        ArrayLength(facts.using_from_transfer) == step_count &&
+        ArrayLength(facts.using_from_where) == step_count &&
+        ArrayLength(facts.requires_from_action) == step_count &&
+        ArrayLength(facts.causes_from_action) == step_count &&
+        ArrayLength(facts.authorized_from_zone) == step_count &&
+        ArrayLength(facts.authorized_from_action) == step_count;
+}

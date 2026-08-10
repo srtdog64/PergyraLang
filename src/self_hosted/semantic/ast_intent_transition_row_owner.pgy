@@ -15,6 +15,9 @@ struct SemanticAstIntentStepHeaderRow {
     predecessor_name: String;
     where_zone_name: String;
     using_alias: String;
+    intent_text: String;
+    transfer_from_alias: String;
+    transfer_to_alias: String;
 }
 
 struct SemanticAstIntentVariantSeal {
@@ -44,14 +47,31 @@ func SemanticAstIntentVariantBindingFromText(
 func SemanticAstIntentStepHeaderFromText(
     text: String
 ) -> SemanticAstIntentStepHeaderRow {
-    let end: Int = StringLength(text);
+    if text == "" {
+        return SemanticAstIntentStepHeaderRow(
+            false, "", "", "", "", "", "", ""
+        );
+    }
     let where_at: Int = StringIndexOf(text, " where ");
     let using_at: Int = StringIndexOf(text, " using ");
+    let intent_at: Int = StringIndexOf(text, " intent ");
     let transfer_at: Int = StringIndexOf(text, " transfer ");
-    if where_at >= 0 && where_at < end { end = where_at; }
-    if using_at >= 0 && using_at < end { end = using_at; }
-    if transfer_at >= 0 && transfer_at < end { end = transfer_at; }
-    let topology: String = Substring(text, 0, end);
+    if (where_at >= 0 && using_at >= 0 && using_at < where_at) ||
+        (where_at >= 0 && intent_at >= 0 && intent_at < where_at) ||
+        (where_at >= 0 && transfer_at >= 0 && transfer_at < where_at) ||
+        (using_at >= 0 && intent_at >= 0 && intent_at < using_at) ||
+        (using_at >= 0 && transfer_at >= 0 && transfer_at < using_at) ||
+        (intent_at >= 0 && transfer_at >= 0 && transfer_at < intent_at) {
+        return SemanticAstIntentStepHeaderRow(
+            false, "", "", "", "", "", "", ""
+        );
+    }
+    let name_end: Int = StringLength(text);
+    if where_at >= 0 { name_end = where_at; }
+    if using_at >= 0 && using_at < name_end { name_end = using_at; }
+    if intent_at >= 0 && intent_at < name_end { name_end = intent_at; }
+    if transfer_at >= 0 && transfer_at < name_end { name_end = transfer_at; }
+    let topology: String = StringTrim(Substring(text, 0, name_end));
     let after_at: Int = StringIndexOf(topology, " after ");
     let name: String = topology;
     let predecessor_name: String = "";
@@ -63,24 +83,25 @@ func SemanticAstIntentStepHeaderFromText(
     }
     let where_zone_name: String = "";
     if where_at >= 0 {
-        let where_start: Int = where_at + StringLength(" where ");
         let where_end: Int = StringLength(text);
         if using_at > where_at && using_at < where_end {
             where_end = using_at;
         }
+        if intent_at > where_at && intent_at < where_end {
+            where_end = intent_at;
+        }
         if transfer_at > where_at && transfer_at < where_end {
             where_end = transfer_at;
         }
-        if where_end > where_start {
-            where_zone_name = StringTrim(Substring(
-                text, where_start, where_end - where_start
-            ));
-        }
+        where_zone_name = StringTrim(Substring(
+            text, where_at + 7, where_end - where_at - 7
+        ));
     }
     let using_alias: String = "";
     if using_at >= 0 {
         let using_start: Int = using_at + StringLength(" using ");
         let using_end: Int = StringLength(text);
+        if intent_at > using_at { using_end = intent_at; }
         if transfer_at > using_at && transfer_at < using_end {
             using_end = transfer_at;
         }
@@ -90,12 +111,62 @@ func SemanticAstIntentStepHeaderFromText(
             ));
         }
     }
+    let intent_text: String = "";
+    if intent_at >= 0 {
+        let intent_end: Int = StringLength(text);
+        if transfer_at > intent_at { intent_end = transfer_at; }
+        intent_text = StringTrim(Substring(
+            text, intent_at + 8, intent_end - intent_at - 8
+        ));
+    }
+    let transfer_from: String = "";
+    let transfer_to: String = "";
+    if transfer_at >= 0 {
+        let transfer: String = StringTrim(Substring(
+            text, transfer_at + 10, StringLength(text) - transfer_at - 10
+        ));
+        let arrow: Int = StringIndexOf(transfer, " -> ");
+        if arrow <= 0 || StringIndexOf(
+            Substring(transfer, arrow + 4, StringLength(transfer) - arrow - 4),
+            " -> "
+        ) >= 0 {
+            return SemanticAstIntentStepHeaderRow(
+                false, "", "", "", "", "", "", ""
+            );
+        }
+        transfer_from = StringTrim(Substring(transfer, 0, arrow));
+        transfer_to = StringTrim(Substring(
+            transfer, arrow + 4, StringLength(transfer) - arrow - 4
+        ));
+    }
+    let canonical: String = name;
+    if predecessor_name != "" {
+        canonical = Concat(canonical, Concat(" after ", predecessor_name));
+    }
+    if where_zone_name != "" {
+        canonical = Concat(canonical, Concat(" where ", where_zone_name));
+    }
+    if using_alias != "" {
+        canonical = Concat(canonical, Concat(" using ", using_alias));
+    }
+    if intent_text != "" {
+        canonical = Concat(canonical, Concat(" intent ", intent_text));
+    }
+    if transfer_from != "" && transfer_to != "" {
+        canonical = Concat(canonical, Concat(
+            " transfer ", Concat(transfer_from, Concat(" -> ", transfer_to))
+        ));
+    }
     return SemanticAstIntentStepHeaderRow(
         IsIdentifier(name) &&
             (predecessor_name == "" || IsIdentifier(predecessor_name)) &&
             (where_zone_name == "" || IsIdentifier(where_zone_name)) &&
-            (using_alias == "" || IsIdentifier(using_alias)),
-        name, predecessor_name, where_zone_name, using_alias
+            (using_alias == "" || IsIdentifier(using_alias)) &&
+            (transfer_from == "" || IsIdentifier(transfer_from)) &&
+            (transfer_to == "" || IsIdentifier(transfer_to)) &&
+            canonical == text,
+        name, predecessor_name, where_zone_name, using_alias, intent_text,
+        transfer_from, transfer_to
     );
 }
 

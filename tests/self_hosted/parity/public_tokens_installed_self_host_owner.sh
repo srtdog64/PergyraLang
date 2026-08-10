@@ -104,10 +104,11 @@ grep -Fq "source token mode requires exactly one input path" \
     "$WORK_DIR/arity.out" "$WORK_DIR/arity.err" ||
     fail "installed token arity lost its typed diagnostic"
 
-require_text "$LAUNCHER_OWNER" 'if (flags.dump_tokens || flags.dump_ast) {'
-require_text "$LAUNCHER_OWNER" 'driver_self_host_source_read_mode(&flags)'
-require_text "$LAUNCHER_OWNER" 'driver_run_self_host_source_read('
-require_text "$SELECTION_OWNER" 'driver_self_host_source_read_mode('
+require_text "$LAUNCHER_OWNER" \
+    'if (flags.dump_tokens || flags.dump_ast || flags.dump_capability_manifest) {'
+require_text "$LAUNCHER_OWNER" 'driver_self_host_source_stdout_mode(&flags)'
+require_text "$LAUNCHER_OWNER" 'driver_run_self_host_source_stdout('
+require_text "$SELECTION_OWNER" 'driver_self_host_source_stdout_mode('
 require_text "$SIBLING_OWNER" 'strcmp(argv[0], "--tokens") == 0'
 require_text "$REQUEST_OWNER" 'DriverCliSourceTokensStdout(String)'
 require_text "$REQUEST_OWNER" 'args[0] == "--tokens"'

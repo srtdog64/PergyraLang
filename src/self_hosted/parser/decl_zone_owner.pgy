@@ -153,12 +153,17 @@ func ParseZoneDecl(
             if i < 0 { Exit(1); }
             i = SkipWhitespaceAndComments(content, i);
             let st_start: Int = i;
-            while i < n && ParserCharAt(content, i) != ";" {
+            while i < n && ParserCharAt(content, i) != ";" &&
+                ParserCharAt(content, i) != "\n" &&
+                ParserCharAt(content, i) != "\r" &&
+                ParserCharAt(content, i) != "}" {
                 i = i + 1;
             }
-            let st_val: String = Substring(content, st_start, i - st_start);
-            i = Expect(content, i, ";");
-            if i < 0 { Exit(1); }
+            let st_val: String = StringTrim(
+                Substring(content, st_start, i - st_start)
+            );
+            if i < n && ParserCharAt(content, i) == ";" { i = i + 1; }
+            if st_val == "" { Exit(1); }
             state_accum = AppendLine(state_accum, Concat("    State: ", Concat(st_name, Concat(": ", st_val))));
             continue;
         } else if MatchLanguageWord(content, i, LanguageWordId.WordBind) {

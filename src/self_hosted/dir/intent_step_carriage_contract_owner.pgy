@@ -11,6 +11,8 @@ func SelfDirIntentStepCarriageShapeReady(
         ArrayLength(steps.where_zone_names) == count &&
         ArrayLength(steps.where_declaration_indices) == count &&
         ArrayLength(steps.using_aliases) == count &&
+        ArrayLength(steps.transfer_from_aliases) == count &&
+        ArrayLength(steps.transfer_to_aliases) == count &&
         ArrayLength(steps.receiver_aliases) == count &&
         ArrayLength(steps.action_names) == count &&
         ArrayLength(steps.action_signature_indices) == count &&
@@ -23,7 +25,7 @@ func SelfDirIntentStepCarriageShapeReady(
         ArrayLength(steps.outcome_node_ids) == count &&
         ArrayLength(steps.outcome_names) == count &&
         ArrayLength(steps.outcome_type_names) == count &&
-        ArrayLength(steps.on_node_ids) == count &&
+        ArrayLength(steps.target_expression_node_ids) == count &&
         ArrayLength(steps.guard_node_ids) == count &&
         ArrayLength(steps.post_node_ids) == count &&
         ArrayLength(steps.expect_node_ids) == count &&
@@ -39,6 +41,7 @@ func SelfDirIntentStepCarriageShapeReady(
         ArrayLength(steps.requires_counts) == count &&
         ArrayLength(steps.authorized_starts) == count &&
         ArrayLength(steps.authorized_counts) == count &&
+        SelfDirIntentStepProvenanceFactsReady(steps.provenance, count) &&
         ArrayLength(steps.requires_names) ==
             ArrayLength(steps.requires_declaration_indices);
 }
@@ -62,13 +65,25 @@ func SelfDirIntentStepCarriageReady(
         }
         let compensate_start: Int = steps.compensate_starts[i];
         let compensate_count: Int = steps.compensate_counts[i];
+        let target_ready: Bool = TypedAstArenaNodeKindIs(artifact.arena,
+            steps.target_expression_node_ids[i],
+            TypedAstKindIntentStepIntentTag());
+        if steps.target_kinds[i] == "action" {
+            target_ready = TypedAstArenaNodeKindIs(artifact.arena,
+                steps.target_expression_node_ids[i],
+                TypedAstKindIntentStepOnTag());
+        } else if steps.target_kinds[i] == "intent" {
+            target_ready = target_ready || TypedAstArenaNodeKindIs(
+                artifact.arena, steps.target_expression_node_ids[i],
+                TypedAstKindIntentStepOnTag()
+            );
+        } else {
+            return false;
+        }
         if steps.names[i] == "" || steps.child_counts[i] != child_count ||
             !TypedAstArenaNodeKindIs(
                 artifact.arena, steps.node_ids[i], TypedAstKindIntentStepTag()
-            ) || !TypedAstArenaNodeKindIs(
-                artifact.arena, steps.on_node_ids[i],
-                TypedAstKindIntentStepOnTag()
-            ) || (steps.guard_node_ids[i] >= 0 &&
+            ) || !target_ready || (steps.guard_node_ids[i] >= 0 &&
                 !TypedAstArenaNodeKindIs(
                     artifact.arena, steps.guard_node_ids[i],
                     TypedAstKindIntentStepGuardTag()

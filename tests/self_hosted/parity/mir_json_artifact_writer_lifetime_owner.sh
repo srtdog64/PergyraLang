@@ -21,8 +21,8 @@ require "$IDENTITY_WRITER" 'SelfMirJsonExpressionIdentityProjectionForNode(graph
 require "$IDENTITY_WRITER" 'JsonStringLiteralWriteFile(output, projection.binding_kind)'
 identity_write_body="$(awk '
     /^func SelfMirJsonExpressionIdentityWriteFile\(/ { active = 1 }
-    active && seen && /^func / { exit }
     active { print; seen = 1 }
+    active && /^}/ { exit }
 ' "$IDENTITY_WRITER")"
 [[ "$identity_write_body" != *'SelfMirJsonExpressionIdentityFields('* ]] ||
     fail "identity artifact writer rebuilt the String field array"

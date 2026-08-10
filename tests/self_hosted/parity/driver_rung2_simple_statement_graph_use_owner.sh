@@ -25,11 +25,8 @@ reject_graph_function_text_fallback() {
             in_graph_function = 1
             found_graph_function = 1
         }
-        in_graph_function && /^func / &&
-            $0 !~ /^func SelfMirLowerGraphOwnedSimpleStatement\(/ {
-            in_graph_function = 0
-        }
         in_graph_function && /SelfMirExpressionUses\(/ { exit 1 }
+        in_graph_function && /^}/ { exit }
         END {
             if (!found_graph_function) { exit 1 }
         }

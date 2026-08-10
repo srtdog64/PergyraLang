@@ -15,6 +15,8 @@ struct DirectMirScalarProgramTwoRoutineRows {
 func DirectMirScalarProgramTwoRoutineRowsFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> DirectMirScalarProgramTwoRoutineRows {
+    let nominal: DirectMirScalarProgramTwoIntNominalAbiFact =
+        DirectMirScalarProgramTwoIntNominalAbiFactFromCanonicalEmpty();
     let entrypoint_row: Int = -1;
     let callable_row: Int = -1;
     let row: Int = 0;
@@ -39,7 +41,7 @@ func DirectMirScalarProgramTwoRoutineRowsFromAdmitted(
         } else {
             if callable_row >= 0 || signature.param_count < 1 ||
                 !DirectMirScalarProgramCallableRouteEnvelopeSupported(
-                    signature) {
+                    signature, nominal) {
                 return DirectMirScalarProgramTwoRoutineRows(false, -1, -1);
             }
             callable_row = row;

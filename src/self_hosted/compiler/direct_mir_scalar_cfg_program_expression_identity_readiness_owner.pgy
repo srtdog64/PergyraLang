@@ -28,9 +28,8 @@ func DirectMirScalarCfgProgramExpressionIdentityReady(
     let target: Int = facts.node_callable_rows[node];
     let arguments: Array<Int> =
         DirectMirScalarProgramDirectCallArgumentRows(facts, node);
-    if routine != plan.routines.entrypoint_ordinal ||
-        target != plan.program.callable.routine_ordinal ||
-        target < 0 || target >= ArrayLength(plan.routines.roles) ||
+    if target <= plan.routines.entrypoint_ordinal ||
+        target >= ArrayLength(plan.routines.roles) ||
         ArrayLength(arguments) != plan.routines.parameter_counts[target] ||
         facts.node_types[node] != plan.routines.return_types[target] {
         return false;

@@ -33,7 +33,21 @@ func DirectMirScalarCfgProgramCallableFactReady(
     if !fact.valid || fact.digest == 0 ||
         fact.digest != DirectMirScalarCfgProgramCallableFactDigest(fact) ||
         fact.routine_ordinal <= 0 { return false; }
-    return DirectMirScalarProgramCallableSignatureSupported(fact.signature);
+    let nominal: DirectMirScalarProgramTwoIntNominalAbiFact =
+        DirectMirScalarProgramTwoIntNominalAbiFactFromCanonicalEmpty();
+    return DirectMirScalarProgramCallableSignatureSupported(
+        fact.signature, nominal);
+}
+
+func DirectMirScalarCfgProgramCallableFactReadyWithNominal(
+    ref fact: DirectMirScalarCfgProgramCallableFact,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirScalarCfgProgramCallableFactDigest(fact) &&
+        fact.routine_ordinal > 0 &&
+        DirectMirScalarProgramCallableSignatureSupported(
+            fact.signature, nominal);
 }
 
 func DirectMirScalarCfgProgramCallableFactCanonicalEmpty(

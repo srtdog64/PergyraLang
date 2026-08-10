@@ -2,10 +2,14 @@
 
 import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
 import "direct_mir_scalar_program_array_string_boundary_admission_owner.pgy";
+import "direct_mir_scalar_program_option_int_abi_owner.pgy";
+import "direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy";
 
 struct DirectMirScalarProgramExtensionAbiSeal {
     let valid: Bool;
     let runtime: DirectMirScalarProgramRuntimeAbiFact;
+    let option_int: DirectMirOptionMatchAbiFact;
+    let nominal: DirectMirScalarProgramTwoIntNominalAbiFact;
     let array_string: DirectMirScalarProgramArrayStringAbiFact;
     let boundary: DirectMirScalarProgramArrayStringBoundaryFact;
 }
@@ -15,6 +19,7 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
     ref route: DirectMirScalarProgramRouteFact,
     ref storage: DirectMirScalarCfgProgramGraphStorage,
     ref expressions: DirectMirScalarProgramExpressionSet,
+    option_int: DirectMirOptionMatchAbiFact,
     ref callable: DirectMirScalarCfgProgramCallableFact
 ) -> DirectMirScalarProgramExtensionAbiSeal {
     let runtime: DirectMirScalarProgramRuntimeAbiFact =
@@ -25,10 +30,14 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
         DirectMirScalarProgramArrayStringBoundaryFactEmpty();
     if !DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
             runtime, expressions) ||
+        !DirectMirScalarProgramOptionIntAbiReadyForExpressions(
+            option_int, expressions) ||
+        !DirectMirScalarProgramTwoIntNominalAbiFactReady(route.nominal) ||
         !DirectMirScalarProgramArrayStringAbiReadyForExpressions(
             array_string, expressions) {
         return DirectMirScalarProgramExtensionAbiSeal(
-            false, runtime, array_string, boundary);
+            false, runtime, option_int, route.nominal, array_string,
+            boundary);
     }
     if callable.valid && callable.signature.param.type_name ==
             CompilerAbiLayoutArrayStringTypeName() {
@@ -42,9 +51,10 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
             DirectMirScalarCfgOpExpressionLog());
         if !DirectMirScalarProgramArrayStringBoundaryFactReady(boundary) {
             return DirectMirScalarProgramExtensionAbiSeal(
-                false, runtime, array_string, boundary);
+                false, runtime, option_int, route.nominal, array_string,
+                boundary);
         }
     }
     return DirectMirScalarProgramExtensionAbiSeal(
-        true, runtime, array_string, boundary);
+        true, runtime, option_int, route.nominal, array_string, boundary);
 }

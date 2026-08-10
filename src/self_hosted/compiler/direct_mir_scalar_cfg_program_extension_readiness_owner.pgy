@@ -107,7 +107,7 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
     let operation_count: Int = ArrayLength(plan.operation_kinds);
     let routine_count: Int = ArrayLength(plan.routines.roles);
     let callable: Int = plan.program.callable.routine_ordinal;
-    if routine_count < 1 || routine_count > 2 ||
+    if routine_count < 1 ||
         ArrayLength(plan.program.block_condition_expression_rows) !=
             block_count ||
         ArrayLength(plan.program.block_return_expression_rows) !=
@@ -120,12 +120,17 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
                 plan.program.callable) ||
             !DirectMirClosedModuleCallAbiFactCanonicalEmpty(
                 plan.program.closed_call_abi) { return 12; }
-    } else if callable != 1 ||
+    } else if routine_count == 2 && (callable != 1 ||
         plan.program.callable.signature.digest !=
             plan.routines.signature_digests[callable] ||
         plan.program.callable.signature.source_syntax_id !=
-            plan.routines.source_syntax_ids[callable] {
+            plan.routines.source_syntax_ids[callable]) {
         return 13;
+    } else if routine_count > 2 &&
+        (!DirectMirScalarCfgProgramCallableFactCanonicalEmpty(
+            plan.program.callable) ||
+         !DirectMirClosedModuleCallAbiFactCanonicalEmpty(
+            plan.program.closed_call_abi)) { return 13;
     }
     let block: Int = 0;
     while block < block_count {
@@ -165,9 +170,12 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
                     plan, expression_row, plan.value_types[result], routine
                 ) { return 8; }
         } else if kind == DirectMirScalarCfgOpExpressionLog() {
-            if !DirectMirScalarCfgProgramExpressionRowReady(
-                    plan, expression_row,
-                    CompilerAbiLayoutStringTypeName(), routine) { return 9; }
+            let root: Int = plan.program.expressions.graph_roots[expression_row];
+            let log_type: String = plan.program.expressions.node_types[root];
+            if (log_type != CompilerAbiLayoutStringTypeName() &&
+                log_type != CompilerAbiLayoutIntTypeName()) ||
+                !DirectMirScalarCfgProgramExpressionRowReady(
+                    plan, expression_row, log_type, routine) { return 9; }
         } else if expression_row != -1 { return 10; }
         operation = operation + 1;
     }

@@ -1,0 +1,75 @@
+// C representation and expression projection for one admitted Option<Int> ABI.
+
+import "direct_mir_scalar_program_option_int_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_option_int_abi_owner.pgy";
+import "direct_mir_option_match_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramCOptionIntTypeName() -> String {
+    return "pgy_scalar_option_int";
+}
+
+func DirectMirScalarProgramCOptionIntExpression(
+    kind: Int, left: String
+) -> Option<String> {
+    if kind == DirectMirScalarProgramExprSomeInt() {
+        return Some(Concat("pgy_scalar_option_int_some(", Concat(left, ")")));
+    }
+    if kind == DirectMirScalarProgramExprNoneInt() {
+        return Some("pgy_scalar_option_int_none()");
+    }
+    if kind == DirectMirScalarProgramExprIsSomeInt() {
+        return Some(Concat("pgy_scalar_option_int_is_some(",
+            Concat(left, ")")));
+    }
+    if kind == DirectMirScalarProgramExprUnwrapOptionInt() {
+        return Some(Concat("pgy_scalar_option_int_unwrap(",
+            Concat(left, ")")));
+    }
+    return None;
+}
+
+func DirectMirScalarProgramCOptionIntPreamble(
+    ref fact: DirectMirOptionMatchAbiFact,
+    target: CompilerTargetProjectionFact
+) -> String {
+    if DirectMirScalarProgramOptionIntAbiCanonicalEmpty(fact) { return ""; }
+    let abi: DirectMirOptionMatchAbiProjection =
+        DirectMirOptionMatchAbiProjectionFromFact(fact, target);
+    if !DirectMirOptionMatchAbiProjectionReadyFor(
+            abi, CompilerTargetCpuCProjection()) {
+        Die("direct MIR scalar program C Option<Int> ABI is invalid");
+    }
+    let type_name: String = DirectMirScalarProgramCOptionIntTypeName();
+    let output: String = "#include <stdint.h>\n#include <stdlib.h>\n";
+    output = Concat(output, "typedef struct { ");
+    output = Concat(output, abi.c_tag_type);
+    output = Concat(output, Concat(" ", fact.tag_name));
+    output = Concat(output, "; ");
+    output = Concat(output, abi.c_value_type);
+    output = Concat(output, Concat(" ", fact.value_name));
+    output = Concat(output, Concat("; } ", Concat(type_name, ";\n")));
+    output = Concat(output, Concat("static ", Concat(type_name, Concat(
+        " pgy_scalar_option_int_some(", Concat(
+        abi.c_print_type, " value) {\n    ")))));
+    output = Concat(output, Concat(type_name, " result = {"));
+    output = Concat(output, Concat(fact.some_tag, Concat(
+        ", (", Concat(abi.c_value_type,
+        ")value};\n    return result;\n}\n"))));
+    output = Concat(output, Concat("static ", Concat(type_name,
+        " pgy_scalar_option_int_none(void) {\n    ")));
+    output = Concat(output, Concat(type_name, " result = {"));
+    output = Concat(output, Concat(fact.none_tag,
+        ", 0};\n    return result;\n}\n"));
+    output = Concat(output, Concat("static bool pgy_scalar_option_int_is_some(",
+        Concat(type_name, " value) { return value.")));
+    output = Concat(output, Concat(fact.tag_name, Concat(" == ",
+        Concat(fact.some_tag, "; }\n"))));
+    output = Concat(output, Concat("static ", Concat(abi.c_print_type,
+        Concat(" pgy_scalar_option_int_unwrap(",
+        Concat(type_name, " value) {\n    if (value.")))));
+    output = Concat(output, Concat(fact.tag_name, Concat(" != ",
+        Concat(fact.some_tag, Concat(") { abort(); }\n    return (",
+        Concat(abi.c_print_type, ")value."))))));
+    output = Concat(output, Concat(fact.value_name, ";\n}\n"));
+    return output;
+}

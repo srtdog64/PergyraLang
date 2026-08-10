@@ -1,0 +1,170 @@
+// Optional one-candidate nominal ABI carried once by the shared GraphPlan.
+// The declaration owns semantic field identity; MIR layout rows own physical
+// offsets and sizes. Routine rows only join against this fact.
+
+import "direct_mir_nominal_declaration_abi_fact_owner.pgy";
+import "direct_mir_two_int_nominal_abi_shape_owner.pgy";
+import "direct_mir_nominal_abi_row_equality_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "../mir_lower/machine_layer_fact_owner.pgy";
+import "../mir_lower/routine_instruction_scalar_capture_owner.pgy";
+
+struct DirectMirScalarProgramTwoIntNominalAbiFact {
+    let valid: Bool;
+    let digest: Int;
+    let present: Bool;
+    let declaration: DirectMirNominalDeclarationAbiFact;
+}
+
+func DirectMirScalarProgramTwoIntNominalAbiFactInvalid(
+) -> DirectMirScalarProgramTwoIntNominalAbiFact {
+    return DirectMirScalarProgramTwoIntNominalAbiFact(
+        false, 0, false, InvalidDirectMirNominalDeclarationAbiFact());
+}
+
+func DirectMirScalarProgramTwoIntNominalAbiFactFromCanonicalEmpty(
+) -> DirectMirScalarProgramTwoIntNominalAbiFact {
+    let declaration: DirectMirNominalDeclarationAbiFact =
+        InvalidDirectMirNominalDeclarationAbiFact();
+    let source: DirectMirScalarProgramTwoIntNominalAbiFact =
+        DirectMirScalarProgramTwoIntNominalAbiFact(
+            true, 0, false, declaration);
+    return DirectMirScalarProgramTwoIntNominalAbiFact(
+        true, DirectMirScalarProgramTwoIntNominalAbiFactDigest(source),
+        false, declaration);
+}
+
+func DirectMirScalarProgramTwoIntNominalDeclarationCanonicalEmpty(
+    ref declaration: DirectMirNominalDeclarationAbiFact
+) -> Bool {
+    return !declaration.valid && declaration.digest == 0 &&
+        declaration.row < 0 && declaration.name == "" &&
+        declaration.source_syntax_id == 0 &&
+        ArrayLength(declaration.field_names) == 0 &&
+        ArrayLength(declaration.field_types) == 0 &&
+        ArrayLength(declaration.field_kinds) == 0 &&
+        ArrayLength(declaration.field_source_syntax_ids) == 0 &&
+        declaration.abi_layout_id == 0 && !declaration.abi.valid;
+}
+
+func DirectMirScalarProgramTwoIntNominalAbiFactDigest(
+    ref fact: DirectMirScalarProgramTwoIntNominalAbiFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(251L, fact.declaration.digest);
+    if fact.present { hash = DirectMirCfgHashInt(hash, 1); }
+    else { hash = DirectMirCfgHashInt(hash, 0); }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarProgramTwoIntNominalAbiFactReady(
+    ref fact: DirectMirScalarProgramTwoIntNominalAbiFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirScalarProgramTwoIntNominalAbiFactDigest(fact) {
+        return false;
+    }
+    if !fact.present {
+        return DirectMirScalarProgramTwoIntNominalDeclarationCanonicalEmpty(
+            fact.declaration);
+    }
+    return DirectMirNominalDeclarationAbiFactReady(fact.declaration) &&
+        ArrayLength(fact.declaration.field_types) == 2 &&
+        fact.declaration.field_types[0] == CompilerAbiLayoutIntTypeName() &&
+        fact.declaration.field_types[1] == CompilerAbiLayoutIntTypeName() &&
+        DirectMirTwoIntNominalPhysicalRowReady(fact.declaration);
+}
+
+func DirectMirScalarProgramTwoIntNominalAbiFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirScalarProgramTwoIntNominalAbiFact {
+    let declarations: MirProgramDeclarationIndex =
+        admitted.domain_runtime_admission.declarations;
+    if !declarations.valid {
+        return DirectMirScalarProgramTwoIntNominalAbiFactInvalid();
+    }
+    let count: Int = MirProgramDeclarationIndexCount(declarations);
+    let declaration: DirectMirNominalDeclarationAbiFact =
+        InvalidDirectMirNominalDeclarationAbiFact();
+    let present: Bool = false;
+    let row: Int = 0;
+    while row < count {
+        let candidate: DirectMirNominalDeclarationAbiFact =
+            DirectMirNominalDeclarationAbiFactFromDocument(
+                admitted.document.root.json, declarations, row);
+        if DirectMirTwoIntNominalPhysicalRowReady(candidate) {
+            if present {
+                return DirectMirScalarProgramTwoIntNominalAbiFactInvalid();
+            }
+            declaration = candidate;
+            present = true;
+        }
+        row = row + 1;
+    }
+    let source: DirectMirScalarProgramTwoIntNominalAbiFact =
+        DirectMirScalarProgramTwoIntNominalAbiFact(
+            true, 0, present, declaration);
+    let sealed: DirectMirScalarProgramTwoIntNominalAbiFact =
+        DirectMirScalarProgramTwoIntNominalAbiFact(
+            true, DirectMirScalarProgramTwoIntNominalAbiFactDigest(source),
+            present, declaration);
+    if !DirectMirScalarProgramTwoIntNominalAbiFactReady(sealed) {
+        return DirectMirScalarProgramTwoIntNominalAbiFactInvalid();
+    }
+    return sealed;
+}
+
+func DirectMirScalarProgramTwoIntNominalTypeReady(
+    ref fact: DirectMirScalarProgramTwoIntNominalAbiFact,
+    type_name: String
+) -> Bool {
+    return DirectMirScalarProgramTwoIntNominalAbiFactReady(fact) &&
+        fact.present && type_name == fact.declaration.name;
+}
+
+func DirectMirScalarProgramTwoIntNominalParameterReady(
+    ref fact: DirectMirScalarProgramTwoIntNominalAbiFact,
+    ref parameter: DirectMirRoutineParamFact
+) -> Bool {
+    return DirectMirScalarProgramTwoIntNominalTypeReady(
+            fact, parameter.type_name) && parameter.abi_required &&
+        parameter.abi_layout_id == fact.declaration.abi_layout_id &&
+        DirectMirStructAbiRowsEqual(parameter.abi, fact.declaration.abi);
+}
+
+func DirectMirScalarProgramTwoIntNominalSignatureReferenced(
+    ref fact: DirectMirScalarProgramTwoIntNominalAbiFact,
+    ref signature: DirectMirRoutineSignatureFact
+) -> Bool {
+    if !fact.present { return false; }
+    if signature.return_type == fact.declaration.name { return true; }
+    let ordinal: Int = 0;
+    while ordinal < signature.param_count {
+        if signature.parameters.type_names[ordinal] == fact.declaration.name {
+            return true;
+        }
+        ordinal = ordinal + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramTwoIntNominalInstructionReady(
+    ref fact: DirectMirScalarProgramTwoIntNominalAbiFact,
+    json: String, ref capture: MirRoutineInstructionScalarCapture
+) -> Bool {
+    if !DirectMirScalarProgramTwoIntNominalAbiFactReady(fact) { return false; }
+    if !fact.present || capture.abi_type_name != fact.declaration.name {
+        return true;
+    }
+    let row: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            json, capture.abi_type_name, capture.abi_type_value_ready,
+            capture.abi_type_start, capture.abi_type_end,
+            capture.abi_layout_id_start, capture.abi_layout_id_end,
+            capture.abi_layout_required_start,
+            capture.abi_layout_required_end, capture.abi_layout_start,
+            capture.abi_layout_end);
+    if !IsSome(row) { return false; }
+    let admitted: MirAbiLayoutRowCapture = UnwrapOption(row);
+    return DirectMirStructAbiRowsEqual(admitted, fact.declaration.abi);
+}

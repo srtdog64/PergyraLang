@@ -3,12 +3,28 @@
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_array_string_abi_fact_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy";
 
 func DirectMirScalarProgramCallableValueTypeSupported(
     type_name: String
 ) -> Bool {
     return DirectMirScalarCfgScalarTypeSupported(type_name) ||
         type_name == CompilerAbiLayoutArrayStringTypeName();
+}
+
+func DirectMirScalarProgramCallableReturnTypeSupported(
+    type_name: String
+) -> Bool {
+    return DirectMirScalarCfgScalarTypeSupported(type_name) ||
+        type_name == CompilerAbiLayoutOptionIntTypeName();
+}
+
+func DirectMirScalarProgramCallableReturnTypeSupportedWithNominal(
+    type_name: String,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
+) -> Bool {
+    return DirectMirScalarProgramCallableReturnTypeSupported(type_name) ||
+        DirectMirScalarProgramTwoIntNominalTypeReady(nominal, type_name);
 }
 
 func DirectMirScalarProgramCallableParameterSupported(
@@ -29,4 +45,19 @@ func DirectMirScalarProgramCallableParameterSupported(
         signature.return_type == CompilerAbiLayoutStringTypeName() &&
         signature.param.abi_required &&
         DirectMirArrayStringCapturedAbiReady(signature.param.abi);
+}
+
+func DirectMirScalarProgramCallableParameterSupportedWithNominal(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
+) -> Bool {
+    if DirectMirScalarProgramCallableParameterSupported(signature, ordinal) {
+        return true;
+    }
+    return signature.param_count == 1 && ordinal == 0 &&
+        signature.parameters.carriages[0] == "value" &&
+        signature.parameters.resources[0] == "none" &&
+        signature.parameters.pass_shapes[0] == "direct" &&
+        DirectMirScalarProgramTwoIntNominalParameterReady(
+            nominal, signature.param);
 }
