@@ -4,9 +4,9 @@
 설계 아이디어와 장기 비전은 별도 문서에 둘 수 있지만, 이 문서는 “지금 파서가 읽고 컴파일러가 처리하는 형태”를 기준으로 한다.
 
 관련 문서:
-- 최소 요약: [01_syntax.md](/mnt/e/PergyraLang/docs/grammar/01_syntax.md)
-- 네이밍 규칙: [03_naming.md](/mnt/e/PergyraLang/docs/grammar/03_naming.md)
-- 비전: [00_vision.md](/mnt/e/PergyraLang/docs/00_vision.md)
+- 최소 요약: [01_syntax.md](01_syntax.md)
+- 네이밍 규칙: [03_naming.md](03_naming.md)
+- 비전: [00_vision.md](../00_vision.md)
 
 ## 1. 기본 규칙
 
@@ -15,8 +15,8 @@
 - Language-word source of truth:
   `src/lexer/language_keyword_registry.def`. Reserved token identity and
   contextual/soft vocabulary are separate row classes in that registry.
-- Lexer-reserved keywords (71): `ability`, `as`, `async`, `await`, `bind`,
-  `break`, `case`, `channel`, `class`, `collapse`, `compensate`, `continue`, `default`,
+- Lexer-reserved keywords (70): `ability`, `as`, `async`, `await`, `bind`,
+  `break`, `case`, `class`, `collapse`, `compensate`, `continue`, `default`,
   `defer`, `dyn`, `effect`, `else`, `enum`, `event`, `export`, `extends`,
   `extern`, `fail`, `false`, `for`, `func`, `if`, `impl`, `import`, `in`, `include`,
   `innate`, `intent`, `let`, `local`, `match`, `namespace`,
@@ -30,8 +30,8 @@
 - Parser-contextual words are matched as identifiers by the owning parser.
   Examples include `action`, `requires`, `within`, `causes`, `authorized`,
   `by`, `involves`, `step`, `who`, `expect`, `success`, and `failure`.
-- The exhaustive 71 reserved + 71 contextual + 3 soft inventory and consumer
-  projection contract are documented in
+- The exhaustive 70 reserved + 73 contextual + 3 soft inventory (146 rows) and
+  consumer projection contract are documented in
   `docs/semantics/language_keyword_registry.md`; this prose list is illustrative.
 - `context`는 현재 ordinary identifier다.
 - 내장 API와 타입은 PascalCase 기준이다.
@@ -785,7 +785,7 @@ Grammar-level classification for common patterns:
 |---|---|---|
 | Calls | ordinary positional calls, callable values, function references | named arguments remain semantic-rejected before dispatch |
 | Parameters | typed function/async/lambda parameters, generic default type parameters | value default arguments in parameter lists |
-| Lambdas | `=>` expression/block bodies without outer local/resource capture | full closure environments and captured resource state |
+| Lambdas | `=>` expression/block bodies; callable-let lambdas may copy-capture value-type locals (Stage A, docs/135) | escaping lambdas, ref/own/resource capture, full closure environments |
 | Strings | normal strings, raw multiline strings, simple interpolation | nested interpolation protocol and format specifiers |
 | Collections | array literals, map literals, indexed access, `xs[a..b]`, `xs[a..]`, `xs[..]`, `.Slice(start, len)`, `SliceCopy(view)` | list/set literal lowering, spread/rest `...` |
 | Destructuring | positional `let (a, b) = value;` | named field destructuring |

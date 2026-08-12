@@ -131,8 +131,9 @@ parallel { ... }       let h = spawn F(args); await h;
 select { ... }
 ```
 
-`channel`은 예약어로 등록돼 있지만 아직 파서가 읽지 않는다. `channel<Int> ch;`는
-현재 파스되지 않으므로 위 목록에서 뺐다 — 상태는
+`channel` 예약어 행은 레지스트리에서 **제거됐다**(현재 146행: 70 예약 + 73 문맥 + 3 soft).
+런타임 타입 `Channel<T>`와 송수신 연산자 `<-`는 그대로 유효하다 — 사라진 것은
+소문자 키워드 형태(`channel<Int> ch;`)뿐이다. 제거 결정 기록은
 `docs/199_language_word_and_dogfood_grammar.md` §5가 소유한다.
 
 ## 8. Callable capability / effect-mask clause

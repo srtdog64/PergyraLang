@@ -14,9 +14,12 @@ the smoke corpus; they are not a second grammar specification.
 | `backend-compare-inventory-test-smoke` | native C/LLVM backend inventory | pass |
 | `grammar-cheatsheet-contract-test-smoke` | authored grammar examples and semicolon policy | pass |
 
-The lexer table currently contains 71 reserved keywords. The four entries
-that were missing from the older 66-word reference are `compensate`, `fail`,
-`reflect`, and `transaction`.
+The lexer table currently contains 70 reserved keywords (146 registry rows:
+70 reserved + 73 contextual + 3 soft, owned by
+`docs/semantics/language_keyword_registry.md`). The four entries that were
+missing from the older 66-word reference are `compensate`, `fail`, `reflect`,
+and `transaction`; `channel` has since been removed outright
+(`docs/199_language_word_and_dogfood_grammar.md` §5).
 
 Run the narrow closure gate with:
 

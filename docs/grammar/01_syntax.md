@@ -49,7 +49,7 @@
 |------|--------|
 | 선언 | `let`, `func`, `subject`, `class`, `struct`, `object`, `tobject`, `vessel`, `enum`, `intent`, `event`, `ability`, `role`, `party`, `roster`, `world`, `relation`, `effect`, `zone` |
 | 제어 | `if`, `else`, `for`, `in`, `while`, `match`, `case`, `default`, `return`, `break`, `continue` |
-| 비동기 | `async`, `await`, `spawn`, `select`, `channel` |
+| 비동기 | `async`, `await`, `spawn`, `select` |
 | 모듈 | `import`, `use`, `export`, `namespace`, `extern` |
 | 타입 수식 | `own`, `ref`, `dyn`, `where`, `as`, `type`, `extends`, `impl`, `reflect` |
 | 안전 / effect | `unsafe`, `defer`, `secure`, `remote`, `nondeterministic`, `collapse`, `local`, `transaction`, `compensate`, `fail` |
@@ -517,7 +517,7 @@ await pending
 
 연산자 우선순위는 대체로 다음과 같다.
 1. 호출 / 멤버 접근 / 인덱싱
-2. 단항 `!`, `-`
+2. 단항 `!`, `-`, `reflect`
 3. `*`, `/`, `%`
 4. `+`, `-`
 5. 비교 `< <= > >=`
@@ -841,9 +841,9 @@ world GameWorld {
 ## 10. 문서 사용법
 
 - 실제 구현 문법 확인: 이 문서
-- 설계/비전 확인: [00_vision.md](/mnt/e/PergyraLang/docs/00_vision.md)
-- 상세 문법 레퍼런스: [02_grammar.md](/mnt/e/PergyraLang/docs/grammar/02_grammar.md)
-- 네이밍 규칙: [03_naming.md](/mnt/e/PergyraLang/docs/grammar/03_naming.md)
+- 설계/비전 확인: [00_vision.md](../00_vision.md)
+- 상세 문법 레퍼런스: [02_grammar.md](02_grammar.md)
+- 네이밍 규칙: [03_naming.md](03_naming.md)
 
 ## Common Syntax Pattern Contract
 
@@ -860,8 +860,8 @@ Current grammar contract:
 | String interpolation | active partial | `"${expr}"` and `f"{expr}"` are parsed/lowered and basic fragments are C/LLVM parity-gated; escaping, nesting, and format specifiers remain the promotion gate. |
 | Array literal | stable | `[a, b, c]` is the collection literal baseline for beta. |
 | Slice view | stable | `values.Slice(start, len)` creates a local borrowed `Slice<T>` view; `values[a..b]` desugars to `values.Slice(a, b - a)`; `SliceCopy(view)` materializes an owned `Array<T>` snapshot. |
-| List/Set/HashMap literal | reserved/out-of-beta | Use collection APIs; `{ ... }` object/map literal syntax is explicitly rejected. |
-| Lambda literal | partial | `=>` callables are allowed, but outer local/resource capture is rejected until closure environments exist. |
+| List/Set/HashMap literal | partial/out-of-beta | Bare `{ key: value }` map literal parses in expression position; typed `List`/`Set`/`HashMap` literal lowering is not frozen — use collection APIs. |
+| Lambda literal | partial | `=>` callable-let lambdas may copy-capture value-type locals (Stage A, docs/135); escaping lambdas and ref/own/resource captures still reject. |
 | Named arguments | reserved/rejected | `Call(name: value)` is preserved in parser/AST where accepted, then semantically rejected before dispatch. |
 | Default value arguments | rejected | `=` in function/async/lambda parameter lists is a parser error; generic default type arguments are separate. |
 | Tuple literal/type | partial | Return and local-literal/destructure C/LLVM parity are gated; richer ABI and diagnostics remain partial. |
@@ -869,8 +869,8 @@ Current grammar contract:
 | Named destructuring | rejected | `let {x} = value;` is not beta grammar. |
 | Optional chaining/coalescing | partial | `??` is active for `Option<T> ?? T -> T`; `?.` remains reserved with explicit parser diagnostics. |
 | Cast/type test | reserved/rejected | Broad expression `as`/`is` conversion syntax is not beta grammar. |
-| Object initializer | rejected | `Type { ... }` is not beta construction syntax. |
-| Open-ended slicing/spread/rest | reserved/rejected | `xs[..]` and `...` spread/rest are explicit parser rejects; use `values[a..b]` or `values.Slice(start, len)` plus `SliceCopy(view)` when an owned snapshot is required. |
+| Object initializer | partial | `Type { field: value }` parses as named-argument construction sugar; semantic dispatch policy remains partial — prefer constructors/factory calls in stable examples. |
+| Open-ended slicing/spread/rest | partial (slicing) / rejected (spread) | `xs[a..b]`, `xs[a..]`, `xs[..]` lower to borrowed `Slice<T>` views; `...` spread/rest stays an explicit parser reject; `SliceCopy(view)` materializes an owned snapshot. |
 | Match guard/or-pattern | active partial | Basic scalar guard/or-pattern C/LLVM parity is gated by `match_guard_or_pattern`; promotion still depends on broader CFG/exhaustiveness coverage. |
 | Block expression | not beta grammar | Blocks are statements unless a local grammar section says otherwise. |
 | Unsafe/raw | partial | `unsafe { ... }` is a boundary marker, not permission to bypass Slot/authority contracts. Raw escape requires a future scoped capability contract such as `unsafe(raw) { ... }`. |
