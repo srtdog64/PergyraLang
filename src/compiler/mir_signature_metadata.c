@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "mir_base_helpers.h"
 #include "mir_decl_headers.h"
 #include "mir_type_helpers.h"
 #include "../parser/ast_api.h"
@@ -236,5 +237,52 @@ mir_routine_signature_metadata_capture(const MIRProgram *program,
             mir_capture_type_name(NULL,
                 ast_func_semantic_return_type_name(routine->ast));
     }
+    return true;
+}
+
+bool
+mir_routine_receiver_carriage_capture(const MIRProgram *program,
+                                      MIRRoutine *routine,
+                                      char **error_message)
+{
+    const char *owner_name;
+    const MIRDeclHeader *owner = NULL;
+    size_t owner_count = 0;
+
+    if (program == NULL || routine == NULL)
+        return false;
+    owner_name = routine->owner_name;
+    if (routine->kind != MIR_SCOPE_METHOD) {
+        routine->receiver_carriage = MIR_RECEIVER_CARRIAGE_NONE;
+        return true;
+    }
+    if (owner_name == NULL || owner_name[0] == '\0') {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR method '%s' receiver carriage requires a declaration owner",
+                routine->name != NULL ? routine->name : "(anonymous)");
+        }
+        return false;
+    }
+    for (size_t i = 0; i < program->decl_header_count; i++) {
+        const MIRDeclHeader *candidate = &program->decl_headers[i];
+        if (candidate->name != NULL && strcmp(candidate->name, owner_name) == 0) {
+            owner = candidate;
+            owner_count++;
+        }
+    }
+    if (owner_count != 1 || owner == NULL
+        || owner->ast_type != routine->owner_ast_type) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' receiver carriage requires one exact declaration owner '%s'",
+                routine->name != NULL ? routine->name : "(anonymous)",
+                owner_name);
+        }
+        return false;
+    }
+    routine->receiver_carriage = owner->uses_pointer_self
+        ? MIR_RECEIVER_CARRIAGE_MUTABLE_IDENTITY
+        : MIR_RECEIVER_CARRIAGE_VALUE;
     return true;
 }
