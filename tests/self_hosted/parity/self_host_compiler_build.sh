@@ -186,7 +186,10 @@ if ! (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" \
     rm -f "$tmp_output"
     fail "Pergyra-built DRV-2 rejected the installed machine manifest"
 fi
-if ! cmp -s "$MANIFEST_SOURCE" "$MANIFEST_SMOKE"; then
+# Hash equality instead of cmp: the CI-provisioned MSYS2 ships without
+# diffutils, and a `cmp: command not found` (exit 127) read as "artifact
+# changed" — a missing tool must not impersonate a manifest verdict.
+if [[ "$(hash_file "$MANIFEST_SOURCE")" != "$(hash_file "$MANIFEST_SMOKE")" ]]; then
     rm -f "$tmp_output"
     fail "Pergyra-built DRV-2 changed the native machine manifest artifact"
 fi

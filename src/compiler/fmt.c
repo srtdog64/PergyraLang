@@ -23,7 +23,8 @@
 static bool fmt_replace_file(const char *dst_path, const char *tmp_path);
 
 static bool format_source_to_stream(const char *source, FILE *out);
-static char *format_source_to_string(const char *source);
+static char *format_source_to_string(const char *source,
+                                     const char *scratch_path);
 
 #include "fmt_io.h"
 #include "fmt_layout.h"
@@ -179,23 +180,31 @@ fmt_read_stream(FILE *f)
 }
 
 static char *
-format_source_to_string(const char *source)
+/*
+ * The scratch file lives next to the input like the main temp output does.
+ * tmpfile() is not usable here: on Windows it opens text-mode (CR/LF
+ * translation breaks the byte-exact roundtrip compare) and targets the
+ * current drive's root, which CI runners and user machines may refuse.
+ */
+format_source_to_string(const char *source, const char *scratch_path)
 {
     FILE *tmp;
     char *result;
 
-    if (source == NULL)
+    if (source == NULL || scratch_path == NULL)
         return NULL;
-    tmp = tmpfile();
+    tmp = fopen(scratch_path, "w+b");
     if (tmp == NULL)
         return NULL;
     if (!format_source_to_stream(source, tmp)) {
         fclose(tmp);
+        remove(scratch_path);
         return NULL;
     }
     fflush(tmp);
     result = fmt_read_stream(tmp);
     fclose(tmp);
+    remove(scratch_path);
     return result;
 }
 
@@ -285,7 +294,9 @@ driver_run_fmt_command(int argc, char *argv[])
             fprintf(stderr, "pgy fmt: formatter produced unparsable output for '%s'\n", path);
             return 1;
         }
-        roundtrip = format_source_to_string(formatted);
+        char rtpath[512];
+        snprintf(rtpath, sizeof(rtpath), "%s.fmt.rt.tmp", path);
+        roundtrip = format_source_to_string(formatted, rtpath);
         if (roundtrip == NULL || strcmp(formatted, roundtrip) != 0) {
             free(formatted);
             free(roundtrip);
