@@ -162,7 +162,15 @@ fmt_read_stream(FILE *f)
     if (buf == NULL)
         return NULL;
     read_len = fread(buf, 1, (size_t)len, f);
-    if (read_len != (size_t)len) {
+    /*
+     * tmpfile() streams are text-mode on Windows: ftell counts the CR bytes
+     * the CRT wrote, fread hands back the translated LF-only text, so a
+     * clean read of any output with a newline comes up short of len. Only a
+     * stream error or a short read without EOF is a real failure; treating
+     * the translated length as one made every fmt roundtrip "not stable"
+     * on Windows.
+     */
+    if (ferror(f) != 0 || (read_len != (size_t)len && feof(f) == 0)) {
         free(buf);
         return NULL;
     }

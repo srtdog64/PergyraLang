@@ -143,21 +143,6 @@ llvm_array_format_runtime_name(char *out, size_t out_size,
 }
 
 static bool
-llvm_array_runtime_name_error(ASTNode *node, LLVMGenCtx *ctx,
-                              const char *callee_name, LLVMValueRef *out)
-{
-    llvm_set_error_at_with_hints(ctx, node,
-        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-        "LLVM array operation '%s' runtime function name is too long",
-        callee_name != NULL ? callee_name : "<unknown>");
-    if (out != NULL)
-        *out = NULL;
-    return true;
-}
-
-static bool
 llvm_array_error_out(ASTNode *node, LLVMGenCtx *ctx,
                      const char *message, LLVMValueRef *out)
 {
@@ -173,6 +158,37 @@ llvm_array_error_out(ASTNode *node, LLVMGenCtx *ctx,
     if (out != NULL)
         *out = NULL;
     return true;
+}
+
+/*
+ * Resolve "<prefix>_<suffix>" in the array runtime registry. On failure the
+ * diagnostic is already reported and *out cleared, so callers return true.
+ */
+static LLVMFuncEntry *
+llvm_array_required_suffix_runtime(LLVMGenCtx *ctx, ASTNode *node,
+                                   const char *callee_name, const char *prefix,
+                                   const char *suffix, const char *missing_msg,
+                                   LLVMValueRef *out)
+{
+    char fn_name[64];
+
+    if (!llvm_array_format_runtime_name(fn_name, sizeof(fn_name),
+            prefix, suffix)) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM array operation '%s' runtime function name is too long",
+            callee_name != NULL ? callee_name : "<unknown>");
+        if (out != NULL)
+            *out = NULL;
+        return NULL;
+    }
+    LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node, "array",
+        callee_name, fn_name);
+    if (fn == NULL)
+        llvm_array_error_out(node, ctx, missing_msg, out);
+    return fn;
 }
 
 static const char *
@@ -442,15 +458,11 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             return true;
         }
 
-        char fn_name[64];
-        if (!llvm_array_format_runtime_name(fn_name, sizeof(fn_name),
-                "pgy_slice_copy", suffix))
-            return llvm_array_runtime_name_error(node, ctx, callee_name, out);
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "array", callee_name, fn_name);
+        LLVMFuncEntry *fn = llvm_array_required_suffix_runtime(ctx, node,
+            callee_name, "pgy_slice_copy", suffix,
+            "LLVM SliceCopy requires registered runtime function", out);
         if (fn == NULL)
-            return llvm_array_error_out(node, ctx,
-                "LLVM SliceCopy requires registered runtime function", out);
+            return true;
 
         LLVMValueRef slice_addr = llvm_create_entry_alloca(ctx,
             LLVMTypeOf(slice), "slice.copy.addr");
@@ -473,15 +485,12 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (suffix == NULL || strcmp(suffix, "String") != 0)
             return llvm_array_error_out(node, ctx,
                 "LLVM ArrayDropOwnedStrings requires Array<String>", out);
-        char fn_name[64];
-        if (!llvm_array_format_runtime_name(fn_name, sizeof(fn_name),
-                "pgy_array_drop_owned", suffix))
-            return llvm_array_runtime_name_error(node, ctx, callee_name, out);
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "array", callee_name, fn_name);
+        LLVMFuncEntry *fn = llvm_array_required_suffix_runtime(ctx, node,
+            callee_name, "pgy_array_drop_owned", suffix,
+            "LLVM ArrayDropOwnedStrings requires registered runtime function",
+            out);
         if (fn == NULL)
-            return llvm_array_error_out(node, ctx,
-                "LLVM ArrayDropOwnedStrings requires registered runtime function", out);
+            return true;
         LLVMValueRef args[] = { arr_alloca };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
         *out = llvm_void_expression_placeholder(ctx, node, callee_name);
@@ -544,16 +553,13 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             return llvm_array_error_out(node, ctx,
                 "LLVM ArrayPushOwnedString requires Array<String>", out);
 
-        char fn_name[64];
-        if (!llvm_array_format_runtime_name(fn_name, sizeof(fn_name),
-                op == LLVM_ARRAY_BUILTIN_PUSH_OWNED_STRING
-                    ? "pgy_array_push_owned" : "pgy_array_push", suffix))
-            return llvm_array_runtime_name_error(node, ctx, callee_name, out);
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "array", callee_name, fn_name);
+        LLVMFuncEntry *fn = llvm_array_required_suffix_runtime(ctx, node,
+            callee_name,
+            op == LLVM_ARRAY_BUILTIN_PUSH_OWNED_STRING
+                ? "pgy_array_push_owned" : "pgy_array_push", suffix,
+            "LLVM ArrayPush requires registered runtime function", out);
         if (fn == NULL)
-            return llvm_array_error_out(node, ctx,
-                "LLVM ArrayPush requires registered runtime function", out);
+            return true;
         LLVMValueRef args[] = { arr_alloca, value };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
         *out = llvm_void_expression_placeholder(ctx, node, callee_name);
@@ -601,16 +607,12 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (use_raw_nominal)
             return llvm_array_emit_raw_nominal_set(ctx, node, callee_name,
                 arr_alloca, entry, index64, value, out);
-        char fn_name[64];
         /* Contract: checked ArraySet lowers to pgy_array_set_<suffix>. */
-        if (!llvm_array_format_runtime_name(fn_name, sizeof(fn_name),
-                "pgy_array_set", suffix))
-            return llvm_array_runtime_name_error(node, ctx, callee_name, out);
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "array", callee_name, fn_name);
+        LLVMFuncEntry *fn = llvm_array_required_suffix_runtime(ctx, node,
+            callee_name, "pgy_array_set", suffix,
+            "LLVM ArraySet requires registered runtime function", out);
         if (fn == NULL)
-            return llvm_array_error_out(node, ctx,
-                "LLVM ArraySet requires registered runtime function", out);
+            return true;
         LLVMValueRef args[] = { arr_alloca, index64, value };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
         *out = llvm_void_expression_placeholder(ctx, node, callee_name);
@@ -632,15 +634,11 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                 "LLVM ArraySort requires concrete Array<T> element metadata",
                 out);
 
-        char fn_name[64];
-        if (!llvm_array_format_runtime_name(fn_name, sizeof(fn_name),
-                "pgy_array_sort", suffix))
-            return llvm_array_runtime_name_error(node, ctx, callee_name, out);
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "array", callee_name, fn_name);
+        LLVMFuncEntry *fn = llvm_array_required_suffix_runtime(ctx, node,
+            callee_name, "pgy_array_sort", suffix,
+            "LLVM ArraySort requires registered runtime function", out);
         if (fn == NULL)
-            return llvm_array_error_out(node, ctx,
-                "LLVM ArraySort requires registered runtime function", out);
+            return true;
 
         /* Extract data pointer (field 0) and length (field 1) from the
          * array struct, call sort, then return the original array value. */
@@ -684,15 +682,11 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                 "LLVM ArrayPop requires concrete Array<T> element metadata", out);
         }
 
-        char fn_name[64];
-        if (!llvm_array_format_runtime_name(fn_name, sizeof(fn_name),
-                "pgy_array_pop", suffix))
-            return llvm_array_runtime_name_error(node, ctx, callee_name, out);
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "array", callee_name, fn_name);
+        LLVMFuncEntry *fn = llvm_array_required_suffix_runtime(ctx, node,
+            callee_name, "pgy_array_pop", suffix,
+            "LLVM ArrayPop requires registered runtime function", out);
         if (fn == NULL)
-            return llvm_array_error_out(node, ctx,
-                "LLVM ArrayPop requires registered runtime function", out);
+            return true;
         LLVMValueRef args[] = { arr_alloca };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
         *out = llvm_void_expression_placeholder(ctx, node, callee_name);
